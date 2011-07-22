@@ -25,15 +25,15 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * Used to parse files passed to the GenomicAnnotator via the -J arg.

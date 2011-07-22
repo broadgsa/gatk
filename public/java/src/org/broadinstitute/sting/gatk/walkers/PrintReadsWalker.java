@@ -28,14 +28,18 @@ package org.broadinstitute.sting.gatk.walkers;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 
-import java.io.PrintStream;
+import java.io.File;
+import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
 
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear
  * in the input file.  It can dynamically merge the contents of multiple input BAM files, resulting
@@ -54,6 +58,13 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     String platform = null; // E.g. ILLUMINA, 454
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
+    @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
+    public Set<File> sampleFile = new TreeSet<File>();
+    @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
+    public Set<String> sampleNames = new TreeSet<String>();
+
+    private TreeSet<String> samplesToChoose = new TreeSet<String>();
+    private boolean SAMPLES_SPECIFIED = false;
 
     /**
      * The initialize function.
@@ -61,6 +72,20 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     public void initialize() {
         if  ( platform != null )
             platform = platform.toUpperCase();
+
+        Collection<String> samplesFromFile;
+        if (!sampleFile.isEmpty())  {
+            samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFile);
+            samplesToChoose.addAll(samplesFromFile);
+        }
+
+        if (!sampleNames.isEmpty())
+            samplesToChoose.addAll(sampleNames);
+
+        if(!samplesToChoose.isEmpty()) {
+            SAMPLES_SPECIFIED = true;
+        }
+
     }
 
     /**
@@ -87,6 +112,14 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
             if ( readPlatformAttr == null || !readPlatformAttr.toString().toUpperCase().contains(platform))
                 return false;
         }
+        if (SAMPLES_SPECIFIED )  {
+            // user specified samples to select
+            // todo - should be case-agnostic  but for simplicity and speed this is ignored.
+            // todo - can check at initialization intersection of requested samples and samples in BAM header to further speedup.
+            if (!samplesToChoose.contains(read.getReadGroup().getSample()))
+                return false;
+        }
+
 
         // check if we've reached the output limit
         if ( nReadsToPrint == 0 ) {

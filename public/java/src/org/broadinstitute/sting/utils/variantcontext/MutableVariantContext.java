@@ -1,7 +1,10 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Mutable version of VariantContext

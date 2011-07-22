@@ -2,7 +2,9 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import java.util.*;
+
+import java.util.List;
+import java.util.Map;
 
 
 /**

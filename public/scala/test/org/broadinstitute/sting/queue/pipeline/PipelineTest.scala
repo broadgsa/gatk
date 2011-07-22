@@ -31,6 +31,7 @@ import org.broadinstitute.sting.commandline.CommandLineProgram
 import java.util.Date
 import java.text.SimpleDateFormat
 import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.sting.MD5DB
 import org.broadinstitute.sting.queue.QCommandLine
 import org.broadinstitute.sting.queue.util.{Logging, ProcessController}
 import java.io.{FileNotFoundException, File}
@@ -105,7 +106,7 @@ object PipelineTest extends BaseTest with Logging {
   private def assertMatchingMD5s(name: String, fileMD5s: Traversable[(File, String)], parameterize: Boolean) {
     var failed = 0
     for ((file, expectedMD5) <- fileMD5s) {
-      val calculatedMD5 = BaseTest.testFileMD5(name, file, expectedMD5, parameterize)
+      val calculatedMD5 = MD5DB.testFileMD5(name, file, expectedMD5, parameterize)
       if (!parameterize && expectedMD5 != "" && expectedMD5 != calculatedMD5)
         failed += 1
     }

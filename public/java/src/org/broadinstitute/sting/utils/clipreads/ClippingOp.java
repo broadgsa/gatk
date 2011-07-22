@@ -4,9 +4,6 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.walkers.ClipReadsWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.Vector;

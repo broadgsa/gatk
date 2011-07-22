@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.samtools.SAMFileSpan;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
 import java.util.Map;
-
-import net.sf.samtools.SAMFileSpan;
 
 /**
  * Handles locus shards of BAM information.

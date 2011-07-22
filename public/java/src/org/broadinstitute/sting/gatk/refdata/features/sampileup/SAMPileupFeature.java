@@ -25,11 +25,10 @@
 
 package org.broadinstitute.sting.gatk.refdata.features.sampileup;
 
+import net.sf.samtools.util.StringUtil;
 import org.broad.tribble.Feature;
 
 import java.util.List;
-
-import net.sf.samtools.util.StringUtil;
 
 /**
  * A tribble feature representing a SAM pileup.

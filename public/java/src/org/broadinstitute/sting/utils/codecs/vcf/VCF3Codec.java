@@ -141,8 +141,6 @@ public class VCF3Codec extends AbstractVCFCodec {
                     boolean missing = i >= GTValueSplitSize;
 
                     if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
-                        if (i != 0)
-                            generateException("Saw GT at position " + i + ", but it must be at the first position for genotypes");
                         genotypeAlleleLocation = i;
                     } else if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
                         GTQual = missing ? parseQual(VCFConstants.MISSING_VALUE_v4) : parseQual(GTValueArray[i]);
@@ -156,12 +154,13 @@ public class VCF3Codec extends AbstractVCFCodec {
                 }
             }
 
-            // check to make sure we found a gentoype field
-            if (genotypeAlleleLocation < 0) generateException("Unable to find required field GT for the record; we don't yet support a missing GT field");
+            // check to make sure we found a genotype field
+            if ( genotypeAlleleLocation < 0 )
+                generateException("Unable to find the GT field for the record; the GT field is required");
+            if ( genotypeAlleleLocation > 0 )
+                generateException("Saw GT field at position " + genotypeAlleleLocation + ", but it must be at the first position for genotypes");
 
-            // todo -- assuming allele list length in the single digits is bad.  Fix me.
-            // Check for > 1 for haploid genotypes
-            boolean phased = GTValueArray[genotypeAlleleLocation].length() > 1 && GTValueArray[genotypeAlleleLocation].charAt(1) == '|';
+            boolean phased = GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1;
 
             // add it to the list
             try {

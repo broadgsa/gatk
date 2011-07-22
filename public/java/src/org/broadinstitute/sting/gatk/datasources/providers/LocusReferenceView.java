@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 /*
  * Copyright (c) 2009 The Broad Institute
  *

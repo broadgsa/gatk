@@ -23,7 +23,8 @@
  */
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.*;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordCoordinateComparator;
 
 /**
  * Extends Picard's Comparator for sorting SAMRecords by coordinate.  This one actually deals with unmapped reads

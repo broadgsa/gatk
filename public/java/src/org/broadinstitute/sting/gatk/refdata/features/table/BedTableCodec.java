@@ -1,13 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata.features.table;
 
 import org.broad.tribble.Feature;
-import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**

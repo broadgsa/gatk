@@ -34,7 +34,6 @@ import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.*;
 
-import javax.jws.soap.SOAPBinding;
 import java.io.File;
 
 /**
@@ -55,25 +54,25 @@ public class LibBatIntegrationTest extends BaseTest {
 
     @Test
     public void testReadConfEnv() {
-        LibLsf.config_param[] unitsParam = (LibLsf.config_param[]) new LibLsf.config_param().toArray(4);
+        LibLsf.config_param[] configParams = (LibLsf.config_param[]) new LibLsf.config_param().toArray(4);
 
-        unitsParam[0].paramName = "LSF_UNIT_FOR_LIMITS";
-        unitsParam[1].paramName = "LSF_CONFDIR";
-        unitsParam[2].paramName = "MADE_UP_PARAMETER";
+        configParams[0].paramName = "LSF_UNIT_FOR_LIMITS";
+        configParams[1].paramName = "LSF_CONFDIR";
+        configParams[2].paramName = "MADE_UP_PARAMETER";
 
-        Structure.autoWrite(unitsParam);
+        Structure.autoWrite(configParams);
 
-        if (LibLsf.ls_readconfenv(unitsParam[0], null) != 0) {
+        if (LibLsf.ls_readconfenv(configParams[0], null) != 0) {
             Assert.fail(LibLsf.ls_sysmsg());
         }
 
-        Structure.autoRead(unitsParam);
+        Structure.autoRead(configParams);
 
-        System.out.println("LSF_UNIT_FOR_LIMITS: " + unitsParam[0].paramValue);
-        Assert.assertNotNull(unitsParam[1].paramValue);
-        Assert.assertNull(unitsParam[2].paramValue);
-        Assert.assertNull(unitsParam[3].paramName);
-        Assert.assertNull(unitsParam[3].paramValue);
+        System.out.println("LSF_UNIT_FOR_LIMITS: " + configParams[0].paramValue);
+        Assert.assertNotNull(configParams[1].paramValue);
+        Assert.assertNull(configParams[2].paramValue);
+        Assert.assertNull(configParams[3].paramName);
+        Assert.assertNull(configParams[3].paramValue);
     }
 
     @Test

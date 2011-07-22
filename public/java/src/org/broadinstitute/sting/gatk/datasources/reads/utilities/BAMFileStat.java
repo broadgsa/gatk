@@ -25,17 +25,17 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads.utilities;
 
-import org.broadinstitute.sting.commandline.CommandLineProgram;
+import net.sf.samtools.BAMIndex;
+import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.Map;
 import java.util.List;
-
-import net.sf.samtools.*;
+import java.util.Map;
 
 /**
  *

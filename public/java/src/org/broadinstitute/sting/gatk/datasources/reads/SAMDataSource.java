@@ -24,21 +24,19 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.sam.MergingSamRecordIterator;
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.picard.sam.SamFileHeaderMerger;
-import net.sf.picard.sam.MergingSamRecordIterator;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;

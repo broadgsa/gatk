@@ -25,14 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -42,6 +40,8 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -60,6 +60,7 @@ import java.util.*;
 public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> implements TreeReducible<ExpandingArrayList<VariantDatum>> {
 
     public static final String VQS_LOD_KEY = "VQSLOD";
+    public static final String CULPRIT_KEY = "culprit";
 
     @ArgumentCollection private VariantRecalibratorArgumentCollection VRAC = new VariantRecalibratorArgumentCollection();
 
@@ -175,7 +176,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     datum.originalQual = vc.getPhredScaledQual();
                     datum.isSNP = vc.isSNP() && vc.isBiallelic();
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
-                    datum.usedForTraining = 0;
 
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
                     dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
@@ -237,6 +237,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // Generate the negative model using the worst performing data and evaluate each variant contrastively
         final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS, VRAC.MIN_NUM_BAD_VARIANTS ) );
         engine.evaluateData( dataManager.getData(), badModel, true );
+        engine.calculateWorstPerformingAnnotation( dataManager.getData(), goodModel, badModel );
 
         // Find the VQSLOD cutoff values which correspond to the various tranches of calls requested by the user
         final int nCallsAtTruth = TrancheManager.countCallsAtTruth( dataManager.getData(), Double.NEGATIVE_INFINITY );
@@ -283,7 +284,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             throw new UserException.CouldNotCreateOutputFile(RSCRIPT_FILE, "", e);
         }
 
-        // We make extensive use of the ggplot2 library: http://had.co.nz/ggplot2/
+        // We make extensive use of the ggplot2 R library: http://had.co.nz/ggplot2/
         stream.println("library(ggplot2)");
 
         createArrangeFunction( stream );
@@ -333,7 +334,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                 stream.print("data <- c(");
                 for( final VariantDatum datum : randomData ) {
-                    stream.print(String.format("%.3f, %.3f, %.3f, %d, %d,", datum.annotations[iii], datum.annotations[jjj], (datum.lod < lodCutoff ? -1.0 : 1.0), datum.usedForTraining, (datum.isKnown ? 1 : -1)));
+                    stream.print(String.format("%.3f, %.3f, %.3f, %d, %d,", datum.annotations[iii], datum.annotations[jjj], (datum.lod < lodCutoff ? -1.0 : 1.0),
+                            (datum.atAntiTrainingSite ? -1 : (datum.atTrainingSite ? 1 : 0)), (datum.isKnown ? 1 : -1)));
                 }
                 stream.println("NA,NA,NA,NA,1)");
                 stream.println("d <- matrix(data,ncol=5,byrow=T)");
@@ -376,6 +378,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
      }
 
+    // The Arrange function is how we place the 4 model plots on one page
     // from http://gettinggeneticsdone.blogspot.com/2010/03/arrange-multiple-ggplot2-plots-in-same.html
     private void createArrangeFunction( final PrintStream stream ) {
         stream.println("vp.layout <- function(x, y) viewport(layout.pos.row=x, layout.pos.col=y)");
@@ -400,5 +403,4 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         stream.println("}");
         stream.println("}");
     }
-
- }
+}

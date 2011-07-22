@@ -24,14 +24,13 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.IterableIterator;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 
-import java.util.List;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A data retrieval interface for accessing parts of the pileup.

@@ -26,13 +26,15 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
-import org.broadinstitute.sting.utils.help.ApplicationDetails;
-import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.ApplicationDetails;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
 

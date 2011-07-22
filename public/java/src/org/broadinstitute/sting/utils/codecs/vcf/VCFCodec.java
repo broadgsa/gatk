@@ -145,8 +145,6 @@ public class VCFCodec extends AbstractVCFCodec {
 
                     // todo -- all of these on the fly parsing of the missing value should be static constants
                     if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
-                        if (i != 0)
-                            generateException("Saw GT at position " + i + ", but it must be at the first position for genotypes");
                         genotypeAlleleLocation = i;
                     } else if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
                         GTQual = missing ? parseQual(VCFConstants.MISSING_VALUE_v4) : parseQual(GTValueArray[i]);
@@ -160,22 +158,24 @@ public class VCFCodec extends AbstractVCFCodec {
                 }
             }
 
-            // check to make sure we found a gentoype field
-            // TODO -- This is no longer required in v4.1
-            if (genotypeAlleleLocation < 0) generateException("Unable to find required field GT for the record; we don't yet support a missing GT field");
+            // check to make sure we found a genotype field if we are a VCF4.0 file
+            if ( version == VCFHeaderVersion.VCF4_0 && genotypeAlleleLocation == -1 )
+                generateException("Unable to find the GT field for the record; the GT field is required in VCF4.0");
+            if ( genotypeAlleleLocation > 0 )
+                generateException("Saw GT field at position " + genotypeAlleleLocation + ", but it must be at the first position for genotypes when present");
 
-            // todo -- assuming allele list length in the single digits is bad.  Fix me.
-            // Check for > 1 for haploid genotypes
-            boolean phased = GTValueArray[genotypeAlleleLocation].length() > 1 && GTValueArray[genotypeAlleleLocation].charAt(1) == '|';
+            List<Allele> GTalleles = (genotypeAlleleLocation == -1 ? null : parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
+            boolean phased = genotypeAlleleLocation != -1 && GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1;
 
             // add it to the list
             try {
-                genotypes.put(sampleName, new Genotype(sampleName,
-                        parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap),
-                        GTQual,
-                        genotypeFilters,
-                        gtAttributes,
-                        phased));
+                genotypes.put(sampleName,
+                        new Genotype(sampleName,
+                                GTalleles,
+                                GTQual,
+                                genotypeFilters,
+                                gtAttributes,
+                                phased));
             } catch (TribbleException e) {
                 throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
             }

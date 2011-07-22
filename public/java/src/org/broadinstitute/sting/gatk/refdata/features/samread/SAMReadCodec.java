@@ -24,14 +24,14 @@
 
 package org.broadinstitute.sting.gatk.refdata.features.samread;
 
+import net.sf.samtools.Cigar;
+import net.sf.samtools.TextCigarCodec;
+import net.sf.samtools.util.StringUtil;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
-import net.sf.samtools.util.StringUtil;
-import net.sf.samtools.TextCigarCodec;
-import net.sf.samtools.Cigar;
 
 /**
  * Decodes a simple SAM text string.

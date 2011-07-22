@@ -25,12 +25,14 @@
 
 package org.broadinstitute.sting.utils;
 
-import com.google.java.contract.*;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
+import com.google.java.contract.ThrowEnsures;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
-
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;

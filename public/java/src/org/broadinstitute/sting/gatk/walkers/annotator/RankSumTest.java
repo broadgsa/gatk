@@ -1,22 +1,23 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.MannWhitneyU;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 
@@ -106,6 +107,9 @@ public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnota
     protected abstract void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
 
     protected static boolean isUsableBase( final PileupElement p ) {
-        return !( p.isDeletion() || p.getMappingQual() == 0 || ((int)p.getQual()) < 6 ); // need the unBAQed quality score here
+        return !( p.isDeletion() ||
+                  p.getMappingQual() == 0 ||
+                  p.getMappingQual() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE ||
+                  ((int)p.getQual()) < QualityUtils.MIN_USABLE_Q_SCORE ); // need the unBAQed quality score here
     }
 }

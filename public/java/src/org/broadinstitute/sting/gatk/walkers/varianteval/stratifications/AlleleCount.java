@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -43,9 +42,9 @@ public class AlleleCount extends VariantStratifier {
 
         if (eval != null) {
             int AC = -1;
-            if ( eval.hasAttribute("AC") )
+            if ( eval.hasAttribute("AC") && eval.getAttribute("AC") instanceof Integer ) {
                 AC = eval.getAttributeAsInt("AC");
-            else if ( eval.isVariant() ) {
+            } else if ( eval.isVariant() ) {
                 for (Allele allele : eval.getAlternateAlleles())
                     AC = Math.max(AC, eval.getChromosomeCount(allele));
             } else

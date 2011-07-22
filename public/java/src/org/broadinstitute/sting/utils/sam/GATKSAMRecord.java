@@ -1,11 +1,13 @@
 package org.broadinstitute.sting.utils.sam;
 
-import java.lang.reflect.Method;
-import java.util.*;
-
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author ebanks

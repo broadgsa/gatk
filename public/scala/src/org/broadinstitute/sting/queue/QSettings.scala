@@ -45,7 +45,7 @@ class QSettings {
   var jobPriority: Option[Int] = None
 
   @Argument(fullName="default_memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
-  var memoryLimit: Option[Int] = None
+  var memoryLimit: Option[Double] = None
 
   @Argument(fullName="run_directory", shortName="runDir", doc="Root directory to run functions from.", required=false)
   var runDirectory = new File(".")

@@ -70,8 +70,6 @@
 
     <property environment="env"/>
 
-    <property name="drmaa.jar" value="${env.SGE_ROOT}/${lib.dir}/drmaa.jar" />
-
     <patternset id="java.source.pattern">
         <include name="${java.public.source.dir}/**/*.java" />
         <include name="${java.private.source.dir}/**/*.java" if="include.private" />
@@ -147,11 +145,7 @@
         <property name="init.resolve.done" value="true"/>
     </target>
 
-    <target name="init.gridengine" depends="init" if="include.gridengine">
-        <copy todir="${lib.dir}" file="${drmaa.jar}"/>
-    </target>
-
-    <target name="resolve" depends="init.resolve,init,init.gridengine"
+    <target name="resolve" depends="init.resolve,init"
             description="locate and download library dependencies">
         <property name="ivy.conf" value="default"/>
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
@@ -179,13 +173,23 @@
         <property name="build.version" value="${git.describe.output}" />
     </target>
     
-    <target name="untagged.build.version" depends="git.describe" unless="git.describe.succeeded">
-      <exec executable="git" outputproperty="build.version" failonerror="true">
+    <target name="git.rev-parse" depends="git.describe" unless="git.describe.succeeded">
+      <exec executable="git" outputproperty="git.rev-parse.output" resultproperty="git.rev-parse.exit.value" failonerror="false">
         <arg line="rev-parse HEAD" />
       </exec>
+      <condition property="git.rev-parse.succeeded">
+        <equals arg1="${git.rev-parse.exit.value}" arg2="0" />
+      </condition>
     </target>
     
-    <target name="generate.build.version" depends="tagged.build.version, untagged.build.version" />
+    <target name="untagged.build.version" depends="git.rev-parse" if="git.rev-parse.succeeded">
+        <property name="build.version" value="${git.rev-parse.output}" />
+    </target>
+    
+    <target name="generate.build.version" depends="tagged.build.version, untagged.build.version">
+        <!-- Set build.version to exported if no other value has been set -->
+        <property name="build.version" value="exported" />
+    </target>
 
     <!-- define some key locations that might change based on how the build is run -->
     <target name="init" depends="generate.build.version">
@@ -213,12 +217,6 @@
             <or>
                 <not><equals arg1="${scala.target}" arg2="none" /></not>
             </or>
-        </condition>
-
-        <!-- Include Grid Engine in the compile if SGE_ROOT is available. -->
-        <!-- Based off of http://wikis.sun.com/display/GridEngine/Automating+Grid+Engine+Functions+Through+DRMAA -->
-        <condition property="include.gridengine">
-            <available file="${drmaa.jar}"/>
         </condition>
 
         <echo message="GATK build      : ${gatk.target}"/>
@@ -371,7 +369,6 @@
             <src path="${scala.public.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
-            <exclude name="**/gridengine/**" unless="include.gridengine" />
         </scalac>    
     </target>
     
@@ -388,7 +385,6 @@
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
             <src path="${scala.private.source.dir}" />
             <include name="**/*.scala"/>
-            <exclude name="**/gridengine/**" unless="include.gridengine" />
         </scalac>       
     </target>
 
@@ -696,7 +692,6 @@
 	        <src path="${scala.public.test.sources}" />
 	        <src path="${scala.private.test.sources}" />
             <include name="**/*.scala"/>
-            <exclude name="**/gridengine/**" unless="include.gridengine" />
             <classpath>
                 <path refid="scala.dependencies"/>
                 <pathelement location="${scala.test.classes}"/>
@@ -1046,6 +1041,7 @@
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
+        <delete dir="dump"/>
         <delete dir="staging"/>
         <delete dir="${dist.dir}"/>
         <delete dir="pipelinetests"/>

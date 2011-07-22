@@ -26,17 +26,16 @@
 package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
-import org.broadinstitute.sting.utils.interval.IntervalSetRule;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.stream.Format;

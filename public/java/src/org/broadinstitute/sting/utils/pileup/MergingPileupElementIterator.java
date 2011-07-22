@@ -27,9 +27,9 @@ package org.broadinstitute.sting.utils.pileup;
 import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 
-import java.util.PriorityQueue;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.PriorityQueue;
 
 /**
  * Merges multiple pileups broken down by sample.

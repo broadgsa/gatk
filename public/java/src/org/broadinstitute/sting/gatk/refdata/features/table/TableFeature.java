@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.refdata.features.table;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * A feature representing a single row out of a text table
@@ -55,10 +55,14 @@ public class TableFeature implements Feature {
     }
 
     public List<String> getAllValues() {
-        return getValuesTo(values.size()-1);
+        return getValuesTo(values.size());
     }
 
     public List<String> getValuesTo(int columnPosition) {
         return values.subList(0,columnPosition);
+    }
+
+    public List<String> getHeader() {
+        return keys;
     }
 }
