@@ -29,7 +29,7 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 
 class HelloWorldPipelineTest {
   @Test
-  def testHelloWorld {
+  def testHelloWorld() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorld"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala"
@@ -37,15 +37,23 @@ class HelloWorldPipelineTest {
   }
 
   @Test
-  def testHelloWorldWithPrefix {
+  def testHelloWorldWithPrefix() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPrefix"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPrefix HelloWorld"
     PipelineTest.executeTest(spec)
   }
 
+  @Test
+  def testHelloWorldWithMemoryLimit() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithPrefix"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -memLimit 1.25"
+    PipelineTest.executeTest(spec)
+  }
+
   @Test(enabled=false)
-  def testHelloWorldWithPriority {
+  def testHelloWorldWithPriority() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPriority"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPriority 100"
