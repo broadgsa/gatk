@@ -1005,7 +1005,10 @@ class QGraph extends Logging {
           .asInstanceOf[Set[JobRunner[QFunction]]]
         if (managerRunners.size > 0)
           try {
-            manager.updateStatus(managerRunners)
+            val updatedRunners = manager.updateStatus(managerRunners)
+            for (runner <- managerRunners.diff(updatedRunners)) {
+              runner.checkUnknownStatus()
+            }
           } catch {
             case e => /* ignore */
           }

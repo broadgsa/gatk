@@ -32,8 +32,8 @@ import org.broadinstitute.sting.utils.Utils
 import org.broadinstitute.sting.jna.clibrary.LibC
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
 import com.sun.jna.ptr.IntByReference
-import com.sun.jna.{StringArray, NativeLong}
 import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import com.sun.jna.{Structure, StringArray, NativeLong}
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -45,12 +45,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 
   /** Job Id of the currently executing job. */
   private var jobId = -1L
-
-  /** Last known status */
-  private var lastStatus: RunnerStatus.Value = _
-
-  /** The last time the status was updated */
-  protected var lastStatusUpdate: Long = _
+  override def jobIdString = jobId.toString
 
   /**
    * Dispatches the function on the LSF cluster.
@@ -85,10 +80,17 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
         request.options |= LibBat.SUB_QUEUE
       }
 
-      // If the memory limit is set (GB) specify the memory limit
-      if (function.memoryLimit.isDefined) {
-        request.resReq = "rusage[mem=" + function.memoryLimit.get + "]"
+      // If the resident set size is requested pass on the memory request
+      if (residentRequestMB.isDefined) {
+        val memInUnits = Lsf706JobRunner.convertUnits(residentRequestMB.get)
+        request.resReq = "select[mem>%1$d] rusage[mem=%1$d]".format(memInUnits)
         request.options |= LibBat.SUB_RES_REQ
+      }
+
+      // If the resident set size limit is defined specify the memory limit
+      if (residentLimitMB.isDefined) {
+        val memInUnits = Lsf706JobRunner.convertUnits(residentLimitMB.get)
+        request.rLimits(LibLsf.LSF_RLIMIT_RSS) = memInUnits
       }
 
       // If the priority is set (user specified Int) specify the priority
@@ -122,11 +124,13 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
     }
   }
 
-  def status = this.lastStatus
-
-  private def updateStatus(updatedStatus: RunnerStatus.Value) {
-    this.lastStatus = updatedStatus
-    this.lastStatusUpdate = System.currentTimeMillis
+  override def checkUnknownStatus() {
+    // TODO: Need a second pass through either of the two archive logs using lsb_geteventrecbyline() for disappeared jobs.
+    // Can also tell if we wake up and the last time we saw status was greater than lsb_parameterinfo().cleanPeriod
+    // LSB_SHAREDIR/cluster_name/logdir/lsb.acct (man bacct)
+    // LSB_SHAREDIR/cluster_name/logdir/lsb.events (man bhist)
+    logger.debug("Job Id %s status / exitStatus / exitInfo: ??? / ??? / ???".format(jobId))
+    super.checkUnknownStatus()
   }
 }
 
@@ -137,16 +141,7 @@ object Lsf706JobRunner extends Logging {
   /** Number of seconds for a non-normal exit status before we give up on expecting LSF to retry the function. */
   private val retryExpiredSeconds = 5 * 60
 
-  /** Amount of time a job can go without status before giving up. */
-  private val unknownStatusMaxSeconds = 5 * 60
-
   initLsf()
-
-  /** The name of the default queue. */
-  private var defaultQueue: String = _
-
-  /** The run limits for each queue. */
-  private var queueRlimitRun = Map.empty[String,Int]
 
   /**
    * Initialize the Lsf library.
@@ -161,8 +156,9 @@ object Lsf706JobRunner extends Logging {
   /**
    * Bulk updates job statuses.
    * @param runners Runners to update.
+   * @return runners which were updated.
    */
-  def updateStatus(runners: Set[Lsf706JobRunner]) {
+  def updateStatus(runners: Set[Lsf706JobRunner]) = {
     var updatedRunners = Set.empty[Lsf706JobRunner]
 
     Lsf706JobRunner.lsfLibLock.synchronized {
@@ -192,70 +188,7 @@ object Lsf706JobRunner extends Logging {
       }
     }
 
-    for (runner <- runners.diff(updatedRunners)) {
-      checkUnknownStatus(runner)
-    }
-  }
-
-  /**
-   * Tries to stop any running jobs.
-   * @param runners Runners to stop.
-   */
-  def tryStop(runners: Set[Lsf706JobRunner]) {
-    lsfLibLock.synchronized {
-      // lsb_killbulkjobs does not seem to forward SIGTERM,
-      // only SIGKILL, so send the Ctrl-C (SIGTERM) one by one.
-      for (runner <- runners.filterNot(_.jobId < 0)) {
-        try {
-          if (LibBat.lsb_signaljob(runner.jobId, SIGTERM) < 0)
-            logger.error(LibBat.lsb_sperror("Unable to kill job " + runner.jobId))
-        } catch {
-          case e =>
-            logger.error("Unable to kill job " + runner.jobId, e)
-        }
-      }
-    }
-  }
-
-
-  /**
-   * Returns the run limit in seconds for the queue.
-   * If the queue name is null returns the length of the default queue.
-   * @param queue Name of the queue or null for the default queue.
-   * @return the run limit in seconds for the queue.
-   */
-  private def getRlimitRun(queue: String) = {
-    lsfLibLock.synchronized {
-      if (queue == null) {
-        if (defaultQueue != null) {
-          queueRlimitRun(defaultQueue)
-        } else {
-          // Get the info on the default queue.
-          val numQueues = new IntByReference(1)
-          val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
-          if (queueInfo == null)
-            throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for the default queue"))
-          defaultQueue = queueInfo.queue
-          val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
-          queueRlimitRun += defaultQueue -> limit
-          limit
-        }
-      } else {
-        queueRlimitRun.get(queue) match {
-          case Some(limit) => limit
-          case None =>
-          // Cache miss.  Go get the run limits from LSF.
-            val queues = new StringArray(Array[String](queue))
-            val numQueues = new IntByReference(1)
-            val queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0)
-            if (queueInfo == null)
-              throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for queue: " + queue))
-            val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
-            queueRlimitRun += queue -> limit
-            limit
-        }
-      }
-    }
+    updatedRunners
   }
 
   private def updateRunnerStatus(runner: Lsf706JobRunner, jobInfo: LibBat.jobInfoEnt) {
@@ -280,20 +213,6 @@ object Lsf706JobRunner extends Logging {
     )
   }
 
-  private def checkUnknownStatus(runner: Lsf706JobRunner) {
-    // TODO: Need a second pass through either of the two archive logs using lsb_geteventrecbyline() for disappeared jobs.
-    // Can also tell if we wake up and the last time we saw status was greater than lsb_parameterinfo().cleanPeriod
-    // LSB_SHAREDIR/cluster_name/logdir/lsb.acct (man bacct)
-    // LSB_SHAREDIR/cluster_name/logdir/lsb.events (man bhist)
-    logger.debug("Job Id %s status / exitStatus / exitInfo: ??? / ??? / ???".format(runner.jobId))
-    val unknownStatusMillis = (System.currentTimeMillis - runner.lastStatusUpdate)
-    if (unknownStatusMillis > (unknownStatusMaxSeconds * 1000L)) {
-      // Unknown status has been returned for a while now.
-      runner.updateStatus(RunnerStatus.FAILED)
-      logger.error("Unable to read LSF status for %0.2f minutes: job id %d: %s".format(unknownStatusMillis/(60 * 1000D), runner.jobId, runner.function.description))
-    }
-  }
-
   /**
    * Returns true if LSF is expected to retry running the function.
    * @param exitInfo The reason the job exited.
@@ -309,4 +228,86 @@ object Lsf706JobRunner extends Logging {
       }
     }
   }
+
+  /**
+   * Tries to stop any running jobs.
+   * @param runners Runners to stop.
+   */
+  def tryStop(runners: Set[Lsf706JobRunner]) {
+    lsfLibLock.synchronized {
+      // lsb_killbulkjobs does not seem to forward SIGTERM,
+      // only SIGKILL, so send the Ctrl-C (SIGTERM) one by one.
+      for (runner <- runners.filterNot(_.jobId < 0)) {
+        try {
+          if (LibBat.lsb_signaljob(runner.jobId, SIGTERM) < 0)
+            logger.error(LibBat.lsb_sperror("Unable to kill job " + runner.jobId))
+        } catch {
+          case e =>
+            logger.error("Unable to kill job " + runner.jobId, e)
+        }
+      }
+    }
+  }
+
+  /** The name of the default queue. */
+  private lazy val defaultQueue: String = {
+    lsfLibLock.synchronized {
+      val numQueues = new IntByReference(1)
+      val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
+      if (queueInfo == null)
+        throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for the default queue"))
+      queueInfo.queue
+    }
+  }
+
+  /** The run limits for each queue. */
+  private var queueRlimitRun = Map.empty[String,Int]
+
+  /**
+   * Returns the run limit in seconds for the queue.
+   * If the queue name is null returns the length of the default queue.
+   * @param queue Name of the queue or null for the default queue.
+   * @return the run limit in seconds for the queue.
+   */
+  private def getRlimitRun(queueName: String) = {
+    lsfLibLock.synchronized {
+      val queue = if (queueName == null) defaultQueue else queueName
+      queueRlimitRun.get(queue) match {
+        case Some(limit) => limit
+        case None =>
+          // Cache miss.  Go get the run limits from LSF.
+          val queues = new StringArray(Array(queue))
+          val numQueues = new IntByReference(1)
+          val queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0)
+          if (queueInfo == null)
+            throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for queue: " + queue))
+          val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
+          queueRlimitRun += queue -> limit
+          limit
+      }
+    }
+  }
+
+  private lazy val unitDivisor: Double = {
+    lsfLibLock.synchronized {
+      val unitsParam: Array[LibLsf.config_param] = new LibLsf.config_param().toArray(2).asInstanceOf[Array[LibLsf.config_param]]
+      unitsParam(0).paramName = "LSF_UNIT_FOR_LIMITS"
+
+      Structure.autoWrite(unitsParam.asInstanceOf[Array[Structure]])
+      if (LibLsf.ls_readconfenv(unitsParam(0), null) != 0)
+        throw new QException(LibBat.lsb_sperror("ls_readconfenv() failed"))
+      Structure.autoRead(unitsParam.asInstanceOf[Array[Structure]])
+
+      unitsParam(0).paramValue match {
+        case "MB" => 1D
+        case "GB" => 1024D
+        case "TB" => 1024D * 1024
+        case "PB" => 1024D * 1024 * 1024
+        case "EB" => 1024D * 1024 * 1024 * 1024
+        case null => 1D
+      }
+    }
+  }
+
+  private def convertUnits(mb: Double) = (mb / unitDivisor).ceil.toInt
 }
