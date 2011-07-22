@@ -274,7 +274,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
 
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
-        if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + fractionRandom + "% of the variants at random from the variant track");
+        if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
 
         if (KEEP_AF_SPECTRUM) {
