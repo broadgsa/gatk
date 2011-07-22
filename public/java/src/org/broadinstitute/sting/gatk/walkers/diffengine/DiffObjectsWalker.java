@@ -115,7 +115,6 @@ import java.util.List;
  *
  * @author Mark DePristo
  * @since 7/4/11
- * @version 0.1
  */
 @Requires(value={})
 public class DiffObjectsWalker extends RodWalker<Integer, Integer> {

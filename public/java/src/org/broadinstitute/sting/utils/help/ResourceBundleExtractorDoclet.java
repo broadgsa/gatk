@@ -61,7 +61,7 @@ public class ResourceBundleExtractorDoclet {
      */
     protected final Set<String> undocumentedWalkers = new HashSet<String>();
 
-    protected String buildTimestamp = null, versionPrefix = null, versionSuffix = null, absoluteVersion = null;
+    protected String buildTimestamp = null, absoluteVersion = null;
 
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
@@ -93,10 +93,6 @@ public class ResourceBundleExtractorDoclet {
             }
             if(options[0].equals("-build-timestamp"))
                 buildTimestamp = options[1];
-            if(options[0].equals("-version-prefix"))
-                versionPrefix = options[1];
-            if(options[0].equals("-version-suffix"))
-                versionSuffix = options[1];
             if (options[0].equals("-absolute-version"))
                 absoluteVersion = options[1];
         }
@@ -144,7 +140,7 @@ public class ResourceBundleExtractorDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-build-timestamp") || option.equals("-version-prefix") || option.equals("-version-suffix") || option.equals("-out") || option.equals("-absolute-version") ) {
+        if(option.equals("-build-timestamp") || option.equals("-out") || option.equals("-absolute-version") ) {
             return 2;
         }
         return 0;
@@ -242,30 +238,15 @@ public class ResourceBundleExtractorDoclet {
      * @param element Doc element to process.
      */
     private void renderHelpText(String elementName, Doc element) {
-        // Extract overrides from the doc tags.
-        String name = null;
-        String version = null;
         StringBuilder summaryBuilder = new StringBuilder();
         for(Tag tag: element.firstSentenceTags())
              summaryBuilder.append(tag.text());
         String summary = summaryBuilder.toString();
         String description = element.commentText();
 
-        for(Tag tag: element.tags()) {
-            if(tag.name().equals("@"+VERSION_TAGLET_NAME)) {
-                if ( absoluteVersion != null ) {
-                    version = absoluteVersion;
-                }
-                else {
-                    version = String.format("%s%s%s", (versionPrefix != null) ? versionPrefix : "",
-                            tag.text(),
-                            (versionSuffix != null) ? versionSuffix : "");
-                }
-            }
-        }
-
-        if(version != null)
-            resourceText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),version);
+        // this might seem unnecessary, but the GATK command line program uses this tag to determine the version when running
+        if(absoluteVersion != null)
+            resourceText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),absoluteVersion);
 
         // Write out an alternate element summary, if exists.
         resourceText.setProperty(String.format("%s.%s",elementName,SUMMARY_TAGLET_NAME),formatText(summary));
