@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 /**
  * A SamRecordFilter that also depends on the header.

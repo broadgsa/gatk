@@ -1,21 +1,30 @@
-<html>
-<head>
-  <title>GATK walker index</title>
-</head>
-<body>
-  <h1>GATK walker index<h1>
+<#macro emitGroup group>
   <table border="1" cellpadding="2">
+  <h2>${group}</h2>
   <tr>
      <th>Name</th>
      <th>Summary</th>
   </tr>
-  <#list walkers as walker>
-    <tr>
-       <td><a href="${walker.filename}">${walker.name}</a></td>
-       <td>${walker.summary}</td>
-    </tr>
-  </#list>
+    <#list data as datum>
+        <#if datum.group == group>
+            <tr>
+               <td><a href="${datum.filename}">${datum.name}</a></td>
+               <td>${datum.summary}</td>
+            </tr>
+        </#if>
+    </#list>
   </table>
+</#macro>   
+
+<html>
+<head>
+  <title>GATK documentation index</title>
+</head>
+<body>
+  <h1>GATK documentation index<h1>
+  <#list groups as group>
+    <@emitGroup group=group/>
+  </#list>
 </body>
 </html>
 
