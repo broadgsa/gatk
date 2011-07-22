@@ -47,7 +47,9 @@ public class ResourceBundleExtractorDoclet {
     /**
      * Taglet for the particular version number.
      */
-    protected static final String VERSION_TAGLET_NAME = "version";
+    public static final String VERSION_TAGLET_NAME = "version";
+    public static final String SUMMARY_TAGLET_NAME = "help.summary";
+    public static final String DESCRIPTION_TAGLET_NAME = "help.description";
 
     /**
      * Maintains a collection of resources in memory as they're accumulated.
@@ -250,39 +252,26 @@ public class ResourceBundleExtractorDoclet {
         String description = element.commentText();
 
         for(Tag tag: element.tags()) {
-            if(tag.name().equals("@"+DisplayNameTaglet.NAME)) {
-                if(name != null)
-                    throw new ReviewedStingException("Only one display name tag can be used per package / walker.");
-                name = tag.text();
-            }
-            else if(tag.name().equals("@"+VERSION_TAGLET_NAME)) {
+            if(tag.name().equals("@"+VERSION_TAGLET_NAME)) {
                 if ( absoluteVersion != null ) {
                     version = absoluteVersion;
                 }
                 else {
                     version = String.format("%s%s%s", (versionPrefix != null) ? versionPrefix : "",
-                                                      tag.text(),
-                                                      (versionSuffix != null) ? versionSuffix : "");
+                            tag.text(),
+                            (versionSuffix != null) ? versionSuffix : "");
                 }
             }
-            else if(tag.name().equals("@"+SummaryTaglet.NAME))
-                summary = tag.text();
-            else if(tag.name().equals("@"+DescriptionTaglet.NAME))
-                description = tag.text();
         }
-
-        // Write out an alternate element name, if exists.
-        if(name != null)
-            resourceText.setProperty(String.format("%s.%s",elementName,DisplayNameTaglet.NAME),name);
 
         if(version != null)
             resourceText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),version);
 
         // Write out an alternate element summary, if exists.
-        resourceText.setProperty(String.format("%s.%s",elementName,SummaryTaglet.NAME),formatText(summary));
+        resourceText.setProperty(String.format("%s.%s",elementName,SUMMARY_TAGLET_NAME),formatText(summary));
 
         // Write out an alternate description, if present.
-        resourceText.setProperty(String.format("%s.%s",elementName,DescriptionTaglet.NAME),formatText(description));
+        resourceText.setProperty(String.format("%s.%s",elementName,DESCRIPTION_TAGLET_NAME),formatText(description));
     }
 
     /**
