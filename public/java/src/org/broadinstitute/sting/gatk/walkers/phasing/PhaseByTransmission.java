@@ -9,12 +9,14 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 /**
@@ -29,37 +31,75 @@ import java.util.*;
  * begin.
  */
 public class PhaseByTransmission extends RodWalker<Integer, Integer> {
-    @Argument(shortName="f", fullName="familyPattern", required=true, doc="Pattern for the family structure (usage: mom+dad=child)")
-    public String familyStr = null;
-
-    @Argument(shortName="nofilters", fullName="disableFilters", required=false, doc="Disable filters for sites where the phase can't be determined, where the parental origin of the alleles is ambiguous (i.e. everyone is heterozygous), or Mendelian violations")
-    public Boolean noFilters = false;
+    @Argument(shortName="f", fullName="familySpec", required=true, doc="Patterns for the family structure (usage: mom+dad=child).  Specify several trios by supplying this argument many times and/or a file containing many patterns.")
+    public ArrayList<String> familySpecs = null;
 
     @Output
     protected VCFWriter vcfWriter = null;
 
-    private String SAMPLE_NAME_MOM;
-    private String SAMPLE_NAME_DAD;
-    private String SAMPLE_NAME_CHILD;
-
     private final String ROD_NAME = "variant";
-    private final String AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME = "AmbiguousAlleleOrigin";
-    private final String INSUFFICIENT_DATA_FILTER_NAME = "InsufficientInformation";
-    private final String MENDELIAN_VIOLATION_FILTER_NAME = "MendelianViolation";
     private final String TRANSMISSION_PROBABILITY_TAG_NAME = "TP";
     private final String SOURCE_NAME = "PhaseByTransmission";
 
     private final Double MENDELIAN_VIOLATION_PRIOR = 1e-8;
 
+    private class Trio {
+        private String mother;
+        private String father;
+        private String child;
+
+        public Trio(String mother, String father, String child) {
+            this.mother = mother;
+            this.father = father;
+            this.child = child;
+        }
+
+        public Trio(String familySpec) {
+            String[] pieces = familySpec.split("[\\+\\=]");
+
+            this.mother = pieces[0];
+            this.father = pieces[1];
+            this.child = pieces[2];
+        }
+
+        public String getMother() { return mother; }
+        public String getFather() { return father; }
+        public String getChild() { return child; }
+    }
+
+    private ArrayList<Trio> trios = new ArrayList<Trio>();
+
+    public ArrayList<Trio> getFamilySpecsFromCommandLineInput(ArrayList<String> familySpecs) {
+        if (familySpecs != null) {
+            // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
+            // spec list set, and treat the entries as if they had been specified on the command line.
+            ArrayList<Trio> specs = new ArrayList<Trio>();
+            for (String familySpec : familySpecs) {
+                File specFile = new File(familySpec);
+
+                try {
+                    XReadLines reader = new XReadLines(specFile);
+
+                    List<String> lines = reader.readLines();
+                    for (String line : lines) {
+                        specs.add(new Trio(line));
+                    }
+                } catch (FileNotFoundException e) {
+                    specs.add(new Trio(familySpec)); // not a file, so must be a family spec
+                }
+            }
+
+            return specs;
+        }
+
+        return new ArrayList<Trio>();
+    }
+
     /**
      * Parse the familial relationship specification, and initialize VCF writer
      */
     public void initialize() {
-        String[] pieces = familyStr.split("[\\+\\=]");
-
-        SAMPLE_NAME_MOM = pieces[0];
-        SAMPLE_NAME_DAD = pieces[1];
-        SAMPLE_NAME_CHILD = pieces[2];
+        trios = getFamilySpecsFromCommandLineInput(familySpecs);
 
         ArrayList<String> rodNames = new ArrayList<String>();
         rodNames.add(ROD_NAME);
@@ -67,34 +107,11 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
-        if (vcfSamples.size() != 3) {
-            throw new UserException("File to phase by transmission contains more than three samples.  This walker only" +
-                                    "accepts VCFs with three samples, so that the meaning of the applied filters is" +
-                                    "unambiguous.");
-        }
-
-        if (!vcfSamples.contains(SAMPLE_NAME_MOM) || !vcfSamples.contains(SAMPLE_NAME_DAD) || !vcfSamples.contains(SAMPLE_NAME_CHILD)) {
-            throw new UserException("One or more of the samples specified in the familyPattern argument is not present" +
-                                    "in this file.  Please supply a VCF file that contains only three samples: the" +
-                                    "mother, the father, and the child");
-        }
-
-        Set<String> samples = new TreeSet<String>();
-        samples.add(SAMPLE_NAME_MOM);
-        samples.add(SAMPLE_NAME_DAD);
-        samples.add(SAMPLE_NAME_CHILD);
-
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
         headerLines.addAll(VCFUtils.getHeaderFields(this.getToolkit()));
-
-        if (!noFilters) {
-            headerLines.add(new VCFFilterHeaderLine(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME, "The parental origin of each of the child's allele cannot be determined (ie everyone is heterozygous)"));
-            headerLines.add(new VCFFilterHeaderLine(INSUFFICIENT_DATA_FILTER_NAME, "The phase of the child's genotype cannot be determined (ie someone is a no-call)"));
-            headerLines.add(new VCFFilterHeaderLine(MENDELIAN_VIOLATION_FILTER_NAME, "No combination of the parents' alleles can yield the child's genotype (ie a possible Mendelian violation)"));
-        }
-
-        headerLines.add(new VCFInfoHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
-        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
+        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
+        headerLines.add(new VCFHeaderLine("source", SOURCE_NAME));
+        vcfWriter.writeHeader(new VCFHeader(headerLines, vcfSamples));
     }
 
     private double computeTransmissionLikelihoodOfGenotypeConfiguration(Genotype mom, Genotype dad, Genotype child) {
@@ -211,68 +228,52 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         return finalGenotypes;
     }
 
-    private VariantContext phaseTrioGenotypes(VariantContext vc) {
-        Genotype mom = vc.getGenotype(SAMPLE_NAME_MOM);
-        Genotype dad = vc.getGenotype(SAMPLE_NAME_DAD);
-        Genotype child = vc.getGenotype(SAMPLE_NAME_CHILD);
-
-        Set<String> filters = new HashSet<String>();
-        filters.addAll(vc.getFilters());
-
-        Map<String, Object> attributes = new HashMap<String, Object>();
-        attributes.putAll(vc.getAttributes());
-        attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, 0.0);
-
+    private ArrayList<Genotype> phaseTrioGenotypes(Allele ref, Allele alt, Genotype mother, Genotype father, Genotype child) {
         ArrayList<Genotype> finalGenotypes = new ArrayList<Genotype>();
-        finalGenotypes.add(mom);
-        finalGenotypes.add(dad);
+        finalGenotypes.add(mother);
+        finalGenotypes.add(father);
         finalGenotypes.add(child);
 
-        if (!mom.isCalled() || !dad.isCalled() || !child.isCalled()) {
-            filters.add(INSUFFICIENT_DATA_FILTER_NAME);
+        if (mother.isCalled() && !father.isCalled() && !child.isCalled()) {
         } else {
-            ArrayList<Genotype> possibleMomGenotypes = createAllThreeGenotypes(vc.getReference(), vc.getAlternateAllele(0), mom);
-            ArrayList<Genotype> possibleDadGenotypes = createAllThreeGenotypes(vc.getReference(), vc.getAlternateAllele(0), dad);
-            ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(vc.getReference(), vc.getAlternateAllele(0), child);
+            ArrayList<Genotype> possibleMotherGenotypes = createAllThreeGenotypes(ref, alt, mother);
+            ArrayList<Genotype> possibleFatherGenotypes = createAllThreeGenotypes(ref, alt, father);
+            ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(ref, alt, child);
 
             double bestConfigurationLikelihood = 0.0;
             double bestPrior = 0.0;
-            Genotype bestMomGenotype = mom;
-            Genotype bestDadGenotype = dad;
+            Genotype bestMotherGenotype = mother;
+            Genotype bestFatherGenotype = father;
             Genotype bestChildGenotype = child;
 
             double norm = 0.0;
 
-            for (Genotype momGenotype : possibleMomGenotypes) {
-                for (Genotype dadGenotype : possibleDadGenotypes) {
+            for (Genotype motherGenotype : possibleMotherGenotypes) {
+                for (Genotype fatherGenotype : possibleFatherGenotypes) {
                     for (Genotype childGenotype : possibleChildGenotypes) {
-                        double prior = isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), momGenotype, dadGenotype, childGenotype) ? MENDELIAN_VIOLATION_PRIOR : 1.0 - 12*MENDELIAN_VIOLATION_PRIOR;
-                        double configurationLikelihood = computeTransmissionLikelihoodOfGenotypeConfiguration(momGenotype, dadGenotype, childGenotype);
+                        double prior = isMendelianViolation(ref, alt, motherGenotype, fatherGenotype, childGenotype) ? MENDELIAN_VIOLATION_PRIOR : 1.0 - 12*MENDELIAN_VIOLATION_PRIOR;
+                        double configurationLikelihood = computeTransmissionLikelihoodOfGenotypeConfiguration(motherGenotype, fatherGenotype, childGenotype);
                         norm += prior*configurationLikelihood;
 
                         if (prior*configurationLikelihood > bestPrior*bestConfigurationLikelihood) {
                             bestConfigurationLikelihood = configurationLikelihood;
                             bestPrior = prior;
-                            bestMomGenotype = momGenotype;
-                            bestDadGenotype = dadGenotype;
+                            bestMotherGenotype = motherGenotype;
+                            bestFatherGenotype = fatherGenotype;
                             bestChildGenotype = childGenotype;
                         }
                     }
                 }
             }
 
-            if (isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), bestMomGenotype, bestDadGenotype, bestChildGenotype)) {
-                filters.add(MENDELIAN_VIOLATION_FILTER_NAME);
-            } else if (bestMomGenotype.isHet() && bestDadGenotype.isHet() && bestChildGenotype.isHet()) {
-                filters.add(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME);
-            } else {
-                finalGenotypes = getPhasedGenotypes(bestMomGenotype, bestDadGenotype, bestChildGenotype);
+            Map<String, Object> attributes = bestChildGenotype.getAttributes();
+            attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
+            bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
 
-                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
-            }
+            finalGenotypes = getPhasedGenotypes(bestMotherGenotype, bestFatherGenotype, bestChildGenotype);
         }
 
-        return new VariantContext(SOURCE_NAME, vc.getChr(), vc.getStart(), vc.getStart(), vc.getAlleles(), finalGenotypes, vc.getNegLog10PError(), noFilters ? vc.getFilters() : filters, attributes);
+        return finalGenotypes;
     }
 
     /**
@@ -289,7 +290,27 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
             Collection<VariantContext> vcs = tracker.getVariantContexts(ref, ROD_NAME, null, context.getLocation(), true, true);
 
             for (VariantContext vc : vcs) {
-                vcfWriter.add(phaseTrioGenotypes(vc), ref.getBase());
+                Map<String, Genotype> genotypeMap = vc.getGenotypes();
+
+                for (Trio trio : trios) {
+                    Genotype mother = vc.getGenotype(trio.getMother());
+                    Genotype father = vc.getGenotype(trio.getFather());
+                    Genotype child = vc.getGenotype(trio.getChild());
+
+                    ArrayList<Genotype> trioGenotypes = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child);
+
+                    Genotype phasedMother = trioGenotypes.get(0);
+                    Genotype phasedFather = trioGenotypes.get(1);
+                    Genotype phasedChild = trioGenotypes.get(2);
+
+                    genotypeMap.put(phasedMother.getSampleName(), phasedMother);
+                    genotypeMap.put(phasedFather.getSampleName(), phasedFather);
+                    genotypeMap.put(phasedChild.getSampleName(), phasedChild);
+                }
+
+                VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeMap);
+
+                vcfWriter.add(newvc, ref.getBase());
             }
         }
 

@@ -26,6 +26,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         executeTest("testBasicFunctionalityWithoutFilters", spec);
     }
 
+    /*
     @Test
     public void testBasicFunctionalityWithFilters() {
         WalkerTestSpec spec = new WalkerTestSpec(
@@ -41,4 +42,5 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         );
         executeTest("testBasicFunctionalityWithFilters", spec);
     }
+    */
 }
