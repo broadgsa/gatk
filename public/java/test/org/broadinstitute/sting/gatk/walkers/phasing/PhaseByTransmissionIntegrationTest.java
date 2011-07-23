@@ -17,7 +17,6 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-R " + b37KGReference,
                         "-B:variant,VCF " + fundamentalTestVCF,
                         "-f NA12892+NA12891=NA12878",
-                        "-nofilters",
                         "-o %s"
                 ),
                 1,
