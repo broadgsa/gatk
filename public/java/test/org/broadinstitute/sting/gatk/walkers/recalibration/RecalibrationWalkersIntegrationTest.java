@@ -19,9 +19,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testCountCovariates1() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "7b5832d4b2a23b8ef2bb639eb59bfa88" );
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "f4f8a49bb5764d2a8f61e055f64dcce4");
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "9c006f8e9fb5752b1c139f5a8cc7ea88");
         e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "e6f7b4ab9aa291022e0ba8b7dbe4c77e" );
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "570506533f079d738d70934dfe1c02cd" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "e6b98af01c5a08e4954b79ec42db6fc3" );
 
         for ( String parallelism : Arrays.asList("", " -nt 4")) {
             for ( Map.Entry<String, String> entry : e.entrySet() ) {
@@ -53,9 +53,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testTableRecalibrator1() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0278cce4cfdab869dc0c11d6852a984b" );
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "344d4252143df8c2cce6b568747553a5");
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "6797d7ffa4ef6c48413719ba32696ccf");
         e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "2bb3374dde131791d7638031ae3b3e10" );
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "064c4a7bdd23974c3a9c5f924540df76" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "1f9d8944b73169b367cb83b0d22e5432" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -107,7 +107,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorMaxQ70() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "344d4252143df8c2cce6b568747553a5" );
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0278cce4cfdab869dc0c11d6852a984b" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -133,12 +133,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-
-
     @Test
     public void testCountCovariatesSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "0a6cdb9611e5880ea6611205080aa267" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "c9ea5f995e1e2b7a5688533e678dcedc" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -164,7 +162,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "9bc7e1ad223ba759fe5e8ddb4c07369c" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "993fae4270e7e1e15986f270acf247af" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -189,13 +187,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-
-
-
     @Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "3700eaf567e4937f442fc777a226d6ad");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "170f0c3cc4b8d72c539136effeec9a16");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -219,7 +214,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesBED() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "6803891a3398821fc8a37e19ea8e5a00");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "b460478d9683e827784e42bc352db8bb");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -243,7 +238,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesVCFPlusDBsnp() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "f224c42fbc4026db973ccc91265ab5c7");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "a3d892bd60d8f679affda3c1e3af96c1");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -269,68 +264,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testCountCovariatesNoReadGroups() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "c024e03f019aeceaf364fa58c8295ad8" );
-
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            String bam = entry.getKey();
-            String md5 = entry.getValue();
-
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + b36KGReference +
-                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
-                            " -T CountCovariates" +
-                            " -I " + bam +
-                            " -L 1:10,000,000-10,200,000" +
-                            " -cov ReadGroupCovariate" +
-                            " -cov QualityScoreCovariate" +
-                            " -cov CycleCovariate" +
-                            " -cov DinucCovariate" +
-                            " --default_read_group DefaultReadGroup" +
-                            " --default_platform illumina" +
-                            " --solid_recal_mode SET_Q_ZERO" +
-                            " -recalFile %s",
-                    1, // just one output file
-                    Arrays.asList(md5));
-            List<File> result = executeTest("testCountCovariatesNoReadGroups", spec).getFirst();
-            paramsFilesNoReadGroupTest.put(bam, result.get(0).getAbsolutePath());
-        }
-    }
-
-    @Test
-    public void testTableRecalibratorNoReadGroups() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "1eefbe7ac0376fc1ed1392d85242171e" );
-
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            String bam = entry.getKey();
-            String md5 = entry.getValue();
-            String paramsFile = paramsFilesNoReadGroupTest.get(bam);
-            System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
-            if ( paramsFile != null ) {
-                WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + b36KGReference +
-                                " -T TableRecalibration" +
-                                " -I " + bam +
-                                " -L 1:10,100,000-10,300,000" +
-                                " -o %s" +
-                                " --no_pg_tag" +
-                                " --solid_recal_mode SET_Q_ZERO" +
-                                " --default_read_group DefaultReadGroup" +
-                                " --default_platform illumina" +
-                                " -recalFile " + paramsFile,
-                        1, // just one output file
-                        Arrays.asList(md5));
-                executeTest("testTableRecalibratorNoReadGroups", spec);
-            }
-        }
-    }
-
-    @Test
     public void testCountCovariatesNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "cfc31bb6f51436d1c3b34f62bb801dc8" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "284ccac1f8fe485e52c86333cac7c2d4" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -356,7 +292,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "83b848a16034c2fb423d1bb0f5be7784" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "c167799c2d9cab815d7c9b23337f162e" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -380,11 +316,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-
     @Test
     public void testCountCovariatesFailWithoutDBSNP() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();

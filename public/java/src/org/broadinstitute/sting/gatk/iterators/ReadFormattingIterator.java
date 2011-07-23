@@ -1,13 +1,8 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMTag;
-import net.sf.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.apache.log4j.Logger;
-
-import java.util.List;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * An iterator which does post-processing of a read, including potentially wrapping

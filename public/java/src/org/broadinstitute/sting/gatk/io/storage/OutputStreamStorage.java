@@ -25,14 +25,14 @@
 
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.WritableByteChannel;
-import java.nio.channels.Channels;
 
 public class OutputStreamStorage extends OutputStream implements Storage<OutputStream> {
     /**

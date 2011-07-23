@@ -100,7 +100,11 @@ public class GATKReport {
      * @param tableDescription  the description of the table
      */
     public void addTable(String tableName, String tableDescription) {
-        GATKReportTable table = new GATKReportTable(tableName, tableDescription);
+        addTable(tableName, tableDescription, true);
+    }
+
+    public void addTable(String tableName, String tableDescription, boolean sortByPrimaryKey) {
+        GATKReportTable table = new GATKReportTable(tableName, tableDescription, sortByPrimaryKey);
         tables.put(tableName, table);
     }
 

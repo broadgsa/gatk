@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,9 +33,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -82,19 +84,11 @@ public class VariantDataManager {
             }
 
             foundZeroVarianceAnnotation = foundZeroVarianceAnnotation || (theSTD < 1E-6);
-            if( annotationKeys.get(iii).toLowerCase().contains("ranksum") ) { // BUGBUG: to clean up
-                for( final VariantDatum datum : data ) {
-                    if( datum.annotations[iii] > 0.0 ) { datum.annotations[iii] /= 3.0; }
-                }
-            }
             meanVector[iii] = theMean;
             varianceVector[iii] = theSTD;
             for( final VariantDatum datum : data ) {
+                // Transform each data point via: (x - mean) / standard deviation
                 datum.annotations[iii] = ( datum.isNull[iii] ? GenomeAnalysisEngine.getRandomGenerator().nextGaussian() : ( datum.annotations[iii] - theMean ) / theSTD );
-                // Each data point is now [ (x - mean) / standard deviation ]
-                if( annotationKeys.get(iii).toLowerCase().contains("ranksum") && datum.isNull[iii] && datum.annotations[iii] > 0.0 ) {
-                    datum.annotations[iii] /= 3.0;
-                }
             }
         }
         if( foundZeroVarianceAnnotation ) {
@@ -108,7 +102,6 @@ public class VariantDataManager {
                 remove = remove || (Math.abs(val) > VRAC.STD_THRESHOLD);
             }
             datum.failingSTDThreshold = remove;
-            datum.usedForTraining = 0;
         }
     }
 
@@ -142,38 +135,47 @@ public class VariantDataManager {
         for( final VariantDatum datum : data ) {
             if( datum.atTrainingSite && !datum.failingSTDThreshold && datum.originalQual > VRAC.QUAL_THRESHOLD ) {
                 trainingData.add( datum );
-                datum.usedForTraining = 1;
             }
         }
         logger.info( "Training with " + trainingData.size() + " variants after standard deviation thresholding." );
         if( trainingData.size() < VRAC.MIN_NUM_BAD_VARIANTS ) {
-            logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+            logger.warn( "WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable." );
         }
         return trainingData;
     }
 
     public ExpandingArrayList<VariantDatum> selectWorstVariants( double bottomPercentage, final int minimumNumber ) {
-        Collections.sort( data );
+        // The return value is the list of training variants
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
-        final int numToAdd = Math.max( minimumNumber, Math.round((float)bottomPercentage * data.size()) );
-        if( numToAdd > data.size() ) {
-            throw new UserException.BadInput("Error during negative model training. Minimum number of variants to use in training is larger than the whole call set. One can attempt to lower the --minNumBadVariants arugment but this is unsafe.");
+
+        // First add to the training list all sites overlapping any bad sites training tracks
+        for( final VariantDatum datum : data ) {
+            if( datum.atAntiTrainingSite && !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+                trainingData.add( datum );
+            }
         }
-        if( numToAdd == minimumNumber ) {
-            logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+        final int numBadSitesAdded = trainingData.size();
+        logger.info( "Found " + numBadSitesAdded + " variants overlapping bad sites training tracks." );
+
+        // Next sort the variants by the LOD coming from the positive model and add to the list the bottom X percent of variants
+        Collections.sort( data );
+        final int numToAdd = Math.max( minimumNumber - trainingData.size(), Math.round((float)bottomPercentage * data.size()) );
+        if( numToAdd > data.size() ) {
+            throw new UserException.BadInput( "Error during negative model training. Minimum number of variants to use in training is larger than the whole call set. One can attempt to lower the --minNumBadVariants arugment but this is unsafe." );
+        } else if( numToAdd == minimumNumber - trainingData.size() ) {
+            logger.warn( "WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable." );
             bottomPercentage = ((float) numToAdd) / ((float) data.size());
         }
-        int index = 0;
-        int numAdded = 0;
+        int index = 0, numAdded = 0;
         while( numAdded < numToAdd ) {
             final VariantDatum datum = data.get(index++);
-            if( !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+            if( !datum.atAntiTrainingSite && !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+                datum.atAntiTrainingSite = true;
                 trainingData.add( datum );
-                datum.usedForTraining = -1;
                 numAdded++;
             }
         }
-        logger.info("Training with worst " + (float) bottomPercentage * 100.0f + "% of passing data --> " + trainingData.size() + " variants with LOD <= " + String.format("%.4f", data.get(index).lod) + ".");
+        logger.info( "Additionally training with worst " + String.format("%.3f", (float) bottomPercentage * 100.0f) + "% of passing data --> " + (trainingData.size() - numBadSitesAdded) + " variants with LOD <= " + String.format("%.4f", data.get(index).lod) + "." );
         return trainingData;
     }
 
@@ -186,10 +188,11 @@ public class VariantDataManager {
                 returnData.add(datum);
             }
         }
-        // add an extra 5% of points from bad training set, since that set is small but interesting
+
+        // Add an extra 5% of points from bad training set, since that set is small but interesting
         for( int iii = 0; iii < Math.floor(0.05*numToAdd); iii++) {
             final VariantDatum datum = data.get(GenomeAnalysisEngine.getRandomGenerator().nextInt(data.size()));
-            if( datum.usedForTraining == -1 && !datum.failingSTDThreshold ) { returnData.add(datum); }
+            if( datum.atAntiTrainingSite && !datum.failingSTDThreshold ) { returnData.add(datum); }
             else { iii--; }
         }
 
@@ -232,23 +235,15 @@ public class VariantDataManager {
         double value;
 
         try {
-            if( annotationKey.equalsIgnoreCase("QUAL") ) {
-                value = vc.getPhredScaledQual();
-            } else if( annotationKey.equalsIgnoreCase("DP") ) {
-                value = Double.parseDouble( (String)vc.getAttribute( "DP" ) ) / Double.parseDouble( (String)vc.getAttribute( "AN" ) );
-            } else {
-                value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-                if( Double.isInfinite(value) ) { value = Double.NaN; }
-                if( annotationKey.equalsIgnoreCase("InbreedingCoeff") && value > 0.05 ) { value = Double.NaN; }
-                if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
-                      value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
-                }
-                if( annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
-                if( annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.01) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+            value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
+            if( Double.isInfinite(value) ) { value = Double.NaN; }
+            if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
+                  value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             }
-
+            if( jitter && annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+            if( jitter && annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
         } catch( Exception e ) {
-            value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating Gaussians
+            value = Double.NaN; // The VQSR works with missing data by marginalizing over the missing dimension when evaluating the Gaussian mixture model
         }
 
         return value;
@@ -258,8 +253,10 @@ public class VariantDataManager {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
+        datum.atAntiTrainingSite = false;
         datum.prior = 2.0;
         datum.consensusCount = 0;
+
         for( final TrainingSet trainingSet : trainingSets ) {
             for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, false ) ) {
                 if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
@@ -272,13 +269,19 @@ public class VariantDataManager {
                     datum.prior = Math.max( datum.prior, trainingSet.prior );
                     datum.consensusCount += ( trainingSet.isConsensus ? 1 : 0 );
                 }
+                if( trainVC != null ) {
+                    datum.atAntiTrainingSite = datum.atAntiTrainingSite || trainingSet.isAntiTraining;
+                }
+
             }
         }
     }
 
     public void writeOutRecalibrationTable( final PrintStream RECAL_FILE ) {
         for( final VariantDatum datum : data ) {
-            RECAL_FILE.println(String.format("%s,%d,%d,%.4f", datum.contig, datum.start, datum.stop, datum.lod));
+            RECAL_FILE.println(String.format("%s,%d,%d,%.4f,%s",
+                    datum.contig, datum.start, datum.stop, datum.lod,
+                    (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL")));
         }
     }
 }

@@ -2,8 +2,8 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 
 import java.util.*;
@@ -1206,9 +1206,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
             if ( ! name.equals(g.getSampleName()) ) throw new IllegalStateException("Bound sample name " + name + " does not equal the name of the genotype " + g.getSampleName());
 
-            for ( Allele gAllele : g.getAlleles() ) {
-                if ( ! hasAllele(gAllele) && gAllele.isCalled() )
-                    throw new IllegalStateException("Allele in genotype " + gAllele + " not in the variant context " + alleles);
+            if ( g.isAvailable() ) {
+                for ( Allele gAllele : g.getAlleles() ) {
+                    if ( ! hasAllele(gAllele) && gAllele.isCalled() )
+                        throw new IllegalStateException("Allele in genotype " + gAllele + " not in the variant context " + alleles);
+                }
             }
         }
     }

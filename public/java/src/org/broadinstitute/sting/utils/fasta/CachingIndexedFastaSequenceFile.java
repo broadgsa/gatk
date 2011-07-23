@@ -25,14 +25,15 @@
 package org.broadinstitute.sting.utils.fasta;
 
 import net.sf.picard.PicardException;
-import net.sf.picard.reference.*;
+import net.sf.picard.reference.FastaSequenceIndex;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * A caching version of the IndexedFastaSequenceFile that avoids going to disk as often as the raw indexer.

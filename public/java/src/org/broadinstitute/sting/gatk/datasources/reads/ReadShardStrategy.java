@@ -25,11 +25,10 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.SAMFileSpan;
-
-import java.util.*;
-
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+
+import java.util.*;
 
 /**
  * The sharding strategy for reads using a simple counting mechanism.  Each read shard

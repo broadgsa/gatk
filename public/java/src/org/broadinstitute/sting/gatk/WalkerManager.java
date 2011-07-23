@@ -25,19 +25,18 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.DescriptionTaglet;
 import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
 import org.broadinstitute.sting.utils.help.SummaryTaglet;
-import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
 

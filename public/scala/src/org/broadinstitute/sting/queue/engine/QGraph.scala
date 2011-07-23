@@ -138,30 +138,32 @@ class QGraph extends Logging {
     validate()
 
     if (running && numMissingValues == 0) {
-      logger.info("Generating scatter gather jobs.")
       val scatterGathers = jobGraph.edgeSet.filter(edge => scatterGatherable(edge))
+      if (!scatterGathers.isEmpty) {
+        logger.info("Generating scatter gather jobs.")
 
-      var addedFunctions = List.empty[QFunction]
-      for (scatterGather <- scatterGathers) {
-        val functions = scatterGather.asInstanceOf[FunctionEdge]
-                .function.asInstanceOf[ScatterGatherableFunction]
-                .generateFunctions()
-        addedFunctions ++= functions
+        var addedFunctions = List.empty[QFunction]
+        for (scatterGather <- scatterGathers) {
+          val functions = scatterGather.asInstanceOf[FunctionEdge]
+                  .function.asInstanceOf[ScatterGatherableFunction]
+                  .generateFunctions()
+          addedFunctions ++= functions
+        }
+
+        logger.info("Removing original jobs.")
+        this.jobGraph.removeAllEdges(scatterGathers)
+        prune()
+
+        logger.info("Adding scatter gather jobs.")
+        addedFunctions.foreach(function => if (running) this.add(function))
+
+        logger.info("Regenerating graph.")
+        fill
+        val scatterGatherDotFile = if (settings.expandedDotFile != null) settings.expandedDotFile else settings.dotFile
+        if (scatterGatherDotFile != null)
+          renderToDot(scatterGatherDotFile)
+        validate()
       }
-
-      logger.info("Removing original jobs.")
-      this.jobGraph.removeAllEdges(scatterGathers)
-      prune()
-
-      logger.info("Adding scatter gather jobs.")
-      addedFunctions.foreach(function => if (running) this.add(function))
-
-      logger.info("Regenerating graph.")
-      fill
-      val scatterGatherDotFile = if (settings.expandedDotFile != null) settings.expandedDotFile else settings.dotFile
-      if (scatterGatherDotFile != null)
-        renderToDot(scatterGatherDotFile)
-      validate()
     }
   }
 
@@ -1003,7 +1005,10 @@ class QGraph extends Logging {
           .asInstanceOf[Set[JobRunner[QFunction]]]
         if (managerRunners.size > 0)
           try {
-            manager.updateStatus(managerRunners)
+            val updatedRunners = manager.updateStatus(managerRunners)
+            for (runner <- managerRunners.diff(updatedRunners)) {
+              runner.checkUnknownStatus()
+            }
           } catch {
             case e => /* ignore */
           }

@@ -1,8 +1,5 @@
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Arrays;

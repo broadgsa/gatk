@@ -1,11 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.picard.sam.SamPairUtil;
-import net.sf.samtools.*;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordComparator;
+import net.sf.samtools.SAMRecordCoordinateComparator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;

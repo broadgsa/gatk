@@ -39,16 +39,17 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public double lod;
     public boolean atTruthSite;
     public boolean atTrainingSite;
+    public boolean atAntiTrainingSite;
     public boolean isTransition;
     public boolean isSNP;
     public boolean failingSTDThreshold;
     public double originalQual;
     public double prior;
     public int consensusCount;
-    public int usedForTraining;
     public String contig;
     public int start;
     public int stop;
+    public int worstAnnotation;
     public MultivariateGaussian assignment; // used in K-means implementation 
 
     public int compareTo( final VariantDatum other ) {

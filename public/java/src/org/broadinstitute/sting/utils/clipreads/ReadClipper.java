@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.clipreads;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.walkers.ClipReadsWalker;
 
 import java.util.ArrayList;
 import java.util.List;

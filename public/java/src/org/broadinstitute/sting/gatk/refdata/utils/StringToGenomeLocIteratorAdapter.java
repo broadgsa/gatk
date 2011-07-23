@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.bed.BedParser;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 
 import java.util.Iterator;
 

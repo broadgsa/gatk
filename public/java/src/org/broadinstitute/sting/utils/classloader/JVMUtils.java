@@ -29,9 +29,9 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.reflections.util.ClasspathHelper;
 
-import java.lang.reflect.*;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.*;
 import java.net.URL;
 import java.util.*;
 
