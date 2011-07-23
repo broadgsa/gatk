@@ -20,7 +20,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("5067f9b1312ada1bc5e529619a9111fe")
+                Arrays.asList("ff02b1583ee3a12ed66a9c0e08e346b2")
         );
         executeTest("testBasicFunctionality", spec);
     }
