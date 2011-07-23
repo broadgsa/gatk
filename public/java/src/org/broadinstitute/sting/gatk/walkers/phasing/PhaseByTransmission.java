@@ -234,7 +234,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         finalGenotypes.add(father);
         finalGenotypes.add(child);
 
-        if (mother.isCalled() && father.isCalled() && child.isCalled()) {
+        if (mother.isCalled() && father.isCalled() && child.isCalled() && !(mother.isHet() && father.isHet() && child.isHet())) {
             ArrayList<Genotype> possibleMotherGenotypes = createAllThreeGenotypes(ref, alt, mother);
             ArrayList<Genotype> possibleFatherGenotypes = createAllThreeGenotypes(ref, alt, father);
             ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(ref, alt, child);
