@@ -266,7 +266,8 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 }
             }
 
-            Map<String, Object> attributes = bestChildGenotype.getAttributes();
+            Map<String, Object> attributes = new HashMap<String, Object>();
+            attributes.putAll(bestChildGenotype.getAttributes());
             attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
             bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
 
