@@ -957,6 +957,12 @@
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
     <target name="stage" description="stage files for distribution">
         <mkdir dir="staging"/>
+        <!--
+            HACK: Create the edu directory before EDU on case-insensitive mac filesystems.
+            The ivy dependency colt -> concurrent contains an EDU.oswego package which
+            BCEL doesn't even pull in but messes up edu.mit.broad.
+          -->
+        <mkdir dir="staging/edu"/>
         <unjar dest="staging" overwrite="false">
           <fileset dir="${dist.dir}">
             <patternset refid="dependency.mask" />

@@ -15,8 +15,8 @@ class GATKResourcesBundle extends QScript {
   @Argument(doc="liftOverPerl", required=false)
   var liftOverPerl: File = new File("./perl/liftOverVCF.pl")
 
-  @Argument(shortName = "svn", doc="The SVN version of this release", required=true)
-  var SVN_VERSION: String = _
+  @Argument(shortName = "ver", doc="The SVN version of this release", required=true)
+  var VERSION: String = _
 
   @Argument(shortName = "bundleDir", doc="Path to root where resource files will be placed", required=false)
   val BUNDLE_ROOT = new File("/humgen/gsa-hpprojects/GATK/bundle")
@@ -32,8 +32,8 @@ class GATKResourcesBundle extends QScript {
 
   val SITES_EXT: String = "sites"
 
-  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + SVN_VERSION
-  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + SVN_VERSION
+  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + VERSION
+  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + VERSION
 
   // REFERENCES
   class Reference( val name: String, val file: File ) { }
@@ -112,6 +112,12 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource(b36.file, "", b36, false))
     addResource(new Resource(hg19.file, "", hg19, false))
     addResource(new Resource(hg18.file, "", hg18, false))
+
+    //
+    // The b37_decoy reference
+    //
+    addResource(new Resource("/humgen/1kg/reference/human_g1k_v37_decoy.fasta",
+          "IGNORE", b37, false, false))
 
     //
     // standard VCF files.  Will be lifted to each reference
