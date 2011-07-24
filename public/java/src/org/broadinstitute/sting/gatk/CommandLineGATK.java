@@ -30,6 +30,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -40,12 +41,8 @@ import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import java.util.*;
 
 /**
- * @author aaron
- * @version 1.0
- * @date May 8, 2009
- * <p/>
- * Class CommandLineGATK
- * <p/>
+ * The GATK engine itself.  Manages map/reduce data access and runs walkers.
+ *
  * We run command line GATK programs using this class.  It gets the command line args, parses them, and hands the
  * gatk all the parsed out information.  Pretty much anything dealing with the underlying system should go here,
  * the gatk engine should  deal with any data related information.
@@ -53,6 +50,8 @@ import java.util.*;
 @DocumentedGATKFeature(
         groupName = "GATK Engine",
         summary = "Features and arguments for the GATK engine itself, available to all walkers." )
+//,
+//        extraDocs = { ReadFilter.class, UserException.class })
 public class CommandLineGATK extends CommandLineExecutable {
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;

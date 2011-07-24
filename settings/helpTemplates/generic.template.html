@@ -38,26 +38,47 @@
   </#if>
   <h2>Description</h2>
   ${description}
-  <#-- Create the argument summary -->
-  <h2>Arguments</h2>
-    <table border="1" cellpadding="2">
-    <tr>
-       <th>Name</th>
-       <th>Synonyms</th>
-       <th>Type</th>
-       <th>Summary</th>
-    </tr>
-       <@argumentlist name="Required" myargs=arguments.required/>
-       <@argumentlist name="Optional" myargs=arguments.optional/>
-       <@argumentlist name="Hidden" myargs=arguments.hidden/>
-       <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
-    </table>
-
-  <#-- Create the argument details -->
-  <h2>Argument details</h2>
-  <#list arguments.all as arg>
-    <@argumentDetails arg=arg/>
-  </#list>
   
+  <#-- Create the argument summary -->
+  <#if arguments.all?size != 0> 
+      <hr>
+      <h2>Feature specific arguments</h2>
+      <table border="1" cellpadding="2">
+      <tr>
+         <th>Name</th>
+         <th>Synonyms</th>
+         <th>Type</th>
+         <th>Summary</th>
+      </tr>
+         <@argumentlist name="Required" myargs=arguments.required/>
+         <@argumentlist name="Optional" myargs=arguments.optional/>
+         <@argumentlist name="Hidden" myargs=arguments.hidden/>
+         <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+      </table>
+  </#if>
+
+  <#-- Create references to related capabilities if appropriate -->
+  <#if extradocs?size != 0> 
+      <hr>
+      <h2>Related capabilities</h2>
+      The arguments described in the entries below can be supplied to this tool to modify
+      its behavior.  For example, the -L argument directs the GATK engine restricts processing 
+      to specific genomic intervals.  This capability is available to all GATK walkers.
+      <ul>
+      <#list extradocs as extradoc>
+          <li><a href="${extradoc.filename}">${extradoc.name}</a></li>
+      </#list>
+      </ul>
+  </#if>
+    
+  <#-- List all of the -->
+  <#if arguments.all?size != 0> 
+      <hr>
+      <#-- Create the argument details -->
+      <h2>Argument details</h2>
+      <#list arguments.all as arg>
+        <@argumentDetails arg=arg/>
+      </#list>
+  </#if>
 </body>
 </html>

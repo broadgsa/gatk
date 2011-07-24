@@ -28,14 +28,13 @@ import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
 
 import java.io.*;
+import java.util.Map;
 
 /**
  *
  */
 public abstract class DocumentedGATKFeatureHandler {
     private GATKDoclet doclet;
-    private String groupName;
-    private DocumentedGATKFeature annotation;
 
     protected RootDoc getRootDoc() {
         return this.doclet.rootDoc;
@@ -45,28 +44,12 @@ public abstract class DocumentedGATKFeatureHandler {
         this.doclet = doclet;
     }
 
-    public DocumentedGATKFeature getAnnotation() {
-        return annotation;
-    }
-
-    public void setAnnotation(DocumentedGATKFeature annotation) {
-        this.annotation = annotation;
-    }
-
     public boolean shouldBeProcessed(ClassDoc doc) { return true; }
 
     public String getDestinationFilename(ClassDoc doc) {
         return HelpUtils.getClassName(doc).replace(".", "_") + ".html";
     }
 
-    final public String getGroupName() {
-        return groupName;
-    }
-
-    final public void setGroupName(String groupName) {
-        this.groupName = groupName;
-    }
-
     public abstract String getTemplateName(ClassDoc doc) throws IOException;
-    public abstract GATKDoclet.DocumentationData processOne(ClassDoc doc);
+    public abstract void processOne(GATKDoclet.DocWorkUnit toProcess, Map<Class, GATKDoclet.DocWorkUnit> all);
 }

@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -48,7 +49,8 @@ import java.util.List;
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @DocumentedGATKFeature(
         groupName = "GATK walkers",
-        summary = "General tools available for running on the command line as part of the GATK package" )
+        summary = "General tools available for running on the command line as part of the GATK package",
+        extraDocs = {CommandLineGATK.class})
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
     private GenomeAnalysisEngine toolkit;

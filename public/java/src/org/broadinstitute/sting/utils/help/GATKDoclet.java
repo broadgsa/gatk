@@ -42,23 +42,32 @@ import java.util.*;
 public class GATKDoclet extends ResourceBundleExtractorDoclet {
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
 
-    public static class DocumentationData implements Comparable<DocumentationData> {
-        String name, summary, filename;
-        Map<String, Object> forTemplate;
-        String group;
+    public static class DocWorkUnit implements Comparable<DocWorkUnit> {
+        // known at the start
+        String name, filename, group;
+        DocumentedGATKFeatureHandler handler;
+        ClassDoc classDoc;
+        Class clazz;
+        DocumentedGATKFeature annotation;
 
-        public DocumentationData(String name, String summary, Map<String, Object> forTemplate) {
+        // set by the handler
+        String summary;
+        Map<String, Object> forTemplate;
+
+        public DocWorkUnit(DocumentedGATKFeature annotation, String name, String filename, String group,
+                           DocumentedGATKFeatureHandler handler, ClassDoc classDoc, Class clazz) {
+            this.annotation = annotation;
             this.name = name;
+            this.filename = filename;
+            this.group = group;
+            this.handler = handler;
+            this.classDoc = classDoc;
+            this.clazz = clazz;
+        }
+
+        public void setHandlerContent(String summary, Map<String, Object> forTemplate) {
             this.summary = summary;
             this.forTemplate = forTemplate;
-        }
-
-        public void setGroup(String group) {
-            this.group = group;
-        }
-
-        public void setFilename(String filename) {
-            this.filename = filename;
         }
 
         public Map<String, String> toMap() {
@@ -70,7 +79,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             return data;
         }
 
-        public int compareTo(DocumentationData other) {
+        public int compareTo(DocWorkUnit other) {
             return this.name.compareTo(other.name);
         }
     }
@@ -93,6 +102,26 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return ResourceBundleExtractorDoclet.optionLength(option);
     }
 
+    public Map<Class, DocWorkUnit> workUnits() {
+        Map<Class, DocWorkUnit> m = new HashMap<Class, DocWorkUnit>();
+
+        for ( ClassDoc doc : rootDoc.classes() ) {
+            System.out.printf("Considering %s%n", doc);
+            Class clazz = getClassForClassDoc(doc);
+            DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
+            DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
+            if ( handler != null && handler.shouldBeProcessed(doc) ) {
+                String filename = handler.getDestinationFilename(doc);
+                DocWorkUnit unit = new DocWorkUnit(feature,
+                        doc.name(), filename, feature.groupName(),
+                        handler, doc, clazz );
+                m.put(clazz, unit);
+            }
+        }
+
+        return m;
+    }
+
     @Override
     protected void processDocs(RootDoc rootDoc, PrintStream ignore) {
         // setup the global access to the root
@@ -108,19 +137,12 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             // Specify how templates will see the data-model. This is an advanced topic...
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
-            List<DocumentationData> indexData = new ArrayList<DocumentationData>();
-            Set<DocumentedGATKFeature> docFeatures = new HashSet<DocumentedGATKFeature>();
-            for ( ClassDoc doc : rootDoc.classes() ) {
-                System.out.printf("Considering %s%n", doc);
-                DocumentedGATKFeatureHandler handler = getHandlerForClassDoc(doc);
-                if ( handler != null && handler.shouldBeProcessed(doc) ) {
-                    DocumentationData docData = processDocumentationWithHandler(cfg, handler, doc);
-                    docFeatures.add(handler.getAnnotation());
-                    indexData.add(docData);
-                }
+            Map<Class, DocWorkUnit> workUnitMap = workUnits();
+            for ( DocWorkUnit workUnit : workUnitMap.values() ) {
+                processDocWorkUnit(cfg, workUnit, workUnitMap);
             }
 
-            processIndex(cfg, indexData, new ArrayList<DocumentedGATKFeature>(docFeatures));
+            processIndex(cfg, new ArrayList<DocWorkUnit>(workUnitMap.values()));
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException(e);
         } catch ( IOException e ) {
@@ -128,53 +150,66 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         }
     }
 
-    private DocumentedGATKFeatureHandler getHandlerForClassDoc(ClassDoc doc) {
+    private DocumentedGATKFeatureHandler createHandler(ClassDoc doc, DocumentedGATKFeature feature) {
         try {
-            // todo -- what do I need the ? extends Object to pass the compiler?
-            Class<? extends Object> docClass = HelpUtils.getClassForDoc(doc);
-            if ( docClass.isAnnotationPresent(DocumentedGATKFeature.class) ) {
-                DocumentedGATKFeature feature = docClass.getAnnotation(DocumentedGATKFeature.class);
+            if ( feature != null ) {
                 if ( feature.enable() ) {
                     DocumentedGATKFeatureHandler handler = feature.handler().newInstance();
-                    handler.setGroupName(feature.groupName());
                     handler.setDoclet(this);
-                    handler.setAnnotation(feature);
                     return handler;
                 } else {
                     logger.info("Skipping disabled Documentation for " + doc);
-                    return null;
                 }
-            } else {
-                return null; // not annotated so it shouldn't be documented
             }
-        } catch ( ClassNotFoundException e) {
-            //logger.warn("Couldn't find class for ClassDoc " + doc);
-            // we got a classdoc for a class we can't find.  Maybe in a library or something
-            return null;
         } catch ( IllegalAccessException e) {
             throw new RuntimeException(e); // the constructor is now private -- this is an error
         } catch ( InstantiationException e) {
             throw new RuntimeException(e); // the constructor is now private -- this is an error
+        }
+
+        return null;
+    }
+
+    private DocumentedGATKFeature getFeatureForClassDoc(ClassDoc doc) {
+        // todo -- what do I need the ? extends Object to pass the compiler?
+        Class<? extends Object> docClass = getClassForClassDoc(doc);
+        if ( docClass != null && docClass.isAnnotationPresent(DocumentedGATKFeature.class) ) {
+            return docClass.getAnnotation(DocumentedGATKFeature.class);
+        } else {
+            return null; // not annotated so it shouldn't be documented
+        }
+    }
+
+    private Class<? extends Object> getClassForClassDoc(ClassDoc doc) {
+        try {
+            // todo -- what do I need the ? extends Object to pass the compiler?
+            return (Class<? extends Object>)HelpUtils.getClassForDoc(doc);
+        } catch ( ClassNotFoundException e) {
+            //logger.warn("Couldn't find class for ClassDoc " + doc);
+            // we got a classdoc for a class we can't find.  Maybe in a library or something
+            return null;
+        } catch ( NoClassDefFoundError e ) {
+            return null;
         } catch ( UnsatisfiedLinkError e) {
             return null; // naughty BWA bindings
         }
     }
 
-    private void processIndex(Configuration cfg, List<DocumentationData> indexData, List<DocumentedGATKFeature> docFeatures) throws IOException {
+    private void processIndex(Configuration cfg, List<DocWorkUnit> indexData) throws IOException {
         /* Get or create a template */
         Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
         Writer out = new OutputStreamWriter(new FileOutputStream(new File("testdoc/index.html")));
         try {
-            temp.process(groupIndexData(indexData, docFeatures), out);
+            temp.process(groupIndexData(indexData), out);
             out.flush();
         } catch ( TemplateException e ) {
             throw new ReviewedStingException("Failed to create GATK documentation", e);
         }
     }
 
-    private Map<String, Object> groupIndexData(List<DocumentationData> indexData, List<DocumentedGATKFeature> docFeatures) {
+    private Map<String, Object> groupIndexData(List<DocWorkUnit> indexData) {
         //
         // root -> data -> { summary -> y, filename -> z }, etc
         //      -> groups -> group1, group2, etc.
@@ -182,9 +217,11 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
         Collections.sort(indexData);
 
+        Set<DocumentedGATKFeature> docFeatures = new HashSet<DocumentedGATKFeature>();
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
-        for ( DocumentationData indexDatum : indexData ) {
-            data.add(indexDatum.toMap());
+        for ( DocWorkUnit workUnit : indexData ) {
+            data.add(workUnit.toMap());
+            docFeatures.add(workUnit.annotation);
         }
 
         List<Map<String, String>> groups = new ArrayList<Map<String, String>>();
@@ -205,30 +242,23 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return root;
     }
 
-    private DocumentationData processDocumentationWithHandler(Configuration cfg,
-                                                              DocumentedGATKFeatureHandler handler,
-                                                              ClassDoc doc)
+    private void processDocWorkUnit(Configuration cfg, DocWorkUnit unit, Map<Class, DocWorkUnit> all)
             throws IOException {
-        System.out.printf("Processing documentation for class %s%n", doc);
+        System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 
-        DocumentationData docData = handler.processOne(doc);
-        docData.setGroup(handler.getGroupName());
+        unit.handler.processOne(unit, all);
 
         // Get or create a template
-        Template temp = cfg.getTemplate(handler.getTemplateName(doc));
+        Template temp = cfg.getTemplate(unit.handler.getTemplateName(unit.classDoc));
 
         // Merge data-model with template
-        String filename = handler.getDestinationFilename(doc);
-        docData.setFilename(filename);
-        File outputPath = new File("testdoc/" + filename);
+        File outputPath = new File("testdoc/" + unit.filename);
         try {
             Writer out = new OutputStreamWriter(new FileOutputStream(outputPath));
-            temp.process(docData.forTemplate, out);
+            temp.process(unit.forTemplate, out);
             out.flush();
         } catch ( TemplateException e ) {
             throw new ReviewedStingException("Failed to create GATK documentation", e);
         }
-
-        return docData;
     }
 }

@@ -35,10 +35,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -54,20 +51,16 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
     }
 
+
     @Override
     public String getTemplateName(ClassDoc doc) throws IOException {
         return "generic.template.html";
     }
 
     @Override
-    public GATKDoclet.DocumentationData processOne(ClassDoc doc) {
-        System.out.printf("%s class %s%n", getGroupName(), doc);
-        Map<String, Object> root = buildWalkerDataModel(doc); // Create the root hash
-        return new GATKDoclet.DocumentationData(doc.name(), (String)root.get("summary"), root);
-    }
-
-
-    private Map<String, Object> buildWalkerDataModel(ClassDoc classdoc) {
+    public void processOne(GATKDoclet.DocWorkUnit toProcess, Map<Class, GATKDoclet.DocWorkUnit> all) {
+        System.out.printf("%s class %s%n", toProcess.group, toProcess.classDoc);
+        ClassDoc classdoc = toProcess.classDoc;
         Map<String, Object> root = new HashMap<String, Object>();
 
         root.put("name", classdoc.name());
@@ -109,8 +102,21 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             throw new RuntimeException(e);
         }
 
+        List<Map<String, Object>> extraDocsData = new ArrayList<Map<String, Object>>();
+        for ( Class extraDocClass : toProcess.annotation.extraDocs() ) {
+            final GATKDoclet.DocWorkUnit otherUnit = all.get(extraDocClass);
+            if ( otherUnit == null )
+                throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
+            extraDocsData.add(
+                    new HashMap<String, Object>(){{
+                        put("filename", otherUnit.filename);
+                        put("name", otherUnit.name);}});
+
+        }
+        root.put("extradocs", extraDocsData);
+
         //System.out.printf("Root is %s%n", root);
-        return root;
+        toProcess.setHandlerContent(summaryBuilder.toString(), root);
     }
 
     protected ParsingEngine createStandardGATKParsingEngine() {

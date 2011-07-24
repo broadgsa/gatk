@@ -468,7 +468,7 @@
         </javadoc>
     </target>
 
-    <target name="gatkdocs" unless="uptodate.extracthelp"
+    <target name="gatkdocs" depends="gatk.compile"
 	        description="Extract help key/value pair file from the JavaDoc tags.">
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
