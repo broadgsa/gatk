@@ -75,7 +75,6 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         addArgumentBindings(root);
         addRelatedBindings(root);
 
-        //System.out.printf("Root is %s%n", root);
         toProcess.setHandlerContent((String)root.get("summary"), root);
     }
 
@@ -110,7 +109,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
-                GATKDoc doc = docForArgument(fieldDoc, argDef); // todo -- why can you have multiple ones?
+                GATKDoc doc = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
                 String kind = "optional";
                 if ( argumentSource.isRequired() ) kind = "required";
                 else if ( argumentSource.isHidden() ) kind = "hidden";
@@ -216,7 +215,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return null;
     }
 
-    protected GATKDoc docForArgument(FieldDoc fieldDoc, ArgumentDefinition def) {
+    protected GATKDoc docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         final String name = def.fullName != null ? "--" + def.fullName : "-" + def.shortName;
         GATKDoc doc = new GATKDoc(GATKDoc.DocType.WALKER_ARG, name);
 
@@ -228,17 +227,23 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         if ( def.doc != null ) doc.setSummary(def.doc);
 
         List<String> attributes = new ArrayList<String>();
-        attributes.add(def.ioType.annotationClass.getSimpleName());
+        // this one below is just too much.
+        //attributes.add(def.ioType.annotationClass.getSimpleName());
         if ( def.required ) attributes.add("required");
-        if ( def.isFlag ) attributes.add("flag");
+        // flag is just boolean, not interesting
+        //if ( def.isFlag ) attributes.add("flag");
         if ( def.isHidden ) attributes.add("hidden");
-        doc.addTag("attributes", Utils.join(",", attributes));
+        if ( source.isDeprecated() ) attributes.add("depreciated");
+        if ( attributes.size() > 0 )
+            doc.addTag("attributes", Utils.join(", ", attributes));
 
-        // todo -- need depreciated value
+        if ( def.validOptions != null ) {
+            //source.field.getType().isEnum();
+            // todo -- what's the best way to link to these docs?  Maybe a separate section on enums?
+            doc.addTag("options", Utils.join(", ", def.validOptions));
+        }
 
-        doc.addTag("options", def.validOptions == null ? GATKDoc.NA_STRING : Utils.join(",", def.validOptions));
-
-        doc.setFulltext(fieldDoc.commentText());
+        doc.setFulltext(fieldDoc.commentText().equals("") ? GATKDoc.NA_STRING : fieldDoc.commentText());
 
         return doc;
     }

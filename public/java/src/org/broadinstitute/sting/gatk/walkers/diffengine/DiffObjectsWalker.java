@@ -186,6 +186,10 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="testEnum", doc="X", required=false)
     TestEnum testEnum = TestEnum.ONE;
 
+    @Deprecated
+    @Argument(fullName="testDepreciates", doc="Y", required=false)
+    int dontUseMe = 1;
+
     public enum TestEnum { ONE, TWO };
 
     final DiffEngine diffEngine = new DiffEngine();

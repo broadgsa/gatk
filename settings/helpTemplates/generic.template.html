@@ -18,12 +18,10 @@
 </#macro>    
    
 <#macro argumentDetails arg>
-    <h3><a name="${arg.name}">${arg.name} / ${arg.synonyms}</a></h3>
-    Summary: ${arg.summary}<br>
-    Attributes: ${arg.attributes}<br>
-    Type: ${arg.type}<br> 
-    Options: ${arg.options}<br> 
-    Details: ${arg.fulltext}<br>
+    <h3><a name="${arg.name}">${arg.name} / ${arg.synonyms}</a>
+    (<#if arg.attributes??>${arg.attributes} </#if>${arg.type})</h3>
+    ${arg.summary}. ${arg.fulltext}<br>
+    <#if arg.options??>TODO: document enum in line here.  Possible values ${arg.options}</#if>
 </#macro>     
    
 <#macro relatedByType name type>
