@@ -19,47 +19,12 @@ p.version, p.see-also
 	font-size: 8pt;
 }
 
-dl.enum
-{
-	margin: 0em 0;
-	padding: 0;
-}
-
-.enum dt
-{
-	position: relative;
-	left: 0;
-	top: 1.1em;
-	width: 5em;
-	font-weight: bold;
-}
-
-.enum dd
-{
-	border-left: 1px solid #000;
-	margin: 0 0 0 6em;
-	padding: 0 0 .5em .5em;
-}
-
-/*
-a
-{
-	color: #546188;
-	text-decoration: none;
-}
-
-a:visited 
-{
-	color: #546188;
-}
-*/
-
 h1, h2, h3
 {
 	font-family: Corbel, Arial, Helvetica, Sans-Serif;
 	font-weight: bold;
 	text-align: left;
-	color: #bac8da;
+	color: #669;
 }
 
 h1
@@ -74,16 +39,27 @@ h3
 	font-weight: normal;
 }
 
-table.indextable tr td
-{
-	margin-right: 1em;
-}
-
-/* 
-	Blue Dream
-	Written by Teylor Feliz  http://www.admixweb.com
+/*
+ * enum DT layout
 */
 
+dl {
+   border: 1px solid #ccc;
+}
+
+dt {
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+dd {
+    margin: 0;
+    padding: 0 0 0.5em 0;
+}
+
+/*
+ * clean table layouts
+*/
 #hor-minimalist-b
 {
 	font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
@@ -111,4 +87,10 @@ table.indextable tr td
 #hor-minimalist-b tbody tr:hover td
 {
 	color: #009;
+}
+
+th#row-divider 
+{
+    font-weight: bolder;
+	font-size: larger;
 }

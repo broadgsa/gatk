@@ -221,10 +221,10 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
     protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         Map<String, Object> root = new HashMap<String, Object>();
-        root.put("name", def.fullName != null ? "--" + def.fullName : "-" + def.shortName);
+        root.put("name", def.shortName != null ? "-" + def.shortName : "--" + def.fullName );
 
-        if ( def.fullName != null && def.shortName != null)
-            root.put("synonyms", def.fullName != null ? "--" + def.fullName : "-" + def.shortName);
+        if ( def.shortName != null && def.fullName != null )
+            root.put("synonyms", "--" + def.fullName);
 
         root.put("required", def.required ? "yes" : "no");
         root.put("type", def.argumentType.getSimpleName());
