@@ -2,7 +2,7 @@
 
 <#macro argumentlist name myargs>
     <#if myargs?size != 0> 
-        <tr><th colspan="4" align="left">${name}</th></tr>
+        <tr><th colspan="4"><b>${name}</b></th></tr>
         <#list myargs as arg>
             <tr>
                 <td><a href="#${arg.name}">${arg.name}</a></td>
@@ -22,7 +22,7 @@
     (<#if arg.attributes??>${arg.attributes} </#if>${arg.type})</h3>
     ${arg.summary}. ${arg.fulltext}<br>
     <#if arg.options??>
-        <p>Argument is an enumerated type with the following possible values:</p>
+        <p>The ${arg.name} argument can have one of the following values:</p>
         <dl class="enum">
         <#list arg.options as option>
             <dt>${option.name}
@@ -66,17 +66,21 @@
   <#if arguments.all?size != 0> 
       <hr>
       <h2>Feature specific arguments</h2>
-      <table border="1" cellpadding="2" width="100%">
+      <table id="hor-minimalist-b">
+      <thead>
       <tr>
          <th>Name</th>
          <th>Synonyms</th>
          <th>Type</th>
          <th>Summary</th>
       </tr>
+      </thead>
+      <tbody>
          <@argumentlist name="Required" myargs=arguments.required/>
          <@argumentlist name="Optional" myargs=arguments.optional/>
          <@argumentlist name="Hidden" myargs=arguments.hidden/>
          <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+      </tbody>
       </table>
   </#if>
 

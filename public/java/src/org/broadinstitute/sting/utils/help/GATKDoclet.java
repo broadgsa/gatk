@@ -43,7 +43,7 @@ import java.util.*;
  */
 public class GATKDoclet extends ResourceBundleExtractorDoclet {
     final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
-    final protected static File DESTINATION_DIR = new File("testdoc");
+    final protected static File DESTINATION_DIR = new File("gatkdocs");
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
 
     public static class DocWorkUnit implements Comparable<DocWorkUnit> {
