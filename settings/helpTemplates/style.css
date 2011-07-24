@@ -1,0 +1,80 @@
+body
+{
+	background-color: #ffffff;
+	color: #202020;
+} 
+
+body, p, ul, ol, dl
+{
+	font-family: Corbel, Verdana, "Lucida Grande", "Lucida Sans Unicode", Sans-Serif;
+}
+
+p, ul, ol, dl, dt, dd, td
+{
+	font-size: 12pt;
+}
+
+dt
+{ 
+	padding-bottom: 6pt;
+}
+
+/*
+a
+{
+	color: #546188;
+	text-decoration: none;
+}
+
+a:visited 
+{
+	color: #546188;
+}
+*/
+
+h1, h2, h3
+{
+	font-family: Corbel, Arial, Helvetica, Sans-Serif;
+	font-weight: lighter;
+	text-align: left;
+	color: #bac8da;
+}
+
+h1
+{
+	font-size: 32pt;
+	letter-spacing: -2px;
+}
+
+h3 
+{
+	font-size: 16pt;
+	font-weight: normal;
+}
+
+#indexheader 
+{
+	position: absolute;
+	left: 50pt;
+	top: 100pt;
+	font-size: 38pt;
+}
+
+#indexbody
+{
+	position: absolute;
+	left: 50pt;
+	top: 180pt;
+}
+
+table#indextable tr td
+{
+	margin-right: 1em;
+}
+
+tr#indextableheader td
+{
+	font-family: Corbel, Arial, Helvetica, Sans-Serif;
+	font-size: 14pt;
+	font-weight: lighter;
+}
