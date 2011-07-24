@@ -52,5 +52,5 @@ public abstract class DocumentedGATKFeatureHandler {
     }
 
     public abstract String getTemplateName(ClassDoc doc) throws IOException;
-    public abstract void processOne(GATKDoclet.DocWorkUnit toProcess, Set<GATKDoclet.DocWorkUnit> all);
+    public abstract void processOne(RootDoc rootDoc, GATKDoclet.DocWorkUnit toProcess, Set<GATKDoclet.DocWorkUnit> all);
 }

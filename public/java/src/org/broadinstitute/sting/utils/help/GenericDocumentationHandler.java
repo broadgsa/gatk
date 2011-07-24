@@ -24,8 +24,10 @@
 
 package org.broadinstitute.sting.utils.help;
 
+import com.google.java.contract.Requires;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -44,6 +46,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     GATKDoclet.DocWorkUnit toProcess;
     ClassDoc classdoc;
     Set<GATKDoclet.DocWorkUnit> all;
+    RootDoc rootDoc;
 
     @Override
     public boolean shouldBeProcessed(ClassDoc doc) {
@@ -63,7 +66,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     @Override
-    public void processOne(GATKDoclet.DocWorkUnit toProcessArg, Set<GATKDoclet.DocWorkUnit> allArg) {
+    public void processOne(RootDoc rootDoc, GATKDoclet.DocWorkUnit toProcessArg, Set<GATKDoclet.DocWorkUnit> allArg) {
+        this.rootDoc = rootDoc;
         this.toProcess = toProcessArg;
         this.all = allArg;
         this.classdoc = toProcess.classDoc;
@@ -109,13 +113,13 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
-                GATKDoc doc = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
+                Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
                 String kind = "optional";
                 if ( argumentSource.isRequired() ) kind = "required";
                 else if ( argumentSource.isHidden() ) kind = "hidden";
                 else if ( argumentSource.isDeprecated() ) kind = "depreciated";
-                args.get(kind).add(doc.toDataModel());
-                args.get("all").add(doc.toDataModel());
+                args.get(kind).add(argBindings);
+                args.get("all").add(argBindings);
                 System.out.printf("Processing %s%n", argumentSource);
             }
         } catch ( ClassNotFoundException e ) {
@@ -215,16 +219,19 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return null;
     }
 
-    protected GATKDoc docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
-        final String name = def.fullName != null ? "--" + def.fullName : "-" + def.shortName;
-        GATKDoc doc = new GATKDoc(GATKDoc.DocType.WALKER_ARG, name);
+    protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
+        Map<String, Object> root = new HashMap<String, Object>();
+        root.put("name", def.fullName != null ? "--" + def.fullName : "-" + def.shortName);
 
         if ( def.fullName != null && def.shortName != null)
-            doc.addSynonym("-" + def.shortName);
+            root.put("synonyms", def.fullName != null ? "--" + def.fullName : "-" + def.shortName);
 
-        doc.addTag("required", def.required ? "yes" : "no");
-        doc.addTag("type", def.argumentType.getSimpleName());
-        if ( def.doc != null ) doc.setSummary(def.doc);
+        root.put("required", def.required ? "yes" : "no");
+        root.put("type", def.argumentType.getSimpleName());
+
+        // summary and fulltext
+        root.put("summary", def.doc != null ? def.doc : "");
+        root.put("fulltext", fieldDoc.commentText());
 
         List<String> attributes = new ArrayList<String>();
         // this one below is just too much.
@@ -235,16 +242,30 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         if ( def.isHidden ) attributes.add("hidden");
         if ( source.isDeprecated() ) attributes.add("depreciated");
         if ( attributes.size() > 0 )
-            doc.addTag("attributes", Utils.join(", ", attributes));
+            root.put("attributes", Utils.join(", ", attributes));
 
         if ( def.validOptions != null ) {
-            //source.field.getType().isEnum();
-            // todo -- what's the best way to link to these docs?  Maybe a separate section on enums?
-            doc.addTag("options", Utils.join(", ", def.validOptions));
+            root.put("options", docForEnumArgument(source.field.getType()));
         }
 
-        doc.setFulltext(fieldDoc.commentText().equals("") ? GATKDoc.NA_STRING : fieldDoc.commentText());
-
-        return doc;
+        return root;
     }
+
+    @Requires("enumClass.isEnum()")
+    private List<Map<String, Object>> docForEnumArgument(Class enumClass) {
+        ClassDoc doc = GATKDoclet.getClassDocForClass(rootDoc, enumClass);
+        if ( doc == null ) //  || ! doc.isEnum() )
+            throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got instead: " + doc);
+
+        List<Map<String, Object>> bindings = new ArrayList<Map<String, Object>>();
+        for (final FieldDoc field : doc.fields(false) ) {
+            bindings.add(
+                    new HashMap<String, Object>(){{
+                        put("name", field.name());
+                        put("summary", field.commentText());}});
+        }
+
+        return bindings;
+    }
+
 }

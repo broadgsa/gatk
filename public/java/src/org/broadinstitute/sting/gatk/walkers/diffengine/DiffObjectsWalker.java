@@ -190,7 +190,12 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="testDepreciates", doc="Y", required=false)
     int dontUseMe = 1;
 
-    public enum TestEnum { ONE, TWO };
+    public enum TestEnum {
+        /** Docs for ONE */
+        ONE,
+        /** Docs for TWO */
+        TWO
+    };
 
     final DiffEngine diffEngine = new DiffEngine();
 

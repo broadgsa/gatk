@@ -6,7 +6,7 @@
         <#list myargs as arg>
             <tr>
                 <td><a href="#${arg.name}">${arg.name}</a></td>
-                <td><a href="#${arg.name}">${arg.synonyms}</a></td>
+                <td><a href="#${arg.name}">${arg.synonyms!""}</a></td>
                 <td>${arg.type}</td>
                 <td>${arg.summary}</td>
             </tr>
@@ -18,10 +18,18 @@
 </#macro>    
    
 <#macro argumentDetails arg>
-    <h3><a name="${arg.name}">${arg.name} / ${arg.synonyms}</a>
+    <h3><a name="${arg.name}">${arg.name}<#if arg.synonyms??> / ${arg.synonyms}</#if></a>
     (<#if arg.attributes??>${arg.attributes} </#if>${arg.type})</h3>
     ${arg.summary}. ${arg.fulltext}<br>
-    <#if arg.options??>TODO: document enum in line here.  Possible values ${arg.options}</#if>
+    <#if arg.options??>
+        <p>Argument is an enumerated type with the following possible values:</p>
+        <dl class="enum">
+        <#list arg.options as option>
+            <dt>${option.name}
+            <dd>${option.summary}
+        </#list>
+        </dl>
+    </#if>
 </#macro>     
    
 <#macro relatedByType name type>

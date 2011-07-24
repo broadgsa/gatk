@@ -210,6 +210,10 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         }
     }
 
+    public static ClassDoc getClassDocForClass(RootDoc rootDoc, Class clazz) {
+        return rootDoc.classNamed(clazz.getName());
+    }
+
     private void processIndex(Configuration cfg, List<DocWorkUnit> indexData) throws IOException {
         /* Get or create a template */
         Template temp = cfg.getTemplate("generic.index.template.html");
@@ -270,7 +274,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             throws IOException {
         System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 
-        unit.handler.processOne(unit, all);
+        unit.handler.processOne(rootDoc, unit, all);
 
         // Get or create a template
         Template temp = cfg.getTemplate(unit.handler.getTemplateName(unit.classDoc));
