@@ -30,8 +30,10 @@ import freemarker.template.Configuration;
 import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import sun.misc.IOUtils;
 
 import java.io.*;
 import java.util.*;
@@ -40,6 +42,8 @@ import java.util.*;
  *
  */
 public class GATKDoclet extends ResourceBundleExtractorDoclet {
+    final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
+    final protected static File DESTINATION_DIR = new File("testdoc");
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
 
     public static class DocWorkUnit implements Comparable<DocWorkUnit> {
@@ -128,12 +132,16 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         this.rootDoc = rootDoc;
 
         try {
+            // basic setup
+            DESTINATION_DIR.mkdirs();
+            FileUtils.copyFile(new File(SETTINGS_DIR + "/style.css"), new File(DESTINATION_DIR + "/style.css"));
+
             /* ------------------------------------------------------------------- */
             /* You should do this ONLY ONCE in the whole application life-cycle:   */
 
             Configuration cfg = new Configuration();
             // Specify the data source where the template files come from.
-            cfg.setDirectoryForTemplateLoading(new File("settings/helpTemplates/"));
+            cfg.setDirectoryForTemplateLoading(SETTINGS_DIR);
             // Specify how templates will see the data-model. This is an advanced topic...
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
@@ -200,7 +208,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
-        Writer out = new OutputStreamWriter(new FileOutputStream(new File("testdoc/index.html")));
+        Writer out = new OutputStreamWriter(new FileOutputStream(new File(DESTINATION_DIR + "/index.html")));
         try {
             temp.process(groupIndexData(indexData), out);
             out.flush();
@@ -259,7 +267,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         Template temp = cfg.getTemplate(unit.handler.getTemplateName(unit.classDoc));
 
         // Merge data-model with template
-        File outputPath = new File("testdoc/" + unit.filename);
+        File outputPath = new File(DESTINATION_DIR + "/" + unit.filename);
         try {
             Writer out = new OutputStreamWriter(new FileOutputStream(outputPath));
             temp.process(unit.forTemplate, out);

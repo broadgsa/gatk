@@ -1,5 +1,7 @@
+<#include "common.html"/>
+
 <#macro emitGroup group>
-  <table border="1" cellpadding="2">
+  <table border="1" cellpadding="2" width="100%">
   <h2>${group.name}</h2>
   <p>
   ${group.summary}  
@@ -20,9 +22,7 @@
 </#macro>   
 
 <html>
-<head>
-  <title>GATK documentation index</title>
-</head>
+<@makeHeader title="GATK documentation index"/>
 <body>
   <h1>GATK documentation index</h1>
   <#list groups as group>

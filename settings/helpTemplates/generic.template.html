@@ -1,3 +1,5 @@
+<#include "common.html"/>
+
 <#macro argumentlist name myargs>
     <#if myargs?size != 0> 
         <tr><th colspan="4" align="left">${name}</th></tr>
@@ -39,12 +41,9 @@
         </#if>
     </#list>
 </#macro>
-   
-   
+
 <html>
-<head>
-  <title>${name} documentation</title>
-</head>
+<@makeHeader title="${name} documentation"/>
 <body>
   <h1>${name}<h1>
   <h2>Brief summary</h2>
@@ -60,7 +59,7 @@
   <#if arguments.all?size != 0> 
       <hr>
       <h2>Feature specific arguments</h2>
-      <table border="1" cellpadding="2">
+      <table border="1" cellpadding="2" width="100%">
       <tr>
          <th>Name</th>
          <th>Synonyms</th>
@@ -90,10 +89,10 @@
   
   <#-- This class is related to other documented classes via sub/super relationships -->
   <#if relatedDocs?size != 0> 
+    <hr>
     <h2>Related capabilities</h2>
     <@relatedByType name="Superclasses" type="superclass"/>
     <@relatedByType name="Subclasses" type="subclass"/>
-    <hr>
   </#if>
     
   <#-- List all of the -->
