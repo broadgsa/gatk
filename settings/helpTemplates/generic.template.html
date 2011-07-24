@@ -24,19 +24,36 @@
     Details: ${arg.fulltext}<br>
 </#macro>     
    
+<#macro relatedByType name type>
+    <#list relatedDocs as relatedDoc>
+        <#if relatedDoc.relation == type>
+            <h3>${name}</h3>
+            <ul>
+            <#list relatedDocs as relatedDoc>
+                <#if relatedDoc.relation == type>
+                    <li><a href="${relatedDoc.filename}">${relatedDoc.name}</a> is a ${relatedDoc.relation}</li>
+                </#if>
+            </#list>
+            </ul>
+        <#break>        
+        </#if>
+    </#list>
+</#macro>
+   
+   
 <html>
 <head>
   <title>${name} documentation</title>
 </head>
 <body>
   <h1>${name}<h1>
-  <h2>Summary</h2>
+  <h2>Brief summary</h2>
   ${summary}
   <#if author??>
       <h2>Author</h2>
       ${author}
   </#if>
-  <h2>Description</h2>
+  <h2>Detailed description</h2>
   ${description}
   
   <#-- Create the argument summary -->
@@ -57,10 +74,10 @@
       </table>
   </#if>
 
-  <#-- Create references to related capabilities if appropriate -->
+  <#-- Create references to additional capabilities if appropriate -->
   <#if extradocs?size != 0> 
       <hr>
-      <h2>Related capabilities</h2>
+      <h2>Additional capabilities</h2>
       The arguments described in the entries below can be supplied to this tool to modify
       its behavior.  For example, the -L argument directs the GATK engine restricts processing 
       to specific genomic intervals.  This capability is available to all GATK walkers.
@@ -69,6 +86,14 @@
           <li><a href="${extradoc.filename}">${extradoc.name}</a></li>
       </#list>
       </ul>
+  </#if>
+  
+  <#-- This class is related to other documented classes via sub/super relationships -->
+  <#if relatedDocs?size != 0> 
+    <h2>Related capabilities</h2>
+    <@relatedByType name="Superclasses" type="superclass"/>
+    <@relatedByType name="Subclasses" type="subclass"/>
+    <hr>
   </#if>
     
   <#-- List all of the -->

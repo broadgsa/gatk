@@ -41,6 +41,10 @@ import java.util.*;
  *
  */
 public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
+    GATKDoclet.DocWorkUnit toProcess;
+    ClassDoc classdoc;
+    Set<GATKDoclet.DocWorkUnit> all;
+
     @Override
     public boolean shouldBeProcessed(ClassDoc doc) {
         return true;
@@ -59,11 +63,23 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     @Override
-    public void processOne(GATKDoclet.DocWorkUnit toProcess, Map<Class, GATKDoclet.DocWorkUnit> all) {
+    public void processOne(GATKDoclet.DocWorkUnit toProcessArg, Set<GATKDoclet.DocWorkUnit> allArg) {
+        this.toProcess = toProcessArg;
+        this.all = allArg;
+        this.classdoc = toProcess.classDoc;
+
         System.out.printf("%s class %s%n", toProcess.group, toProcess.classDoc);
-        ClassDoc classdoc = toProcess.classDoc;
         Map<String, Object> root = new HashMap<String, Object>();
 
+        addHighLevelBindings(root);
+        addArgumentBindings(root);
+        addRelatedBindings(root);
+
+        //System.out.printf("Root is %s%n", root);
+        toProcess.setHandlerContent((String)root.get("summary"), root);
+    }
+
+    protected void addHighLevelBindings(Map<String, Object> root) {
         root.put("name", classdoc.name());
 
         // Extract overrides from the doc tags.
@@ -76,7 +92,9 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         for(Tag tag: classdoc.tags()) {
             root.put(tag.name(), tag.text());
         }
+    }
 
+    protected void addArgumentBindings(Map<String, Object> root) {
         ParsingEngine parsingEngine = createStandardGATKParsingEngine();
 
         Map<String, List<Object>> args = new HashMap<String, List<Object>>();
@@ -102,10 +120,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         } catch ( ClassNotFoundException e ) {
             throw new RuntimeException(e);
         }
+    }
 
+    protected void addRelatedBindings(Map<String, Object> root) {
         List<Map<String, Object>> extraDocsData = new ArrayList<Map<String, Object>>();
-        for ( Class extraDocClass : toProcess.annotation.extraDocs() ) {
-            final GATKDoclet.DocWorkUnit otherUnit = all.get(extraDocClass);
+
+        // add in all of the explicitly related items
+        for ( final Class extraDocClass : toProcess.annotation.extraDocs() ) {
+            final GATKDoclet.DocWorkUnit otherUnit = GATKDoclet.findWorkUnitForClass(extraDocClass, all);
             if ( otherUnit == null )
                 throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
             extraDocsData.add(
@@ -114,10 +136,36 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                         put("name", otherUnit.name);}});
 
         }
-        root.put("extradocs", extraDocsData);
 
-        //System.out.printf("Root is %s%n", root);
-        toProcess.setHandlerContent(summaryBuilder.toString(), root);
+        List<Map<String, Object>> hierarchyDocs = new ArrayList<Map<String, Object>>();
+        for (final GATKDoclet.DocWorkUnit other : all ) {
+            final String relation = classRelationship(toProcess.clazz, other.clazz);
+            if ( relation != null )
+                hierarchyDocs.add(
+                        new HashMap<String, Object>(){{
+                            put("filename", other.filename);
+                            put("relation", relation);
+                            put("name", other.name);}});
+
+        }
+
+        root.put("relatedDocs", hierarchyDocs);
+        root.put("extradocs", extraDocsData);
+    }
+
+    private static final String classRelationship(Class me, Class other) {
+        if ( other.equals(me) )
+            // no circular references
+            return null;
+        else if ( other.isAssignableFrom(me) )
+            // toProcess is a superclass of other.clazz
+            return "superclass";
+        else if ( me.isAssignableFrom(other) )
+            // toProcess inherits from other.clazz
+            return "subclass";
+        else
+            return null;
+
     }
 
     protected ParsingEngine createStandardGATKParsingEngine() {

@@ -102,8 +102,8 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return ResourceBundleExtractorDoclet.optionLength(option);
     }
 
-    public Map<Class, DocWorkUnit> workUnits() {
-        Map<Class, DocWorkUnit> m = new HashMap<Class, DocWorkUnit>();
+    public Set<DocWorkUnit> workUnits() {
+        TreeSet<DocWorkUnit> m = new TreeSet<DocWorkUnit>();
 
         for ( ClassDoc doc : rootDoc.classes() ) {
             System.out.printf("Considering %s%n", doc);
@@ -115,7 +115,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
                 DocWorkUnit unit = new DocWorkUnit(feature,
                         doc.name(), filename, feature.groupName(),
                         handler, doc, clazz );
-                m.put(clazz, unit);
+                m.add(unit);
             }
         }
 
@@ -137,12 +137,12 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             // Specify how templates will see the data-model. This is an advanced topic...
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
-            Map<Class, DocWorkUnit> workUnitMap = workUnits();
-            for ( DocWorkUnit workUnit : workUnitMap.values() ) {
-                processDocWorkUnit(cfg, workUnit, workUnitMap);
+            Set<DocWorkUnit> myWorkUnits = workUnits();
+            for ( DocWorkUnit workUnit : myWorkUnits ) {
+                processDocWorkUnit(cfg, workUnit, myWorkUnits);
             }
 
-            processIndex(cfg, new ArrayList<DocWorkUnit>(workUnitMap.values()));
+            processIndex(cfg, new ArrayList<DocWorkUnit>(myWorkUnits));
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException(e);
         } catch ( IOException e ) {
@@ -242,7 +242,14 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return root;
     }
 
-    private void processDocWorkUnit(Configuration cfg, DocWorkUnit unit, Map<Class, DocWorkUnit> all)
+    public final static DocWorkUnit findWorkUnitForClass(Class c, Set<DocWorkUnit> all) {
+        for ( final DocWorkUnit unit : all )
+            if ( unit.clazz.equals(c) )
+                return unit;
+        return null;
+    }
+
+    private void processDocWorkUnit(Configuration cfg, DocWorkUnit unit, Set<DocWorkUnit> all)
             throws IOException {
         System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 

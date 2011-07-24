@@ -29,6 +29,7 @@ import com.sun.javadoc.RootDoc;
 
 import java.io.*;
 import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -51,5 +52,5 @@ public abstract class DocumentedGATKFeatureHandler {
     }
 
     public abstract String getTemplateName(ClassDoc doc) throws IOException;
-    public abstract void processOne(GATKDoclet.DocWorkUnit toProcess, Map<Class, GATKDoclet.DocWorkUnit> all);
+    public abstract void processOne(GATKDoclet.DocWorkUnit toProcess, Set<GATKDoclet.DocWorkUnit> all);
 }
