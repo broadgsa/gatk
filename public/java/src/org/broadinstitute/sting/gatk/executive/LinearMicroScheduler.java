@@ -49,7 +49,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         Accumulator accumulator = Accumulator.create(engine,walker);
 
         int counter = 0;
-        for (Shard shard : processingTracker.onlyOwned(shardStrategy, engine.getName())) {
+        for (Shard shard : shardStrategy ) {
             if ( shard == null ) // we ran out of shards that aren't owned
                 break;
 
