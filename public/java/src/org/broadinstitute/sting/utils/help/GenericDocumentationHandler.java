@@ -43,12 +43,13 @@ import java.util.*;
 public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     @Override
     public boolean shouldBeProcessed(ClassDoc doc) {
-        try {
-            Class type = HelpUtils.getClassForDoc(doc);
-            return JVMUtils.isConcrete(type);
-        } catch ( ClassNotFoundException e ) {
-            return false;
-        }
+        return true;
+//        try {
+//            Class type = HelpUtils.getClassForDoc(doc);
+//            return JVMUtils.isConcrete(type);
+//        } catch ( ClassNotFoundException e ) {
+//            return false;
+//        }
     }
 
 
