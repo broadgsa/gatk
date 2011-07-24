@@ -1,12 +1,15 @@
 <#macro emitGroup group>
   <table border="1" cellpadding="2">
-  <h2>${group}</h2>
+  <h2>${group.name}</h2>
+  <p>
+  ${group.summary}  
+  <p>
   <tr>
      <th>Name</th>
      <th>Summary</th>
   </tr>
     <#list data as datum>
-        <#if datum.group == group>
+        <#if datum.group == group.name>
             <tr>
                <td><a href="${datum.filename}">${datum.name}</a></td>
                <td>${datum.summary}</td>
@@ -21,7 +24,7 @@
   <title>GATK documentation index</title>
 </head>
 <body>
-  <h1>GATK documentation index<h1>
+  <h1>GATK documentation index</h1>
   <#list groups as group>
     <@emitGroup group=group/>
   </#list>

@@ -79,6 +79,17 @@
         <patternset refid="java.source.pattern" />
     </fileset>
 
+    <!-- terrible hack to get gatkdocs to see all files --> 
+    <patternset id="all.java.source.pattern">
+        <include name="${java.public.source.dir}/**/*.java" />
+        <include name="${java.private.source.dir}/**/*.java" />
+    </patternset>
+
+    <fileset id="all.java.source.files" dir="${basedir}">
+        <patternset refid="all.java.source.pattern" />
+    </fileset>
+
+
     <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
         <include name="**/*.java" />
     </fileset>
@@ -457,9 +468,8 @@
         </javadoc>
     </target>
 
-    <target name="gatkdocs" unless="uptodate.extracthelp" depends="gatk.compile"
+    <target name="gatkdocs" unless="uptodate.extracthelp"
 	        description="Extract help key/value pair file from the JavaDoc tags.">
-        <property name="gatk.target" value="private"/>
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
@@ -472,7 +482,7 @@
                  additionalparam="-private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005">
             <sourcefiles>
                 <union>
-                    <fileset refid="java.source.files"/>
+                    <fileset refid="all.java.source.files"/>
                 </union>
             </sourcefiles>
         </javadoc>

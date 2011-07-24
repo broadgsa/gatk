@@ -26,12 +26,7 @@ package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.FieldDoc;
-import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
-import freemarker.template.Configuration;
-import freemarker.template.DefaultObjectWrapper;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.Utils;
@@ -52,7 +47,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     @Override
     public boolean shouldBeProcessed(ClassDoc doc) {
         try {
-            Class type = ResourceBundleExtractorDoclet.getClassForDoc(doc);
+            Class type = HelpUtils.getClassForDoc(doc);
             return JVMUtils.isConcrete(type);
         } catch ( ClassNotFoundException e ) {
             return false;
@@ -98,7 +93,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         args.put("hidden", new ArrayList<Object>());
         args.put("depreciated", new ArrayList<Object>());
         try {
-            for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(ResourceBundleExtractorDoclet.getClassForDoc(classdoc)) ) {
+            for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
                 GATKDoc doc = docForArgument(fieldDoc, argDef); // todo -- why can you have multiple ones?
@@ -139,7 +134,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             if ( fieldDoc.name().equals(name) )
                 return fieldDoc;
 
-            Field field = ResourceBundleExtractorDoclet.getFieldForFieldDoc(fieldDoc);
+            Field field = HelpUtils.getFieldForFieldDoc(fieldDoc);
             if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
                 ClassDoc typeDoc = getRootDoc().classNamed(fieldDoc.type().qualifiedTypeName());
                 if ( typeDoc == null )

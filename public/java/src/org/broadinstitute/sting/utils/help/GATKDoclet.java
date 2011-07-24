@@ -109,16 +109,18 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
             List<DocumentationData> indexData = new ArrayList<DocumentationData>();
+            Set<DocumentedGATKFeature> docFeatures = new HashSet<DocumentedGATKFeature>();
             for ( ClassDoc doc : rootDoc.classes() ) {
                 System.out.printf("Considering %s%n", doc);
                 DocumentedGATKFeatureHandler handler = getHandlerForClassDoc(doc);
                 if ( handler != null && handler.shouldBeProcessed(doc) ) {
                     DocumentationData docData = processDocumentationWithHandler(cfg, handler, doc);
+                    docFeatures.add(handler.getAnnotation());
                     indexData.add(docData);
                 }
             }
 
-            processIndex(cfg, indexData);
+            processIndex(cfg, indexData, new ArrayList<DocumentedGATKFeature>(docFeatures));
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException(e);
         } catch ( IOException e ) {
@@ -129,13 +131,19 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
     private DocumentedGATKFeatureHandler getHandlerForClassDoc(ClassDoc doc) {
         try {
             // todo -- what do I need the ? extends Object to pass the compiler?
-            Class<? extends Object> docClass = ResourceBundleExtractorDoclet.getClassForDoc(doc);
+            Class<? extends Object> docClass = HelpUtils.getClassForDoc(doc);
             if ( docClass.isAnnotationPresent(DocumentedGATKFeature.class) ) {
                 DocumentedGATKFeature feature = docClass.getAnnotation(DocumentedGATKFeature.class);
-                DocumentedGATKFeatureHandler handler = feature.handler().newInstance();
-                handler.setGroupName(feature.groupName());
-                handler.setDoclet(this);
-                return handler;
+                if ( feature.enable() ) {
+                    DocumentedGATKFeatureHandler handler = feature.handler().newInstance();
+                    handler.setGroupName(feature.groupName());
+                    handler.setDoclet(this);
+                    handler.setAnnotation(feature);
+                    return handler;
+                } else {
+                    logger.info("Skipping disabled Documentation for " + doc);
+                    return null;
+                }
             } else {
                 return null; // not annotated so it shouldn't be documented
             }
@@ -152,21 +160,21 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         }
     }
 
-    private void processIndex(Configuration cfg, List<DocumentationData> indexData) throws IOException {
+    private void processIndex(Configuration cfg, List<DocumentationData> indexData, List<DocumentedGATKFeature> docFeatures) throws IOException {
         /* Get or create a template */
         Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
         Writer out = new OutputStreamWriter(new FileOutputStream(new File("testdoc/index.html")));
         try {
-            temp.process(groupIndexData(indexData), out);
+            temp.process(groupIndexData(indexData, docFeatures), out);
             out.flush();
         } catch ( TemplateException e ) {
             throw new ReviewedStingException("Failed to create GATK documentation", e);
         }
     }
 
-    private Map<String, Object> groupIndexData(List<DocumentationData> indexData) {
+    private Map<String, Object> groupIndexData(List<DocumentationData> indexData, List<DocumentedGATKFeature> docFeatures) {
         //
         // root -> data -> { summary -> y, filename -> z }, etc
         //      -> groups -> group1, group2, etc.
@@ -175,16 +183,25 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         Collections.sort(indexData);
 
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
-        Set<String> groups = new HashSet<String>();
-
         for ( DocumentationData indexDatum : indexData ) {
             data.add(indexDatum.toMap());
-            groups.add(indexDatum.group);
+        }
+
+        List<Map<String, String>> groups = new ArrayList<Map<String, String>>();
+        for ( DocumentedGATKFeature feature : docFeatures ) {
+            groups.add(toMap(feature));
         }
 
         root.put("data", data);
-        root.put("groups", new ArrayList<String>(groups));
+        root.put("groups", groups);
 
+        return root;
+    }
+
+    private static final Map<String, String> toMap(DocumentedGATKFeature annotation) {
+        Map<String, String> root = new HashMap<String, String>();
+        root.put("name", annotation.groupName());
+        root.put("summary", annotation.summary());
         return root;
     }
 

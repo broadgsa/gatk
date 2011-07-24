@@ -25,24 +25,9 @@
 package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.RootDoc;
-import com.sun.javadoc.Tag;
-import freemarker.template.Configuration;
-import freemarker.template.DefaultObjectWrapper;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -50,6 +35,7 @@ import java.util.Map;
 public abstract class DocumentedGATKFeatureHandler {
     private GATKDoclet doclet;
     private String groupName;
+    private DocumentedGATKFeature annotation;
 
     protected RootDoc getRootDoc() {
         return this.doclet.rootDoc;
@@ -59,10 +45,18 @@ public abstract class DocumentedGATKFeatureHandler {
         this.doclet = doclet;
     }
 
+    public DocumentedGATKFeature getAnnotation() {
+        return annotation;
+    }
+
+    public void setAnnotation(DocumentedGATKFeature annotation) {
+        this.annotation = annotation;
+    }
+
     public boolean shouldBeProcessed(ClassDoc doc) { return true; }
 
     public String getDestinationFilename(ClassDoc doc) {
-        return ResourceBundleExtractorDoclet.getClassName(doc).replace(".", "_") + ".html";
+        return HelpUtils.getClassName(doc).replace(".", "_") + ".html";
     }
 
     final public String getGroupName() {

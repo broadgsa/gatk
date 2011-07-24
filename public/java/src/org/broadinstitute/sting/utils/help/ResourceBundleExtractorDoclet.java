@@ -28,12 +28,8 @@ package org.broadinstitute.sting.utils.help;
 import com.sun.javadoc.*;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import sun.tools.java.ClassNotFound;
 
 import java.io.*;
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -112,7 +108,7 @@ public class ResourceBundleExtractorDoclet {
             if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
                 undocumentedWalkers.add(currentClass.name());
 
-            renderHelpText(getClassName(currentClass),currentClass);
+            renderHelpText(HelpUtils.getClassName(currentClass),currentClass);
         }
 
         for(PackageDoc currentPackage: packages)
@@ -177,50 +173,7 @@ public class ResourceBundleExtractorDoclet {
      * @return True if the class of the given name is a walker.  False otherwise.
      */
     protected static boolean isWalker(ClassDoc classDoc) {
-        return assignableToClass(classDoc, Walker.class, true);
-    }
-
-    protected static boolean implementsInterface(ProgramElementDoc classDoc, Class... interfaceClasses) {
-        for ( Class interfaceClass : interfaceClasses )
-            if ( assignableToClass(classDoc, interfaceClass, false) )
-                return true;
-        return false;
-    }
-
-    protected static boolean assignableToClass(ProgramElementDoc classDoc, Class lhsClass, boolean requireConcrete) {
-        try {
-            Class type = getClassForDoc(classDoc);
-            return lhsClass.isAssignableFrom(type) && (! requireConcrete || JVMUtils.isConcrete(type));
-        }
-        catch(Throwable t) {
-            // Ignore errors.
-            return false;
-        }
-    }
-
-    protected static Class getClassForDoc(ProgramElementDoc doc) throws ClassNotFoundException {
-        return Class.forName(getClassName(doc));
-    }
-
-    protected static Field getFieldForFieldDoc(FieldDoc fieldDoc) {
-        try {
-            Class clazz = getClassForDoc(fieldDoc.containingClass());
-            return JVMUtils.findField(clazz, fieldDoc.name());
-        } catch ( ClassNotFoundException e ) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Reconstitute the class name from the given class JavaDoc object.
-     * @param doc the Javadoc model for the given class.
-     * @return The (string) class name of the given class.
-     */
-    protected static String getClassName(ProgramElementDoc doc) {
-        PackageDoc containingPackage = doc.containingPackage();
-        return containingPackage.name().length() > 0 ?
-                String.format("%s.%s",containingPackage.name(),doc.name()) :
-                String.format("%s",doc.name());
+        return HelpUtils.assignableToClass(classDoc, Walker.class, true);
     }
 
     /**
