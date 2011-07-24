@@ -48,18 +48,21 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
     public static class DocWorkUnit implements Comparable<DocWorkUnit> {
         // known at the start
-        String name, filename, group;
-        DocumentedGATKFeatureHandler handler;
-        ClassDoc classDoc;
-        Class clazz;
-        DocumentedGATKFeature annotation;
+        final String name, filename, group;
+        final DocumentedGATKFeatureHandler handler;
+        final ClassDoc classDoc;
+        final Class clazz;
+        final DocumentedGATKFeature annotation;
+        final String buildTimestamp, absoluteVersion;
 
         // set by the handler
         String summary;
         Map<String, Object> forTemplate;
 
-        public DocWorkUnit(DocumentedGATKFeature annotation, String name, String filename, String group,
-                           DocumentedGATKFeatureHandler handler, ClassDoc classDoc, Class clazz) {
+        public DocWorkUnit(String name, String filename, String group,
+                           DocumentedGATKFeature annotation, DocumentedGATKFeatureHandler handler,
+                           ClassDoc classDoc, Class clazz,
+                           String buildTimestamp, String absoluteVersion) {
             this.annotation = annotation;
             this.name = name;
             this.filename = filename;
@@ -67,6 +70,8 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             this.handler = handler;
             this.classDoc = classDoc;
             this.clazz = clazz;
+            this.buildTimestamp = buildTimestamp;
+            this.absoluteVersion = absoluteVersion;
         }
 
         public void setHandlerContent(String summary, Map<String, Object> forTemplate) {
@@ -116,9 +121,10 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
             if ( handler != null && handler.shouldBeProcessed(doc) ) {
                 String filename = handler.getDestinationFilename(doc);
-                DocWorkUnit unit = new DocWorkUnit(feature,
-                        doc.name(), filename, feature.groupName(),
-                        handler, doc, clazz );
+                DocWorkUnit unit = new DocWorkUnit(doc.name(),
+                        filename, feature.groupName(),
+                        feature, handler, doc, clazz,
+                        buildTimestamp, absoluteVersion);
                 m.add(unit);
             }
         }
@@ -130,6 +136,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
     protected void processDocs(RootDoc rootDoc, PrintStream ignore) {
         // setup the global access to the root
         this.rootDoc = rootDoc;
+        super.loadData(rootDoc, false);
 
         try {
             // basic setup
@@ -239,6 +246,8 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
         root.put("data", data);
         root.put("groups", groups);
+        root.put("timestamp", buildTimestamp);
+        root.put("version", absoluteVersion);
 
         return root;
     }

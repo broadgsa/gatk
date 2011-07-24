@@ -45,7 +45,8 @@
 <html>
 <@makeHeader title="${name} documentation"/>
 <body>
-  <h1>${name}<h1>
+  <h1>${name}</h1>
+  <@headerInfo />
   <h2>Brief summary</h2>
   ${summary}
   <#if author??>
@@ -104,5 +105,7 @@
         <@argumentDetails arg=arg/>
       </#list>
   </#if>
+  
+  <@footerInfo />
 </body>
 </html>
