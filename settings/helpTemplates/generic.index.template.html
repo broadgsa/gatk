@@ -26,7 +26,7 @@
 <body>
   <h1>GATK documentation index</h1>
   <@headerInfo />
-  <#list groups as group>
+  <#list groups?sort_by("name") as group>
     <@emitGroup group=group/>
   </#list>
   
