@@ -52,7 +52,7 @@ import java.util.Map;
  * Time: 3:59:27 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
+public class ReadDepthAndAllelicFractionBySample extends GenotypeAnnotation {
 
         private static String REF_ALLELE = "REF";
 
