@@ -21,7 +21,7 @@ import java.util.Map;
 
 
 
-public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnotation {
+public abstract class RankSumTest extends InfoFieldAnnotation implements StandardAnnotation {
     static final double INDEL_LIKELIHOOD_THRESH = 0.1;
     static final boolean DEBUG = false;
 

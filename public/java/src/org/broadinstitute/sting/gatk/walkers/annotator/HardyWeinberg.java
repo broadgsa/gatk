@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotation {
+public class HardyWeinberg extends InfoFieldAnnotation implements WorkInProgressAnnotation {
 
     private static final int MIN_SAMPLES = 10;
     private static final int MIN_GENOTYPE_QUALITY = 10;

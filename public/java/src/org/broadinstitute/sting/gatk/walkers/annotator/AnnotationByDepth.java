@@ -8,7 +8,7 @@ import java.util.Map;
 
 
 
-public abstract class AnnotationByDepth implements InfoFieldAnnotation {
+public abstract class AnnotationByDepth extends InfoFieldAnnotation {
 
 
     protected int annotationByVariantDepth(final Map<String, Genotype> genotypes, Map<String, AlignmentContext> stratifiedContexts) {

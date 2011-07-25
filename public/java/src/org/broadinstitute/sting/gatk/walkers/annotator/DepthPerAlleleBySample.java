@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnotation {
+public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
 
     private static String REF_ALLELE = "REF";
 

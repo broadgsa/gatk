@@ -48,7 +48,7 @@ import java.util.Map.Entry;
  *
  * For details, see:  http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator
  */
-public class GenomicAnnotation implements InfoFieldAnnotation {
+public class GenomicAnnotation extends InfoFieldAnnotation {
 
     public static final String CHR_COLUMN = "chr";
     public static final String START_COLUMN = "start";

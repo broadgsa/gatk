@@ -40,7 +40,6 @@ import java.util.List;
  * of paired reads.
  *
  * @author mhanna
- * @version 0.1
  */
 public class CountPairsWalker extends ReadPairWalker<Integer,Long> {
     @Output

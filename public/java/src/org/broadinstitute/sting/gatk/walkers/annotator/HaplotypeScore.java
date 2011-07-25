@@ -48,7 +48,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
-public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
+public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 50;

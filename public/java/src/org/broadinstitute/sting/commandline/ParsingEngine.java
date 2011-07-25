@@ -50,7 +50,7 @@ public class ParsingEngine {
      * A list of defined arguments against which command lines are matched.
      * Package protected for testing access.
      */
-    ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
+    public ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
 
     /**
      * A list of matches from defined arguments to command-line text.

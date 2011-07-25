@@ -22,38 +22,20 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util.ShellJob
-import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-/**
- * Runs jobs one at a time locally
- */
-class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
-  private var runStatus: RunnerStatus.Value = _
+import java.util.List;
+import java.util.Map;
 
-  /**
-   * Runs the function on the local shell.
-   * @param function Command to run.
-   */
-  def start() {
-    val job = new ShellJob
-
-    job.workingDir = function.commandDirectory
-    job.outputFile = function.jobOutputFile
-    job.errorFile = function.jobErrorFile
-
-    job.shellScript = jobScript
-
-    // Allow advanced users to update the job.
-    updateJobRun(job)
-
-    updateStatus(RunnerStatus.RUNNING)
-    job.run()
-    updateStatus(RunnerStatus.FAILED)
-  }
-
-  override def checkUnknownStatus() {}
+@DocumentedGATKFeature(enable = true, groupName = "VariantAnnotator annotations", summary = "VariantAnnotator annotations")
+public abstract class VariantAnnotatorAnnotation {
+    // return the INFO keys
+    public abstract List<String> getKeyNames();
 }

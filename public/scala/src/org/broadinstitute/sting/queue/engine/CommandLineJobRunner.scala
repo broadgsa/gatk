@@ -33,11 +33,28 @@ import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
  */
 trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
 
+  /** The string representation of the identifier of the running job. */
+  def jobIdString: String = null
+
   /** A generated exec shell script. */
   protected var jobScript: File = _
 
   /** Which directory to use for the job status files. */
   protected def jobStatusDir = function.jobTempDir
+
+  /** Amount of time a job can go without status before giving up. */
+  private val unknownStatusMaxSeconds = 5 * 60
+
+  /** Last known status */
+  protected var lastStatus: RunnerStatus.Value = _
+
+  /** The last time the status was updated */
+  protected var lastStatusUpdate: Long = _
+
+  final override def status = this.lastStatus
+
+  def residentRequestMB: Option[Double] = function.memoryLimit.map(_ * 1024)
+  def residentLimitMB: Option[Double] = residentRequestMB.map( _ * 1.2 )
 
   override def init() {
     super.init()
@@ -53,7 +70,21 @@ trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
     }
     exec.append(function.commandLine)
 
-    this.jobScript = IOUtils.writeTempFile(exec.toString, ".exec", "", jobStatusDir)
+    this.jobScript = IOUtils.writeTempFile(exec.toString(), ".exec", "", jobStatusDir)
+  }
+
+  protected def updateStatus(updatedStatus: RunnerStatus.Value) {
+    this.lastStatus = updatedStatus
+    this.lastStatusUpdate = System.currentTimeMillis
+  }
+
+  override def checkUnknownStatus() {
+    val unknownStatusMillis = (System.currentTimeMillis - lastStatusUpdate)
+    if (unknownStatusMillis > (unknownStatusMaxSeconds * 1000L)) {
+      // Unknown status has been returned for a while now.
+      updateStatus(RunnerStatus.FAILED)
+      logger.error("Unable to read status for %0.2f minutes: job id %d: %s".format(unknownStatusMillis/(60 * 1000D), jobIdString, function.description))
+    }
   }
 
   override def cleanup() {
