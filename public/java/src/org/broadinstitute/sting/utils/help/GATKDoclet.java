@@ -31,6 +31,7 @@ import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -56,6 +57,7 @@ public class GATKDoclet {
      * @throws java.io.IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
+        logger.setLevel(Level.INFO);
         // load arguments
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-build-timestamp"))
@@ -91,11 +93,12 @@ public class GATKDoclet {
         TreeSet<GATKDocWorkUnit> m = new TreeSet<GATKDocWorkUnit>();
 
         for ( ClassDoc doc : rootDoc.classes() ) {
-            System.out.printf("Considering %s%n", doc);
+            logger.debug("Considering " + doc);
             Class clazz = getClassForClassDoc(doc);
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
             if ( handler != null && handler.shouldBeProcessed(doc) ) {
+                logger.info("Going to generate documentation for class " + doc);
                 String filename = handler.getDestinationFilename(doc);
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
                         filename, feature.groupName(),
@@ -246,7 +249,7 @@ public class GATKDoclet {
 
     private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit, Set<GATKDocWorkUnit> all)
             throws IOException {
-        System.out.printf("Processing documentation for class %s%n", unit.classDoc);
+        //System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 
         unit.handler.processOne(rootDoc, unit, all);
 

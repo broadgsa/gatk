@@ -2,11 +2,12 @@
 
 <#macro argumentlist name myargs>
     <#if myargs?size != 0> 
-        <tr><th colspan="3" id="row-divider">${name}</th></tr>
+        <tr><th colspan="4" id="row-divider">${name}</th></tr>
         <#list myargs as arg>
             <tr>
                 <td><a href="#${arg.name}">${arg.name}</a></td>
                 <td>${arg.type}</td>
+                <td>${arg.defaultValue!"No default"}</td>
                 <td>${arg.summary}</td>
             </tr>
             <#--
@@ -18,7 +19,7 @@
    
 <#macro argumentDetails arg>
     <h3><a name="${arg.name}">${arg.name}<#if arg.synonyms??> / ${arg.synonyms}</#if></a>
-    (<#if arg.attributes??>${arg.attributes} </#if>${arg.type})</h3>
+    (<#if arg.attributes??>${arg.attributes} </#if>${arg.type}<#if arg.defaultValue??> with default value ${arg.defaultValue}</#if>)</h3>
     ${arg.summary}. ${arg.fulltext}<br>
     <#if arg.options??>
         <p>The ${arg.name} argument is an enumerated type (${arg.type}), which can have one of the following values:</p>
@@ -70,6 +71,7 @@
       <tr>
          <th>Name</th>
          <th>Type</th>
+         <th>Default value</th>
          <th>Summary</th>
       </tr>
       </thead>

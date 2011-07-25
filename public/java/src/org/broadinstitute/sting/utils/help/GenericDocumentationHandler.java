@@ -29,9 +29,11 @@ import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
@@ -42,6 +44,7 @@ import java.util.*;
  *
  */
 public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
+    private static Logger logger = Logger.getLogger(GenericDocumentationHandler.class);
     GATKDocWorkUnit toProcess;
     ClassDoc classdoc;
     Set<GATKDocWorkUnit> all;
@@ -71,7 +74,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         this.all = allArg;
         this.classdoc = toProcess.classDoc;
 
-        System.out.printf("%s class %s%n", toProcess.group, toProcess.classDoc);
+        //System.out.printf("%s class %s%n", toProcess.group, toProcess.classDoc);
         Map<String, Object> root = new HashMap<String, Object>();
 
         addHighLevelBindings(root);
@@ -87,7 +90,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // Extract overrides from the doc tags.
         StringBuilder summaryBuilder = new StringBuilder();
         for(Tag tag: classdoc.firstSentenceTags())
-             summaryBuilder.append(tag.text());
+            summaryBuilder.append(tag.text());
         root.put("summary", summaryBuilder.toString());
         root.put("description", classdoc.commentText());
         root.put("timestamp", toProcess.buildTimestamp);
@@ -100,6 +103,9 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
     protected void addArgumentBindings(Map<String, Object> root) {
         ParsingEngine parsingEngine = createStandardGATKParsingEngine();
+
+        // attempt to instantiate the class
+        Object instance = makeInstanceIfPossible(toProcess.clazz);
 
         Map<String, List<Object>> args = new HashMap<String, List<Object>>();
         root.put("arguments", args);
@@ -114,20 +120,112 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
                 Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
                 if ( ! argumentSource.isHidden() || getDoclet().showHiddenFeatures() ) {
-                    System.out.printf("Processing %s%n", argumentSource);
+                    logger.debug(String.format("Processing %s", argumentSource));
                     String kind = "optional";
                     if ( argumentSource.isRequired() ) kind = "required";
                     else if ( argumentSource.isHidden() ) kind = "hidden";
                     else if ( argumentSource.isDeprecated() ) kind = "depreciated";
+
+                    // get the value of the field
+                    if ( instance != null ) {
+                        Object value = getFieldValue(toProcess.clazz, instance, fieldDoc.name());
+                        if ( value != null )
+                            argBindings.put("defaultValue", prettyPrintValueString(value));
+                    }
+
                     args.get(kind).add(argBindings);
                     args.get("all").add(argBindings);
                 } else {
-                    System.out.printf("Skipping hidden feature %s%n", argumentSource);
+                    logger.debug(String.format("Skipping hidden feature %s", argumentSource));
                 }
             }
         } catch ( ClassNotFoundException e ) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Object getFieldValue(Class c, Object instance, String fieldName) {
+        Field field = JVMUtils.findField(c, fieldName);
+        if ( field != null ) {
+            Object value = JVMUtils.getFieldValue(field, instance);
+            //System.out.printf("Fetched value of field %s in class %s: %s%n", fieldName, c, value);
+            return value;
+        } else {
+            return findFieldValueInArgumentCollections(c, instance, fieldName);
+        }
+    }
+
+    private Object findFieldValueInArgumentCollections(Class c, Object instance, String fieldName) {
+        for ( Field field : JVMUtils.getAllFields(c) ) {
+            if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
+                //System.out.printf("Searching for %s in argument collection field %s%n", fieldName, field);
+                Object fieldValue = JVMUtils.getFieldValue(field, instance);
+                Object value = getFieldValue(fieldValue.getClass(), fieldValue, fieldName);
+                if ( value != null )
+                    return value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Assumes value != null
+     * @param value
+     * @return
+     */
+    private Object prettyPrintValueString(Object value) {
+        if ( value.getClass().isArray() ) {
+            Class type = value.getClass().getComponentType();
+            if ( boolean.class.isAssignableFrom(type) )
+                return Arrays.toString((boolean[])value);
+            if ( byte.class.isAssignableFrom(type) )
+                return Arrays.toString((byte[])value);
+            if ( char.class.isAssignableFrom(type) )
+                return Arrays.toString((char[])value);
+            if ( double.class.isAssignableFrom(type) )
+                return Arrays.toString((double[])value);
+            if ( float.class.isAssignableFrom(type) )
+                return Arrays.toString((float[])value);
+            if ( int.class.isAssignableFrom(type) )
+                return Arrays.toString((int[])value);
+            if ( long.class.isAssignableFrom(type) )
+                return Arrays.toString((long[])value);
+            if ( short.class.isAssignableFrom(type) )
+                return Arrays.toString((short[])value);
+            if ( Object.class.isAssignableFrom(type) )
+                return Arrays.toString((Object[])value);
+            else
+                throw new RuntimeException("Unexpected array type in prettyPrintValue.  Value was " + value + " type is " + type);
+        } else
+            return value.toString();
+    }
+
+    private Object makeInstanceIfPossible(Class c) {
+        Object instance = null;
+        try {
+            // don't try to make something where we will obviously fail
+            if (! c.isEnum() && ! c.isAnnotation() && ! c.isAnonymousClass() &&
+                    ! c.isArray() && ! c.isPrimitive() & JVMUtils.isConcrete(c) ) {
+                instance = c.newInstance();
+                //System.out.printf("Created object of class %s => %s%n", c, instance);
+                return instance;
+            } else
+                return null;
+        }
+        catch (IllegalAccessException e ) { }
+        catch (InstantiationException e ) { }
+        catch (ExceptionInInitializerError e ) { }
+        catch (SecurityException e ) { }
+        // this last one is super dangerous, but some of these methods catch ClassNotFoundExceptions
+        // and rethrow then as RuntimeExceptions
+        catch (RuntimeException e) {}
+        finally {
+            if ( instance == null )
+                logger.warn(String.format("Unable to create instance of class %s => %s", c, instance));
+        }
+
+        return instance;
     }
 
     protected void addRelatedBindings(Map<String, Object> root) {

@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -182,11 +183,11 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="showItemizedDifferences", shortName="SID", doc="Should we enumerate all differences between the files?", required=false)
     boolean showItemizedDifferences = false;
 
-    final DiffEngine diffEngine = new DiffEngine();
+    DiffEngine diffEngine;
 
     @Override
     public void initialize() {
-
+       this.diffEngine = new DiffEngine();
     }
 
     @Override
