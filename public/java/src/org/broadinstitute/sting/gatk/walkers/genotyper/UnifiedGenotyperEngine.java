@@ -255,7 +255,7 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
-            vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc).iterator().next();
+            vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc);
         }
 
         return new VariantCallContext(vc, ref.getBase(), false);
@@ -436,8 +436,7 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
-            Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
-            vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
+            vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
         }
 
         VariantCallContext call = new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));

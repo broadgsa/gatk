@@ -31,8 +31,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.GenomicAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.JoinTable;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationInterfaceManager;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
@@ -45,7 +43,6 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 
 public class VariantAnnotatorEngine {
@@ -58,19 +55,6 @@ public class VariantAnnotatorEngine {
 
     private HashMap<String, String> dbAnnotations = new HashMap<String, String>();
 
-        // command-line option from GenomicAnnotator.
-    private Map<String, Set<String>> requestedColumnsMap;
-
-    // command-line option from GenomicAnnotator.
-    private boolean oneToMany;
-
-    // command-line option from GenomicAnnotator.
-    private List<JoinTable> joinTables;
-
-    // used by GenomicAnnotator. Maps binding name to number of output VCF records
-    // annotated with records from the input table with this binding name. Only used for
-    // printing out stats at the end.
-    private Map<String, Integer> inputTableHitCounter = new HashMap<String, Integer>();
 
     private static class VAExpression {
         public String fullName, bindingName, fieldName;
@@ -140,7 +124,7 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
-    public Collection<VariantContext> annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
@@ -150,42 +134,18 @@ public class VariantAnnotatorEngine {
         // annotate expressions where available
         annotateExpressions(tracker, ref, infoAnnotations);
 
-        // process the info field
-        List<Map<String, Object>> infoAnnotationOutputsList = new LinkedList<Map<String, Object>>(); //each element in infoAnnotationOutputs corresponds to a single line in the output VCF file
-        infoAnnotationOutputsList.add(new LinkedHashMap<String, Object>(vc.getAttributes())); //keep the existing info-field annotations. After this infoAnnotationOutputsList.size() == 1, which means the output VCF file has 1 additional line.
-        infoAnnotationOutputsList.get(0).putAll(infoAnnotations);  // put the DB membership info in
-
         // go through all the requested info annotationTypes
-        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations )
-        {
+        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
             Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, ref, stratifiedContexts, vc);
-            if ( annotationsFromCurrentType == null ) {
-                continue;
-            }
-
-            if(annotationType instanceof GenomicAnnotation)
-            {
-                infoAnnotationOutputsList = processGenomicAnnotation( infoAnnotationOutputsList, annotationsFromCurrentType );
-            }
-            else
-            {
-                // add the annotations to each output line.
-                for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-                    infoAnnotationOutput.putAll(annotationsFromCurrentType);
-                }
-            }
+            if ( annotationsFromCurrentType != null )
+                infoAnnotations.putAll(annotationsFromCurrentType);
         }
 
-        // annotate genotypes
-        Map<String, Genotype> genotypes = annotateGenotypes(tracker, ref, stratifiedContexts, vc);
+        // generate a new annotated VC
+        final VariantContext annotatedVC = VariantContext.modifyAttributes(vc, infoAnnotations);
 
-        // create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
-        Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
-        for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-            returnValue.add( new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
-        }
-
-        return returnValue;
+        // annotate genotypes, creating another new VC in the process
+        return VariantContext.modifyGenotypes(annotatedVC, annotateGenotypes(tracker, ref, stratifiedContexts, vc));
     }
 
     private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
@@ -250,6 +210,9 @@ public class VariantAnnotatorEngine {
 
         return genotypes;
     }
+
+
+/*
 
     // Finish processing data from GenomicAnnotation.
     private List<Map<String, Object>> processGenomicAnnotation( List<Map<String, Object>> infoAnnotationOutputsList, Map<String, Object> annotationsForCurrentLocusFromAllAnnotatorInputTables)
@@ -403,12 +366,14 @@ public class VariantAnnotatorEngine {
         incrementStatsCounter(bindingName, infoAnnotationOutputsList.size());
     }
 
-    /**
+    */
+/**
      * Records statistics that will be printed when GenomicAnnotator finishes.
      *
      * @param bindingName The table from which annotations were gotten
      * @param numNewRecords The number of new output VCF records created with annotations from this table
-     */
+     *//*
+
     private void incrementStatsCounter( final String bindingName, int numNewRecords) {
         //record some stats - there were infoAnnotationOutputsList.size() output VCF records annotated with data from the 'bindingName' input table.
         Integer counter = inputTableHitCounter.get(bindingName);
@@ -453,13 +418,15 @@ public class VariantAnnotatorEngine {
     }
 
 
-    /**
+    */
+/**
      * Records statistics for the explodeInfoAnnotationOutputsList(..) calculation.
      * @param bindingName The table from which annotations were gotten
      * @param numNewVCFRecordsAnnotatedWithBindingNameData The number of new output VCF records created with annotations from this table
      * @param infoAnnotationOutputsList output list
      * @param matchingRecordsSize  matching records size
-     */
+     *//*
+
     private void recordStats( final String bindingName, int numNewVCFRecordsAnnotatedWithBindingNameData, final List<Map<String, Object>> infoAnnotationOutputsList, int matchingRecordsSize ) {
 
         //update stats for the 'bindingName' table
@@ -509,13 +476,14 @@ public class VariantAnnotatorEngine {
     }
 
 
-    /**
+    */
+/**
      * Determines whether to exclude the given column from the annotations.
      * @param key The fully qualified columnName
      * @return Whether the -S arg specifies that this column should be included in the annotations.
      *
-     * TODO this function can be optimized through memoization
-     */
+     *//*
+
     private boolean isKeyFilteredOutBySelectArg(String key)
     {
         for(final String bindingName : requestedColumnsMap.keySet()) {
@@ -536,10 +504,8 @@ public class VariantAnnotatorEngine {
         return false; //the -S arg doesn't have anything with the same binding name as this key, so the user implicitly requested this key
     }
 
-
-
-
-    /**
+    */
+/**
      * Determines how the engine will handle the case where multiple records in a ROD file
      * overlap a particular single locus. If oneToMany is set to true, the output will be
      * one-to-many, so that each locus in the input VCF file could result in multiple
@@ -551,18 +517,21 @@ public class VariantAnnotatorEngine {
      * See class-level comments for more details.
      *
      * @param oneToMany true if we should break out from one to many
-     */
+     *//*
+
     public void setOneToMany(boolean oneToMany) {
         this.oneToMany = oneToMany;
     }
 
-    /**
+    */
+/**
      * Sets the columns that will be used for the info annotation field.
      * Column names should be of the form bindingName.columnName (eg. dbsnp.avHet).
      *
      * @param columns An array of strings where each string is a comma-separated list
      * of columnNames (eg ["dbsnp.avHet,dbsnp.valid", "file2.col1,file3.col1"] ).
-     */
+     *//*
+
     public void setRequestedColumns(String[] columns) {
         if(columns == null) {
             throw new IllegalArgumentException("columns arg is null. Please check the -s command-line arg.");
@@ -574,17 +543,20 @@ public class VariantAnnotatorEngine {
     }
 
 
-    /**
+    */
+/**
      * Passes in a pointer to the JoinTables.
      *
      * @param joinTables The list of JoinTables. There should be one JoinTable object for each -J arg.
-     */
+     *//*
+
     public void setJoinTables(List<JoinTable> joinTables) {
         this.joinTables = joinTables;
     }
 
 
-    /**
+    */
+/**
      * Parses the columns arg and returns a Map of columns hashed by their binding name.
      * For example:
      *   The command line:
@@ -604,7 +576,8 @@ public class VariantAnnotatorEngine {
      * @param columnsArg The -s command line arg value.
      *
      * @return Map representing a parsed version of this arg - see above.
-     */
+     *//*
+
     private static Map<String, Set<String>> parseColumnsArg(String[] columnsArg) {
         Map<String, Set<String>> result = new HashMap<String, Set<String>>();
 
@@ -635,5 +608,6 @@ public class VariantAnnotatorEngine {
         return Collections.unmodifiableMap(inputTableHitCounter);
     }
 
+*/
 
 }
