@@ -520,6 +520,7 @@
             <fileset dir="${java.classes}">
               <include name="**/utils/codecs/**/*.class"/>
               <include name="**/utils/variantcontext/**/*.class"/>
+              <include name="**/UserException*.class"/>
             </fileset>
         </jar>
     </target>
