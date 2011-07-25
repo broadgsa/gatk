@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class BaseCounts implements InfoFieldAnnotation {
+public class BaseCounts extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )

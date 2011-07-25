@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class AlleleBalance implements InfoFieldAnnotation {
+public class AlleleBalance extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )

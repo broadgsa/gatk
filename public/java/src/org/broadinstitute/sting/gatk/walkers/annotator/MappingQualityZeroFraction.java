@@ -18,7 +18,7 @@ import java.util.Map;
 
 
 
-public class MappingQualityZeroFraction implements InfoFieldAnnotation, ExperimentalAnnotation {
+public class MappingQualityZeroFraction extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )

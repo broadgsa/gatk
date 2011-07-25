@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class LowMQ implements InfoFieldAnnotation {
+public class LowMQ extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )

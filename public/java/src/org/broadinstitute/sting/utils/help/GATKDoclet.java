@@ -57,7 +57,7 @@ public class GATKDoclet {
      * @throws java.io.IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
-        logger.setLevel(Level.INFO);
+        logger.setLevel(Level.DEBUG);
         // load arguments
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-build-timestamp"))
@@ -95,6 +95,10 @@ public class GATKDoclet {
         for ( ClassDoc doc : rootDoc.classes() ) {
             logger.debug("Considering " + doc);
             Class clazz = getClassForClassDoc(doc);
+
+            if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
+                logger.debug("foo");
+
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
             if ( handler != null && handler.shouldBeProcessed(doc) ) {

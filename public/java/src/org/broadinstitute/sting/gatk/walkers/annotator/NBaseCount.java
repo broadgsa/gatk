@@ -21,7 +21,7 @@ import java.util.Map;
  * Date: 5/16/11
  */
 
-public class NBaseCount implements InfoFieldAnnotation {
+public class NBaseCount extends InfoFieldAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if( stratifiedContexts.size() == 0 )
             return null;

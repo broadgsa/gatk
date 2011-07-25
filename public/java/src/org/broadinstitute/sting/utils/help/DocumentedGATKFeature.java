@@ -36,7 +36,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface DocumentedGATKFeature {
-    public boolean enable() default true;
+    public boolean enable() default false;
     public String groupName();
     public String summary() default "";
     public Class<? extends DocumentedGATKFeatureHandler> handler() default GenericDocumentationHandler.class;
