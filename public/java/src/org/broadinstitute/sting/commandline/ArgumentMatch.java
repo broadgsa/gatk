@@ -44,7 +44,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     public final String label;
 
     /**
-     * Maps indicies of command line arguments to values paired with that argument.
+     * Maps indices of command line arguments to values paired with that argument.
      */
     public final SortedMap<Integer,List<String>> indices = new TreeMap<Integer,List<String>>();
 
