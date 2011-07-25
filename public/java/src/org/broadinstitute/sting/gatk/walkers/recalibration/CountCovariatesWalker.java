@@ -58,6 +58,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
+ *
  * This walker is designed to work as the first pass in a two-pass processing step.
  * It does a by-locus traversal operating only at sites that are not in dbSNP.
  * We assume that all reference mismatches we see are therefore errors and indicative of poor base quality.
@@ -72,7 +74,6 @@ import java.util.Map;
  *
  * @author rpoplin
  * @since Nov 3, 2009
- * @help.summary First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
  */
 
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)

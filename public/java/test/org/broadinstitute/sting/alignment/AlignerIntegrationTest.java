@@ -14,7 +14,7 @@ import java.util.Arrays;
 public class AlignerIntegrationTest extends WalkerTest {
     @Test
     public void testBasicAlignment() {
-        String md5 = "34eb4323742999d6d250a0aaa803c6d5";
+        String md5 = "a2bdf907b18114a86ca47f9fc23791bf";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + GATKDataLocation + "bwa/human_b36_both.fasta" +
                         " -T Align" +

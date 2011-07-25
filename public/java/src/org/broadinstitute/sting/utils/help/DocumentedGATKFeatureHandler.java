@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +12,6 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,23 +22,38 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.utils.help;
 
-import net.sf.picard.filter.SamRecordFilter;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.RootDoc;
 
-import java.lang.annotation.*;
+import java.io.*;
+import java.util.Set;
 
 /**
- * An annotation to describe what kind of data will be filtered out.
  *
- * @author hanna
- * @version 0.1
  */
-@Documented
-@Inherited
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface ReadFilters {
-    public Class<? extends SamRecordFilter>[] value() default {};
+public abstract class DocumentedGATKFeatureHandler {
+    private GATKDoclet doclet;
+
+    protected RootDoc getRootDoc() {
+        return this.doclet.rootDoc;
+    }
+
+    public void setDoclet(GATKDoclet doclet) {
+        this.doclet = doclet;
+    }
+
+    public GATKDoclet getDoclet() {
+        return doclet;
+    }
+
+    public boolean shouldBeProcessed(ClassDoc doc) { return true; }
+
+    public String getDestinationFilename(ClassDoc doc) {
+        return HelpUtils.getClassName(doc).replace(".", "_") + ".html";
+    }
+
+    public abstract String getTemplateName(ClassDoc doc) throws IOException;
+    public abstract void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcess, Set<GATKDocWorkUnit> all);
 }

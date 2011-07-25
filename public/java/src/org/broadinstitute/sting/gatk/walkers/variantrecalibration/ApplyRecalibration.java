@@ -49,8 +49,6 @@ import java.util.*;
  *
  * @author rpoplin
  * @since Mar 14, 2011
- *
- * @help.summary Applies cuts to the input vcf file (by adding filter lines) to achieve the desired novel FDR levels which were specified during VariantRecalibration
  */
 
 public class ApplyRecalibration extends RodWalker<Integer, Integer> {

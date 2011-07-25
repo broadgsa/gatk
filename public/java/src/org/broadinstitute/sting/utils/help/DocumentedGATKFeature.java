@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +12,6 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,23 +22,23 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers;
-
-import net.sf.picard.filter.SamRecordFilter;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+package org.broadinstitute.sting.utils.help;
 
 import java.lang.annotation.*;
 
 /**
- * An annotation to describe what kind of data will be filtered out.
+ * An annotation to identify a class as a GATK capability for documentation
  *
- * @author hanna
- * @version 0.1
+ * @author depristo
  */
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface ReadFilters {
-    public Class<? extends SamRecordFilter>[] value() default {};
+public @interface DocumentedGATKFeature {
+    public boolean enable() default true;
+    public String groupName();
+    public String summary() default "";
+    public Class<? extends DocumentedGATKFeatureHandler> handler() default GenericDocumentationHandler.class;
+    public Class[] extraDocs() default {};
 }
