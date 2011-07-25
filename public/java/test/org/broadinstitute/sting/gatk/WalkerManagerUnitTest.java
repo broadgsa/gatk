@@ -57,17 +57,17 @@ public class WalkerManagerUnitTest {
         walkerManager.createByName("Missing");
     }
 
-    @Test(expectedExceptions=DynamicClassResolutionException.class)
-    public void testUninstantiableWalker() {
-        walkerManager.createByName("Uninstantiable");
-    }
+//    @Test(expectedExceptions=DynamicClassResolutionException.class)
+//    public void testUninstantiableWalker() {
+//        walkerManager.createByName("Uninstantiable");
+//    }
 }
 
-@Hidden
-@Requires(value={})
-class UninstantiableWalker extends Walker<Integer,Long> {
-    // Private constructor will generate uninstantiable message
-    private UninstantiableWalker() {}
-    public Long reduceInit() { return 0L; }
-    public Long reduce(Integer value, Long accum) { return 0L; }
-}
+//@Hidden
+//@Requires(value={})
+//class UninstantiableWalker extends Walker<Integer,Long> {
+//    // Private constructor will generate uninstantiable message
+//    private UninstantiableWalker() {}
+//    public Long reduceInit() { return 0L; }
+//    public Long reduce(Integer value, Long accum) { return 0L; }
+//}
