@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,45 +35,159 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.List;
 
 /**
+ * A generic engine for comparing tree-structured objects
+ * <p>
  * Compares two record-oriented files, itemizing specific difference between equivalent
  * records in the two files.  Reports both itemized and summarized differences.
+ * <p>
+ *     <b>What are the summarized differences and the DiffObjectsWalker</b>
+ * <p>
+ *     The GATK contains a summarizing difference engine that compares hierarchical data structures to emit:
+ * <ul>
+ *     <li>A list of specific differences between the two data structures.  This is similar to saying the value in field A in record 1 in file F differences from the value in field A in record 1 in file G.
+ *     <li>A summarized list of differences ordered by frequency of the difference.  This output is similar to saying field A in 50 records in files F and G differed.
+ * </ul>
+ *
+ * <p>
+ * The GATK contains a private walker DiffObjects that allows you access to the DiffEngine capabilities on the command line.  Simply provide the walker with the master and test files and it will emit summarized differences for you.
+ *
+ * <p>
+ *     <b>Why?</b>
+ * <p>
+ * The reason for this system is that it allows you to compare two structured files -- such as BAMs and VCFs -- for common differences among them.  This is primarily useful in regression testing or optimization, where you want to ensure that the differences are those that you expect and not any others.
+ *
+ * <p>Understanding the output
+ * <p>The DiffEngine system compares to two hierarchical data structures for specific differences in the values of named
+ * nodes.  Suppose I have two trees:
+ * <pre>
+ *     Tree1=(A=1 B=(C=2 D=3))
+ *     Tree2=(A=1 B=(C=3 D=3 E=4))
+ *     Tree3=(A=1 B=(C=4 D=3 E=4))
+ * </pre>
+ * <p>
+ *     where every node in the tree is named, or is a raw value (here all leaf values are integers).  The DiffEngine
+ * traverses these data structures by name, identifies equivalent nodes by fully qualified names
+ * (Tree1.A is distinct from Tree2.A, and determines where their values are equal (Tree1.A=1, Tree2.A=1, so they are).
+ * These itemized differences are listed as:
+ * <pre>
+ *     Tree1.B.C=2 != Tree2.B.C=3
+ *     Tree1.B.C=2 != Tree3.B.C=4
+ *     Tree2.B.C=3 != Tree3.B.C=4
+ *     Tree1.B.E=MISSING != Tree2.B.E=4
+ * </pre>
+ * <p>
+ *     This conceptually very similar to the output of the unix command line tool diff.  What's nice about DiffEngine though
+ * is that it computes similarity among the itemized differences and displays the count of differences names
+ * in the system.  In the above example, the field C is not equal three times, while the missing E in Tree1 occurs
+ * only once.  So the summary is:
+ *
+ * <pre>
+ *     *.B.C : 3
+ *     *.B.E : 1
+ * </pre>
+ * <p>where the * operator indicates that any named field matches.  This output is sorted by counts, and provides an
+ * immediate picture of the commonly occurring differences among the files.
+ * <p>
+ * Below is a detailed example of two VCF fields that differ because of a bug in the AC, AF, and AN counting routines,
+ * detected by the integrationtest integration (more below).  You can see that in the although there are many specific
+ * instances of these differences between the two files, the summarized differences provide an immediate picture that
+ * the AC, AF, and AN fields are the major causes of the differences.
+ * <p>
+ * <pre>
+   [testng] path                                                             count
+   [testng] *.*.*.AC                                                         6
+   [testng] *.*.*.AF                                                         6
+   [testng] *.*.*.AN                                                         6
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AC  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AF  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AN  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AC  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AF  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AN  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AC  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AF  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AN  1
+   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000598.AC  1
+</pre>
+ *
  * @author Mark DePristo
- * @version 0.1
+ * @since 7/4/11
  */
 @Requires(value={})
 public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
+    /**
+     * Writes out a file of the DiffEngine format:
+     *
+     *      http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine
+     */
     @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;
 
-    @Argument(fullName="maxObjectsToRead", shortName="motr", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
-    int MAX_OBJECTS_TO_READ = -1;
-
-    @Argument(fullName="maxDiffs", shortName="M", doc="Max. number of diffs to process", required=false)
-    int MAX_DIFFS = 0;
-
-    @Argument(fullName="maxCount1Diffs", shortName="M1", doc="Max. number of diffs occuring exactly once in the file to process", required=false)
-    int MAX_COUNT1_DIFFS = 0;
-
-    @Argument(fullName="minCountForDiff", shortName="MCFD", doc="Min number of observations for a records to display", required=false)
-    int minCountForDiff = 1;
-
-    @Argument(fullName="showItemizedDifferences", shortName="SID", doc="Should we enumerate all differences between the files?", required=false)
-    boolean showItemizedDifferences = false;
-
+    /**
+     * The master file against which we will compare test.  This is one of the two required
+     * files to do the comparison.  Conceptually master is the original file contained the expected
+     * results, but this doesn't currently have an impact on the calculations, but might in the future.
+     */
     @Argument(fullName="master", shortName="m", doc="Master file: expected results", required=true)
     File masterFile;
 
+    /**
+     * The test file against which we will compare to the master.  This is one of the two required
+     * files to do the comparison.  Conceptually test is the derived file from master, but this
+     * doesn't currently have an impact on the calculations, but might in the future.
+     */
     @Argument(fullName="test", shortName="t", doc="Test file: new results to compare to the master file", required=true)
     File testFile;
 
-    final DiffEngine diffEngine = new DiffEngine();
+    /**
+     * The engine will read at most this number of objects from each of master and test files.  This reduces
+     * the memory requirements for DiffObjects but does limit you to comparing at most this number of objects
+     */
+    @Argument(fullName="maxObjectsToRead", shortName="motr", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
+    int MAX_OBJECTS_TO_READ = -1;
+
+    /**
+     * The max number of differences to display when summarizing.  For example, if there are 10M differences, but
+     * maxDiffs is 10, then the comparison aborts after first ten summarized differences are shown.  Note that
+     * the system shows differences sorted by frequency, so these 10 would be the most common between the two files.
+     * A value of 0 means show all possible differences.
+     */
+    @Argument(fullName="maxDiffs", shortName="M", doc="Max. number of diffs to process", required=false)
+    int MAX_DIFFS = 0;
+
+    /**
+     * The maximum number of singleton (occurs exactly once between the two files) to display when writing out
+     * the summary.  Only applies if maxDiffs hasn't been exceeded.  For example, if maxDiffs is 10 and maxCount1Diffs
+     * is 2 and there are 20 diffs with count > 1, then only 10 are shown, all of which have count above 1.
+     */
+    @Argument(fullName="maxCount1Diffs", shortName="M1", doc="Max. number of diffs occuring exactly once in the file to process", required=false)
+    int MAX_COUNT1_DIFFS = 0;
+
+    /**
+     * Only differences that occur more than minCountForDiff are displayed.  For example, if minCountForDiff is 10, then
+     * a difference must occur at least 10 times between the two files to be shown.
+     */
+    @Argument(fullName="minCountForDiff", shortName="MCFD", doc="Min number of observations for a records to display", required=false)
+    int minCountForDiff = 1;
+
+    /**
+     * If provided, the system will write out the summarized, individual differences.  May lead to enormous outputs,
+     * depending on how many differences are found.  Note these are not sorted in any way, so if you have 10M
+     * common differences in the files, you will see 10M records, whereas the final summarize will just list the
+     * difference and its count of 10M.
+     */
+    @Argument(fullName="showItemizedDifferences", shortName="SID", doc="Should we enumerate all differences between the files?", required=false)
+    boolean showItemizedDifferences = false;
+
+    DiffEngine diffEngine;
 
     @Override
     public void initialize() {
-
+       this.diffEngine = new DiffEngine();
     }
 
     @Override

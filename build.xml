@@ -79,6 +79,17 @@
         <patternset refid="java.source.pattern" />
     </fileset>
 
+    <!-- terrible hack to get gatkdocs to see all files --> 
+    <patternset id="all.java.source.pattern">
+        <include name="${java.public.source.dir}/**/*.java" />
+        <include name="${java.private.source.dir}/**/*.java" />
+    </patternset>
+
+    <fileset id="all.java.source.files" dir="${basedir}">
+        <patternset refid="all.java.source.pattern" />
+    </fileset>
+
+
     <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
         <include name="**/*.java" />
     </fileset>
@@ -452,6 +463,26 @@
                 <union>
                     <fileset refid="modified.source.files"/>
                     <fileset refid="package.info.files"/>
+                </union>
+            </sourcefiles>
+        </javadoc>
+    </target>
+
+    <target name="gatkdocs" depends="gatk.compile"
+	        description="Extract help key/value pair file from the JavaDoc tags.">
+        <path id="doclet.classpath">
+            <path refid="external.dependencies" />
+            <pathelement location="${java.classes}" />
+        </path>
+
+        <javadoc doclet="org.broadinstitute.sting.utils.help.GATKDoclet"
+                 docletpathref="doclet.classpath"
+                 classpathref="external.dependencies"
+                 classpath="${java.classes}"
+                 additionalparam="-private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005">
+            <sourcefiles>
+                <union>
+                    <fileset refid="all.java.source.files"/>
                 </union>
             </sourcefiles>
         </javadoc>
@@ -957,6 +988,12 @@
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
     <target name="stage" description="stage files for distribution">
         <mkdir dir="staging"/>
+        <!--
+            HACK: Create the edu directory before EDU on case-insensitive mac filesystems.
+            The ivy dependency colt -> concurrent contains an EDU.oswego package which
+            BCEL doesn't even pull in but messes up edu.mit.broad.
+          -->
+        <mkdir dir="staging/edu"/>
         <unjar dest="staging" overwrite="false">
           <fileset dir="${dist.dir}">
             <patternset refid="dependency.mask" />
