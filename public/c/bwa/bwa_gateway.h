@@ -37,6 +37,7 @@ class BWA {
   gap_opt_t options;
 
   void load_default_options();
+  void initialize_random_seed();
   bwa_seq_t* create_sequence(const char* bases, const unsigned read_length);
   void copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const unsigned read_length);
   Alignment generate_final_alignment_from_sequence(bwa_seq_t* sequence);

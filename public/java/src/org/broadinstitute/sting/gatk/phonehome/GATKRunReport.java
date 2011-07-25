@@ -154,9 +154,13 @@ public class GATKRunReport {
     private long nReads;
 
     public enum PhoneHomeOption {
+        /** Disable phone home */
         NO_ET,
+        /** Standard option.  Writes to local repository if it can be found, or S3 otherwise */
         STANDARD,
+        /** Force output to STDOUT.  For debugging only */
         STDOUT,
+        /** Force output to S3.  For debugging only */
         AWS_S3   // todo -- remove me -- really just for testing purposes
     }
 

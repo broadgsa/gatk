@@ -22,38 +22,38 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.help;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util.ShellJob
-import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.RootDoc;
+
+import java.io.*;
+import java.util.Set;
 
 /**
- * Runs jobs one at a time locally
+ *
  */
-class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
-  private var runStatus: RunnerStatus.Value = _
+public abstract class DocumentedGATKFeatureHandler {
+    private GATKDoclet doclet;
 
-  /**
-   * Runs the function on the local shell.
-   * @param function Command to run.
-   */
-  def start() {
-    val job = new ShellJob
+    protected RootDoc getRootDoc() {
+        return this.doclet.rootDoc;
+    }
 
-    job.workingDir = function.commandDirectory
-    job.outputFile = function.jobOutputFile
-    job.errorFile = function.jobErrorFile
+    public void setDoclet(GATKDoclet doclet) {
+        this.doclet = doclet;
+    }
 
-    job.shellScript = jobScript
+    public GATKDoclet getDoclet() {
+        return doclet;
+    }
 
-    // Allow advanced users to update the job.
-    updateJobRun(job)
+    public boolean shouldBeProcessed(ClassDoc doc) { return true; }
 
-    updateStatus(RunnerStatus.RUNNING)
-    job.run()
-    updateStatus(RunnerStatus.FAILED)
-  }
+    public String getDestinationFilename(ClassDoc doc) {
+        return HelpUtils.getClassName(doc).replace(".", "_") + ".html";
+    }
 
-  override def checkUnknownStatus() {}
+    public abstract String getTemplateName(ClassDoc doc) throws IOException;
+    public abstract void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcess, Set<GATKDocWorkUnit> all);
 }

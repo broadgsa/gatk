@@ -22,38 +22,23 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.help;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util.ShellJob
-import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import java.lang.annotation.*;
 
 /**
- * Runs jobs one at a time locally
+ * An annotation to identify a class as a GATK capability for documentation
+ *
+ * @author depristo
  */
-class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
-  private var runStatus: RunnerStatus.Value = _
-
-  /**
-   * Runs the function on the local shell.
-   * @param function Command to run.
-   */
-  def start() {
-    val job = new ShellJob
-
-    job.workingDir = function.commandDirectory
-    job.outputFile = function.jobOutputFile
-    job.errorFile = function.jobErrorFile
-
-    job.shellScript = jobScript
-
-    // Allow advanced users to update the job.
-    updateJobRun(job)
-
-    updateStatus(RunnerStatus.RUNNING)
-    job.run()
-    updateStatus(RunnerStatus.FAILED)
-  }
-
-  override def checkUnknownStatus() {}
+@Documented
+@Inherited
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface DocumentedGATKFeature {
+    public boolean enable() default true;
+    public String groupName();
+    public String summary() default "";
+    public Class<? extends DocumentedGATKFeatureHandler> handler() default GenericDocumentationHandler.class;
+    public Class[] extraDocs() default {};
 }

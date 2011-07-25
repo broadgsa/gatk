@@ -40,12 +40,7 @@ class GridEngineJobRunner(val function: CommandLineFunction) extends CommandLine
 
   /** Job Id of the currently executing job. */
   private var jobId: String = _
-
-  /** Last known status */
-  private var lastStatus: RunnerStatus.Value = _
-
-  /** The last time the status was updated */
-  protected var lastStatusUpdate: Long = _
+  override def jobIdString = jobId
 
   def start() {
     GridEngineJobRunner.gridEngineSession.synchronized {
@@ -82,11 +77,14 @@ class GridEngineJobRunner(val function: CommandLineFunction) extends CommandLine
         nativeSpecString += " -q " + function.jobQueue
       }
 
-      // If the memory limit is set (GB) specify the memory limit
-      if (function.memoryLimit.isDefined) {
-        val memAvl: String = function.memoryLimit.get + "G"
-        val memMax: String = (function.memoryLimit.get * 1.2 * 1024).ceil.toInt + "M"
-        nativeSpecString += " -l mem_free=" + memAvl + ",h_rss=" + memMax
+      // If the resident set size is requested pass on the memory request
+      if (residentRequestMB.isDefined) {
+        nativeSpecString += " -l mem_free=%dM".format(residentRequestMB.get.ceil.toInt)
+      }
+
+      // If the resident set size limit is defined specify the memory limit
+      if (residentLimitMB.isDefined) {
+        nativeSpecString += " -l h_rss=%dM".format(residentLimitMB.get.ceil.toInt)
       }
 
       // If the priority is set (user specified Int) specify the priority
@@ -121,20 +119,10 @@ class GridEngineJobRunner(val function: CommandLineFunction) extends CommandLine
       logger.info("Submitted Grid Engine job id: " + jobId)
     }
   }
-
-  def status = this.lastStatus
-
-  private def updateStatus(updatedStatus: RunnerStatus.Value) {
-    this.lastStatus = updatedStatus
-    this.lastStatusUpdate = System.currentTimeMillis
-  }
 }
 
 object GridEngineJobRunner extends Logging {
   private val gridEngineSession = SessionFactory.getFactory.getSession
-
-  /** Amount of time a job can go without status before giving up. */
-  private val unknownStatusMaxSeconds = 5 * 60
 
   initGridEngine()
 
@@ -156,16 +144,14 @@ object GridEngineJobRunner extends Logging {
   /**
    * Updates the status of a list of jobs.
    * @param runners Runners to update.
+   * @return runners which were updated.
    */
-  def updateStatus(runners: Set[GridEngineJobRunner]) {
+  def updateStatus(runners: Set[GridEngineJobRunner]) = {
     var updatedRunners = Set.empty[GridEngineJobRunner]
     gridEngineSession.synchronized {
       runners.foreach(runner => if (updateRunnerStatus(runner)) {updatedRunners += runner})
     }
-
-    for (runner <- runners.diff(updatedRunners)) {
-      checkUnknownStatus(runner)
-    }
+    updatedRunners
   }
 
   /**
@@ -219,20 +205,11 @@ object GridEngineJobRunner extends Logging {
           logger.warn("Unable to determine status of Grid Engine job id " + runner.jobId, de)
     }
 
-    Option(returnStatus) match {
-      case Some(returnStatus) =>
-        runner.updateStatus(returnStatus)
-        return true
-      case None => return false
-    }
-  }
-
-  private def checkUnknownStatus(runner: GridEngineJobRunner) {
-    val unknownStatusSeconds = (System.currentTimeMillis - runner.lastStatusUpdate)
-    if (unknownStatusSeconds > (unknownStatusMaxSeconds * 1000L)) {
-      // Unknown status has been returned for a while now.
-      runner.updateStatus(RunnerStatus.FAILED)
-      logger.error("Unable to read Grid Engine status for %d minutes: job id %d: %s".format(unknownStatusSeconds/60, runner.jobId, runner.function.description))
+    if (returnStatus != null) {
+      runner.updateStatus(returnStatus)
+      true
+    } else {
+      false
     }
   }
 

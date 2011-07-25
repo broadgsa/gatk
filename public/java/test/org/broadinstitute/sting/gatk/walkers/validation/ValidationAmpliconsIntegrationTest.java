@@ -14,7 +14,7 @@ import java.util.Arrays;
  */
 public class ValidationAmpliconsIntegrationTest extends WalkerTest {
 
-    @Test
+    @Test(enabled=true)
     public void testWikiExample() {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
         String maskVCF = validationDataLocation + "amplicon_mask_sites.vcf";
@@ -27,7 +27,7 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
         executeTest("Test probes", spec);
     }
 
-    @Test
+    @Test(enabled=true)
     public void testWikiExampleNoBWA() {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
         String maskVCF = validationDataLocation + "amplicon_mask_sites.vcf";
@@ -40,7 +40,7 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
         executeTest("Test probes", spec);
     }
 
-    @Test
+    @Test(enabled=true)
     public void testWikiExampleMonoFilter() {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
         String maskVCF = validationDataLocation + "amplicon_mask_sites.vcf";
