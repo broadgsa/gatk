@@ -101,11 +101,9 @@ public class GATKDoclet {
         return m;
     }
 
-    @Override
     protected void processDocs(RootDoc rootDoc) {
         // setup the global access to the root
         this.rootDoc = rootDoc;
-        super.loadData(rootDoc, false);
 
         try {
             // basic setup
