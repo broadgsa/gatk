@@ -182,21 +182,6 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="showItemizedDifferences", shortName="SID", doc="Should we enumerate all differences between the files?", required=false)
     boolean showItemizedDifferences = false;
 
-    @Hidden
-    @Argument(fullName="testEnum", doc="X", required=false)
-    TestEnum testEnum = TestEnum.ONE;
-
-    @Deprecated
-    @Argument(fullName="testDepreciates", doc="Y", required=false)
-    int dontUseMe = 1;
-
-    public enum TestEnum {
-        /** Docs for ONE */
-        ONE,
-        /** Docs for TWO */
-        TWO
-    };
-
     final DiffEngine diffEngine = new DiffEngine();
 
     @Override

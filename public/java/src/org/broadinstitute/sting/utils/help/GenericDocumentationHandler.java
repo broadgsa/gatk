@@ -113,13 +113,17 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
                 Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
-                String kind = "optional";
-                if ( argumentSource.isRequired() ) kind = "required";
-                else if ( argumentSource.isHidden() ) kind = "hidden";
-                else if ( argumentSource.isDeprecated() ) kind = "depreciated";
-                args.get(kind).add(argBindings);
-                args.get("all").add(argBindings);
-                System.out.printf("Processing %s%n", argumentSource);
+                if ( ! argumentSource.isHidden() || getDoclet().showHiddenFeatures() ) {
+                    System.out.printf("Processing %s%n", argumentSource);
+                    String kind = "optional";
+                    if ( argumentSource.isRequired() ) kind = "required";
+                    else if ( argumentSource.isHidden() ) kind = "hidden";
+                    else if ( argumentSource.isDeprecated() ) kind = "depreciated";
+                    args.get(kind).add(argBindings);
+                    args.get("all").add(argBindings);
+                } else {
+                    System.out.printf("Skipping hidden feature %s%n", argumentSource);
+                }
             }
         } catch ( ClassNotFoundException e ) {
             throw new RuntimeException(e);

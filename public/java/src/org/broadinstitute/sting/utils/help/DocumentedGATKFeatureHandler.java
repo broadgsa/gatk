@@ -44,6 +44,10 @@ public abstract class DocumentedGATKFeatureHandler {
         this.doclet = doclet;
     }
 
+    public GATKDoclet getDoclet() {
+        return doclet;
+    }
+
     public boolean shouldBeProcessed(ClassDoc doc) { return true; }
 
     public String getDestinationFilename(ClassDoc doc) {

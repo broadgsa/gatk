@@ -45,6 +45,7 @@ public class GATKDoclet {
     final protected static File DESTINATION_DIR = new File("gatkdocs");
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
     protected static String buildTimestamp = null, absoluteVersion = null;
+    protected static boolean showHiddenFeatures = false;
 
     RootDoc rootDoc;
 
@@ -61,6 +62,8 @@ public class GATKDoclet {
                 buildTimestamp = options[1];
             if (options[0].equals("-absolute-version"))
                 absoluteVersion = options[1];
+            if (options[0].equals("-include-hidden"))
+                showHiddenFeatures = true;
         }
 
         GATKDoclet doclet = new GATKDoclet();
@@ -74,10 +77,14 @@ public class GATKDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-build-timestamp") || option.equals("-absolute-version") ) {
+        if(option.equals("-build-timestamp") || option.equals("-absolute-version") || option.equals("-include-hidden")) {
             return 2;
         }
         return 0;
+    }
+
+    public boolean showHiddenFeatures() {
+        return showHiddenFeatures;
     }
 
     public Set<GATKDocWorkUnit> workUnits() {
