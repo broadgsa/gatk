@@ -9,7 +9,21 @@ import java.util.TreeSet;
  * User: carneiro
  * Date: 7/23/11
  * Time: 6:07 PM
- * To change this template use File | Settings | File Templates.
+ *
+ * Contig comparator -- sorting contigs like Picard
+ *
+ *   This is very useful if you want to output your text files or manipulate data in the usual chromosome ordering :
+ *    1
+ *    2
+ *    3
+ *    ...
+ *    21
+ *    22
+ *    X
+ *    Y
+ *    GL***
+ *    ...
+ * Just use this comparator in any SortedSet class constructor and your data will be sorted like in the BAM file.
  */
 public class ContigComparator implements Comparator<String> {
     private Set<String> specialChrs;
