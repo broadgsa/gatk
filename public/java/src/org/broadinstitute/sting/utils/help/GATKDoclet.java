@@ -33,7 +33,6 @@ import freemarker.template.TemplateException;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import sun.misc.IOUtils;
 
 import java.io.*;
 import java.util.*;
@@ -41,57 +40,11 @@ import java.util.*;
 /**
  *
  */
-public class GATKDoclet extends ResourceBundleExtractorDoclet {
+public class GATKDoclet {
     final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
     final protected static File DESTINATION_DIR = new File("gatkdocs");
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
-
-    public static class DocWorkUnit implements Comparable<DocWorkUnit> {
-        // known at the start
-        final String name, filename, group;
-        final DocumentedGATKFeatureHandler handler;
-        final ClassDoc classDoc;
-        final Class clazz;
-        final DocumentedGATKFeature annotation;
-        final String buildTimestamp, absoluteVersion;
-
-        // set by the handler
-        String summary;
-        Map<String, Object> forTemplate;
-
-        public DocWorkUnit(String name, String filename, String group,
-                           DocumentedGATKFeature annotation, DocumentedGATKFeatureHandler handler,
-                           ClassDoc classDoc, Class clazz,
-                           String buildTimestamp, String absoluteVersion) {
-            this.annotation = annotation;
-            this.name = name;
-            this.filename = filename;
-            this.group = group;
-            this.handler = handler;
-            this.classDoc = classDoc;
-            this.clazz = clazz;
-            this.buildTimestamp = buildTimestamp;
-            this.absoluteVersion = absoluteVersion;
-        }
-
-        public void setHandlerContent(String summary, Map<String, Object> forTemplate) {
-            this.summary = summary;
-            this.forTemplate = forTemplate;
-        }
-
-        public Map<String, String> toMap() {
-            Map<String, String> data = new HashMap<String, String>();
-            data.put("name", name);
-            data.put("summary", summary);
-            data.put("filename", filename);
-            data.put("group", group);
-            return data;
-        }
-
-        public int compareTo(DocWorkUnit other) {
-            return this.name.compareTo(other.name);
-        }
-    }
+    protected static String buildTimestamp = null, absoluteVersion = null;
 
     RootDoc rootDoc;
 
@@ -102,17 +55,33 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
      * @throws java.io.IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
+        // load arguments
+        for(String[] options: rootDoc.options()) {
+            if(options[0].equals("-build-timestamp"))
+                buildTimestamp = options[1];
+            if (options[0].equals("-absolute-version"))
+                absoluteVersion = options[1];
+        }
+
         GATKDoclet doclet = new GATKDoclet();
-        doclet.processDocs(rootDoc, null);
+        doclet.processDocs(rootDoc);
         return true;
     }
 
+    /**
+     * Validate the given options against options supported by this doclet.
+     * @param option Option to validate.
+     * @return Number of potential parameters; 0 if not supported.
+     */
     public static int optionLength(String option) {
-        return ResourceBundleExtractorDoclet.optionLength(option);
+        if(option.equals("-build-timestamp") || option.equals("-absolute-version") ) {
+            return 2;
+        }
+        return 0;
     }
 
-    public Set<DocWorkUnit> workUnits() {
-        TreeSet<DocWorkUnit> m = new TreeSet<DocWorkUnit>();
+    public Set<GATKDocWorkUnit> workUnits() {
+        TreeSet<GATKDocWorkUnit> m = new TreeSet<GATKDocWorkUnit>();
 
         for ( ClassDoc doc : rootDoc.classes() ) {
             System.out.printf("Considering %s%n", doc);
@@ -121,7 +90,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
             if ( handler != null && handler.shouldBeProcessed(doc) ) {
                 String filename = handler.getDestinationFilename(doc);
-                DocWorkUnit unit = new DocWorkUnit(doc.name(),
+                GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
                         filename, feature.groupName(),
                         feature, handler, doc, clazz,
                         buildTimestamp, absoluteVersion);
@@ -133,7 +102,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
     }
 
     @Override
-    protected void processDocs(RootDoc rootDoc, PrintStream ignore) {
+    protected void processDocs(RootDoc rootDoc) {
         // setup the global access to the root
         this.rootDoc = rootDoc;
         super.loadData(rootDoc, false);
@@ -152,12 +121,12 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             // Specify how templates will see the data-model. This is an advanced topic...
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
-            Set<DocWorkUnit> myWorkUnits = workUnits();
-            for ( DocWorkUnit workUnit : myWorkUnits ) {
+            Set<GATKDocWorkUnit> myWorkUnits = workUnits();
+            for ( GATKDocWorkUnit workUnit : myWorkUnits ) {
                 processDocWorkUnit(cfg, workUnit, myWorkUnits);
             }
 
-            processIndex(cfg, new ArrayList<DocWorkUnit>(myWorkUnits));
+            processIndex(cfg, new ArrayList<GATKDocWorkUnit>(myWorkUnits));
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException(e);
         } catch ( IOException e ) {
@@ -214,7 +183,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return rootDoc.classNamed(clazz.getName());
     }
 
-    private void processIndex(Configuration cfg, List<DocWorkUnit> indexData) throws IOException {
+    private void processIndex(Configuration cfg, List<GATKDocWorkUnit> indexData) throws IOException {
         /* Get or create a template */
         Template temp = cfg.getTemplate("generic.index.template.html");
 
@@ -228,7 +197,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         }
     }
 
-    private Map<String, Object> groupIndexData(List<DocWorkUnit> indexData) {
+    private Map<String, Object> groupIndexData(List<GATKDocWorkUnit> indexData) {
         //
         // root -> data -> { summary -> y, filename -> z }, etc
         //      -> groups -> group1, group2, etc.
@@ -238,7 +207,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
         Set<DocumentedGATKFeature> docFeatures = new HashSet<DocumentedGATKFeature>();
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
-        for ( DocWorkUnit workUnit : indexData ) {
+        for ( GATKDocWorkUnit workUnit : indexData ) {
             data.add(workUnit.toMap());
             docFeatures.add(workUnit.annotation);
         }
@@ -263,14 +232,14 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return root;
     }
 
-    public final static DocWorkUnit findWorkUnitForClass(Class c, Set<DocWorkUnit> all) {
-        for ( final DocWorkUnit unit : all )
+    public final static GATKDocWorkUnit findWorkUnitForClass(Class c, Set<GATKDocWorkUnit> all) {
+        for ( final GATKDocWorkUnit unit : all )
             if ( unit.clazz.equals(c) )
                 return unit;
         return null;
     }
 
-    private void processDocWorkUnit(Configuration cfg, DocWorkUnit unit, Set<DocWorkUnit> all)
+    private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit, Set<GATKDocWorkUnit> all)
             throws IOException {
         System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 

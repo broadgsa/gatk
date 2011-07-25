@@ -32,7 +32,6 @@ import com.sun.javadoc.Tag;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
@@ -43,9 +42,9 @@ import java.util.*;
  *
  */
 public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
-    GATKDoclet.DocWorkUnit toProcess;
+    GATKDocWorkUnit toProcess;
     ClassDoc classdoc;
-    Set<GATKDoclet.DocWorkUnit> all;
+    Set<GATKDocWorkUnit> all;
     RootDoc rootDoc;
 
     @Override
@@ -66,7 +65,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     @Override
-    public void processOne(RootDoc rootDoc, GATKDoclet.DocWorkUnit toProcessArg, Set<GATKDoclet.DocWorkUnit> allArg) {
+    public void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcessArg, Set<GATKDocWorkUnit> allArg) {
         this.rootDoc = rootDoc;
         this.toProcess = toProcessArg;
         this.all = allArg;
@@ -132,7 +131,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
         // add in all of the explicitly related items
         for ( final Class extraDocClass : toProcess.annotation.extraDocs() ) {
-            final GATKDoclet.DocWorkUnit otherUnit = GATKDoclet.findWorkUnitForClass(extraDocClass, all);
+            final GATKDocWorkUnit otherUnit = GATKDoclet.findWorkUnitForClass(extraDocClass, all);
             if ( otherUnit == null )
                 throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
             extraDocsData.add(
@@ -143,7 +142,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
 
         List<Map<String, Object>> hierarchyDocs = new ArrayList<Map<String, Object>>();
-        for (final GATKDoclet.DocWorkUnit other : all ) {
+        for (final GATKDocWorkUnit other : all ) {
             final String relation = classRelationship(toProcess.clazz, other.clazz);
             if ( relation != null )
                 hierarchyDocs.add(
