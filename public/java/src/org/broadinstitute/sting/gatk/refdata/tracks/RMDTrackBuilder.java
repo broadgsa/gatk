@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.refdata.tracks.builders;
+package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
@@ -36,8 +36,6 @@ import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -133,10 +131,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param fileDescriptor a description of the type of track to build.
      *
      * @return an instance of the track
-     * @throws RMDTrackCreationException
-     *          if we don't know of the target class or we couldn't create it
      */
-    public RMDTrack createInstanceOfTrack(RMDTriplet fileDescriptor) throws RMDTrackCreationException {
+    public RMDTrack createInstanceOfTrack(RMDTriplet fileDescriptor) {
         String name = fileDescriptor.getName();
         File inputFile = new File(fileDescriptor.getFile());
 

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata.utils.helpers;
+package org.broadinstitute.sting.gatk.refdata.features;
 
 import net.sf.samtools.util.SequenceUtil;
 import org.broad.tribble.annotation.Strand;

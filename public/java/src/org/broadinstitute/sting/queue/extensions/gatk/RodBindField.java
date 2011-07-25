@@ -26,7 +26,7 @@ package org.broadinstitute.sting.queue.extensions.gatk;
 
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 

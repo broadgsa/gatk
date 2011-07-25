@@ -27,8 +27,8 @@ package org.broadinstitute.sting.utils.text;
 import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;

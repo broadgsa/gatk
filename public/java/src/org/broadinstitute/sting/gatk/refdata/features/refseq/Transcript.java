@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.sting.gatk.refdata.features.refseq;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;

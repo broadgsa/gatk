@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.GenomicAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.JoinTable;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationInterfaceManager;
