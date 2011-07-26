@@ -66,7 +66,10 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
     public boolean ALLOW_MISSING_DATA = false;
 
     @Input(fullName="variants", shortName="V", doc="The variant file we will convert to a table", required=true)
-    public RodBinding<VariantContext> variants;
+    public RodBinding variants;
+
+    @Input(fullName="variantsList", shortName="VL", doc="The variant file we will convert to a table", required=true)
+    public List<RodBinding> variantsList;
 
     public void initialize() {
         out.println(Utils.join("\t", fieldsToTake));
@@ -134,6 +137,9 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
+
+        for ( RodBinding binding : variantsList )
+            System.out.printf("VariantList binding %s%n", binding);
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             VariantContext vc = variants.getVariantContext(tracker, ref, context.getLocation());

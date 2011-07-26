@@ -27,6 +27,7 @@ package org.broadinstitute.sting.commandline;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.util.List;
@@ -35,7 +36,7 @@ import java.util.List;
  *
  */
 // TODO -- should have a derived class called VariantContentRodBinding with simple accessors
-public class RodBinding<T> {
+public class RodBinding {
     final String variableName;
     final File sourceFile;
 
@@ -52,12 +53,16 @@ public class RodBinding<T> {
         return sourceFile;
     }
 
-    public List<T> getAll(RefMetaDataTracker tracker) {
-        return (List<T>)tracker.getReferenceMetaData(variableName);
+    public List<Object> getAll(RefMetaDataTracker tracker) {
+        return tracker.getReferenceMetaData(variableName);
     }
 
-    public T getVariantContext(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc) {
-        return (T)tracker.getVariantContext(ref, variableName, loc);
+    public VariantContext getVariantContext(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc) {
+        return tracker.getVariantContext(ref, variableName, loc);
+    }
+
+    public String toString() {
+        return String.format("(RodBinding name=%s source=%s)", variableName, sourceFile);
     }
 
 }
