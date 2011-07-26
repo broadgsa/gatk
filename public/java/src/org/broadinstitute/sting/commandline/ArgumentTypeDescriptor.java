@@ -291,17 +291,28 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     public static boolean isRodBinding( Class type ) {
-        return type.isAssignableFrom(RodBinding.class);
+        return RodBinding.class.isAssignableFrom(type);
     }
 
     @Override
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
-        RodBinding<Object> result = new RodBinding<Object>(source.field.getName(), new File(value));
-        Tags tags = getArgumentTags(matches);
-        parsingEngine.addTags(result,tags);
-        return result;
+        try {
+            Constructor ctor = type.getConstructor(String.class, String.class);
+            RodBinding result = (RodBinding)ctor.newInstance(source.field.getName(), value);
+            Tags tags = getArgumentTags(matches);
+            parsingEngine.addTags(result,tags);
+            return result;
+        } catch (InvocationTargetException e) {
+            throw new UserException.CommandLineException(
+                    String.format("Failed to parse value %s for argument %s.",
+                            value, source.field.getName()));
+        } catch (Exception e) {
+            throw new UserException.CommandLineException(
+                    String.format("Failed to parse value %s for argument %s.",
+                            value, source.field.getName()));
+        }
     }
 }
 

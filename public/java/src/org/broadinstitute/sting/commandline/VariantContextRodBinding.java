@@ -24,36 +24,23 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.File;
 import java.util.List;
 
 /**
  *
  */
-public class RodBinding {
-    final String variableName;
-    final String sourceFile;
-
-    public RodBinding(final String variableName, final String sourceFile) {
-        this.variableName = variableName;
-        this.sourceFile = sourceFile;
+public class VariantContextRodBinding extends RodBinding {
+    public VariantContextRodBinding(final String variableName, final String sourceFile) {
+        super(variableName, sourceFile);
     }
 
-    public String getVariableName() {
-        return variableName;
+    public VariantContext getVariantContext(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc) {
+        return tracker.getVariantContext(ref, variableName, loc);
     }
-
-    public String getSourceFile() {
-        return sourceFile;
-    }
-
-    public List<Object> getAll(RefMetaDataTracker tracker) {
-        return tracker.getReferenceMetaData(variableName);
-    }
-
-    public String toString() {
-        return String.format("(RodBinding name=%s source=%s)", variableName, sourceFile);
-    }
-
 }

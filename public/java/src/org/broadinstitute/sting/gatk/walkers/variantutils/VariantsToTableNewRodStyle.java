@@ -24,14 +24,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -66,9 +62,9 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
     public boolean ALLOW_MISSING_DATA = false;
 
     @Input(fullName="variants", shortName="V", doc="The variant file we will convert to a table", required=true)
-    public RodBinding variants;
+    public VariantContextRodBinding variants;
 
-    @Input(fullName="variantsList", shortName="VL", doc="The variant file we will convert to a table", required=true)
+    @Input(fullName="rodList", shortName="RL", doc="A list of ROD types that we will convert to a table", required=true)
     public List<RodBinding> variantsList;
 
     public void initialize() {
@@ -139,7 +135,7 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
             return 0;
 
         for ( RodBinding binding : variantsList )
-            System.out.printf("VariantList binding %s%n", binding);
+            System.out.printf("VariantList binding %s tags=%s%n", binding, getToolkit().getTags(binding).getPositionalTags());
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             VariantContext vc = variants.getVariantContext(tracker, ref, context.getLocation());
