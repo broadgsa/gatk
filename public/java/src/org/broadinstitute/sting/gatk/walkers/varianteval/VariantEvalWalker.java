@@ -67,7 +67,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="stratificationModule", shortName="ST", doc="One or more specific stratification modules to apply to the eval track(s) (in addition to the standard stratifications, unless -noS is specified)", required=false)
     protected String[] STRATIFICATIONS_TO_USE = {};
 
-    @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)")
+    @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)", required=false)
     protected Boolean NO_STANDARD_STRATIFICATIONS = false;
 
     @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
@@ -77,7 +77,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noE is specified)", required=false)
     protected String[] MODULES_TO_USE = {};
 
-    @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)")
+    @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)", required=false)
     protected Boolean NO_STANDARD_MODULES = false;
 
     // Other arguments
