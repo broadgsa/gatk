@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.text;
 
 import org.broadinstitute.sting.commandline.ParsingEngine;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
@@ -93,6 +94,7 @@ public class ListFileUtils {
      * @return a list of expanded, bound RODs.
      */
     public static Collection<RMDTriplet> unpackRODBindings(final List<String> RODBindings, final String dbSNPFile, final ParsingEngine parser) {
+        // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
         for (String fileName: RODBindings) {
@@ -134,6 +136,43 @@ public class ListFileUtils {
         return rodBindings;
     }
 
+    /**
+     * Convert command-line argument representation of ROD bindings to something more easily understandable by the engine.
+     * @param RODBindings a text equivale
+     * @return a list of expanded, bound RODs.
+     */
+    public static Collection<RMDTriplet> unpackRODBindings(final List<RodBinding> RODBindings, final ParsingEngine parser) {
+        // todo -- this is a strange home for this code.  Move into ROD system
+        Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
+
+        for (RodBinding rodBinding: RODBindings) {
+            String argValue = rodBinding.getSourceFile().getPath();
+            String fileName = expandFileName(argValue);
+            final Tags tags = parser.getTags(rodBinding);
+
+            List<String> positionalTags = tags.getPositionalTags();
+            if(positionalTags.size() != 1)
+                throw new UserException("Invalid syntax for RODBinding (reference-ordered data) input .  " +
+                        "Please use the following syntax when providing reference-ordered " +
+                        "data: -<arg-name>:<type> <filename>.");
+            // Assume that if tags are present, those tags are name and type.
+            // Name is always first, followed by type.
+            String name = rodBinding.getVariableName();
+            String type = positionalTags.get(0);
+
+            RMDTriplet.RMDStorageType storageType = null;
+            if(tags.getValue("storage") != null)
+                storageType = Enum.valueOf(RMDTriplet.RMDStorageType.class,tags.getValue("storage"));
+            else if(fileName.toLowerCase().endsWith("stdin"))
+                storageType = RMDTriplet.RMDStorageType.STREAM;
+            else
+                storageType = RMDTriplet.RMDStorageType.FILE;
+
+            rodBindings.add(new RMDTriplet(name,type,fileName,storageType,tags));
+        }
+
+        return rodBindings;
+    }
 
     /**
      * Expand any special characters that appear in the filename.  Right now, '-' is expanded to

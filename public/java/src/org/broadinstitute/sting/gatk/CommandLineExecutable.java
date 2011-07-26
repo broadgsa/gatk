@@ -25,8 +25,10 @@
 
 package org.broadinstitute.sting.gatk;
 
+import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
@@ -34,12 +36,15 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescripto
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @author aaron
@@ -81,7 +86,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
             // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
             engine.setSAMFileIDs(ListFileUtils.unpackBAMFileList(getArgumentCollection().samFiles,parser));
-            engine.setReferenceMetaDataFiles(ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings,getArgumentCollection().DBSNPFile,parser));
 
             engine.setWalker(walker);
             walker.setToolkit(engine);
@@ -95,6 +99,11 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             // TODO: argument processing.
             loadArgumentsIntoObject(walker);
             argumentSources.add(walker);
+
+            Collection<RMDTriplet> newStyle = ListFileUtils.unpackRODBindings(getRodBindingsInWalker(walker), parser);
+            Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings, getArgumentCollection().DBSNPFile, parser);
+            oldStyle.addAll(newStyle);
+            engine.setReferenceMetaDataFiles(oldStyle);
 
             for (ReadFilter filter: filters) {
                 loadArgumentsIntoObject(filter);
@@ -110,6 +119,20 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
         // always return 0
         return 0;
+    }
+
+    private List<RodBinding> getRodBindingsInWalker(Walker<?,?> walker) {
+        List<RodBinding> rods = new ArrayList<RodBinding>();
+
+        for ( ArgumentSource source : parser.extractArgumentSources(walker.getClass()) ) {
+            Object obj = JVMUtils.getFieldValue(source.field, walker);
+            if ( obj instanceof RodBinding ) {
+                System.out.printf("Found rod binding for field %s of %s%n", obj, source.field);
+                rods.add((RodBinding)obj);
+            }
+        }
+
+        return rods;
     }
 
     /**

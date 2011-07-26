@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
@@ -276,15 +277,45 @@ public abstract class ArgumentTypeDescriptor {
 }
 
 /**
+ * Parser for RodBinding objects
+ */
+class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+    /**
+     * We only want RodBinding class objects
+     * @param type The type to check.
+     * @return true if the provided class is a RodBinding.class
+     */
+    @Override
+    public boolean supports( Class type ) {
+        return isRodBinding(type);
+    }
+
+    public static boolean isRodBinding( Class type ) {
+        return type.isAssignableFrom(RodBinding.class);
+    }
+
+    @Override
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
+        ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
+        String value = getArgumentValue( defaultDefinition, matches );
+        RodBinding<Object> result = new RodBinding<Object>(source.field.getName(), new File(value));
+        Tags tags = getArgumentTags(matches);
+        parsingEngine.addTags(result,tags);
+        return result;
+    }
+}
+
+/**
  * Parse simple argument types: java primitives, wrapper classes, and anything that has
  * a simple String constructor.
  */
 class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public boolean supports( Class type ) {
-        if( type.isPrimitive() ) return true;
-        if( type.isEnum() ) return true;
-        if( primitiveToWrapperMap.containsValue(type) ) return true;
+        if ( RodBindingArgumentTypeDescriptor.isRodBinding(type) ) return false;
+        if ( type.isPrimitive() ) return true;
+        if ( type.isEnum() ) return true;
+        if ( primitiveToWrapperMap.containsValue(type) ) return true;
 
         try {
             type.getConstructor(String.class);
@@ -385,7 +416,6 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine,ArgumentSource source, Class type, ArgumentMatches matches) {
         Class componentType;
         Object result;
-        Tags tags;
 
         if( Collection.class.isAssignableFrom(type) ) {
 
