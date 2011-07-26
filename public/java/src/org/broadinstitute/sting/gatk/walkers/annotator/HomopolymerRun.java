@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
+public class HomopolymerRun extends InfoFieldAnnotation implements StandardAnnotation {
 
     private boolean ANNOTATE_INDELS = true;
 

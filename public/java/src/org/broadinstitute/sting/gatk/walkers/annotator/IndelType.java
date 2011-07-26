@@ -19,7 +19,7 @@ import java.util.*;
  * Time: 11:47:33 AM
  * To change this template use File | Settings | File Templates.
  */
-public class IndelType implements InfoFieldAnnotation, ExperimentalAnnotation {
+public class IndelType extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 

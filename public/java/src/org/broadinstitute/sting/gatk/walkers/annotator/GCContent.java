@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class GCContent implements InfoFieldAnnotation, ExperimentalAnnotation {
+public class GCContent extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         double content = computeGCContent(ref);

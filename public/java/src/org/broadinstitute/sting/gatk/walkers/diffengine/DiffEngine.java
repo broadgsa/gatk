@@ -342,12 +342,12 @@ public class DiffEngine {
             return reader.readFromFile(file, maxElementsToRead);
     }
 
-    public static boolean simpleDiffFiles(File masterFile, File testFile, DiffEngine.SummaryReportParams params) {
+    public static boolean simpleDiffFiles(File masterFile, File testFile, int maxElementsToRead, DiffEngine.SummaryReportParams params) {
         DiffEngine diffEngine = new DiffEngine();
 
         if ( diffEngine.canRead(masterFile) && diffEngine.canRead(testFile) ) {
-            DiffElement master = diffEngine.createDiffableFromFile(masterFile);
-            DiffElement test = diffEngine.createDiffableFromFile(testFile);
+            DiffElement master = diffEngine.createDiffableFromFile(masterFile, maxElementsToRead);
+            DiffElement test = diffEngine.createDiffableFromFile(testFile, maxElementsToRead);
             List<Difference> diffs = diffEngine.diff(master, test);
             diffEngine.reportSummarizedDifferences(diffs, params);
             return true;

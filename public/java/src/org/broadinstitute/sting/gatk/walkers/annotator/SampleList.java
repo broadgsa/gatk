@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class SampleList implements InfoFieldAnnotation {
+public class SampleList extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( vc.isMonomorphic() || !vc.hasGenotypes() )

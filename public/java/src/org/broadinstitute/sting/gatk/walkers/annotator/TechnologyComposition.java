@@ -24,7 +24,7 @@ import java.util.Map;
  * Time: 3:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class TechnologyComposition implements ExperimentalAnnotation,InfoFieldAnnotation {
+public class TechnologyComposition extends InfoFieldAnnotation implements ExperimentalAnnotation {
     private String nSLX = "NumSLX";
     private String n454 ="Num454";
     private String nSolid = "NumSOLiD";
