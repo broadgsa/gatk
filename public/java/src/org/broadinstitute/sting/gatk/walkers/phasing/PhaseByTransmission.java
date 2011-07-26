@@ -234,7 +234,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         finalGenotypes.add(father);
         finalGenotypes.add(child);
 
-        if (mother.isCalled() && father.isCalled() && child.isCalled() && !(mother.isHet() && father.isHet() && child.isHet())) {
+        if (mother.isCalled() && father.isCalled() && child.isCalled()) {
             ArrayList<Genotype> possibleMotherGenotypes = createAllThreeGenotypes(ref, alt, mother);
             ArrayList<Genotype> possibleFatherGenotypes = createAllThreeGenotypes(ref, alt, father);
             ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(ref, alt, child);
@@ -265,12 +265,14 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 }
             }
 
-            Map<String, Object> attributes = new HashMap<String, Object>();
-            attributes.putAll(bestChildGenotype.getAttributes());
-            attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
-            bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
+            if (!(bestMotherGenotype.isHet() && bestFatherGenotype.isHet() && bestChildGenotype.isHet())) {
+                Map<String, Object> attributes = new HashMap<String, Object>();
+                attributes.putAll(bestChildGenotype.getAttributes());
+                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
+                bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
 
-            finalGenotypes = getPhasedGenotypes(bestMotherGenotype, bestFatherGenotype, bestChildGenotype);
+                finalGenotypes = getPhasedGenotypes(bestMotherGenotype, bestFatherGenotype, bestChildGenotype);
+            }
         }
 
         return finalGenotypes;
