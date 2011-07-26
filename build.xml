@@ -520,7 +520,7 @@
             <fileset dir="${java.classes}">
               <include name="**/utils/codecs/**/*.class"/>
               <include name="**/utils/variantcontext/**/*.class"/>
-              <include name="**/UserException*.class"/>
+              <include name="org/broadinstitute/sting/utils/exceptions/**"/>
 	      <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
             </fileset>
         </jar>
