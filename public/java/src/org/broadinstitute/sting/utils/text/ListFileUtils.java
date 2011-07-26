@@ -146,7 +146,7 @@ public class ListFileUtils {
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
         for (RodBinding rodBinding: RODBindings) {
-            String argValue = rodBinding.getSourceFile().getPath();
+            String argValue = rodBinding.getSource();
             String fileName = expandFileName(argValue);
             final Tags tags = parser.getTags(rodBinding);
 

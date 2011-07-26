@@ -33,19 +33,19 @@ import java.util.List;
  */
 public class RodBinding {
     final String variableName;
-    final String sourceFile;
+    final String source;
 
-    public RodBinding(final String variableName, final String sourceFile) {
+    public RodBinding(final String variableName, final String source) {
         this.variableName = variableName;
-        this.sourceFile = sourceFile;
+        this.source = source;
     }
 
     public String getVariableName() {
         return variableName;
     }
 
-    public String getSourceFile() {
-        return sourceFile;
+    public String getSource() {
+        return source;
     }
 
     public List<Object> getAll(RefMetaDataTracker tracker) {
@@ -53,7 +53,7 @@ public class RodBinding {
     }
 
     public String toString() {
-        return String.format("(RodBinding name=%s source=%s)", variableName, sourceFile);
+        return String.format("(RodBinding name=%s source=%s)", getVariableName(), getSource());
     }
 
 }
