@@ -53,19 +53,18 @@
 <body>
   <h1>${name}</h1>
   <@headerInfo />
-  <h2>Brief summary</h2>
-  ${summary}
+  <p class="summary">${summary}</p>
   <#if author??>
       <h2>Author</h2>
       ${author}
   </#if>
-  <h2>Detailed description</h2>
+  <h2>Introduction</h2>
   ${description}
   
   <#-- Create the argument summary -->
   <#if arguments.all?size != 0> 
       <hr>
-      <h2>Feature specific arguments</h2>
+      <h2>${name} specific arguments</h2>
       <table id="hor-minimalist-b">
       <thead>
       <tr>

@@ -14,29 +14,67 @@ p, ul, ol, dl, dt, dd, td
 	font-size: 12pt;
 }
 
-p.version, p.see-also
+p
 {
-	font-size: 8pt;
+	margin-left: 1em;
 }
 
-h1, h2, h3
+p.summary
+{
+    margin-left: 2em;
+    margin-top: -20pt;
+    font-style: italic;
+}
+
+p.see-also
+{
+	font-size: 10pt;
+    margin-left: 0em;
+    margin-top: 3em;
+    text-align: center;
+}
+
+p.version
+{
+    font-size: 8pt;
+    margin-left: 0em;
+    margin-top: -8pt;
+    text-align: center;
+}
+
+
+h1, h2, h3, h4
 {
 	font-family: Corbel, Arial, Helvetica, Sans-Serif;
 	font-weight: bold;
 	text-align: left;
-	color: #669;
 }
 
 h1
 {
 	font-size: 32pt;
 	letter-spacing: -2px;
+    color: #669;
 }
 
-h3 
+h2
 {
-	font-size: 16pt;
-	font-weight: normal;
+    font-size: 16pt;
+	font-weight: bold;
+    margin-top: 2em;
+    color: #669;
+}
+
+h3
+{
+    font-size: 12pt;
+    margin-left: 1em;
+    color: #000;
+}
+
+hr
+{
+    margin-top: 4em;
 }
 
 /*

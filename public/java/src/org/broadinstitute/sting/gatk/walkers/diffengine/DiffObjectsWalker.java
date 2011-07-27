@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -35,34 +34,45 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.List;
 
 /**
  * A generic engine for comparing tree-structured objects
+ *
  * <p>
- * Compares two record-oriented files, itemizing specific difference between equivalent
- * records in the two files.  Reports both itemized and summarized differences.
- * <p>
- *     <b>What are the summarized differences and the DiffObjectsWalker</b>
+ *      Compares two record-oriented files, itemizing specific difference between equivalent
+ *      records in the two files.  Reports both itemized and summarized differences.
+ * </p>
+ *
+ * <h3>What are the summarized differences and the DiffObjectsWalker?</h3>
+ *
  * <p>
  *     The GATK contains a summarizing difference engine that compares hierarchical data structures to emit:
- * <ul>
- *     <li>A list of specific differences between the two data structures.  This is similar to saying the value in field A in record 1 in file F differences from the value in field A in record 1 in file G.
- *     <li>A summarized list of differences ordered by frequency of the difference.  This output is similar to saying field A in 50 records in files F and G differed.
- * </ul>
+ *      <ul>
+ *          <li>A list of specific differences between the two data structures.  This is similar to saying the value in field A in record 1 in file F differences from the value in field A in record 1 in file G.
+ *          <li>A summarized list of differences ordered by frequency of the difference.  This output is similar to saying field A in 50 records in files F and G differed.
+ *      </ul>
+ * </p>
  *
  * <p>
- * The GATK contains a private walker DiffObjects that allows you access to the DiffEngine capabilities on the command line.  Simply provide the walker with the master and test files and it will emit summarized differences for you.
+ *      The GATK contains a private walker DiffObjects that allows you access to the DiffEngine capabilities on the command line.  Simply provide the walker with the master and test files and it will emit summarized differences for you.
+ * </p>
+ *
+ * <h3>Why?</h3>
  *
  * <p>
- *     <b>Why?</b>
- * <p>
- * The reason for this system is that it allows you to compare two structured files -- such as BAMs and VCFs -- for common differences among them.  This is primarily useful in regression testing or optimization, where you want to ensure that the differences are those that you expect and not any others.
+ *      The reason for this system is that it allows you to compare two structured files -- such as BAMs and VCFs -- for common differences among them.  This is primarily useful in regression testing or optimization, where you want to ensure that the differences are those that you expect and not any others.
+ * </p>
  *
- * <p>Understanding the output
- * <p>The DiffEngine system compares to two hierarchical data structures for specific differences in the values of named
- * nodes.  Suppose I have two trees:
+ * <h2>Input</h2>
+ * <p>
+ *      The DiffObjectsWalker works with BAM or VCF files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ *      The DiffEngine system compares to two hierarchical data structures for specific differences in the values of named
+ *      nodes.  Suppose I have two trees:
  * <pre>
  *     Tree1=(A=1 B=(C=2 D=3))
  *     Tree2=(A=1 B=(C=3 D=3 E=4))
@@ -70,33 +80,37 @@ import java.util.List;
  * </pre>
  * <p>
  *     where every node in the tree is named, or is a raw value (here all leaf values are integers).  The DiffEngine
- * traverses these data structures by name, identifies equivalent nodes by fully qualified names
- * (Tree1.A is distinct from Tree2.A, and determines where their values are equal (Tree1.A=1, Tree2.A=1, so they are).
- * These itemized differences are listed as:
+ *      traverses these data structures by name, identifies equivalent nodes by fully qualified names
+ *      (Tree1.A is distinct from Tree2.A, and determines where their values are equal (Tree1.A=1, Tree2.A=1, so they are).
+ *      These itemized differences are listed as:
  * <pre>
  *     Tree1.B.C=2 != Tree2.B.C=3
  *     Tree1.B.C=2 != Tree3.B.C=4
  *     Tree2.B.C=3 != Tree3.B.C=4
  *     Tree1.B.E=MISSING != Tree2.B.E=4
  * </pre>
+ *
  * <p>
- *     This conceptually very similar to the output of the unix command line tool diff.  What's nice about DiffEngine though
- * is that it computes similarity among the itemized differences and displays the count of differences names
- * in the system.  In the above example, the field C is not equal three times, while the missing E in Tree1 occurs
- * only once.  So the summary is:
+ *      This conceptually very similar to the output of the unix command line tool diff.  What's nice about DiffEngine though
+ *      is that it computes similarity among the itemized differences and displays the count of differences names
+ *      in the system.  In the above example, the field C is not equal three times, while the missing E in Tree1 occurs
+ *      only once.  So the summary is:
  *
  * <pre>
  *     *.B.C : 3
  *     *.B.E : 1
  * </pre>
- * <p>where the * operator indicates that any named field matches.  This output is sorted by counts, and provides an
- * immediate picture of the commonly occurring differences among the files.
+ *
  * <p>
- * Below is a detailed example of two VCF fields that differ because of a bug in the AC, AF, and AN counting routines,
- * detected by the integrationtest integration (more below).  You can see that in the although there are many specific
- * instances of these differences between the two files, the summarized differences provide an immediate picture that
- * the AC, AF, and AN fields are the major causes of the differences.
+ *      where the * operator indicates that any named field matches.  This output is sorted by counts, and provides an
+ *      immediate picture of the commonly occurring differences among the files.
  * <p>
+ *      Below is a detailed example of two VCF fields that differ because of a bug in the AC, AF, and AN counting routines,
+ *      detected by the integrationtest integration (more below).  You can see that in the although there are many specific
+ *      instances of these differences between the two files, the summarized differences provide an immediate picture that
+ *      the AC, AF, and AN fields are the major causes of the differences.
+ * <p>
+ *
  * <pre>
    [testng] path                                                             count
    [testng] *.*.*.AC                                                         6
