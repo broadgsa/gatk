@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
@@ -66,6 +67,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     private final Collection<Object> argumentSources = new ArrayList<Object>();
 
+    protected static Logger logger = Logger.getLogger(CommandLineExecutable.class);
+
     /**
      * this is the function that the inheriting class can expect to have called
      * when the command line system has initialized.
@@ -98,6 +101,20 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             argumentSources.add(walker);
 
             Collection<RMDTriplet> newStyle = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
+
+            // todo: remove me when the old style system is removed
+            if ( getArgumentCollection().RODBindings.size() > 0 ) {
+                logger.warn("################################################################################");
+                logger.warn("################################################################################");
+                logger.warn("Deprecated -B rod binding syntax detected.  This syntax will be retired in GATK 1.2.");
+                logger.warn("Please use arguments defined by each specific walker instead.");
+                for ( String oldStyleRodBinding : getArgumentCollection().RODBindings ) {
+                    logger.warn("  -B rod binding with value " + oldStyleRodBinding + " tags: " + parser.getTags(oldStyleRodBinding).getPositionalTags());
+                }
+                logger.warn("################################################################################");
+                logger.warn("################################################################################");
+            }
+
             Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings, getArgumentCollection().DBSNPFile, parser);
             oldStyle.addAll(newStyle);
             engine.setReferenceMetaDataFiles(oldStyle);

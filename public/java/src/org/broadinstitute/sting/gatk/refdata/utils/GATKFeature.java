@@ -102,44 +102,4 @@ public abstract class GATKFeature implements Feature, HasGenomeLocation {
             return feature;
         }
     }
-
-    /**
-     * wrapping a old style rod into the new GATK feature style
-     */
-    public static class RODGATKFeature extends GATKFeature {
-
-        // our data
-        private ReferenceOrderedDatum datum;
-
-        public RODGATKFeature(ReferenceOrderedDatum datum) {
-            super(datum.getName());
-            this.datum = datum;
-        }
-
-        @Override
-        public GenomeLoc getLocation() {
-            return datum.getLocation();
-        }
-
-        @Override
-        public Object getUnderlyingObject() {
-            return datum;
-        }
-
-        @Override
-        public String getChr() {
-            return datum.getLocation().getContig();
-        }
-
-        @Override
-        public int getStart() {
-            return (int)datum.getLocation().getStart();
-        }
-
-        @Override
-        public int getEnd() {
-            return (int)datum.getLocation().getStop();
-        }
-    }
-
 }
