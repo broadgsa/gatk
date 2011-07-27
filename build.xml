@@ -1057,7 +1057,7 @@
     <!-- Build gsalib R module -->
     <target name="gsalib">
       <exec executable="R" failonerror="true">
-        <arg line="R CMD INSTALL -l private/R/ private/R/src/gsalib/" />
+        <arg line="R CMD INSTALL -l public/R/ public/R/src/gsalib/" />
       </exec>
     </target>
 </project>
