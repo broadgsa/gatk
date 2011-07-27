@@ -79,8 +79,8 @@ public class MD5DB {
      * @return
      */
     public static String getMD5FilePath(final String md5, final String valueIfNotFound) {
-        // we prefer the local db to the global DB, so match it first
-        for ( String dir : Arrays.asList(LOCAL_MD5_DB_DIR, GLOBAL_MD5_DB_DIR)) {
+        // we prefer the global db to the local DB, so match it first
+        for ( String dir : Arrays.asList(GLOBAL_MD5_DB_DIR, LOCAL_MD5_DB_DIR)) {
             File f = getFileForMD5(md5, dir);
             if ( f.exists() && f.canRead() )
                 return f.getPath();
