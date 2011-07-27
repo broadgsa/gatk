@@ -47,6 +47,7 @@ public class MD5DB {
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
      */
+    private static final int MAX_RECORDS_TO_READ = 10000;
     public static final String LOCAL_MD5_DB_DIR = "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";
 
@@ -78,8 +79,8 @@ public class MD5DB {
      * @return
      */
     public static String getMD5FilePath(final String md5, final String valueIfNotFound) {
-        // we prefer the local db to the global DB, so match it first
-        for ( String dir : Arrays.asList(LOCAL_MD5_DB_DIR, GLOBAL_MD5_DB_DIR)) {
+        // we prefer the global db to the local DB, so match it first
+        for ( String dir : Arrays.asList(GLOBAL_MD5_DB_DIR, LOCAL_MD5_DB_DIR)) {
             File f = getFileForMD5(md5, dir);
             if ( f.exists() && f.canRead() )
                 return f.getPath();
@@ -232,7 +233,7 @@ public class MD5DB {
 
                     // inline differences
                     DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(System.out, 20, 10, 0);
-                    boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), params);
+                    boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), MAX_RECORDS_TO_READ, params);
                     if ( success )
                         System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R public/testdata/exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
                                 pathToExpectedMD5File, pathToFileMD5File);
