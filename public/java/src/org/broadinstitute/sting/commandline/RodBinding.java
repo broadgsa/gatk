@@ -34,10 +34,12 @@ import java.util.List;
 public class RodBinding {
     final String variableName;
     final String source;
+    final ParsingEngine parser;
 
-    public RodBinding(final String variableName, final String source) {
+    protected RodBinding(final String variableName, final String source, final ParsingEngine parser) {
         this.variableName = variableName;
         this.source = source;
+        this.parser = parser;
     }
 
     public String getVariableName() {
@@ -50,6 +52,10 @@ public class RodBinding {
 
     public List<Object> getAll(RefMetaDataTracker tracker) {
         return tracker.getReferenceMetaData(variableName);
+    }
+
+    public Tags getTags() {
+        return parser.getTags(this);
     }
 
     public String toString() {

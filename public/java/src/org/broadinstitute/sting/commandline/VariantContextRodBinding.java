@@ -36,8 +36,8 @@ import java.util.List;
  *
  */
 public class VariantContextRodBinding extends RodBinding {
-    public VariantContextRodBinding(final String variableName, final String sourceFile) {
-        super(variableName, sourceFile);
+    protected VariantContextRodBinding(final String variableName, final String sourceFile, final ParsingEngine parser) {
+        super(variableName, sourceFile, parser);
     }
 
     public VariantContext getVariantContext(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc) {

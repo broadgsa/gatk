@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk;
 
-import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
@@ -100,7 +97,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             loadArgumentsIntoObject(walker);
             argumentSources.add(walker);
 
-            Collection<RMDTriplet> newStyle = ListFileUtils.unpackRODBindings(getRodBindingsInWalker(walker), parser);
+            Collection<RMDTriplet> newStyle = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
             Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings, getArgumentCollection().DBSNPFile, parser);
             oldStyle.addAll(newStyle);
             engine.setReferenceMetaDataFiles(oldStyle);
@@ -119,20 +116,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
         // always return 0
         return 0;
-    }
-
-    private List<RodBinding> getRodBindingsInWalker(Walker<?,?> walker) {
-        List<RodBinding> rods = new ArrayList<RodBinding>();
-
-        for ( ArgumentSource source : parser.extractArgumentSources(walker.getClass()) ) {
-            Object obj = JVMUtils.getFieldValue(source.field, walker);
-            if ( obj instanceof RodBinding ) {
-                System.out.printf("Found rod binding for field %s of %s%n", obj, source.field);
-                rods.add((RodBinding)obj);
-            }
-        }
-
-        return rods;
     }
 
     /**

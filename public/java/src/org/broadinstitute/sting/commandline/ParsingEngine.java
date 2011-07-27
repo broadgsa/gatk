@@ -60,6 +60,11 @@ public class ParsingEngine {
     private List<ParsingMethod> parsingMethods = new ArrayList<ParsingMethod>();
 
     /**
+     * All of the RodBinding objects we've seen while parsing
+     */
+    private List<RodBinding> rodBindings = new ArrayList<RodBinding>();
+
+    /**
      * Class reference to the different types of descriptors that the create method can create.
      * The type of set used must be ordered (but not necessarily sorted).
      */
@@ -342,7 +347,14 @@ public class ParsingEngine {
             Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createTypeDefault(this);
 
             JVMUtils.setFieldValue(source.field,target,value);
+
+            if ( value instanceof RodBinding )
+                rodBindings.add((RodBinding)value);
         }
+    }
+
+    public Collection<RodBinding> getRodBindings() {
+        return Collections.unmodifiableCollection(rodBindings);
     }
 
     /**
@@ -390,7 +402,6 @@ public class ParsingEngine {
     public ArgumentTypeDescriptor selectBestTypeDescriptor(Class type) {
         return ArgumentTypeDescriptor.selectBest(argumentTypeDescriptors,type);
     }
-
 
     private List<ArgumentSource> extractArgumentSources(Class sourceClass, Field[] parentFields) {
         // now simply call into the truly general routine extract argument bindings but with a null

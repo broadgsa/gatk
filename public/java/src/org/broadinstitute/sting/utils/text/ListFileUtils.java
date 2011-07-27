@@ -93,7 +93,7 @@ public class ListFileUtils {
      * @param RODBindings a text equivale
      * @return a list of expanded, bound RODs.
      */
-    public static Collection<RMDTriplet> unpackRODBindings(final List<String> RODBindings, final String dbSNPFile, final ParsingEngine parser) {
+    public static Collection<RMDTriplet> unpackRODBindings(final Collection<String> RODBindings, final String dbSNPFile, final ParsingEngine parser) {
         // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
@@ -141,7 +141,7 @@ public class ListFileUtils {
      * @param RODBindings a text equivale
      * @return a list of expanded, bound RODs.
      */
-    public static Collection<RMDTriplet> unpackRODBindings(final List<RodBinding> RODBindings, final ParsingEngine parser) {
+    public static Collection<RMDTriplet> unpackRODBindings(final Collection<RodBinding> RODBindings, final ParsingEngine parser) {
         // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 

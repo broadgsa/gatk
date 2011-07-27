@@ -299,8 +299,8 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         try {
-            Constructor ctor = type.getConstructor(String.class, String.class);
-            RodBinding result = (RodBinding)ctor.newInstance(source.field.getName(), value);
+            Constructor ctor = type.getConstructor(String.class, String.class, ParsingEngine.class);
+            RodBinding result = (RodBinding)ctor.newInstance(source.field.getName(), value, parsingEngine);
             Tags tags = getArgumentTags(matches);
             parsingEngine.addTags(result,tags);
             return result;
