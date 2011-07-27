@@ -117,7 +117,11 @@ public class DbSNPHelper {
     }
 
     public static boolean isIndel(DbSNPFeature feature) {
-        return DbSNPHelper.isInsertion(feature) || DbSNPHelper.isDeletion(feature) || feature.getVariantType().contains("in-del");
+        return DbSNPHelper.isInsertion(feature) || DbSNPHelper.isDeletion(feature) || DbSNPHelper.isComplexIndel(feature);
+    }
+
+    public static boolean isComplexIndel(DbSNPFeature feature) {
+        return feature.getVariantType().contains("in-del");
     }
 
     public static boolean isHapmap(DbSNPFeature feature) {
