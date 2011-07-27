@@ -122,14 +122,16 @@ public class VariantContextAdaptors {
 
                 Map<String, Object> attributes = new HashMap<String, Object>();
                 attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
-                if ( DbSNPHelper.isDeletion(dbsnp) ) {
+
+                boolean vcIsDeletion = DbSNPHelper.isDeletion(dbsnp) || DbSNPHelper.isComplexIndel(dbsnp);
+                if ( vcIsDeletion ) {
                     int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
                     if ( index < 0 )
                         return null; // we weren't given enough reference context to create the VariantContext
                     attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(ref.getBases()[index]));
                 }
                 Collection<Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(),dbsnp.getStart() - (DbSNPHelper.isDeletion(dbsnp) ? 1 : 0),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
+                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (vcIsDeletion ? 1 : 0),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
                 return vc;
             } else
                 return null; // can't handle anything else
