@@ -92,7 +92,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         for(Tag tag: classdoc.firstSentenceTags())
             summaryBuilder.append(tag.text());
         root.put("summary", summaryBuilder.toString());
-        root.put("description", classdoc.commentText());
+        root.put("description", classdoc.commentText().substring(summaryBuilder.toString().length()));
         root.put("timestamp", toProcess.buildTimestamp);
         root.put("version", toProcess.absoluteVersion);
 
