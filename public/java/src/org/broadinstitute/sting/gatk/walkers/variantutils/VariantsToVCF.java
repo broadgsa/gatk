@@ -90,21 +90,23 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
         for ( VariantContext vc : contexts ) {
-            Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-            if ( rsID != null && !vc.hasID() ) {
-                attrs.put(VariantContext.ID_KEY, rsID);
-                vc = VariantContext.modifyAttributes(vc, attrs);
-            }
+            if ( ALLOWED_VARIANT_CONTEXT_TYPES.contains(vc.getType()) ) {
+                Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                if ( rsID != null && !vc.hasID() ) {
+                    attrs.put(VariantContext.ID_KEY, rsID);
+                    vc = VariantContext.modifyAttributes(vc, attrs);
+                }
 
-            // set the appropriate sample name if necessary
-            if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(INPUT_ROD_NAME) ) {
-                Genotype g = Genotype.modifyName(vc.getGenotype(INPUT_ROD_NAME), sampleName);
-                Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
-                genotypes.put(sampleName, g);
-                vc = VariantContext.modifyGenotypes(vc, genotypes);
-            }
+                // set the appropriate sample name if necessary
+                if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(INPUT_ROD_NAME) ) {
+                    Genotype g = Genotype.modifyName(vc.getGenotype(INPUT_ROD_NAME), sampleName);
+                    Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+                    genotypes.put(sampleName, g);
+                    vc = VariantContext.modifyGenotypes(vc, genotypes);
+                }
 
-            writeRecord(vc, tracker, ref.getBase());
+                writeRecord(vc, tracker, ref.getBase());
+            }
         }
 
         return 1;
@@ -160,7 +162,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         // for everything else, we can just convert to VariantContext
-        return tracker.getVariantContexts(ref, INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, ref.getLocus(), true, false);
+        return tracker.getVariantContexts(ref, INPUT_ROD_NAME, ref.getLocus(), true, false);
     }
 
     private DbSNPFeature getDbsnpFeature(String rsID) {

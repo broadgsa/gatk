@@ -97,7 +97,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, context.getLocation(), true, false);
         for ( VariantContext vc : vcs ) {
             int random = GenomeAnalysisEngine.getRandomGenerator().nextInt(1000);
             if ( random < iFraction )

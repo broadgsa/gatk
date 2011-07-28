@@ -150,7 +150,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation(), true, false);
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);

@@ -29,42 +29,54 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-import java.util.List;
+import java.util.Collection;
 
 /**
- *
+ * A RodBinding representing a walker argument that gets bound to a ROD track containing VariantContexts
  */
 public class VariantContextRodBinding extends RodBinding {
+    /**
+     * Create a new RodBinding specialized to provide VariantContexts.
+     * @param variableName the name of the field in the walker that we will bind the ROD track too
+     * @param sourceFile the data source from which we will read the VCs
+     * @param parser the Engine parser used to obtain information about this argument, such as its underlying file type
+     */
     protected VariantContextRodBinding(final String variableName, final String sourceFile, final ParsingEngine parser) {
         super(variableName, sourceFile, parser);
     }
 
-    public VariantContext getVariantContext(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc) {
-        return tracker.getVariantContext(ref, variableName, loc);
+    /**
+     * Forwarding method to identical tracker method
+     */
+    public Collection<VariantContext> getVariantContexts(final RefMetaDataTracker tracker,
+                                                         final ReferenceContext ref,
+                                                         final GenomeLoc curLocation,
+                                                         final boolean requireStartHere,
+                                                         final boolean takeFirstOnly ) {
+        return tracker.getVariantContexts(ref, variableName, curLocation, requireStartHere, takeFirstOnly);
     }
 
-//    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref) {
-//    }
-//
-//    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref, GenomeLoc curLocation) {
-//    }
-//
-//    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-//    }
-//
-//    public Collection<VariantContext> getVariantContexts(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-//    }
-//
-//    public Collection<VariantContext> getVariantContexts(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-//    }
-//
-//    public Collection<VariantContext> getVariantContextsByPrefix(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-//    }
-//
-//    public VariantContext getVariantContext(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere ) {
-//    }
-//
-//    public VariantContext getVariantContext(ReferenceContext ref, String name, GenomeLoc curLocation) {
-//    }
+    /**
+     * Forwarding method to identical tracker method
+     * @param tracker
+     * @param ref
+     * @param curLocation
+     * @param requireStartHere
+     * @return
+     */
+    public VariantContext getVariantContext(final RefMetaDataTracker tracker,
+                                            final ReferenceContext ref,
+                                            final GenomeLoc curLocation,
+                                            final boolean requireStartHere ) {
+        return tracker.getVariantContext(ref, variableName, curLocation, requireStartHere);
+    }
+
+    /**
+     * Forwarding method to identical tracker method
+     */
+    public VariantContext getVariantContext(final RefMetaDataTracker tracker,
+                                            final ReferenceContext ref,
+                                            final GenomeLoc curLocation) {
+        return tracker.getVariantContext(ref, variableName, curLocation);
+    }
 }

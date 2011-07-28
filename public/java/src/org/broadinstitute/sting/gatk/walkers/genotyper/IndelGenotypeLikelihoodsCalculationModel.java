@@ -293,6 +293,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         return aList;
 
     }
+
+    private final static EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.MIXED);
+
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
                                  Map<String, AlignmentContext> contexts,
@@ -318,11 +321,10 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             haplotypeMap.clear();
 
             if (getAlleleListFromVCF) {
-                 EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL);
-                 allowableTypes.add(VariantContext.Type.MIXED);
-                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles",
-                         allowableTypes, ref.getLocus(), false, false) ) {
-                      if( vc_input != null && ref.getLocus().getStart() == vc_input.getStart()) {
+                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", ref.getLocus(), false, false) ) {
+                      if( vc_input != null &&
+                              allowableTypes.contains(vc_input.getType()) &&
+                              ref.getLocus().getStart() == vc_input.getStart()) {
                          vc = vc_input;
                          break;
                      }

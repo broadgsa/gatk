@@ -163,7 +163,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             return mapList;
         }
 
-        for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
+        for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, context.getLocation(), true, false) ) {
             if( vc != null && ( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) ) {
                 if( checkRecalibrationMode( vc, VRAC.MODE ) ) {
                     final VariantDatum datum = new VariantDatum();

@@ -63,7 +63,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         VariantContext vc = null;
 
         // search for usable record
-        for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), true, false) ) {
+        for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", ref.getLocus(), true, false) ) {
             if ( vc_input != null && ! vc_input.isFiltered() && (! requireSNP || vc_input.isSNP() )) {
                 if ( vc == null ) {
                     vc = vc_input;

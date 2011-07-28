@@ -26,13 +26,13 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.*;
+import java.util.List;
 
 /**
+ * A RodBinding representing a walker argument that gets bound to a ROD track.
  *
+ * There is no constraint on the type of the ROD bound.
  */
 public class RodBinding {
     final String variableName;
@@ -53,23 +53,23 @@ public class RodBinding {
         return source;
     }
 
-    public List<Object> getValues(RefMetaDataTracker tracker) {
+    public List<Object> getValues(final RefMetaDataTracker tracker) {
         return tracker.getValues(variableName);
     }
 
-    public <T> List<T> getValues(RefMetaDataTracker tracker, Class<T> clazz) {
+    public <T> List<T> getValues(final RefMetaDataTracker tracker, final Class<T> clazz) {
         return tracker.getValues(variableName, clazz);
     }
 
-    public <T> T getFirstValue(RefMetaDataTracker tracker, Class<T> clazz) {
+    public <T> T getFirstValue(final RefMetaDataTracker tracker, final Class<T> clazz) {
         return tracker.getFirstValue(variableName, clazz);
     }
 
-    public boolean hasValues(RefMetaDataTracker tracker) {
+    public boolean hasValues(final RefMetaDataTracker tracker) {
         return tracker.hasValues(variableName);
     }
 
-    public List<GATKFeature> getValuesAsGATKFeatures(RefMetaDataTracker tracker) {
+    public List<GATKFeature> getValuesAsGATKFeatures(final RefMetaDataTracker tracker) {
         return tracker.getValuesAsGATKFeatures(variableName);
     }
 

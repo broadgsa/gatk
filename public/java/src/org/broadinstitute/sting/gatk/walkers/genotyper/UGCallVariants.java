@@ -96,7 +96,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
 
         List<VariantContext> VCs = new ArrayList<VariantContext>();
         for ( String name : trackNames ) {
-            Collection<VariantContext> vc = tracker.getVariantContexts(ref, name, null, context.getLocation(), true, true);
+            Collection<VariantContext> vc = tracker.getVariantContexts(ref, name, context.getLocation(), true, true);
             VCs.addAll(vc);
         }
 

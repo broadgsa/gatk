@@ -40,9 +40,12 @@ public class Novelty extends VariantStratifier implements StandardStratification
                         allowableTypes.add(eval.getType());
                     }
 
-                    Collection<VariantContext> knownComps = tracker.getVariantContexts(ref, knownName, allowableTypes, ref.getLocus(), true, true);
-
-                    isNovel = knownComps.size() == 0;
+                    Collection<VariantContext> knownComps = tracker.getVariantContexts(ref, knownName, ref.getLocus(), true, true);
+                    for ( VariantContext c : knownComps )
+                        if ( allowableTypes.contains(c.getType()) ) {
+                            isNovel = false;
+                            break;
+                        }
 
                     break;
                 }

@@ -289,7 +289,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker != null) {
-            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, ROD_NAME, null, context.getLocation(), true, true);
+            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, ROD_NAME, context.getLocation(), true, true);
 
             for (VariantContext vc : vcs) {
                 Map<String, Genotype> genotypeMap = vc.getGenotypes();

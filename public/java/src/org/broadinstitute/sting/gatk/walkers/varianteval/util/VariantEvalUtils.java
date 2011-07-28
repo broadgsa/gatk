@@ -270,30 +270,7 @@ public class VariantEvalUtils {
                                                                    Set<String> compNames,
                                                                    Set<String> evalNames,
                                                                    boolean dynamicSelectTypes ) {
-        if ( dynamicSelectTypes ) { // todo -- this code is really conceptually broken
-            EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.NO_VARIATION);
-
-            if (tracker != null) {
-                Collection<VariantContext> evalvcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
-
-                for (VariantContext vc : evalvcs) {
-                    allowableTypes.add(vc.getType());
-                }
-
-                if (allowableTypes.size() == 1) {
-                    // We didn't find any variation in the eval track, so now let's look at the comp track for allowable types
-                    Collection<VariantContext> compvcs = tracker.getVariantContexts(ref, compNames, null, ref.getLocus(), true, false);
-
-                    for (VariantContext vc : compvcs) {
-                        allowableTypes.add(vc.getType());
-                    }
-                }
-            }
-
-            return allowableTypes;
-        } else {
-            return EnumSet.allOf(VariantContext.Type.class);
-        }
+        return EnumSet.allOf(VariantContext.Type.class);
     }
 
     /**
@@ -359,7 +336,7 @@ public class VariantEvalUtils {
         for (String trackName : trackNames) {
             HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
 
-            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(ref, trackName, allowableTypes, ref.getLocus(), true, true);
+            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(ref, trackName, ref.getLocus(), true, true);
             VariantContext vc = contexts != null && contexts.size() == 1 ? contexts.iterator().next() : null;
 
             // First, filter the VariantContext to represent only the samples for evaluation

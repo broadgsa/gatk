@@ -203,7 +203,7 @@ public class VariantAnnotatorEngine {
                     infoAnnotations.put(VariantContext.ID_KEY, rsID);
             } else {
                 boolean overlapsComp = false;
-                for ( VariantContext comp : tracker.getVariantContexts(ref, dbSet.getKey(), null, ref.getLocus(), false, false) ) {
+                for ( VariantContext comp : tracker.getVariantContexts(ref, dbSet.getKey(), ref.getLocus(), false, false) ) {
                     if ( !comp.isFiltered() ) {
                         overlapsComp = true;
                         break;
@@ -216,7 +216,7 @@ public class VariantAnnotatorEngine {
 
     private void annotateExpressions(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, Object> infoAnnotations) {
         for ( VAExpression expression : requestedExpressions ) {
-            Collection<VariantContext> VCs = tracker.getVariantContexts(ref, expression.bindingName, null, ref.getLocus(), false, true);
+            Collection<VariantContext> VCs = tracker.getVariantContexts(ref, expression.bindingName, ref.getLocus(), false, true);
             if ( VCs.size() == 0 )
                 continue;
 

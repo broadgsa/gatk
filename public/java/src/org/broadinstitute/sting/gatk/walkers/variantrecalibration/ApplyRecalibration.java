@@ -168,7 +168,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
+        for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, context.getLocation(), true, false) ) {
             if( vc != null ) {
                 if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     String filterString = null;

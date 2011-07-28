@@ -202,7 +202,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", context.getLocation(), true, false);
         if ( VCs.size() == 0 )
             return 0;
 

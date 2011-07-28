@@ -155,7 +155,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
 
         boolean requireStartHere = false; // see EVERY site of the MNP
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
+        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, context.getLocation(), requireStartHere, takeFirstOnly)) {
             GenomeLoc vcLoc = VariantContextUtils.getLocation(locParser, vc);
             boolean atStartOfVc = curLocus.getStart() == vcLoc.getStart();
             boolean atEndOfVc = curLocus.getStart() == vcLoc.getStop();

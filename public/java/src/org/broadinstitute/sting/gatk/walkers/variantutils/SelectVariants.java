@@ -317,7 +317,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, variantRodName, null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, variantRodName, context.getLocation(), true, false);
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
@@ -345,12 +345,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     break;
             }
             if (DISCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, null, context.getLocation(), true, false);
+                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, context.getLocation(), true, false);
                 if (!isDiscordant(vc, compVCs))
                     return 0;
             }
             if (CONCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, concordanceRodName, null, context.getLocation(), true, false);
+                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, concordanceRodName, context.getLocation(), true, false);
                 if (!isConcordant(vc, compVCs))
                     return 0;
             }
