@@ -58,7 +58,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
         // this really just tests that we are seeing the same number of objects over all of chr1
         WalkerTestSpec spec = new WalkerTestSpec( root + " -L 1" + " -o %s",
                 1, // just one output file
-                Arrays.asList("2532234d2c934a5e14849655dd7b5f4f"));
+                Arrays.asList("045a5b02c86aeb9301dc0b724da0c8f7"));
          executeTest("testLargeScaleConversion", spec);
     }
 }
