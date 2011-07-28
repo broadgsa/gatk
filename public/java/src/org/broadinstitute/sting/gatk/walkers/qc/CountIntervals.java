@@ -36,7 +36,7 @@ public class CountIntervals extends RefWalker<Long, Long> {
             return null;
         }
 
-        List<GATKFeature> checkIntervals = tracker.getGATKFeatureMetaData("check",false);
+        List<Object> checkIntervals = tracker.getValues("check");
         return (long) checkIntervals.size();
     }
 

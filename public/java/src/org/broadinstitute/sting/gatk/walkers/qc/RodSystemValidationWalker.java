@@ -73,9 +73,9 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         int ret = 0;
-        if (tracker != null && tracker.getAllRods().size() > 0) {
+        if (tracker != null && tracker.getAllValuesAsGATKFeatures().size() > 0) {
             out.print(context.getLocation() + DIVIDER);
-            Collection<GATKFeature> features = tracker.getAllRods();
+            Collection<GATKFeature> features = tracker.getAllValuesAsGATKFeatures();
             for (GATKFeature feat : features)
                 out.print(feat.getName() + DIVIDER);
             out.println(";");

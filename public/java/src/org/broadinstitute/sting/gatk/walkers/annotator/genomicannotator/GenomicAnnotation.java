@@ -146,7 +146,7 @@ public class GenomicAnnotation extends InfoFieldAnnotation {
         //iterate over each record that overlaps the current locus, and, if it passes certain filters,
         //add its values to the list of annotations for this locus.
         final Map<String, Object> annotations = new HashMap<String, Object>();
-        for(final GATKFeature gatkFeature : tracker.getAllRods())
+        for(final GATKFeature gatkFeature : tracker.getAllValuesAsGATKFeatures())
         {
             final String name = gatkFeature.getName();
             if( name.equals("variant") || name.equals("interval") ) {

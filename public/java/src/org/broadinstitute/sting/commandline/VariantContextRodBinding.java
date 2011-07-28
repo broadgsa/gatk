@@ -43,4 +43,28 @@ public class VariantContextRodBinding extends RodBinding {
     public VariantContext getVariantContext(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc) {
         return tracker.getVariantContext(ref, variableName, loc);
     }
+
+//    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref) {
+//    }
+//
+//    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref, GenomeLoc curLocation) {
+//    }
+//
+//    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+//    }
+//
+//    public Collection<VariantContext> getVariantContexts(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+//    }
+//
+//    public Collection<VariantContext> getVariantContexts(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+//    }
+//
+//    public Collection<VariantContext> getVariantContextsByPrefix(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+//    }
+//
+//    public VariantContext getVariantContext(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere ) {
+//    }
+//
+//    public VariantContext getVariantContext(ReferenceContext ref, String name, GenomeLoc curLocation) {
+//    }
 }

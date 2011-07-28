@@ -34,7 +34,7 @@ public class Novelty extends VariantStratifier implements StandardStratification
 
         if (tracker != null) {
             for (String knownName : knownNames) {
-                if (tracker.hasROD(knownName)) {
+                if (tracker.hasValues(knownName)) {
                     EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.NO_VARIATION);
                     if (eval != null) {
                         allowableTypes.add(eval.getType());

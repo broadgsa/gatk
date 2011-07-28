@@ -294,7 +294,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         // If any ROD covers this site then we assume it is a site of known genetic variation and we skip it
         boolean isSNP = false;
-        for( final GATKFeature rod : tracker.getAllRods() ) {
+        for( final GATKFeature rod : tracker.getAllValuesAsGATKFeatures() ) {
             if( rod != null ) {
                 isSNP = true;
                 break;

@@ -130,7 +130,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             vcfWriter.add(vc_input, ref.getBase());
             return 1;
         }
-        List<Object> r2rods = tracker.getReferenceMetaData(R2_ROD_NAME);
+        List<Object> r2rods = tracker.getValues(R2_ROD_NAME);
 
         // ignore places where we don't have a variant
         if ( r2rods.size() == 0 )
@@ -138,7 +138,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         BeagleFeature beagleR2Feature = (BeagleFeature)r2rods.get(0);
 
-        List<Object> gProbsrods = tracker.getReferenceMetaData(PROBS_ROD_NAME);
+        List<Object> gProbsrods = tracker.getValues(PROBS_ROD_NAME);
 
         // ignore places where we don't have a variant
         if ( gProbsrods.size() == 0 )
@@ -146,7 +146,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         BeagleFeature beagleProbsFeature = (BeagleFeature)gProbsrods.get(0);
 
-        List<Object> gPhasedrods = tracker.getReferenceMetaData(PHASED_ROD_NAME);
+        List<Object> gPhasedrods = tracker.getValues(PHASED_ROD_NAME);
 
         // ignore places where we don't have a variant
         if ( gPhasedrods.size() == 0 )

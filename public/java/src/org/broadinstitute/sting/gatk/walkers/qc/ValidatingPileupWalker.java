@@ -130,7 +130,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
      * @return True pileup data.
      */
     private SAMPileupFeature getTruePileup( RefMetaDataTracker tracker ) {
-        SAMPileupFeature pileup = tracker.lookup("pileup",SAMPileupFeature.class);
+        SAMPileupFeature pileup = tracker.getFirstValue("pileup", SAMPileupFeature.class);
 
         if( pileup == null)
             return null;

@@ -61,7 +61,7 @@ public class PrintRODsWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
+        Iterator<GATKFeature> rods = tracker.getAllValuesAsGATKFeatures().iterator();
         while ( rods.hasNext() ) {
             Object rod = rods.next().getUnderlyingObject();
             if (VariantContextAdaptors.canBeConvertedToVariantContext(rod) )

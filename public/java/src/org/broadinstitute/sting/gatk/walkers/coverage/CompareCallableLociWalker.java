@@ -92,7 +92,7 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
 
     private CallableLociWalker.CallableBaseState getCallableBaseState(RefMetaDataTracker tracker, String track) {
         //System.out.printf("tracker %s%n", tracker);
-        List<Object> bindings = tracker.getReferenceMetaData(track);
+        List<Object> bindings = tracker.getValues(track);
         if ( bindings.size() != 1 || ! (bindings.get(0) instanceof FullBEDFeature)) {
             throw new UserException.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", track));
         }

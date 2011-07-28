@@ -152,7 +152,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         Collection<VariantContext> VCs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true, false);
 
         // is there a SNP mask present?
-        boolean hasMask = tracker.getReferenceMetaData("mask").size() > 0;
+        boolean hasMask = tracker.getValues("mask").size() > 0;
         if ( hasMask )
             previousMaskPosition = ref.getLocus();  // multi-base masks will get triggered over all bases of the mask
 

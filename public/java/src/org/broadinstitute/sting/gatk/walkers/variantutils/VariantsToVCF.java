@@ -85,7 +85,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
 
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
@@ -112,7 +112,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Collection<VariantContext> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref) {
         // we need to special case the HapMap format because indels aren't handled correctly
-        List<Object> features = tracker.getReferenceMetaData(INPUT_ROD_NAME, true);
+        List<Object> features = tracker.getValues(INPUT_ROD_NAME);
         if ( features.size() > 0 && features.get(0) instanceof HapMapFeature ) {
             ArrayList<VariantContext> hapmapVCs = new ArrayList<VariantContext>(features.size());
             for ( Object feature : features ) {
@@ -217,7 +217,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(INPUT_ROD_NAME));
 
                 if ( samples.isEmpty() ) {
-                    List<Object> rods = tracker.getReferenceMetaData(INPUT_ROD_NAME);
+                    List<Object> rods = tracker.getValues(INPUT_ROD_NAME);
                     if ( rods.size() == 0 )
                         throw new IllegalStateException("No rod data is present");
 

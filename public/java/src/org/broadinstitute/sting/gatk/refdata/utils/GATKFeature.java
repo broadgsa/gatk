@@ -57,6 +57,7 @@ public abstract class GATKFeature implements Feature, HasGenomeLocation {
 
     public abstract GenomeLoc getLocation();
 
+    // TODO: this should be a Feature
     public abstract Object getUnderlyingObject();
 
     /**
@@ -98,6 +99,7 @@ public abstract class GATKFeature implements Feature, HasGenomeLocation {
             return feature.getEnd();
         }
 
+        // TODO: this should be a Feature, actually
         public Object getUnderlyingObject() {
             return feature;
         }

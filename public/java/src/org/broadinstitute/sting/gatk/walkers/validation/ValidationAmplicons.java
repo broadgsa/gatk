@@ -99,9 +99,10 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( tracker == null || ! tracker.hasROD("ProbeIntervals")) { return null; }
+        if ( tracker == null || ! tracker.hasValues("ProbeIntervals")) { return null; }
 
-        GenomeLoc interval = ((TableFeature) tracker.getReferenceMetaData("ProbeIntervals",true).get(0)).getLocation();
+        TableFeature feature = tracker.getFirstValue("ProbeIntervals", TableFeature.class);
+        GenomeLoc interval = feature.getLocation();
         //logger.debug(interval);
         if ( prevInterval == null || ! interval.equals(prevInterval) ) {
             // we're in a new interval, we should:
@@ -129,8 +130,8 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
             rawSequence = new StringBuilder();
             sequenceInvalid = false;
             invReason = new LinkedList<String>();
-            logger.debug(Utils.join("\t",((TableFeature) tracker.getReferenceMetaData("ProbeIntervals",true).get(0)).getAllValues()));
-            probeName = ((TableFeature) tracker.getReferenceMetaData("ProbeIntervals",true).get(0)).getValue(1);
+            logger.debug(Utils.join("\t",feature.getAllValues()));
+            probeName = feature.getValue(1);
             indelCounter = 0;
         }
 

@@ -213,7 +213,7 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
         if ( rods.size() == 0 )
             return 0;
 
-        final List<Object> transcriptRODs = tracker.getReferenceMetaData(ROD_NAME);
+        final List<Object> transcriptRODs = tracker.getValues(ROD_NAME);
 
         //there may be multiple transcriptRODs that overlap this locus
         for ( Object transcriptRodObject : transcriptRODs ) {

@@ -172,7 +172,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                 }
 
                 GenomeLoc stopLoc = locParser.createGenomeLoc(curLocus.getContig(), vcLoc.getStop());
-                final List<Object> refSeqRODs = tracker.getReferenceMetaData(REFSEQ_ROD_NAME);
+                final List<Object> refSeqRODs = tracker.getValues(REFSEQ_ROD_NAME);
                 for (Object refSeqObject : refSeqRODs) {
                     AnnotatorInputTableFeature refSeqAnnotation = (AnnotatorInputTableFeature) refSeqObject;
                     locusToRefSeqFeatures.putLocusFeatures(curLocus, refSeqAnnotation, stopLoc);

@@ -39,60 +39,44 @@ public class RefMetaDataTracker {
     }
 
     /**
+     * No-assumption version of getValues(name, class).  Returns Objects.
+     */
+    public List<Object> getValues(final String name) {
+        return getValues(name, Object.class);
+    }
+
+    /**
      * get all the reference meta data associated with a track name.
      * @param name the name of the track we're looking for
+     * @param clazz the expected class of the elements bound to rod name
      * @return a list of objects, representing the underlying objects that the tracks produce.  I.e. for a
      *         dbSNP RMD this will be a RodDbSNP, etc.
      *
      * Important: The list returned by this function is guaranteed not to be null, but may be empty!
      */
-    public List<Object> getReferenceMetaData(final String name) {
-        RODRecordList list = getTrackDataByName(name, true);
-        List<Object> objects = new ArrayList<Object>();
-        if (list == null) return objects;
-        for (GATKFeature feature : list)
-            objects.add(feature.getUnderlyingObject());
-        return objects;
-    }
+    public <T> List<T> getValues(final String name, Class<T> clazz) {
+        RODRecordList list = getTrackDataByName(name);
 
-    /**
-     * get all the reference meta data associated with a track name.
-     * @param name the name of the track we're looking for
-     * @param requireExactMatch do we require an exact match for the name (true) or do we require only that the name starts with
-     *        the passed in parameter (false).
-     * @return a list of objects, representing the underlying objects that the tracks produce.  I.e. for a
-     *         dbSNP rod this will be a RodDbSNP, etc.
-     *
-     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
-     */
-    public List<Object> getReferenceMetaData(final String name, boolean requireExactMatch) {
-        RODRecordList list = getTrackDataByName(name, requireExactMatch);
-        List<Object> objects = new ArrayList<Object>();
-        if (list == null) return objects;
-        for (GATKFeature feature : list)
-            objects.add(feature.getUnderlyingObject());
-        return objects;
-    }
-
-    /**
-     * get all the GATK features associated with a specific track name
-     * @param name the name of the track we're looking for
-     * @param requireExactMatch do we require an exact match for the name (true) or do we require only that the name starts with
-     *        the passed in parameter (false).
-     * @return a list of GATKFeatures for the target rmd
-     *
-     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
-     */
-    public List<GATKFeature> getGATKFeatureMetaData(final String name, boolean requireExactMatch) {
-        List<GATKFeature> feat = getTrackDataByName(name,requireExactMatch);
-        return (feat == null) ? new ArrayList<GATKFeature>() : feat; // to satisfy the above requirement that we don't return null
+        if (list == null)
+            return Collections.emptyList();
+        else {
+            List<T> objects = new ArrayList<T>();
+            for (GATKFeature feature : list) {
+                final Object obj = feature.getUnderlyingObject();
+                if (!(clazz.isAssignableFrom(obj.getClass())))
+                    throw new UserException.CommandLineException("Unable to case track named " + name + " to type of " + clazz.toString()
+                            + " it's of type " + obj.getClass());
+                objects.add((T)obj);
+            }
+            return objects;
+        }
     }
 
     /**
      * get a singleton record, given the name and a type.  This function will return the first record at the current position seen,
      * and emit a logger warning if there were more than one option.
      *
-     * WARNING: this method is deprecated, since we now suppport more than one RMD at a single position for all tracks.  If there are
+     * WARNING: we now suppport more than one RMD at a single position for all tracks.  If there are
      * are multiple RMD objects at this location, there is no contract for which object this method will pick, and which object gets
      * picked may change from time to time!  BE WARNED!
      * 
@@ -101,22 +85,18 @@ public class RefMetaDataTracker {
      * @param <T> the type to parameterize on, matching the clazz argument
      * @return a record of type T, or null if no record is present.
      */
-    @Deprecated
-    public <T> T lookup(final String name, Class<T> clazz) {
-        RODRecordList objects = getTrackDataByName(name, true);
+    public <T> T getFirstValue(final String name, Class<T> clazz) {
+        RODRecordList objects = getTrackDataByName(name);
 
-        // if emtpy or null return null;
+        // if empty or null return null;
         if (objects == null || objects.size() < 1) return null;
-
-        if (objects.size() > 1)
-            logger.info("lookup is choosing the first record from " + (objects.size() - 1) + " options");
 
         Object obj = objects.get(0).getUnderlyingObject();
         if (!(clazz.isAssignableFrom(obj.getClass())))
             throw new UserException.CommandLineException("Unable to case track named " + name + " to type of " + clazz.toString()
                     + " it's of type " + obj.getClass());
-
-        return (T)obj;
+        else
+            return (T)obj;
     }
 
     /**
@@ -125,7 +105,7 @@ public class RefMetaDataTracker {
      * @param name the name of the rod
      * @return true if it has the rod
      */
-    public boolean hasROD(final String name) {
+    public boolean hasValues(final String name) {
         return map.containsKey(canonicalName(name));
     }
 
@@ -136,14 +116,25 @@ public class RefMetaDataTracker {
      *
      * @return collection of all rods
      */
-    public Collection<GATKFeature> getAllRods() {
+    public Collection<GATKFeature> getAllValuesAsGATKFeatures() {
         List<GATKFeature> l = new ArrayList<GATKFeature>();
         for ( RODRecordList rl : map.values() ) {
-            if ( rl == null ) continue; // how do we get null value stored for a track? shouldn't the track be missing from the map alltogether?
-            l.addAll(rl);
+            if ( rl != null )
+                l.addAll(rl);
         }
         return l;
+    }
 
+        /**
+     * get all the GATK features associated with a specific track name
+     * @param name the name of the track we're looking for
+     * @return a list of GATKFeatures for the target rmd
+     *
+     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
+     */
+    public List<GATKFeature> getValuesAsGATKFeatures(final String name) {
+        List<GATKFeature> feat = getTrackDataByName(name);
+        return (feat == null) ? new ArrayList<GATKFeature>() : feat; // to satisfy the above requirement that we don't return null
     }
 
     /**
@@ -163,23 +154,16 @@ public class RefMetaDataTracker {
     }
 
     /**
-     * @return the number of ROD bindings (name -> value) where value is not empty in this tracker
+     * The number of tracks with at least one value bound here
+     * @return
      */
-    public int getNBoundRodTracks() {
-        return getNBoundRodTracks(null);
-    }
-
-    public int getNBoundRodTracks(final String excludeIn ) {
-        final String exclude = excludeIn == null ? null : canonicalName(excludeIn);
-
+    public int getNumberOfTracksWithValue() {
         int n = 0;
         for ( RODRecordList value : map.values() ) {
             if ( value != null && ! value.isEmpty() ) {
-                if ( exclude == null || ! value.getName().equals(exclude) )
-                    n++;
+                n++;
             }
         }
-
         return n;
     }
 
@@ -276,20 +260,7 @@ public class RefMetaDataTracker {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( String name : names ) {
-            RODRecordList rodList = getTrackDataByName(name,true); // require that the name is an exact match
-
-            if ( rodList != null )
-                addVariantContexts(contexts, rodList, ref, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
-        }
-
-        return contexts;
-    }
-
-    public Collection<VariantContext> getVariantContextsByPrefix(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        Collection<VariantContext> contexts = new ArrayList<VariantContext>();
-
-        for ( String name : names ) {
-            RODRecordList rodList = getTrackDataByName(name,false); // require that the name is an exact match
+            RODRecordList rodList = getTrackDataByName(name); // require that the name is an exact match
 
             if ( rodList != null )
                 addVariantContexts(contexts, rodList, ref, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
@@ -332,7 +303,6 @@ public class RefMetaDataTracker {
         return getVariantContext(ref, name, null, curLocation, true);
     }
 
-
     private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, ReferenceContext ref, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         for ( GATKFeature rec : rodList ) {
             if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec.getUnderlyingObject()) ) {
@@ -367,29 +337,11 @@ public class RefMetaDataTracker {
      * for instance, on locus traversal, location is usually expected to be a single base we are currently looking at,
      * regardless of the presence of "extended" RODs overlapping with that location).
      * @param name                track name
-     * @param requireExactMatch   do we require an exact match of the rod name?
      * @return track data for the given rod
      */
-    private RODRecordList getTrackDataByName(final String name, boolean requireExactMatch) {
-        //logger.debug(String.format("Lookup %s%n", name));
-
+    private RODRecordList getTrackDataByName(final String name) {
         final String luName = canonicalName(name);
-        RODRecordList trackData = null;
-
-        if ( requireExactMatch ) {
-            if ( map.containsKey(luName) )
-                trackData = map.get(luName);
-        } else {
-            for ( Map.Entry<String, RODRecordList> datum : map.entrySet() ) {
-                final String rodName = datum.getKey();
-                if ( datum.getValue() != null && rodName.startsWith(luName) ) {
-                    if ( trackData == null ) trackData = new RODRecordListImpl(name);
-                    //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
-                    ((RODRecordListImpl)trackData).add(datum.getValue(), true);
-                }
-            }
-        }
-        return trackData;
+        return map.get(luName);
     }
 
     /**
@@ -398,6 +350,7 @@ public class RefMetaDataTracker {
      * @return canonical name of the rod
      */
     private final String canonicalName(final String name) {
+        // todo -- remove me after switch to RodBinding syntax
         return name.toLowerCase();
     }
 }

@@ -25,8 +25,11 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.List;
+import java.util.*;
 
 /**
  *
@@ -50,8 +53,24 @@ public class RodBinding {
         return source;
     }
 
-    public List<Object> getAll(RefMetaDataTracker tracker) {
-        return tracker.getReferenceMetaData(variableName);
+    public List<Object> getValues(RefMetaDataTracker tracker) {
+        return tracker.getValues(variableName);
+    }
+
+    public <T> List<T> getValues(RefMetaDataTracker tracker, Class<T> clazz) {
+        return tracker.getValues(variableName, clazz);
+    }
+
+    public <T> T getFirstValue(RefMetaDataTracker tracker, Class<T> clazz) {
+        return tracker.getFirstValue(variableName, clazz);
+    }
+
+    public boolean hasValues(RefMetaDataTracker tracker) {
+        return tracker.hasValues(variableName);
+    }
+
+    public List<GATKFeature> getValuesAsGATKFeatures(RefMetaDataTracker tracker) {
+        return tracker.getValuesAsGATKFeatures(variableName);
     }
 
     public Tags getTags() {

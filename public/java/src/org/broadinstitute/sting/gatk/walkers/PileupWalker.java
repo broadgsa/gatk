@@ -112,14 +112,14 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      */
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
         ArrayList<String> rodStrings = new ArrayList<String>();
-        for ( GATKFeature datum : tracker.getAllRods() ) {
+        for ( GATKFeature datum : tracker.getAllValuesAsGATKFeatures() ) {
             if ( datum != null && datum.getUnderlyingObject() instanceof ReferenceOrderedDatum ) {
                 rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron: this line still survives, try to remove it
             }
         }
         String rodString = Utils.join(", ", rodStrings);
 
-        DbSNPFeature dbsnp = tracker.lookup(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, DbSNPFeature.class);
+        DbSNPFeature dbsnp = tracker.getFirstValue(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, DbSNPFeature.class);
 
         if ( dbsnp != null)
             rodString += DbSNPHelper.toMediumString(dbsnp);

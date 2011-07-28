@@ -142,8 +142,8 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
         // get the RS IDs
         Set<String> rsIDs = null;
-        if ( tracker.hasROD(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-            List<Object> dbsnpList = tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME);
+        if ( tracker.hasValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+            List<Object> dbsnpList = tracker.getValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME);
             rsIDs = new HashSet<String>();
             for ( Object d : dbsnpList ) {
                 if (d instanceof DbSNPFeature )
