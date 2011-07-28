@@ -102,7 +102,7 @@ public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> 
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext vc = tracker.getVariantContext(ref, ROD_NAME, loc, true);
+            VariantContext vc = tracker.getVariantContext(ROD_NAME, loc, true);
 
             if ( ProduceBeagleInputWalker.canBeOutputToBeagle(vc) ) {
                 // do we want to hold back this site?

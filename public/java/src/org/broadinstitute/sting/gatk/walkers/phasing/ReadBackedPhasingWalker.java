@@ -98,7 +98,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
 
-    private LinkedList<String> rodNames = null;
+    private String rodName = "variant";
 
     public static final String PQ_KEY = "PQ";
 
@@ -122,9 +122,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public void initialize() {
         if (maxPhaseSites <= 2)
             maxPhaseSites = 2; // by definition, must phase a site relative to previous site [thus, 2 in total]
-
-        rodNames = new LinkedList<String>();
-        rodNames.add("variant");
 
         /*
          Since we cap each base quality (BQ) by its read's mapping quality (MQ) [in Read.updateBaseAndQuality()], then:
@@ -175,8 +172,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         hInfo.add(new VCFInfoHeaderLine(PHASING_INCONSISTENT_KEY, 0, VCFHeaderLineType.Flag, "Are the reads significantly haplotype-inconsistent?"));
 
         // todo -- fix samplesToPhase
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples() : samplesToPhase);
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(rodName));
+        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(rodName).getGenotypeSamples() : samplesToPhase);
         writer.writeHeader(new VCFHeader(hInfo, samples));
     }
 
@@ -209,7 +206,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         boolean requireStartHere = true; // only see each VariantContext once
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, context.getLocation(), requireStartHere, takeFirstOnly)) {
+        for (VariantContext vc : tracker.getVariantContexts(rodName, context.getLocation(), requireStartHere, takeFirstOnly)) {
             if (samplesToPhase != null) vc = reduceVCToSamples(vc, samplesToPhase);
 
             if (ReadBackedPhasingWalker.processVariantInPhasing(vc)) {

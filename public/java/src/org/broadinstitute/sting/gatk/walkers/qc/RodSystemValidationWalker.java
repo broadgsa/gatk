@@ -84,7 +84,7 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
 
         // if the argument was set, check for equivalence
         if (allRecordsVariantContextEquivalent && tracker != null) {
-            Collection<VariantContext> col = tracker.getAllVariantContexts(ref);
+            Collection<VariantContext> col = tracker.getAllVariantContexts();
             VariantContext con = null;
             for (VariantContext contextInList : col)
                 if (con == null) con = contextInList;

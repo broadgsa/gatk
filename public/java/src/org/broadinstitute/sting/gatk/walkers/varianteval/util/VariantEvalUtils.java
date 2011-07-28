@@ -336,7 +336,7 @@ public class VariantEvalUtils {
         for (String trackName : trackNames) {
             HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
 
-            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(ref, trackName, ref.getLocus(), true, true);
+            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(trackName, ref.getLocus(), true, true);
             VariantContext vc = contexts != null && contexts.size() == 1 ? contexts.iterator().next() : null;
 
             // First, filter the VariantContext to represent only the samples for evaluation

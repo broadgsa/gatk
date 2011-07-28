@@ -119,9 +119,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
         GenomeLoc loc = context.getLocation();
-        VariantContext vc_input = tracker.getVariantContext(ref,INPUT_ROD_NAME, loc, true);
+        VariantContext vc_input = tracker.getVariantContext(INPUT_ROD_NAME, loc, true);
 
-        VariantContext vc_comp = tracker.getVariantContext(ref,COMP_ROD_NAME, loc, true);
+        VariantContext vc_comp = tracker.getVariantContext(COMP_ROD_NAME, loc, true);
 
         if ( vc_input == null  )
             return 0;

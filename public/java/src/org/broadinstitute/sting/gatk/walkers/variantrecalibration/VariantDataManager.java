@@ -258,7 +258,7 @@ public class VariantDataManager {
         datum.consensusCount = 0;
 
         for( final TrainingSet trainingSet : trainingSets ) {
-            for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, context.getLocation(), false, false ) ) {
+            for( final VariantContext trainVC : tracker.getVariantContexts(trainingSet.name, context.getLocation(), false, false ) ) {
                 if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
                         ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
                         (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {

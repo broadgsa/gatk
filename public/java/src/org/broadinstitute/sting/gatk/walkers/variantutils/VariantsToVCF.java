@@ -162,7 +162,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         // for everything else, we can just convert to VariantContext
-        return tracker.getVariantContexts(ref, INPUT_ROD_NAME, ref.getLocus(), true, false);
+        return tracker.getVariantContexts(INPUT_ROD_NAME, ref.getLocus(), true, false);
     }
 
     private DbSNPFeature getDbsnpFeature(String rsID) {

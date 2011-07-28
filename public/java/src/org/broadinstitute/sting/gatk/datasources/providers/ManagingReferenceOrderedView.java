@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -49,8 +50,8 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * @param loc Locus at which to track.
      * @return A tracker containing information about this locus.
      */
-    public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc ) {
-        RefMetaDataTracker tracks = new RefMetaDataTracker(states.size());
+    public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
+        RefMetaDataTracker tracks = new RefMetaDataTracker(states.size(), referenceContext);
         for ( ReferenceOrderedDataState state: states )
             tracks.bind( state.dataSource.getName(), state.iterator.seekForward(loc) );
         return tracks;

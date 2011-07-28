@@ -321,7 +321,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             haplotypeMap.clear();
 
             if (getAlleleListFromVCF) {
-                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", ref.getLocus(), false, false) ) {
+                 for( final VariantContext vc_input : tracker.getVariantContexts("alleles", ref.getLocus(), false, false) ) {
                       if( vc_input != null &&
                               allowableTypes.contains(vc_input.getType()) &&
                               ref.getLocus().getStart() == vc_input.getStart()) {

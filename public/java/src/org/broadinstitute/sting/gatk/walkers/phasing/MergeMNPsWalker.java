@@ -58,12 +58,9 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
     protected int maxGenomicDistanceForMNP = 1;
 
-    private LinkedList<String> rodNames = null;
+    private String rodName = "variant";
 
     public void initialize() {
-        rodNames = new LinkedList<String>();
-        rodNames.add("variant");
-
         initializeVcfWriter();
     }
 
@@ -77,8 +74,8 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(rodName));
+        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodName).getGenotypeSamples())));
     }
 
     public boolean generateExtendedEvents() {
@@ -103,7 +100,7 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
 
         boolean requireStartHere = true; // only see each VariantContext once
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, context.getLocation(), requireStartHere, takeFirstOnly))
+        for (VariantContext vc : tracker.getVariantContexts(rodName, context.getLocation(), requireStartHere, takeFirstOnly))
             writeVCF(vc);
 
         return 0;

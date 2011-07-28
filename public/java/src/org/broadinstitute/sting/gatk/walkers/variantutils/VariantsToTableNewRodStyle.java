@@ -138,7 +138,7 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
             System.out.printf("VariantList binding %s tags=%s%n", binding, getToolkit().getTags(binding).getPositionalTags());
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
-            VariantContext vc = variants.getVariantContext(tracker, ref, context.getLocation());
+            VariantContext vc = variants.getVariantContext(tracker, context.getLocation());
             if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
                 List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
                 out.println(Utils.join("\t", vals));

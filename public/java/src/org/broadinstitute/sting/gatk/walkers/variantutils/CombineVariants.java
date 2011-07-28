@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.apache.poi.hpsf.Variant;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
@@ -150,7 +149,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getAllVariantContexts(context.getLocation(), true, false);
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);

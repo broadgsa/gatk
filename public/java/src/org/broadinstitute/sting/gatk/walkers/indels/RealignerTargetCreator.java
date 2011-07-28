@@ -110,7 +110,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
         // look at the rods for indels or SNPs
         if ( tracker != null ) {
-            for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
+            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
                 switch ( vc.getType() ) {
                     case INDEL:
                         hasIndel = true;

@@ -93,7 +93,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         if ( tracker == null )
             return null;
 
-        VariantContext vc = tracker.getVariantContext(ref, INPUT_VARIANT_ROD_BINDING_NAME, ref.getLocus());
+        VariantContext vc = tracker.getVariantContext(INPUT_VARIANT_ROD_BINDING_NAME, ref.getLocus());
         // ignore places where we don't have a variant
         if ( vc == null )
             return null;

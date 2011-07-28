@@ -25,38 +25,29 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.lang.annotation.AnnotationFormatError;
 import java.util.*;
 
 /**
@@ -317,7 +308,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, variantRodName, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getVariantContexts(variantRodName, context.getLocation(), true, false);
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
@@ -345,12 +336,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     break;
             }
             if (DISCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, context.getLocation(), true, false);
+                Collection<VariantContext> compVCs = tracker.getVariantContexts(discordanceRodName, context.getLocation(), true, false);
                 if (!isDiscordant(vc, compVCs))
                     return 0;
             }
             if (CONCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, concordanceRodName, context.getLocation(), true, false);
+                Collection<VariantContext> compVCs = tracker.getVariantContexts(concordanceRodName, context.getLocation(), true, false);
                 if (!isConcordant(vc, compVCs))
                     return 0;
             }

@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -45,7 +46,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      */
     private RODMergingIterator rodQueue = null;
 
-    RefMetaDataTracker tracker = null;
+    Collection<RODRecordList> allTracksHere;
+
     GenomeLoc lastLoc = null;
     RODRecordList interval = null;
 
@@ -98,8 +100,17 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         //throw new StingException("RodLocusView currently disabled");
     }
 
-    public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc ) {
-        return tracker;
+    public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
+        RefMetaDataTracker t = new RefMetaDataTracker(allTracksHere.size(), referenceContext);
+        for ( RODRecordList track : allTracksHere ) {
+            if ( ! t.hasValues(track.getName()) )
+                t.bind(track.getName(), track);
+        }
+
+        // special case the interval again -- add it into the ROD
+        if ( interval != null ) { t.bind(interval.getName(), interval); }
+
+        return t;
     }
 
     public boolean hasNext() {
@@ -122,10 +133,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
 
         if ( DEBUG ) System.out.printf("In RodLocusView.next(): creating tracker...%n");
 
-        // Update the tracker here for use
-        Collection<RODRecordList> allTracksHere = getSpanningTracks(datum);
-        tracker = createTracker(allTracksHere);
-
+        allTracksHere = getSpanningTracks(datum);
         GenomeLoc rodSite = datum.getLocation();
         GenomeLoc site = genomeLocParser.createGenomeLoc( rodSite.getContig(), rodSite.getStart(), rodSite.getStart());
 
@@ -135,19 +143,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         long skippedBases = getSkippedBases( rodSite );
         lastLoc = site;
         return new AlignmentContext(site, new ReadBackedPileupImpl(site), skippedBases);
-    }
-
-    private RefMetaDataTracker createTracker( Collection<RODRecordList> allTracksHere ) {
-        RefMetaDataTracker t = new RefMetaDataTracker(allTracksHere.size());
-        for ( RODRecordList track : allTracksHere ) {
-            if ( ! t.hasValues(track.getName()) )
-                t.bind(track.getName(), track);
-        }
-
-        // special case the interval again -- add it into the ROD
-        if ( interval != null ) { t.bind(interval.getName(), interval); }
-
-        return t;
     }
 
     private Collection<RODRecordList> getSpanningTracks(RODRecordList marker) {
@@ -197,10 +192,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         return getSkippedBases(getLocOneBeyondShard());
     }
 
-    public RefMetaDataTracker getTracker() {
-        return tracker;
-    }
-
     /**
      * Closes the current view.
      */
@@ -209,6 +200,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             state.dataSource.close( state.iterator );
 
         rodQueue = null;
-        tracker = null;
+        allTracksHere = null;
     }
 }

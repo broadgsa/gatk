@@ -64,7 +64,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "emitOnlyMNPs", shortName = "emitOnlyMNPs", doc = "Only output MNP records; [default:false]", required = false)
     protected boolean emitOnlyMNPs = false;    
 
-    private LinkedList<String> rodNames = null;
+    private String rodName = "variant";
     private GenomeLocParser locParser = null;
     private TreeMap<GenomeLoc, Set<GenomeLoc>> MNPstartToStops = null; // Must be TreeMap sorted by START sites!
 
@@ -105,9 +105,6 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
     protected final static String REFSEQ_HAS_MULT_AA_CHANGES = "alleleHasMultAAchanges";
 
     public void initialize() {
-        rodNames = new LinkedList<String>();
-        rodNames.add(VARIANT_ROD_NAME);
-
         locParser = getToolkit().getGenomeLocParser();
         MNPstartToStops = new TreeMap<GenomeLoc, Set<GenomeLoc>>(); // sorted by start sites
 
@@ -125,8 +122,8 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(rodName));
+        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodName).getGenotypeSamples())));
     }
 
     public boolean generateExtendedEvents() {
@@ -155,7 +152,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
 
         boolean requireStartHere = false; // see EVERY site of the MNP
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, context.getLocation(), requireStartHere, takeFirstOnly)) {
+        for (VariantContext vc : tracker.getVariantContexts(rodName, context.getLocation(), requireStartHere, takeFirstOnly)) {
             GenomeLoc vcLoc = VariantContextUtils.getLocation(locParser, vc);
             boolean atStartOfVc = curLocus.getStart() == vcLoc.getStart();
             boolean atEndOfVc = curLocus.getStart() == vcLoc.getStop();
