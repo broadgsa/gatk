@@ -27,7 +27,6 @@ package net.sf.picard.reference;
 
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSourceProgressListener;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -40,7 +39,6 @@ import java.io.FileNotFoundException;
 public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
 
     private FastaSequenceIndexBuilder builder;
-    private ReferenceDataSourceProgressListener progress;
     private File fastaFile;
     private FastaSequenceIndex controlIndex;
 
@@ -58,7 +56,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
         logger.warn("Executing unixFileTest");
 
         fastaFile = new File(validationDataLocation + "exampleFASTA.fasta");
-        builder = new FastaSequenceIndexBuilder(fastaFile, progress);
+        builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr1", 6, 100000, 60, 61,0));
 
@@ -75,7 +73,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
         logger.warn("Executing windowsFileTest");
 
         fastaFile = new File(validationDataLocation + "exampleFASTA-windows.fasta");
-        builder = new FastaSequenceIndexBuilder(fastaFile, progress);
+        builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr2", 7, 29, 7, 9,0));
 
@@ -91,7 +89,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
         logger.warn("Executing combinedWindowsUnix");
 
         fastaFile = new File(validationDataLocation + "exampleFASTA-combined.fasta");
-        builder = new FastaSequenceIndexBuilder(fastaFile, progress);
+        builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr1", 6, 100000, 60, 61,0));
         controlIndex.add(new FastaSequenceIndexEntry("chr2", 101680, 29, 7, 9,1));
@@ -108,7 +106,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
         logger.warn("Executing threeVariableLengthContigs");
 
         fastaFile = new File(validationDataLocation + "exampleFASTA-3contigs.fasta");
-        builder = new FastaSequenceIndexBuilder(fastaFile, progress);
+        builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr1", 6, 17, 5, 6,0));
         controlIndex.add(new FastaSequenceIndexEntry("chr2", 35, 21, 7, 8,1));

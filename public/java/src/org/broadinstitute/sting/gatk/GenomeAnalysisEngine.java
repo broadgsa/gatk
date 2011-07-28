@@ -926,9 +926,6 @@ public class GenomeAnalysisEngine {
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
         RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType);
-        // try and make the tracks given their requests
-        // create of live instances of the tracks
-        List<RMDTrack> tracks = new ArrayList<RMDTrack>();
 
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)

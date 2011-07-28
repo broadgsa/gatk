@@ -25,7 +25,6 @@
 
 package net.sf.picard.reference;
 
-import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSourceProgressListener;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import static net.sf.picard.reference.FastaSequenceIndexBuilder.Status.*;
@@ -39,8 +38,8 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  * Produces fai file with same output as samtools faidx
  */
 public class FastaSequenceIndexBuilder {
-    public File fastaFile;
-    ReferenceDataSourceProgressListener progress;  // interface that provides a method for updating user on progress of reading file
+    final public File fastaFile;
+    final boolean printProgress;
 
     // keep track of location in file
     long bytesRead, endOfLastLine, lastTimestamp, fileLength;  // initialized to -1 to keep 0-indexed position in file;
@@ -55,10 +54,10 @@ public class FastaSequenceIndexBuilder {
     public enum Status { NONE, CONTIG, FIRST_SEQ_LINE, SEQ_LINE, COMMENT }
     Status status = Status.NONE; // keeps state of what is currently being read. better to use int instead of enum?
 
-    public FastaSequenceIndexBuilder(File fastaFile, ReferenceDataSourceProgressListener progress) {
-        this.progress = progress;
+    public FastaSequenceIndexBuilder(File fastaFile, boolean printProgress) {
         this.fastaFile = fastaFile;
         fileLength = fastaFile.length();
+        this.printProgress = printProgress;
     }
 
     /**
@@ -252,8 +251,8 @@ public class FastaSequenceIndexBuilder {
 
         if (System.currentTimeMillis() - lastTimestamp > 10000) {
             int percentProgress = (int) (100*bytesRead/fileLength);
-            if (progress != null)
-                progress.percentProgress(percentProgress);
+            if (printProgress)
+                System.out.println(String.format("PROGRESS UPDATE: file is %d percent complete", percentProgress));
             lastTimestamp = System.currentTimeMillis();
         }
     }
