@@ -419,6 +419,32 @@ public class BaseUtils {
         return new String(simpleComplement(bases.getBytes()));
     }
 
+    /**
+     * Returns the index of the most common base in the basecounts array. To be used with
+     * pileup.getBaseCounts.
+     *
+     * @param baseCounts counts of a,c,g,t in order.
+     * @return the index of the most common base
+     */
+    static public int mostFrequentBaseIndex(int[] baseCounts) {
+        int mostFrequentBaseIndex = 0;
+        for (int baseIndex = 1; baseIndex < 4; baseIndex++) {
+            if (baseCounts[baseIndex] > baseCounts[mostFrequentBaseIndex]) {
+                mostFrequentBaseIndex = baseIndex;
+            }
+        }
+        return mostFrequentBaseIndex;
+    }
+
+    /**
+     * Returns the most common base in the basecounts array. To be used with pileup.getBaseCounts.
+     *
+     * @param  baseCounts counts of a,c,g,t in order.
+     * @return the most common base
+     */
+    static public byte mostFrequentSimpleBase(int[] baseCounts) {
+        return baseIndexToSimpleBase(mostFrequentBaseIndex(baseCounts));
+    }
 
     /**
      * For the most frequent base in the sequence, return the percentage of the read it constitutes.
@@ -437,12 +463,7 @@ public class BaseUtils {
             }
         }
 
-        int mostFrequentBaseIndex = 0;
-        for (int baseIndex = 1; baseIndex < 4; baseIndex++) {
-            if (baseCounts[baseIndex] > baseCounts[mostFrequentBaseIndex]) {
-                mostFrequentBaseIndex = baseIndex;
-            }
-        }
+        int mostFrequentBaseIndex = mostFrequentBaseIndex(baseCounts);
 
         return ((double) baseCounts[mostFrequentBaseIndex])/((double) sequence.length);
     }

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
+import org.apache.lucene.messages.NLS;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -125,6 +126,16 @@ public class MathUtils {
 
 
     /**
+     * Calculates the log10 cumulative sum of an array with log10 probabilities
+     * @param log10p the array with log10 probabilites
+     * @param upTo index in the array to calculate the cumsum up to
+     * @return the log10 of the cumulative sum
+     */
+    public static double log10CumulativeSumLog10(double [] log10p, int upTo) {
+        return log10sumLog10(log10p, 0, upTo);
+    }
+
+    /**
      * Converts a real space array of probabilities into a log10 array
      * @param prRealSpace
      * @return
@@ -137,10 +148,14 @@ public class MathUtils {
     }
 
     public static double log10sumLog10(double[] log10p, int start) {
+        return log10sumLog10(log10p, start, log10p.length);
+    }
+
+    public static double log10sumLog10(double[] log10p, int start, int finish) {
         double sum = 0.0;
 
         double maxValue = Utils.findMaxEntry(log10p);
-        for ( int i = start; i < log10p.length; i++ ) {
+        for ( int i = start; i < finish; i++ ) {
             sum += Math.pow(10.0, log10p[i] - maxValue);
         }
 
@@ -471,6 +486,18 @@ public class MathUtils {
         return maxI;
     }
 
+    public static int maxElementIndex(int[] array) {
+        if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
+
+        int maxI = -1;
+        for ( int i = 0; i < array.length; i++ ) {
+            if ( maxI == -1 || array[i] > array[maxI] )
+                maxI = i;
+        }
+
+        return maxI;
+    }
+
     public static double arrayMax(double[] array) {
         return array[maxElementIndex(array)];
     }
@@ -727,7 +754,7 @@ public class MathUtils {
         return count;
     }
 
-    public static <T> int countOccurrences(byte element, byte [] array) {
+    public static int countOccurrences(byte element, byte [] array) {
         int count = 0;
         for (byte y : array) {
             if (element == y)
@@ -737,6 +764,27 @@ public class MathUtils {
         return count;
     }
 
+    /**
+     * Returns the top (larger) N elements of the array. Naive n^2 implementation (Selection Sort).
+     * Better than sorting if N (number of elements to return) is small
+     *
+     * @param array the array
+     * @param n number of top elements to return
+     * @return the n larger elements of the array
+     */
+    public static Collection<Double> getNMaxElements(double [] array, int n) {
+        ArrayList<Double> maxN = new ArrayList<Double>(n);
+        double lastMax = Double.MAX_VALUE;
+        for (int i=0; i<n; i++) {
+            double max = Double.MIN_VALUE;
+            for (double x : array) {
+                max = Math.min(lastMax, Math.max(x, max));
+            }
+            maxN.add(max);
+            lastMax = max;
+        }
+        return maxN;
+    }
 
     /**
      * Returns n random indices drawn with replacement from the range 0..(k-1)
