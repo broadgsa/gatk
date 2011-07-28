@@ -249,7 +249,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                    1, Arrays.asList("cdbe47ea01b9dd79ff1c5ce6f5fa8bec"));
+                    1, Arrays.asList("96860dedea0fa6b46c07f46b847fea42"));
             executeTestParallel("testSelect1", spec);
         }
     }
@@ -299,7 +299,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -D " + dbsnp +
                            " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("5b1fc9a4066aca61f1b5f7b933ad37d9"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("58fdc6c42fade3007537bb99fb3ce738"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -313,7 +313,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("6d902d9d4d8fef5219a43e416a51cee6"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("34df2815d27e5e62f1694731a7e7953c"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
@@ -330,13 +330,13 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("55a1c53bced20701c56accfc3eb782a7"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("20332902ae36a84b2fd80405410815f1"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults() {
-        String md5 = "454a1750fd36525f24172b21af5f49de";
+        String md5 = "9d61f6e2c8592dcf616712a2c587b2af";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(

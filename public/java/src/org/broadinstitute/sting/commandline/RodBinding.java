@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 
@@ -34,12 +35,14 @@ import java.util.List;
  *
  * There is no constraint on the type of the ROD bound.
  */
-public class RodBinding {
+public class RodBinding<T extends Feature> {
     final String variableName;
     final String source;
     final ParsingEngine parser;
+    final Class<T> type;
 
-    protected RodBinding(final String variableName, final String source, final ParsingEngine parser) {
+    protected RodBinding(Class<T> type, final String variableName, final String source, final ParsingEngine parser) {
+        this.type = type;
         this.variableName = variableName;
         this.source = source;
         this.parser = parser;
@@ -53,16 +56,16 @@ public class RodBinding {
         return source;
     }
 
-    public List<Object> getValues(final RefMetaDataTracker tracker) {
-        return tracker.getValues(variableName);
+    public List<T> getValues(final RefMetaDataTracker tracker) {
+        return tracker.getValues(variableName, type);
     }
 
-    public <T> List<T> getValues(final RefMetaDataTracker tracker, final Class<T> clazz) {
-        return tracker.getValues(variableName, clazz);
-    }
+//    public <T> List<T> getValues(final RefMetaDataTracker tracker, final Class<T> clazz) {
+//        return tracker.getValues(variableName, clazz);
+//    }
 
-    public <T> T getFirstValue(final RefMetaDataTracker tracker, final Class<T> clazz) {
-        return tracker.getFirstValue(variableName, clazz);
+    public T getFirstValue(final RefMetaDataTracker tracker) {
+        return tracker.getFirstValue(variableName, type);
     }
 
     public boolean hasValues(final RefMetaDataTracker tracker) {
@@ -80,5 +83,4 @@ public class RodBinding {
     public String toString() {
         return String.format("(RodBinding name=%s source=%s)", getVariableName(), getSource());
     }
-
 }
