@@ -25,10 +25,13 @@
 
 package org.broadinstitute.sting.utils;
 
+import cern.jet.random.ChiSquare;
+import cern.jet.math.Arithmetic;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.apache.lucene.messages.NLS;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.math.BigDecimal;
@@ -893,6 +896,7 @@ public class MathUtils {
         return orderStatisticSearch((int) Math.ceil(list.size()/2), list);
     }
 
+    /*
     public static byte getQScoreOrderStatistic(List<SAMRecord> reads, List<Integer> offsets, int k) {
         // version of the order statistic calculator for SAMRecord/Integer lists, where the
         // list index maps to a q-score only through the offset index
@@ -937,7 +941,7 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
-    }
+    }*/
 
     /** A utility class that computes on the fly average and standard deviation for a stream of numbers.
      * The number of observations does not have to be known in advance, and can be also very big (so that
@@ -1354,5 +1358,134 @@ public class MathUtils {
 
     public static double log10Factorial (int x) {
         return log10Gamma(x+1);
+    }
+
+    /**
+     * Computes the p-value for the null hypothesis that the rows of the table are i.i.d. using a pearson chi-square test
+     * @param contingencyTable - a contingency table
+     * @return - the ensuing p-value (via chi-square)
+     */
+    public static double contingencyChiSquare(short[][] contingencyTable ) {
+        int[] rowSum = new int[contingencyTable.length];
+        int[] colSum = new int[contingencyTable[0].length];
+        int total = 0;
+        for ( int i = 0; i < contingencyTable.length; i++ ) {
+            for ( int j = 0; j < contingencyTable[0].length; j++ ) {
+                rowSum[i] += contingencyTable[i][j];
+                colSum[j] += contingencyTable[i][j];
+                total += contingencyTable[i][j];
+            }
+        }
+
+        double chi = 0;
+        for ( int i = 0; i < contingencyTable.length; i ++ ) {
+            for ( int j = 0; j < contingencyTable[0].length; j++ ) {
+                double expected = (((double) colSum[j])/total)*rowSum[i];
+                double resid = contingencyTable[i][j] - expected;
+                chi += resid*resid/expected;
+            }
+        }
+
+        return 1.0-(new ChiSquare(contingencyTable.length*contingencyTable[0].length,null)).cdf(chi);
+    }
+
+    /**
+     * Exactly the same as above, but using int arrays rather than short arrays on input
+     * @param contingencyTable
+     * @return
+     */
+    public static double contingencyChiSquare(int[][] contingencyTable ) {
+        int[] rowSum = new int[contingencyTable.length];
+        int[] colSum = new int[contingencyTable[0].length];
+        int total = 0;
+        for ( int i = 0; i < contingencyTable.length; i++ ) {
+            for ( int j = 0; j < contingencyTable[0].length; j++ ) {
+                rowSum[i] += contingencyTable[i][j];
+                colSum[j] += contingencyTable[i][j];
+                total += contingencyTable[i][j];
+            }
+        }
+
+        double chi = 0;
+        for ( int i = 0; i < contingencyTable.length; i ++ ) {
+            for ( int j = 0; j < contingencyTable[0].length; j++ ) {
+                double expected = (((double) colSum[j])/total)*rowSum[i];
+                double resid = contingencyTable[i][j] - expected;
+                chi += resid*resid/expected;
+            }
+        }
+
+        return 1.0-(new ChiSquare(contingencyTable.length*contingencyTable[0].length,null)).cdf(chi);
+    }
+
+=======
+    public static double marginalizedFisherExact(double[] spectrum1, double[] spectrum2, int ns1, int ns2) {
+        int N = ns1 + ns2;
+        int[] rowSums = { ns1, ns2 };
+        double logP = Double.NEGATIVE_INFINITY;
+        // todo -- sorting and strobing should chage this n^2 loop to a nlog(n) algorithm
+        for ( int ac1 = 0; ac1 < spectrum1.length; ac1++ ) {
+            for ( int ac2 = 0; ac2 < spectrum2.length; ac2++ ) {
+                double logPTable = spectrum1[ac1] + spectrum2[ac2];
+                int[][] table = {
+                        { ac1, ns1-ac1 },
+                        { ac2, ns2-ac2 }
+                };
+                int[] colSums = { ac1 + ac2, N-ac1-ac2};
+                double logPH0 = Math.log10(fisherExact(table,rowSums,colSums,N));
+                logP = log10sumLog10(new double[]{logP,logPTable+logPH0});
+            }
+        }
+
+        return Math.pow(10,logP);
+    }
+
+    /**
+     * Calculates the p-value for a fisher exact test for a 2x2 contingency table
+     */
+    public static double fisherExact(int[][] table) {
+        if ( table.length > 2 || table[0].length > 2 ) {
+            throw new ReviewedStingException("Fisher exact is only implemented for 2x2 contingency tables");
+        }
+
+        int[] rowSums = { sumRow(table, 0), sumRow(table, 1) };
+        int[] colSums = { sumColumn(table, 0), sumColumn(table, 1) };
+        int N = rowSums[0] + rowSums[1];
+
+        return fisherExact(table,rowSums,colSums,N);
+
+    }
+
+    public static double fisherExact(int[][] table, int[] rowSums, int[] colSums, int N ) {
+
+        // calculate in log space so we don't die with high numbers
+        double pCutoff = Arithmetic.logFactorial(rowSums[0])
+                         + Arithmetic.logFactorial(rowSums[1])
+                         + Arithmetic.logFactorial(colSums[0])
+                         + Arithmetic.logFactorial(colSums[1])
+                         - Arithmetic.logFactorial(table[0][0])
+                         - Arithmetic.logFactorial(table[0][1])
+                         - Arithmetic.logFactorial(table[1][0])
+                         - Arithmetic.logFactorial(table[1][1])
+                         - Arithmetic.logFactorial(N);
+        return Math.exp(pCutoff);
+    }
+
+     public static int sumRow(int[][] table, int column) {
+        int sum = 0;
+        for (int r = 0; r < table.length; r++) {
+            sum += table[r][column];
+        }
+
+        return sum;
+    }
+
+    public static int sumColumn(int[][] table, int row) {
+        int sum = 0;
+        for (int c = 0; c < table[row].length; c++) {
+            sum += table[row][c];
+        }
+
+        return sum;
     }
 }

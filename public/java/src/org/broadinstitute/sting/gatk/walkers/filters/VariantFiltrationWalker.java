@@ -28,6 +28,9 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -47,7 +50,7 @@ import java.util.*;
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
 @Reference(window=@Window(start=-50,stop=50))
-public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
+public class VariantFiltrationWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -276,6 +279,10 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     public Integer reduce(Integer value, Integer sum) {
         return sum + value;
+    }
+
+    public Integer treeReduce(Integer left, Integer right) {
+	return left + right;
     }
 
     /**
