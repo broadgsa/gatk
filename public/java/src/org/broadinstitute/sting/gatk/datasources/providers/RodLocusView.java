@@ -96,21 +96,12 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         }
 
         rodQueue = new RODMergingIterator(iterators);
-
-        //throw new StingException("RodLocusView currently disabled");
     }
 
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
-        RefMetaDataTracker t = new RefMetaDataTracker(allTracksHere.size(), referenceContext);
-        for ( RODRecordList track : allTracksHere ) {
-            if ( ! t.hasValues(track.getName()) )
-                t.bind(track.getName(), track);
-        }
-
         // special case the interval again -- add it into the ROD
-        if ( interval != null ) { t.bind(interval.getName(), interval); }
-
-        return t;
+        if ( interval != null ) { allTracksHere.add(interval); }
+        return new RefMetaDataTracker(allTracksHere, referenceContext);
     }
 
     public boolean hasNext() {

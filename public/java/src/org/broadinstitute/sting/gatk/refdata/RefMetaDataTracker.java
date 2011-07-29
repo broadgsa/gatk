@@ -29,18 +29,13 @@ import java.util.*;
  * Time: 3:05:23 PM
  */
 public class RefMetaDataTracker {
+    // TODO: this should be a list, not a map, actually
+
+    private final static RODRecordList EMPTY_ROD_RECORD_LIST = new RODRecordListImpl("EMPTY");
+
     final Map<String, RODRecordList> map;
     final ReferenceContext ref;
-    protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
-
-    public RefMetaDataTracker(int nBindings, ReferenceContext ref) {
-        this.ref = ref;
-        if ( nBindings == 0 )
-            map = Collections.emptyMap();
-        else
-            map = new HashMap<String, RODRecordList>(nBindings);
-    }
-
+    final protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
 
     // ------------------------------------------------------------------------------------------
     //
@@ -50,18 +45,18 @@ public class RefMetaDataTracker {
     //
     // ------------------------------------------------------------------------------------------
 
-    /**
-     * Binds the list of reference ordered data records (RMDs) to track name at this site.  Should be used only by the traversal
-     * system to provide access to RMDs in a structured way to the walkers.
-     *
-     * DO NOT USE THIS FUNCTION UNLESS YOU ARE THE GATK ENGINE
-     *
-     * @param name the name of the track
-     * @param rod the collection of RMD data
-     */
-    public void bind(final String name, RODRecordList rod) {
-        //logger.debug(String.format("Binding %s to %s", name, rod));
-        map.put(canonicalName(name), maybeConvertToVariantContext(rod));
+    public RefMetaDataTracker(final Collection<RODRecordList> allBindings, final ReferenceContext ref) {
+        this.ref = ref;
+        if ( allBindings.isEmpty() )
+            map = Collections.emptyMap();
+        else {
+            map = new HashMap<String, RODRecordList>(allBindings.size());
+            for ( RODRecordList rod : allBindings ) {
+                //logger.debug(String.format("Binding %s to %s", name, rod));
+                if ( rod != null )
+                    map.put(canonicalName(rod.getName()), maybeConvertToVariantContext(rod));
+            }
+        }
     }
 
     /**
@@ -81,23 +76,12 @@ public class RefMetaDataTracker {
                 final VariantContext vc = VariantContextAdaptors.toVariantContext(bindings.getName(), rec.getUnderlyingObject(), ref);
                 if ( vc != null ) // it's possible that the conversion failed, but we continue along anyway
                     values.add(new GATKFeature.TribbleGATKFeature(ref.getGenomeLocParser(), vc, rec.getName()));
-            }
+            } else
+                values.add(rec);
         }
 
         return new RODRecordListImpl(bindings.getName(), values, bindings.getLocation());
     }
-
-//    /**
-//     * Temporary setting for putting a reference context into the system.
-//     *
-//     * DO NOT USE THIS FUNCTION UNLESS YOU ARE THE GATK ENGINE
-//     *
-//     * @param ref
-//     */
-//    public void setRef(final ReferenceContext ref) {
-//        this.ref = ref;
-//    }
-
 
     // ------------------------------------------------------------------------------------------
     //
@@ -107,58 +91,47 @@ public class RefMetaDataTracker {
     //
     // ------------------------------------------------------------------------------------------
 
-    /**
-     * No-assumption version of getValues(name, class).  Returns Objects.
-     */
-    public List<Object> getValues(final String name) {
-        return getValues(name, Object.class);
+    public <T> List<T> getValues(Class<T> type) {
+        return addValues(map.keySet(), type, new ArrayList<T>(), null, false, false);
+    }
+    public <T> List<T> getValues(Class<T> type, final GenomeLoc onlyAtThisLoc) {
+        return addValues(map.keySet(), type, new ArrayList<T>(), onlyAtThisLoc, true, false);
+    }
+    public <T> List<T> getValues(Class<T> type, final String name) {
+        return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), null, false, false);
+    }
+    public <T> List<T> getValues(Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+        return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), onlyAtThisLoc, true, false);
+    }
+    public <T> List<T> getValues(Class<T> type, final Collection<String> names) {
+        return addValues(names, type, new ArrayList<T>(), null, false, false);
+    }
+    public <T> List<T> getValues(Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
+        return addValues(names, type, new ArrayList<T>(), onlyAtThisLoc, true, false);
     }
 
-    /**
-     * get all the reference meta data associated with a track name.
-     * @param name the name of the track we're looking for
-     * @param clazz the expected class of the elements bound to rod name
-     * @return a list of objects, representing the underlying objects that the tracks produce.  I.e. for a
-     *         dbSNP RMD this will be a RodDbSNP, etc.
-     *
-     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
-     */
-    public <T> List<T> getValues(final String name, final Class<T> clazz) {
-        RODRecordList list = getTrackDataByName(name);
-
-        if (list == null)
-            return Collections.emptyList();
-        else {
-            return addValues(name, clazz, new ArrayList<T>(), list, list.getLocation(), false, false);
-        }
+    public <T> T getFirstValue(Class<T> type) {
+        return safeGetFirst(getValues(type));
+    }
+    public <T> T getFirstValue(Class<T> type, final GenomeLoc onlyAtThisLoc) {
+        return safeGetFirst(getValues(type, onlyAtThisLoc));
+    }
+    public <T> T getFirstValue(Class<T> type, final String name) {
+        return safeGetFirst(getValues(type, name));
+    }
+    public <T> T getFirstValue(Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+        return safeGetFirst(getValues(type, name, onlyAtThisLoc));
+    }
+    public <T> T getFirstValue(Class<T> type, final Collection<String> names) {
+        return safeGetFirst(getValues(type, names));
+    }
+    public <T> T getFirstValue(Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
+        return safeGetFirst(getValues(type, names, onlyAtThisLoc));
     }
 
-
-    /**
-     * get a singleton record, given the name and a type.  This function will return the first record at the
-     * current position seen.  The object is cast into a type clazz, or thoses an error if this isn't possible.
-     *
-     * * WARNING: we now suppport more than one RMD at a single position for all tracks.  If there are
-     * are multiple RMD objects at this location, there is no contract for which object this method will pick, and which object gets
-     * picked may change from time to time!  BE WARNED!
-     *
-     * @param name the name of the track
-     * @param clazz the underlying type to return
-     * @param <T> the type to parameterize on, matching the clazz argument
-     * @return a record of type T, or null if no record is present.
-     */
-    public <T> T getFirstValue(final String name, final Class<T> clazz) {
-        RODRecordList objects = getTrackDataByName(name);
-
-        // if empty or null return null;
-        if (objects == null || objects.size() < 1) return null;
-
-        Object obj = objects.get(0).getUnderlyingObject();
-        if (!(clazz.isAssignableFrom(obj.getClass())))
-            throw new UserException.CommandLineException("Unable to case track named " + name + " to type of " + clazz.toString()
-                    + " it's of type " + obj.getClass());
-        else
-            return (T)obj;
+    final private <T> T safeGetFirst(List<T> l) {
+        // todo: should we be warning people here?  Throwing an error?
+        return l.isEmpty() ? null : l.get(0);
     }
 
     /**
@@ -195,8 +168,7 @@ public class RefMetaDataTracker {
      * Important: The list returned by this function is guaranteed not to be null, but may be empty!
      */
     public List<GATKFeature> getValuesAsGATKFeatures(final String name) {
-        List<GATKFeature> feat = getTrackDataByName(name);
-        return (feat == null) ? new ArrayList<GATKFeature>() : feat; // to satisfy the above requirement that we don't return null
+        return getTrackDataByName(name);
     }
 
     /**
@@ -209,7 +181,7 @@ public class RefMetaDataTracker {
         LinkedList<RODRecordList> bound = new LinkedList<RODRecordList>();
 
         for ( RODRecordList value : map.values() ) {
-            if ( value != null && value.size() != 0 ) bound.add(value);
+            if ( value.size() != 0 ) bound.add(value);
         }
 
         return bound;
@@ -222,11 +194,77 @@ public class RefMetaDataTracker {
     public int getNumberOfTracksWithValue() {
         int n = 0;
         for ( RODRecordList value : map.values() ) {
-            if ( value != null && ! value.isEmpty() ) {
+            if ( ! value.isEmpty() ) {
                 n++;
             }
         }
         return n;
+    }
+
+    // ------------------------------------------------------------------------------------------
+    //
+    //
+    // old style Generic accessors
+    //
+    // TODO -- DELETE ME
+    //
+    //
+    // ------------------------------------------------------------------------------------------
+
+    /**
+     * No-assumption version of getValues(name, class).  Returns Objects.
+     */
+    @Deprecated
+    public List<Object> getValues(final String name) {
+        return getValues(name, Object.class);
+    }
+
+    /**
+     * get all the reference meta data associated with a track name.
+     * @param name the name of the track we're looking for
+     * @param clazz the expected class of the elements bound to rod name
+     * @return a list of objects, representing the underlying objects that the tracks produce.  I.e. for a
+     *         dbSNP RMD this will be a RodDbSNP, etc.
+     *
+     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
+     */
+    @Deprecated
+    public <T> List<T> getValues(final String name, final Class<T> clazz) {
+        RODRecordList list = getTrackDataByName(name);
+
+        if (list.isEmpty())
+            return Collections.emptyList();
+        else {
+            return addValues(name, clazz, new ArrayList<T>(), list, list.getLocation(), false, false);
+        }
+    }
+
+
+    /**
+     * get a singleton record, given the name and a type.  This function will return the first record at the
+     * current position seen.  The object is cast into a type clazz, or thoses an error if this isn't possible.
+     *
+     * * WARNING: we now suppport more than one RMD at a single position for all tracks.  If there are
+     * are multiple RMD objects at this location, there is no contract for which object this method will pick, and which object gets
+     * picked may change from time to time!  BE WARNED!
+     *
+     * @param name the name of the track
+     * @param clazz the underlying type to return
+     * @param <T> the type to parameterize on, matching the clazz argument
+     * @return a record of type T, or null if no record is present.
+     */
+    @Deprecated
+    public <T> T getFirstValue(final String name, final Class<T> clazz) {
+        RODRecordList objects = getTrackDataByName(name);
+
+        if (objects.isEmpty()) return null;
+
+        Object obj = objects.get(0).getUnderlyingObject();
+        if (!(clazz.isAssignableFrom(obj.getClass())))
+            throw new UserException.CommandLineException("Unable to case track named " + name + " to type of " + clazz.toString()
+                    + " it's of type " + obj.getClass());
+        else
+            return (T)obj;
     }
 
     // ------------------------------------------------------------------------------------------
@@ -244,6 +282,7 @@ public class RefMetaDataTracker {
      *
      * @return variant context
      */
+    @Deprecated
     public List<VariantContext> getAllVariantContexts() {
         return getAllVariantContexts(null, false, false);
     }
@@ -254,6 +293,7 @@ public class RefMetaDataTracker {
      * @param curLocation
      * @return
      */
+    @Deprecated
     public List<VariantContext> getAllVariantContexts(final GenomeLoc curLocation) {
         return getAllVariantContexts(curLocation, true, false);
     }
@@ -275,6 +315,7 @@ public class RefMetaDataTracker {
      * @param takeFirstOnly      do we take the first rod only?
      * @return variant context
      */
+    @Deprecated
     public List<VariantContext> getAllVariantContexts(final GenomeLoc curLocation,
                                                       final boolean requireStartHere,
                                                       final boolean takeFirstOnly) {
@@ -299,6 +340,7 @@ public class RefMetaDataTracker {
      * @param takeFirstOnly      do we take the first rod only?
      * @return variant context
      */
+    @Deprecated
     public List<VariantContext> getVariantContexts(final String name,
                                                    final GenomeLoc curLocation,
                                                    final boolean requireStartHere,
@@ -306,6 +348,7 @@ public class RefMetaDataTracker {
         return getVariantContexts(Arrays.asList(name), curLocation, requireStartHere, takeFirstOnly);
     }
 
+    @Deprecated
     public List<VariantContext> getVariantContexts(final Collection<String> names,
                                                    final GenomeLoc curLocation,
                                                    final boolean requireStartHere,
@@ -314,9 +357,7 @@ public class RefMetaDataTracker {
 
         for ( String name : names ) {
             RODRecordList rodList = getTrackDataByName(name); // require that the name is an exact match
-
-            if ( rodList != null )
-                addVariantContexts(contexts, rodList, curLocation, requireStartHere, takeFirstOnly );
+            addVariantContexts(contexts, rodList, curLocation, requireStartHere, takeFirstOnly );
         }
 
         return contexts;
@@ -332,6 +373,7 @@ public class RefMetaDataTracker {
      * @param requireStartHere   do we require the rod to start at this location?
      * @return variant context
      */
+    @Deprecated
     public VariantContext getVariantContext(final String name,
                                             final GenomeLoc curLocation,
                                             final boolean requireStartHere) {
@@ -354,11 +396,13 @@ public class RefMetaDataTracker {
      * @param curLocation
      * @return
      */
+    @Deprecated
     public VariantContext getVariantContext(final String name,
                                             final GenomeLoc curLocation) {
         return getVariantContext(name, curLocation, true);
     }
 
+    @Deprecated
     private void addVariantContexts(final List<VariantContext> contexts,
                                     final RODRecordList rodList,
                                     final GenomeLoc curLocation,
@@ -367,13 +411,27 @@ public class RefMetaDataTracker {
         addValues("xxx", VariantContext.class, contexts, rodList, curLocation, requireStartHere, takeFirstOnly);
     }
 
-    private static <T> List<T> addValues(final String name,
-                                         final Class<T> type,
-                                         final List<T> values,
-                                         final RODRecordList rodList,
-                                         final GenomeLoc curLocation,
-                                         final boolean requireStartHere,
-                                         final boolean takeFirstOnly ) {
+    private <T> List<T> addValues(final Collection<String> names,
+                                  final Class<T> type,
+                                  final List<T> values,
+                                  final GenomeLoc curLocation,
+                                  final boolean requireStartHere,
+                                  final boolean takeFirstOnly ) {
+        for ( String name : names ) {
+            RODRecordList rodList = getTrackDataByName(name); // require that the name is an exact match
+            addValues(name, type, values, rodList, curLocation, requireStartHere, takeFirstOnly );
+        }
+
+        return values;
+    }
+
+    private <T> List<T> addValues(final String name,
+                                  final Class<T> type,
+                                  final List<T> values,
+                                  final RODRecordList rodList,
+                                  final GenomeLoc curLocation,
+                                  final boolean requireStartHere,
+                                  final boolean takeFirstOnly ) {
         for ( GATKFeature rec : rodList ) {
             if ( ! requireStartHere || rec.getLocation().getStart() == curLocation.getStart() ) {  // ok, we are going to keep this thing
                 Object obj = rec.getUnderlyingObject();
@@ -406,7 +464,8 @@ public class RefMetaDataTracker {
      */
     private RODRecordList getTrackDataByName(final String name) {
         final String luName = canonicalName(name);
-        return map.get(luName);
+        RODRecordList l = map.get(luName);
+        return l == null ? EMPTY_ROD_RECORD_LIST : l;
     }
 
     /**

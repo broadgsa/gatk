@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
@@ -51,10 +52,13 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * @return A tracker containing information about this locus.
      */
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
-        RefMetaDataTracker tracks = new RefMetaDataTracker(states.size(), referenceContext);
+        List<RODRecordList> bindings = states.isEmpty() ? Collections.<RODRecordList>emptyList() : new ArrayList<RODRecordList>(states.size());
+
         for ( ReferenceOrderedDataState state: states )
-            tracks.bind( state.dataSource.getName(), state.iterator.seekForward(loc) );
-        return tracks;
+            // todo -- warning, I removed the reference to the name from states
+            bindings.add( state.iterator.seekForward(loc) );
+
+        return new RefMetaDataTracker(bindings, referenceContext);
     }
 
     /**
