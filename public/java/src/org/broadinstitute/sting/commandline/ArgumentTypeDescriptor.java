@@ -111,7 +111,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return The parsed object.
      */
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, ArgumentMatches matches) {
-        return parse(parsingEngine, source, source.field.getType(), matches);
+        return parse(parsingEngine, source, source.field.getGenericType(), matches);
     }
 
     /**
@@ -133,18 +133,18 @@ public abstract class ArgumentTypeDescriptor {
     protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
         Annotation argumentAnnotation = getArgumentAnnotation(source);
         return new ArgumentDefinition( ArgumentIOType.getIOType(argumentAnnotation),
-                                       source.field.getType(),
-                                       ArgumentDefinition.getFullName(argumentAnnotation, source.field.getName()),
-                                       ArgumentDefinition.getShortName(argumentAnnotation),
-                                       ArgumentDefinition.getDoc(argumentAnnotation),
-                                       source.isRequired() && !createsTypeDefault(source) && !source.isFlag() && !source.isDeprecated(),
-                                       source.isFlag(),
-                                       source.isMultiValued(),
-                                       source.isHidden(),
-                                       getCollectionComponentType(source.field),
-                                       ArgumentDefinition.getExclusiveOf(argumentAnnotation),
-                                       ArgumentDefinition.getValidationRegex(argumentAnnotation),
-                                       getValidOptions(source) );
+                source.field.getType(),
+                ArgumentDefinition.getFullName(argumentAnnotation, source.field.getName()),
+                ArgumentDefinition.getShortName(argumentAnnotation),
+                ArgumentDefinition.getDoc(argumentAnnotation),
+                source.isRequired() && !createsTypeDefault(source) && !source.isFlag() && !source.isDeprecated(),
+                source.isFlag(),
+                source.isMultiValued(),
+                source.isHidden(),
+                makeRawTypeIfNecessary(getCollectionComponentType(source.field)),
+                ArgumentDefinition.getExclusiveOf(argumentAnnotation),
+                ArgumentDefinition.getValidationRegex(argumentAnnotation),
+                getValidOptions(source) );
     }
 
     /**
@@ -153,7 +153,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return The parameterized component type, or String.class if the parameterized type could not be found.
      * @throws IllegalArgumentException If more than one parameterized type is found on the field.
      */
-    protected Class getCollectionComponentType( Field field ) {
+    protected Type getCollectionComponentType( Field field ) {
         return null;
     }
 
@@ -164,7 +164,7 @@ public abstract class ArgumentTypeDescriptor {
      * @param matches The argument matches for the argument source, or the individual argument match for a scalar if this is being called to help parse a collection.
      * @return The individual parsed object matching the argument match with Class type.
      */
-    public abstract Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches );
+    public abstract Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches );
 
     /**
      * If the argument source only accepts a small set of options, populate the returned list with
@@ -275,6 +275,18 @@ public abstract class ArgumentTypeDescriptor {
     public static boolean isArgumentHidden(Field field) {
         return field.isAnnotationPresent(Hidden.class);
     }
+
+    public Class makeRawTypeIfNecessary(Type t) {
+        if ( t == null )
+            return null;
+        else if ( t instanceof ParameterizedType )
+            return (Class)((ParameterizedType) t).getRawType();
+        else if ( t instanceof Class ) {
+            return (Class)t;
+        } else {
+            throw new IllegalArgumentException("Unable to determine Class-derived component type of field: " + t);
+        }
+    }
 }
 
 /**
@@ -296,13 +308,13 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         try {
             Tags tags = getArgumentTags(matches);
-            Constructor ctor = type.getConstructor(Class.class, String.class, String.class, Tags.class);
-            Class parameterType = getParameterizedTypeClass(source.field.getGenericType());
+            Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, Tags.class);
+            Class parameterType = getParameterizedTypeClass(type);
             RodBinding result = (RodBinding)ctor.newInstance(parameterType, source.field.getName(), value, tags);
             parsingEngine.addTags(result,tags);
             return result;
@@ -352,7 +364,8 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type fulltype, ArgumentMatches matches) {
+        Class type = makeRawTypeIfNecessary(fulltype);
         if (source.isFlag())
             return true;
 
@@ -393,7 +406,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             throw e;
         } catch (InvocationTargetException e) {
             throw new UserException.CommandLineException(String.format("Failed to parse value %s for argument %s.  This is most commonly caused by providing an incorrect data type (e.g. a double when an int is required)",
-                            value, source.field.getName()));
+                    value, source.field.getName()));
         } catch (Exception e) {
             throw new DynamicClassResolutionException(String.class, e);
         }
@@ -405,7 +418,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
         return result;
     }
-    
+
 
     /**
      * A mapping of the primitive types to their associated wrapper classes.  Is there really no way to infer
@@ -436,8 +449,9 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Object parse(ParsingEngine parsingEngine,ArgumentSource source, Class type, ArgumentMatches matches) {
-        Class componentType;
+    public Object parse(ParsingEngine parsingEngine,ArgumentSource source, Type fulltype, ArgumentMatches matches) {
+        Class type = makeRawTypeIfNecessary(fulltype);
+        Type componentType;
         Object result;
 
         if( Collection.class.isAssignableFrom(type) ) {
@@ -452,7 +466,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
 
             componentType = getCollectionComponentType( source.field );
-            ArgumentTypeDescriptor componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType);
+            ArgumentTypeDescriptor componentArgumentParser = parsingEngine.selectBestTypeDescriptor(makeRawTypeIfNecessary(componentType));
 
             Collection collection;
             try {
@@ -481,7 +495,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         }
         else if( type.isArray() ) {
             componentType = type.getComponentType();
-            ArgumentTypeDescriptor componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType);
+            ArgumentTypeDescriptor componentArgumentParser = parsingEngine.selectBestTypeDescriptor(makeRawTypeIfNecessary(componentType));
 
             // Assemble a collection of individual values used in this computation.
             Collection<ArgumentMatch> values = new ArrayList<ArgumentMatch>();
@@ -489,7 +503,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 for( ArgumentMatch value: match )
                     values.add(value);
 
-            result = Array.newInstance(componentType,values.size());
+            result = Array.newInstance(makeRawTypeIfNecessary(componentType),values.size());
 
             int i = 0;
             for( ArgumentMatch value: values ) {
@@ -512,16 +526,16 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @throws IllegalArgumentException If more than one parameterized type is found on the field.
      */
     @Override
-    protected Class getCollectionComponentType( Field field ) {
-            // If this is a parameterized collection, find the contained type.  If blow up if more than one type exists.
-            if( field.getGenericType() instanceof ParameterizedType) {
-                ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();
-                if( parameterizedType.getActualTypeArguments().length > 1 )
-                    throw new IllegalArgumentException("Unable to determine collection type of field: " + field.toString());
-                return (Class)parameterizedType.getActualTypeArguments()[0];
-            }
-            else
-                return String.class;
+    protected Type getCollectionComponentType( Field field ) {
+        // If this is a parameterized collection, find the contained type.  If blow up if more than one type exists.
+        if( field.getGenericType() instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();
+            if( parameterizedType.getActualTypeArguments().length > 1 )
+                throw new IllegalArgumentException("Unable to determine collection type of field: " + field.toString());
+            return parameterizedType.getActualTypeArguments()[0];
+        }
+        else
+            return String.class;
     }
 }
 
@@ -568,7 +582,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             throw new ReviewedStingException("No multiplexed ids available");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
-        Class componentType = getCollectionComponentType(source.field);
+        Class componentType = makeRawTypeIfNecessary(getCollectionComponentType(source.field));
         ArgumentTypeDescriptor componentTypeDescriptor = parsingEngine.selectBestTypeDescriptor(componentType);
 
         for(Object id: multiplexedIds) {
@@ -582,13 +596,13 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
 
     @Override
-    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
         if(multiplexedIds == null)
             throw new ReviewedStingException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
 
-        Class componentType = getCollectionComponentType(source.field);
+        Class componentType = makeRawTypeIfNecessary(getCollectionComponentType(source.field));
 
 
         for(Object id: multiplexedIds) {
@@ -659,7 +673,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @throws IllegalArgumentException If more than one parameterized type is found on the field.
      */
     @Override
-    protected Class getCollectionComponentType( Field field ) {
+    protected Type getCollectionComponentType( Field field ) {
         // Multiplex arguments must resolve to maps from which the clp should extract the second type.
         if( field.getGenericType() instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();

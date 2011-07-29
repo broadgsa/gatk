@@ -65,8 +65,8 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
     @Input(fullName="variants", shortName="V", doc="The variant file we will convert to a table", required=true)
     public RodBinding<VariantContext> variants;
 
-//    @Input(fullName="rodList", shortName="RL", doc="A list of ROD types that we will convert to a table", required=true)
-//    public List<RodBinding<Feature>> variantsList;
+    @Input(fullName="rodList", shortName="RL", doc="A list of ROD types that we will convert to a table", required=true)
+    public List<RodBinding<Feature>> variantsList;
 
     public void initialize() {
         out.println(Utils.join("\t", fieldsToTake));
@@ -135,8 +135,8 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
-//        for ( RodBinding binding : variantsList )
-//            System.out.printf("VariantList binding %s tags=%s%n", binding, getToolkit().getTags(binding).getPositionalTags());
+        for ( RodBinding binding : variantsList )
+            System.out.printf("VariantList binding %s tags=%s%n", binding, binding.getTags().getPositionalTags());
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             VariantContext vc = variants.getFirstValue(tracker, context.getLocation());

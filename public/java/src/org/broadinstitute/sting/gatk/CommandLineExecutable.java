@@ -30,7 +30,6 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
@@ -165,7 +164,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
         return Arrays.asList( new VCFWriterArgumentTypeDescriptor(engine,System.out,argumentSources),
-                              new SAMFileReaderArgumentTypeDescriptor(engine),
                               new SAMFileWriterArgumentTypeDescriptor(engine,System.out),
                               new OutputStreamArgumentTypeDescriptor(engine,System.out) );
     }

@@ -38,7 +38,6 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
@@ -118,7 +117,6 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
         List<ArgumentTypeDescriptor> typeDescriptors = new ArrayList<ArgumentTypeDescriptor>();
         typeDescriptors.add(new VCFWriterArgumentTypeDescriptor(GATKEngine,System.out,Collections.<Object>emptyList()));
-        typeDescriptors.add(new SAMFileReaderArgumentTypeDescriptor(GATKEngine));
         typeDescriptors.add(new SAMFileWriterArgumentTypeDescriptor(GATKEngine,System.out));
         typeDescriptors.add(new OutputStreamArgumentTypeDescriptor(GATKEngine,System.out));
         return typeDescriptors;
