@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
@@ -299,10 +300,10 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         try {
-            // TODO: determine type of internal value via Parameter
-            Constructor ctor = type.getConstructor(Class.class, String.class, String.class, ParsingEngine.class);
-            RodBinding result = (RodBinding)ctor.newInstance(null, source.field.getName(), value, parsingEngine);
             Tags tags = getArgumentTags(matches);
+            Constructor ctor = type.getConstructor(Class.class, String.class, String.class, Tags.class);
+            Class parameterType = getParameterizedTypeClass(source.field.getGenericType());
+            RodBinding result = (RodBinding)ctor.newInstance(parameterType, source.field.getName(), value, tags);
             parsingEngine.addTags(result,tags);
             return result;
         } catch (InvocationTargetException e) {
@@ -314,6 +315,16 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     String.format("Failed to parse value %s for argument %s.",
                             value, source.field.getName()));
         }
+    }
+
+    private Class getParameterizedTypeClass(Type t) {
+        if ( t instanceof ParameterizedType ) {
+            ParameterizedType parameterizedType = (ParameterizedType)t;
+            if ( parameterizedType.getActualTypeArguments().length != 1 )
+                throw new ReviewedStingException("BUG: more than 1 generic type found on class" + t);
+            return (Class)parameterizedType.getActualTypeArguments()[0];
+        } else
+            throw new ReviewedStingException("BUG: could not find generic type on class " + t);
     }
 }
 

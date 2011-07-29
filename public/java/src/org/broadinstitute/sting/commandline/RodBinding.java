@@ -27,7 +27,10 @@ package org.broadinstitute.sting.commandline;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -38,14 +41,14 @@ import java.util.List;
 public class RodBinding<T extends Feature> {
     final String variableName;
     final String source;
-    final ParsingEngine parser;
+    final Tags tags;
     final Class<T> type;
 
-    protected RodBinding(Class<T> type, final String variableName, final String source, final ParsingEngine parser) {
+    public RodBinding(Class<T> type, final String variableName, final String source, final Tags tags) {
         this.type = type;
         this.variableName = variableName;
         this.source = source;
-        this.parser = parser;
+        this.tags = tags;
     }
 
     public String getVariableName() {
@@ -56,16 +59,26 @@ public class RodBinding<T extends Feature> {
         return source;
     }
 
+    // ------------------------------------------------------------------------------------------
+    //
+    //
+    // Accessors should be kept in sync with RefMetaDataTracker
+    //
+    //
+    // ------------------------------------------------------------------------------------------
+
     public List<T> getValues(final RefMetaDataTracker tracker) {
-        return tracker.getValues(variableName, type);
+        return tracker.getValues(type, getVariableName());
+    }
+    public List<T> getValues(final RefMetaDataTracker tracker, final GenomeLoc onlyAtThisLoc) {
+        return tracker.getValues(type, getVariableName(), onlyAtThisLoc);
     }
 
-//    public <T> List<T> getValues(final RefMetaDataTracker tracker, final Class<T> clazz) {
-//        return tracker.getValues(variableName, clazz);
-//    }
-
     public T getFirstValue(final RefMetaDataTracker tracker) {
-        return tracker.getFirstValue(variableName, type);
+        return tracker.getFirstValue(type, getVariableName());
+    }
+    public T getFirstValue(final RefMetaDataTracker tracker, final GenomeLoc onlyAtThisLoc) {
+        return tracker.getFirstValue(type, getVariableName(), onlyAtThisLoc);
     }
 
     public boolean hasValues(final RefMetaDataTracker tracker) {
@@ -77,7 +90,7 @@ public class RodBinding<T extends Feature> {
     }
 
     public Tags getTags() {
-        return parser.getTags(this);
+        return tags;
     }
 
     public String toString() {

@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -62,10 +63,10 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
     public boolean ALLOW_MISSING_DATA = false;
 
     @Input(fullName="variants", shortName="V", doc="The variant file we will convert to a table", required=true)
-    public VariantContextRodBinding variants;
+    public RodBinding<VariantContext> variants;
 
-    @Input(fullName="rodList", shortName="RL", doc="A list of ROD types that we will convert to a table", required=true)
-    public List<RodBinding> variantsList;
+//    @Input(fullName="rodList", shortName="RL", doc="A list of ROD types that we will convert to a table", required=true)
+//    public List<RodBinding<Feature>> variantsList;
 
     public void initialize() {
         out.println(Utils.join("\t", fieldsToTake));
@@ -134,11 +135,11 @@ public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
-        for ( RodBinding binding : variantsList )
-            System.out.printf("VariantList binding %s tags=%s%n", binding, getToolkit().getTags(binding).getPositionalTags());
+//        for ( RodBinding binding : variantsList )
+//            System.out.printf("VariantList binding %s tags=%s%n", binding, getToolkit().getTags(binding).getPositionalTags());
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
-            VariantContext vc = variants.getVariantContext(tracker, context.getLocation());
+            VariantContext vc = variants.getFirstValue(tracker, context.getLocation());
             if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
                 List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
                 out.println(Utils.join("\t", vals));
