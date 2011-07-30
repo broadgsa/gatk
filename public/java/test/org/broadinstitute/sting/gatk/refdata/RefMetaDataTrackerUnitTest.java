@@ -30,6 +30,8 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
@@ -181,7 +183,7 @@ public class RefMetaDataTrackerUnitTest {
         testSimpleBindings("B", tracker, test.BValues);
     }
 
-    private void testSimpleBindings(String name, RefMetaDataTracker tracker, RODRecordList expected) {
+    private <T> void testSimpleBindings(String name, RefMetaDataTracker tracker, RODRecordList expected) {
         List<Feature> asValues = tracker.getValues(Feature.class, name);
         List<GATKFeature> asFeatures = tracker.getValuesAsGATKFeatures(name);
 
@@ -207,8 +209,8 @@ public class RefMetaDataTrackerUnitTest {
     }
 
     @Test(enabled = true, dataProvider = "tests")
-    public void testGetters(MyTest test) {
-        logger.warn("Testing " + test + " for getFirst() methods");
+    public void testGettersAsString(MyTest test) {
+        logger.warn("Testing " + test + " for get() methods");
         RefMetaDataTracker tracker = test.makeTracker();
 
         for ( String name : Arrays.asList("A+B", "A", "B") ) {
@@ -223,6 +225,27 @@ public class RefMetaDataTrackerUnitTest {
 
             Feature v4 = name.equals("A+B") ? tracker.getFirstValue(Feature.class, locus) : tracker.getFirstValue(Feature.class, name, locus);
             testGetter(name, Arrays.asList(v4), startingHere(test.expected(name)), false, tracker);
+        }
+    }
+
+    @Test(enabled = true, dataProvider = "tests")
+    public void testGettersAsRodBindings(MyTest test) {
+        logger.warn("Testing " + test + " for get() methods as RodBindings");
+        RefMetaDataTracker tracker = test.makeTracker();
+
+        for ( String nameAsString : Arrays.asList("A", "B") ) {
+            RodBinding<Feature> binding = new RodBinding(Feature.class, nameAsString, "none", new Tags());
+            List<Feature> v1 = tracker.getValues(binding);
+            testGetter(nameAsString, v1, test.expected(nameAsString), true, tracker);
+
+            List<Feature> v2 = tracker.getValues(binding, locus);
+            testGetter(nameAsString, v2, startingHere(test.expected(nameAsString)), true, tracker);
+
+            Feature v3 = tracker.getFirstValue(binding);
+            testGetter(nameAsString, Arrays.asList(v3), test.expected(nameAsString), false, tracker);
+
+            Feature v4 = tracker.getFirstValue(binding, locus);
+            testGetter(nameAsString, Arrays.asList(v4), startingHere(test.expected(nameAsString)), false, tracker);
         }
     }
 

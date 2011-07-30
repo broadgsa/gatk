@@ -54,39 +54,11 @@ public class RodBinding<T extends Feature> {
     public String getVariableName() {
         return variableName;
     }
-
+    public Class<T> getType() {
+        return type;
+    }
     public String getSource() {
         return source;
-    }
-
-    // ------------------------------------------------------------------------------------------
-    //
-    //
-    // Accessors should be kept in sync with RefMetaDataTracker
-    //
-    //
-    // ------------------------------------------------------------------------------------------
-
-    public List<T> getValues(final RefMetaDataTracker tracker) {
-        return tracker.getValues(type, getVariableName());
-    }
-    public List<T> getValues(final RefMetaDataTracker tracker, final GenomeLoc onlyAtThisLoc) {
-        return tracker.getValues(type, getVariableName(), onlyAtThisLoc);
-    }
-
-    public T getFirstValue(final RefMetaDataTracker tracker) {
-        return tracker.getFirstValue(type, getVariableName());
-    }
-    public T getFirstValue(final RefMetaDataTracker tracker, final GenomeLoc onlyAtThisLoc) {
-        return tracker.getFirstValue(type, getVariableName(), onlyAtThisLoc);
-    }
-
-    public boolean hasValues(final RefMetaDataTracker tracker) {
-        return tracker.hasValues(variableName);
-    }
-
-    public List<GATKFeature> getValuesAsGATKFeatures(final RefMetaDataTracker tracker) {
-        return tracker.getValuesAsGATKFeatures(variableName);
     }
 
     public Tags getTags() {

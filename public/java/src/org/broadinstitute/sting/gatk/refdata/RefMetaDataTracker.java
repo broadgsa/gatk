@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
@@ -91,45 +93,81 @@ public class RefMetaDataTracker {
     //
     // ------------------------------------------------------------------------------------------
 
-    public <T> List<T> getValues(Class<T> type) {
+    public <T extends Feature> List<T> getValues(Class<T> type) {
         return addValues(map.keySet(), type, new ArrayList<T>(), null, false, false);
     }
-    public <T> List<T> getValues(Class<T> type, final GenomeLoc onlyAtThisLoc) {
+    public <T extends Feature> List<T> getValues(Class<T> type, final GenomeLoc onlyAtThisLoc) {
         return addValues(map.keySet(), type, new ArrayList<T>(), onlyAtThisLoc, true, false);
     }
-    public <T> List<T> getValues(Class<T> type, final String name) {
+    public <T extends Feature> List<T> getValues(Class<T> type, final String name) {
         return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), null, false, false);
     }
-    public <T> List<T> getValues(Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+    public <T extends Feature> List<T> getValues(Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
         return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), onlyAtThisLoc, true, false);
     }
-    public <T> List<T> getValues(Class<T> type, final Collection<String> names) {
+    public <T extends Feature> List<T> getValues(Class<T> type, final Collection<String> names) {
         return addValues(names, type, new ArrayList<T>(), null, false, false);
     }
-    public <T> List<T> getValues(Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
+    public <T extends Feature> List<T> getValues(Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
         return addValues(names, type, new ArrayList<T>(), onlyAtThisLoc, true, false);
     }
 
-    public <T> T getFirstValue(Class<T> type) {
+    public <T extends Feature> T getFirstValue(Class<T> type) {
         return safeGetFirst(getValues(type));
     }
-    public <T> T getFirstValue(Class<T> type, final GenomeLoc onlyAtThisLoc) {
+    public <T extends Feature> T getFirstValue(Class<T> type, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, onlyAtThisLoc));
     }
-    public <T> T getFirstValue(Class<T> type, final String name) {
+    public <T extends Feature> T getFirstValue(Class<T> type, final String name) {
         return safeGetFirst(getValues(type, name));
     }
-    public <T> T getFirstValue(Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+    public <T extends Feature> T getFirstValue(Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, name, onlyAtThisLoc));
     }
-    public <T> T getFirstValue(Class<T> type, final Collection<String> names) {
+    public <T extends Feature> T getFirstValue(Class<T> type, final Collection<String> names) {
         return safeGetFirst(getValues(type, names));
     }
-    public <T> T getFirstValue(Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
+    public <T extends Feature> T getFirstValue(Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, names, onlyAtThisLoc));
     }
 
-    final private <T> T safeGetFirst(List<T> l) {
+    //
+    // ROD binding accessors
+    //
+    public <T extends Feature> List<T> getValues(RodBinding<T> rodBinding) {
+        return getValues(rodBinding.getType(), rodBinding.getVariableName());
+    }
+    public <T extends Feature> List<T> getValues(RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
+        return getValues(rodBinding.getType(), rodBinding.getVariableName(), onlyAtThisLoc);
+    }
+
+    public <T extends Feature> T getFirstValue(RodBinding<T> rodBinding) {
+        return getFirstValue(rodBinding.getType(), rodBinding.getVariableName());
+    }
+    public <T extends Feature> T getFirstValue(RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
+        return getFirstValue(rodBinding.getType(), rodBinding.getVariableName(), onlyAtThisLoc);
+    }
+
+    public boolean hasValues(RodBinding rodBinding) {
+        return hasValues(rodBinding.getVariableName());
+    }
+
+    public List<GATKFeature> getValuesAsGATKFeatures(RodBinding rodBinding) {
+        return getValuesAsGATKFeatures(rodBinding.getVariableName());
+    }
+
+    /**
+     * Helper function for getFirst() operations that takes a list of <T> and
+     * returns the first element, or null if no such element exists.
+     *
+     * TODO: determine specific behavior for l.size() > 1.  Do we turn first or an error?
+     * TODO: right now we return the first.  Should be clearer
+     *
+     * @param l
+     * @param <T>
+     * @return
+     */
+    final private <T extends Feature> T safeGetFirst(List<T> l) {
         // todo: should we be warning people here?  Throwing an error?
         return l.isEmpty() ? null : l.get(0);
     }
@@ -216,7 +254,7 @@ public class RefMetaDataTracker {
      */
     @Deprecated
     public List<Object> getValues(final String name) {
-        return getValues(name, Object.class);
+        return (List<Object>)(List)getValues(name, Feature.class);
     }
 
     /**
@@ -229,7 +267,7 @@ public class RefMetaDataTracker {
      * Important: The list returned by this function is guaranteed not to be null, but may be empty!
      */
     @Deprecated
-    public <T> List<T> getValues(final String name, final Class<T> clazz) {
+    public <T extends Feature> List<T> getValues(final String name, final Class<T> clazz) {
         RODRecordList list = getTrackDataByName(name);
 
         if (list.isEmpty())
@@ -250,11 +288,11 @@ public class RefMetaDataTracker {
      *
      * @param name the name of the track
      * @param clazz the underlying type to return
-     * @param <T> the type to parameterize on, matching the clazz argument
+     * @param <T extends Feature> the type to parameterize on, matching the clazz argument
      * @return a record of type T, or null if no record is present.
      */
     @Deprecated
-    public <T> T getFirstValue(final String name, final Class<T> clazz) {
+    public <T extends Feature> T getFirstValue(final String name, final Class<T> clazz) {
         RODRecordList objects = getTrackDataByName(name);
 
         if (objects.isEmpty()) return null;
@@ -411,7 +449,7 @@ public class RefMetaDataTracker {
         addValues("xxx", VariantContext.class, contexts, rodList, curLocation, requireStartHere, takeFirstOnly);
     }
 
-    private <T> List<T> addValues(final Collection<String> names,
+    private <T extends Feature> List<T> addValues(final Collection<String> names,
                                   final Class<T> type,
                                   final List<T> values,
                                   final GenomeLoc curLocation,
@@ -425,7 +463,7 @@ public class RefMetaDataTracker {
         return values;
     }
 
-    private <T> List<T> addValues(final String name,
+    private <T extends Feature> List<T> addValues(final String name,
                                   final Class<T> type,
                                   final List<T> values,
                                   final RODRecordList rodList,
