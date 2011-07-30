@@ -365,6 +365,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = List(inBam)
     this.output = outBam
     this.metrics = metricsFile
@@ -373,6 +374,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = inBams
     this.output = outBam
     this.analysisName = queueLogDir + outBam + ".joinBams"
@@ -380,6 +382,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class sortSam (inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = List(inSam)
     this.output = outBam
     this.sortOrder = sortOrderP
@@ -399,6 +402,7 @@ class DataProcessingPipeline extends QScript {
 
 
   case class addReadGroup (inBam: File, outBam: File, readGroup: ReadGroup) extends AddOrReplaceReadGroups with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = List(inBam)
     this.output = outBam
     this.RGID = readGroup.id
