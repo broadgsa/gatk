@@ -4,6 +4,7 @@ import collection.JavaConversions._
 import org.broadinstitute.sting.queue.QException
 import java.lang.Class
 import org.broadinstitute.sting.commandline.{ArgumentMatches, ArgumentSource, ArgumentTypeDescriptor, ParsingEngine}
+import java.lang.reflect.Type
 
 /**
  * An ArgumentTypeDescriptor that can parse the scala collections.
@@ -42,6 +43,10 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
    * @param argumentMatches The argument match strings that were found for this argument source.
    * @return The parsed object.
    */
+  def parse(parsingEngine: ParsingEngine, source: ArgumentSource, typeType: Type, argumentMatches: ArgumentMatches) = {
+    parse(parsingEngine,source, makeRawTypeIfNecessary(typeType), argumentMatches)
+  }
+  
   def parse(parsingEngine: ParsingEngine, source: ArgumentSource, classType: Class[_], argumentMatches: ArgumentMatches) = {
     val componentType = ReflectionUtils.getCollectionType(source.field)
     val componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType)
