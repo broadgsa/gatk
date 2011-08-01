@@ -54,35 +54,10 @@ public class RefMetaDataTracker {
         else {
             map = new HashMap<String, RODRecordList>(allBindings.size());
             for ( RODRecordList rod : allBindings ) {
-                //logger.debug(String.format("Binding %s to %s", name, rod));
                 if ( rod != null )
-                    map.put(canonicalName(rod.getName()), maybeConvertToVariantContext(rod));
+                    map.put(canonicalName(rod.getName()), rod);
             }
         }
-    }
-
-    /**
-     * A private converter that transforms a RODRecordList of objects of type X into
-     * a list of VariantContexts, if possible.
-     *
-     * TODO: should be removed when Features like dbsnp and hapmap produce VCs directly
-     *
-     * @param bindings
-     * @return
-     */
-    private final RODRecordList maybeConvertToVariantContext(RODRecordList bindings) {
-        List<GATKFeature> values = new ArrayList<GATKFeature>(bindings.size());
-
-        for ( GATKFeature rec : bindings ) {
-            if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec.getUnderlyingObject()) ) {
-                final VariantContext vc = VariantContextAdaptors.toVariantContext(bindings.getName(), rec.getUnderlyingObject(), ref);
-                if ( vc != null ) // it's possible that the conversion failed, but we continue along anyway
-                    values.add(new GATKFeature.TribbleGATKFeature(ref.getGenomeLocParser(), vc, rec.getName()));
-            } else
-                values.add(rec);
-        }
-
-        return new RODRecordListImpl(bindings.getName(), values, bindings.getLocation());
     }
 
     // ------------------------------------------------------------------------------------------
@@ -294,11 +269,11 @@ public class RefMetaDataTracker {
     // ------------------------------------------------------------------------------------------
 
     private <T extends Feature> List<T> addValues(final Collection<String> names,
-                                  final Class<T> type,
-                                  final List<T> values,
-                                  final GenomeLoc curLocation,
-                                  final boolean requireStartHere,
-                                  final boolean takeFirstOnly ) {
+                                                  final Class<T> type,
+                                                  final List<T> values,
+                                                  final GenomeLoc curLocation,
+                                                  final boolean requireStartHere,
+                                                  final boolean takeFirstOnly ) {
         for ( String name : names ) {
             RODRecordList rodList = getTrackDataByName(name); // require that the name is an exact match
             addValues(name, type, values, rodList, curLocation, requireStartHere, takeFirstOnly );
@@ -308,12 +283,12 @@ public class RefMetaDataTracker {
     }
 
     private <T extends Feature> List<T> addValues(final String name,
-                                  final Class<T> type,
-                                  final List<T> values,
-                                  final RODRecordList rodList,
-                                  final GenomeLoc curLocation,
-                                  final boolean requireStartHere,
-                                  final boolean takeFirstOnly ) {
+                                                  final Class<T> type,
+                                                  final List<T> values,
+                                                  final RODRecordList rodList,
+                                                  final GenomeLoc curLocation,
+                                                  final boolean requireStartHere,
+                                                  final boolean takeFirstOnly ) {
         for ( GATKFeature rec : rodList ) {
             if ( ! requireStartHere || rec.getLocation().getStart() == curLocation.getStart() ) {  // ok, we are going to keep this thing
                 Object obj = rec.getUnderlyingObject();
