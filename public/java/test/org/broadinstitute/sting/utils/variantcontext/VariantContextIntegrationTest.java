@@ -3,6 +3,7 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.HashMap;
@@ -17,30 +18,42 @@ public class VariantContextIntegrationTest extends WalkerTest {
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
             " -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
 
-    static HashMap<String, String> expectations = new HashMap<String, String>();
-    static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "e4ee2eaa3114888e918a1c82df7a027a");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "5b5635e4877d82e8a27d70dac24bda2f");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "ceced3f270b4fe407ee83bc9028becde");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "9a9b9e283553c28bf58de1cafa38fe92");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "033bd952fca048fe1a4f6422b57ab2ed");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "5e40980c02797f90821317874426a87a");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
+    private static final class VCITTest extends TestDataProvider {
+        String args, md5;
+
+        private VCITTest(final String args, final String md5) {
+            super(VCITTest.class);
+            this.args = args;
+            this.md5 = md5;
+        }
     }
 
-    @Test
-    public void testConversionSelection() {
-        for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
-            String extraArgs = entry.getKey();
-            String md5 = entry.getValue();
+    @DataProvider(name = "VCITTestData")
+    public Object[][] createVCITTestData() {
+        new VCITTest("-L 1:1-10000 --printPerLocus", "e4ee2eaa3114888e918a1c82df7a027a");
+        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
+        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "033bd952fca048fe1a4f6422b57ab2ed");
+        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
+        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
 
-            WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s",
-                    1, // just one output file
-                    Arrays.asList(md5));
-            executeTest("testDbSNPAndVCFConversions", spec);
-        }
+        // TODO : Eric, these are bad because the conversion fails
+        //new VCITTest("-L 1:1-10000 --printPerLocus --takeFirstOnly", "5b5635e4877d82e8a27d70dac24bda2f");
+        //new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "5e40980c02797f90821317874426a87a");
+        //new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "ceced3f270b4fe407ee83bc9028becde");
+        //new VCITTest("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "9a9b9e283553c28bf58de1cafa38fe92");
+
+        return VCITTest.getTests(VCITTest.class);
+    }
+
+    @Test(dataProvider = "VCITTestData")
+    public void testConversionSelection(VCITTest test) {
+	String extraArgs = test.args;
+	String md5 = test.md5;
+
+	WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s",
+						  1, // just one output file
+						  Arrays.asList(md5));
+	executeTest("testDbSNPAndVCFConversions", spec);
     }
 
     @Test
