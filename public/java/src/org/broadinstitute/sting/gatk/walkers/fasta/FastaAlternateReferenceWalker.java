@@ -57,7 +57,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         String refBase = String.valueOf((char)ref.getBase());
 
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts();
+        Collection<VariantContext> vcs = tracker.getValues(VariantContext.class);
 
         // Check to see if we have a called snp
         for ( VariantContext vc : vcs ) {

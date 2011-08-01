@@ -44,8 +44,8 @@ public class MergeAndMatchHaplotypes extends RodWalker<Integer, Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker != null) {
-            Collection<VariantContext> pbts = tracker.getVariantContexts("pbt", ref.getLocus(), true, true);
-            Collection<VariantContext> rbps = tracker.getVariantContexts("rbp", ref.getLocus(), true, true);
+            Collection<VariantContext> pbts = tracker.getValues(VariantContext.class, "pbt", ref.getLocus());
+            Collection<VariantContext> rbps = tracker.getValues(VariantContext.class, "rbp", ref.getLocus());
 
             VariantContext pbt = pbts.iterator().hasNext() ? pbts.iterator().next() : null;
             VariantContext rbp = rbps.iterator().hasNext() ? rbps.iterator().next() : null;

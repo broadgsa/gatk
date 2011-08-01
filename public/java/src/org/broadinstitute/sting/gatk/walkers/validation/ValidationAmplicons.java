@@ -138,8 +138,8 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         // step 3 (or 1 if not new):
         // build up the sequence
 
-        VariantContext mask = tracker.getVariantContext("MaskAlleles",ref.getLocus());
-        VariantContext validate = tracker.getVariantContext("ValidateAlleles",ref.getLocus());
+        VariantContext mask = tracker.getFirstValue(VariantContext.class, "MaskAlleles",ref.getLocus());
+        VariantContext validate = tracker.getFirstValue(VariantContext.class, "ValidateAlleles",ref.getLocus());
 
         if ( mask == null && validate == null ) {
             if ( indelCounter > 0 ) {

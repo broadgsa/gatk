@@ -244,7 +244,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
             return 0;
 
         Set<VariantContext> results = new LinkedHashSet<VariantContext>();
-        for (VariantContext vc : tracker.getVariantContexts("variant", context.getLocation(), true, false)) {
+        for (VariantContext vc : tracker.getValues(VariantContext.class, "variant", context.getLocation())) {
             if ( (vc.isFiltered() && IGNORE_FILTERED_SITES) ||
                     (vc.isVariant() && !vc.isBiallelic()) ) {
                 results.add(vc);

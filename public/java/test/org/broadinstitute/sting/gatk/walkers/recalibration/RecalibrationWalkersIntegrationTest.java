@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.HashMap;
@@ -15,75 +16,106 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     static HashMap<String, String> paramsFilesNoReadGroupTest = new HashMap<String, String>();
     static HashMap<String, String> paramsFilesSolidIndels = new HashMap<String, String>();
 
-    @Test
-    public void testCountCovariates1() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "7b5832d4b2a23b8ef2bb639eb59bfa88" );
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "9c006f8e9fb5752b1c139f5a8cc7ea88");
-        e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "e6f7b4ab9aa291022e0ba8b7dbe4c77e" );
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "e6b98af01c5a08e4954b79ec42db6fc3" );
+    private static final class CCTest extends TestDataProvider {
+        String file, md5;
 
-        for ( String parallelism : Arrays.asList("", " -nt 4")) {
-            for ( Map.Entry<String, String> entry : e.entrySet() ) {
-                String bam = entry.getKey();
-                String md5 = entry.getValue();
-
-                WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                        "-R " + b36KGReference +
-                                " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
-                                " -T CountCovariates" +
-                                " -I " + bam +
-                                ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
-                                        ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
-                                " -cov ReadGroupCovariate" +
-                                " -cov QualityScoreCovariate" +
-                                " -cov CycleCovariate" +
-                                " -cov DinucCovariate" +
-                                " --solid_recal_mode SET_Q_ZERO" +
-                                " -recalFile %s" + parallelism,
-                        1, // just one output file
-                        Arrays.asList(md5));
-                List<File> result = executeTest("testCountCovariates1" + parallelism, spec).getFirst();
-                paramsFiles.put(bam, result.get(0).getAbsolutePath());
-            }
+        private CCTest(final String file, final String md5) {
+            super(CCTest.class);
+            this.file = file;
+            this.md5 = md5;
         }
     }
-    
-    @Test
-    public void testTableRecalibrator1() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0278cce4cfdab869dc0c11d6852a984b" );
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "6797d7ffa4ef6c48413719ba32696ccf");
-        e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "2bb3374dde131791d7638031ae3b3e10" );
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "1f9d8944b73169b367cb83b0d22e5432" );
 
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            String bam = entry.getKey();
-            String md5 = entry.getValue();
-            String paramsFile = paramsFiles.get(bam);
-            System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
-            if ( paramsFile != null ) {
-                WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + b36KGReference +
-                                " -T TableRecalibration" +
-                                " -I " + bam +
-                                ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
+    @DataProvider(name = "cctestdata")
+    public Object[][] createCCTestData() {
+
+        new CCTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "" );
+        new CCTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "");
+        new CCTest( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "" );
+        new CCTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "" );
+        return CCTest.getTests(CCTest.class);
+    }
+
+    @Test(dataProvider = "cctestdata")
+    public void testCountCovariates1(CCTest test) {
+        testCC(test, "");
+    }
+
+    @Test(dataProvider = "cctestdata")
+    public void testCountCovariates4(CCTest test) {
+        testCC(test, " -nt 4");
+    }
+
+    private final void testCC(CCTest test, String parallelism) {
+        String bam = test.file;
+        String md5 = test.md5;
+
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b36KGReference +
+                        " --DBSNP " + GATKDataLocation + "dbsnp_132_b37.vcf" +
+                        " -T CountCovariates" +
+                        " -I " + bam +
+                        ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
+                                ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
+                        " -cov ReadGroupCovariate" +
+                        " -cov QualityScoreCovariate" +
+                        " -cov CycleCovariate" +
+                        " -cov DinucCovariate" +
+                        " --solid_recal_mode SET_Q_ZERO" +
+                        " -recalFile %s" + parallelism,
+                1, // just one output file
+                Arrays.asList(md5));
+        List<File> result = executeTest("testCountCovariates1" + parallelism, spec).getFirst();
+        paramsFiles.put(bam, result.get(0).getAbsolutePath());
+    }
+
+
+    private static final class TRTest extends TestDataProvider {
+        String file, md5;
+
+        private TRTest(final String file, final String md5) {
+            super(TRTest.class);
+            this.file = file;
+            this.md5 = md5;
+        }
+    }
+
+    @DataProvider(name = "trtestdata")
+    public Object[][] createTRTestData() {
+        new TRTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "" );
+        new TRTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "");
+        new TRTest( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "" );
+        new TRTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "" );
+        return TRTest.getTests(TRTest.class);
+    }
+
+    @Test(dataProvider = "trtestdata", dependsOnMethods = "testCountCovariates1")
+    public void testTableRecalibrator1(TRTest test) {
+        String bam = test.file;
+        String md5 = test.md5;
+        String paramsFile = paramsFiles.get(bam);
+        System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
+        if ( paramsFile != null ) {
+            WalkerTestSpec spec = new WalkerTestSpec(
+                    "-R " + b36KGReference +
+                            " -T TableRecalibration" +
+                            " -I " + bam +
+                            ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
-                                " -o %s" +
-                                " --no_pg_tag" +
-                                " --solid_recal_mode SET_Q_ZERO" +
-                                " -recalFile " + paramsFile,
-                        1, // just one output file
-                        Arrays.asList(md5));
-                executeTest("testTableRecalibrator1", spec);
-            }
+                            " -o %s" +
+                            " --no_pg_tag" +
+                            " --solid_recal_mode SET_Q_ZERO" +
+                            " -recalFile " + paramsFile,
+                    1, // just one output file
+                    Arrays.asList(md5));
+            executeTest("testTableRecalibrator1", spec);
         }
     }
 
     @Test
     public void testCountCovariatesUseOriginalQuals() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "3404965ec4fa99873fe6a44521944fd5");
+        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -97,7 +129,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -standard" +
                             " -OQ" +
                             " -recalFile %s" +
-                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod",
+                            " --DBSNP " + GATKDataLocation + "dbsnp_132_b37.vcf",
                     1, // just one output file
                     Arrays.asList(md5));
             executeTest("testCountCovariatesUseOriginalQuals", spec);
@@ -107,7 +139,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorMaxQ70() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0278cce4cfdab869dc0c11d6852a984b" );
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -136,7 +168,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "c9ea5f995e1e2b7a5688533e678dcedc" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -144,7 +176,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_132_b37.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -standard" +
@@ -162,7 +194,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "993fae4270e7e1e15986f270acf247af" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -190,7 +222,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "170f0c3cc4b8d72c539136effeec9a16");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -214,7 +246,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesBED() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "b460478d9683e827784e42bc352db8bb");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -238,7 +270,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesVCFPlusDBsnp() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "a3d892bd60d8f679affda3c1e3af96c1");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -249,7 +281,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -B:anyNameABCD,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
-                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_132_b37.vcf" +
                             " -L 1:10,000,000-10,200,000" +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
@@ -266,7 +298,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "284ccac1f8fe485e52c86333cac7c2d4" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -274,7 +306,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_132_b37.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -cov ReadGroupCovariate" +
@@ -292,7 +324,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "c167799c2d9cab815d7c9b23337f162e" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();

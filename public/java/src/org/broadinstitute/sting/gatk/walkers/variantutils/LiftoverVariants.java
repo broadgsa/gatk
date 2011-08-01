@@ -143,7 +143,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts("variant", context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, "variant", context.getLocation());
         for ( VariantContext vc : VCs )
             convertAndWrite(vc, ref);
 

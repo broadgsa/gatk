@@ -96,8 +96,8 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
 
         List<VariantContext> VCs = new ArrayList<VariantContext>();
         for ( String name : trackNames ) {
-            Collection<VariantContext> vc = tracker.getVariantContexts(name, context.getLocation(), true, true);
-            VCs.addAll(vc);
+            VariantContext vc = tracker.getFirstValue(VariantContext.class, name, context.getLocation());
+            VCs.add(vc);
         }
 
         VariantContext mergedVC = mergeVCsWithGLs(VCs);

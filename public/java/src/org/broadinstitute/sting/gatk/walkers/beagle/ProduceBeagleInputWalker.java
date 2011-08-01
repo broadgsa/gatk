@@ -121,8 +121,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext variant_eval = tracker.getVariantContext(ROD_NAME, loc, true);
-            VariantContext validation_eval = tracker.getVariantContext(VALIDATION_ROD_NAME, loc, true);
+            VariantContext variant_eval = tracker.getFirstValue(VariantContext.class, ROD_NAME, loc);
+            VariantContext validation_eval = tracker.getFirstValue(VariantContext.class, VALIDATION_ROD_NAME, loc);
 
             if ( goodSite(variant_eval,validation_eval) ) {
                 if ( useValidation(validation_eval, ref) ) {

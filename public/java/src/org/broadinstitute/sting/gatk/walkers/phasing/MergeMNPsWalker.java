@@ -98,9 +98,7 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
         if (tracker == null)
             return null;
 
-        boolean requireStartHere = true; // only see each VariantContext once
-        boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(rodName, context.getLocation(), requireStartHere, takeFirstOnly))
+        for (VariantContext vc : tracker.getValues(VariantContext.class, rodName, context.getLocation()))
             writeVCF(vc);
 
         return 0;
