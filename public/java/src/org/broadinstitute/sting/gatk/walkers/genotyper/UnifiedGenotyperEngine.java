@@ -428,7 +428,7 @@ public class UnifiedGenotyperEngine {
                 myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
 
         if ( annotationEngine != null ) {
-            // first off, we want to use the *unfiltered* and *unBAQed* context for the annotations
+            // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             ReadBackedPileup pileup = null;
             if (rawContext.hasExtendedEventPileup())
                 pileup = rawContext.getExtendedEventPileup();
