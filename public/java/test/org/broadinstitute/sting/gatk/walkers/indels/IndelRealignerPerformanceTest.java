@@ -30,7 +30,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -LOD 5" +
                         " -maxConsensuses 100" +
                         " -greedy 100" +
-                        " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
+                        " -B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
                         " -o /dev/null" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-5,650,000" +

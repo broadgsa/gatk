@@ -15,7 +15,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
             " -R " + b36KGReference;
 
     private static String root = cmdRoot +
-            " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
+            " -L 1:1-1,000,000 -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
             " -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
 
     private static final class VCITTest extends TestDataProvider {
@@ -30,17 +30,15 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "VCITTestData")
     public Object[][] createVCITTestData() {
-        new VCITTest("-L 1:1-10000 --printPerLocus", "e4ee2eaa3114888e918a1c82df7a027a");
-        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
-        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "033bd952fca048fe1a4f6422b57ab2ed");
-        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
-        new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
-
-        // TODO : Eric, these are bad because the conversion fails
-        //new VCITTest("-L 1:1-10000 --printPerLocus --takeFirstOnly", "5b5635e4877d82e8a27d70dac24bda2f");
-        //new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "5e40980c02797f90821317874426a87a");
-        //new VCITTest("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "ceced3f270b4fe407ee83bc9028becde");
-        //new VCITTest("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "9a9b9e283553c28bf58de1cafa38fe92");
+        new VCITTest("--printPerLocus", "f36b81b8bcd210c0e3a1058d791b78ec");
+        new VCITTest("--printPerLocus --onlyContextsOfType SNP", "a77492ba003a1fca8d8e0227fa642f34");
+        new VCITTest("--printPerLocus --onlyContextsOfType INDEL", "9e0375a1b680d7df0971dbf256944d7a");
+        new VCITTest("--printPerLocus --onlyContextsOfType MIXED", "93628cbba30033398e7e680b92cb3680");
+        new VCITTest("--printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
+        new VCITTest("--printPerLocus --takeFirstOnly", "c4a3d7545d26880635e0e5e4e69952e2");
+        new VCITTest("--printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "22a7bb9e63d5f2950322c26397670e5c");
+        new VCITTest("--printPerLocus --onlyContextsStartinAtCurrentPosition", "6387c1a400d1872ae4394d01e533c296");
+        new VCITTest("--printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "dde3a3db4d9c57f5042e0dfe03380987");
 
         return VCITTest.getTests(VCITTest.class);
     }
@@ -53,7 +51,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
 	WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s",
 						  1, // just one output file
 						  Arrays.asList(md5));
-	executeTest("testDbSNPAndVCFConversions", spec);
+	executeTest("testSelectors", spec);
     }
 
     @Test
@@ -64,14 +62,5 @@ public class VariantContextIntegrationTest extends WalkerTest {
                 2, // just one output file
                 Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "ff91731213fd0bbdc200ab6fd1c93e63"));
          executeTest("testToVCF", spec);
-    }
-
-    @Test
-    public void testLargeScaleConversion() {
-        // this really just tests that we are seeing the same number of objects over all of chr1
-        WalkerTestSpec spec = new WalkerTestSpec( root + " -L 1" + " -o %s",
-                1, // just one output file
-                Arrays.asList("529f936aa6c303658b23caf4e527782f"));
-         executeTest("testLargeScaleConversion", spec);
     }
 }

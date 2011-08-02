@@ -94,7 +94,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testDBTagWithDbsnp() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -D " + GATKDataLocation + "dbsnp_129_b36.rod -G \"Standard\" -B:variant,VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
+                baseTestString() + " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf -G \"Standard\" -B:variant,VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
                 Arrays.asList("3da8ca2b6bdaf6e92d94a8c77a71313d"));
         executeTest("getting DB tag with dbSNP", spec);
     }

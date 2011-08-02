@@ -29,7 +29,9 @@ import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -54,7 +56,7 @@ import java.util.*;
 /**
  * Converts variants from other file formats to VCF format.
  */
-@Requires(value={},referenceMetaData=@RMD(name=VariantsToVCF.INPUT_ROD_NAME, type=VariantContext.class))
+@Requires(value={})
 @Reference(window=@Window(start=-40,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
@@ -62,7 +64,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     protected VCFWriter baseWriter = null;
     private SortingVCFWriter vcfwriter; // needed because hapmap indel records move
 
-    public static final String INPUT_ROD_NAME = "variant";
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
     protected String sampleName = null;
@@ -98,8 +101,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
 
                 // set the appropriate sample name if necessary
-                if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(INPUT_ROD_NAME) ) {
-                    Genotype g = Genotype.modifyName(vc.getGenotype(INPUT_ROD_NAME), sampleName);
+                if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getVariableName()) ) {
+                    Genotype g = Genotype.modifyName(vc.getGenotype(variants.getVariableName()), sampleName);
                     Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
                     genotypes.put(sampleName, g);
                     vc = VariantContext.modifyGenotypes(vc, genotypes);
@@ -114,7 +117,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Collection<VariantContext> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref) {
         // we need to special case the HapMap format because indels aren't handled correctly
-        List<Object> features = tracker.getValues(INPUT_ROD_NAME);
+        List<Object> features = tracker.getValues(variants.getVariableName());
         if ( features.size() > 0 && features.get(0) instanceof HapMapFeature ) {
             ArrayList<VariantContext> hapmapVCs = new ArrayList<VariantContext>(features.size());
             for ( Object feature : features ) {
@@ -148,7 +151,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                     }
                     refBase = ref.getBases()[hapmap.getStart() - ref.getWindow().getStart()];
                 }
-                VariantContext vc = VariantContextAdaptors.toVariantContext(INPUT_ROD_NAME, hapmap, ref);
+                VariantContext vc = VariantContextAdaptors.toVariantContext(variants.getVariableName(), hapmap, ref);
                 if ( vc != null ) {
                     if ( refBase != null ) {
                         Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
@@ -162,7 +165,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         // for everything else, we can just convert to VariantContext
-        return tracker.getValues(VariantContext.class, INPUT_ROD_NAME, ref.getLocus());
+        return tracker.getValues(variants, ref.getLocus());
     }
 
     private DbSNPFeature getDbsnpFeature(String rsID) {
@@ -216,10 +219,10 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 samples.add(sampleName);
             } else {
                 // try VCF first
-                samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(INPUT_ROD_NAME));
+                samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
 
                 if ( samples.isEmpty() ) {
-                    List<Object> rods = tracker.getValues(INPUT_ROD_NAME);
+                    List<Object> rods = tracker.getValues(variants.getVariableName());
                     if ( rods.size() == 0 )
                         throw new IllegalStateException("No rod data is present");
 

@@ -114,7 +114,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
                 logger.warn("################################################################################");
             }
 
-            Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings, getArgumentCollection().DBSNPFile, parser);
+            Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindingsOldStyle(getArgumentCollection().RODBindings, parser);
             oldStyle.addAll(newStyle);
             engine.setReferenceMetaDataFiles(oldStyle);
 

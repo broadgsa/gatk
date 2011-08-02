@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
@@ -45,6 +47,9 @@ import java.util.*;
  */
 @Requires(value={})
 public class VariantsToTable extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
+
     @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;
 
@@ -132,8 +137,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             return 0;
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
-            Collection<VariantContext> vcs = tracker.getValues(VariantContext.class, context.getLocation());
-            for ( VariantContext vc : vcs) {
+            for ( VariantContext vc : tracker.getValues(variants, context.getLocation())) {
                 if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
                     List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
                     out.println(Utils.join("\t", vals));

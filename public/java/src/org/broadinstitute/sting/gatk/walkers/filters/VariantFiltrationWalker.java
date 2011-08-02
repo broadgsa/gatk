@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -46,9 +48,11 @@ import java.util.*;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
+@Requires(value={})
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written", required=true)
     protected VCFWriter writer = null;
@@ -80,7 +84,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
 
-    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
     private ClusteredSnps clusteredSNPs = null;
     private GenomeLoc previousMaskPosition = null;
@@ -92,8 +95,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     private void initializeVcfWriter() {
 
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+        final List<String> inputNames = Arrays.asList(variants.getVariableName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -149,7 +151,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, INPUT_VARIANT_ROD_BINDING_NAME, context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
 
         // is there a SNP mask present?
         boolean hasMask = tracker.getValues("mask").size() > 0;

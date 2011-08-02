@@ -22,12 +22,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;

@@ -25,9 +25,11 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -67,6 +69,9 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
+
+    @Argument(fullName="rodBind",shortName="-B",doc="Add these ROD bindings to the output Pileup", required=false)
+    public List<RodBinding<Feature>> rods;
 
     public void initialize() {
     }
@@ -112,17 +117,10 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      */
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
         ArrayList<String> rodStrings = new ArrayList<String>();
-        for ( GATKFeature datum : tracker.getAllValuesAsGATKFeatures() ) {
-            if ( datum != null && datum.getUnderlyingObject() instanceof ReferenceOrderedDatum ) {
-                rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron: this line still survives, try to remove it
-            }
+        for ( Feature datum : tracker.getValues(rods) ) {
+            rodStrings.add(datum.toString());
         }
         String rodString = Utils.join(", ", rodStrings);
-
-        DbSNPFeature dbsnp = tracker.getFirstValue(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, DbSNPFeature.class);
-
-        if ( dbsnp != null)
-            rodString += DbSNPHelper.toMediumString(dbsnp);
 
         if ( !rodString.equals("") )
             rodString = "[ROD: " + rodString + "]";
@@ -132,8 +130,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     @Override
     public void onTraversalDone(Integer result) {
-        // Double check traversal result to make count is the same.
-        // TODO: Is this check necessary?
         out.println("[REDUCE RESULT] Traversal result is: " + result);
     }    
 }

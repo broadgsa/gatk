@@ -30,7 +30,9 @@ import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -49,8 +51,10 @@ import java.util.*;
 /**
  * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
+@Requires(value={})
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected File file = null;
@@ -85,12 +89,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
             throw new UserException.BadInput("the chain file you are using is not compatible with the reference you are trying to lift over to; please use the appropriate chain file for the given reference");    
         }
 
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getVariableName()));
 
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
-        if ( vcfHeaders.containsKey("variant") )
-            metaData.addAll(vcfHeaders.get("variant").getMetaData());
+        if ( vcfHeaders.containsKey(variants.getVariableName()) )
+            metaData.addAll(vcfHeaders.get(variants.getVariableName()).getMetaData());
         if ( RECORD_ORIGINAL_LOCATION ) {
             metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
             metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));
@@ -143,7 +147,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, "variant", context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
         for ( VariantContext vc : VCs )
             convertAndWrite(vc, ref);
 

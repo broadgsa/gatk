@@ -81,7 +81,6 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         collect.samFiles = input;
         collect.strictnessLevel = SAMFileReader.ValidationStringency.STRICT;
         collect.referenceFile = new File("referenceFile".toLowerCase());
-        collect.DBSNPFile = "DBSNPFile".toLowerCase();
         collect.unsafe = ValidationExclusion.TYPE.ALL;
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;

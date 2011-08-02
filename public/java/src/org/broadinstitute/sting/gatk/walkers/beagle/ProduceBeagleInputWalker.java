@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -54,10 +51,13 @@ import java.util.*;
 /**
  * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input variant file
  */
-@Requires(value={},referenceMetaData=@RMD(name=ProduceBeagleInputWalker.ROD_NAME, type=VariantContext.class))
+@Requires(value={})
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
-    public static final String ROD_NAME = "variant";
-    public static final String VALIDATION_ROD_NAME = "validation";
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
+
+    @Input(fullName="validation", shortName = "validation", doc="Input VCF file", required=false)
+    public RodBinding<VariantContext> validation;
 
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
@@ -99,7 +99,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
 
-        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(ROD_NAME));
+        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
 
         beagleWriter.print("marker alleleA alleleB");
         for ( String sample : samples )
@@ -121,8 +121,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext variant_eval = tracker.getFirstValue(VariantContext.class, ROD_NAME, loc);
-            VariantContext validation_eval = tracker.getFirstValue(VariantContext.class, VALIDATION_ROD_NAME, loc);
+            VariantContext variant_eval = tracker.getFirstValue(variants, loc);
+            VariantContext validation_eval = tracker.getFirstValue(validation, loc);
 
             if ( goodSite(variant_eval,validation_eval) ) {
                 if ( useValidation(validation_eval, ref) ) {
@@ -303,9 +303,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     private void initializeVcfWriter() {
-
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( VALIDATION_ROD_NAME );
+        final List<String> inputNames = Arrays.asList(validation.getVariableName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

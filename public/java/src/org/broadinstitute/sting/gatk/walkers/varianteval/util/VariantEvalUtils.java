@@ -330,9 +330,7 @@ public class VariantEvalUtils {
      *                       to do this)
      * @return a mapping of track names to a list of VariantContext objects
      */
-    public HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean subsetBySample, boolean trackPerSample) {
-        HashMap<String, HashMap<String, VariantContext>> bindings = new HashMap<String, HashMap<String, VariantContext>>();
-
+    protected void bindVariantContexts(HashMap<String, HashMap<String, VariantContext>> bindings, RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean subsetBySample, boolean trackPerSample) {
         for (String trackName : trackNames) {
             HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
 
@@ -364,8 +362,6 @@ public class VariantEvalUtils {
                 bindings.put(trackName, vcs);
             }
         }
-
-        return bindings;
     }
 
     /**
@@ -393,11 +389,8 @@ public class VariantEvalUtils {
             }
         }
 
-        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, allowableTypes, byFilter, true, perSampleIsEnabled);
-        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allowableTypes, byFilter, false, false);
-
-        vcs.putAll(compBindings);
-        vcs.putAll(evalBindings);
+        bindVariantContexts(vcs, tracker, ref, evalNames, allowableTypes, byFilter, true, perSampleIsEnabled);
+        bindVariantContexts(vcs, tracker, ref, compNames, allowableTypes, byFilter, false, false);
 
         return vcs;
     }

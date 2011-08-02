@@ -29,6 +29,8 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -50,10 +52,10 @@ import java.util.Set;
  * Validates a variants file.
  */
 @Reference(window=@Window(start=0,stop=100))
-@Requires(value={},referenceMetaData=@RMD(name=ValidateVariants.TARGET_ROD_NAME, type=VariantContext.class))
+@Requires(value={})
 public class ValidateVariants extends RodWalker<Integer, Integer> {
-
-    protected static final String TARGET_ROD_NAME = "variant";
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     public enum ValidationType {
         ALL, REF, IDS, ALLELES, CHR_COUNTS
@@ -74,19 +76,14 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     private File file = null;
 
     public void initialize() {
-        for ( ReferenceOrderedDataSource source : getToolkit().getRodDataSources() ) {
-            if ( source.getName().equals(TARGET_ROD_NAME) ) {
-                file = source.getFile();
-                break;
-            }
-        }
+        file = new File(variants.getSource());
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, "variant", context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
         for ( VariantContext vc : VCs )
             validate(vc, tracker, ref);
 

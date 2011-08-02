@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -54,9 +56,10 @@ import java.util.Set;
  * in input variant file.  Will additional hold back a fraction of the sites for evaluation, marking the
  * genotypes at that sites as missing, and writing the truth of these sites to a second VCF file
  */
-@Requires(value={},referenceMetaData=@RMD(name= VariantsToBeagleUnphasedWalker.ROD_NAME, type=VariantContext.class))
+@Requires(value={})
 public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> {
-    public static final String ROD_NAME = "variant";
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which BEAGLE unphased genotypes should be written",required=true)
     protected PrintStream  beagleWriter = null;
@@ -75,7 +78,7 @@ public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> 
     private int testSetSize = 0;
 
     public void initialize() {
-        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(ROD_NAME));
+        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
 
         beagleWriter.print("I marker alleleA alleleB");
         for ( String sample : samples )
@@ -102,7 +105,7 @@ public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> 
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext vc = tracker.getFirstValue(VariantContext.class, ROD_NAME, loc);
+            VariantContext vc = tracker.getFirstValue(variants, loc);
 
             if ( ProduceBeagleInputWalker.canBeOutputToBeagle(vc) ) {
                 // do we want to hold back this site?

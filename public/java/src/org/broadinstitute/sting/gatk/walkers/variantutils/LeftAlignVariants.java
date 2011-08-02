@@ -28,7 +28,9 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -46,8 +48,10 @@ import java.util.*;
  * Left-aligns indels from a variants file.
  */
 @Reference(window=@Window(start=-200,stop=200))
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
+@Requires(value={})
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter baseWriter = null;
@@ -55,10 +59,10 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     private SortingVCFWriter writer;
 
     public void initialize() {
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getVariableName()));
 
-        Set<VCFHeaderLine> headerLines = vcfHeaders.get("variant").getMetaData();
+        Set<VCFHeaderLine> headerLines = vcfHeaders.get(variants.getVariableName()).getMetaData();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
         writer = new SortingVCFWriter(baseWriter, 200);
@@ -68,7 +72,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, "variant", context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
 
         int changedSites = 0;
         for ( VariantContext vc : VCs )

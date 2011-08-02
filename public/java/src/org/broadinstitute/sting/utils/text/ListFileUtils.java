@@ -93,7 +93,8 @@ public class ListFileUtils {
      * @param RODBindings a text equivale
      * @return a list of expanded, bound RODs.
      */
-    public static Collection<RMDTriplet> unpackRODBindings(final Collection<String> RODBindings, final String dbSNPFile, final ParsingEngine parser) {
+    @Deprecated
+    public static Collection<RMDTriplet> unpackRODBindingsOldStyle(final Collection<String> RODBindings, final ParsingEngine parser) {
         // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
@@ -120,17 +121,6 @@ public class ListFileUtils {
                 storageType = RMDTriplet.RMDStorageType.FILE;
 
             rodBindings.add(new RMDTriplet(name,type,fileName,storageType,tags));
-        }
-
-        if (dbSNPFile != null) {
-            if(dbSNPFile.toLowerCase().contains("vcf"))
-                throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
-
-            final Tags tags = parser.getTags(dbSNPFile);
-            String fileName = expandFileName(dbSNPFile);
-            RMDTriplet.RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDTriplet.RMDStorageType.STREAM : RMDTriplet.RMDStorageType.FILE;
-
-            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType,tags));
         }
 
         return rodBindings;

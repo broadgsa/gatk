@@ -36,7 +36,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
-                                        "-D " + b37dbSNP129,
+                                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                                         "-B:eval,VCF " + fundamentalTestVCF,
                                         "-noEV",
                                         "-EV CountVariants",
@@ -56,7 +56,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -77,7 +77,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -99,7 +99,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -120,7 +120,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -141,7 +141,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -162,7 +162,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -183,7 +183,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -206,7 +206,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
@@ -342,7 +342,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestSNPsVCF,
                         "-noEV",
                         "-EV CompOverlap",
@@ -360,7 +360,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-D " + b37dbSNP129,
+                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                         "-B:eval,VCF " + fundamentalTestSNPsOneSampleVCF,
                         "-noEV",
                         "-EV CompOverlap",
@@ -381,7 +381,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
-                                        "-D " + b37dbSNP129,
+                                        "-B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_b37.vcf",
                                         "-B:eval,VCF " + fundamentalTestSNPsVCF,
                                         "-noEV",
                                         "-EV CountVariants",

@@ -24,7 +24,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -44,8 +46,10 @@ import java.util.Set;
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
 @Reference(window=@Window(start=0,stop=100))
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= VariantContext.class))
+@Requires(value={})
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     private static final int MAX_VARIANT_SIZE = 100;
 
@@ -55,10 +59,10 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
     private long failedLocs = 0, totalLocs = 0;
 
     public void initialize() {
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getVariableName()));
 
-        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
+        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey(variants.getVariableName()) ? vcfHeaders.get(variants.getVariableName()).getMetaData() : null, samples);
         writer.writeHeader(vcfHeader);
     }
 
@@ -85,7 +89,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, "variant", context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
         for ( VariantContext vc : VCs )
             filterAndWrite(ref.getBases(), vc);
 

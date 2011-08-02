@@ -168,7 +168,7 @@
     <target name="init.buildall">
         <!-- Set the properties needed to build everything -->
         <property name="gatk.target" value="private"/>
-        <property name="scala.target" value="core"/>
+<!--         <property name="scala.target" value="core"/> -->
     </target>
 
     <target name="git.describe">

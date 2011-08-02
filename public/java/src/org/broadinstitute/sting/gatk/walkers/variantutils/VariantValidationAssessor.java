@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -45,10 +47,10 @@ import java.util.*;
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
 @Reference(window=@Window(start=0,stop=40))
-@Requires(value={},referenceMetaData=@RMD(name=VariantValidationAssessor.INPUT_VARIANT_ROD_BINDING_NAME, type=VariantContext.class))
+@Requires(value={})
 public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, Byte>,Integer> {
-
-    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfwriter = null;
@@ -93,7 +95,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         if ( tracker == null )
             return null;
 
-        VariantContext vc = tracker.getFirstValue(VariantContext.class, INPUT_VARIANT_ROD_BINDING_NAME, ref.getLocus());
+        VariantContext vc = tracker.getFirstValue(variants, ref.getLocus());
         // ignore places where we don't have a variant
         if ( vc == null )
             return null;
@@ -113,8 +115,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     }
 
     public void onTraversalDone(Integer finalReduce) {
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+        final List<String> inputNames = Arrays.asList(variants.getVariableName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

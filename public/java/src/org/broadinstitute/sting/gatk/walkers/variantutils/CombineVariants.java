@@ -54,7 +54,6 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 @Requires(value={})
 public class CombineVariants extends RodWalker<Integer, Integer> {
-
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 

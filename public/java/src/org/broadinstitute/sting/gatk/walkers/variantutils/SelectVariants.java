@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -32,8 +32,6 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -54,8 +52,10 @@ import java.util.*;
  * Takes a VCF file, selects variants based on sample(s) in which it was found and/or on various annotation criteria,
  * recompute the value of certain annotations based on the new sample set, and output a new VCF with the results.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
+@Requires(value={})
 public class SelectVariants extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -156,9 +156,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     private Set<MendelianViolation> mvSet = new HashSet<MendelianViolation>();
 
-    /* default name for the variant dataset (VCF) */
-    private final String variantRodName = "variant";
-
 
     /* variables used by the SELECT RANDOM modules */
     private boolean SELECT_RANDOM_NUMBER = false;
@@ -183,8 +180,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      */
     public void initialize() {
         // Get list of samples to include in the output
-        ArrayList<String> rodNames = new ArrayList<String>();
-        rodNames.add(variantRodName);
+        List<String> rodNames = Arrays.asList(variants.getVariableName());
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
@@ -308,7 +304,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getValues(VariantContext.class, variantRodName, context.getLocation());
+        Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;

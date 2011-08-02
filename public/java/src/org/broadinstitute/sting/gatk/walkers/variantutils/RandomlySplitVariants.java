@@ -25,7 +25,9 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -39,16 +41,15 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Takes a VCF file, randomly splits variants into two different sets, and outputs 2 new VCFs with the results.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
+@Requires(value={})
 public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(fullName="out1", shortName="o1", doc="File #1 to which variants should be written", required=true)
     protected VCFWriter vcfWriter1 = null;
@@ -61,8 +62,6 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="fractionToOut1", shortName="fraction", doc="Fraction of records to be placed in out1 (must be 0 >= fraction <= 1); all other records are placed in out2", required=false)
     protected double fraction = 0.5;
 
-    protected static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
-
     protected int iFraction;
 
     /**
@@ -74,8 +73,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         iFraction = (int)(fraction * 1000.0);
 
         // setup the header info
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+        final List<String> inputNames = Arrays.asList(variants.getVariableName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames);
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
@@ -97,7 +95,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getValues(VariantContext.class, INPUT_VARIANT_ROD_BINDING_NAME, context.getLocation());
+        Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
         for ( VariantContext vc : vcs ) {
             int random = GenomeAnalysisEngine.getRandomGenerator().nextInt(1000);
             if ( random < iFraction )
