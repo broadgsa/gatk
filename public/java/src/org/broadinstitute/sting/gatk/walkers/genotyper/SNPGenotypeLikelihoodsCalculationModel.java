@@ -68,7 +68,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 if ( vc == null ) {
                     vc = vc_input;
                 } else {
-                    logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record only");
+                    logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record");
                 }
             }
         }

@@ -64,7 +64,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
     protected int windowSize = 10;
 
     @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of base qualities needing to mismatch for a position to have high entropy; to disable set to <= 0 or > 1", required=false)
-    protected double mismatchThreshold = 0.15;
+    protected double mismatchThreshold = 0.0;
 
     @Argument(fullName="minReadsAtLocus", shortName="minReads", doc="minimum reads at a locus to enable using the entropy calculation", required=false)
     protected int minReadsAtLocus = 4;

@@ -17,12 +17,12 @@ public class VariantEvalIntegrationTest extends WalkerTest {
             " -R " + b36KGReference;
 
     private static String root = cmdRoot +
-            " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
+            " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
             " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
             " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
 
     private static String rootGZ = cmdRoot +
-            " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
+            " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
             " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf.gz" +
             " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz";
 
@@ -291,12 +291,10 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testEvalTrackWithoutGenotypes() {
-        String dbsnp = GATKDataLocation + "dbsnp_129_b37.rod";
-
         String extraArgs = "-T VariantEval -R " +
                            b37KGReference +
                            " -L 20" +
-                           " -D " + dbsnp +
+                           " -B:dbsnp,vcf " + b37dbSNP132 +
                            " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("58fdc6c42fade3007537bb99fb3ce738"));
@@ -305,11 +303,9 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testMultipleEvalTracksWithoutGenotypes() {
-        String dbsnp = GATKDataLocation + "dbsnp_129_b37.rod";
-
         String extraArgs = "-T VariantEval -R " + b37KGReference +
                 " -L 20" +
-                " -D " + dbsnp +
+                " -B:dbsnp,vcf " + b37dbSNP132 +
                 " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";

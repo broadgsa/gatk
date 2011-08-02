@@ -95,7 +95,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testBadID() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString("validationExampleBad.vcf", "IDS") + " -D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                baseTestString("validationExampleBad.vcf", "IDS") + " -B:dbsnp,vcf " + b36dbSNP129,
                 0,
                 UserException.MalformedFile.class
         );

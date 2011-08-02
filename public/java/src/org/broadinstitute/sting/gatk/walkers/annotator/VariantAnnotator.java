@@ -219,7 +219,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());
                 for ( VariantContext vc : VCs )
-                    annotatedVCs.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
+                    annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
             }
         }
 

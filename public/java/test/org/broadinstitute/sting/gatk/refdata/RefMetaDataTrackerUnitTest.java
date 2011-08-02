@@ -57,7 +57,6 @@ public class RefMetaDataTrackerUnitTest {
     Allele A,C,G,T;
     VariantContext AC_SNP, AG_SNP, AT_SNP;
     TableFeature span10_10, span1_20, span10_20;
-    DbSNPFeature dbsnp1, dbsnp2;
 
     @BeforeClass
     public void beforeClass() {
@@ -75,13 +74,6 @@ public class RefMetaDataTrackerUnitTest {
         span10_10 = makeSpan(10, 10);
         span1_20 = makeSpan(1, 20);
         span10_20 = makeSpan(10, 20);
-
-        // dbsnp records
-        DbSNPCodec dbsnpCodec = new DbSNPCodec();
-        String line1 = Utils.join("\t", "585 chr1 9 9 rs56289060  0  +  - - -/C  genomic  insertion unknown 0  0  unknown  between  1".split(" +"));
-        String line2 = Utils.join("\t", "585 chr1 9 10 rs55998931  0  +  C C C/T  genomic  single   unknown 0 0 unknown exact 1".split(" +"));
-        dbsnp1 = (DbSNPFeature)dbsnpCodec.decode(line1);
-        dbsnp2 = (DbSNPFeature)dbsnpCodec.decode(line2);
     }
 
     private class MyTest extends BaseTest.TestDataProvider {
@@ -276,23 +268,5 @@ public class RefMetaDataTrackerUnitTest {
 
         if ( ! requireExact && ! expected.isEmpty() )
             Assert.assertTrue(foundAny, "Never found any got values matching one of the expected values bound to " + name + " in " + tracker);
-    }
-
-    @Test(enabled = true, dataProvider = "testAdaptors")
-    public void testAdaptors(MyTestAdaptors test) {
-        logger.warn("Testing " + test + " for number of bound tracks");
-        RefMetaDataTracker tracker = test.makeTracker();
-        Assert.assertEquals(tracker.getNumberOfTracksWithValue(), test.nBoundTracks());
-
-        // all of the objects should be of type VariantContext
-        for ( Feature v : tracker.getValues(Feature.class) )
-            Assert.assertEquals(v.getClass(), VariantContext.class, "Conversion failed from dbsnp to variant context in RefMetaDataTracker");
-    }
-
-    @DataProvider(name = "testAdaptors")
-    public Object[][] createTestAdaptors() {
-        new MyTestAdaptors(Arrays.asList(dbsnp1));
-        new MyTestAdaptors(Arrays.asList(dbsnp1, dbsnp2));
-        return MyTestAdaptors.getTests(MyTestAdaptors.class);
     }
 }
