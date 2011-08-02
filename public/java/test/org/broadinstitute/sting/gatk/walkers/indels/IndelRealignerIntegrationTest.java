@@ -32,13 +32,6 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList(base_md5_with_SW_or_VCF));
         executeTest("test realigner defaults with VCF", spec2);
-
-        WalkerTestSpec spec3 = new WalkerTestSpec(
-                baseCommand + "-D " + GATKDataLocation + "dbsnp_129_b36.rod",
-                1,
-                Arrays.asList(base_md5));
-        executeTest("realigner defaults with dbsnp", spec3);
-
     }
 
     @Test
@@ -48,12 +41,6 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList("3dd5d2c9931b375455af0bff1a2c4888"));
         executeTest("realigner known indels only from VCF", spec1);
-
-        WalkerTestSpec spec2 = new WalkerTestSpec(
-                baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -D " + GATKDataLocation + "dbsnp_129_b36.rod",
-                1,
-                Arrays.asList("05a114623c126b0398fbc1703437461e"));
-        executeTest("realigner known indels only from dbsnp", spec2);
     }
 
     @Test
@@ -63,12 +50,6 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList(base_md5_with_SW_or_VCF));
         executeTest("realigner use SW from VCF", spec1);
-
-        WalkerTestSpec spec2 = new WalkerTestSpec(
-                baseCommand + "--consensusDeterminationModel USE_SW -D " + GATKDataLocation + "dbsnp_129_b36.rod",
-                1,
-                Arrays.asList(base_md5_with_SW_or_VCF));
-        executeTest("realigner use SW from dbsnp", spec2);
     }
 
     @Test

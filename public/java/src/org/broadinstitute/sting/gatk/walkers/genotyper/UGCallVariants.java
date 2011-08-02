@@ -62,7 +62,6 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
     private Set<String> trackNames = new HashSet<String>();
 
     public void initialize() {
-        UAC.NO_SLOD = true;
 
         for ( ReferenceOrderedDataSource d : getToolkit().getRodDataSources() ) {
             if ( d.getName().startsWith("variant") )
