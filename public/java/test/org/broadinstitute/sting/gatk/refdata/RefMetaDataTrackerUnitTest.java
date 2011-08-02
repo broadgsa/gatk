@@ -226,7 +226,7 @@ public class RefMetaDataTrackerUnitTest {
         RefMetaDataTracker tracker = test.makeTracker();
 
         for ( String nameAsString : Arrays.asList("A", "B") ) {
-            RodBinding<Feature> binding = new RodBinding(Feature.class, nameAsString, "none", new Tags());
+            RodBinding<Feature> binding = new RodBinding<Feature>(Feature.class, nameAsString, "none", new Tags());
             List<Feature> v1 = tracker.getValues(binding);
             testGetter(nameAsString, v1, test.expected(nameAsString), true, tracker);
 
@@ -239,6 +239,29 @@ public class RefMetaDataTrackerUnitTest {
             Feature v4 = tracker.getFirstValue(binding, locus);
             testGetter(nameAsString, Arrays.asList(v4), startingHere(test.expected(nameAsString)), false, tracker);
         }
+    }
+
+    @Test(enabled = true, dataProvider = "tests")
+    public void testGettersAsListOfRodBindings(MyTest test) {
+        logger.warn("Testing " + test + " for get() methods for List<RodBindings>");
+        RefMetaDataTracker tracker = test.makeTracker();
+
+        String nameAsString = "A+B";
+        RodBinding<Feature> A = new RodBinding<Feature>(Feature.class, "A", "none", new Tags());
+        RodBinding<Feature> B = new RodBinding<Feature>(Feature.class, "B", "none", new Tags());
+        List<RodBinding<Feature>> binding = Arrays.asList(A, B);
+
+        List<Feature> v1 = tracker.getValues(binding);
+        testGetter(nameAsString, v1, test.expected(nameAsString), true, tracker);
+
+        List<Feature> v2 = tracker.getValues(binding, locus);
+        testGetter(nameAsString, v2, startingHere(test.expected(nameAsString)), true, tracker);
+
+        Feature v3 = tracker.getFirstValue(binding);
+        testGetter(nameAsString, Arrays.asList(v3), test.expected(nameAsString), false, tracker);
+
+        Feature v4 = tracker.getFirstValue(binding, locus);
+        testGetter(nameAsString, Arrays.asList(v4), startingHere(test.expected(nameAsString)), false, tracker);
     }
 
     private List<GATKFeature> startingHere(List<GATKFeature> l) {

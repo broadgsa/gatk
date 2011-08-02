@@ -32,7 +32,6 @@ import java.util.*;
  */
 public class RefMetaDataTracker {
     // TODO: this should be a list, not a map, actually
-
     private final static RODRecordList EMPTY_ROD_RECORD_LIST = new RODRecordListImpl("EMPTY");
 
     final Map<String, RODRecordList> map;
@@ -137,6 +136,26 @@ public class RefMetaDataTracker {
     public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
         return getFirstValue(rodBinding.getType(), rodBinding.getVariableName(), onlyAtThisLoc);
     }
+
+    public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings) {
+        for ( RodBinding<T> rodBinding : rodBindings ) {
+            T val = getFirstValue(rodBinding);
+            if ( val != null )
+                return val;
+        }
+        return null;
+    }
+
+    public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings, final GenomeLoc onlyAtThisLoc) {
+        for ( RodBinding<T> rodBinding : rodBindings ) {
+            T val = getFirstValue(rodBinding, onlyAtThisLoc);
+            if ( val != null )
+                return val;
+        }
+        return null;
+    }
+
+
 
     public boolean hasValues(final RodBinding rodBinding) {
         return hasValues(rodBinding.getVariableName());
