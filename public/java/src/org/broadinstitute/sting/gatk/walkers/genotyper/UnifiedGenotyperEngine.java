@@ -247,7 +247,7 @@ public class UnifiedGenotyperEngine {
         }
         
         if ( annotationEngine != null ) {
-            // we want to use the *unfiltered* and *unBAQed* context for the annotations
+            // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             ReadBackedPileup pileup = null;
             if (rawContext.hasExtendedEventPileup())
                 pileup = rawContext.getExtendedEventPileup();
