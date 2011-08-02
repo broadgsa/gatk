@@ -28,8 +28,6 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.iterators.CloseableTribbleIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.Iterator;
-
 
 /**
  * 

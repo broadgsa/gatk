@@ -25,20 +25,21 @@
 
 package org.broadinstitute.sting.analyzecovariates;
 
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.gatk.walkers.recalibration.*;
+import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
+import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
+import org.broadinstitute.sting.gatk.walkers.recalibration.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.commandline.Argument;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.io.*;
 
 /**
  * Created by IntelliJ IDEA.

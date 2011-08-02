@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.gatk.refdata.features.annotator;
 
+import org.broad.tribble.Feature;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.broad.tribble.Feature;
 
 /**
  * This class represents a single record in an AnnotatorInputTable.

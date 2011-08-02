@@ -1,0 +1,36 @@
+<#include "common.html"/>
+
+<#macro emitGroup group>
+  <table id="hor-minimalist-b">
+  <h2>${group.name}</h2>
+  <p>
+  ${group.summary}  
+  <p>
+  <tr>
+     <th>Name</th>
+     <th>Summary</th>
+  </tr>
+    <#list data as datum>
+        <#if datum.group == group.name>
+            <tr>
+               <td><a href="${datum.filename}">${datum.name}</a></td>
+               <td>${datum.summary}</td>
+            </tr>
+        </#if>
+    </#list>
+  </table>
+</#macro>   
+
+<html>
+<@makeHeader title="GATK documentation index"/>
+<body>
+  <h1>GATK documentation index</h1>
+  <@headerInfo />
+  <#list groups?sort_by("name") as group>
+    <@emitGroup group=group/>
+  </#list>
+  
+  <@footerInfo />
+</body>
+</html>
+

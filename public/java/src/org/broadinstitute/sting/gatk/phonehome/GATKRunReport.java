@@ -26,19 +26,16 @@ package org.broadinstitute.sting.gatk.phonehome;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.simpleframework.xml.Element;
@@ -157,9 +154,13 @@ public class GATKRunReport {
     private long nReads;
 
     public enum PhoneHomeOption {
+        /** Disable phone home */
         NO_ET,
+        /** Standard option.  Writes to local repository if it can be found, or S3 otherwise */
         STANDARD,
+        /** Force output to STDOUT.  For debugging only */
         STDOUT,
+        /** Force output to S3.  For debugging only */
         AWS_S3   // todo -- remove me -- really just for testing purposes
     }
 

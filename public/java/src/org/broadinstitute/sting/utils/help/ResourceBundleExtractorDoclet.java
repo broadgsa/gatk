@@ -26,14 +26,11 @@
 package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.*;
+import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.*;
 import java.util.*;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 
 /**
  * Extracts certain types of javadoc (specifically package and class descriptions) and makes them available
@@ -46,17 +43,21 @@ public class ResourceBundleExtractorDoclet {
     /**
      * Taglet for the particular version number.
      */
-    private static final String VERSION_TAGLET_NAME = "version";
+    public static final String VERSION_TAGLET_NAME = "version";
+    public static final String SUMMARY_TAGLET_NAME = "help.summary";
+    public static final String DESCRIPTION_TAGLET_NAME = "help.description";
 
     /**
      * Maintains a collection of resources in memory as they're accumulated.
      */
-    private static final Properties resourceText = new Properties();
+    protected final Properties resourceText = new Properties();
 
     /**
      * Maintains a collection of classes that should really be documented.
      */
-    private static final Set<String> undocumentedWalkers = new HashSet<String>();
+    protected final Set<String> undocumentedWalkers = new HashSet<String>();
+
+    protected String buildTimestamp = null, absoluteVersion = null;
 
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
@@ -65,26 +66,38 @@ public class ResourceBundleExtractorDoclet {
      * @throws IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
+        ResourceBundleExtractorDoclet doclet = new ResourceBundleExtractorDoclet();
+        PrintStream out = doclet.loadData(rootDoc, true);
+        doclet.processDocs(rootDoc, out);
+        return true;
+    }
+
+    protected PrintStream loadData(RootDoc rootDoc, boolean overwriteResourcesFile) {
         PrintStream out = System.out;
-        String buildTimestamp = null, versionPrefix = null, versionSuffix = null, absoluteVersion = null;
 
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-out")) {
-                loadExistingResourceFile(options[1], rootDoc);
-                out = new PrintStream(options[1]);
+                try {
+                    loadExistingResourceFile(options[1], rootDoc);
+                    if ( overwriteResourcesFile )
+                        out = new PrintStream(options[1]);
+                } catch ( FileNotFoundException e ) {
+                    throw new RuntimeException(e);
+                } catch ( IOException e ) {
+                    throw new RuntimeException(e);
+                }
             }
             if(options[0].equals("-build-timestamp"))
                 buildTimestamp = options[1];
-            if(options[0].equals("-version-prefix"))
-                versionPrefix = options[1];
-            if(options[0].equals("-version-suffix"))
-                versionSuffix = options[1];
             if (options[0].equals("-absolute-version"))
                 absoluteVersion = options[1];
         }
 
         resourceText.setProperty("build.timestamp",buildTimestamp);
+        return out;
+    }
 
+    protected void processDocs(RootDoc rootDoc, PrintStream out) {
         // Cache packages as we see them, since there's no direct way to iterate over packages.
         Set<PackageDoc> packages = new HashSet<PackageDoc>();
 
@@ -95,13 +108,19 @@ public class ResourceBundleExtractorDoclet {
             if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
                 undocumentedWalkers.add(currentClass.name());
 
-            renderHelpText(getClassName(currentClass),currentClass,versionPrefix,versionSuffix,absoluteVersion);
+            renderHelpText(HelpUtils.getClassName(currentClass),currentClass);
         }
 
         for(PackageDoc currentPackage: packages)
-            renderHelpText(currentPackage.name(),currentPackage,versionPrefix,versionSuffix,absoluteVersion);
+            renderHelpText(currentPackage.name(),currentPackage);
 
-        resourceText.store(out,"Strings displayed by the Sting help system");
+        try {
+            resourceText.store(out,"Strings displayed by the Sting help system");
+        } catch ( FileNotFoundException e ) {
+            throw new RuntimeException(e);
+        } catch ( IOException e ) {
+            throw new RuntimeException(e);
+        }
 
         // ASCII codes for making text blink
         final String blink = "\u001B\u005B\u0035\u006D";
@@ -109,8 +128,6 @@ public class ResourceBundleExtractorDoclet {
 
         if(undocumentedWalkers.size() > 0)
             Utils.warnUser(String.format("The following walkers are currently undocumented: %s%s%s", blink, Utils.join(" ",undocumentedWalkers), reset));
-
-        return true;
     }
 
     /**
@@ -119,7 +136,7 @@ public class ResourceBundleExtractorDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-build-timestamp") || option.equals("-version-prefix") || option.equals("-version-suffix") || option.equals("-out") || option.equals("-absolute-version") ) {
+        if(option.equals("-build-timestamp") || option.equals("-out") || option.equals("-absolute-version") ) {
             return 2;
         }
         return 0;
@@ -135,7 +152,7 @@ public class ResourceBundleExtractorDoclet {
      * @throws IOException       if there is an I/O-related error other than FileNotFoundException
      *                           while attempting to read the resource file.
      */
-    private static void loadExistingResourceFile( String resourceFileName, RootDoc rootDoc ) throws IOException {
+    private void loadExistingResourceFile( String resourceFileName, RootDoc rootDoc ) throws IOException {
         try {
             BufferedReader resourceFile = new BufferedReader(new FileReader(resourceFileName));
             try {
@@ -155,27 +172,8 @@ public class ResourceBundleExtractorDoclet {
      * @param classDoc the type of the given class.
      * @return True if the class of the given name is a walker.  False otherwise.
      */
-    private static boolean isWalker(ClassDoc classDoc) {
-        try {
-            Class type = Class.forName(getClassName(classDoc));
-            return Walker.class.isAssignableFrom(type) && JVMUtils.isConcrete(type);
-        }
-        catch(Throwable t) {
-            // Ignore errors.
-            return false;
-        }
-    }
-
-    /**
-     * Reconstitute the class name from the given class JavaDoc object.
-     * @param classDoc the Javadoc model for the given class.
-     * @return The (string) class name of the given class.
-     */
-    private static String getClassName(ClassDoc classDoc) {
-        PackageDoc containingPackage = classDoc.containingPackage();
-        return containingPackage.name().length() > 0 ?
-                String.format("%s.%s",containingPackage.name(),classDoc.name()) :
-                String.format("%s",classDoc.name());
+    protected static boolean isWalker(ClassDoc classDoc) {
+        return HelpUtils.assignableToClass(classDoc, Walker.class, true);
     }
 
     /**
@@ -184,8 +182,6 @@ public class ResourceBundleExtractorDoclet {
      * @return True if the JavaDoc is missing.  False otherwise.
      */
     private static boolean isRequiredJavadocMissing(ClassDoc classDoc) {
-        if(classDoc.containingPackage().name().contains("oneoffprojects"))
-            return false;
         return classDoc.commentText().length() == 0 || classDoc.commentText().contains("Created by IntelliJ");
     }
 
@@ -193,53 +189,23 @@ public class ResourceBundleExtractorDoclet {
      * Renders all the help text required for a given name.
      * @param elementName element name to use as the key
      * @param element Doc element to process.
-     * @param versionPrefix Text to add to the start of the version string.
-     * @param versionSuffix Text to add to the end of the version string.
      */
-    private static void renderHelpText(String elementName, Doc element, String versionPrefix, String versionSuffix, String absoluteVersion) {
-        // Extract overrides from the doc tags.
-        String name = null;
-        String version = null;
+    private void renderHelpText(String elementName, Doc element) {
         StringBuilder summaryBuilder = new StringBuilder();
         for(Tag tag: element.firstSentenceTags())
              summaryBuilder.append(tag.text());
         String summary = summaryBuilder.toString();
         String description = element.commentText();
 
-        for(Tag tag: element.tags()) {
-            if(tag.name().equals("@"+DisplayNameTaglet.NAME)) {
-                if(name != null)
-                    throw new ReviewedStingException("Only one display name tag can be used per package / walker.");
-                name = tag.text();
-            }
-            else if(tag.name().equals("@"+VERSION_TAGLET_NAME)) {
-                if ( absoluteVersion != null ) {
-                    version = absoluteVersion;
-                }
-                else {
-                    version = String.format("%s%s%s", (versionPrefix != null) ? versionPrefix : "",
-                                                      tag.text(),
-                                                      (versionSuffix != null) ? versionSuffix : "");
-                }
-            }
-            else if(tag.name().equals("@"+SummaryTaglet.NAME))
-                summary = tag.text();
-            else if(tag.name().equals("@"+DescriptionTaglet.NAME))
-                description = tag.text();
-        }
-
-        // Write out an alternate element name, if exists.
-        if(name != null)
-            resourceText.setProperty(String.format("%s.%s",elementName,DisplayNameTaglet.NAME),name);
-
-        if(version != null)
-            resourceText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),version);
+        // this might seem unnecessary, but the GATK command line program uses this tag to determine the version when running
+        if(absoluteVersion != null)
+            resourceText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),absoluteVersion);
 
         // Write out an alternate element summary, if exists.
-        resourceText.setProperty(String.format("%s.%s",elementName,SummaryTaglet.NAME),formatText(summary));
+        resourceText.setProperty(String.format("%s.%s",elementName,SUMMARY_TAGLET_NAME),formatText(summary));
 
         // Write out an alternate description, if present.
-        resourceText.setProperty(String.format("%s.%s",elementName,DescriptionTaglet.NAME),formatText(description));
+        resourceText.setProperty(String.format("%s.%s",elementName,DESCRIPTION_TAGLET_NAME),formatText(description));
     }
 
     /**

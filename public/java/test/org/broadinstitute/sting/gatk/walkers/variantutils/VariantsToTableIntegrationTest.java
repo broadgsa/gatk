@@ -44,7 +44,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testComplexVariantsToTable() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableCmd(" -AMD"),
-                Arrays.asList("b2a3712c1bfad8f1383ffada8b5017ba"));
+                Arrays.asList("e8f771995127b727fb433da91dd4ee98"));
         executeTest("testComplexVariantsToTable", spec).getFirst();
     }
 

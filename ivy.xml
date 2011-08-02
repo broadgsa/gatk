@@ -30,6 +30,9 @@
 
     <!-- Dependencies for the graph aligner -->  
     <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3"/>
+
+    <!-- Dependencies for the html walker documention -->  
+    <dependency org="org.freemarker" name="freemarker" rev="2.3.18"/>
      
     <!-- Commons Dependencies -->  
     <dependency org="org.apache.commons" name="commons-email" rev="1.2"/>

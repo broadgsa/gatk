@@ -25,16 +25,14 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
@@ -42,11 +40,10 @@ import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
@@ -394,7 +391,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         if (DEBUG)
             System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
                     (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
-
+        //System.out.println(eventLength);
         haplotypeMap = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
             ref, hsize, numPrefBases);
 
@@ -421,8 +418,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
 
 
-                // which genotype likelihoods correspond to two most likely alleles? By convention, likelihood vector is lexically ordered, for example
-                // for 3 alleles it's 00 01 02 11 12 22
+                // which genotype likelihoods correspond to two most likely alleles? By convention, likelihood vector is ordered as for example
+                // for 3 alleles it's 00 01 11 02 12 22
                  GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
                         alleleList,
                         genotypeLikelihoods,

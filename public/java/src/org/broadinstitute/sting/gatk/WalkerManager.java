@@ -25,19 +25,16 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
-import org.broadinstitute.sting.utils.help.DescriptionTaglet;
-import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
-import org.broadinstitute.sting.utils.help.SummaryTaglet;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
 
@@ -83,19 +80,10 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return A suitable display name for the package.
      */
     public String getPackageDisplayName(String packageName) {
-        // Try to find an override for the display name of this package.
-        String displayNameKey = String.format("%s.%s",packageName,DisplayNameTaglet.NAME);
-        String displayName;
-        if(helpText.containsKey(displayNameKey)) {
-            displayName = helpText.getString(displayNameKey);
-        }
-        else {
-            // If no override exists...
-            // ...try to compute the override from the text of the package name, while accounting for
-            // unpackaged walkers.
-            displayName = packageName.substring(packageName.lastIndexOf('.')+1);
-            if(displayName.trim().equals("")) displayName = "<unpackaged>";
-        }
+        // ...try to compute the override from the text of the package name, while accounting for
+        // unpackaged walkers.
+        String displayName = packageName.substring(packageName.lastIndexOf('.')+1);
+        if (displayName.trim().equals("")) displayName = "<unpackaged>";
         return displayName;
     }
 
@@ -105,7 +93,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Package help text, or "" if none exists.
      */
     public String getPackageSummaryText(String packageName) {
-        String key = String.format("%s.%s",packageName,SummaryTaglet.NAME);
+        String key = String.format("%s.%s",packageName, ResourceBundleExtractorDoclet.SUMMARY_TAGLET_NAME);
         if(!helpText.containsKey(key))
             return "";
         return helpText.getString(key);
@@ -117,7 +105,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Walker summary description, or "" if none exists.
      */
     public String getWalkerSummaryText(Class<? extends Walker> walkerType) {
-        String walkerSummary = String.format("%s.%s",walkerType.getName(), SummaryTaglet.NAME);
+        String walkerSummary = String.format("%s.%s",walkerType.getName(), ResourceBundleExtractorDoclet.SUMMARY_TAGLET_NAME);
         if(!helpText.containsKey(walkerSummary))
             return "";
         return helpText.getString(walkerSummary);
@@ -138,7 +126,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Walker full description, or "" if none exists.
      */
     public String getWalkerDescriptionText(Class<? extends Walker> walkerType) {
-        String walkerDescription = String.format("%s.%s",walkerType.getName(), DescriptionTaglet.NAME);
+        String walkerDescription = String.format("%s.%s",walkerType.getName(), ResourceBundleExtractorDoclet.DESCRIPTION_TAGLET_NAME);
         if(!helpText.containsKey(walkerDescription))
             return "";
         return helpText.getString(walkerDescription);

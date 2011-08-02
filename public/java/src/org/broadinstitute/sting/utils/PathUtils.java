@@ -2,10 +2,10 @@ package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.

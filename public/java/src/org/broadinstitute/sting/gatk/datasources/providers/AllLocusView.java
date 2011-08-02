@@ -1,16 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.ArrayList;
-import java.util.Collections;
-
-import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 /**
  * User: hanna
  * Date: May 13, 2009

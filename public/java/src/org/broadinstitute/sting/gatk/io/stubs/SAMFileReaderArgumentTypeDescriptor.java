@@ -24,14 +24,14 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.ArgumentSource;
+import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.commandline.ArgumentMatches;
+import org.broadinstitute.sting.commandline.ArgumentSource;
+import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.commandline.ParsingEngine;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import net.sf.samtools.SAMFileReader;
 
 import java.io.File;
 

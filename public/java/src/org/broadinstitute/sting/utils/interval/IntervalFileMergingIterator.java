@@ -25,16 +25,16 @@
 
 package org.broadinstitute.sting.utils.interval;
 
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.StringToGenomeLocIteratorAdapter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.StringToGenomeLocIteratorAdapter;
 
-import java.util.Iterator;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Iterator;
 
 /**
  * Created by IntelliJ IDEA.

@@ -25,19 +25,25 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.apache.log4j.*;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Locale;
 
 public abstract class CommandLineProgram {
 
     /** The command-line program and the arguments it returned. */
-    protected ParsingEngine parser = null;
+    public ParsingEngine parser = null;
 
     /** the default log level */
     @Argument(fullName = "logging_level",
@@ -138,6 +144,11 @@ public abstract class CommandLineProgram {
 
     public static int result = -1;
 
+    @SuppressWarnings("unchecked")
+    public static void start(CommandLineProgram clp, String[] args) throws Exception {
+        start(clp, args, false);
+    }
+
     /**
      * This function is called to start processing the command line, and kick
      * off the execute message of the program.
@@ -147,7 +158,7 @@ public abstract class CommandLineProgram {
      * @throws Exception when an exception occurs
      */
     @SuppressWarnings("unchecked")
-    public static void start(CommandLineProgram clp, String[] args) throws Exception {
+    public static void start(CommandLineProgram clp, String[] args, boolean dryRun) throws Exception {
 
         try {
             // setup our log layout
@@ -174,8 +185,9 @@ public abstract class CommandLineProgram {
                 //   - InvalidArgument in case these arguments are specified by plugins.
                 //   - MissingRequiredArgument in case the user requested help.  Handle that later, once we've
                 //                             determined the full complement of arguments.
-                parser.validate(EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument,
-                                           ParsingEngine.ValidationType.InvalidArgument));
+                if ( ! dryRun )
+                    parser.validate(EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument,
+                            ParsingEngine.ValidationType.InvalidArgument));
                 parser.loadArgumentsIntoObject(clp);
 
                 // Initialize the logger using the loaded command line.
@@ -189,36 +201,40 @@ public abstract class CommandLineProgram {
                 if (isHelpPresent(parser))
                     printHelpAndExit(clp, parser);
 
-                parser.validate();
+                if ( ! dryRun ) parser.validate();
             } else {
                 parser.parse(args);
 
-                if (isHelpPresent(parser))
-                    printHelpAndExit(clp, parser);
+                if ( ! dryRun ) {
+                    if (isHelpPresent(parser))
+                        printHelpAndExit(clp, parser);
 
-                parser.validate();
+                    parser.validate();
+                }
                 parser.loadArgumentsIntoObject(clp);
 
                 // Initialize the logger using the loaded command line.
                 clp.setupLoggerLevel(layout);
             }
 
-            // if they specify a log location, output our data there
-            if (clp.toFile != null) {
-                FileAppender appender;
-                try {
-                    appender = new FileAppender(layout, clp.toFile, false);
-                    logger.addAppender(appender);
-                } catch (IOException e) {
-                    throw new RuntimeException("Unable to re-route log output to " + clp.toFile + " make sure the destination exists");
+            if ( ! dryRun ) {
+                // if they specify a log location, output our data there
+                if (clp.toFile != null) {
+                    FileAppender appender;
+                    try {
+                        appender = new FileAppender(layout, clp.toFile, false);
+                        logger.addAppender(appender);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Unable to re-route log output to " + clp.toFile + " make sure the destination exists");
+                    }
                 }
+
+                // regardless of what happens next, generate the header information
+                HelpFormatter.generateHeaderInformation(clp.getApplicationDetails(), args);
+
+                // call the execute
+                CommandLineProgram.result = clp.execute();
             }
-
-            // regardless of what happens next, generate the header information
-            HelpFormatter.generateHeaderInformation(clp.getApplicationDetails(), args);
-
-            // call the execute
-            CommandLineProgram.result = clp.execute();
         }
         catch (ArgumentException e) {
             clp.parser.printHelp(clp.getApplicationDetails());

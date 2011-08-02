@@ -53,6 +53,11 @@ trait JobRunner[TFunction <: QFunction] {
   def status: RunnerStatus.Value
 
   /**
+   * Checks if the status has been unknown for an extended period of time.
+   */
+  def checkUnknownStatus() {}
+
+  /**
    * Returns the function to be run.
    */
   def function: TFunction

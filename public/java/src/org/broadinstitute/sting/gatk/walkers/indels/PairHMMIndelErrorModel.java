@@ -28,30 +28,25 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-/*import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
-import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;
-import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDatum;
-import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalibrationArgumentCollection;
-*/import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+
+/*import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDatum;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalibrationArgumentCollection;
+*/
 
 
 public class PairHMMIndelErrorModel {
@@ -1047,8 +1042,8 @@ public class PairHMMIndelErrorModel {
 
         int k=0;
         double maxElement = Double.NEGATIVE_INFINITY;
-        for (int i=0; i < hSize; i++) {
-            for (int j=i; j < hSize; j++){
+        for (int j=0; j < hSize; j++) {
+            for (int i=0; i <= j; i++){
                 genotypeLikelihoods[k++] = haplotypeLikehoodMatrix[i][j];
                 if (haplotypeLikehoodMatrix[i][j] > maxElement)
                     maxElement = haplotypeLikehoodMatrix[i][j];

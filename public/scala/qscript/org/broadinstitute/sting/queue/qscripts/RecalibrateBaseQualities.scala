@@ -20,14 +20,14 @@ class RecalibrateBaseQualities extends QScript {
   @Input(doc="input BAM file - or list of BAM files", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=false)
-  var R: String = new File("/humgen/gsa-scr1/carneiro/stable/R")
+  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
+  var R: String = _
 
-  @Input(doc="Reference fasta file", shortName="R", required=false)
-  var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
+  @Input(doc="Reference fasta file", shortName="R", required=true)
+  var reference: File = _ // new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
-  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
-  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
+  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=true)
+  var dbSNP: File = _     // new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   val queueLogDir: String = ".qlog/"
   var nContigs: Int = 0
@@ -42,8 +42,8 @@ class RecalibrateBaseQualities extends QScript {
       val recalFile1: File = swapExt(bam, ".bam", ".recal1.csv")
       val recalFile2: File = swapExt(bam, ".bam", ".recal2.csv")
       val recalBam: File   = swapExt(bam, ".bam", ".recal.bam")
-      val path1: String    = bam + ".before"
-      val path2: String    = bam + ".after"
+      val path1: String    = recalBam + ".before"
+      val path2: String    = recalBam + ".after"
 
       add(cov(bam, recalFile1),
           recal(bam, recalFile1, recalBam),

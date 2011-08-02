@@ -25,33 +25,26 @@
 
 package org.broadinstitute.sting.gatk.executive;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.lang.management.ManagementFactory;
-import java.util.*;
-
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.threading.*;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import java.lang.management.ManagementFactory;
+import java.util.Collection;
 
 
 /**
@@ -86,8 +79,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     private final MBeanServer mBeanServer;
     private final ObjectName mBeanName;
 
-    protected GenomeLocProcessingTracker processingTracker;
-
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
      * selected walker.
@@ -101,11 +92,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
-        if (engine.getArguments().processingTrackerFile != null) {
-            if ( walker instanceof ReadWalker )
-                throw new UserException.BadArgumentValue("C", String.format("Distributed GATK processing not enabled for read walkers"));
-        }
-
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
             if(walker.isReduceByInterval())
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
@@ -159,33 +145,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         }
         catch (JMException ex) {
             throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
-        }
-
-        //
-        // create the processing tracker
-        //
-        if ( engine.getArguments().processingTrackerFile != null ) {
-            logger.warn("Distributed GATK is an experimental engine feature, and is likely to not work correctly or reliably.");
-            if ( engine.getArguments().restartProcessingTracker && engine.getArguments().processingTrackerFile.exists() ) {
-                engine.getArguments().processingTrackerFile.delete();
-                logger.info("Deleting ProcessingTracker file " + engine.getArguments().processingTrackerFile);
-            }
-
-            PrintStream statusStream = null;
-            if ( engine.getArguments().processingTrackerStatusFile != null ) {
-                try {
-                    statusStream = new PrintStream(new FileOutputStream(engine.getArguments().processingTrackerStatusFile));
-                } catch ( FileNotFoundException e) {
-                    throw new UserException.CouldNotCreateOutputFile(engine.getArguments().processingTrackerStatusFile, e);
-                }
-            }
-
-            ClosableReentrantLock lock = new SharedFileThreadSafeLock(engine.getArguments().processingTrackerFile, engine.getArguments().processTrackerID);
-            processingTracker = new FileBackedGenomeLocProcessingTracker(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser(), lock, statusStream) ;
-            logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile + " process.id = " + engine.getName() + " CID = " + engine.getArguments().processTrackerID);
-        } else {
-            // create a NoOp version that doesn't do anything but say "yes"
-            processingTracker = new NoOpGenomeLocProcessingTracker();
         }
     }
 

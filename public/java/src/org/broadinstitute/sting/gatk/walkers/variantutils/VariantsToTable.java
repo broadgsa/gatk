@@ -24,18 +24,18 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -75,17 +75,29 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         // #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT
         getters.put("CHROM", new Getter() { public String get(VariantContext vc) { return vc.getChr(); } });
         getters.put("POS", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getStart()); } });
-        getters.put("REF", new Getter() { public String get(VariantContext vc) { return vc.getReference().toString(); } });
+        getters.put("REF", new Getter() {
+            public String get(VariantContext vc) {
+                String x = "";
+                if (vc.hasAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY)) {
+                    Byte refByte = (Byte)(vc.getAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY));
+                    x=x+new String(new byte[]{refByte});
+                }
+                return x+vc.getReference().getDisplayString();
+            }
+        });
         getters.put("ALT", new Getter() {
             public String get(VariantContext vc) {
                 StringBuilder x = new StringBuilder();
                 int n = vc.getAlternateAlleles().size();
-
                 if ( n == 0 ) return ".";
+                if (vc.hasAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY)) {
+                    Byte refByte = (Byte)(vc.getAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY));
+                    x.append(new String(new byte[]{refByte}));                    
+                }
 
                 for ( int i = 0; i < n; i++ ) {
                     if ( i != 0 ) x.append(",");
-                    x.append(vc.getAlternateAllele(i).toString());
+                    x.append(vc.getAlternateAllele(i).getDisplayString());
                 }
                 return x.toString();
             }
@@ -169,6 +181,31 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 throw new UserException(String.format("Missing field %s in vc %s at %s", field, vc.getSource(), vc));
             }
 
+            if (field.equals("AF") || field.equals("AC")) {
+                     String afo = val;
+
+                     double af=0;
+                     if (afo.contains(",")) {
+                         String[] afs = afo.split(",");
+                         afs[0] = afs[0].substring(1,afs[0].length());
+                         afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
+
+                         double[] afd = new double[afs.length];
+
+                         for (int k=0; k < afd.length; k++)
+                             afd[k] = Double.valueOf(afs[k]);
+
+                         af = MathUtils.arrayMax(afd);
+                         //af = Double.valueOf(afs[0]);
+
+                     }
+                     else
+                         if (!afo.equals("NA"))
+                             af = Double.valueOf(afo);
+
+                val = Double.toString(af);
+
+            }
             vals.add(val);
         }
 

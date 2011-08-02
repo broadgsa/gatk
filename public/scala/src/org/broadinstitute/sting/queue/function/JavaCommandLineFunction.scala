@@ -47,7 +47,7 @@ trait JavaCommandLineFunction extends CommandLineFunction {
   /**
    * Memory limit for the java executable, or if None will use the default memoryLimit.
    */
-  var javaMemoryLimit: Option[Int] = None
+  var javaMemoryLimit: Option[Double] = None
 
   /**
    * Returns the java executable to run.
@@ -61,8 +61,8 @@ trait JavaCommandLineFunction extends CommandLineFunction {
       null
   }
 
-  override def freezeFieldValues = {
-    super.freezeFieldValues
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
 
     if (javaMemoryLimit.isEmpty && memoryLimit.isDefined)
       javaMemoryLimit = memoryLimit
@@ -72,7 +72,7 @@ trait JavaCommandLineFunction extends CommandLineFunction {
   }
 
   def javaOpts = "%s -Djava.io.tmpdir=%s"
-    .format(optional(" -Xmx", javaMemoryLimit, "g"), jobTempDir)
+    .format(optional(" -Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m"), jobTempDir)
 
   def commandLine = "java%s %s"
     .format(javaOpts, javaExecutable)

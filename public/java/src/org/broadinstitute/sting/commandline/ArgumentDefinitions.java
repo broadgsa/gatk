@@ -27,10 +27,10 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.Set;
-import java.util.HashSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * A collection of argument definitions.
@@ -174,7 +174,8 @@ public class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
 
     static DefinitionMatcher VerifiableDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
-            return definition.validation != null;
+            // We can perform some sort of validation for anything that isn't a flag.
+            return !definition.isFlag;
         }        
     };
 }

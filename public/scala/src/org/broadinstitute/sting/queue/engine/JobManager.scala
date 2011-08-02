@@ -44,9 +44,9 @@ trait JobManager[TFunction <: QFunction, TRunner <: JobRunner[TFunction]] {
   /**
    * Updates the status on a list of functions.
    * @param runners Runners to update.
+   * @return runners which were updated.
    */
-  def updateStatus(runners: Set[TRunner]) {
-  }
+  def updateStatus(runners: Set[TRunner]): Set[TRunner] = Set.empty
 
   /**
    * Stops a list of functions.

@@ -24,21 +24,19 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.sam.MergingSamRecordIterator;
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.picard.sam.SamFileHeaderMerger;
-import net.sf.picard.sam.MergingSamRecordIterator;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -895,6 +893,7 @@ public class SAMDataSource {
          * Custom representation of interval bounds.
          * Makes it simpler to track current position. 
          */
+        private int[] intervalContigIndices;
         private int[] intervalStarts;
         private int[] intervalEnds;
 
@@ -919,12 +918,14 @@ public class SAMDataSource {
             if(foundMappedIntervals) {
                 if(keepOnlyUnmappedReads)
                     throw new ReviewedStingException("Tried to apply IntervalOverlapFilteringIterator to a mixed of mapped and unmapped intervals.  Please apply this filter to only mapped or only unmapped reads");
+                this.intervalContigIndices = new int[intervals.size()];
                 this.intervalStarts = new int[intervals.size()];
                 this.intervalEnds = new int[intervals.size()];
                 int i = 0;
                 for(GenomeLoc interval: intervals) {
-                    intervalStarts[i] = (int)interval.getStart();
-                    intervalEnds[i] = (int)interval.getStop();
+                    intervalContigIndices[i] = interval.getContigIndex();
+                    intervalStarts[i] = interval.getStart();
+                    intervalEnds[i] = interval.getStop();
                     i++;
                 }
             }
@@ -963,11 +964,10 @@ public class SAMDataSource {
             while(nextRead == null && (keepOnlyUnmappedReads || currentBound < intervalStarts.length)) {
                 if(!keepOnlyUnmappedReads) {
                     // Mapped read filter; check against GenomeLoc-derived bounds.
-                    if(candidateRead.getAlignmentEnd() >= intervalStarts[currentBound] ||
-                            (candidateRead.getReadUnmappedFlag() && candidateRead.getAlignmentStart() >= intervalStarts[currentBound])) {
-                        // This read ends after the current interval begins (or, if unmapped, starts within the bounds of the interval.
+                    if(readEndsOnOrAfterStartingBound(candidateRead)) {
+                        // This read ends after the current interval begins.
                         // Promising, but this read must be checked against the ending bound.
-                        if(candidateRead.getAlignmentStart() <= intervalEnds[currentBound]) {
+                        if(readStartsOnOrBeforeEndingBound(candidateRead)) {
                             // Yes, this read is within both bounds.  This must be our next read.
                             nextRead = candidateRead;
                             break;
@@ -994,6 +994,37 @@ public class SAMDataSource {
                 // No reasonable read found; advance the iterator.
                 candidateRead = iterator.next();
             }
+        }
+
+        /**
+         * Check whether the read lies after the start of the current bound.  If the read is unmapped but placed, its
+         * end will be distorted, so rely only on the alignment start.
+         * @param read The read to position-check.
+         * @return True if the read starts after the current bounds.  False otherwise.
+         */
+        private boolean readEndsOnOrAfterStartingBound(final SAMRecord read) {
+            return
+                    // Read ends on a later contig, or...
+                    read.getReferenceIndex() > intervalContigIndices[currentBound] ||
+                    // Read ends of this contig...
+                    (read.getReferenceIndex() == intervalContigIndices[currentBound] &&
+                            // either after this location, or...
+                            (read.getAlignmentEnd() >= intervalStarts[currentBound] ||
+                            // read is unmapped but positioned and alignment start is on or after this start point.
+                            (read.getReadUnmappedFlag() && read.getAlignmentStart() >= intervalStarts[currentBound])));
+        }
+
+        /**
+         * Check whether the read lies before the end of the current bound.
+         * @param read The read to position-check.
+         * @return True if the read starts after the current bounds.  False otherwise.
+         */
+        private boolean readStartsOnOrBeforeEndingBound(final SAMRecord read) {
+            return
+                    // Read starts on a prior contig, or...
+                    read.getReferenceIndex() < intervalContigIndices[currentBound] ||
+                    // Read starts on this contig and the alignment start is registered before this end point.
+                   (read.getReferenceIndex() == intervalContigIndices[currentBound] && read.getAlignmentStart() <= intervalEnds[currentBound]);
         }
     }
 

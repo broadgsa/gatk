@@ -1,21 +1,20 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.util.Collection;
-
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 /** A micro-scheduling manager for single-threaded execution of a traversal. */
@@ -50,7 +49,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         Accumulator accumulator = Accumulator.create(engine,walker);
 
         int counter = 0;
-        for (Shard shard : processingTracker.onlyOwned(shardStrategy, engine.getName())) {
+        for (Shard shard : shardStrategy ) {
             if ( shard == null ) // we ran out of shards that aren't owned
                 break;
 
