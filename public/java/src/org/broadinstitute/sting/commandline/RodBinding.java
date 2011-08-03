@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.commandline;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broad.tribble.Feature;
 
 import java.util.*;
@@ -31,29 +33,69 @@ import java.util.*;
 /**
  * A RodBinding representing a walker argument that gets bound to a ROD track.
  *
- * There is no constraint on the type of the ROD bound.
+ * The RodBinding<T> is a formal GATK argument that bridges between a walker and
+ * the RefMetaDataTracker to obtain data about this rod track at runtime.  The RodBinding
+ * is explicitly typed with type of the Tribble.Feature expected to be produced by this
+ * argument.  The GATK Engine takes care of initializing the binding and connecting it
+ * to the RMD system.
+ *
+ * It is recommended that optional RodBindings be initialized to the value returned
+ * by the static method makeUnbound().
+ *
+ * Note that this class is immutable.
  */
-public class RodBinding<T extends Feature> {
+public final class RodBinding<T extends Feature> {
     protected final static String UNBOUND_VARIABLE_NAME = "";
     protected final static String UNBOUND_SOURCE = "UNBOUND";
-    protected final static String UNBOUND_TRIBBLE_TYPE = null;
+    protected final static String UNBOUND_TRIBBLE_TYPE = "";
+
+    /**
+     * Create an unbound Rodbinding of type.  This is the correct programming
+     * style for an optional RodBinding<T>
+     *
+     *     At Input()
+     *     RodBinding<T> x = RodBinding.makeUnbound(T.class)
+     *
+     * The unbound binding is guaranteed to never match any binding.  It uniquely
+     * returns false to isBound().
+     *
+     * @param type the Class type produced by this unbound object
+     * @param <T> any class extending Tribble Feature
+     * @return the UNBOUND RodBinding producing objects of type T
+     */
+    @Requires("type != null")
     public final static <T extends Feature> RodBinding<T> makeUnbound(Class<T> type) {
         return new RodBinding<T>(type);
     }
 
+    /** The name of this binding.  Often the name of the field itself, but can be overridden on cmdline */
     final private String name;
+    /** where the data for this ROD is coming from.  A file or special value if coming from stdin */
     final private String source;
+    /** the string name of the tribble type, such as vcf, bed, etc. */
     final private String tribbleType;
+    /** The command line tags associated with this RodBinding */
     final private Tags tags;
+    /** The Java class expected for this RodBinding.  Must correspond to the type emited by Tribble */
     final private Class<T> type;
+    /** True for all RodBindings except the special UNBOUND binding, which is the default for optional arguments */
     final private boolean bound;
 
+    /**
+     * The name counter.  This is how we create unique names for collections of RodBindings
+     * on the command line.  If you have provide the GATK with -X file1 and -X file2 to a
+     * RodBinding argument as List<RodBinding<T>> then each binding will receive automatically
+     * the name of X and X2.
+     */
     final private static Map<String, Integer> nameCounter = new HashMap<String, Integer>();
 
+    /** for UnitTests */
     final protected static void resetNameCounter() {
         nameCounter.clear();
     }
 
+    @Requires("rawName != null")
+    @Ensures("result != null")
     final private static synchronized String countedVariableName(final String rawName) {
         Integer count = nameCounter.get(rawName);
         if ( count == null ) {
@@ -65,10 +107,7 @@ public class RodBinding<T extends Feature> {
         }
     }
 
-    public boolean isBound() {
-        return bound;
-    }
-
+    @Requires({"type != null", "rawName != null", "source != null", "tribbleType != null", "tags != null"})
     public RodBinding(Class<T> type, final String rawName, final String source, final String tribbleType, final Tags tags) {
         this.type = type;
         this.name = countedVariableName(rawName);
@@ -79,9 +118,10 @@ public class RodBinding<T extends Feature> {
     }
 
     /**
-     * Make an unbound RodBinding<T>
-     * @param type
+     * Make an unbound RodBinding<T>.  Only available for creating the globally unique UNBOUND object
+     * @param type class this unbound RodBinding creates
      */
+    @Requires({"type != null"})
     private RodBinding(Class<T> type) {
         this.type = type;
         this.name = UNBOUND_VARIABLE_NAME;  // special value can never be found in RefMetaDataTracker
@@ -91,24 +131,56 @@ public class RodBinding<T extends Feature> {
         this.bound = false;
     }
 
-    public String getName() {
+
+   /**
+     * @return True for all RodBindings except the special UNBOUND binding, which is the default for optional arguments
+     */
+    final public boolean isBound() {
+        return bound;
+    }
+
+    /**
+     * @return The name of this binding.  Often the name of the field itself, but can be overridden on cmdline
+     */
+    @Ensures({"result != null"})
+    final public String getName() {
         return name;
     }
-    public Class<T> getType() {
+
+    /**
+     * @return the string name of the tribble type, such as vcf, bed, etc.
+     */
+    @Ensures({"result != null"})
+    final public Class<T> getType() {
         return type;
     }
-    public String getSource() {
+
+    /**
+     * @return where the data for this ROD is coming from.  A file or special value if coming from stdin
+     */
+    @Ensures({"result != null"})
+    final public String getSource() {
         return source;
     }
 
-    public Tags getTags() {
+    /**
+     * @return The command line tags associated with this RodBinding.  Will include the tags used to
+     * determine the name and type of this RodBinding
+     */
+    @Ensures({"result != null"})
+    final public Tags getTags() {
         return tags;
     }
 
-    public String getTribbleType() {
+    /**
+     * @return The Java class expected for this RodBinding.  Must correspond to the type emited by Tribble
+     */
+    @Ensures({"result != null"})
+    final public String getTribbleType() {
         return tribbleType;
     }
 
+    @Override
     public String toString() {
         return String.format("(RodBinding name=%s source=%s)", getName(), getSource());
     }
