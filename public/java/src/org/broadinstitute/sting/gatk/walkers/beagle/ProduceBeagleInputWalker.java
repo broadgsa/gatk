@@ -56,7 +56,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public RodBinding<VariantContext> variants;
 
     @Input(fullName="validation", shortName = "validation", doc="Input VCF file", required=false)
-    public RodBinding<VariantContext> validation;
+    public RodBinding<VariantContext> validation = RodBinding.makeUnbound(VariantContext.class);
 
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;

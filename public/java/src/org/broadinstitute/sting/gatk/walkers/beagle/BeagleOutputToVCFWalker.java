@@ -58,7 +58,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     public RodBinding<VariantContext> variants;
 
     @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
-    public RodBinding<VariantContext> comp;
+    public RodBinding<VariantContext> comp = RodBinding.makeUnbound(VariantContext.class);
 
     @Input(fullName="beagleR2", shortName = "beagleR2", doc="VCF file", required=true)
     public RodBinding<BeagleFeature> beagleR2;
@@ -105,14 +105,10 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         // Open output file specified by output VCF ROD
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            if (source.getName().equals(comp.getName())) {
-                hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
-                hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
-                hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
-                break;
-            }
-
+        if ( comp.isBound() ) {
+            hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
+            hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
+            hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
         }
 
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));

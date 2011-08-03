@@ -43,6 +43,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -71,7 +72,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     public boolean SHOW_INDEL_PILEUPS = false;
 
     @Argument(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
-    public List<RodBinding<Feature>> rods;
+    public List<RodBinding<Feature>> rods = Collections.emptyList();
 
     public void initialize() {
     }
