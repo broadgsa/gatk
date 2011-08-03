@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,23 +12,35 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-public class WriteVCF {
-    public static void writeVCF(VariantContext vc, VCFWriter writer, Logger logger) {
-        writer.add(vc);
+import org.broadinstitute.sting.WalkerTest;
+import org.testng.annotations.Test;
+
+import java.util.Arrays;
+
+/**
+ * Tests LeftAlignVariants
+ */
+public class LeftAlignVariantsIntegrationTest extends WalkerTest {
+
+    @Test
+    public void testLeftAlignment() {
+         WalkerTestSpec spec = new WalkerTestSpec(
+                 "-T LeftAlignVariants -o %s -R " + b37KGReference + " -B:variant,vcf " + validationDataLocation + "forLeftAlignVariantsTest.vcf -NO_HEADER",
+                 1,
+                 Arrays.asList("158b1d71b28c52e2789f164500b53732"));
+         executeTest("test left alignment", spec);
     }
 }

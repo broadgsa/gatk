@@ -94,10 +94,10 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
 
     private int alignAndWrite(VariantContext vc, final ReferenceContext ref) {
-        if ( vc.isBiallelic() && vc.isIndel() )
+        if ( vc.isBiallelic() && vc.isIndel() && !vc.isComplexIndel() )
             return writeLeftAlignedIndel(vc, ref);
         else {
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             return 0;
         }
     }
@@ -113,7 +113,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             indelLength = vc.getAlternateAllele(0).length();
 
         if ( indelLength > 200 ) {
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             return 0;
         }
 
@@ -141,17 +141,12 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             byte[] newBases = new byte[indelLength];
             System.arraycopy((vc.isDeletion() ? refSeq : originalIndel), indelIndex, newBases, 0, indelLength);
             Allele newAllele = Allele.create(newBases, vc.isDeletion());
-            newVC = updateAllele(newVC, newAllele);
+            newVC = updateAllele(newVC, newAllele, refSeq[indelIndex-1]);
 
-	    // we need to update the reference base just in case it changed
-	    Map<String, Object> attrs = new HashMap<String, Object>(newVC.getAttributes());
-	    attrs.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, refSeq[indelIndex-1]);
-	    newVC = VariantContext.modifyAttributes(newVC, attrs);
-
-            writer.add(newVC, refSeq[indelIndex-1]);
+            writer.add(newVC);
             return 1;
         } else {
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             return 0;
         }
     }
@@ -177,7 +172,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         return hap;
     }
 
-    public static VariantContext updateAllele(VariantContext vc, Allele newAllele) {
+    public static VariantContext updateAllele(VariantContext vc, Allele newAllele, Byte refBaseForIndel) {
         // create a mapping from original allele to new allele
         HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
         if ( newAllele.isReference() ) {
@@ -201,6 +196,6 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
         }
 
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), refBaseForIndel);
     }
 }

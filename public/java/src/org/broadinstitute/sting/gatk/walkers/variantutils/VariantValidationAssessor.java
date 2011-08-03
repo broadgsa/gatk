@@ -70,7 +70,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     private TreeSet<String> sampleNames = null;
 
     // variant context records
-    private ArrayList<Pair<VariantContext, Byte>> records = new ArrayList<Pair<VariantContext, Byte>>();
+    private ArrayList<VariantContext> records = new ArrayList<VariantContext>();
 
     // statistics
     private int numRecords = 0;
@@ -91,7 +91,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         return 0;
     }
 
-    public Pair<VariantContext, Byte> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return null;
 
@@ -106,7 +106,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         return addVariantInformationToCall(ref, vc);
     }
 
-    public Integer reduce(Pair<VariantContext, Byte> call, Integer numVariants) {
+    public Integer reduce(VariantContext call, Integer numVariants) {
         if ( call != null ) {
             numVariants++;
             records.add(call);
@@ -156,12 +156,12 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         
         vcfwriter.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
 
-        for ( Pair<VariantContext, Byte> record : records )
-            vcfwriter.add(record.first, record.second);
+        for ( VariantContext record : records )
+            vcfwriter.add(record);
     }
 
 
-    private Pair<VariantContext, Byte> addVariantInformationToCall(ReferenceContext ref, VariantContext vContext) {
+    private VariantContext addVariantInformationToCall(ReferenceContext ref, VariantContext vContext) {
 
         // check possible filters
         double hwPvalue = hardyWeinbergCalculation(vContext);
@@ -203,9 +203,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
 
-        vContext = VariantContext.modifyAttributes(vContext, infoMap);
-
-        return new Pair<VariantContext, Byte>(vContext, ref.getBase());
+        return VariantContext.modifyAttributes(vContext, infoMap);
     }
 
     private double hardyWeinbergCalculation(VariantContext vc) {

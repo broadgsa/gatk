@@ -83,8 +83,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 String x = "";
-                if (vc.hasAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY)) {
-                    Byte refByte = (Byte)(vc.getAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY));
+                if ( vc.hasReferenceBaseForIndel() ) {
+                    Byte refByte = vc.getReferenceBaseForIndel();
                     x=x+new String(new byte[]{refByte});
                 }
                 return x+vc.getReference().getDisplayString();
@@ -95,8 +95,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 StringBuilder x = new StringBuilder();
                 int n = vc.getAlternateAlleles().size();
                 if ( n == 0 ) return ".";
-                if (vc.hasAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY)) {
-                    Byte refByte = (Byte)(vc.getAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY));
+                if ( vc.hasReferenceBaseForIndel() ) {
+                    Byte refByte = vc.getReferenceBaseForIndel();
                     x.append(new String(new byte[]{refByte}));                    
                 }
 

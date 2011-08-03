@@ -170,20 +170,20 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             logger.debug(String.format("boot: %d, test: %d, total: %d", bootstrapSetSize, testSetSize, bootstrapSetSize+testSetSize+1));
             if ( (bootstrapSetSize+1.0)/(1.0+bootstrapSetSize+testSetSize) <= bootstrap ) {
                 if ( bootstrapVCFOutput != null ) {
-                    bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER), ref.getBase() );
+                    bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER));
                 }
                 bootstrapSetSize++;
                 return true;
             } else {
                 if ( bootstrapVCFOutput != null ) {
-                    bootstrapVCFOutput.add(validation,ref.getBase());
+                    bootstrapVCFOutput.add(validation);
                 }
                 testSetSize++;
                 return false;
             }
         } else {
             if ( validation != null && bootstrapVCFOutput != null ) {
-                bootstrapVCFOutput.add(validation,ref.getBase());
+                bootstrapVCFOutput.add(validation);
             }
             return false;
         }

@@ -247,7 +247,7 @@ public class UnifiedGenotyperEngine {
         }
         
         if ( annotationEngine != null ) {
-            // we want to use the *unfiltered* and *unBAQed* context for the annotations
+            // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             ReadBackedPileup pileup = null;
             if (rawContext.hasExtendedEventPileup())
                 pileup = rawContext.getExtendedEventPileup();
@@ -258,7 +258,7 @@ public class UnifiedGenotyperEngine {
             vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc);
         }
 
-        return new VariantCallContext(vc, ref.getBase(), false);
+        return new VariantCallContext(vc, false);
     }
 
     private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, MultiallelicGenotypeLikelihoods> GLs) {
@@ -300,7 +300,8 @@ public class UnifiedGenotyperEngine {
                 genotypes,
                 VariantContext.NO_NEG_LOG_10PERROR,
                 null,
-                null);
+                null,
+                refContext.getBase());
     }
 
     // private method called by both UnifiedGenotyper and UGCallVariants entry points into the engine
@@ -425,10 +426,10 @@ public class UnifiedGenotyperEngine {
             myAlleles.add(vc.getReference());
         }
         VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
+                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, refContext.getBase());
 
         if ( annotationEngine != null ) {
-            // first off, we want to use the *unfiltered* and *unBAQed* context for the annotations
+            // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             ReadBackedPileup pileup = null;
             if (rawContext.hasExtendedEventPileup())
                 pileup = rawContext.getExtendedEventPileup();
@@ -439,9 +440,7 @@ public class UnifiedGenotyperEngine {
             vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
         }
 
-        VariantCallContext call = new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
-        call.setRefBase(refContext.getBase());
-        return call;
+        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
     }
 
     private int calculateEndPos(Set<Allele> alleles, Allele refAllele, GenomeLoc loc) {

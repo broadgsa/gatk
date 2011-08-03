@@ -192,8 +192,8 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     /**
      * @{inheritDoc}
      */
-    public void add(VariantContext vc, byte ref) {
-        outputTracker.getStorage(this).add(vc,ref);
+    public void add(VariantContext vc) {
+        outputTracker.getStorage(this).add(vc);
     }
 
     /**

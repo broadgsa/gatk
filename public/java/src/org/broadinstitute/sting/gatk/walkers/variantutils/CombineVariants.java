@@ -156,7 +156,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
             for ( final VariantContext vc : vcs ) {
-                vcfWriter.add( vc, ref.getBase() );
+                vcfWriter.add(vc);
             }
             
             return vcs.isEmpty() ? 0 : 1;
@@ -181,7 +181,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                 if ( VCsByType.containsKey(type) )
                     mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
                             priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                            ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+                            SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
             }
         }
 
@@ -196,7 +196,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
             if ( minimalVCF )
                 annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, Arrays.asList(SET_KEY));
-            vcfWriter.add(annotatedMergedVC, ref.getBase());
+            vcfWriter.add(annotatedMergedVC);
         }
 
         return vcs.isEmpty() ? 0 : 1;

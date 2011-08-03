@@ -98,9 +98,9 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         for ( VariantContext vc : vcs ) {
             int random = GenomeAnalysisEngine.getRandomGenerator().nextInt(1000);
             if ( random < iFraction )
-                vcfWriter1.add(vc, ref.getBase());
+                vcfWriter1.add(vc);
             else
-                vcfWriter2.add(vc, ref.getBase());
+                vcfWriter2.add(vc);
         }
 
         return 1;

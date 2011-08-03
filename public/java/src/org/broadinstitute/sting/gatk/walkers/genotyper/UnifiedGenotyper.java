@@ -227,7 +227,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         try {
             // we are actually making a call
             sum.nCallsMade++;
-            writer.add(value, value.refBase);
+            writer.add(value);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

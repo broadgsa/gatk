@@ -204,9 +204,9 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                         filters.add(filterString);
                         vc = VariantContext.modifyFilters(vc, filters);
                     }
-                    vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs), ref.getBase() );
+                    vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs) );
                 } else { // valid VC but not compatible with this mode, so just emit the variant untouched
-                    vcfWriter.add( vc, ref.getBase() );
+                    vcfWriter.add( vc );
                 }
             }
         }

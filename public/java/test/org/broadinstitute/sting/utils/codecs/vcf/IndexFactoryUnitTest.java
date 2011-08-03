@@ -70,7 +70,7 @@ public class IndexFactoryUnitTest {
             CloseableTribbleIterator<VariantContext> it = source.iterator();
             while (it.hasNext() && (counter++ < maxRecords || maxRecords == -1) ) {
                 VariantContext vc = it.next();
-                writer.add(vc, vc.getReferenceBaseForIndel());
+                writer.add(vc);
             }
             writer.close();
 

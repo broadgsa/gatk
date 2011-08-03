@@ -32,6 +32,8 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -126,16 +128,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
         private VariantContext vc;
-        private byte refBase;
 
-        RandomVariantStructure(VariantContext vcP, byte refBaseP) {
+        RandomVariantStructure(VariantContext vcP) {
             vc = vcP;
-            refBase = refBaseP;
         }
 
-        public void set (VariantContext vcP, byte refBaseP) {
+        public void set (VariantContext vcP) {
             vc = vcP;
-            refBase = refBaseP;
         }
 
     }
@@ -356,7 +355,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     randomlyAddVariant(++variantNumber, sub, ref.getBase());
                 }
                 else if (!SELECT_RANDOM_FRACTION || (!KEEP_AF_SPECTRUM && GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                    vcfWriter.add(sub, ref.getBase());
+                    vcfWriter.add(sub);
                 }
                 else {
                     if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
@@ -404,7 +403,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
                             //System.out.format("%s .. %4.4f\n",afo.toString(), af);
                             if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * afBoost *   afBoost)
-                                vcfWriter.add(sub, ref.getBase());
+                                vcfWriter.add(sub);
                         }
 
 
@@ -511,7 +510,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (SELECT_RANDOM_NUMBER) {
             int positionToPrint = positionToAdd;
             for (int i=0; i<numRandom; i++) {
-                vcfWriter.add(variantArray[positionToPrint].vc, variantArray[positionToPrint].refBase);
+                vcfWriter.add(variantArray[positionToPrint].vc);
                 positionToPrint = nextCircularPosition(positionToPrint);
             }
         }
@@ -574,13 +573,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     private void randomlyAddVariant(int rank, VariantContext vc, byte refBase) {
         if (nVariantsAdded < numRandom)
-            variantArray[nVariantsAdded++] = new RandomVariantStructure(vc, refBase);
+            variantArray[nVariantsAdded++] = new RandomVariantStructure(vc);
 
         else {
             double v = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             double t = (1.0/(rank-numRandom+1));
             if ( v < t) {
-                variantArray[positionToAdd].set(vc, refBase);
+                variantArray[positionToAdd].set(vc);
                 nVariantsAdded++;
                 positionToAdd = nextCircularPosition(positionToAdd);
             }

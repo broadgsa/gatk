@@ -93,7 +93,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
 
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         VariantContext call = UG_engine.calculateLikelihoods(tracker, refContext, rawContext);
-        return call == null ? null : new VariantCallContext(call, refContext.getBase(), true);
+        return call == null ? null : new VariantCallContext(call, true);
     }
 
     public Integer reduceInit() { return 0; }
@@ -107,7 +107,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
             return sum;
 
         try {
-            writer.add(value, value.refBase);
+            writer.add(value);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

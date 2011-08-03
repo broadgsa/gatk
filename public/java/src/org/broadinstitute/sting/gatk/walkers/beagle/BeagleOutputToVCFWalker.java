@@ -135,7 +135,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
         if (vc_input.isFiltered()) {
-            vcfWriter.add(vc_input, ref.getBase());
+            vcfWriter.add(vc_input);
             return 1;
         }
 
@@ -335,7 +335,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
 
-        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes), ref.getBase());
+        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes));
 
 
         return 1;

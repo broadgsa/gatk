@@ -567,7 +567,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
             // set the reference base for indels in the attributes
             Map<String,Object> attributes = new TreeMap<String,Object>(inputVC.getAttributes());
-            attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(inputVC.getReference().getBases()[0]));
 
             Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
@@ -611,7 +610,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                 genotypes.put(sample.getKey(), Genotype.modifyAlleles(sample.getValue(), trimmedAlleles));
 
             }
-            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes);
+            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
 
         }
 
