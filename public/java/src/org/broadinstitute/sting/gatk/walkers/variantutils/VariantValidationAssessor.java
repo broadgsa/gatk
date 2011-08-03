@@ -48,7 +48,7 @@ import java.util.*;
  */
 @Reference(window=@Window(start=0,stop=40))
 @Requires(value={})
-public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, Byte>,Integer> {
+public class VariantValidationAssessor extends RodWalker<VariantContext,Integer> {
     @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
