@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.io.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -12,6 +13,7 @@ import java.util.TreeMap;
  * Container class for GATK report tables
  */
 public class GATKReport {
+    public static final String GATKREPORT_HEADER_PREFIX = "##:GATKReport.v";
     private TreeMap<String, GATKReportTable> tables = new TreeMap<String, GATKReportTable>();
 
     /**
@@ -53,7 +55,7 @@ public class GATKReport {
             String line;
             while ( (line = reader.readLine()) != null ) {
 
-                if (line.startsWith("##:GATKReport.v")) {
+                if (line.startsWith(GATKREPORT_HEADER_PREFIX)) {
 
                     version = GATKReportVersion.fromHeader(line);
 
@@ -168,5 +170,9 @@ public class GATKReport {
                 table.write(out);
             }
         }
+    }
+
+    public Collection<GATKReportTable> getTables() {
+        return tables.values();
     }
 }

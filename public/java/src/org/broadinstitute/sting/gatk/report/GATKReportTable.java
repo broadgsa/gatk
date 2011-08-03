@@ -654,4 +654,16 @@ public class GATKReportTable {
     public int getNumRows() {
         return primaryKeyColumn.size();
     }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public String getTableDescription() {
+        return tableDescription;
+    }
+
+    public GATKReportColumns getColumns() {
+        return columns;
+    }
 }

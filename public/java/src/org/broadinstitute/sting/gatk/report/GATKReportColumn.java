@@ -106,4 +106,8 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
         }
         return value;
     }
+
+    public String getColumnName() {
+        return columnName;
+    }
 }
