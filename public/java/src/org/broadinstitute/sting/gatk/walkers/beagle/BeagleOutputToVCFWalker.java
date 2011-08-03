@@ -55,7 +55,7 @@ import static java.lang.Math.log10;
  */
 @Requires(value={})
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)

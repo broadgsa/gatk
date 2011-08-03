@@ -91,6 +91,11 @@ public class RefMetaDataTrackerUnitTest {
             this.BValues = BValues == null ? null : makeRODRecord("B", BValues);
         }
 
+        @Override
+        public String toString() {
+            return String.format("A=%s, B=%s", AValues, BValues);
+        }
+
         private final RODRecordList makeRODRecord(String name, List<? extends Feature> features) {
             List<GATKFeature> x = new ArrayList<GATKFeature>();
             for ( Feature f : features )
@@ -132,12 +137,6 @@ public class RefMetaDataTrackerUnitTest {
             if ( AValues != null ) n++;
             if ( BValues != null ) n++;
             return n;
-        }
-    }
-
-    private class MyTestAdaptors extends MyTest {
-        private MyTestAdaptors(final List<? extends Feature> AValues) {
-            super(MyTestAdaptors.class, AValues, null);
         }
     }
 

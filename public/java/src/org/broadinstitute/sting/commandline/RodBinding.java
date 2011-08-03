@@ -39,14 +39,18 @@ import java.util.List;
  * There is no constraint on the type of the ROD bound.
  */
 public class RodBinding<T extends Feature> {
+    public final static <T extends Feature> RodBinding<T> makeUnbound(Class<T> type) {
+        return new RodBinding<T>(type);
+    }
+
     final private String variableName;
     final private String source;
     final private Tags tags;
     final private Class<T> type;
+    final private boolean bound;
 
     public boolean isBound() {
-        // todo : implement me
-        return source != null;
+        return bound;
     }
 
     public RodBinding(Class<T> type, final String variableName, final String source, final Tags tags) {
@@ -54,6 +58,19 @@ public class RodBinding<T extends Feature> {
         this.variableName = variableName;
         this.source = source;
         this.tags = tags;
+        this.bound = true;
+    }
+
+    /**
+     * Make an unbound RodBinding<T>
+     * @param type
+     */
+    private RodBinding(Class<T> type) {
+        this.type = type;
+        this.variableName = "";  // special value can never be found in RefMetaDataTracker
+        this.source = "";
+        this.tags = new Tags();
+        this.bound = false;
     }
 
     public String getVariableName() {

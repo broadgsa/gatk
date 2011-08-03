@@ -48,7 +48,7 @@ import java.util.Set;
 @Reference(window=@Window(start=0,stop=100))
 @Requires(value={})
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     private static final int MAX_VARIANT_SIZE = 100;

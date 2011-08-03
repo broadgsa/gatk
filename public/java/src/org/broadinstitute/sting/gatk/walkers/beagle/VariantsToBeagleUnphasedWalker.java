@@ -58,7 +58,7 @@ import java.util.Set;
  */
 @Requires(value={})
 public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which BEAGLE unphased genotypes should be written",required=true)

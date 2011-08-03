@@ -53,7 +53,7 @@ import java.util.*;
  */
 @Requires(value={})
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)

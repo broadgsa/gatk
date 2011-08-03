@@ -48,7 +48,7 @@ import java.util.*;
  */
 @Requires(value={})
 public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(fullName="out1", shortName="o1", doc="File #1 to which variants should be written", required=true)

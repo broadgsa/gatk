@@ -64,7 +64,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     protected VCFWriter baseWriter = null;
     private SortingVCFWriter vcfwriter; // needed because hapmap indel records move
 
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)

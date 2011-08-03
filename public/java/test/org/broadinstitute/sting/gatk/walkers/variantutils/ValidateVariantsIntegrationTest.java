@@ -34,7 +34,7 @@ import java.util.Arrays;
 public class ValidateVariantsIntegrationTest extends WalkerTest {
 
     public static String baseTestString(String file, String type) {
-        return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 -B:variant,VCF " + validationDataLocation + file + " --validationType " + type;
+        return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 --variants:vcf " + validationDataLocation + file + " --validationType " + type;
     }
 
     @Test

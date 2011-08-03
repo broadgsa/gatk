@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.filters;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
@@ -51,7 +52,7 @@ import java.util.*;
 @Requires(value={})
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written", required=true)
@@ -76,6 +77,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     protected Integer MASK_EXTEND = 0;
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
+    @Input(fullName="mask", doc="Input ROD mask", required=false)
+    public RodBinding<Feature> mask;
 
     @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, should missing values be considered failing the expression (by default they are considered passing)?", required=false)
     protected Boolean FAIL_MISSING_VALUES = false;
@@ -154,7 +157,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
 
         // is there a SNP mask present?
-        boolean hasMask = tracker.getValues("mask").size() > 0;
+        boolean hasMask = tracker.hasValues(mask);
         if ( hasMask )
             previousMaskPosition = ref.getLocus();  // multi-base masks will get triggered over all bases of the mask
 

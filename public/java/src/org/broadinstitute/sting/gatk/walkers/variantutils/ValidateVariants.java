@@ -54,7 +54,7 @@ import java.util.Set;
 @Reference(window=@Window(start=0,stop=100))
 @Requires(value={})
 public class ValidateVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     public enum ValidationType {
@@ -145,6 +145,8 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
             for ( Object d : dbsnpList ) {
                 if (d instanceof DbSNPFeature )
                     rsIDs.add(((DbSNPFeature)d).getRsID());
+                else if (d instanceof VariantContext )
+                    rsIDs.add(((VariantContext)d).getID());
             }
         }
 

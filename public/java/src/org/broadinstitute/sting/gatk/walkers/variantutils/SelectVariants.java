@@ -54,7 +54,7 @@ import java.util.*;
  */
 @Requires(value={})
 public class SelectVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
@@ -81,15 +81,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't include filtered loci.", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
-    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track. Use -disc ROD_NAME", required=false)
-    private String discordanceRodName = "";
+    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track", required=false)
+    private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
-    @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track. Use -conc ROD_NAME", required=false)
-    private String concordanceRodName = "";
-
-    @Hidden
-    @Argument(fullName="inputAF", shortName =  "inputAF", doc="", required=false)
-    private String inputAFRodName = "";
+    @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track", required=false)
+    private RodBinding<VariantContext> concordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
     @Hidden
     @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
@@ -222,11 +218,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
 
         // Look at the parameters to decide which analysis to perform
-        DISCORDANCE_ONLY = discordanceRodName.length() > 0;
-        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceRodName);
+        DISCORDANCE_ONLY = discordanceTrack.isBound();
+        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceTrack.getVariableName());
 
-        CONCORDANCE_ONLY = concordanceRodName.length() > 0;
-        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceRodName);
+        CONCORDANCE_ONLY = concordanceTrack.isBound();
+        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getVariableName());
 
         if (MENDELIAN_VIOLATIONS) {
             if ( FAMILY_STRUCTURE_FILE != null) {
@@ -332,12 +328,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     break;
             }
             if (DISCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getValues(VariantContext.class, discordanceRodName, context.getLocation());
+                Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
                     return 0;
             }
             if (CONCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getValues(VariantContext.class, concordanceRodName, context.getLocation());
+                Collection<VariantContext> compVCs = tracker.getValues(concordanceTrack, context.getLocation());
                 if (!isConcordant(vc, compVCs))
                     return 0;
             }

@@ -47,7 +47,7 @@ import java.util.Collection;
 @Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
-    @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=true)
+    @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
     public RodBinding<VariantContext> snpmask;
 
     private int deletionBasesRemaining = 0;
@@ -61,24 +61,24 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         String refBase = String.valueOf((char)ref.getBase());
 
-        Collection<VariantContext> vcs = tracker.getValues(snpmask);
-
         // Check to see if we have a called snp
-        for ( VariantContext vc : vcs ) {
-            if ( vc.isDeletion()) {
-                deletionBasesRemaining = vc.getReference().length();
-                // delete the next n bases, not this one
-                return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
-            } else if ( vc.isInsertion()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
-            } else if (vc.isSNP()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
+        for ( VariantContext vc : tracker.getValues(VariantContext.class) ) {
+            if ( ! vc.getSource().equals(snpmask.getVariableName())) {
+                if ( vc.isDeletion()) {
+                    deletionBasesRemaining = vc.getReference().length();
+                    // delete the next n bases, not this one
+                    return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
+                } else if ( vc.isInsertion()) {
+                    return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
+                } else if (vc.isSNP()) {
+                    return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
+                }
             }
         }
 
         // if we don't have a called site, and we have a mask at this site, mask it
-        for ( VariantContext vc : vcs ) {
-            if ( vc.getSource().startsWith("snpmask") && vc.isSNP()) {
+        for ( VariantContext vc : tracker.getValues(snpmask) ) {
+            if ( vc.isSNP()) {
                 return new Pair<GenomeLoc, String>(context.getLocation(), "N");
             }
         }
