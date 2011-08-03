@@ -34,6 +34,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -444,6 +445,15 @@ public class GenomeLocParser {
     }
 
     /**
+     * Creates a GenomeLoc from a Tribble feature
+     * @param feature
+     * @return
+     */
+    public GenomeLoc createGenomeLoc(final Feature feature) {
+        return createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
+    }
+
+    /**
      * create a new genome loc, given the contig name, and a single position. Must be on the reference
      *
      * @param contig the contig name
@@ -456,19 +466,6 @@ public class GenomeLocParser {
     public GenomeLoc createGenomeLoc(final String contig, final int pos) {
         return createGenomeLoc(contig, getContigIndex(contig), pos, pos);
     }
-
-//    /**
-//     * Creates a new GenomeLoc without performing any validation on its contig or bounds.
-//     * FOR UNIT TESTING PURPOSES ONLY!
-//     *
-//     * @param contig the contig name
-//     * @param start  start position of the interval
-//     * @param stop   stop position of the interval
-//     * @return a new GenomeLoc representing the specified location
-//     */
-//    public GenomeLoc createGenomeLocWithoutValidation( String contig, int start, int stop ) {
-//        return new GenomeLoc(contig, getContigIndexWithoutException(contig), start, stop);
-//    }
 
     /**
      * create a new genome loc from an existing loc, with a new start position

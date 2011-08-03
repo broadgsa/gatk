@@ -181,20 +181,12 @@ public class RefMetaDataTrackerUnitTest {
 
     private <T> void testSimpleBindings(String name, RefMetaDataTracker tracker, RODRecordList expected) {
         List<Feature> asValues = tracker.getValues(Feature.class, name);
-        List<GATKFeature> asFeatures = tracker.getValuesAsGATKFeatures(name);
 
         Assert.assertEquals(tracker.hasValues(name), expected != null);
-        Assert.assertEquals(asFeatures.size(), expected == null ? 0 : expected.size());
         Assert.assertEquals(asValues.size(), expected == null ? 0 : expected.size());
 
         if ( expected != null ) {
             for ( GATKFeature e : expected ) {
-                boolean foundFeature = false;
-                for ( GATKFeature f : asFeatures ) {
-                    if ( e.getUnderlyingObject() == f.getUnderlyingObject() ) foundFeature = true;
-                }
-                Assert.assertTrue(foundFeature, "Never found expected GATKFeature " + e + " bound to " + name + " in " + tracker);
-
                 boolean foundValue = false;
                 for ( Feature f : asValues ) {
                     if ( e.getUnderlyingObject() == f ) foundValue = true;

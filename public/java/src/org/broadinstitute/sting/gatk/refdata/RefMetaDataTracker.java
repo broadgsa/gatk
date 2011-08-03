@@ -56,7 +56,7 @@ public class RefMetaDataTracker {
         else {
             Map<String, RODRecordList> tmap = new HashMap<String, RODRecordList>(allBindings.size());
             for ( RODRecordList rod : allBindings ) {
-                if ( rod != null )
+                if ( rod != null && ! rod.isEmpty() )
                     tmap.put(canonicalName(rod.getName()), rod);
             }
 
@@ -141,17 +141,37 @@ public class RefMetaDataTracker {
     @Requires({"type != null", "onlyAtThisLoc != null"})
     public <T extends Feature> T getFirstValue(final Class<T> type, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, onlyAtThisLoc));
+
     }
 
-    //
-    // ROD binding accessors
-    //
+    /**
+     * Gets all of the Tribble features bound to RodBinding spanning this locus, returning them as
+     * a list of specific type T extending Feature.
+     *
+     * Note that this function assumes that all of the bound features are instances of or
+     * subclasses of T.  A ClassCastException will occur if this isn't the case.
+     *
+     * @param rodBinding Only Features coming from the track associated with this rodBinding are fetched
+     * @param <T> The Tribble Feature type of the rodBinding, and consequently the type of the resulting list of Features
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
     @Requires({"rodBinding != null"})
     @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final RodBinding<T> rodBinding) {
         return addValues(rodBinding.getName(), rodBinding.getType(), new ArrayList<T>(1), getTrackDataByName(rodBinding), null, false, false);
     }
 
+    /**
+     * Gets all of the Tribble features bound to any RodBinding in rodBindings,
+     * spanning this locus, returning them as a list of specific type T extending Feature.
+     *
+     * Note that this function assumes that all of the bound features are instances of or
+     * subclasses of T.  A ClassCastException will occur if this isn't the case.
+     *
+     * @param rodBindings Only Features coming from the tracks associated with one of rodBindings are fetched
+     * @param <T> The Tribble Feature type of the rodBinding, and consequently the type of the resulting list of Features
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
     @Requires({"rodBindings != null"})
     @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Collection<RodBinding<T>> rodBindings) {
@@ -161,12 +181,28 @@ public class RefMetaDataTracker {
         return results;
     }
 
+    /**
+     * The same logic as @link #getValues(RodBinding) but enforces that each Feature start at onlyAtThisLoc
+     *
+     * @param rodBinding Only Features coming from the track associated with this rodBinding are fetched
+     * @param <T> The Tribble Feature type of the rodBinding, and consequently the type of the resulting list of Features
+     * @param onlyAtThisLoc only Features starting at this site are considered
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
     @Requires({"rodBinding != null", "onlyAtThisLoc != null"})
     @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
         return addValues(rodBinding.getName(), rodBinding.getType(), new ArrayList<T>(1), getTrackDataByName(rodBinding), onlyAtThisLoc, true, false);
     }
 
+    /**
+     * The same logic as @link #getValues(List) but enforces that each Feature start at onlyAtThisLoc
+     *
+     * @param rodBindings Only Features coming from the tracks associated with one of rodBindings are fetched
+     * @param <T> The Tribble Feature type of the rodBinding, and consequently the type of the resulting list of Features
+     * @param onlyAtThisLoc only Features starting at this site are considered
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
     @Requires({"rodBindings != null", "onlyAtThisLoc != null"})
     @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Collection<RodBinding<T>> rodBindings, final GenomeLoc onlyAtThisLoc) {
@@ -176,16 +212,44 @@ public class RefMetaDataTracker {
         return results;
     }
 
+    /**
+     * Uses the same logic as @getValues(RodBinding) to determine the list
+     * of eligible Features and select a single element from the resulting set
+     * of eligible features.
+     *
+     * @param rodBinding Only Features coming from the track associated with this rodBinding are fetched
+     * @param <T> as above
+     * @return A random single element the eligible Features found, or null if none are bound.
+     */
     @Requires({"rodBinding != null"})
     public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding) {
         return safeGetFirst(addValues(rodBinding.getName(), rodBinding.getType(), null, getTrackDataByName(rodBinding), null, false, true));
     }
 
+    /**
+     * Uses the same logic as @getValues(RodBinding, GenomeLoc) to determine the list
+     * of eligible Features and select a single element from the resulting set
+     * of eligible features.
+     *
+     * @param rodBinding Only Features coming from the track associated with this rodBinding are fetched
+     * @param <T> as above
+     * @param onlyAtThisLoc only Features starting at this site are considered
+     * @return A random single element the eligible Features found, or null if none are bound.
+     */
     @Requires({"rodBinding != null", "onlyAtThisLoc != null"})
     public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(addValues(rodBinding.getName(), rodBinding.getType(), null, getTrackDataByName(rodBinding), onlyAtThisLoc, true, true));
     }
 
+    /**
+     * Uses the same logic as @getValues(List) to determine the list
+     * of eligible Features and select a single element from the resulting set
+     * of eligible features.
+     *
+     * @param rodBindings Only Features coming from the tracks associated with these rodBindings are fetched
+     * @param <T> as above
+     * @return A random single element the eligible Features found, or null if none are bound.
+     */
     @Requires({"rodBindings != null"})
     public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings) {
         for ( RodBinding<T> rodBinding : rodBindings ) {
@@ -196,6 +260,16 @@ public class RefMetaDataTracker {
         return null;
     }
 
+    /**
+     * Uses the same logic as @getValues(RodBinding,GenomeLoc) to determine the list
+     * of eligible Features and select a single element from the resulting set
+     * of eligible features.
+     *
+     * @param rodBindings Only Features coming from the tracks associated with these rodBindings are fetched
+     * @param <T> as above
+     * @param onlyAtThisLoc only Features starting at this site are considered
+     * @return A random single element the eligible Features found, or null if none are bound.
+     */
     @Requires({"rodBindings != null", "onlyAtThisLoc != null"})
     public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings, final GenomeLoc onlyAtThisLoc) {
         for ( RodBinding<T> rodBinding : rodBindings ) {
@@ -275,24 +349,6 @@ public class RefMetaDataTracker {
         return l;
     }
 
-    @Deprecated
-    public List<GATKFeature> getValuesAsGATKFeatures(final RodBinding rodBinding) {
-        return getValuesAsGATKFeatures(rodBinding.getName());
-    }
-
-
-    /**
-     * get all the GATK features associated with a specific track name
-     * @param name the name of the track we're looking for
-     * @return a list of GATKFeatures for the target rmd
-     *
-     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
-     */
-    @Deprecated
-    public List<GATKFeature> getValuesAsGATKFeatures(final String name) {
-        return getTrackDataByName(name);
-    }
-
     /**
      * Get all of the RMD tracks at the current site. Each track is returned as a single compound
      * object (RODRecordList) that may contain multiple RMD records associated with the current site.
@@ -300,13 +356,7 @@ public class RefMetaDataTracker {
      * @return List of all tracks
      */
     public List<RODRecordList> getBoundRodTracks() {
-        LinkedList<RODRecordList> bound = new LinkedList<RODRecordList>();
-
-        for ( RODRecordList value : map.values() ) {
-            if ( value.size() != 0 ) bound.add(value);
-        }
-
-        return bound;
+        return new ArrayList<RODRecordList>(map.values());
     }
 
     /**
@@ -361,10 +411,10 @@ public class RefMetaDataTracker {
             values = addValues(name, type, values, rodList, curLocation, requireStartHere, takeFirstOnly );
             if ( takeFirstOnly && ! values.isEmpty() )
                 break;
-         }
+        }
 
-         return values;
-     }
+        return values;
+    }
 
 
 
