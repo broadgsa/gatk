@@ -55,6 +55,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
+    @Input(fullName="mask", doc="Input ROD mask", required=false)
+    public RodBinding<Feature> mask = RodBinding.makeUnbound(Feature.class);
+
     @Output(doc="File to which variants should be written", required=true)
     protected VCFWriter writer = null;
 
@@ -77,8 +80,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     protected Integer MASK_EXTEND = 0;
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
-    @Input(fullName="mask", doc="Input ROD mask", required=false)
-    public RodBinding<Feature> mask;
 
     @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, should missing values be considered failing the expression (by default they are considered passing)?", required=false)
     protected Boolean FAIL_MISSING_VALUES = false;
