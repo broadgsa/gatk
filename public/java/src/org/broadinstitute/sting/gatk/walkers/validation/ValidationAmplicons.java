@@ -8,7 +8,9 @@ import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -35,9 +37,17 @@ import java.util.List;
  * Time: 2:12 PM
  * To change this template use File | Settings | File Templates.
  */
-@Requires(value={DataSource.REFERENCE}, referenceMetaData={@RMD(name="ProbeIntervals",type=TableFeature.class),
-@RMD(name="ValidateAlleles",type=VariantContext.class),@RMD(name="MaskAlleles",type=VariantContext.class)})
+@Requires(value={DataSource.REFERENCE})
 public class ValidationAmplicons extends RodWalker<Integer,Integer> {
+    @Input(fullName = "ProbeIntervals", doc="Chris document me", required=true)
+    RodBinding<TableFeature> probeIntervals;
+
+    @Input(fullName = "ValidateAlleles", doc="Chris document me", required=true)
+    RodBinding<VariantContext> validateAlleles;
+
+    @Input(fullName = "MaskAlleles", doc="Chris document me", required=true)
+    RodBinding<VariantContext> maskAlleles;
+
 
     @Argument(doc="Lower case SNPs rather than replacing with 'N'",fullName="lowerCaseSNPs",required=false)
     boolean lowerCaseSNPs = false;
@@ -99,9 +109,9 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( tracker == null || ! tracker.hasValues("ProbeIntervals")) { return null; }
+        if ( tracker == null || ! tracker.hasValues(probeIntervals)) { return null; }
 
-        TableFeature feature = tracker.getFirstValue("ProbeIntervals", TableFeature.class);
+        TableFeature feature = tracker.getFirstValue(probeIntervals);
         GenomeLoc interval = feature.getLocation();
         //logger.debug(interval);
         if ( prevInterval == null || ! interval.equals(prevInterval) ) {
@@ -138,8 +148,8 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         // step 3 (or 1 if not new):
         // build up the sequence
 
-        VariantContext mask = tracker.getFirstValue(VariantContext.class, "MaskAlleles",ref.getLocus());
-        VariantContext validate = tracker.getFirstValue(VariantContext.class, "ValidateAlleles",ref.getLocus());
+        VariantContext mask = tracker.getFirstValue(maskAlleles, ref.getLocus());
+        VariantContext validate = tracker.getFirstValue(validateAlleles,ref.getLocus());
 
         if ( mask == null && validate == null ) {
             if ( indelCounter > 0 ) {

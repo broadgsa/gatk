@@ -86,7 +86,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     @Test
     public void testDeletions() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " --filterExpression 'QUAL < 100' --filterName foo --variants:VCF3 " + validationDataLocation + "twoDeletions.vcf", 1,
+                baseTestString() + " --filterExpression 'QUAL < 100' --filterName foo --variants:VCF " + validationDataLocation + "twoDeletions.vcf", 1,
                 Arrays.asList("569546fd798afa0e65c5b61b440d07ac"));
         executeTest("test deletions", spec);
     }

@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
@@ -18,10 +20,12 @@ import java.util.*;
  * The standard interaction model is:
  *
  * Traversal system arrives at a site, which has a bunch of RMDs covering it
- Genotype * Traversal calls tracker.bind(name, RMD) for each RMDs in RMDs
- * Traversal passes tracker to the walker
- * walker calls lookup(name, default) to obtain the RMDs values at this site, or default if none was
- *   bound at this site.
+ * Traversal passes creates a tracker and passes it to the walker
+ * walker calls get(rodBinding) to obtain the RMDs values at this site for the track
+ * associated with rodBinding.
+ *
+ * Note that this is an immutable class.  Once created the underlying data structures
+ * cannot be modified
  *
  * User: mdepristo
  * Date: Apr 3, 2009
@@ -45,14 +49,19 @@ public class RefMetaDataTracker {
 
     public RefMetaDataTracker(final Collection<RODRecordList> allBindings, final ReferenceContext ref) {
         this.ref = ref;
+
+        // set up the map
         if ( allBindings.isEmpty() )
             map = Collections.emptyMap();
         else {
-            map = new HashMap<String, RODRecordList>(allBindings.size());
+            Map<String, RODRecordList> tmap = new HashMap<String, RODRecordList>(allBindings.size());
             for ( RODRecordList rod : allBindings ) {
                 if ( rod != null )
-                    map.put(canonicalName(rod.getName()), rod);
+                    tmap.put(canonicalName(rod.getName()), rod);
             }
+
+            // ensure that no one modifies the map itself
+            map = Collections.unmodifiableMap(tmap);
         }
     }
 
@@ -64,76 +73,120 @@ public class RefMetaDataTracker {
     //
     // ------------------------------------------------------------------------------------------
 
+    /**
+     * Gets all of the Tribble features spanning this locus, returning them as a list of specific
+     * type T extending Feature.  This function looks across all tracks to find the Features, so
+     * if you have two tracks A and B each containing 1 Feature, then getValues will return
+     * a list containing both features.
+     *
+     * Note that this function assumes that all of the bound features are instances of or
+     * subclasses of T.  A ClassCastException will occur if this isn't the case.  If you want
+     * to get all Features without any danger of such an exception use the root Tribble
+     * interface Feature.
+     *
+     * @param type The type of the underlying objects bound here
+     * @param <T> as above
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
+    @Requires({"type != null"})
+    @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Class<T> type) {
         return addValues(map.keySet(), type, new ArrayList<T>(), null, false, false);
     }
+
+    /**
+     * Provides the same functionality as @link #getValues(Class<T>) but will only include
+     * Features that start as the GenomeLoc provide onlyAtThisLoc.
+     *
+     * @param type The type of the underlying objects bound here
+     * @param onlyAtThisLoc
+     * @param <T> as above
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
+    @Requires({"type != null", "onlyAtThisLoc != null"})
+    @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Class<T> type, final GenomeLoc onlyAtThisLoc) {
         return addValues(map.keySet(), type, new ArrayList<T>(), onlyAtThisLoc, true, false);
     }
-    public <T extends Feature> List<T> getValues(final Class<T> type, final String name) {
-        return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), null, false, false);
-    }
-    public <T extends Feature> List<T> getValues(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
-        return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), onlyAtThisLoc, true, false);
-    }
-    public <T extends Feature> List<T> getValues(final Class<T> type, final Collection<String> names) {
-        return addValues(names, type, new ArrayList<T>(), null, false, false);
-    }
-    public <T extends Feature> List<T> getValues(final Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
-        return addValues(names, type, new ArrayList<T>(), onlyAtThisLoc, true, false);
-    }
 
+    /**
+     * Uses the same logic as @link #getValues(Class) but arbitrary select one of the resulting
+     * elements of the list to return.  That is, if there would be two elements in the result of
+     * @link #getValues(Class), one of these two is selected, and which one it will be isn't
+     * specified.  Consequently, this method is only really safe if (1) you absolutely know
+     * that only one binding will meet the constraints of @link #getValues(Class) or (2)
+     * you truly don't care which of the multiple bindings available you are going to examine.
+     *
+     * If there are no bindings here, getFirstValue() return null
+     *
+     * @param type The type of the underlying objects bound here
+     * @param <T> as above
+     * @return A random single element the RODs bound here, or null if none are bound.
+     */
+    @Requires({"type != null"})
     public <T extends Feature> T getFirstValue(final Class<T> type) {
         return safeGetFirst(getValues(type));
     }
+
+    /**
+     * Uses the same logic as @link #getValue(Class,GenomeLoc) to determine the list
+     * of eligible Features and @link #getFirstValue(Class) to select a single
+     * element from the interval list.
+     *
+     * @param type The type of the underlying objects bound here
+     * @param <T> as above
+     * @param onlyAtThisLoc only Features starting at this site are considered
+     * @return A random single element the RODs bound here starting at onlyAtThisLoc, or null if none are bound.
+     */
+    @Requires({"type != null", "onlyAtThisLoc != null"})
     public <T extends Feature> T getFirstValue(final Class<T> type, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, onlyAtThisLoc));
-    }
-    public <T extends Feature> T getFirstValue(final Class<T> type, final String name) {
-        return safeGetFirst(getValues(type, name));
-    }
-    public <T extends Feature> T getFirstValue(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
-        return safeGetFirst(getValues(type, name, onlyAtThisLoc));
-    }
-    public <T extends Feature> T getFirstValue(final Class<T> type, final Collection<String> names) {
-        return safeGetFirst(getValues(type, names));
-    }
-    public <T extends Feature> T getFirstValue(final Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
-        return safeGetFirst(getValues(type, names, onlyAtThisLoc));
     }
 
     //
     // ROD binding accessors
     //
+    @Requires({"rodBinding != null"})
+    @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final RodBinding<T> rodBinding) {
-        return getValues(rodBinding.getType(), rodBinding.getName());
+        return addValues(rodBinding.getName(), rodBinding.getType(), new ArrayList<T>(1), getTrackDataByName(rodBinding), null, false, false);
     }
 
+    @Requires({"rodBindings != null"})
+    @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Collection<RodBinding<T>> rodBindings) {
-        List<T> results = new ArrayList<T>();
+        List<T> results = new ArrayList<T>(1);
         for ( RodBinding<T> rodBinding : rodBindings )
             results.addAll(getValues(rodBinding));
         return results;
     }
 
+    @Requires({"rodBinding != null", "onlyAtThisLoc != null"})
+    @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
-        return getValues(rodBinding.getType(), rodBinding.getName(), onlyAtThisLoc);
+        return addValues(rodBinding.getName(), rodBinding.getType(), new ArrayList<T>(1), getTrackDataByName(rodBinding), onlyAtThisLoc, true, false);
     }
 
+    @Requires({"rodBindings != null", "onlyAtThisLoc != null"})
+    @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Collection<RodBinding<T>> rodBindings, final GenomeLoc onlyAtThisLoc) {
-        List<T> results = new ArrayList<T>();
+        List<T> results = new ArrayList<T>(1);
         for ( RodBinding<T> rodBinding : rodBindings )
             results.addAll(getValues(rodBinding, onlyAtThisLoc));
         return results;
     }
 
+    @Requires({"rodBinding != null"})
     public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding) {
-        return getFirstValue(rodBinding.getType(), rodBinding.getName());
-    }
-    public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
-        return getFirstValue(rodBinding.getType(), rodBinding.getName(), onlyAtThisLoc);
+        return safeGetFirst(addValues(rodBinding.getName(), rodBinding.getType(), null, getTrackDataByName(rodBinding), null, false, true));
     }
 
+    @Requires({"rodBinding != null", "onlyAtThisLoc != null"})
+    public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
+        return safeGetFirst(addValues(rodBinding.getName(), rodBinding.getType(), null, getTrackDataByName(rodBinding), onlyAtThisLoc, true, true));
+    }
+
+    @Requires({"rodBindings != null"})
     public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings) {
         for ( RodBinding<T> rodBinding : rodBindings ) {
             T val = getFirstValue(rodBinding);
@@ -143,6 +196,7 @@ public class RefMetaDataTracker {
         return null;
     }
 
+    @Requires({"rodBindings != null", "onlyAtThisLoc != null"})
     public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings, final GenomeLoc onlyAtThisLoc) {
         for ( RodBinding<T> rodBinding : rodBindings ) {
             T val = getFirstValue(rodBinding, onlyAtThisLoc);
@@ -152,42 +206,58 @@ public class RefMetaDataTracker {
         return null;
     }
 
-
-
+    /**
+     * Is there a binding at this site to a ROD/track with the specified name?
+     *
+     * @param rodBinding the rod binding we want to know about
+     * @return true if any Features are bound in this tracker to rodBinding
+     */
+    @Requires({"rodBinding != null"})
     public boolean hasValues(final RodBinding rodBinding) {
-        return hasValues(rodBinding.getName());
-    }
-
-    public List<GATKFeature> getValuesAsGATKFeatures(final RodBinding rodBinding) {
-        return getValuesAsGATKFeatures(rodBinding.getName());
+        return map.containsKey(canonicalName(rodBinding.getName()));
     }
 
     /**
      * Helper function for getFirst() operations that takes a list of <T> and
      * returns the first element, or null if no such element exists.
      *
-     * TODO: determine specific behavior for l.size() > 1.  Do we turn first or an error?
-     * TODO: right now we return the first.  Should be clearer
-     *
      * @param l
      * @param <T>
      * @return
      */
+    @Requires({"l != null"})
     final private <T extends Feature> T safeGetFirst(final List<T> l) {
-        // todo: should we be warning people here?  Throwing an error?
         return l.isEmpty() ? null : l.get(0);
     }
 
-    /**
-     * Is there a binding at this site to a ROD/track with the specified name?
-     *
-     * @param name the name of the rod
-     * @return true if it has the rod
-     */
+    //
+    // Deprecated accessors -- will be removed
+    //
+    @Deprecated
     public boolean hasValues(final String name) {
         return map.containsKey(canonicalName(name));
     }
 
+    @Deprecated
+    public <T extends Feature> List<T> getValues(final Class<T> type, final String name) {
+        return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), null, false, false);
+    }
+    @Deprecated
+    public <T extends Feature> List<T> getValues(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+        return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), onlyAtThisLoc, true, false);
+    }
+    @Deprecated
+    public <T extends Feature> List<T> getValues(final Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
+        return addValues(names, type, new ArrayList<T>(), onlyAtThisLoc, true, false);
+    }
+    @Deprecated
+    public <T extends Feature> T getFirstValue(final Class<T> type, final String name) {
+        return safeGetFirst(getValues(type, name));
+    }
+    @Deprecated
+    public <T extends Feature> T getFirstValue(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+        return safeGetFirst(getValues(type, name, onlyAtThisLoc));
+    }
 
     /**
      * Get all of the RMDs at the current site. The collection is "flattened": for any track that has multiple records
@@ -195,6 +265,7 @@ public class RefMetaDataTracker {
      *
      * @return collection of all rods
      */
+    @Deprecated
     public List<GATKFeature> getAllValuesAsGATKFeatures() {
         List<GATKFeature> l = new ArrayList<GATKFeature>();
         for ( RODRecordList rl : map.values() ) {
@@ -204,6 +275,12 @@ public class RefMetaDataTracker {
         return l;
     }
 
+    @Deprecated
+    public List<GATKFeature> getValuesAsGATKFeatures(final RodBinding rodBinding) {
+        return getValuesAsGATKFeatures(rodBinding.getName());
+    }
+
+
     /**
      * get all the GATK features associated with a specific track name
      * @param name the name of the track we're looking for
@@ -211,6 +288,7 @@ public class RefMetaDataTracker {
      *
      * Important: The list returned by this function is guaranteed not to be null, but may be empty!
      */
+    @Deprecated
     public List<GATKFeature> getValuesAsGATKFeatures(final String name) {
         return getTrackDataByName(name);
     }
@@ -264,33 +342,6 @@ public class RefMetaDataTracker {
     }
 
 
-    /**
-     * get a singleton record, given the name and a type.  This function will return the first record at the
-     * current position seen.  The object is cast into a type clazz, or thoses an error if this isn't possible.
-     *
-     * * WARNING: we now suppport more than one RMD at a single position for all tracks.  If there are
-     * are multiple RMD objects at this location, there is no contract for which object this method will pick, and which object gets
-     * picked may change from time to time!  BE WARNED!
-     *
-     * @param name the name of the track
-     * @param clazz the underlying type to return
-     * @param <T extends Feature> the type to parameterize on, matching the clazz argument
-     * @return a record of type T, or null if no record is present.
-     */
-    @Deprecated
-    public <T extends Feature> T getFirstValue(final String name, final Class<T> clazz) {
-        RODRecordList objects = getTrackDataByName(name);
-
-        if (objects.isEmpty()) return null;
-
-        Object obj = objects.get(0).getUnderlyingObject();
-        if (!(clazz.isAssignableFrom(obj.getClass())))
-            throw new UserException.CommandLineException("Unable to case track named " + name + " to type of " + clazz.toString()
-                    + " it's of type " + obj.getClass());
-        else
-            return (T)obj;
-    }
-
     // ------------------------------------------------------------------------------------------
     //
     //
@@ -301,13 +352,15 @@ public class RefMetaDataTracker {
 
     private <T extends Feature> List<T> addValues(final Collection<String> names,
                                                   final Class<T> type,
-                                                  final List<T> values,
+                                                  List<T> values,
                                                   final GenomeLoc curLocation,
                                                   final boolean requireStartHere,
                                                   final boolean takeFirstOnly ) {
         for ( String name : names ) {
             RODRecordList rodList = getTrackDataByName(name); // require that the name is an exact match
-            addValues(name, type, values, rodList, curLocation, requireStartHere, takeFirstOnly );
+            values = addValues(name, type, values, rodList, curLocation, requireStartHere, takeFirstOnly );
+            if ( takeFirstOnly && ! values.isEmpty() )
+                break;
          }
 
          return values;
@@ -317,7 +370,7 @@ public class RefMetaDataTracker {
 
     private <T extends Feature> List<T> addValues(final String name,
                                                   final Class<T> type,
-                                                  final List<T> values,
+                                                  List<T> values,
                                                   final RODRecordList rodList,
                                                   final GenomeLoc curLocation,
                                                   final boolean requireStartHere,
@@ -329,15 +382,23 @@ public class RefMetaDataTracker {
                     throw new UserException.CommandLineException("Unable to cast track named " + name + " to type of " + type.toString()
                             + " it's of type " + obj.getClass());
 
-                values.add((T)obj);
+                T objT = (T)obj;
+                if ( takeFirstOnly ) {
+                    if ( values == null )
+                        values = Arrays.asList(objT);
+                    else
+                        values.add(objT);
 
-                if ( takeFirstOnly )
-                    // we only want the first passing instance, so break the loop over records in rodList
                     break;
+                } else {
+                    if ( values == null )
+                        values = new ArrayList<T>();
+                    values.add(objT);
+                }
             }
         }
 
-        return values;
+        return values == null ? Collections.<T>emptyList() : values;
     }
 
     /**
@@ -356,6 +417,10 @@ public class RefMetaDataTracker {
         final String luName = canonicalName(name);
         RODRecordList l = map.get(luName);
         return l == null ? EMPTY_ROD_RECORD_LIST : l;
+    }
+
+    private RODRecordList getTrackDataByName(final RodBinding binding) {
+        return getTrackDataByName(binding.getName());
     }
 
     /**

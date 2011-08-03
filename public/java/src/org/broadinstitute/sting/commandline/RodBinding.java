@@ -90,7 +90,7 @@ public final class RodBinding<T extends Feature> {
     final private static Map<String, Integer> nameCounter = new HashMap<String, Integer>();
 
     /** for UnitTests */
-    final protected static void resetNameCounter() {
+    final public static void resetNameCounter() {
         nameCounter.clear();
     }
 

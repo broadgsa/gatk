@@ -76,6 +76,11 @@ public class RefMetaDataTrackerUnitTest {
         span10_20 = makeSpan(10, 20);
     }
 
+    @BeforeMethod
+    public void reset() {
+        RodBinding.resetNameCounter();
+    }
+
     private class MyTest extends BaseTest.TestDataProvider {
         public RODRecordList AValues, BValues;
 

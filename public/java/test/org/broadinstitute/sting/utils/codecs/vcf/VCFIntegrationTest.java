@@ -17,7 +17,7 @@ public class VCFIntegrationTest extends WalkerTest {
 
         String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
 
-        String test1 = baseCommand + "-T VariantAnnotator -BTI variant --variants:vcf " + testVCF;
+        String test1 = baseCommand + "-T VariantAnnotator -BTI variants --variants:vcf " + testVCF;
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList(md5ofInputVCF));
         List<File> result = executeTest("Test Variant Annotator with no changes", spec1).getFirst();
 

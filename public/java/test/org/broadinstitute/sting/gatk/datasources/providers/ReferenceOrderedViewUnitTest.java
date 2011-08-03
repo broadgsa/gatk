@@ -88,7 +88,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",20), null);
-        TableFeature datum = tracker.getFirstValue("tableTest", TableFeature.class);
+        TableFeature datum = tracker.getFirstValue(TableFeature.class, "tableTest");
 
         Assert.assertEquals(datum.get("COL1"),"C","datum parameter for COL1 is incorrect");
         Assert.assertEquals(datum.get("COL2"),"D","datum parameter for COL2 is incorrect");
@@ -114,13 +114,13 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",20), null);
-        TableFeature datum1 = tracker.getFirstValue("tableTest1", TableFeature.class);
+        TableFeature datum1 = tracker.getFirstValue(TableFeature.class, "tableTest1");
 
         Assert.assertEquals(datum1.get("COL1"),"C","datum1 parameter for COL1 is incorrect");
         Assert.assertEquals(datum1.get("COL2"),"D","datum1 parameter for COL2 is incorrect");
         Assert.assertEquals(datum1.get("COL3"),"E","datum1 parameter for COL3 is incorrect");
 
-        TableFeature datum2 = tracker.getFirstValue("tableTest2", TableFeature.class);
+        TableFeature datum2 = tracker.getFirstValue(TableFeature.class, "tableTest2");
 
         Assert.assertEquals(datum2.get("COL1"),"C","datum2 parameter for COL1 is incorrect");
         Assert.assertEquals(datum2.get("COL2"),"D","datum2 parameter for COL2 is incorrect");
