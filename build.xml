@@ -468,6 +468,10 @@
         </javadoc>
     </target>
 
+    <target name="clean.gatkdocs">
+        <delete dir="gatkdocs"/>
+    </target>
+
     <target name="gatkdocs" depends="gatk.compile"
 	        description="Extract help key/value pair file from the JavaDoc tags.">
         <path id="doclet.classpath">
@@ -1076,7 +1080,7 @@
        </findbugs>
     </target>
 
-    <target name="clean" description="clean up" depends="tribble.clean,clean.javadoc">
+    <target name="clean" description="clean up" depends="tribble.clean,clean.javadoc,clean.gatkdocs">
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
