@@ -225,12 +225,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
         if ( ! indelsOnly ) {
             for ( VariantContext annotatedVC : annotatedVCs )
-                vcfWriter.add(annotatedVC, ref.getBase());
+                vcfWriter.add(annotatedVC);
         } else {
             // check to see if the buffered context is different (in location) this context
             if ( indelBufferContext != null && ! VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),indelBufferContext.iterator().next()).equals(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),annotatedVCs.iterator().next())) ) {
                 for ( VariantContext annotatedVC : indelBufferContext )
-                    vcfWriter.add(annotatedVC, ref.getBase());
+                    vcfWriter.add(annotatedVC);
                 indelBufferContext = annotatedVCs;
             } else {
                 indelBufferContext = annotatedVCs;

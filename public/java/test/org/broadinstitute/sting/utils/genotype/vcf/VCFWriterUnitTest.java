@@ -57,8 +57,8 @@ public class VCFWriterUnitTest extends BaseTest {
         VCFHeader header = createFakeHeader(metaData,additionalColumns);
         VCFWriter writer = new StandardVCFWriter(fakeVCFFile);
         writer.writeHeader(header);
-        writer.add(createVC(header),"A".getBytes()[0]);
-        writer.add(createVC(header),"A".getBytes()[0]);
+        writer.add(createVC(header));
+        writer.add(createVC(header));
         writer.close();
         VCFCodec reader = new VCFCodec();
         AsciiLineReader lineReader;

@@ -312,7 +312,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
 
                 VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeMap);
 
-                vcfWriter.add(newvc, ref.getBase());
+                vcfWriter.add(newvc);
             }
         }
 

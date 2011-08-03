@@ -91,7 +91,7 @@ public class MergeAndMatchHaplotypes extends RodWalker<Integer, Integer> {
                 }
 
                 VariantContext newvc = new VariantContext(SOURCE_NAME, pbt.getChr(), pbt.getStart(), pbt.getStart(), pbt.getAlleles(), genotypes, pbt.getNegLog10PError(), pbt.getFilters(), pbt.getAttributes());
-                vcfWriter.add(newvc, ref.getBase());
+                vcfWriter.add(newvc);
             }
         }
 

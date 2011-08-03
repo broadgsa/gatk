@@ -110,7 +110,7 @@ public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> 
 
                 // if we are holding it back and we are writing a bootstrap VCF, write it out
                 if ( makeMissing && bootstrapVCFOutput != null ) {
-                    bootstrapVCFOutput.add(vc, ref.getBase());
+                    bootstrapVCFOutput.add(vc);
                 }
 
                 // regardless, all sites are written to the unphased genotypes file, marked as missing if appropriate

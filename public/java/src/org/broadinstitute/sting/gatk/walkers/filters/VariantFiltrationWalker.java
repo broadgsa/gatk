@@ -272,7 +272,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         else
             filteredVC = new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
-        writer.add( filteredVC, context.getReferenceContext().getBase() );
+        writer.add(filteredVC);
     }
 
     public Integer reduce(Integer value, Integer sum) {

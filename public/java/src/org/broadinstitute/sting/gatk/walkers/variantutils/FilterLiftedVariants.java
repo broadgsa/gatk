@@ -78,7 +78,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         if ( failed )
             failedLocs++;
         else
-            writer.add(vc, ref[0]);
+            writer.add(vc);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

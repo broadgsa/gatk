@@ -25,20 +25,10 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 public class WriteVCF {
     public static void writeVCF(VariantContext vc, VCFWriter writer, Logger logger) {
-        byte refBase;
-        if (!vc.isIndel()) {
-            Allele refAllele = vc.getReference();
-            refBase = SNPallelePair.getSingleBase(refAllele);
-        }
-        else {
-            refBase = vc.getReferenceBaseForIndel();
-        }
-
-        writer.add(vc, refBase);
+        writer.add(vc);
     }
 }

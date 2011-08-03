@@ -120,6 +120,6 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void complexTestFull() { combineComplexSites("", "b5a53ee92bdaacd2bb3327e9004ae058"); }
     @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "df96cb3beb2dbb5e02f80abec7d3571e"); }
-    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f72a178137e25dbe0b931934cdc0079d"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f704caeaaaed6711943014b847fe381a"); }
     @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "f704caeaaaed6711943014b847fe381a"); }
 }

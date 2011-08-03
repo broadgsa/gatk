@@ -127,14 +127,13 @@ public class VariantContextAdaptors {
                 Map<String, Object> attributes = new HashMap<String, Object>();
                 attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
 
-                if ( sawNullAllele ) {
-                    int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
-                    if ( index < 0 )
-                        return null; // we weren't given enough reference context to create the VariantContext
-                    attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(ref.getBases()[index]));
-                }
-                Collection<Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
+                int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
+                if ( index < 0 )
+                    return null; // we weren't given enough reference context to create the VariantContext
+                Byte refBaseForIndel = new Byte(ref.getBases()[index]);
+
+                Map<String, Genotype> genotypes = null;
+                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
                 return vc;
             } else
                 return null; // can't handle anything else
