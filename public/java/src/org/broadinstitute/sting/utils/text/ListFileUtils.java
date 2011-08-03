@@ -28,7 +28,6 @@ import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -140,34 +139,25 @@ public class ListFileUtils {
         for (RodBinding rodBinding: RODBindings) {
             String argValue = rodBinding.getSource();
             String fileName = expandFileName(argValue);
-            final Tags tags = parser.getTags(rodBinding);
-
-            List<String> positionalTags = tags.getPositionalTags();
-            if(positionalTags.size() != 1)
-                throw new UserException("Invalid syntax for RODBinding (reference-ordered data) input .  " +
-                        "Please use the following syntax when providing reference-ordered " +
-                        "data: -<arg-name>:<type> <filename>.");
-            // Assume that if tags are present, those tags are name and type.
-            // Name is always first, followed by type.
-            String name = rodBinding.getVariableName();
-            String type = positionalTags.get(0);
+            String name = rodBinding.getName();
+            String type = rodBinding.getTribbleType();
 
             RMDTriplet.RMDStorageType storageType = null;
-            if(tags.getValue("storage") != null)
-                storageType = Enum.valueOf(RMDTriplet.RMDStorageType.class,tags.getValue("storage"));
+            if(rodBinding.getTags().getValue("storage") != null)
+                storageType = Enum.valueOf(RMDTriplet.RMDStorageType.class,rodBinding.getTags().getValue("storage"));
             else if(fileName.toLowerCase().endsWith("stdin"))
                 storageType = RMDTriplet.RMDStorageType.STREAM;
             else
                 storageType = RMDTriplet.RMDStorageType.FILE;
 
-            RMDTriplet triplet = new RMDTriplet(name,type,fileName,storageType,tags);
+            RMDTriplet triplet = new RMDTriplet(name,type,fileName,storageType,rodBinding.getTags());
 
             // validate triplet type
             Class typeFromTribble = builderForValidation.getFeatureCodecClass(triplet);
             if ( typeFromTribble != null && ! rodBinding.getType().isAssignableFrom(typeFromTribble) )
-                throw new UserException.BadArgumentValue(rodBinding.getVariableName(),
+                throw new UserException.BadArgumentValue(rodBinding.getName(),
                         String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s",
-                                rodBinding.getVariableName(), rodBinding.getType(), typeFromTribble));
+                                rodBinding.getName(), rodBinding.getType(), typeFromTribble));
 
 
             rodBindings.add(triplet);

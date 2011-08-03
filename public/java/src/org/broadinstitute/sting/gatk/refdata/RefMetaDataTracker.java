@@ -6,11 +6,8 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
@@ -109,7 +106,7 @@ public class RefMetaDataTracker {
     // ROD binding accessors
     //
     public <T extends Feature> List<T> getValues(final RodBinding<T> rodBinding) {
-        return getValues(rodBinding.getType(), rodBinding.getVariableName());
+        return getValues(rodBinding.getType(), rodBinding.getName());
     }
 
     public <T extends Feature> List<T> getValues(final Collection<RodBinding<T>> rodBindings) {
@@ -120,7 +117,7 @@ public class RefMetaDataTracker {
     }
 
     public <T extends Feature> List<T> getValues(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
-        return getValues(rodBinding.getType(), rodBinding.getVariableName(), onlyAtThisLoc);
+        return getValues(rodBinding.getType(), rodBinding.getName(), onlyAtThisLoc);
     }
 
     public <T extends Feature> List<T> getValues(final Collection<RodBinding<T>> rodBindings, final GenomeLoc onlyAtThisLoc) {
@@ -131,10 +128,10 @@ public class RefMetaDataTracker {
     }
 
     public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding) {
-        return getFirstValue(rodBinding.getType(), rodBinding.getVariableName());
+        return getFirstValue(rodBinding.getType(), rodBinding.getName());
     }
     public <T extends Feature> T getFirstValue(final RodBinding<T> rodBinding, final GenomeLoc onlyAtThisLoc) {
-        return getFirstValue(rodBinding.getType(), rodBinding.getVariableName(), onlyAtThisLoc);
+        return getFirstValue(rodBinding.getType(), rodBinding.getName(), onlyAtThisLoc);
     }
 
     public <T extends Feature> T getFirstValue(final Collection<RodBinding<T>> rodBindings) {
@@ -158,11 +155,11 @@ public class RefMetaDataTracker {
 
 
     public boolean hasValues(final RodBinding rodBinding) {
-        return hasValues(rodBinding.getVariableName());
+        return hasValues(rodBinding.getName());
     }
 
     public List<GATKFeature> getValuesAsGATKFeatures(final RodBinding rodBinding) {
-        return getValuesAsGATKFeatures(rodBinding.getVariableName());
+        return getValuesAsGATKFeatures(rodBinding.getName());
     }
 
     /**

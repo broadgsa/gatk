@@ -312,10 +312,23 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         try {
+            String name = source.field.getName();
+            String tribbleType;
             Tags tags = getArgumentTags(matches);
-            Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, Tags.class);
+            // must have one or two tag values here
+            if ( tags.getPositionalTags().size() == 2 ) { // -X:name,type style
+                name = tags.getPositionalTags().get(0);
+                tribbleType = tags.getPositionalTags().get(1);
+            } else if ( tags.getPositionalTags().size() == 1 ) { // -X:type style
+                tribbleType = tags.getPositionalTags().get(0);
+            } else
+                throw new UserException.CommandLineException(
+                        String.format("Unexpected number of positional tags for argument %s : %s. " +
+                                "Rod bindings only suport -X:type and -X:name,type argument styles",
+                                value, source.field.getName()));
+            Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
             Class parameterType = getParameterizedTypeClass(type);
-            RodBinding result = (RodBinding)ctor.newInstance(parameterType, source.field.getName(), value, tags);
+            RodBinding result = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
             parsingEngine.addTags(result,tags);
             return result;
         } catch (InvocationTargetException e) {

@@ -25,13 +25,8 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * A RodBinding representing a walker argument that gets bound to a ROD track.
@@ -39,24 +34,46 @@ import java.util.List;
  * There is no constraint on the type of the ROD bound.
  */
 public class RodBinding<T extends Feature> {
+    protected final static String UNBOUND_VARIABLE_NAME = "";
+    protected final static String UNBOUND_SOURCE = "UNBOUND";
+    protected final static String UNBOUND_TRIBBLE_TYPE = null;
     public final static <T extends Feature> RodBinding<T> makeUnbound(Class<T> type) {
         return new RodBinding<T>(type);
     }
 
-    final private String variableName;
+    final private String name;
     final private String source;
+    final private String tribbleType;
     final private Tags tags;
     final private Class<T> type;
     final private boolean bound;
+
+    final private static Map<String, Integer> nameCounter = new HashMap<String, Integer>();
+
+    final protected static void resetNameCounter() {
+        nameCounter.clear();
+    }
+
+    final private static synchronized String countedVariableName(final String rawName) {
+        Integer count = nameCounter.get(rawName);
+        if ( count == null ) {
+            nameCounter.put(rawName, 1);
+            return rawName;
+        } else {
+            nameCounter.put(rawName, count + 1);
+            return rawName + (count + 1);
+        }
+    }
 
     public boolean isBound() {
         return bound;
     }
 
-    public RodBinding(Class<T> type, final String variableName, final String source, final Tags tags) {
+    public RodBinding(Class<T> type, final String rawName, final String source, final String tribbleType, final Tags tags) {
         this.type = type;
-        this.variableName = variableName;
+        this.name = countedVariableName(rawName);
         this.source = source;
+        this.tribbleType = tribbleType;
         this.tags = tags;
         this.bound = true;
     }
@@ -67,14 +84,15 @@ public class RodBinding<T extends Feature> {
      */
     private RodBinding(Class<T> type) {
         this.type = type;
-        this.variableName = "";  // special value can never be found in RefMetaDataTracker
-        this.source = "";
+        this.name = UNBOUND_VARIABLE_NAME;  // special value can never be found in RefMetaDataTracker
+        this.source = UNBOUND_SOURCE;
+        this.tribbleType = UNBOUND_TRIBBLE_TYPE;
         this.tags = new Tags();
         this.bound = false;
     }
 
-    public String getVariableName() {
-        return variableName;
+    public String getName() {
+        return name;
     }
     public Class<T> getType() {
         return type;
@@ -87,7 +105,11 @@ public class RodBinding<T extends Feature> {
         return tags;
     }
 
+    public String getTribbleType() {
+        return tribbleType;
+    }
+
     public String toString() {
-        return String.format("(RodBinding name=%s source=%s)", getVariableName(), getSource());
+        return String.format("(RodBinding name=%s source=%s)", getName(), getSource());
     }
 }
