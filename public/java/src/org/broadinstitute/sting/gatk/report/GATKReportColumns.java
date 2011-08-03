@@ -24,26 +24,32 @@
 
 package org.broadinstitute.sting.gatk.report;
 
-import org.broadinstitute.sting.BaseTest;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import java.util.*;
 
-import java.io.File;
+/**
+ * Tracks a linked list of GATKReportColumn in order by name.
+ */
+public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> {
+    private List<String> columnNames = new ArrayList<String>();
 
-public class GATKReportParserUnitTest extends BaseTest {
-    @Test
-    public void testParse() throws Exception {
-        GATKReportParser parser = new GATKReportParser();
-        parser.parse(new File(validationDataLocation + "exampleGATKReport.eval"));
+    /**
+     * Returns the column by index
+     * @param i the index
+     * @return The column
+     */
+    public GATKReportColumn getByIndex(int i) {
+        return get(columnNames.get(i));
+    }
 
-        Assert.assertEquals(parser.getValue("CountVariants", "none.eval.none.all", "nProcessedLoci"), "100000");
-        Assert.assertEquals(parser.getValue("CountVariants", "none.eval.none.all", "nNoCalls"), "99872");
+    @Override
+    public GATKReportColumn remove(Object key) {
+        columnNames.remove(key);
+        return super.remove(key);
+    }
 
-        Assert.assertEquals(parser.getValue("SimpleMetricsByAC.metrics", "none.eval.none.novel.ac2", "AC"), "2");
-        Assert.assertNull(parser.getValue("SimpleMetricsByAC.metrics", "none.eval.none.novel.ac2.bad", "AC"));
-        Assert.assertNull(parser.getValue("SimpleMetricsByAC.metrics", "none.eval.none.novel.ac2", "AC.bad"));
-        Assert.assertNull(parser.getValue("SimpleMetricsByAC.metrics.bad", "none.eval.none.novel.ac2", "AC"));
-
-        Assert.assertEquals(parser.getValue("ValidationReport", "none.eval.none.known", "sensitivity"), "NaN");
+    @Override
+    public GATKReportColumn put(String key, GATKReportColumn value) {
+        columnNames.add(key);
+        return super.put(key, value);
     }
 }

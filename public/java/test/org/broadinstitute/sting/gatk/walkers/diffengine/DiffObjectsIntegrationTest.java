@@ -30,8 +30,6 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 public class DiffObjectsIntegrationTest extends WalkerTest {
     private class TestParams extends TestDataProvider {
@@ -52,8 +50,8 @@ public class DiffObjectsIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "data")
     public Object[][] createData() {
-        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "4d9f4636de05b93c354d05011264546e");
-        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "37e6efd833b5cd6d860a9df3df9713fc");
+        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "92311de76dda3f38aac289d807ef23d0");
+        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "0c69412c385fda50210f2a612e1ffe4a");
         return TestParams.getTests(TestParams.class);
     }
 

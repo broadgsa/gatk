@@ -34,8 +34,8 @@ import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.MD5DB
 import org.broadinstitute.sting.queue.QCommandLine
 import org.broadinstitute.sting.queue.util.{Logging, ProcessController}
-import java.io.{FileNotFoundException, File}
-import org.broadinstitute.sting.gatk.report.GATKReportParser
+import java.io.File
+import org.broadinstitute.sting.gatk.report.GATKReport
 import org.apache.commons.io.FileUtils
 import org.broadinstitute.sting.queue.engine.CommandLinePluginManager
 
@@ -118,12 +118,11 @@ object PipelineTest extends BaseTest with Logging {
     // write the report to the shared validation data location
     val formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
     val reportLocation = "%s%s/%s/validation.%s.eval".format(validationReportsDataLocation, jobRunner, name, formatter.format(new Date))
-    val report = new File(reportLocation)
+    val reportFile = new File(reportLocation)
 
-    FileUtils.copyFile(new File(runDir(name, jobRunner) + evalSpec.evalReport), report);
+    FileUtils.copyFile(new File(runDir(name, jobRunner) + evalSpec.evalReport), reportFile);
 
-    val parser = new GATKReportParser
-    parser.parse(report)
+    val report = new GATKReport(reportFile);
 
     var allInRange = true
 
@@ -131,7 +130,9 @@ object PipelineTest extends BaseTest with Logging {
     println(name + " validation values:")
     println("    value (min,target,max) table key metric")
     for (validation <- evalSpec.validations) {
-      val value = parser.getValue(validation.table, validation.key, validation.metric)
+      val table = report.getTable(validation.table)
+      val key = table.getPrimaryKey(validation.key)
+      val value = String.valueOf(table.get(key, validation.metric))
       val inRange = if (value == null) false else validation.inRange(value)
       val flag = if (!inRange) "*" else " "
       println("  %s %s (%s,%s,%s) %s %s %s".format(flag, value, validation.min, validation.target, validation.max, validation.table, validation.key, validation.metric))

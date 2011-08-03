@@ -1,21 +1,23 @@
 package org.broadinstitute.sting.gatk.report;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.io.*;
+import java.util.List;
 import java.util.TreeMap;
 
 /**
  * Container class for GATK report tables
  */
 public class GATKReport {
-    private TreeMap<String, GATKReportTable> tables;
+    private TreeMap<String, GATKReportTable> tables = new TreeMap<String, GATKReportTable>();
 
     /**
      * Create a new, empty GATKReport.
      */
     public GATKReport() {
-        tables = new TreeMap<String, GATKReportTable>();
     }
 
     /**
@@ -23,7 +25,7 @@ public class GATKReport {
      * @param filename  the path to the file to load
      */
     public GATKReport(String filename) {
-        loadReport(new File(filename));
+        this(new File(filename));
     }
 
     /**
@@ -31,7 +33,6 @@ public class GATKReport {
      * @param file  the file to load
      */
     public GATKReport(File file) {
-        tables = new TreeMap<String, GATKReportTable>();
         loadReport(file);
     }
 
@@ -46,11 +47,17 @@ public class GATKReport {
             GATKReportTable table = null;
             String[] header = null;
             int id = 0;
+            GATKReportVersion version = null;
+            List<Integer> columnStarts = null;
 
             String line;
             while ( (line = reader.readLine()) != null ) {
-                if (line.startsWith("##:GATKReport.v0.1 ")) {
-                    line = line.replaceFirst("##:GATKReport.v0.1 ", "");
+
+                if (line.startsWith("##:GATKReport.v")) {
+
+                    version = GATKReportVersion.fromHeader(line);
+
+                    line = line.replaceFirst("##:GATKReport." + version.versionString + " ", "");
                     String[] pieces = line.split(" : ");
 
                     String tableName = pieces[0];
@@ -58,14 +65,35 @@ public class GATKReport {
 
                     addTable(tableName, tableDesc);
                     table = getTable(tableName);
+                    table.setVersion(version);
 
                     header = null;
-                } else if ( line.isEmpty() ) {
+                    columnStarts = null;
+                } else if ( line.trim().isEmpty() ) {
                     // do nothing
                 } else {
                     if (table != null) {
+
+                        String[] splitLine;
+
+                        switch (version) {
+                            case V0_1:
+                                splitLine = TextFormattingUtils.splitWhiteSpace(line);
+                                break;
+
+                            case V0_2:
+                                if (header == null) {
+                                    columnStarts = TextFormattingUtils.getWordStarts(line);
+                                }
+                                splitLine = TextFormattingUtils.splitFixedWidth(line, columnStarts);
+                                break;
+
+                            default:
+                                throw new ReviewedStingException("GATK report version parsing not implemented for: " + line);
+                        }
+
                         if (header == null) {
-                            header = line.split("\\s+");
+                            header = splitLine;
 
                             table.addPrimaryKey("id", false);
 
@@ -75,10 +103,8 @@ public class GATKReport {
 
                             id = 0;
                         } else {
-                            String[] entries = line.split("\\s+");
-
                             for (int columnIndex = 0; columnIndex < header.length; columnIndex++) {
-                                table.set(id, header[columnIndex], entries[columnIndex]);
+                                table.set(id, header[columnIndex], splitLine[columnIndex]);
                             }
 
                             id++;
@@ -125,7 +151,10 @@ public class GATKReport {
      * @return  the table object
      */
     public GATKReportTable getTable(String tableName) {
-        return tables.get(tableName);
+        GATKReportTable table = tables.get(tableName);
+        if (table == null)
+            throw new ReviewedStingException("Table is not in GATKReport: " + tableName);
+        return table;
     }
 
     /**
