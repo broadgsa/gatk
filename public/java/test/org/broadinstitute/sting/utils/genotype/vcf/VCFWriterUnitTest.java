@@ -135,7 +135,7 @@ public class VCFWriterUnitTest extends BaseTest {
             genotypes.put(name,gt);
             
         }
-        return new VariantContext("RANDOM",loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, 0, filters, attributes);
+        return new VariantContext("RANDOM",loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, 0, filters, attributes, (byte)'A');
 
 
     }
