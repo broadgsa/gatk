@@ -38,10 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author aaron
@@ -133,6 +130,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         // always return 0
         return 0;
     }
+
 
     /**
      * Generate the GATK run report for this walker using the current GATKEngine, if -et is enabled.

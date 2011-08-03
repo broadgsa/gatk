@@ -39,10 +39,15 @@ import java.util.List;
  * There is no constraint on the type of the ROD bound.
  */
 public class RodBinding<T extends Feature> {
-    final String variableName;
-    final String source;
-    final Tags tags;
-    final Class<T> type;
+    final private String variableName;
+    final private String source;
+    final private Tags tags;
+    final private Class<T> type;
+
+    public boolean isBound() {
+        // todo : implement me
+        return source != null;
+    }
 
     public RodBinding(Class<T> type, final String variableName, final String source, final Tags tags) {
         this.type = type;

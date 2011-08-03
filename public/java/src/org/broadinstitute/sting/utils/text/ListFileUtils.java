@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -134,6 +135,7 @@ public class ListFileUtils {
     public static Collection<RMDTriplet> unpackRODBindings(final Collection<RodBinding> RODBindings, final ParsingEngine parser) {
         // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
+        RMDTrackBuilder builderForValidation = new RMDTrackBuilder();
 
         for (RodBinding rodBinding: RODBindings) {
             String argValue = rodBinding.getSource();
@@ -158,7 +160,17 @@ public class ListFileUtils {
             else
                 storageType = RMDTriplet.RMDStorageType.FILE;
 
-            rodBindings.add(new RMDTriplet(name,type,fileName,storageType,tags));
+            RMDTriplet triplet = new RMDTriplet(name,type,fileName,storageType,tags);
+
+            // validate triplet type
+            Class typeFromTribble = builderForValidation.getFeatureCodecClass(triplet);
+            if ( typeFromTribble != null && ! rodBinding.getType().isAssignableFrom(typeFromTribble) )
+                throw new UserException.BadArgumentValue(rodBinding.getVariableName(),
+                        String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s",
+                                rodBinding.getVariableName(), rodBinding.getType(), typeFromTribble));
+
+
+            rodBindings.add(triplet);
         }
 
         return rodBindings;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,15 +12,14 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
@@ -100,7 +99,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     public RMDTrackBuilder(SAMSequenceDictionary dict,
                            GenomeLocParser genomeLocParser,
                            ValidationExclusion.TYPE validationExclusionType) {
-        super(FeatureCodec.class, "Codecs", "Codec");
+        this();
         this.dict = dict;
         this.genomeLocParser = genomeLocParser;
         this.validationExclusionType = validationExclusionType;
@@ -108,7 +107,21 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         classes = new HashMap<String, Class>();
         for (String name: this.getPluginsByName().keySet()) {
             classes.put(name.toUpperCase(), getPluginsByName().get(name));
-        }    }
+        }
+    }
+
+    /**
+     * Limited constructor that produces a builder capable for validating types, but not building tracks
+     */
+    public RMDTrackBuilder() {
+        super(FeatureCodec.class, "Codecs", "Codec");
+
+        classes = new HashMap<String, Class>();
+        for (String name: this.getPluginsByName().keySet()) {
+            classes.put(name.toUpperCase(), getPluginsByName().get(name));
+        }
+    }
+
 
     /** @return a list of all available track types we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
@@ -125,6 +138,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         return classToRecord;
     }
 
+    public Class getFeatureCodecClass(RMDTriplet fileDescriptor) {
+        return getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
+    }
+
     /**
      * create a RMDTrack of the specified type
      *
@@ -136,7 +153,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         String name = fileDescriptor.getName();
         File inputFile = new File(fileDescriptor.getFile());
 
-        Class featureCodecClass = getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
+        Class featureCodecClass = getFeatureCodecClass(fileDescriptor);
         if (featureCodecClass == null)
             throw new UserException.BadArgumentValue("-B",fileDescriptor.getType());
 
