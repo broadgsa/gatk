@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -154,9 +155,9 @@ public class VariantAnnotatorEngine {
                 String rsID = null;
 
                 if (vc.isSNP())
-                    rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                    rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                 else if (vc.isIndel())
-                    rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                    rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null );
                 // annotate dbsnp id if available and not already there
                 if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )

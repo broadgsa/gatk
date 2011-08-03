@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -36,7 +37,7 @@ public class CountIntervals extends RefWalker<Long, Long> {
             return null;
         }
 
-        List<Object> checkIntervals = tracker.getValues("check");
+        List<Feature> checkIntervals = tracker.getValues(Feature.class, "check");
         return (long) checkIntervals.size();
     }
 

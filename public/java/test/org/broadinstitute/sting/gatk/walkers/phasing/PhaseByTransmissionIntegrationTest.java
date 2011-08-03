@@ -14,13 +14,14 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
+                        "-NO_HEADER",
                         "-R " + b37KGReference,
                         "-B:variant,VCF " + fundamentalTestVCF,
                         "-f NA12892+NA12891=NA12878",
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("45fef0e23113e2fcd9570379e2fc1b75")
+                Arrays.asList("")
         );
         executeTest("testBasicFunctionality", spec);
     }

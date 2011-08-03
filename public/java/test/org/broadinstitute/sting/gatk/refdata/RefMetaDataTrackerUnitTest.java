@@ -27,8 +27,6 @@ package org.broadinstitute.sting.gatk.refdata;
 import net.sf.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
-import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
@@ -38,7 +36,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -173,7 +170,7 @@ public class RefMetaDataTrackerUnitTest {
     public void testRawBindings(MyTest test) {
         logger.warn("Testing " + test + " for number of bound tracks");
         RefMetaDataTracker tracker = test.makeTracker();
-        Assert.assertEquals(tracker.getNumberOfTracksWithValue(), test.nBoundTracks());
+        Assert.assertEquals(tracker.getNTracksWithBoundFeatures(), test.nBoundTracks());
 
         testSimpleBindings("A", tracker, test.AValues);
         testSimpleBindings("B", tracker, test.BValues);

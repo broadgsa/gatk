@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -70,7 +71,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",10), null);
-        Assert.assertEquals(tracker.getAllValuesAsGATKFeatures().size(), 0, "The tracker should not have produced any data");
+        Assert.assertEquals(tracker.getValues(Feature.class).size(), 0, "The tracker should not have produced any data");
     }
 
     /**

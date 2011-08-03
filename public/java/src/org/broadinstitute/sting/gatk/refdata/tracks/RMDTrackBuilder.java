@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -133,7 +134,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         HashMap classToRecord = new HashMap<String, Class>();
         for (String name: this.getPluginsByName().keySet()) {
             FeatureCodec codec = this.createByName(name);
-            classToRecord.put(name, codec.getFeatureType());
+            classToRecord.put(name.toUpperCase(), codec.getFeatureType());
         }
         return classToRecord;
     }
@@ -142,8 +143,23 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         return getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
     }
 
+    /**
+     * Returns the FeatureClass (BeagleFeature) produced by an RMDTriplet, or null
+     * if no such binding is found
+     *
+     * @param fileDescriptor
+     * @return
+     */
     public Class getFeatureClass(RMDTriplet fileDescriptor) {
         return getAvailableTrackNamesAndRecordTypes().get(fileDescriptor.getType().toUpperCase());
+    }
+
+    /**
+     * Returns a list of the available tribble track names (vcf,dbsnp,etc) that we can load
+     * @return
+     */
+    public String getAvailableTribbleFeatureNames() {
+        return Utils.join(",", getAvailableTrackNamesAndRecordTypes().keySet());
     }
 
     /**

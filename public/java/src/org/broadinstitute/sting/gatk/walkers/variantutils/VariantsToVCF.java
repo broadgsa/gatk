@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
@@ -88,7 +89,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
 
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
@@ -117,7 +118,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Collection<VariantContext> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref) {
         // we need to special case the HapMap format because indels aren't handled correctly
-        List<Object> features = tracker.getValues(variants.getName());
+        List<Feature> features = tracker.getValues(Feature.class, variants.getName());
         if ( features.size() > 0 && features.get(0) instanceof HapMapFeature ) {
             ArrayList<VariantContext> hapmapVCs = new ArrayList<VariantContext>(features.size());
             for ( Object feature : features ) {
@@ -223,7 +224,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
 
                 if ( samples.isEmpty() ) {
-                    List<Object> rods = tracker.getValues(variants.getName());
+                    List<Feature> rods = tracker.getValues(Feature.class, variants.getName());
                     if ( rods.size() == 0 )
                         throw new IllegalStateException("No rod data is present");
 

@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableReadFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -291,15 +290,8 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      * @return Returns 1, but this value isn't used in the reduce step
      */
     public CountedData map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-
         // If any ROD covers this site then we assume it is a site of known genetic variation and we skip it
-        boolean isSNP = false;
-        for( final GATKFeature rod : tracker.getAllValuesAsGATKFeatures() ) {
-            if( rod != null ) {
-                isSNP = true;
-                break;
-            }
-        }
+        boolean isSNP = tracker.getNTracksWithBoundFeatures() > 0;
         
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicative of poor quality

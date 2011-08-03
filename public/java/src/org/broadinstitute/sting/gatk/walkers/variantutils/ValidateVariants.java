@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
@@ -140,7 +141,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         // get the RS IDs
         Set<String> rsIDs = null;
         if ( tracker.hasValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-            List<Object> dbsnpList = tracker.getValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME);
+            List<Feature> dbsnpList = tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME);
             rsIDs = new HashSet<String>();
             for ( Object d : dbsnpList ) {
                 if (d instanceof DbSNPFeature )

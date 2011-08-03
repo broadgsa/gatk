@@ -292,21 +292,33 @@ public class RefMetaDataTracker {
     }
 
     /**
-     * Helper function for getFirst() operations that takes a list of <T> and
-     * returns the first element, or null if no such element exists.
+     * Get all of the RMD tracks at the current site. Each track is returned as a single compound
+     * object (RODRecordList) that may contain multiple RMD records associated with the current site.
      *
-     * @param l
-     * @param <T>
-     * @return
+     * @return List of all tracks
      */
-    @Requires({"l != null"})
-    final private <T extends Feature> T safeGetFirst(final List<T> l) {
-        return l.isEmpty() ? null : l.get(0);
+    public List<RODRecordList> getBoundRodTracks() {
+        return new ArrayList<RODRecordList>(map.values());
     }
 
+    /**
+     * The number of tracks with at least one value bound here
+     * @return the number of tracks with at least one bound Feature
+     */
+    public int getNTracksWithBoundFeatures() {
+        return map.size();
+    }
+
+    // ------------------------------------------------------------------------------------------
     //
-    // Deprecated accessors -- will be removed
     //
+    // old style accessors
+    //
+    // TODO -- DELETE ME
+    //
+    //
+    // ------------------------------------------------------------------------------------------
+
     @Deprecated
     public boolean hasValues(final String name) {
         return map.containsKey(canonicalName(name));
@@ -333,72 +345,26 @@ public class RefMetaDataTracker {
         return safeGetFirst(getValues(type, name, onlyAtThisLoc));
     }
 
-    /**
-     * Get all of the RMDs at the current site. The collection is "flattened": for any track that has multiple records
-     * at the current site, they all will be added to the list as separate elements.
-     *
-     * @return collection of all rods
-     */
-    @Deprecated
-    public List<GATKFeature> getAllValuesAsGATKFeatures() {
-        List<GATKFeature> l = new ArrayList<GATKFeature>();
-        for ( RODRecordList rl : map.values() ) {
-            if ( rl != null )
-                l.addAll(rl);
-        }
-        return l;
-    }
+    // ------------------------------------------------------------------------------------------
+    //
+    //
+    // Private utility functions
+    //
+    //
+    // ------------------------------------------------------------------------------------------
 
     /**
-     * Get all of the RMD tracks at the current site. Each track is returned as a single compound
-     * object (RODRecordList) that may contain multiple RMD records associated with the current site.
+     * Helper function for getFirst() operations that takes a list of <T> and
+     * returns the first element, or null if no such element exists.
      *
-     * @return List of all tracks
-     */
-    public List<RODRecordList> getBoundRodTracks() {
-        return new ArrayList<RODRecordList>(map.values());
-    }
-
-    /**
-     * The number of tracks with at least one value bound here
+     * @param l
+     * @param <T>
      * @return
      */
-    public int getNumberOfTracksWithValue() {
-        int n = 0;
-        for ( RODRecordList value : map.values() ) {
-            if ( ! value.isEmpty() ) {
-                n++;
-            }
-        }
-        return n;
+    @Requires({"l != null"})
+    final private <T extends Feature> T safeGetFirst(final List<T> l) {
+        return l.isEmpty() ? null : l.get(0);
     }
-
-    // ------------------------------------------------------------------------------------------
-    //
-    //
-    // old style Generic accessors
-    //
-    // TODO -- DELETE ME
-    //
-    //
-    // ------------------------------------------------------------------------------------------
-
-    /**
-     * No-assumption version of getValues(name, class).  Returns Objects.
-     */
-    @Deprecated
-    public List<Object> getValues(final String name) {
-        return (List<Object>)(List)getValues(Feature.class, name);
-    }
-
-
-    // ------------------------------------------------------------------------------------------
-    //
-    //
-    // VariantContext helpers
-    //
-    //
-    // ------------------------------------------------------------------------------------------
 
     private <T extends Feature> List<T> addValues(final Collection<String> names,
                                                   final Class<T> type,

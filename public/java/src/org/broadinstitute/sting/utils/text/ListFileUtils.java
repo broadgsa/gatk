@@ -154,7 +154,11 @@ public class ListFileUtils {
 
             // validate triplet type
             Class typeFromTribble = builderForValidation.getFeatureClass(triplet);
-            if ( typeFromTribble != null && ! rodBinding.getType().isAssignableFrom(typeFromTribble) )
+            if ( typeFromTribble == null )
+                throw new UserException.UnknownTribbleType(rodBinding.getTribbleType(),
+                        String.format("Field %s had provided type %s but there's no such Tribble type.  Available types are %s",
+                                rodBinding.getName(), rodBinding.getTribbleType(), builderForValidation.getAvailableTribbleFeatureNames()));
+            if ( ! rodBinding.getType().isAssignableFrom(typeFromTribble) )
                 throw new UserException.BadArgumentValue(rodBinding.getName(),
                         String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s",
                                 rodBinding.getName(), rodBinding.getType(), typeFromTribble));

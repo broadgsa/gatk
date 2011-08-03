@@ -87,6 +87,13 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class UnknownTribbleType extends CommandLineException {
+        public UnknownTribbleType(String type, String message) {
+            super(String.format("Unknown tribble type %s: %s", type, message));
+        }
+    }
+
+
     public static class BadTmpDir extends UserException {
         public BadTmpDir(String message) {
             super(String.format("Failure working with the tmp directory %s. Override with -Djava.io.tmpdir=X on the command line to a bigger/better file system.  Exact error was %s", System.getProperties().get("java.io.tmpdir"), message));

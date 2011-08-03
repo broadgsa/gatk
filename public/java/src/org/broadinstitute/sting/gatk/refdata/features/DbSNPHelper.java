@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.refdata.features;
 
 import net.sf.samtools.util.SequenceUtil;
+import org.broad.tribble.Feature;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.utils.Utils;
@@ -58,12 +59,12 @@ public class DbSNPHelper {
         return dbsnp;
     }
 
-    public static String rsIDOfFirstRealSNP(List<Object> featureList) {
+    public static String rsIDOfFirstRealSNP(List<Feature> featureList) {
         if (featureList == null)
             return null;
 
         String rsID = null;
-        for ( Object d : featureList ) {
+        for ( Feature d : featureList ) {
             if ( d instanceof DbSNPFeature ) {
                 if ( DbSNPHelper.isSNP((DbSNPFeature)d) ) {
                     rsID = ((DbSNPFeature)d).getRsID();
@@ -80,12 +81,12 @@ public class DbSNPHelper {
         return rsID;
     }
 
-    public static String rsIDOfFirstRealIndel(List<Object> featureList) {
+    public static String rsIDOfFirstRealIndel(List<Feature> featureList) {
         if (featureList == null)
             return null;
 
         String rsID = null;
-        for ( Object d : featureList ) {
+        for ( Feature d : featureList ) {
             if ( d instanceof DbSNPFeature ) {
                 if ( DbSNPHelper.isIndel((DbSNPFeature) d) ) {
                     rsID = ((DbSNPFeature)d).getRsID();

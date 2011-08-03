@@ -42,28 +42,27 @@ import java.util.List;
  *
  */
 public class EngineFeaturesIntegrationTest extends WalkerTest {
-    private void testBadRODBindingInput(String type, String name) {
+    private void testBadRODBindingInput(String type, String name, Class c) {
         WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -L 1:1 --variants:" + type + " "
                 + b37dbSNP132 + " -R " + b37KGReference + " -o %s",
-                1, UserException.class);
+                1, c);
         executeTest(name, spec);
     }
 
-
     @Test() private void testBadRODBindingInputType1() {
-        testBadRODBindingInput("beagle", "BEAGLE input to VCF expecting walker");
+        testBadRODBindingInput("beagle", "BEAGLE input to VCF expecting walker", UserException.BadArgumentValue.class);
     }
 
     @Test() private void testBadRODBindingInputType2() {
-        testBadRODBindingInput("vcf3", "VCF3 input to VCF expecting walker");
+        testBadRODBindingInput("vcf3", "VCF3 input to VCF expecting walker", UserException.class);
     }
 
     @Test() private void testBadRODBindingInputType3() {
-        testBadRODBindingInput("bed", "Bed input to VCF expecting walker");
+        testBadRODBindingInput("bed", "Bed input to VCF expecting walker", UserException.BadArgumentValue.class);
     }
 
     @Test() private void testBadRODBindingInputTypeUnknownType() {
-        testBadRODBindingInput("bedXXX", "Unknown input to VCF expecting walker");
+        testBadRODBindingInput("bedXXX", "Unknown input to VCF expecting walker", UserException.UnknownTribbleType.class);
     }
 }
 

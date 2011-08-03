@@ -116,12 +116,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( genotypeFilterExps.size() > 0 )
             hInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_FILTER_KEY, 1, VCFHeaderLineType.String, "Genotype-level filter"));
 
-        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            if ( source.getName().equals("mask") ) {
-                hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
-                break;
-            }
+        if ( mask.isBound() ) {
+            hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
         }
 
         writer.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
