@@ -225,7 +225,7 @@ public class RefMetaDataTrackerUnitTest {
         RefMetaDataTracker tracker = test.makeTracker();
 
         for ( String nameAsString : Arrays.asList("A", "B") ) {
-            RodBinding<Feature> binding = new RodBinding<Feature>(Feature.class, nameAsString, "none", new Tags());
+            RodBinding<Feature> binding = new RodBinding<Feature>(Feature.class, nameAsString, "none", "vcf", new Tags());
             List<Feature> v1 = tracker.getValues(binding);
             testGetter(nameAsString, v1, test.expected(nameAsString), true, tracker);
 
@@ -246,8 +246,8 @@ public class RefMetaDataTrackerUnitTest {
         RefMetaDataTracker tracker = test.makeTracker();
 
         String nameAsString = "A+B";
-        RodBinding<Feature> A = new RodBinding<Feature>(Feature.class, "A", "none", new Tags());
-        RodBinding<Feature> B = new RodBinding<Feature>(Feature.class, "B", "none", new Tags());
+        RodBinding<Feature> A = new RodBinding<Feature>(Feature.class, "A", "none", "vcf", new Tags());
+        RodBinding<Feature> B = new RodBinding<Feature>(Feature.class, "B", "none", "vcf", new Tags());
         List<RodBinding<Feature>> binding = Arrays.asList(A, B);
 
         List<Feature> v1 = tracker.getValues(binding);
