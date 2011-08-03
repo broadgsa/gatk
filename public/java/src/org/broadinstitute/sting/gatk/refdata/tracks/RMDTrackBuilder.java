@@ -142,6 +142,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         return getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
     }
 
+    public Class getFeatureClass(RMDTriplet fileDescriptor) {
+        return getAvailableTrackNamesAndRecordTypes().get(fileDescriptor.getType().toUpperCase());
+    }
+
     /**
      * create a RMDTrack of the specified type
      *

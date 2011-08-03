@@ -25,9 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -49,11 +47,13 @@ import java.util.*;
 /**
  * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type=VariantContext.class))
+@Requires(value={})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -118,8 +118,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             listAnnotationsAndExit();
 
         // get the list of all sample names from the variant VCF input rod, if applicable
-        Set<String> rodName = new HashSet<String>();
-        rodName.add("variant");
+        List<String> rodName = Arrays.asList(variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
 
         // add the non-VCF sample from the command-line, if applicable
@@ -143,7 +142,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")) ) {
+        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variants.getName())) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
@@ -202,7 +201,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(VariantContext.class, "variant", context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
         if ( VCs.size() == 0 )
             return 0;
 

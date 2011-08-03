@@ -42,7 +42,7 @@ import java.util.*;
 /**
  * Emits specific fields as dictated by the user from one or more VCF files.
  */
-public class VariantsToTableNewRodStyle extends RodWalker<Integer, Integer> {
+public class TestRodBindings extends RodWalker<Integer, Integer> {
     @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;
 

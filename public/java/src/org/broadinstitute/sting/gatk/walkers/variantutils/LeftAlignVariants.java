@@ -59,10 +59,10 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     private SortingVCFWriter writer;
 
     public void initialize() {
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getVariableName()));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getName()));
 
-        Set<VCFHeaderLine> headerLines = vcfHeaders.get(variants.getVariableName()).getMetaData();
+        Set<VCFHeaderLine> headerLines = vcfHeaders.get(variants.getName()).getMetaData();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
         writer = new SortingVCFWriter(baseWriter, 200);

@@ -30,7 +30,6 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
@@ -99,7 +98,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
 
-        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
+        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
 
         beagleWriter.print("marker alleleA alleleB");
         for ( String sample : samples )
@@ -303,7 +302,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     private void initializeVcfWriter() {
-        final List<String> inputNames = Arrays.asList(validation.getVariableName());
+        final List<String> inputNames = Arrays.asList(validation.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

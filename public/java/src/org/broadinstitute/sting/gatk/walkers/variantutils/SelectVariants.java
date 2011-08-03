@@ -35,7 +35,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -176,7 +175,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      */
     public void initialize() {
         // Get list of samples to include in the output
-        List<String> rodNames = Arrays.asList(variants.getVariableName());
+        List<String> rodNames = Arrays.asList(variants.getName());
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
@@ -219,10 +218,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         // Look at the parameters to decide which analysis to perform
         DISCORDANCE_ONLY = discordanceTrack.isBound();
-        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceTrack.getVariableName());
+        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceTrack.getName());
 
         CONCORDANCE_ONLY = concordanceTrack.isBound();
-        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getVariableName());
+        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getName());
 
         if (MENDELIAN_VIOLATIONS) {
             if ( FAMILY_STRUCTURE_FILE != null) {

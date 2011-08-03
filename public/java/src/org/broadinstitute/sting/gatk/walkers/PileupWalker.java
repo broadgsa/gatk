@@ -70,7 +70,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
 
-    @Argument(fullName="rodBind",shortName="-B",doc="Add these ROD bindings to the output Pileup", required=false)
+    @Argument(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods;
 
     public void initialize() {

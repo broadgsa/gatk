@@ -153,7 +153,7 @@ public class ListFileUtils {
             RMDTriplet triplet = new RMDTriplet(name,type,fileName,storageType,rodBinding.getTags());
 
             // validate triplet type
-            Class typeFromTribble = builderForValidation.getFeatureCodecClass(triplet);
+            Class typeFromTribble = builderForValidation.getFeatureClass(triplet);
             if ( typeFromTribble != null && ! rodBinding.getType().isAssignableFrom(typeFromTribble) )
                 throw new UserException.BadArgumentValue(rodBinding.getName(),
                         String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s",

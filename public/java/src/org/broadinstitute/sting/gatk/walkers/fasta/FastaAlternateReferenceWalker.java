@@ -35,8 +35,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Collection;
-
 
 /**
  * Generates an alternative reference sequence over the specified interval.  Given variant ROD tracks,
@@ -48,7 +46,7 @@ import java.util.Collection;
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
-    public RodBinding<VariantContext> snpmask;
+    public RodBinding<VariantContext> snpmask = RodBinding.makeUnbound(VariantContext.class);
 
     private int deletionBasesRemaining = 0;
 
@@ -63,7 +61,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         // Check to see if we have a called snp
         for ( VariantContext vc : tracker.getValues(VariantContext.class) ) {
-            if ( ! vc.getSource().equals(snpmask.getVariableName())) {
+            if ( ! vc.getSource().equals(snpmask.getName())) {
                 if ( vc.isDeletion()) {
                     deletionBasesRemaining = vc.getReference().length();
                     // delete the next n bases, not this one

@@ -32,7 +32,6 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -73,7 +72,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         iFraction = (int)(fraction * 1000.0);
 
         // setup the header info
-        final List<String> inputNames = Arrays.asList(variants.getVariableName());
+        final List<String> inputNames = Arrays.asList(variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames);
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));

@@ -101,8 +101,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
 
                 // set the appropriate sample name if necessary
-                if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getVariableName()) ) {
-                    Genotype g = Genotype.modifyName(vc.getGenotype(variants.getVariableName()), sampleName);
+                if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
+                    Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
                     Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
                     genotypes.put(sampleName, g);
                     vc = VariantContext.modifyGenotypes(vc, genotypes);
@@ -117,7 +117,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Collection<VariantContext> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref) {
         // we need to special case the HapMap format because indels aren't handled correctly
-        List<Object> features = tracker.getValues(variants.getVariableName());
+        List<Object> features = tracker.getValues(variants.getName());
         if ( features.size() > 0 && features.get(0) instanceof HapMapFeature ) {
             ArrayList<VariantContext> hapmapVCs = new ArrayList<VariantContext>(features.size());
             for ( Object feature : features ) {
@@ -151,7 +151,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                     }
                     refBase = ref.getBases()[hapmap.getStart() - ref.getWindow().getStart()];
                 }
-                VariantContext vc = VariantContextAdaptors.toVariantContext(variants.getVariableName(), hapmap, ref);
+                VariantContext vc = VariantContextAdaptors.toVariantContext(variants.getName(), hapmap, ref);
                 if ( vc != null ) {
                     if ( refBase != null ) {
                         Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
@@ -219,10 +219,10 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 samples.add(sampleName);
             } else {
                 // try VCF first
-                samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
+                samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
 
                 if ( samples.isEmpty() ) {
-                    List<Object> rods = tracker.getValues(variants.getVariableName());
+                    List<Object> rods = tracker.getValues(variants.getName());
                     if ( rods.size() == 0 )
                         throw new IllegalStateException("No rod data is present");
 

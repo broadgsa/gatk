@@ -59,10 +59,10 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
     private long failedLocs = 0, totalLocs = 0;
 
     public void initialize() {
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getVariableName()));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getVariableName()));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getName()));
 
-        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey(variants.getVariableName()) ? vcfHeaders.get(variants.getVariableName()).getMetaData() : null, samples);
+        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey(variants.getName()) ? vcfHeaders.get(variants.getName()).getMetaData() : null, samples);
         writer.writeHeader(vcfHeader);
     }
 

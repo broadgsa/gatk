@@ -115,7 +115,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     }
 
     public void onTraversalDone(Integer finalReduce) {
-        final List<String> inputNames = Arrays.asList(variants.getVariableName());
+        final List<String> inputNames = Arrays.asList(variants.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
