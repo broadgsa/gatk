@@ -90,7 +90,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
 
     private int alignAndWrite(VariantContext vc, final ReferenceContext ref) {
-        if ( vc.isBiallelic() && vc.isIndel() )
+        if ( vc.isBiallelic() && vc.isIndel() && !vc.isComplexIndel() )
             return writeLeftAlignedIndel(vc, ref);
         else {
             writer.add(vc);
