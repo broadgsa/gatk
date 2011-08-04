@@ -91,6 +91,7 @@ public class ParsingEngine {
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
     public ParsingEngine( CommandLineProgram clp ) {
+        RodBinding.resetNameCounter();
         parsingMethods.add( ParsingMethod.FullNameParsingMethod );
         parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
 

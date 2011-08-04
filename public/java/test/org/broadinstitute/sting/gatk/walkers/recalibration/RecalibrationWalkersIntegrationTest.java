@@ -31,7 +31,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "cctestdata")
     public Object[][] createCCTestData() {
-
         new CCTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "5a52b00d9794d27af723bcf93366681e" );
         new CCTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "17d4b8001c982a70185e344929cf3941");
         new CCTest( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "714e65d6cb51ae32221a77ce84cbbcdc" );
