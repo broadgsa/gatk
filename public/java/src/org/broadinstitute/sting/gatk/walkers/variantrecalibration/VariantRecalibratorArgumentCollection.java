@@ -50,7 +50,7 @@ public class VariantRecalibratorArgumentCollection {
     @Argument(fullName="numKMeans", shortName="nKM", doc="The number of k-means iterations to perform in order to initialize the means of the Gaussians in the Gaussian mixture model.", required=false)
     public int NUM_KMEANS_ITERATIONS = 30;
     @Argument(fullName="stdThreshold", shortName="std", doc="If a variant has annotations more than -std standard deviations away from mean then don't use it for building the Gaussian mixture model.", required=false)
-    public double STD_THRESHOLD = 8.0;
+    public double STD_THRESHOLD = 14.0;
     @Argument(fullName="qualThreshold", shortName="qual", doc="If a known variant has raw QUAL value less than -qual then don't use it for building the Gaussian mixture model.", required=false)
     public double QUAL_THRESHOLD = 80.0;
     @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in variational Bayes algorithm.", required=false)
