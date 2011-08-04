@@ -55,8 +55,34 @@ import java.util.*;
  */
 @Requires(value={})
 public class SelectVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+    /**
+     * The VCF file we are selecting variants from.
+     *
+     * Variants from this file are sent through the filtering and modifying routines as directed
+     * by the arguments to SelectVariants, and finally are emitted.
+     */
+    @Input(fullName="variants", shortName = "V", doc="Select variants from this VCF file", required=true)
     public RodBinding<VariantContext> variants;
+
+    /**
+     * If provided, we will filter out variants that are "discordant" to the variants in this file
+     *
+     * A site is considered discordant if there exists some sample in eval that has a non-reference genotype
+     * and either the site isn't present in this track, the sample isn't present in this track,
+     * or the sample is called reference in this track.
+     */
+    @Input(fullName="discordance", shortName = "disc", doc="Output variants that were not called in this Feature comparison track", required=false)
+    private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
+
+    /**
+     * If provided, we will filter out any variant in variants that isn't "concordant" with the variants in this track.
+     *
+     * A site is considered concordant if (1) we are not looking for specific samples and there is a variant called
+     * in both variants and concordance tracks or (2) every sample present in eval is present in the concordance
+     * track and they have the sample genotype call.
+     */
+    @Input(fullName="concordance", shortName = "conc", doc="Output variants that were also called in this Feature comparison track", required=false)
+    private RodBinding<VariantContext> concordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -81,12 +107,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't include filtered loci.", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
-
-    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track", required=false)
-    private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
-
-    @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track", required=false)
-    private RodBinding<VariantContext> concordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
     @Hidden
     @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
