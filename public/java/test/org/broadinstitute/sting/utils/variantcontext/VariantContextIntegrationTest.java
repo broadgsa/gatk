@@ -30,15 +30,15 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "VCITTestData")
     public Object[][] createVCITTestData() {
-        new VCITTest("--printPerLocus", "f36b81b8bcd210c0e3a1058d791b78ec");
-        new VCITTest("--printPerLocus --onlyContextsOfType SNP", "a77492ba003a1fca8d8e0227fa642f34");
-        new VCITTest("--printPerLocus --onlyContextsOfType INDEL", "9e0375a1b680d7df0971dbf256944d7a");
-        new VCITTest("--printPerLocus --onlyContextsOfType MIXED", "93628cbba30033398e7e680b92cb3680");
-        new VCITTest("--printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
-        new VCITTest("--printPerLocus --takeFirstOnly", "c4a3d7545d26880635e0e5e4e69952e2");
-        new VCITTest("--printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "22a7bb9e63d5f2950322c26397670e5c");
-        new VCITTest("--printPerLocus --onlyContextsStartinAtCurrentPosition", "6387c1a400d1872ae4394d01e533c296");
-        new VCITTest("--printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "dde3a3db4d9c57f5042e0dfe03380987");
+        new VCITTest("--printPerLocus", "");
+        new VCITTest("--printPerLocus --onlyContextsOfType SNP", "");
+        new VCITTest("--printPerLocus --onlyContextsOfType INDEL", "");
+        new VCITTest("--printPerLocus --onlyContextsOfType MIXED", "");
+        new VCITTest("--printPerLocus --onlyContextsOfType NO_VARIATION", "");
+        new VCITTest("--printPerLocus --takeFirstOnly", "");
+        new VCITTest("--printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "");
+        new VCITTest("--printPerLocus --onlyContextsStartinAtCurrentPosition", "");
+        new VCITTest("--printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "");
 
         return VCITTest.getTests(VCITTest.class);
     }

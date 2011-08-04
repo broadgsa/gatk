@@ -312,7 +312,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         try {
-            String name = source.field.getName();
+            String name = defaultDefinition.fullName;
             String tribbleType;
             Tags tags = getArgumentTags(matches);
             // must have one or two tag values here

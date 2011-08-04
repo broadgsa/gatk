@@ -631,7 +631,7 @@ public class ParsingEngineUnitTest extends BaseTest {
     // --------------------------------------------------------------------------------
 
     private class SingleRodBindingArgProvider {
-        @Input(shortName="V", required=false)
+        @Input(fullName="binding", shortName="V", required=false)
         public RodBinding<Feature> binding = RodBinding.makeUnbound(Feature.class);
     }
 
@@ -644,6 +644,29 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
 
         SingleRodBindingArgProvider argProvider = new SingleRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.isBound(), true, "Bound() isn't returning its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    private class ShortNameOnlyRodBindingArgProvider {
+        @Input(shortName="short", required=false)
+        public RodBinding<Feature> binding = RodBinding.makeUnbound(Feature.class);
+    }
+
+    @Test
+    public void shortNameOnlyRodBindingArgumentTest() {
+        final String[] commandLine = new String[] {"-short:vcf","foo.vcf"};
+
+        parsingEngine.addArgumentSource( ShortNameOnlyRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ShortNameOnlyRodBindingArgProvider argProvider = new ShortNameOnlyRodBindingArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
@@ -696,7 +719,7 @@ public class ParsingEngineUnitTest extends BaseTest {
     }
 
     private class VariantContextRodBindingArgProvider {
-        @Input(shortName="V")
+        @Input(fullName = "binding", shortName="V")
         public RodBinding<VariantContext> binding;
     }
 
@@ -735,7 +758,7 @@ public class ParsingEngineUnitTest extends BaseTest {
     }
 
     private class ListRodBindingArgProvider {
-        @Input(shortName="V", required=false)
+        @Input(fullName = "binding", shortName="V", required=false)
         public List<RodBinding<Feature>> bindings;
     }
 
@@ -752,7 +775,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         Assert.assertEquals(argProvider.bindings.size(), 1, "Unexpected number of bindings");
         RodBinding<Feature> binding = argProvider.bindings.get(0);
-        Assert.assertEquals(binding.getName(), "bindings", "Name isn't set properly");
+        Assert.assertEquals(binding.getName(), "binding", "Name isn't set properly");
         Assert.assertEquals(binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
         Assert.assertEquals(binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
@@ -772,13 +795,13 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.bindings.size(), 2, "Unexpected number of bindings");
 
         RodBinding<Feature> binding = argProvider.bindings.get(0);
-        Assert.assertEquals(binding.getName(), "bindings", "Name isn't set properly");
+        Assert.assertEquals(binding.getName(), "binding", "Name isn't set properly");
         Assert.assertEquals(binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
         Assert.assertEquals(binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
 
         RodBinding<Feature> binding2 = argProvider.bindings.get(1);
-        Assert.assertEquals(binding2.getName(), "bindings2", "Name isn't set properly");
+        Assert.assertEquals(binding2.getName(), "binding2", "Name isn't set properly");
         Assert.assertEquals(binding2.getSource(), "bar.vcf", "Source isn't set to its expected value");
         Assert.assertEquals(binding2.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(binding2.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
