@@ -362,6 +362,23 @@ public class MathUtils {
 
     /**
      * calculate the Root Mean Square of an array of integers
+     * @param x  an byte[] of numbers
+     * @return   the RMS of the specified numbers.
+    */
+    public static double rms(byte[] x) {
+        if ( x.length == 0 )
+            return 0.0;
+
+        double rms = 0.0;
+        for (int i : x)
+            rms += i * i;
+        rms /= x.length;
+        return Math.sqrt(rms);
+    }
+
+
+    /**
+     * calculate the Root Mean Square of an array of integers
      * @param x  an int[] of numbers
      * @return   the RMS of the specified numbers.
     */
@@ -1074,6 +1091,11 @@ public class MathUtils {
         return ((-q)/10.0);
     }
 
+    /**
+     * Returns the phred scaled value of probability p
+     * @param p probability (between 0 and 1).
+     * @return phred scaled probability of p
+     */
     public static byte probabilityToPhredScale (double p) {
         return (byte) ((-10) * Math.log10(p));
     }

@@ -436,6 +436,18 @@ public class BaseUtils {
         return mostFrequentBaseIndex;
     }
 
+    static public int mostFrequentBaseIndexNotRef(int[] baseCounts, int refBaseIndex) {
+        int tmp = baseCounts[refBaseIndex];
+        baseCounts[refBaseIndex] = -1;
+        int result = mostFrequentBaseIndex(baseCounts);
+        baseCounts[refBaseIndex] = tmp;
+        return result;
+    }
+
+    static public int mostFrequentBaseIndexNotRef(int[] baseCounts, byte refSimpleBase) {
+        return mostFrequentBaseIndexNotRef(baseCounts, simpleBaseToBaseIndex(refSimpleBase));
+    }
+
     /**
      * Returns the most common base in the basecounts array. To be used with pileup.getBaseCounts.
      *
