@@ -154,10 +154,10 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         try {
             switch( type ) {
                 case ALL:
-                    vc.extraStrictValidation(observedRefAllele, rsIDs);
+                    vc.extraStrictValidation(observedRefAllele, ref.getBase(), rsIDs);
                     break;
                 case REF:
-                    vc.validateReferenceBases(observedRefAllele);
+                    vc.validateReferenceBases(observedRefAllele, ref.getBase());
                     break;
                 case IDS:
                     vc.validateRSIDs(rsIDs);
