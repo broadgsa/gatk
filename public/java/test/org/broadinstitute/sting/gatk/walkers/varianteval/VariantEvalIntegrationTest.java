@@ -236,7 +236,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
                 " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                1, Arrays.asList("db95c8af8ba549d38ca6741a59fd6892"));
+                1, Arrays.asList("14054badcd89b24c2375e1d09918f681"));
         executeTestParallel("testSelect1", spec);
     }
 
@@ -283,7 +283,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -B:dbsnp,VCF " + b37dbSNP132 +
                            " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("61c36fb6cc75172e2b22a44edeae85e0"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("0897dfba2f4a245faddce38000555cce"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -295,7 +295,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("79895904a3c2799e2e384a933d10f3fc"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("ead3602e14ec2944b5d9e4dacc08c819"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
@@ -312,13 +312,13 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("9f906c04a4553d649b51ae67e0a25113"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("167a347ce0729d1bc3d4fd5069ebd674"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults() {
-        String md5 = "97a16a99a43d2384cfabc39d36647419";
+        String md5 = "40471a84b501eb440ee2d42e3081f228";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
