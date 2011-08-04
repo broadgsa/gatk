@@ -112,11 +112,13 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                     vc = VariantContext.modifyGenotypes(vc, genotypes);
                 }
 
-            // todo - fix me. This may not be the cleanest way to handle features what need correct indel padding
-            if (fixReferenceBase) {
-                vc = new VariantContext("Variant",vc.getChr(),vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.getFilters(),vc.getAttributes(), ref.getBase());
+                // todo - fix me. This may not be the cleanest way to handle features what need correct indel padding
+                if (fixReferenceBase) {
+                    vc = new VariantContext("Variant",vc.getChr(),vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.getFilters(),vc.getAttributes(), ref.getBase());
+                }
+
+                writeRecord(vc, tracker, ref.getBase());
             }
-            writeRecord(vc, tracker, ref.getBase());
         }
 
         return 1;
