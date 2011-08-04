@@ -295,7 +295,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("79089484097614b7ab81bbc3ad3a892a"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("79895904a3c2799e2e384a933d10f3fc"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 

@@ -312,7 +312,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:dbsnp,vcf " +
+                            " -B:dbsnp,vcf " + b36dbSNP129 +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -cov ReadGroupCovariate" +
