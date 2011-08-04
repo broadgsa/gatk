@@ -303,7 +303,7 @@ class DataProcessingPipeline extends QScript {
     this.out = outIntervals
     this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    if (!indels.isEmpty)
+    if (indels != null)
       this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
@@ -315,7 +315,7 @@ class DataProcessingPipeline extends QScript {
     this.targetIntervals = tIntervals
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    if (!qscript.indels.isEmpty)
+    if (qscript.indels != null)
       this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
