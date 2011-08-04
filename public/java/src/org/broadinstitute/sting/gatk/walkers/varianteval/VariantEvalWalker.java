@@ -231,6 +231,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     for ( String sampleName : sampleNamesForStratification ) {
                         VariantContext eval = vcs.containsKey(evalName) && vcs.get(evalName) != null ? vcs.get(evalName).get(sampleName) : null;
 
+                        // todo: Eric, this is really the problem.  We select single eval and comp VCs independently
+                        // todo: discarding multiple eval tracks at the sites and not providing matched comps
+                        // todo: where appropriate.  Really this loop should look like:
+                        // todo: for each eval track:
+                        // todo:   for each eval in track:
+                        // todo:     for each compTrack:
+                        // todo:       comp = findMatchingComp(eval, compTrack) // find the matching comp in compTrack
+                        // todo:       call evalModule(eval, comp)
+                        // todo:       // may return null if no such comp exists, but proceed as eval modules may need to see eval / null pair
+                        // todo:       for each comp not matched by an eval in compTrack:
+                        // todo:         call evalModule(null, comp)
+                        // todo:         // need to call with null comp, as module
+                        // todo: note that the reason Kiran pre-computed the possible VCs is to apply the modifiers
+                        // todo: like subset to sample, etc.  So you probably will want a master map that maps
+                        // todo: from special eval bindings to the digested VC for efficiency.
+
                         if ( typesToUse != null ) {
                             if ( eval != null && ! typesToUse.contains(eval.getType()) ) eval = null;
                             if ( comp != null && ! typesToUse.contains(comp.getType()) ) comp = null;
