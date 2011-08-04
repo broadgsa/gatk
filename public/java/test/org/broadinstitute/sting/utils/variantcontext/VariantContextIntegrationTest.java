@@ -15,7 +15,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
             " -R " + b36KGReference;
 
     private static String root = cmdRoot +
-            " -L 1:1-1,000,000 -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
+            " -L 1:1-1,000,000 -B:dbsnp,vcf " + b36dbSNP129 +
             " -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
 
     private static final class VCITTest extends TestDataProvider {

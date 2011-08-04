@@ -55,7 +55,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
+                        " -B:dbsnp,vcf " + b36dbSNP129 +
                         " -T CountCovariates" +
                         " -I " + bam +
                         ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
@@ -136,7 +136,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -standard" +
                             " -OQ" +
                             " -recalFile %s" +
-                            " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf",
+                            " -B:dbsnp,vcf " + b36dbSNP129,
                     1, // just one output file
                     Arrays.asList(md5));
             executeTest("testCountCovariatesUseOriginalQuals", spec);
@@ -183,7 +183,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
+                            " -B:dbsnp,vcf " + b36dbSNP129 +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -standard" +
@@ -288,7 +288,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -B:anyNameABCD,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
-                            " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
+                            " -B:dbsnp,vcf " + b36dbSNP129 +
                             " -L 1:10,000,000-10,200,000" +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
@@ -313,7 +313,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf" +
+                            " -B:dbsnp,vcf " +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -cov ReadGroupCovariate" +
