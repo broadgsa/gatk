@@ -35,6 +35,11 @@ import org.testng.annotations.Test;
 public class RodBindingUnitTest extends BaseTest {
     Tags mytags = new Tags();
 
+    @BeforeMethod
+    public void setUp() {
+        RodBinding.resetNameCounter();
+    }
+
     @Test
     public void testStandardRodBinding() {
         RodBinding<VariantContext> b = new RodBinding<VariantContext>(VariantContext.class, "b", "foo", "vcf", mytags);
