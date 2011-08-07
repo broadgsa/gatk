@@ -52,7 +52,7 @@ class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRu
 
     updateStatus(RunnerStatus.RUNNING)
     job.run()
-    updateStatus(RunnerStatus.FAILED)
+    updateStatus(RunnerStatus.DONE)
   }
 
   override def checkUnknownStatus() {}
