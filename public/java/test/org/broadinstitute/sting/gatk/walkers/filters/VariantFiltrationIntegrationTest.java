@@ -31,17 +31,17 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     @Test
     public void testMasks() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
-                baseTestString() + " -mask foo --mask:VCF3 " + validationDataLocation + "vcfexample2.vcf --variants:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -maskName foo --mask:VCF3 " + validationDataLocation + "vcfexample2.vcf --variants:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("578f9e774784c25871678e6464fd212b"));
         executeTest("test mask all", spec1);
 
         WalkerTestSpec spec2 = new WalkerTestSpec(
-                baseTestString() + " -mask foo --mask:VCF " + validationDataLocation + "vcfMask.vcf --variants:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -maskName foo --mask:VCF " + validationDataLocation + "vcfMask.vcf --variants:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("bfa86a674aefca1b13d341cb14ab3c4f"));
         executeTest("test mask some", spec2);
 
         WalkerTestSpec spec3 = new WalkerTestSpec(
-                baseTestString() + " -mask foo -maskExtend 10 --mask:VCF " + validationDataLocation + "vcfMask.vcf --variants:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -maskName foo -maskExtend 10 --mask:VCF " + validationDataLocation + "vcfMask.vcf --variants:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("5939f80d14b32d88587373532d7b90e5"));
         executeTest("test mask extend", spec3);
     }
