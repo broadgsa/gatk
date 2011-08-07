@@ -53,8 +53,6 @@ import java.util.*;
  *
  * User: rpoplin
  * Date: 3/12/11
- *
- * @help.summary Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations and evaluates the variant -- assigning an informative lod score
  */
 
 public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> implements TreeReducible<ExpandingArrayList<VariantDatum>> {

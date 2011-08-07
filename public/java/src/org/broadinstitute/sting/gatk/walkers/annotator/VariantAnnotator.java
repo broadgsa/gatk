@@ -219,18 +219,18 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());
                 for ( VariantContext vc : VCs )
-                    annotatedVCs.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
+                    annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
             }
         }
 
         if ( ! indelsOnly ) {
             for ( VariantContext annotatedVC : annotatedVCs )
-                vcfWriter.add(annotatedVC, ref.getBase());
+                vcfWriter.add(annotatedVC);
         } else {
             // check to see if the buffered context is different (in location) this context
             if ( indelBufferContext != null && ! VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),indelBufferContext.iterator().next()).equals(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),annotatedVCs.iterator().next())) ) {
                 for ( VariantContext annotatedVC : indelBufferContext )
-                    vcfWriter.add(annotatedVC, ref.getBase());
+                    vcfWriter.add(annotatedVC);
                 indelBufferContext = annotatedVCs;
             } else {
                 indelBufferContext = annotatedVCs;

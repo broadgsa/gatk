@@ -1033,8 +1033,8 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             filters.add("NoCall");
         }
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */,  filters, null);
-        vcf.add(vc,refBases[(int)start-1]);
+            -1.0 /* log error */,  filters, null, refBases[(int)start-1]);
+        vcf.add(vc);
     }
 
     /** Fills l with appropriate alleles depending on whether call is insertion or deletion
@@ -1130,8 +1130,8 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
 
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */, filters, attrs);
-        vcf.add(vc,refBases[(int)start-1]);
+            -1.0 /* log error */, filters, attrs, refBases[(int)start-1]);
+        vcf.add(vc);
     }
 
     @Override

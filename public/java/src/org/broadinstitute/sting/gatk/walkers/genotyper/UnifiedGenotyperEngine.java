@@ -247,7 +247,7 @@ public class UnifiedGenotyperEngine {
         }
         
         if ( annotationEngine != null ) {
-            // we want to use the *unfiltered* and *unBAQed* context for the annotations
+            // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             ReadBackedPileup pileup = null;
             if (rawContext.hasExtendedEventPileup())
                 pileup = rawContext.getExtendedEventPileup();
@@ -255,10 +255,10 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
-            vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc).iterator().next();
+            vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc);
         }
 
-        return new VariantCallContext(vc, ref.getBase(), false);
+        return new VariantCallContext(vc, false);
     }
 
     private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, MultiallelicGenotypeLikelihoods> GLs) {
@@ -300,7 +300,8 @@ public class UnifiedGenotyperEngine {
                 genotypes,
                 VariantContext.NO_NEG_LOG_10PERROR,
                 null,
-                null);
+                null,
+                refContext.getBase());
     }
 
     // private method called by both UnifiedGenotyper and UGCallVariants entry points into the engine
@@ -372,8 +373,8 @@ public class UnifiedGenotyperEngine {
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
 
 
-        if ( !UAC.NO_SLOD && bestAFguess != 0 ) {
-            final boolean DEBUG_SLOD = false;
+        if ( UAC.COMPUTE_SLOD && bestAFguess != 0 ) {
+            //final boolean DEBUG_SLOD = false;
 
             // the overall lod
             VariantContext vcOverall = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, vc.getAlternateAllele(0), false, model);
@@ -381,7 +382,7 @@ public class UnifiedGenotyperEngine {
             afcm.get().getLog10PNonRef(tracker, refContext, vcOverall.getGenotypes(), vc.getAlleles(), getAlleleFrequencyPriors(model), log10AlleleFrequencyPosteriors.get());
             //double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
             double overallLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors.get(), 1);
-            if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
+            //if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             // the forward lod
             VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, vc.getAlternateAllele(0), false, model);
@@ -390,7 +391,7 @@ public class UnifiedGenotyperEngine {
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
             double forwardLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
             double forwardLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors.get(), 1);
-            if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
+            //if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
             VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, vc.getAlternateAllele(0), false, model);
@@ -399,11 +400,11 @@ public class UnifiedGenotyperEngine {
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
             double reverseLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
             double reverseLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors.get(), 1);
-            if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
+            //if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 
             double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofF;
             double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofF;
-            if ( DEBUG_SLOD ) System.out.println("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+            //if ( DEBUG_SLOD ) System.out.println("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
 
             // strand score is max bias between forward and reverse strands
             double strandScore = Math.max(forwardLod, reverseLod);
@@ -425,10 +426,10 @@ public class UnifiedGenotyperEngine {
             myAlleles.add(vc.getReference());
         }
         VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
+                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, refContext.getBase());
 
         if ( annotationEngine != null ) {
-            // first off, we want to use the *unfiltered* and *unBAQed* context for the annotations
+            // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             ReadBackedPileup pileup = null;
             if (rawContext.hasExtendedEventPileup())
                 pileup = rawContext.getExtendedEventPileup();
@@ -436,13 +437,10 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
-            Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
-            vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
+            vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
         }
 
-        VariantCallContext call = new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
-        call.setRefBase(refContext.getBase());
-        return call;
+        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
     }
 
     private int calculateEndPos(Set<Allele> alleles, Allele refAllele, GenomeLoc loc) {

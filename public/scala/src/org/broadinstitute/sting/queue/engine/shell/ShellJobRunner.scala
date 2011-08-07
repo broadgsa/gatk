@@ -50,10 +50,10 @@ class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRu
     // Allow advanced users to update the job.
     updateJobRun(job)
 
-    runStatus = RunnerStatus.RUNNING
+    updateStatus(RunnerStatus.RUNNING)
     job.run()
-    runStatus = RunnerStatus.DONE
+    updateStatus(RunnerStatus.DONE)
   }
 
-  def status = runStatus
+  override def checkUnknownStatus() {}
 }

@@ -23,7 +23,7 @@ import java.util.Map;
  */
 
 // A set of annotations calculated directly from the GLs
-public class GLstats implements InfoFieldAnnotation, StandardAnnotation {
+public class GLstats extends InfoFieldAnnotation implements StandardAnnotation {
 
     private static final int MIN_SAMPLES = 10;
 

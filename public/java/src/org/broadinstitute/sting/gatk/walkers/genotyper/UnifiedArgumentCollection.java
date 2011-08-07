@@ -58,8 +58,8 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
-    @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
-    public boolean NO_SLOD = false;
+    @Argument(fullName = "computeSLOD", shortName = "sl", doc = "If provided, we will calculate the SLOD", required = false)
+    public boolean COMPUTE_SLOD = false;
 
 
     // control the error modes
@@ -154,7 +154,7 @@ public class UnifiedArgumentCollection {
         uac.PCR_error = PCR_error;
         uac.GenotypingMode = GenotypingMode;
         uac.OutputMode = OutputMode;
-        uac.NO_SLOD = NO_SLOD;
+        uac.COMPUTE_SLOD = COMPUTE_SLOD;
         uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;

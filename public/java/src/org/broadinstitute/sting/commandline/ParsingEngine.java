@@ -42,10 +42,15 @@ import java.util.*;
  */
 public class ParsingEngine {
     /**
+     * The loaded argument sources along with their back definitions.
+     */
+    private Map<ArgumentDefinition,ArgumentSource> argumentSourcesByDefinition = new HashMap<ArgumentDefinition,ArgumentSource>();
+
+    /**
      * A list of defined arguments against which command lines are matched.
      * Package protected for testing access.
      */
-    ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
+    public ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
 
     /**
      * A list of matches from defined arguments to command-line text.
@@ -107,8 +112,13 @@ public class ParsingEngine {
      */
     public void addArgumentSource( String sourceName, Class sourceClass ) {
         List<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
-        for( ArgumentSource argumentSource: extractArgumentSources(sourceClass) )
-            argumentsFromSource.addAll( argumentSource.createArgumentDefinitions() );
+        for( ArgumentSource argumentSource: extractArgumentSources(sourceClass) ) {
+            List<ArgumentDefinition> argumentDefinitions = argumentSource.createArgumentDefinitions();
+            for(ArgumentDefinition argumentDefinition: argumentDefinitions) {
+                argumentSourcesByDefinition.put(argumentDefinition,argumentSource);
+                argumentsFromSource.add( argumentDefinition );
+            }
+        }
         argumentDefinitions.add( new ArgumentDefinitionGroup(sourceName, argumentsFromSource) );
     }
 
@@ -199,16 +209,25 @@ public class ParsingEngine {
                 throw new InvalidArgumentException( invalidArguments );
         }
 
-        // Find invalid argument values (arguments that fail the regexp test.
+        // Find invalid argument values -- invalid arguments are either completely missing or fail the specified 'validation' regular expression.
         if( !skipValidationOf.contains(ValidationType.InvalidArgumentValue) ) {
             Collection<ArgumentDefinition> verifiableArguments = 
                     argumentDefinitions.findArgumentDefinitions( null, ArgumentDefinitions.VerifiableDefinitionMatcher );
             Collection<Pair<ArgumentDefinition,String>> invalidValues = new ArrayList<Pair<ArgumentDefinition,String>>();
             for( ArgumentDefinition verifiableArgument: verifiableArguments ) {
                 ArgumentMatches verifiableMatches = argumentMatches.findMatches( verifiableArgument );
+                // Check to see whether an argument value was specified.  Argument values must be provided
+                // when the argument name is specified and the argument is not a flag type.
+                for(ArgumentMatch verifiableMatch: verifiableMatches) {
+                    ArgumentSource argumentSource = argumentSourcesByDefinition.get(verifiableArgument);
+                    if(verifiableMatch.values().size() == 0 && !verifiableArgument.isFlag && argumentSource.createsTypeDefault())
+                        invalidValues.add(new Pair<ArgumentDefinition,String>(verifiableArgument,null));
+                }
+
+                // Ensure that the field contents meet the validation criteria specified by the regular expression.
                 for( ArgumentMatch verifiableMatch: verifiableMatches ) {
                     for( String value: verifiableMatch.values() ) {
-                        if( !value.matches(verifiableArgument.validation) )
+                        if( verifiableArgument.validation != null && !value.matches(verifiableArgument.validation) )
                             invalidValues.add( new Pair<ArgumentDefinition,String>(verifiableArgument, value) );
                     }
                 }
@@ -515,10 +534,14 @@ class InvalidArgumentValueException extends ArgumentException {
     private static String formatArguments( Collection<Pair<ArgumentDefinition,String>> invalidArgumentValues ) {
         StringBuilder sb = new StringBuilder();
         for( Pair<ArgumentDefinition,String> invalidValue: invalidArgumentValues ) {
-            sb.append( String.format("%nArgument '--%s' has value of incorrect format: %s (should match %s)",
-                                     invalidValue.first.fullName,
-                                     invalidValue.second,
-                                     invalidValue.first.validation) );
+            if(invalidValue.getSecond() == null)
+                sb.append( String.format("%nArgument '--%s' requires a value but none was provided",
+                                         invalidValue.first.fullName) );
+            else
+                sb.append( String.format("%nArgument '--%s' has value of incorrect format: %s (should match %s)",
+                        invalidValue.first.fullName,
+                        invalidValue.second,
+                        invalidValue.first.validation) );
         }
         return sb.toString();
     }

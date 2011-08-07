@@ -42,6 +42,7 @@ import java.util.*;
  * Date: 7/4/11
  * Time: 12:51 PM
  * A generic engine for comparing tree-structured objects
+ *
  */
 public class DiffEngine {
     final protected static Logger logger = Logger.getLogger(DiffEngine.class);
@@ -143,7 +144,7 @@ public class DiffEngine {
      * Not that only pairs of the same length are considered as potentially equivalent
      *
      * @param params determines how we display the items
-     * @param diffs
+     * @param diffs the list of differences to summarize
      */
     public void reportSummarizedDifferences(List<Difference> diffs, SummaryReportParams params ) {
         printSummaryReport(summarizeDifferences(diffs), params );
@@ -207,14 +208,7 @@ public class DiffEngine {
     }
 
     protected void printSummaryReport(List<Difference> sortedSummaries, SummaryReportParams params ) {
-        GATKReport report = new GATKReport();
-        final String tableName = "diffences";
-        report.addTable(tableName, "Summarized differences between the master and test files.\nSee http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information");
-        GATKReportTable table = report.getTable(tableName);
-        table.addPrimaryKey("Difference", true);
-        table.addColumn("NumberOfOccurrences", 0);
-        table.addColumn("SpecificDifference", 0);
-
+        List<Difference> toShow = new ArrayList<Difference>();
         int count = 0, count1 = 0;
         for ( Difference diff : sortedSummaries ) {
             if ( diff.getCount() < params.minSumDiffToShow )
@@ -230,10 +224,26 @@ public class DiffEngine {
                     break;
             }
 
-            table.set(diff.getPath(), "NumberOfOccurrences", diff.getCount());
-            table.set(diff.getPath(), "SpecificDifference", diff.valueDiffString());
+            toShow.add(diff);
         }
 
+        // if we want it in descending order, reverse the list
+        if ( ! params.descending ) {
+            Collections.reverse(toShow);
+        }
+
+        // now that we have a specific list of values we want to show, display them
+        GATKReport report = new GATKReport();
+        final String tableName = "diffences";
+        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", false);
+        GATKReportTable table = report.getTable(tableName);
+        table.addPrimaryKey("Difference", true);
+        table.addColumn("NumberOfOccurrences", 0);
+        table.addColumn("ExampleDifference", 0);
+        for ( Difference diff : toShow ) {
+            table.set(diff.getPath(), "NumberOfOccurrences", diff.getCount());
+            table.set(diff.getPath(), "ExampleDifference", diff.valueDiffString());
+        }
         table.write(params.out);
     }
 
@@ -252,7 +262,7 @@ public class DiffEngine {
      * commonPostfixLength: how many parts are shared at the end, suppose its 2
      * We want to create a string *.*.C.D
      *
-     * @param parts
+     * @param parts the separated path values [above without .]
      * @param commonPostfixLength
      * @return
      */
@@ -332,12 +342,12 @@ public class DiffEngine {
             return reader.readFromFile(file, maxElementsToRead);
     }
 
-    public static boolean simpleDiffFiles(File masterFile, File testFile, DiffEngine.SummaryReportParams params) {
+    public static boolean simpleDiffFiles(File masterFile, File testFile, int maxElementsToRead, DiffEngine.SummaryReportParams params) {
         DiffEngine diffEngine = new DiffEngine();
 
         if ( diffEngine.canRead(masterFile) && diffEngine.canRead(testFile) ) {
-            DiffElement master = diffEngine.createDiffableFromFile(masterFile);
-            DiffElement test = diffEngine.createDiffableFromFile(testFile);
+            DiffElement master = diffEngine.createDiffableFromFile(masterFile, maxElementsToRead);
+            DiffElement test = diffEngine.createDiffableFromFile(testFile, maxElementsToRead);
             List<Difference> diffs = diffEngine.diff(master, test);
             diffEngine.reportSummarizedDifferences(diffs, params);
             return true;
@@ -351,12 +361,17 @@ public class DiffEngine {
         int maxItemsToDisplay = 0;
         int maxCountOneItems = 0;
         int minSumDiffToShow = 0;
+        boolean descending = true;
 
         public SummaryReportParams(PrintStream out, int maxItemsToDisplay, int maxCountOneItems, int minSumDiffToShow) {
             this.out = out;
             this.maxItemsToDisplay = maxItemsToDisplay;
             this.maxCountOneItems = maxCountOneItems;
             this.minSumDiffToShow = minSumDiffToShow;
+        }
+
+        public void setDescending(boolean descending) {
+            this.descending = descending;
         }
     }
 }

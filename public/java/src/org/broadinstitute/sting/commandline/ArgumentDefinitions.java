@@ -174,7 +174,8 @@ public class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
 
     static DefinitionMatcher VerifiableDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
-            return definition.validation != null;
+            // We can perform some sort of validation for anything that isn't a flag.
+            return !definition.isFlag;
         }        
     };
 }

@@ -72,13 +72,19 @@ public class VCFDiffableReader implements DiffableReader {
             }
 
             String line = lineReader.readLine();
-            int count = 0;
+            int count = 0, nRecordsAtPos = 1;
+            String prevName = "";
             while ( line != null ) {
                 if ( count++ > maxElementsToRead && maxElementsToRead != -1)
                     break;
 
                 VariantContext vc = (VariantContext)vcfCodec.decode(line);
                 String name = vc.getChr() + ":" + vc.getStart();
+                if ( name.equals(prevName) ) {
+                    name += "_" + ++nRecordsAtPos;
+                } else {
+                    prevName = name;
+                }
                 DiffNode vcRoot = DiffNode.empty(name, root);
 
                 // add fields

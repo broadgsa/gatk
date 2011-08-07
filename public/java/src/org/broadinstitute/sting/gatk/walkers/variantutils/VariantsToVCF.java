@@ -67,6 +67,9 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
     protected String sampleName = null;
 
+    @Argument(fullName="fixRef", shortName="fixRef", doc="Fix common reference base in case there's an indel without padding", required=false)
+    protected boolean fixReferenceBase = false;
+
     private Set<String> allowedGenotypeFormatStrings = new HashSet<String>();
     private boolean wroteHeader = false;
 
@@ -104,6 +107,10 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 vc = VariantContext.modifyGenotypes(vc, genotypes);
             }
 
+            // todo - fix me. This may not be the cleanest way to handle features what need correct indel padding
+            if (fixReferenceBase) {
+                vc = new VariantContext("Variant",vc.getChr(),vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.getFilters(),vc.getAttributes(), ref.getBase());
+            }
             writeRecord(vc, tracker, ref.getBase());
         }
 
@@ -149,9 +156,10 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 VariantContext vc = VariantContextAdaptors.toVariantContext(INPUT_ROD_NAME, hapmap, ref);
                 if ( vc != null ) {
                     if ( refBase != null ) {
-                        Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                        attrs.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, refBase);
-                        vc = VariantContext.modifyAttributes(vc, attrs);
+                        // TODO -- fix me
+                        //Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                        //attrs.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, refBase);
+                        //vc = VariantContext.modifyAttributes(vc, attrs);
                     }
                     hapmapVCs.add(vc);
                 }
@@ -233,7 +241,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
-        vcfwriter.add(vc, ref);
+        vcfwriter.add(vc);
     }
 
     public Integer reduceInit() {

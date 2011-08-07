@@ -80,9 +80,9 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "1d5a021387a8a86554db45a29f66140f", false); } // official project VCF files in tabix format
     @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "20163d60f18a46496f6da744ab5cc0f9", false); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "5b82f37df1f5ba40f0474d71c94142ec", false); }
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "f1cf095c2fe9641b7ca1f8ee2c46fd4a", false); }
 
-    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "c58dca482bf97069eac6d9f1a07a2cba", false); }
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "e144b6283765494bfe8189ac59965083", false); }
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "89f55abea8f59e39d1effb908440548c", true); }
 
@@ -100,7 +100,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
                         " -genotypeMergeOptions UNIQUIFY -L 1"),
                 1,
-                Arrays.asList("8b78339ccf7a5a5a837f79e88a3a38e5"));
+                Arrays.asList("1de95f91ca15d2a8856de35dee0ce33e"));
         executeTest("threeWayWithRefs", spec);
     }
 
@@ -120,6 +120,6 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void complexTestFull() { combineComplexSites("", "b5a53ee92bdaacd2bb3327e9004ae058"); }
     @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "df96cb3beb2dbb5e02f80abec7d3571e"); }
-    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f72a178137e25dbe0b931934cdc0079d"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f704caeaaaed6711943014b847fe381a"); }
     @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "f704caeaaaed6711943014b847fe381a"); }
 }

@@ -19,16 +19,32 @@ import java.util.*;
  * Time: 11:47:33 AM
  * To change this template use File | Settings | File Templates.
  */
-public class IndelType implements InfoFieldAnnotation, ExperimentalAnnotation {
+public class IndelType extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
          int run;
-        if ( vc.isIndel() && vc.isBiallelic() ) {
+        if (vc.isMixed()) {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put(getKeyNames().get(0), String.format("%s", "MIXED"));
+            return map;
+
+        }
+        else if ( vc.isIndel() ) {
             String type="";
-            ArrayList<Integer> inds = IndelUtils.findEventClassificationIndex(vc, ref);
-            for (int k : inds) {
-                type = type+ IndelUtils.getIndelClassificationName(k)+".";
+            if (!vc.isBiallelic())
+                type = "MULTIALLELIC_INDEL";
+            else {
+                if (vc.isInsertion())
+                    type = "INS.";
+                else if (vc.isDeletion())
+                    type = "DEL.";
+                else
+                    type = "OTHER.";
+                ArrayList<Integer> inds = IndelUtils.findEventClassificationIndex(vc, ref);
+                for (int k : inds) {
+                    type = type+ IndelUtils.getIndelClassificationName(k)+".";
+                }
             }
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(getKeyNames().get(0), String.format("%s", type));

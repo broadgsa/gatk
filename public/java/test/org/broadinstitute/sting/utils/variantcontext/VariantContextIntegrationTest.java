@@ -19,14 +19,14 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "e4ee2eaa3114888e918a1c82df7a027a");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "5b5635e4877d82e8a27d70dac24bda2f");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "ceced3f270b4fe407ee83bc9028becde");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "9a9b9e283553c28bf58de1cafa38fe92");
+        expectations.put("-L 1:1-10000 --printPerLocus", "c44a48dd9062a435a3579145ce8d1684");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "fa5762fa7dcb2652ed34bcdce9ecf455");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "dfdc554c52707541d335c3fb849feaba");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "db8ba72b557ebd698215281e5656b59c");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "033bd952fca048fe1a4f6422b57ab2ed");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "5e40980c02797f90821317874426a87a");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "7f5eadb2098aafdef8bb45aac3722d03");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "a31b76fb8ed727616d8fb823c62bf677");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "f9d30920c8834ec7c7892507a5052fb7");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
     }
 
@@ -58,7 +58,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
         // this really just tests that we are seeing the same number of objects over all of chr1
         WalkerTestSpec spec = new WalkerTestSpec( root + " -L 1" + " -o %s",
                 1, // just one output file
-                Arrays.asList("529f936aa6c303658b23caf4e527782f"));
+                Arrays.asList("137258e1dc490bfa83a2294c52e97ba9"));
          executeTest("testLargeScaleConversion", spec);
     }
 }

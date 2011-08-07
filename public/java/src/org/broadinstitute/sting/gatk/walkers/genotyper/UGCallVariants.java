@@ -62,7 +62,6 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
     private Set<String> trackNames = new HashSet<String>();
 
     public void initialize() {
-        UAC.NO_SLOD = true;
 
         for ( ReferenceOrderedDataSource d : getToolkit().getRodDataSources() ) {
             if ( d.getName().startsWith("variant") )
@@ -116,7 +115,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         try {
             Map<String, Object> attrs = new HashMap<String, Object>(value.getAttributes());
             VariantContextUtils.calculateChromosomeCounts(value, attrs, true);
-            writer.add(VariantContext.modifyAttributes(value, attrs), value.refBase);
+            writer.add(VariantContext.modifyAttributes(value, attrs));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

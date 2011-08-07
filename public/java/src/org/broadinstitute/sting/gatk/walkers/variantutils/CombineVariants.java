@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.apache.poi.hpsf.Variant;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
@@ -149,7 +150,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, null,context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, null, context.getLocation(), true, false);
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);
@@ -157,7 +158,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
             for ( final VariantContext vc : vcs ) {
-                vcfWriter.add( vc, ref.getBase() );
+                vcfWriter.add(vc);
             }
             
             return vcs.isEmpty() ? 0 : 1;
@@ -172,24 +173,32 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         if (minimumN > 1 && (vcs.size() - numFilteredRecords < minimumN))
             return 0;
         
-        VariantContext mergedVC;
+        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
         if ( master ) {
-             mergedVC = VariantContextUtils.masterMerge(vcs, "master");
+            mergedVCs.add(VariantContextUtils.masterMerge(vcs, "master"));
         } else {
-            mergedVC = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(),vcs, priority, filteredRecordsMergeType,
-                    genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC);
+            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+            // iterate over the types so that it's deterministic
+            for ( VariantContext.Type type : VariantContext.Type.values() ) {
+                if ( VCsByType.containsKey(type) )
+                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                            SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+            }
         }
 
-        //out.printf("   merged => %s%nannotated => %s%n", mergedVC, annotatedMergedVC);
+        for ( VariantContext mergedVC : mergedVCs ) {
+            // only operate at the start of events
+            if ( mergedVC == null )
+                continue;
 
-        if ( mergedVC != null ) { // only operate at the start of events
             HashMap<String, Object> attributes = new HashMap<String, Object>(mergedVC.getAttributes());
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(mergedVC, attributes, false);
             VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
             if ( minimalVCF )
                 annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, Arrays.asList(SET_KEY));
-            vcfWriter.add(annotatedMergedVC, ref.getBase());
+            vcfWriter.add(annotatedMergedVC);
         }
 
         return vcs.isEmpty() ? 0 : 1;

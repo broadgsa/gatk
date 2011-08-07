@@ -10,24 +10,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
     private static String fundamentalTestVCF = phaseByTransmissionTestDataRoot + "/" + "FundamentalsTest.unfiltered.vcf";
 
     @Test
-    public void testBasicFunctionalityWithoutFilters() {
-        WalkerTestSpec spec = new WalkerTestSpec(
-                buildCommandLine(
-                        "-T PhaseByTransmission",
-                        "-R " + b37KGReference,
-                        "-B:variant,VCF " + fundamentalTestVCF,
-                        "-f NA12892+NA12891=NA12878",
-                        "-nofilters",
-                        "-o %s"
-                ),
-                1,
-                Arrays.asList("416a483e87358cdcb0b09a496e3254c0")
-        );
-        executeTest("testBasicFunctionalityWithoutFilters", spec);
-    }
-
-    @Test
-    public void testBasicFunctionalityWithFilters() {
+    public void testBasicFunctionality() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
@@ -37,8 +20,8 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("8c5db343567e90e97993912c7e541d0d")
+                Arrays.asList("45fef0e23113e2fcd9570379e2fc1b75")
         );
-        executeTest("testBasicFunctionalityWithFilters", spec);
+        executeTest("testBasicFunctionality", spec);
     }
 }

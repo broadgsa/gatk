@@ -240,6 +240,14 @@ public class VariantDataManager {
             if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
                   value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             }
+	    if (vc.isIndel() && annotationKey.equalsIgnoreCase("QD")) {
+		// normalize QD by event length for indel case
+		int eventLength = Math.abs(vc.getAlternateAllele(0).getBaseString().length() - vc.getReference().getBaseString().length()); // ignore multi-allelic complication here for now
+		    if (eventLength > 0) // sanity check
+			value /= (double)eventLength;
+
+	    }
+
             if( jitter && annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
             if( jitter && annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
         } catch( Exception e ) {
@@ -258,7 +266,7 @@ public class VariantDataManager {
         datum.consensusCount = 0;
 
         for( final TrainingSet trainingSet : trainingSets ) {
-            for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, false ) ) {
+            for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), true, false ) ) {
                 if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
                         ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
                         (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {

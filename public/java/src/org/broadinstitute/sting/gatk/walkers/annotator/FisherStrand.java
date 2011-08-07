@@ -42,7 +42,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.*;
 
 
-public class FisherStrand implements InfoFieldAnnotation, StandardAnnotation {
+public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation {
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
 

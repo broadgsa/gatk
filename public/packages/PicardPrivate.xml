@@ -7,6 +7,8 @@
       <class name="edu.mit.broad.picard.genotype.geli.GeliFileWriter" />
       <class name="edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods" />
       <class name="edu.mit.broad.picard.util.PasteParser" />
+      <class name="edu.mit.broad.picard.util.PicardAggregationFsUtil" />
+      <class name="edu.mit.broad.picard.util.PicardFileSystemUtil" />
       <class name="edu.mit.broad.picard.variation.KnownVariantCodecV2" />
       <class name="edu.mit.broad.picard.variation.KnownVariantCodec" />
       <class name="edu.mit.broad.picard.variation.KnownVariantFileHeader" />

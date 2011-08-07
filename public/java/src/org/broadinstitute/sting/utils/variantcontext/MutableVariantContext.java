@@ -27,15 +27,15 @@ public class MutableVariantContext extends VariantContext {
     }
 
     public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles) {
-        this(source, contig, start, stop, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+        super(source, contig, start, stop, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
     public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes) {
-        this(source, contig, start, stop, alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+        super(source, contig, start, stop, alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
     public MutableVariantContext(VariantContext parent) {
-        this(parent.getSource(), parent.contig, parent.start, parent.stop, parent.getAlleles(), parent.getGenotypes(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes());
+        super(parent.getSource(), parent.contig, parent.start, parent.stop, parent.getAlleles(), parent.getGenotypes(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes(), parent.getReferenceBaseForIndel());
     }
 
     /**

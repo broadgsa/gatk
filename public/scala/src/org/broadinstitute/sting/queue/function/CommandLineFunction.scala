@@ -9,7 +9,7 @@ trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
   /** Upper memory limit */
-  var memoryLimit: Option[Int] = None
+  var memoryLimit: Option[Double] = None
 
   /** Job project to run the command */
   var jobProject: String = _
@@ -56,7 +56,7 @@ trait CommandLineFunction extends QFunction with Logging {
     if (memoryLimit.isEmpty)
       memoryLimit = qSettings.memoryLimit
 
-    super.freezeFieldValues
+    super.freezeFieldValues()
   }
 
   /**

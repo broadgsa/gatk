@@ -87,8 +87,8 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         writer.writeHeader(stub.getVCFHeader());
     }
 
-    public void add(VariantContext vc, byte ref) {
-        writer.add(vc, ref);
+    public void add(VariantContext vc) {
+        writer.add(vc);
     }
 
     /**
@@ -117,7 +117,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
             BasicFeatureSource<VariantContext> source = BasicFeatureSource.getFeatureSource(file.getAbsolutePath(), new VCFCodec(), false);
             
             for ( VariantContext vc : source.iterator() ) {
-                target.writer.add(vc, vc.getReferenceBaseForIndel());
+                target.writer.add(vc);
             }
 
             source.close();

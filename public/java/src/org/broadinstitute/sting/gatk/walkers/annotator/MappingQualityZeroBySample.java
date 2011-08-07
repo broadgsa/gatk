@@ -49,7 +49,7 @@ import java.util.Map;
  * Time: 6:46:25 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MappingQualityZeroBySample implements GenotypeAnnotation {
+public class MappingQualityZeroBySample extends GenotypeAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref,
                                         AlignmentContext context, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )

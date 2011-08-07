@@ -29,6 +29,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -43,6 +44,9 @@ import java.util.Arrays;
  * Date: Sep 3, 2010
  * Time: 2:24:09 PM
  */
+@DocumentedGATKFeature(
+        groupName = "User exceptions",
+        summary = "Exceptions caused by incorrect user behavior, such as bad files, bad arguments, etc." )
 public class UserException extends ReviewedStingException {
     public UserException(String msg) { super(msg); }
     public UserException(String msg, Throwable e) { super(msg, e); }

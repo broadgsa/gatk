@@ -14,5 +14,5 @@ public interface VCFWriter {
      */
     public void close();
 
-    public void add(VariantContext vc, byte refBase);
+    public void add(VariantContext vc);
 }
