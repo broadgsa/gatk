@@ -117,7 +117,7 @@ public class GATKDoclet {
 
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
-            if ( handler != null && handler.shouldBeProcessed(doc) ) {
+            if ( handler != null && handler.includeInDocs(doc) ) {
                 logger.info("Going to generate documentation for class " + doc);
                 String filename = handler.getDestinationFilename(doc, clazz);
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
