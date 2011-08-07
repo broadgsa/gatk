@@ -64,7 +64,7 @@ public abstract class BaseTest {
     public static final String b37Refseq = refseqAnnotationLocation + "refGene-big-table-b37.txt";
 
     public static final String dbsnpDataLocation = GATKDataLocation;
-    public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.vcf";
+    public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf";
     public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
 
     public static final String hapmapDataLocation = comparisonDataLocation + "Validated/HapMap/3.3/";

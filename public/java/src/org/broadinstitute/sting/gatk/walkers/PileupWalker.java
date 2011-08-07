@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -71,7 +72,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
 
-    @Argument(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
+    @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
     public void initialize() {

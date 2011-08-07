@@ -168,7 +168,7 @@
     <target name="init.buildall">
         <!-- Set the properties needed to build everything -->
         <property name="gatk.target" value="private"/>
-<!--         <property name="scala.target" value="core"/> -->
+        <property name="scala.target" value="core"/>
     </target>
 
     <target name="git.describe">
@@ -977,11 +977,11 @@
             <sourcepath path="${java.public.source.dir}"/>
             <sourcepath path="${external.dir}"/>
         </javadoc>
-<!--         <javadoc destdir="javadoc" -->
-<!--                  classpathref="external.dependencies"> -->
-<!--             <sourcepath path="${java.private.source.dir}"/> -->
-<!--             <exclude name="**" unless="include.private" /> -->
-<!--         </javadoc>         -->
+        <javadoc destdir="javadoc"
+                 classpathref="external.dependencies">
+            <sourcepath path="${java.private.source.dir}"/>
+            <exclude name="**" unless="include.private" />
+        </javadoc>        
         <mkdir dir="scaladoc"/>
         <scaladoc srcdir="" destdir="scaladoc" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
             <src path="${scala.public.source.dir}"/>
