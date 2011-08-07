@@ -82,10 +82,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't include filtered loci.", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
-    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track", required=false)
+    @Input(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track", required=false)
     private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
-    @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track", required=false)
+    @Input(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track", required=false)
     private RodBinding<VariantContext> concordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
     @Hidden

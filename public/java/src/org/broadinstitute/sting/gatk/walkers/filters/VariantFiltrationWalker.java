@@ -78,7 +78,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="maskExtension", shortName="maskExtend", doc="How many bases beyond records from a provided 'mask' rod should variants be filtered; [default:0]", required=false)
     protected Integer MASK_EXTEND = 0;
-    @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
+    @Argument(fullName="maskName", shortName="maskName", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
 
     @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, should missing values be considered failing the expression (by default they are considered passing)?", required=false)
