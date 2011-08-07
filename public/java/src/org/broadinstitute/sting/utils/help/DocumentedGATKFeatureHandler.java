@@ -50,8 +50,8 @@ public abstract class DocumentedGATKFeatureHandler {
 
     public boolean shouldBeProcessed(ClassDoc doc) { return true; }
 
-    public String getDestinationFilename(ClassDoc doc) {
-        return HelpUtils.getClassName(doc).replace(".", "_") + ".html";
+    public String getDestinationFilename(ClassDoc doc, Class clazz) {
+        return GATKDoclet.htmlFilenameForClass(clazz);
     }
 
     public abstract String getTemplateName(ClassDoc doc) throws IOException;

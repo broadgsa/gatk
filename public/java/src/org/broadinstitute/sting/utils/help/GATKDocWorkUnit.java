@@ -30,19 +30,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
-* Created by IntelliJ IDEA.
-* User: depristo
-* Date: 7/24/11
-* Time: 7:59 PM
-* To change this template use File | Settings | File Templates.
-*/
-public class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
-    // known at the start
-    final String name, filename, group;
-    final DocumentedGATKFeatureHandler handler;
-    final ClassDoc classDoc;
+ * Simple collection of all relevant information about something the GATKDoclet can document
+ *
+ * Created by IntelliJ IDEA.
+ * User: depristo
+ * Date: 7/24/11
+ * Time: 7:59 PM
+ */
+class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
+    /** The class that's being documented */
     final Class clazz;
+    /** The name of the thing we are documenting */
+    final String name;
+    /** the filename where we will be writing the docs for this class */
+    final String filename;
+    /** The name of the documentation group (e.g., walkers, read filters) class belongs to */
+    final String group;
+    /** The documentation handler for this class */
+    final DocumentedGATKFeatureHandler handler;
+    /** The javadoc documentation for clazz */
+    final ClassDoc classDoc;
+    /** The annotation that lead to this Class being in GATKDoc */
     final DocumentedGATKFeature annotation;
+    /** When was this walker built, and what's the absolute version number */
     final String buildTimestamp, absoluteVersion;
 
     // set by the handler
@@ -64,12 +74,21 @@ public class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
         this.absoluteVersion = absoluteVersion;
     }
 
+    /**
+     * Called by the GATKDoclet to set handler provided context for this work unit
+     * @param summary
+     * @param forTemplate
+     */
     public void setHandlerContent(String summary, Map<String, Object> forTemplate) {
         this.summary = summary;
         this.forTemplate = forTemplate;
     }
 
-    public Map<String, String> toMap() {
+    /**
+     * Return a String -> String map suitable for FreeMarker to create an index to this WorkUnit
+     * @return
+     */
+    public Map<String, String> indexDataMap() {
         Map<String, String> data = new HashMap<String, String>();
         data.put("name", name);
         data.put("summary", summary);
@@ -78,6 +97,11 @@ public class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
         return data;
     }
 
+    /**
+     * Sort in order of the name of this WorkUnit
+     * @param other
+     * @return
+     */
     public int compareTo(GATKDocWorkUnit other) {
         return this.name.compareTo(other.name);
     }
