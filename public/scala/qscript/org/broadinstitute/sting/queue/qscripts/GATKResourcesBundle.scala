@@ -134,6 +134,9 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf",
       "1000G_indels_for_realignment", b37, true, false))
 
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Mills_Devine_Indels_2011/ALL.wgs.indels_mills_devine_hg19_leftAligned_collapsed_double_hit.sites.vcf",
+      "indels_mills_devine", b37, true, true))
+    
     //
     // example call set for wiki tutorial
     //
