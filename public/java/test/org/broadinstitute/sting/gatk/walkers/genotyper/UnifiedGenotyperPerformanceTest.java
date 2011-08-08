@@ -15,7 +15,7 @@ public class UnifiedGenotyperPerformanceTest extends WalkerTest {
                         " -glm BOTH" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-50,000,000" +
-                        " -B:dbsnp " + b36dbSNP129 +
+                        " -B:dbsnp,VCF " + b36dbSNP129 +
                         " -o /dev/null",
                 0,
                 new ArrayList<String>(0));

@@ -236,7 +236,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:dbsnp " + validationDataLocation + "vcfexample3.vcf" +
+                            " -B:dbsnp,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:10,000,000-10,200,000" +
@@ -284,7 +284,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:anyNameABCD " + validationDataLocation + "vcfexample3.vcf" +
+                            " -B:anyNameABCD,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -B:dbsnp,vcf " + b36dbSNP129 +

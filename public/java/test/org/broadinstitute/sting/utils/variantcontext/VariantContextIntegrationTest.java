@@ -16,7 +16,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     private static String root = cmdRoot +
             " -L 1:1-1,000,000 -B:dbsnp,vcf " + b36dbSNP129 +
-            " -B:vcf " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
+            " -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
 
     private static final class VCITTest extends TestDataProvider {
         String args, md5;
@@ -58,7 +58,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
     public void testToVCF() {
         // this really just tests that we are seeing the same number of objects over all of chr1
 
-        WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -NO_HEADER -B:vcf " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.vcf -L 1:1-1000000 -o %s --outputVCF %s",
+        WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -NO_HEADER -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.vcf -L 1:1-1000000 -o %s --outputVCF %s",
                 2, // just one output file
                 Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "ff91731213fd0bbdc200ab6fd1c93e63"));
          executeTest("testToVCF", spec);
