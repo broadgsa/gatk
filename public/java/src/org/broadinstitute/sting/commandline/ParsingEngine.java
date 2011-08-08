@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
@@ -330,7 +331,17 @@ public class ParsingEngine {
         if(!tags.containsKey(key))
             return new Tags();
         return tags.get(key);
-    }    
+    }
+
+    /**
+     * Add a RodBinding type argument to this parser.  Called during parsing to allow
+     * us to track all of the RodBindings discovered in the command line.
+     * @param rodBinding the rodbinding to add.  Must not be added twice
+     */
+    @Requires("rodBinding != null")
+    public void addRodBinding(final RodBinding rodBinding) {
+        rodBindings.add(rodBinding);
+    }
 
     /**
      * Notify the user that a deprecated command-line argument has been used.
@@ -367,9 +378,6 @@ public class ParsingEngine {
             Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createTypeDefault(this);
 
             JVMUtils.setFieldValue(source.field,target,value);
-
-            if ( value instanceof RodBinding )
-                rodBindings.add((RodBinding)value);
         }
     }
 

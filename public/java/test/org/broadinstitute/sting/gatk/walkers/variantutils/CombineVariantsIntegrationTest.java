@@ -44,7 +44,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void test1InOut(String file, String md5, String args, boolean vcf3) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1 -B:v1,VCF" + (vcf3 ? "3 " : " ") + validationDataLocation + file + args),
+                 baseTestString(" -priority v1 -V:v1,VCF" + (vcf3 ? "3 " : " ") + validationDataLocation + file + args),
                  1,
                  Arrays.asList(md5));
          executeTest("testInOut1--" + file, spec);
@@ -52,7 +52,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void combine2(String file1, String file2, String args, String md5, boolean vcf3) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1,v2 -B:v1,VCF" + (vcf3 ? "3 " : " ") + validationDataLocation + file1 + " -B:v2,VCF" + (vcf3 ? "3 " : " ") + validationDataLocation + file2 + args),
+                 baseTestString(" -priority v1,v2 -V:v1,VCF" + (vcf3 ? "3 " : " ") + validationDataLocation + file1 + " -V:v2,VCF" + (vcf3 ? "3 " : " ") + validationDataLocation + file2 + args),
                  1,
                  Arrays.asList(md5));
          executeTest("combine2 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
@@ -63,8 +63,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         String file2 = "hapmap_3.3.b37.sites.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
-                        + " -L 1:1-10,000,000 -B:omni,VCF " + validationDataLocation + file1
-                        + " -B:hm3,VCF " + validationDataLocation + file2 + args,
+                        + " -L 1:1-10,000,000 -V:omni,VCF " + validationDataLocation + file1
+                        + " -V:hm3,VCF " + validationDataLocation + file2 + args,
                 1,
                 Arrays.asList(md5));
         executeTest("combineSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
@@ -91,10 +91,10 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -B:NA19240_BGI,VCF "+validationDataLocation+"NA19240.BGI.RG.vcf" +
-                        " -B:NA19240_ILLUMINA,VCF "+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
-                        " -B:NA19240_WUGSC,VCF "+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
-                        " -B:denovoInfo,VCF "+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
+                baseTestString(" -V:NA19240_BGI,VCF "+validationDataLocation+"NA19240.BGI.RG.vcf" +
+                        " -V:NA19240_ILLUMINA,VCF "+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
+                        " -V:NA19240_WUGSC,VCF "+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
+                        " -V:denovoInfo,VCF "+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
                         " -setKey centerSet" +
                         " -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED" +
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
@@ -104,15 +104,14 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         executeTest("threeWayWithRefs", spec);
     }
 
-
     // complex examples with filtering, indels, and multiple alleles
     public void combineComplexSites(String args, String md5) {
         String file1 = "combine.1.vcf";
         String file2 = "combine.2.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
-                        + " -B:one,VCF " + validationDataLocation + file1
-                        + " -B:two,VCF " + validationDataLocation + file2 + args,
+                        + " -V:one,VCF " + validationDataLocation + file1
+                        + " -V:two,VCF " + validationDataLocation + file2 + args,
                 1,
                 Arrays.asList(md5));
         executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);

@@ -330,6 +330,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             Class parameterType = getParameterizedTypeClass(type);
             RodBinding result = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
             parsingEngine.addTags(result,tags);
+            parsingEngine.addRodBinding(result);
             return result;
         } catch (InvocationTargetException e) {
             throw new UserException.CommandLineException(
