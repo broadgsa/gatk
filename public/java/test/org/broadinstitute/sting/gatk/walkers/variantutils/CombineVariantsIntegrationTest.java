@@ -72,7 +72,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void combinePLs(String file1, String file2, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T CombineVariants -NO_HEADER -o %s -R " + b36KGReference + " -priority v1,v2 -B:v1,VCF " + validationDataLocation + file1 + " -B:v2,VCF " + validationDataLocation + file2,
+                 "-T CombineVariants -NO_HEADER -o %s -R " + b36KGReference + " -priority v1,v2 -V:v1 " + validationDataLocation + file1 + " -V:v2 " + validationDataLocation + file2,
                  1,
                  Arrays.asList(md5));
          executeTest("combine PLs 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);

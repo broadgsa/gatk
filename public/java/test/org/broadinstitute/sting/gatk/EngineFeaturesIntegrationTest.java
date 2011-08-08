@@ -24,26 +24,16 @@
 
 package org.broadinstitute.sting.gatk;
 
-import org.broad.tribble.Feature;
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.List;
 
 /**
  *
  */
 public class EngineFeaturesIntegrationTest extends WalkerTest {
     private void testBadRODBindingInput(String type, String name, Class c) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -L 1:1 --variants:" + type + " "
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -L 1:1 --variants:variants," + type + " "
                 + b37dbSNP132 + " -R " + b37KGReference + " -o %s",
                 1, c);
         executeTest(name, spec);
@@ -65,26 +55,3 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         testBadRODBindingInput("bedXXX", "Unknown input to VCF expecting walker", UserException.UnknownTribbleType.class);
     }
 }
-
-//class TestRodBindings extends RodWalker<Integer, Integer> {
-//    @Input(fullName="req", required=true)
-//    public RodBinding<Feature> required;
-//
-//    @Input(fullName="optional", required=false)
-//    public RodBinding<Feature> optional = RodBinding.makeUnbound(Feature.class);
-//
-//    @Input(fullName="rodList", shortName="RL", doc="A list of ROD types that we will convert to a table", required=true)
-//    public List<RodBinding<Feature>> variantsList;
-//
-//    public void initialize() {
-//        // bound values
-//        Assert.assertEquals(required.isBound(), true);
-//
-//
-//        System.exit(0);
-//    }
-//
-//    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { return 0; }
-//    public Integer reduceInit() { return 0; }
-//    public Integer reduce(Integer counter, Integer sum) { return counter + sum; }
-//}

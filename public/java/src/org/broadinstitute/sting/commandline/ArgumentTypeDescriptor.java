@@ -317,38 +317,45 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             String tribbleType = null;
             Tags tags = getArgumentTags(matches);
             // must have one or two tag values here
-            if ( tags.getPositionalTags().size() == 2 ) { // -X:name,type style
+            if ( tags.getPositionalTags().size() > 2 ) {
+                throw new UserException.CommandLineException(
+                        String.format("Unexpected number of positional tags for argument %s : %s. " +
+                                "Rod bindings only suport -X:type and -X:name,type argument styles",
+                                value, source.field.getName()));
+            } if ( tags.getPositionalTags().size() == 2 ) {
+                // -X:name,type style
                 name = tags.getPositionalTags().get(0);
                 tribbleType = tags.getPositionalTags().get(1);
             } else {
-                if ( tags.getPositionalTags().size() == 1 ) {
-                    // -X:type style is a type when we cannot determine the type dynamically
-                    tribbleType = tags.getPositionalTags().get(0);
+                // case with 0 or 1 positional tags
+                FeatureManager manager = new FeatureManager();
+
+                // -X:type style is a type when we cannot determine the type dynamically
+                String tag1 = tags.getPositionalTags().size() == 1 ? tags.getPositionalTags().get(0) : null;
+                if ( tag1 != null ) {
+                    if ( manager.getByName(tag1) != null ) // this a type
+                        tribbleType = tag1;
+                    else
+                        name = tag1;
                 }
 
-                // try to determine the file type dynamically
-                FeatureManager manager = new FeatureManager();
-                File file = new File(value);
-                if ( file.canRead() && file.isFile() ) {
-                    FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
-                    if ( featureDescriptor != null ) {
-                        tribbleType = featureDescriptor.getName();
-                        logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
-
-                        if ( tags.getPositionalTags().size() == 1 ) {
-                            // -X:type style is a name when we can determine the type dynamically
-                            name = tags.getPositionalTags().get(0);
+                if ( tribbleType == null ) {
+                    // try to determine the file type dynamically
+                    File file = new File(value);
+                    if ( file.canRead() && file.isFile() ) {
+                        FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
+                        if ( featureDescriptor != null ) {
+                            tribbleType = featureDescriptor.getName();
+                            logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
                         }
                     }
                 }
-
-                // now, if we haven't found a type
-                if ( tribbleType == null )
-                    throw new UserException.CommandLineException(
-                            String.format("Unexpected number of positional tags for argument %s : %s. " +
-                                    "Rod bindings only suport -X:type and -X:name,type argument styles",
-                                    value, source.field.getName()));
             }
+
+            if ( tribbleType == null ) // error handling
+                throw new UserException.CommandLineException(
+                        String.format("Could not parse argument %s with value %s",
+                                defaultDefinition.fullName, value));
 
             Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
             Class parameterType = getParameterizedTypeClass(type);
