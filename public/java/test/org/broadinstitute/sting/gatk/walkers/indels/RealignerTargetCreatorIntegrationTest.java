@@ -17,7 +17,7 @@ public class RealignerTargetCreatorIntegrationTest extends WalkerTest {
         executeTest("test standard", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                "-T RealignerTargetCreator -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_132.b36.excluding_sites_after_129.vcf -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000 -o %s",
+                "-T RealignerTargetCreator -B:dbsnp,vcf " + GATKDataLocation + "dbsnp_129_b36.vcf -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000 -o %s",
                  1,
                  Arrays.asList("0367d39a122c8ac0899fb868a82ef728"));
         executeTest("test dbsnp", spec2);

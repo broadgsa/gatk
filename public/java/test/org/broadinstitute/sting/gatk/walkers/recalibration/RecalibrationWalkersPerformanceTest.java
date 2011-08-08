@@ -16,7 +16,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L chr1:1-50,000,000" +
                         " -standard" +
                         " -OQ" +
-                        " -B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132_hg18.vcf" +
+                        " -B:dbsnp,VCF " + GATKDataLocation + "dbsnp_132.hg18.vcf" +
                         " -recalFile /dev/null" + moreArgs,
                 0,
                 new ArrayList<String>(0));

@@ -440,7 +440,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return vc subcontext
      */
     public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Set<Allele> alleles) {
-        return new VariantContext(getSource(), contig, start, stop, alleles, genotypes, getNegLog10PError(), filtersWereApplied() ? getFilters() : null, getAttributes());
+        return new VariantContext(getSource(), contig, start, stop, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, getNegLog10PError(), filtersWereApplied() ? getFilters() : null, getAttributes(), getReferenceBaseForIndel());
     }
 
 
@@ -1055,11 +1055,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * Run all extra-strict validation tests on a Variant Context object
      *
      * @param reference        the true reference allele
+     * @param paddedRefBase    the reference base used for padding indels
      * @param rsIDs            the true dbSNP IDs
      */
-    public void extraStrictValidation(Allele reference, Set<String> rsIDs) {
+    public void extraStrictValidation(Allele reference, Byte paddedRefBase, Set<String> rsIDs) {
         // validate the reference
-        validateReferenceBases(reference);
+        validateReferenceBases(reference, paddedRefBase);
 
         // validate the RS IDs
         validateRSIDs(rsIDs);
@@ -1074,11 +1075,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         //checkReferenceTrack();
     }
 
-    public void validateReferenceBases(Allele reference) {
+    public void validateReferenceBases(Allele reference, Byte paddedRefBase) {
         // don't validate if we're an insertion
         if ( !reference.isNull() && !reference.basesMatch(getReference()) ) {
             throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
         }
+
+        // we also need to validate the padding base for simple indels
+        if ( hasReferenceBaseForIndel() && !getReferenceBaseForIndel().equals(paddedRefBase) )
+            throw new TribbleException.InternalCodecException(String.format("the padded REF base is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), (char)getReferenceBaseForIndel().byteValue(), (char)paddedRefBase.byteValue()));
     }
 
     public void validateRSIDs(Set<String> rsIDs) {

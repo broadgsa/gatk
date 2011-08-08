@@ -22,38 +22,27 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
-
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util.ShellJob
-import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+package org.broadinstitute.sting.utils.help;
 
 /**
- * Runs jobs one at a time locally
+ * @author depristo
+ * @since 8/8/11
  */
-class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
-  private var runStatus: RunnerStatus.Value = _
+public class GATKDocUtils {
+    private final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
+    private final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
+    private final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
 
-  /**
-   * Runs the function on the local shell.
-   * @param function Command to run.
-   */
-  def start() {
-    val job = new ShellJob
+    public static String htmlFilenameForClass(Class c) {
+        return c.getName().replace(".", "_") + ".html";
+    }
 
-    job.workingDir = function.commandDirectory
-    job.outputFile = function.jobOutputFile
-    job.errorFile = function.jobErrorFile
-
-    job.shellScript = jobScript
-
-    // Allow advanced users to update the job.
-    updateJobRun(job)
-
-    updateStatus(RunnerStatus.RUNNING)
-    job.run()
-    updateStatus(RunnerStatus.DONE)
-  }
-
-  override def checkUnknownStatus() {}
+    public static String helpLinksToGATKDocs(Class c) {
+        String classPath = htmlFilenameForClass(c);
+        StringBuilder b = new StringBuilder();
+        b.append("release  version: ").append(URL_ROOT_FOR_RELEASE_GATKDOCS).append(classPath).append("\n");
+        b.append("stable   version: ").append(URL_ROOT_FOR_STABLE_GATKDOCS).append(classPath).append("\n");
+        b.append("unstable version: ").append(URL_ROOT_FOR_UNSTABLE_GATKDOCS).append(classPath).append("\n");
+        return b.toString();
+    }
 }

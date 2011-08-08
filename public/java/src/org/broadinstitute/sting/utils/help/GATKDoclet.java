@@ -101,9 +101,9 @@ public class GATKDoclet {
 
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
-            if ( handler != null && handler.shouldBeProcessed(doc) ) {
+            if ( handler != null && handler.includeInDocs(doc) ) {
                 logger.info("Going to generate documentation for class " + doc);
-                String filename = handler.getDestinationFilename(doc);
+                String filename = handler.getDestinationFilename(doc, clazz);
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
                         filename, feature.groupName(),
                         feature, handler, doc, clazz,
@@ -220,7 +220,7 @@ public class GATKDoclet {
         Set<DocumentedGATKFeature> docFeatures = new HashSet<DocumentedGATKFeature>();
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
         for ( GATKDocWorkUnit workUnit : indexData ) {
-            data.add(workUnit.toMap());
+            data.add(workUnit.indexDataMap());
             docFeatures.add(workUnit.annotation);
         }
 
