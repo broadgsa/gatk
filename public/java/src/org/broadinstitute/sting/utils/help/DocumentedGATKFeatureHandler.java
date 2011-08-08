@@ -71,7 +71,7 @@ public abstract class DocumentedGATKFeatureHandler {
      * @return
      */
     public String getDestinationFilename(ClassDoc doc, Class clazz) {
-        return GATKDoclet.htmlFilenameForClass(clazz);
+        return GATKDocUtils.htmlFilenameForClass(clazz);
     }
 
     /**
