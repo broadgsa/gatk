@@ -80,6 +80,7 @@ public class SnpEffCodec implements FeatureCodec {
         }
 
         try {
+            trimAllFields(tokens);
             checkForRequiredFields(tokens, line);
 
             String contig = tokens[0];
@@ -126,6 +127,12 @@ public class SnpEffCodec implements FeatureCodec {
         }
     }
 
+    private void trimAllFields ( String[] tokens ) {
+        for ( int i = 0; i < tokens.length; i++ ) {
+            tokens[i] = tokens[i].trim();
+        }
+    }
+
     private void checkForRequiredFields ( String[] tokens, String line ) {
         for ( int requiredFieldIndex : REQUIRED_FIELDS ) {
             if ( tokens[requiredFieldIndex].isEmpty() ) {
@@ -155,7 +162,7 @@ public class SnpEffCodec implements FeatureCodec {
 
     private String parseEffectExtraInformation ( String[] effectFieldTokens, boolean isNonCodingGene ) {
         if ( (effectFieldTokens.length == 2 && ! isNonCodingGene) || effectFieldTokens.length == 3 ) {
-            return effectFieldTokens[effectFieldTokens.length - 1];
+            return effectFieldTokens[effectFieldTokens.length - 1].trim();
         }
 
         return null;

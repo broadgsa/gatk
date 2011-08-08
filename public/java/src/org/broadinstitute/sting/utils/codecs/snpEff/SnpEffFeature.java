@@ -314,4 +314,67 @@ public class SnpEffFeature implements Feature {
     public String getCustomIntervalID() {
         return customIntervalID;
     }
+
+    public boolean equals ( Object o ) {
+        if ( o == null || ! (o instanceof SnpEffFeature) ) {
+            return false;
+        }
+
+        SnpEffFeature other = (SnpEffFeature)o;
+
+        return contig.equals(other.contig) &&
+               position == other.position &&
+               (reference == null ? other.reference == null : reference.equals(other.reference)) &&
+               (change == null ? other.change == null : change.equals(other.change)) &&
+               changeType == other.changeType &&
+               zygosity == other.zygosity &&
+               (quality == null ? other.quality == null : quality.equals(other.quality)) &&
+               (coverage == null ? other.coverage == null : coverage.equals(other.coverage)) &&
+               (warnings == null ? other.warnings == null : warnings.equals(other.warnings)) &&
+               (geneID == null ? other.geneID == null : geneID.equals(other.geneID)) &&
+               (geneName == null ? other.geneName == null : geneName.equals(other.geneName)) &&
+               (bioType == null ? other.bioType == null : bioType.equals(other.bioType)) &&
+               (transcriptID == null ? other.transcriptID == null : transcriptID.equals(other.transcriptID)) &&
+               (exonID == null ? other.exonID == null : exonID.equals(other.exonID)) &&
+               (exonRank == null ? other.exonRank == null : exonRank.equals(other.exonRank)) &&
+               isNonCodingGene == other.isNonCodingGene &&
+               effect == other.effect &&
+               (effectExtraInformation == null ? other.effectExtraInformation == null : effectExtraInformation.equals(other.effectExtraInformation)) &&
+               (oldAndNewAA == null ? other.oldAndNewAA == null : oldAndNewAA.equals(other.oldAndNewAA)) &&
+               (oldAndNewCodon == null ? other.oldAndNewCodon == null : oldAndNewCodon.equals(other.oldAndNewCodon)) &&
+               (codonNum == null ? other.codonNum == null : codonNum.equals(other.codonNum)) &&
+               (cdsSize == null ? other.cdsSize == null : cdsSize.equals(other.cdsSize)) &&
+               (codonsAround == null ? other.codonsAround == null : codonsAround.equals(other.codonsAround)) &&
+               (aasAround == null ? other.aasAround == null : aasAround.equals(other.aasAround)) &&
+               (customIntervalID == null ? other.customIntervalID == null : customIntervalID.equals(other.customIntervalID));
+    }
+
+    public String toString() {
+        return "[Contig: " + contig +
+               " Position: " + position +
+               " Reference: " + reference +
+               " Change: " + change +
+               " Change Type: " + changeType +
+               " Zygosity: " + zygosity +
+               " Quality: " + quality +
+               " Coverage: " + coverage +
+               " Warnings: " + warnings +
+               " Gene ID: " + geneID +
+               " Gene Name: " + geneName +
+               " Bio Type: " + bioType +
+               " Transcript ID: " + transcriptID +
+               " Exon ID: " + exonID +
+               " Exon Rank: " + exonRank +
+               " Non-Coding Gene: " + isNonCodingGene +
+               " Effect: " + effect +
+               " Effect Extra Information: " + effectExtraInformation +
+               " Old/New AA: " + oldAndNewAA +
+               " Old/New Codon: " + oldAndNewCodon +
+               " Codon Num: " + codonNum +
+               " CDS Size: " + cdsSize +
+               " Codons Around: " + codonsAround +
+               " AAs Around: " + aasAround +
+               " Custom Interval ID: " + customIntervalID +
+               "]";
+    }
 }
