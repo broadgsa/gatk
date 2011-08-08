@@ -51,7 +51,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     RootDoc rootDoc;
 
     @Override
-    public boolean shouldBeProcessed(ClassDoc doc) {
+    public boolean includeInDocs(ClassDoc doc) {
         return true;
 //        try {
 //            Class type = HelpUtils.getClassForDoc(doc);
