@@ -102,7 +102,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testDBTagWithHapMap() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B:compH3,VCF " + validationDataLocation + "fakeHM3.vcf -G \"Standard\" --variants:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variants", 1,
+                baseTestString() + " -B:compH3 " + validationDataLocation + "fakeHM3.vcf -G \"Standard\" --variants:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variants", 1,
                 Arrays.asList("1bc01c5b3bd0b7aef75230310c3ce688"));
         executeTest("getting DB tag with HM3", spec);
     }
@@ -110,7 +110,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testUsingExpression() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B:foo,VCF " + validationDataLocation + "targetAnnotations.vcf -G \"Standard\" --variants:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -BTI variants", 1,
+                baseTestString() + " -B:foo " + validationDataLocation + "targetAnnotations.vcf -G \"Standard\" --variants:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -BTI variants", 1,
                 Arrays.asList("e9c0d832dc6b4ed06c955060f830c140"));
         executeTest("using expression", spec);
     }

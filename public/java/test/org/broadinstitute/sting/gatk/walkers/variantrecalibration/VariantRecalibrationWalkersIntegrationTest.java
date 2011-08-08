@@ -41,11 +41,11 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         //System.out.printf("PARAMS FOR %s is %s%n", vcf, clusterFile);
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b37KGReference +
-                        " -B:dbsnp,VCF,known=true,training=false,truth=false,prior=10.0 " + GATKDataLocation + "dbsnp_132_b37.leftAligned.vcf" +
-                        " -B:hapmap,VCF,known=false,training=true,truth=true,prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
-                        " -B:omni,VCF,known=false,training=true,truth=true,prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
+                        " -B:dbsnp,known=true,training=false,truth=false,prior=10.0 " + GATKDataLocation + "dbsnp_132_b37.leftAligned.vcf" +
+                        " -B:hapmap,known=false,training=true,truth=true,prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
+                        " -B:omni,known=false,training=true,truth=true,prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
                         " -T VariantRecalibrator" +
-                        " -B:input,VCF " + params.inVCF +
+                        " -B:input " + params.inVCF +
                         " -L 20:1,000,000-40,000,000" +
                         " -an QD -an HaplotypeScore -an HRun" +
                         " -percentBad 0.07" +
@@ -64,7 +64,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T ApplyRecalibration" +
                         " -L 20:12,000,000-30,000,000" +
                         " -NO_HEADER" +
-                        " -B:input,VCF " + params.inVCF +
+                        " -B:input " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + MD5DB.getMD5FilePath(params.recalMD5, null),

@@ -333,7 +333,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
                     if ( featureDescriptor != null ) {
                         tribbleType = featureDescriptor.getName();
-                        logger.warn("Dynamically determined of " + file + " to be " + tribbleType);
+                        logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
 
                         if ( tags.getPositionalTags().size() == 1 ) {
                             // -X:type style is a name when we can determine the type dynamically

@@ -63,8 +63,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         String file2 = "hapmap_3.3.b37.sites.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
-                        + " -L 1:1-10,000,000 -V:omni,VCF " + validationDataLocation + file1
-                        + " -V:hm3,VCF " + validationDataLocation + file2 + args,
+                        + " -L 1:1-10,000,000 -V:omni " + validationDataLocation + file1
+                        + " -V:hm3 " + validationDataLocation + file2 + args,
                 1,
                 Arrays.asList(md5));
         executeTest("combineSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
@@ -91,10 +91,10 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -V:NA19240_BGI,VCF "+validationDataLocation+"NA19240.BGI.RG.vcf" +
-                        " -V:NA19240_ILLUMINA,VCF "+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
-                        " -V:NA19240_WUGSC,VCF "+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
-                        " -V:denovoInfo,VCF "+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
+                baseTestString(" -V:NA19240_BGI "+validationDataLocation+"NA19240.BGI.RG.vcf" +
+                        " -V:NA19240_ILLUMINA "+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
+                        " -V:NA19240_WUGSC "+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
+                        " -V:denovoInfo "+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
                         " -setKey centerSet" +
                         " -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED" +
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
@@ -110,8 +110,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         String file2 = "combine.2.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
-                        + " -V:one,VCF " + validationDataLocation + file1
-                        + " -V:two,VCF " + validationDataLocation + file2 + args,
+                        + " -V:one " + validationDataLocation + file1
+                        + " -V:two " + validationDataLocation + file2 + args,
                 1,
                 Arrays.asList(md5));
         executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);

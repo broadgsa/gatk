@@ -10,7 +10,7 @@ public class MergeMNPsIntegrationTest extends WalkerTest {
     public static String baseTestString(String reference, String VCF, int maxDistMNP) {
         return "-T MergeMNPs" +
                 " -R " + reference +
-                " -B:variant,VCF " + validationDataLocation + VCF +
+                " -B:variant " + validationDataLocation + VCF +
                 " --maxGenomicDistanceForMNP " + maxDistMNP +
                 " -o %s" +
                 " -NO_HEADER";
