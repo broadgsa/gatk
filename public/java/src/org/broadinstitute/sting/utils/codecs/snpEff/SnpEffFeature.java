@@ -112,6 +112,17 @@ public class SnpEffFeature implements Feature {
         this.customIntervalID = customIntervalID;
     }
 
+    public boolean isHigherImpactThan ( SnpEffFeature other ) {
+        if ( ! isNonCodingGene() && other.isNonCodingGene() ) {
+            return true;
+        }
+        else if ( isNonCodingGene() && ! other.isNonCodingGene() ) {
+            return false;
+        }
+
+        return getEffectImpact().isHigherImpactThan(other.getEffectImpact());
+    }
+
     public String getChr() {
         return contig;
     }

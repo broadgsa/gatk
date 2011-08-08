@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -56,33 +55,13 @@ public class SnpEff extends InfoFieldAnnotation implements StandardAnnotation {
     public static final String CODON_NUM_KEY = "CODON_NUM";
     public static final String CDS_SIZE_KEY = "CDS_SIZE";
 
-    private static final String RMD_TRACK_NAME = "SnpEff";
-    private static final Logger logger = Logger.getLogger(SnpEff.class);
+    public static final String RMD_TRACK_NAME = "SnpEff";
 
     public Map<String, Object> annotate ( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
         List<Object> snpEffFeatures = tracker.getReferenceMetaData(RMD_TRACK_NAME);
 
-        sanityCheckSnpEffFeatures(snpEffFeatures);
-
         SnpEffFeature mostSignificantEffect = getMostSignificantEffect(snpEffFeatures);
         return generateAnnotations(mostSignificantEffect);
-    }
-
-    private void sanityCheckSnpEffFeatures( List<Object> snpEffFeatures ) {
-        Boolean locusIsNonCodingGene = null;
-
-        for ( Object feature : snpEffFeatures ) {
-            SnpEffFeature snpEffFeature = (SnpEffFeature)feature;
-
-            if ( locusIsNonCodingGene == null ) {
-                locusIsNonCodingGene = snpEffFeature.isNonCodingGene();
-            }
-            else if ( ! locusIsNonCodingGene.equals(snpEffFeature.isNonCodingGene())  ) {
-                logger.warn(String.format("Locus %s:%d is marked as both within and not within a non-coding gene",
-                                          snpEffFeature.getChr(), snpEffFeature.getStart()));
-                return;
-            }
-        }
     }
 
     private SnpEffFeature getMostSignificantEffect ( List<Object> snpEffFeatures ) {
@@ -92,7 +71,7 @@ public class SnpEff extends InfoFieldAnnotation implements StandardAnnotation {
             SnpEffFeature snpEffFeature = (SnpEffFeature)feature;
 
             if ( mostSignificantEffect == null ||
-                 snpEffFeature.getEffectImpact().isHigherImpactThan(mostSignificantEffect.getEffectImpact()) ) {
+                 snpEffFeature.isHigherImpactThan(mostSignificantEffect) ) {
 
                 mostSignificantEffect = snpEffFeature;
             }
@@ -153,19 +132,19 @@ public class SnpEff extends InfoFieldAnnotation implements StandardAnnotation {
 
     public List<VCFInfoHeaderLine> getDescriptions() {
         return Arrays.asList(
-            new VCFInfoHeaderLine(GENE_ID_KEY, 1, VCFHeaderLineType.String, "Gene ID"),
-            new VCFInfoHeaderLine(GENE_NAME_KEY, 1, VCFHeaderLineType.String, "Gene name"),
-            new VCFInfoHeaderLine(TRANSCRIPT_ID_KEY, 1, VCFHeaderLineType.String, "Transcript ID"),
-            new VCFInfoHeaderLine(EXON_ID_KEY, 1, VCFHeaderLineType.String, "Exon ID"),
-            new VCFInfoHeaderLine(EXON_RANK_KEY, 1, VCFHeaderLineType.Integer, "Exon rank"),
-            new VCFInfoHeaderLine(WITHIN_NON_CODING_GENE_KEY, 0, VCFHeaderLineType.Flag, "If present, gene is non-coding"),
-            new VCFInfoHeaderLine(EFFECT_KEY, 1, VCFHeaderLineType.String, "One of the most high-impact effects across all transcripts at this site"),
-            new VCFInfoHeaderLine(EFFECT_IMPACT_KEY, 1, VCFHeaderLineType.String, "Impact of the effect " + Arrays.toString(SnpEffConstants.EffectImpact.values())),
-            new VCFInfoHeaderLine(EFFECT_EXTRA_INFORMATION_KEY, 1, VCFHeaderLineType.String, "Additional information about the effect"),
-            new VCFInfoHeaderLine(OLD_NEW_AA_KEY, 1, VCFHeaderLineType.String, "Old/New amino acid"),
-            new VCFInfoHeaderLine(OLD_NEW_CODON_KEY, 1, VCFHeaderLineType.String, "Old/New codon"),
-            new VCFInfoHeaderLine(CODON_NUM_KEY, 1, VCFHeaderLineType.Integer, "Codon number"),
-            new VCFInfoHeaderLine(CDS_SIZE_KEY, 1, VCFHeaderLineType.Integer, "CDS size")
+            new VCFInfoHeaderLine(GENE_ID_KEY,                  1, VCFHeaderLineType.String,  "Gene ID"),
+            new VCFInfoHeaderLine(GENE_NAME_KEY,                1, VCFHeaderLineType.String,  "Gene name"),
+            new VCFInfoHeaderLine(TRANSCRIPT_ID_KEY,            1, VCFHeaderLineType.String,  "Transcript ID"),
+            new VCFInfoHeaderLine(EXON_ID_KEY,                  1, VCFHeaderLineType.String,  "Exon ID"),
+            new VCFInfoHeaderLine(EXON_RANK_KEY,                1, VCFHeaderLineType.Integer, "Exon rank"),
+            new VCFInfoHeaderLine(WITHIN_NON_CODING_GENE_KEY,   0, VCFHeaderLineType.Flag,    "If present, gene is non-coding"),
+            new VCFInfoHeaderLine(EFFECT_KEY,                   1, VCFHeaderLineType.String,  "One of the most high-impact effects across all transcripts at this site"),
+            new VCFInfoHeaderLine(EFFECT_IMPACT_KEY,            1, VCFHeaderLineType.String,  "Impact of the effect " + Arrays.toString(SnpEffConstants.EffectImpact.values())),
+            new VCFInfoHeaderLine(EFFECT_EXTRA_INFORMATION_KEY, 1, VCFHeaderLineType.String,  "Additional information about the effect"),
+            new VCFInfoHeaderLine(OLD_NEW_AA_KEY,               1, VCFHeaderLineType.String,  "Old/New amino acid"),
+            new VCFInfoHeaderLine(OLD_NEW_CODON_KEY,            1, VCFHeaderLineType.String,  "Old/New codon"),
+            new VCFInfoHeaderLine(CODON_NUM_KEY,                1, VCFHeaderLineType.Integer, "Codon number"),
+            new VCFInfoHeaderLine(CDS_SIZE_KEY,                 1, VCFHeaderLineType.Integer, "CDS size")
         );
     }
 }
