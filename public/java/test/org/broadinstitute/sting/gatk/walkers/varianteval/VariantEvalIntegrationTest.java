@@ -233,8 +233,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000";
         String tests = cmdRoot +
                 " -B:dbsnp " + b36dbSNP129 +
-                " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
-                " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+                " -B:eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
+                " -B:comp_genotypes " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
                 1, Arrays.asList("14054badcd89b24c2375e1d09918f681"));
         executeTestParallel("testSelect1", spec);
@@ -244,7 +244,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testVEGenotypeConcordance() {
         String vcfFile = "GenotypeConcordanceEval.vcf";
 
-        WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF3 " + validationDataLocation + vcfFile + " -B:comp,VCF3 " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
+        WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval " + validationDataLocation + vcfFile + " -B:comp " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                 1,
                 Arrays.asList("96f27163f16bb945f19c6623cd6db34e"));
         executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
@@ -252,7 +252,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testCompVsEvalAC() {
-        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
+        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("d1932be3748fcf6da77dc51aec323710"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
