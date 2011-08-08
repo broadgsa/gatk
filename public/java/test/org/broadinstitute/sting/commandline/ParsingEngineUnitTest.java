@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.testng.Assert;
@@ -837,5 +838,87 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.bindings.get(1).getName(), "foo2", "Name isn't set properly");
     }
 
+    private final static String HISEQ_VCF = testDir + "HiSeq.10000.vcf";
+    private final static String TRANCHES_FILE = testDir + "tranches.6.txt";
 
+    @Test
+    public void variantContextBindingTestDynamicTyping1() {
+        final String[] commandLine = new String[] {"-V", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 0, "Tags aren't correctly set");
+    }
+
+    @Test
+    public void variantContextBindingTestDynamicTypingNameAsSingleArgument() {
+        final String[] commandLine = new String[] {"-V:name", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "name", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    @Test()
+    public void variantContextBindingTestDynamicTypingTwoTagsPassing() {
+        final String[] commandLine = new String[] {"-V:name,vcf", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "name", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 2, "Tags aren't correctly set");
+    }
+
+    @Test()
+    public void variantContextBindingTestDynamicTypingTwoTagsCausingTypeFailure() {
+        final String[] commandLine = new String[] {"-V:name,beagle", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+
+        Assert.assertEquals(argProvider.binding.getName(), "name", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTribbleType(), "beagle", "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 2, "Tags aren't correctly set");
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void variantContextBindingTestDynamicTypingUnknownTribbleType() {
+        final String[] commandLine = new String[] {"-V", TRANCHES_FILE};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+    }
 }

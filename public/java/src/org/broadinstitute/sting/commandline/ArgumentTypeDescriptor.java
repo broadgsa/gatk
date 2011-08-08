@@ -27,6 +27,7 @@ package org.broadinstitute.sting.commandline;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
@@ -313,19 +314,42 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         String value = getArgumentValue( defaultDefinition, matches );
         try {
             String name = defaultDefinition.fullName;
-            String tribbleType;
+            String tribbleType = null;
             Tags tags = getArgumentTags(matches);
             // must have one or two tag values here
             if ( tags.getPositionalTags().size() == 2 ) { // -X:name,type style
                 name = tags.getPositionalTags().get(0);
                 tribbleType = tags.getPositionalTags().get(1);
-            } else if ( tags.getPositionalTags().size() == 1 ) { // -X:type style
-                tribbleType = tags.getPositionalTags().get(0);
-            } else
-                throw new UserException.CommandLineException(
-                        String.format("Unexpected number of positional tags for argument %s : %s. " +
-                                "Rod bindings only suport -X:type and -X:name,type argument styles",
-                                value, source.field.getName()));
+            } else {
+                if ( tags.getPositionalTags().size() == 1 ) {
+                    // -X:type style is a type when we cannot determine the type dynamically
+                    tribbleType = tags.getPositionalTags().get(0);
+                }
+
+                // try to determine the file type dynamically
+                FeatureManager manager = new FeatureManager();
+                File file = new File(value);
+                if ( file.canRead() && file.isFile() ) {
+                    FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
+                    if ( featureDescriptor != null ) {
+                        tribbleType = featureDescriptor.getName();
+                        logger.warn("Dynamically determined of " + file + " to be " + tribbleType);
+
+                        if ( tags.getPositionalTags().size() == 1 ) {
+                            // -X:type style is a name when we can determine the type dynamically
+                            name = tags.getPositionalTags().get(0);
+                        }
+                    }
+                }
+
+                // now, if we haven't found a type
+                if ( tribbleType == null )
+                    throw new UserException.CommandLineException(
+                            String.format("Unexpected number of positional tags for argument %s : %s. " +
+                                    "Rod bindings only suport -X:type and -X:name,type argument styles",
+                                    value, source.field.getName()));
+            }
+
             Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
             Class parameterType = getParameterizedTypeClass(type);
             RodBinding result = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
