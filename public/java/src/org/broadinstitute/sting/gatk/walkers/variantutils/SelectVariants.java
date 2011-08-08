@@ -557,6 +557,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
 
+        // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
+        if ( vc.getAlleles().size() != sub.getAlleles().size() )
+            sub = VariantContext.modifyGenotypes(sub, VariantContextUtils.stripPLs(vc.getGenotypes()));
+
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
 
         int depth = 0;

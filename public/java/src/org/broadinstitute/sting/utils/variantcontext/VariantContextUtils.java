@@ -588,6 +588,14 @@ public class VariantContextUtils {
             }
         }
 
+        // if we have more alternate alleles in the merged VC than in one or more of the original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
+        for ( VariantContext vc : VCs ) {
+            if ( vc.alleles.size() != alleles.size() ) {
+                genotypes = stripPLs(genotypes);
+                break;
+            }
+        }
+
         // take the VC with the maxAC and pull the attributes into a modifiable map
         if ( mergeInfoWithMaxAC && vcWithMaxAC != null ) {
             attributesWithMaxAC.putAll(vcWithMaxAC.getAttributes());
@@ -631,6 +639,16 @@ public class VariantContextUtils {
 
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
+    }
+
+    public static Map<String, Genotype> stripPLs(Map<String, Genotype> genotypes) {
+        Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
+
+        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
+            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? Genotype.removePLs(g.getValue()) : g.getValue());
+        }
+
+        return newGs;
     }
 
     public static Map<VariantContext.Type, List<VariantContext>> separateVariantContextsByType(Collection<VariantContext> VCs) {

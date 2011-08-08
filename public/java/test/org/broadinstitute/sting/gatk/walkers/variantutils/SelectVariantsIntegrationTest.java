@@ -63,4 +63,16 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         executeTest("testConcordance--" + testFile, spec);
     }
 
+    @Test(enabled=false)
+    public void testRemovePLs() {
+        String testFile = validationDataLocation + "combine.3.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 -B:variant,VCF " + testFile + " -o %s -NO_HEADER",
+                1,
+                Arrays.asList("")
+        );
+
+        executeTest("testWithPLs--" + testFile, spec);
+    }
 }
