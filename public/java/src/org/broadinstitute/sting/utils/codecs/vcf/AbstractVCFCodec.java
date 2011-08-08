@@ -7,16 +7,20 @@ import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.gatk.refdata.SelfScopingFeatureCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 
-public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser {
+public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser, SelfScopingFeatureCodec {
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
@@ -615,5 +619,16 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         }
 
         return inputVC;
+    }
+
+    public final static boolean canDecodeFile(final File potentialInput, final String MAGIC_HEADER_LINE) {
+        try {
+            char[] buff = new char[MAGIC_HEADER_LINE.length()];
+            new FileReader(potentialInput).read(buff, 0, MAGIC_HEADER_LINE.length());
+            String firstLine = new String(buff);
+            return firstLine.startsWith(MAGIC_HEADER_LINE);
+        } catch ( IOException e ) {
+            return false;
+        }
     }
 }

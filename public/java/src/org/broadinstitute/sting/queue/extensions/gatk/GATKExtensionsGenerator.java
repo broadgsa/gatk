@@ -157,7 +157,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                                     List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
 
                                     argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(parser,walkerType));
-                                    argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
+                                    //argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
                                     argumentFields.addAll(ReadFilterField.getFilterArguments(parser,walkerType));
 
                                     String constructor = String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName);

@@ -110,11 +110,11 @@ public class ReferenceOrderedDataSource {
     }
 
     public Class getType() {
-        return builder.getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
+        return builder.getFeatureManager().getByTriplet(fileDescriptor).getCodecClass();
     }
 
     public Class getRecordType() {
-        return builder.createCodec(getType(),getName()).getFeatureType();
+        return builder.getFeatureManager().getByTriplet(fileDescriptor).getFeatureClass();
     }
 
     public File getFile() {

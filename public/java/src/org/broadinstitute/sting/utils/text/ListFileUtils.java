@@ -28,7 +28,7 @@ import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -134,7 +134,7 @@ public class ListFileUtils {
     public static Collection<RMDTriplet> unpackRODBindings(final Collection<RodBinding> RODBindings, final ParsingEngine parser) {
         // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
-        RMDTrackBuilder builderForValidation = new RMDTrackBuilder();
+        FeatureManager builderForValidation = new FeatureManager();
 
         for (RodBinding rodBinding: RODBindings) {
             String argValue = rodBinding.getSource();
@@ -153,15 +153,15 @@ public class ListFileUtils {
             RMDTriplet triplet = new RMDTriplet(name,type,fileName,storageType,rodBinding.getTags());
 
             // validate triplet type
-            Class typeFromTribble = builderForValidation.getFeatureClass(triplet);
-            if ( typeFromTribble == null )
+            FeatureManager.FeatureDescriptor descriptor = builderForValidation.getByTriplet(triplet);
+            if ( descriptor == null )
                 throw new UserException.UnknownTribbleType(rodBinding.getTribbleType(),
                         String.format("Field %s had provided type %s but there's no such Tribble type.  Available types are %s",
-                                rodBinding.getName(), rodBinding.getTribbleType(), builderForValidation.getAvailableTribbleFeatureNames()));
-            if ( ! rodBinding.getType().isAssignableFrom(typeFromTribble) )
+                                rodBinding.getName(), rodBinding.getTribbleType(), builderForValidation.userFriendlyListOfAvailableFeatures()));
+            if ( ! rodBinding.getType().isAssignableFrom(descriptor.getFeatureClass()) )
                 throw new UserException.BadArgumentValue(rodBinding.getName(),
                         String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s",
-                                rodBinding.getName(), rodBinding.getType(), typeFromTribble));
+                                rodBinding.getName(), rodBinding.getType(), descriptor.getName()));
 
 
             rodBindings.add(triplet);
