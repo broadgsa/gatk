@@ -42,9 +42,6 @@ import java.util.*;
  *
  */
 public class GATKDoclet {
-    private final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
-    private final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
-    private final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
     final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
     final protected static File DESTINATION_DIR = new File("gatkdocs");
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
@@ -90,19 +87,6 @@ public class GATKDoclet {
 
     public boolean showHiddenFeatures() {
         return showHiddenFeatures;
-    }
-
-    public static String htmlFilenameForClass(Class c) {
-        return c.getName().replace(".", "_") + ".html";
-    }
-
-    public static String helpLinksToGATKDocs(Class c) {
-        String classPath = htmlFilenameForClass(c);
-        StringBuilder b = new StringBuilder();
-        b.append("release  version: ").append(URL_ROOT_FOR_RELEASE_GATKDOCS).append(classPath).append("\n");
-        b.append("stable   version: ").append(URL_ROOT_FOR_STABLE_GATKDOCS).append(classPath).append("\n");
-        b.append("unstable version: ").append(URL_ROOT_FOR_UNSTABLE_GATKDOCS).append(classPath).append("\n");
-        return b.toString();
     }
 
     public Set<GATKDocWorkUnit> workUnits() {
