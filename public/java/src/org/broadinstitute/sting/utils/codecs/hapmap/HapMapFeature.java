@@ -37,6 +37,7 @@ import java.util.Map;
  */
 public class HapMapFeature implements Feature {
 
+    public static final String NULL_ALLELE_STRING = "-";
     public static final String INSERTION = "I";
     public static final String DELETION = "D";
 

@@ -112,7 +112,7 @@ public class VariantContextAdaptors {
                 alleles.add(refAllele);
 
                 // add all of the alt alleles
-                boolean sawNullAllele = false;
+                boolean sawNullAllele = refAllele.isNull();
                 for ( String alt : DbSNPHelper.getAlternateAlleleList(dbsnp) ) {
                     if ( ! Allele.acceptableAlleleBases(alt) ) {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
@@ -133,7 +133,7 @@ public class VariantContextAdaptors {
                 Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
                 Map<String, Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
+                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -162,16 +162,6 @@ public class VariantContextAdaptors {
          */
         @Override
         public Class<? extends Feature> getAdaptableFeatureType() { return GeliTextFeature.class; }
-
-          /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @return a VariantContext object
-         */
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
 
         /**
          * convert to a Variant Context, given:
@@ -238,16 +228,6 @@ public class VariantContextAdaptors {
         @Override
         public Class<? extends Feature> getAdaptableFeatureType() { return HapMapFeature.class; }
 
-          /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @return a VariantContext object
-         */
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
-
         /**
          * convert to a Variant Context, given:
          * @param name  the name of the ROD
@@ -261,6 +241,11 @@ public class VariantContextAdaptors {
                 throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires a reference context");
 
             HapMapFeature hapmap = (HapMapFeature)input;
+
+            int index = hapmap.getStart() - ref.getWindow().getStart();
+            if ( index < 0 )
+                return null; // we weren't given enough reference context to create the VariantContext
+            Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
             HashSet<Allele> alleles = new HashSet<Allele>();
             Allele refSNPAllele = Allele.create(ref.getBase(), true);
@@ -320,7 +305,7 @@ public class VariantContextAdaptors {
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
                 end += deletionLength;
-            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
+            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs, refBaseForIndel);
             return vc;
        }
     }

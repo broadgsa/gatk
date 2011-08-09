@@ -155,7 +155,7 @@ public class VariantAnnotatorEngine {
                 String rsID = null;
 
                 if (vc.isSNP())
-                    rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                    rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME), true);
                 else if (vc.isIndel())
                     rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null );

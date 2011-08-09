@@ -396,6 +396,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes, vc.getReferenceBaseForIndel(), true);
     }
 
+    public static VariantContext modifyReferencePadding(VariantContext vc, Byte b) {
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), b, true);
+    }
+
     public static VariantContext modifyPErrorFiltersAndAttributes(VariantContext vc, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, negLog10PError, filters, attributes, vc.getReferenceBaseForIndel(), true);
     }

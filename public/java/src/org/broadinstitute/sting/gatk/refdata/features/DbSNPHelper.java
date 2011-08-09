@@ -59,7 +59,7 @@ public class DbSNPHelper {
         return dbsnp;
     }
 
-    public static String rsIDOfFirstRealSNP(List<Feature> featureList) {
+    public static String rsIDOfFirstRealSNP(List<Feature> featureList, boolean deleteMe) {
         if (featureList == null)
             return null;
 
@@ -75,6 +75,21 @@ public class DbSNPHelper {
                     rsID = ((VariantContext)d).getID();
                     break;
                 }
+            }
+        }
+
+        return rsID;
+    }
+
+    public static String rsIDOfFirstRealSNP(List<VariantContext> VCs) {
+        if ( VCs == null )
+            return null;
+
+        String rsID = null;
+        for ( VariantContext vc : VCs ) {
+            if ( vc.isSNP() ) {
+                rsID = vc.getID();
+                break;
             }
         }
 

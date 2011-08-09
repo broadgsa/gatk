@@ -27,15 +27,12 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.Feature;
-import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
@@ -43,6 +40,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.hapmap.HapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -52,6 +50,7 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -63,10 +62,13 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter baseWriter = null;
-    private SortingVCFWriter vcfwriter; // needed because hapmap indel records move
+    private SortingVCFWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 
-    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+    @Input(fullName="variant", shortName = "V", doc="Input variant file", required=true)
+    public RodBinding<Feature> variants;
+
+    @Input(fullName="dbsnp", shortName = "D", doc="dbSNP VCF for populating rsIDs", required=false)
+    public RodBinding<VariantContext> dbsnp;
 
     @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
     protected String sampleName = null;
@@ -76,10 +78,6 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Set<String> allowedGenotypeFormatStrings = new HashSet<String>();
     private boolean wroteHeader = false;
-
-    // Don't allow mixed types for now
-    private EnumSet<VariantContext.Type> ALLOWED_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP,
-            VariantContext.Type.NO_VARIATION, VariantContext.Type.INDEL, VariantContext.Type.MNP);
 
     // for dealing with indels in hapmap
     CloseableIterator<GATKFeature> dbsnpIterator = null;
@@ -92,128 +90,108 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        String rsID = dbsnp == null ? null : DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(dbsnp, context.getLocation()));
 
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
         for ( VariantContext vc : contexts ) {
-            if ( ALLOWED_VARIANT_CONTEXT_TYPES.contains(vc.getType()) ) {
-                Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                if ( rsID != null && !vc.hasID() ) {
-                    attrs.put(VariantContext.ID_KEY, rsID);
-                    vc = VariantContext.modifyAttributes(vc, attrs);
-                }
-
-                // set the appropriate sample name if necessary
-                if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
-                    Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
-                    Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
-                    genotypes.put(sampleName, g);
-                    vc = VariantContext.modifyGenotypes(vc, genotypes);
-                }
-
-                // todo - fix me. This may not be the cleanest way to handle features what need correct indel padding
-                if (fixReferenceBase) {
-                    vc = new VariantContext("Variant",vc.getChr(),vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.getFilters(),vc.getAttributes(), ref.getBase());
-                }
-
-                writeRecord(vc, tracker, ref.getBase());
+            Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+            if ( rsID != null && !vc.hasID() ) {
+                attrs.put(VariantContext.ID_KEY, rsID);
+                vc = VariantContext.modifyAttributes(vc, attrs);
             }
+
+            // set the appropriate sample name if necessary
+            if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
+                Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
+                Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+                genotypes.put(sampleName, g);
+                vc = VariantContext.modifyGenotypes(vc, genotypes);
+            }
+
+            if ( fixReferenceBase ) {
+                vc = VariantContext.modifyReferencePadding(vc, ref.getBase());
+            }
+
+            writeRecord(vc, tracker, ref.getLocus());
         }
 
         return 1;
     }
 
     private Collection<VariantContext> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref) {
-        // we need to special case the HapMap format because indels aren't handled correctly
-        List<Feature> features = tracker.getValues(Feature.class, variants.getName());
-        if ( features.size() > 0 && features.get(0) instanceof HapMapFeature ) {
-            ArrayList<VariantContext> hapmapVCs = new ArrayList<VariantContext>(features.size());
-            for ( Object feature : features ) {
-                HapMapFeature hapmap = (HapMapFeature)feature;
-                Byte refBase = null;
 
-                // if it's an indel, we need to figure out the alleles
-                if ( hapmap.getAlleles()[0].equals("-") ) {
-                    Map<String, Allele> alleleMap = new HashMap<String, Allele>(2);
+        List<Feature> features = tracker.getValues(variants, ref.getLocus());
+        List<VariantContext> VCs = new ArrayList<VariantContext>(features.size());
 
-                    // get the dbsnp object corresponding to this record, so we can learn whether this is an insertion or deletion
-                    DbSNPFeature dbsnp = getDbsnpFeature(hapmap.getName());
-                    if ( dbsnp == null || dbsnp.getVariantType().equalsIgnoreCase("mixed") )
-                        continue;
+        for ( Feature record : features ) {
+            if ( VariantContextAdaptors.canBeConvertedToVariantContext(record) ) {
+                // we need to special case the HapMap format because indels aren't handled correctly
+                if ( record instanceof HapMapFeature) {
 
-                    boolean isInsertion = dbsnp.getVariantType().equalsIgnoreCase("insertion");
+                    // is it an indel?
+                    HapMapFeature hapmap = (HapMapFeature)record;
+                    if ( hapmap.getAlleles()[0].equals(HapMapFeature.NULL_ALLELE_STRING) || hapmap.getAlleles()[1].equals(HapMapFeature.NULL_ALLELE_STRING) ) {
+                        // get the dbsnp object corresponding to this record (needed to help us distinguish between insertions and deletions)
+                        VariantContext dbsnpVC = getDbsnp(hapmap.getName());
+                        if ( dbsnpVC == null || dbsnpVC.isMixed() )
+                            continue;
 
-                    alleleMap.put(HapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, isInsertion));
-                    alleleMap.put(HapMapFeature.INSERTION, Allele.create(hapmap.getAlleles()[1], !isInsertion));
-                    hapmap.setActualAlleles(alleleMap);
+                        Map<String, Allele> alleleMap = new HashMap<String, Allele>(2);
+                        alleleMap.put(HapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isInsertion()));
+                        alleleMap.put(HapMapFeature.INSERTION, Allele.create(((HapMapFeature)record).getAlleles()[1], !dbsnpVC.isInsertion()));
+                        hapmap.setActualAlleles(alleleMap);
 
-                    // also, use the correct positioning for insertions
-                    if ( isInsertion )
-                        hapmap.updatePosition(dbsnp.getStart());                        
-                    else
-                        hapmap.updatePosition(dbsnp.getStart() - 1);
+                        // also, use the correct positioning for insertions
+                        hapmap.updatePosition(dbsnpVC.getStart());
 
-                    if ( hapmap.getStart() < ref.getWindow().getStart() ) {
-                        logger.warn("Hapmap record at " + ref.getLocus() + " represents an indel too large to be converted; skipping...");
-                        continue;
+                        if ( hapmap.getStart() < ref.getWindow().getStart() ) {
+                            logger.warn("Hapmap record at " + ref.getLocus() + " represents an indel too large to be converted; skipping...");
+                            continue;
+                        }
                     }
-                    refBase = ref.getBases()[hapmap.getStart() - ref.getWindow().getStart()];
                 }
-                VariantContext vc = VariantContextAdaptors.toVariantContext(variants.getName(), hapmap, ref);
-                if ( vc != null ) {
-                    if ( refBase != null ) {
-                        // TODO -- fix me
-                        //Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                        //attrs.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, refBase);
-                        //vc = VariantContext.modifyAttributes(vc, attrs);
-                    }
-                    hapmapVCs.add(vc);
-                }
+
+                // ok, we might actually be able to turn this record in a variant context
+                VariantContext vc = VariantContextAdaptors.toVariantContext(variants.getName(), record, ref);
+
+                if ( vc != null ) // sometimes the track has odd stuff in it that can't be converted
+                    VCs.add(vc);
             }
-            return hapmapVCs;
         }
 
-        // for everything else, we can just convert to VariantContext
-        return tracker.getValues(variants, ref.getLocus());
+        return VCs;
     }
 
-    private DbSNPFeature getDbsnpFeature(String rsID) {
+    private VariantContext getDbsnp(String rsID) {
         if ( dbsnpIterator == null ) {
-            ReferenceOrderedDataSource dbsnpDataSource = null;
-            for ( ReferenceOrderedDataSource ds : getToolkit().getRodDataSources() ) {
-                if ( ds.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                    dbsnpDataSource = ds;
-                    break;
-                }
-            }
 
-            if ( dbsnpDataSource == null )
+            if ( dbsnp == null )
                 throw new UserException.BadInput("No dbSNP rod was provided, but one is needed to decipher the correct indel alleles from the HapMap records");
 
             RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),getToolkit().getArguments().unsafe);
-            dbsnpIterator = builder.createInstanceOfTrack(DbSNPCodec.class, dbsnpDataSource.getFile()).getIterator();
+            dbsnpIterator = builder.createInstanceOfTrack(VCFCodec.class, new File(dbsnp.getSource())).getIterator();
             // Note that we should really use some sort of seekable iterator here so that the search doesn't take forever
             // (but it's complicated because the hapmap location doesn't match the dbsnp location, so we don't know where to seek to)
         }
 
         while ( dbsnpIterator.hasNext() ) {
             GATKFeature feature = dbsnpIterator.next();
-            DbSNPFeature dbsnp = (DbSNPFeature)feature.getUnderlyingObject();
-            if ( dbsnp.getRsID().equals(rsID) )
-                return dbsnp;
+            VariantContext vc = (VariantContext)feature.getUnderlyingObject();
+            if ( vc.hasID() && vc.getID().equals(rsID) )
+                return vc;
         }
 
         return null;
     }
 
-    private void writeRecord(VariantContext vc, RefMetaDataTracker tracker, byte ref) {
+    private void writeRecord(VariantContext vc, RefMetaDataTracker tracker, GenomeLoc loc) {
         if ( !wroteHeader ) {
             wroteHeader = true;
 
             // setup the header fields
             Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-            hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+            hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variants.getName())));
             //hInfo.add(new VCFHeaderLine("source", "VariantsToVCF"));
             //hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
@@ -232,13 +210,13 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
 
                 if ( samples.isEmpty() ) {
-                    List<Feature> rods = tracker.getValues(Feature.class, variants.getName());
-                    if ( rods.size() == 0 )
-                        throw new IllegalStateException("No rod data is present");
+                    List<Feature> features = tracker.getValues(variants, loc);
+                    if ( features.size() == 0 )
+                        throw new IllegalStateException("No rod data is present, but we just created a VariantContext");
 
-                    Object rod = rods.get(0);
-                    if ( rod instanceof HapMapFeature)
-                        samples.addAll(Arrays.asList(((HapMapFeature)rod).getSampleIDs()));
+                    Feature f = features.get(0);
+                    if ( f instanceof HapMapFeature )
+                        samples.addAll(Arrays.asList(((HapMapFeature)f).getSampleIDs()));
                     else
                         samples.addAll(vc.getSampleNames());
                 }
