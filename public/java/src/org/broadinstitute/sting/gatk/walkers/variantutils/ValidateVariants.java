@@ -55,7 +55,8 @@ import java.util.Set;
 @Reference(window=@Window(start=0,stop=100))
 @Requires(value={})
 public class ValidateVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     public enum ValidationType {

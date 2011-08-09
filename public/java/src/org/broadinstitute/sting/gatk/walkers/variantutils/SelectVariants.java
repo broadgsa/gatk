@@ -61,7 +61,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * Variants from this file are sent through the filtering and modifying routines as directed
      * by the arguments to SelectVariants, and finally are emitted.
      */
-    @Input(fullName="variants", shortName = "V", doc="Select variants from this VCF file", required=true)
+    @Input(fullName="variant", shortName = "V", doc="Select variants from this VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     /**

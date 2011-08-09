@@ -53,7 +53,8 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
-    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)

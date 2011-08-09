@@ -16,7 +16,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variants:VCF3 " + testfile + " -NO_HEADER"),
+            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant:VCF3 " + testfile + " -NO_HEADER"),
             1,
             Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
         );
@@ -29,7 +29,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testfile = validationDataLocation + "test.dup.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -sn A -sn B -sn C --variants:VCF3 " + testfile + " -NO_HEADER"),
+                baseTestString(" -sn A -sn B -sn C --variant:VCF3 " + testfile + " -NO_HEADER"),
                 1,
                 Arrays.asList("b74038779fe6485dbb8734ae48178356")
         );
@@ -42,7 +42,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variants:VCF " + b37hapmapGenotypes + " -disc:VCF " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant:VCF " + b37hapmapGenotypes + " -disc:VCF " + testFile + " -o %s -NO_HEADER",
                 1,
                 Arrays.asList("78e6842325f1f1bc9ab30d5e7737ee6e")
         );
@@ -55,7 +55,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc:VCF " + b37hapmapGenotypes + " --variants:VCF " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc:VCF " + b37hapmapGenotypes + " --variant:VCF " + testFile + " -o %s -NO_HEADER",
                 1,
                 Arrays.asList("d2ba3ea30a810f6f0fbfb1b643292b6a")
         );

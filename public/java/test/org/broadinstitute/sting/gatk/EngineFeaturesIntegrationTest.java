@@ -33,7 +33,7 @@ import org.testng.annotations.Test;
  */
 public class EngineFeaturesIntegrationTest extends WalkerTest {
     private void testBadRODBindingInput(String type, String name, Class c) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -L 1:1 --variants:variants," + type + " "
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -L 1:1 --variant:variant," + type + " "
                 + b37dbSNP132 + " -R " + b37KGReference + " -o %s",
                 1, c);
         executeTest(name, spec);

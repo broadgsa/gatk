@@ -37,7 +37,7 @@ public class BeagleIntegrationTest extends WalkerTest {
     public void testBeagleOutput() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T BeagleOutputToVCF -R " + hg19Reference + " " +
-                        "--variants:VCF3 " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
+                        "--variant:VCF3 " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
                         "--beagleR2:BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "--beagleProbs:BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "--beaglePhased:BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
@@ -49,7 +49,7 @@ public class BeagleIntegrationTest extends WalkerTest {
     public void testBeagleInput() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ProduceBeagleInput -R " + hg19Reference + " " +
-                        "--variants:VCF3 " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
+                        "--variant:VCF3 " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
                          "-o %s", 1, Arrays.asList("a01c704246f3dd1b9c65774007e51e69"));
         executeTest("test BeagleInput", spec);
     }
@@ -57,7 +57,7 @@ public class BeagleIntegrationTest extends WalkerTest {
     @Test
     public void testBeagleInput2() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T ProduceBeagleInput --variants:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
+                "-T ProduceBeagleInput --variant:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
                         "--validation:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_OMNI_chr22_14-16m.vcf "+
                         "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta -NO_HEADER ",2,
                 Arrays.asList("660986891b30cdc937e0f2a3a5743faa","e96ddd51da9f4a797b2aa8c20e404166"));
@@ -68,7 +68,7 @@ public class BeagleIntegrationTest extends WalkerTest {
     public void testBeagleOutput2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T BeagleOutputToVCF -R "+hg19Reference+" "+
-                "--variants:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.vcf "+
+                "--variant:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.vcf "+
                 "--beagleR2:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
                 "--beagleProbs:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
                 "--beaglePhased:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+

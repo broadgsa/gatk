@@ -48,7 +48,7 @@ import java.util.List;
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
-    @Input(fullName = "variants", shortName = "V", doc="variants to model", required=false)
+    @Input(fullName = "variant", shortName = "V", doc="variants to model", required=false)
     public List<RodBinding<VariantContext>> variants;
 
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)

@@ -64,7 +64,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
      * are techincally order dependent.  It is strongly recommended to provide explicit names when
      * a rod priority list is provided.
      */
-    @Input(fullName = "variants", shortName = "V", doc="The VCF files to merge together", required=true)
+    @Input(fullName = "variant", shortName = "V", doc="The VCF files to merge together", required=true)
     public List<RodBinding<VariantContext>> variantsToMerge;
 
     @Output(doc="File to which variants should be written",required=true)

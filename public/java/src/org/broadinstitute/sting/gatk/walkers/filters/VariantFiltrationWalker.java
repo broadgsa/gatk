@@ -52,7 +52,8 @@ import java.util.*;
 @Requires(value={})
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
-    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Input(fullName="mask", doc="Input ROD mask", required=false)

@@ -17,11 +17,11 @@ public class VCFIntegrationTest extends WalkerTest {
 
         String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
 
-        String test1 = baseCommand + "-T VariantAnnotator --variants " + testVCF + " -BTI variants";
+        String test1 = baseCommand + "-T VariantAnnotator --variant " + testVCF + " -BTI variant";
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList(md5ofInputVCF));
         List<File> result = executeTest("Test Variant Annotator with no changes", spec1).getFirst();
 
-        String test2 = baseCommand + "-T VariantsToVCF --variants " + result.get(0).getAbsolutePath();
+        String test2 = baseCommand + "-T VariantsToVCF --variant " + result.get(0).getAbsolutePath();
         WalkerTestSpec spec2 = new WalkerTestSpec(test2, 1, Arrays.asList(md5ofInputVCF));
         executeTest("Test Variants To VCF from new output", spec2);
     }

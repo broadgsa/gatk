@@ -67,7 +67,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
      *
      * All heterozygous variants found in this VCF file will be phased, where possible
      */
-    @Input(fullName="variants", shortName = "V", doc="Phase variants from this VCF file", required=true)
+    @Input(fullName="variant", shortName = "V", doc="Phase variants from this VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(doc = "File to which variants should be written", required = true)

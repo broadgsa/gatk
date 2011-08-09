@@ -50,7 +50,7 @@ import java.util.*;
 @Reference(window=@Window(start=-200,stop=200))
 @Requires(value={})
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
-    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
