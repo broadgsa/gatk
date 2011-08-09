@@ -192,6 +192,8 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
             String assembly = getReferenceAssembly(engine.getArguments().referenceFile.getName());
             for ( SAMSequenceRecord contig : engine.getReferenceDataSource().getReference().getSequenceDictionary().getSequences() )
                 vcfHeader.addMetaDataLine(getContigHeaderLine(contig, assembly));
+
+            vcfHeader.addMetaDataLine(new VCFHeaderLine("reference", "file://" + engine.getArguments().referenceFile.getAbsolutePath()));
         }
 
         outputTracker.getStorage(this).writeHeader(vcfHeader);
