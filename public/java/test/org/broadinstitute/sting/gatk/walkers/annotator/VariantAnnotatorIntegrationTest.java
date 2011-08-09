@@ -86,7 +86,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testNoReads() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variants", 1,
+                baseTestString() + " -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
                 Arrays.asList("16e3a1403fc376320d7c69492cad9345"));
         executeTest("not passing it any reads", spec);
     }
@@ -94,7 +94,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testDBTagWithDbsnp() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B:dbsnp,vcf " + b36dbSNP129 + " -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variants", 1,
+                baseTestString() + " -B:dbsnp,vcf " + b36dbSNP129 + " -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
                 Arrays.asList("3da8ca2b6bdaf6e92d94a8c77a71313d"));
         executeTest("getting DB tag with dbSNP", spec);
     }
@@ -102,7 +102,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testDBTagWithHapMap() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B:compH3,VCF " + validationDataLocation + "fakeHM3.vcf -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variants", 1,
+                baseTestString() + " -B:compH3,VCF " + validationDataLocation + "fakeHM3.vcf -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
                 Arrays.asList("1bc01c5b3bd0b7aef75230310c3ce688"));
         executeTest("getting DB tag with HM3", spec);
     }
@@ -110,7 +110,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testUsingExpression() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B:foo,VCF " + validationDataLocation + "targetAnnotations.vcf -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -BTI variants", 1,
+                baseTestString() + " -B:foo,VCF " + validationDataLocation + "targetAnnotations.vcf -G \"Standard\" --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -BTI variant", 1,
                 Arrays.asList("e9c0d832dc6b4ed06c955060f830c140"));
         executeTest("using expression", spec);
     }
@@ -120,7 +120,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         final String MD5 = "13269d5a2e16f06fd755cc0fb9271acf";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
             WalkerTestSpec spec = new WalkerTestSpec(
-                    baseTestString() + " -A HomopolymerRun --variant:VCF " + validationDataLocation + "/" + file + " -BTI variants -NO_HEADER", 1,
+                    baseTestString() + " -A HomopolymerRun --variant:VCF " + validationDataLocation + "/" + file + " -BTI variant -NO_HEADER", 1,
                     Arrays.asList(MD5));
             executeTest("Testing lookup vcf tabix vs. vcf tribble", spec);
         }
