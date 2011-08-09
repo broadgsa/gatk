@@ -58,7 +58,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile;
+    public RodBinding<SnpEffFeature> snpEffFile = RodBinding.makeUnbound(SnpEffFeature.class);
 
     /**
       * A dbSNP VCF file from which to annotate.
