@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -43,8 +44,8 @@ import java.util.*;
  * (http://snpeff.sourceforge.net/).
  *
  * For each variant, chooses one of the effects of highest biological impact from the SnpEff
- * output file (which must be bound to an RMD track named "SnpEff"), and adds annotations
- * on that effect.
+ * output file (which must be provided on the command line via --snpEffFile:SnpEff <filename>),
+ * and adds annotations on that effect.
  *
  * The possible biological effects and their associated impacts are defined in the class:
  * org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants
@@ -68,28 +69,32 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     public static final String CODON_NUM_KEY = "CODON_NUM";
     public static final String CDS_SIZE_KEY = "CDS_SIZE";
 
-    // Name of the RMD track bound to the raw SnpEff-generated output file:
-    public static final String RMD_TRACK_NAME = "SnpEff";
-
     public Map<String, Object> annotate ( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
-        List<Object> snpEffFeatures = tracker.getReferenceMetaData(RMD_TRACK_NAME);
+        List<Feature> features = tracker.getValues(Feature.class);
 
         // Add only annotations for one of the most biologically-significant effects as defined in
         // the SnpEffConstants class:
-        SnpEffFeature mostSignificantEffect = getMostSignificantEffect(snpEffFeatures);
+        SnpEffFeature mostSignificantEffect = getMostSignificantEffect(features);
+
+        if ( mostSignificantEffect == null ) {
+            return null;
+        }
+
         return generateAnnotations(mostSignificantEffect);
     }
 
-    private SnpEffFeature getMostSignificantEffect ( List<Object> snpEffFeatures ) {
+    private SnpEffFeature getMostSignificantEffect ( List<Feature> features ) {
         SnpEffFeature mostSignificantEffect = null;
 
-        for ( Object feature : snpEffFeatures ) {
-            SnpEffFeature snpEffFeature = (SnpEffFeature)feature;
+        for ( Feature feature : features ) {
+            if ( feature instanceof SnpEffFeature ) {
+                SnpEffFeature snpEffFeature = (SnpEffFeature)feature;
 
-            if ( mostSignificantEffect == null ||
-                 snpEffFeature.isHigherImpactThan(mostSignificantEffect) ) {
+                if ( mostSignificantEffect == null ||
+                     snpEffFeature.isHigherImpactThan(mostSignificantEffect) ) {
 
-                mostSignificantEffect = snpEffFeature;
+                    mostSignificantEffect = snpEffFeature;
+                }
             }
         }
 

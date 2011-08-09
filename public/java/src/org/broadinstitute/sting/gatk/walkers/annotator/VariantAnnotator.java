@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -54,6 +55,9 @@ import java.util.*;
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
+
+    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
+    public RodBinding<SnpEffFeature> snpEffFile;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
