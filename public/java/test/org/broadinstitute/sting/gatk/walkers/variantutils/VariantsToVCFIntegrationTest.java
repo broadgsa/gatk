@@ -23,7 +23,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant:dbsnp " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                        " --variant:dbsnp " + GATKDataLocation + "Comparisons/Validated/dbSNP/dbsnp_129_b36.rod" +
                         " -T VariantsToVCF" +
                         " -L 1:1-30,000,000" +
                         " -o %s" +

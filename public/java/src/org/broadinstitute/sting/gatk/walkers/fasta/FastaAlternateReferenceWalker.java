@@ -35,6 +35,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.List;
+
 
 /**
  * Generates an alternative reference sequence over the specified interval.  Given variant ROD tracks,
@@ -45,6 +47,10 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 @Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
+
+    @Input(fullName = "variants", shortName = "V", doc="variants to model", required=false)
+    public List<RodBinding<VariantContext>> variants;
+
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
     public RodBinding<VariantContext> snpmask = RodBinding.makeUnbound(VariantContext.class);
 
