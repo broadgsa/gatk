@@ -110,7 +110,7 @@ class RecalibrateBaseQualities extends QScript {
 
 
   case class align(@Input inFastq: File, @Output outSam: File) extends ExternalCommonArgs {
-    def commandLine = bwaPath + " bwasw " + reference + " " + inFastq + " > " + outSam
+    def commandLine = bwaPath + " bwasw -b5 -q2 -r1 -z10 -t8 " + reference + " " + inFastq + " > " + outSam
     this.analysisName = queueLogDir + outSam + ".bwa_sam_se"
     this.jobName = queueLogDir + outSam + ".bwa_sam_se"
   }
