@@ -34,6 +34,40 @@ import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.Zygos
 
 import java.io.IOException;
 
+/**
+ * Codec for decoding the output format of the SnpEff variant effect predictor tool
+ * (http://snpeff.sourceforge.net/).
+ *
+ * This format has 23 tab-delimited fields:
+ *
+ * Chromosome
+ * Position
+ * Reference
+ * Change
+ * Change Type: {SNP, MNP, INS, DEL}
+ * Zygosity: {Hom, Het}
+ * Quality
+ * Coverage
+ * Warnings
+ * Gene ID
+ * Gene Name
+ * Bio Type
+ * Transcript ID
+ * Exon ID
+ * Exon Rank
+ * Effect
+ * Old/New Amino Acid
+ * Old/New Codon
+ * Codon Num
+ * CDS Size
+ * Codons Around
+ * Amino Acids Around
+ * Custom Interval ID
+ *
+ * We treat all except the Chromosome, Position, and Effect fields as optional.
+ *
+ * @author David Roazen
+ */
 public class SnpEffCodec implements FeatureCodec {
 
     public static final int EXPECTED_NUMBER_OF_FIELDS = 23;
@@ -64,8 +98,12 @@ public class SnpEffCodec implements FeatureCodec {
                                                         "AAs around",
                                                         "Custom_interval_ID"
                                                       };
+
+    // The "Chromo", "Position", and "Effect" fields are required to be non-empty in every SnpEff output line:
     public static final int[] REQUIRED_FIELDS = { 0, 1, 15 };
+
     public static final String NON_CODING_GENE_FLAG = "WITHIN_NON_CODING_GENE";
+
 
     public Feature decodeLoc ( String line ) {
         return decode(line);
@@ -101,6 +139,11 @@ public class SnpEffCodec implements FeatureCodec {
             Integer exonRank = tokens[14].isEmpty() ? null : Integer.parseInt(tokens[14]);
 
             boolean isNonCodingGene = isNonCodingGene(tokens[15]);
+
+            // Split the effect field into three subfields if the WITHIN_NON_CODING_GENE flag is present,
+            // otherwise split it into two subfields. We need this limit to prevent the extra effect-related information
+            // in the final field (when present) from being inappropriately tokenized:
+
             int effectFieldTokenLimit = isNonCodingGene ? 3 : 2;
             String[] effectFieldTokens = tokens[15].split(EFFECT_FIELD_DELIMITER_PATTERN, effectFieldTokenLimit);
             EffectType effect = parseEffect(effectFieldTokens, isNonCodingGene);
@@ -150,6 +193,9 @@ public class SnpEffCodec implements FeatureCodec {
     private EffectType parseEffect ( String[] effectFieldTokens, boolean isNonCodingGene ) {
         String effectName = "";
 
+        // If there's a WITHIN_NON_CODING_GENE flag, the effect name will be in the second subfield,
+        // otherwise it will be in the first subfield:
+
         if ( effectFieldTokens.length > 1 && isNonCodingGene ) {
             effectName = effectFieldTokens[1].trim();
         }
@@ -161,6 +207,9 @@ public class SnpEffCodec implements FeatureCodec {
     }
 
     private String parseEffectExtraInformation ( String[] effectFieldTokens, boolean isNonCodingGene ) {
+
+        // The extra effect-related information, if present, will always be the last subfield:
+
         if ( (effectFieldTokens.length == 2 && ! isNonCodingGene) || effectFieldTokens.length == 3 ) {
             return effectFieldTokens[effectFieldTokens.length - 1].trim();
         }

@@ -26,15 +26,26 @@ package org.broadinstitute.sting.utils.codecs.snpEff;
 
 import org.broad.tribble.Feature;
 
+import java.util.NoSuchElementException;
+
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.EffectType;
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.EffectImpact;
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.ChangeType;
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.Zygosity;
 
+/**
+ * Feature returned by the SnpEff codec -- stores the parsed field values from a line of SnpEff output.
+ *
+ * Many fields are optional, and missing values are represented by nulls. You should always call the
+ * hasX() method before calling the corresponding getX() method. Required fields can never be null
+ * and do not have a hasX() method.
+ *
+ * @author David Roazen
+ */
 public class SnpEffFeature implements Feature {
 
-    private String contig;
-    private long position;
+    private String contig;                   // REQUIRED FIELD
+    private long position;                   // REQUIRED FIELD
     private String reference;
     private String change;
     private ChangeType changeType;
@@ -48,8 +59,8 @@ public class SnpEffFeature implements Feature {
     private String transcriptID;
     private String exonID;
     private Integer exonRank;
-    private boolean isNonCodingGene;
-    private EffectType effect;
+    private boolean isNonCodingGene;         // REQUIRED FIELD
+    private EffectType effect;               // REQUIRED FIELD
     private String effectExtraInformation;
     private String oldAndNewAA;
     private String oldAndNewCodon;
@@ -85,6 +96,10 @@ public class SnpEffFeature implements Feature {
                            String aasAround,
                            String customIntervalID ) {
 
+        if ( contig == null || effect == null ) {
+            throw new IllegalArgumentException("contig and effect cannot be null, as they are required fields");
+        }
+
         this.contig = contig;
         this.position = position;
         this.reference = reference;
@@ -113,12 +128,19 @@ public class SnpEffFeature implements Feature {
     }
 
     public boolean isHigherImpactThan ( SnpEffFeature other ) {
+
+        // If one effect is in a non-coding gene and the other is not, the effect NOT in the
+        // non-coding gene has higher impact:
+
         if ( ! isNonCodingGene() && other.isNonCodingGene() ) {
             return true;
         }
         else if ( isNonCodingGene() && ! other.isNonCodingGene() ) {
             return false;
         }
+
+        // Otherwise, both effects are either in or not in a non-coding gene, so we compare the impacts
+        // of the effects themselves as defined in the SnpEffConstants class:
 
         return getEffectImpact().isHigherImpactThan(other.getEffectImpact());
     }
@@ -140,6 +162,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getReference() {
+        if ( reference == null ) throw new NoSuchElementException("This feature has no reference field");
         return reference;
     }
 
@@ -148,6 +171,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getChange() {
+        if ( change == null ) throw new NoSuchElementException("This feature has no change field");
         return change;
     }
 
@@ -156,6 +180,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public ChangeType getChangeType() {
+        if ( changeType == null ) throw new NoSuchElementException("This feature has no changeType field");
         return changeType;
     }
 
@@ -164,6 +189,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public Zygosity getZygosity() {
+        if ( zygosity == null ) throw new NoSuchElementException("This feature has no zygosity field");
         return zygosity;
     }
 
@@ -172,6 +198,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public Double getQuality() {
+        if ( quality == null ) throw new NoSuchElementException("This feature has no quality field");
         return quality;
     }
 
@@ -180,6 +207,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public Long getCoverage() {
+        if ( coverage == null ) throw new NoSuchElementException("This feature has no coverage field");
         return coverage;
     }
 
@@ -188,6 +216,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getWarnings() {
+        if ( warnings == null ) throw new NoSuchElementException("This feature has no warnings field");
         return warnings;
     }
 
@@ -196,6 +225,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getGeneID() {
+        if ( geneID == null ) throw new NoSuchElementException("This feature has no geneID field");
         return geneID;
     }
 
@@ -204,6 +234,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getGeneName() {
+        if ( geneName == null ) throw new NoSuchElementException("This feature has no geneName field");
         return geneName;
     }
 
@@ -212,6 +243,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getBioType() {
+        if ( bioType == null ) throw new NoSuchElementException("This feature has no bioType field");
         return bioType;
     }
 
@@ -220,6 +252,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getTranscriptID() {
+        if ( transcriptID == null ) throw new NoSuchElementException("This feature has no transcriptID field");
         return transcriptID;
     }
 
@@ -228,6 +261,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getExonID() {
+        if ( exonID == null ) throw new NoSuchElementException("This feature has no exonID field");
         return exonID;
     }
 
@@ -236,6 +270,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public Integer getExonRank() {
+        if ( exonRank == null ) throw new NoSuchElementException("This feature has no exonRank field");
         return exonRank;
     }
 
@@ -256,6 +291,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getEffectExtraInformation() {
+        if ( effectExtraInformation == null ) throw new NoSuchElementException("This feature has no effectExtraInformation field");
         return effectExtraInformation;
     }
 
@@ -264,6 +300,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getOldAndNewAA() {
+        if ( oldAndNewAA == null ) throw new NoSuchElementException("This feature has no oldAndNewAA field");
         return oldAndNewAA;
     }
 
@@ -272,6 +309,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getOldAndNewCodon() {
+        if ( oldAndNewCodon == null ) throw new NoSuchElementException("This feature has no oldAndNewCodon field");
         return oldAndNewCodon;
     }
 
@@ -280,6 +318,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public Integer getCodonNum() {
+        if ( codonNum == null ) throw new NoSuchElementException("This feature has no codonNum field");
         return codonNum;
     }
 
@@ -288,6 +327,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public Integer getCdsSize() {
+        if ( cdsSize == null ) throw new NoSuchElementException("This feature has no cdsSize field");
         return cdsSize;
     }
 
@@ -296,6 +336,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getCodonsAround() {
+        if ( codonsAround == null ) throw new NoSuchElementException("This feature has no codonsAround field");
         return codonsAround;
     }
 
@@ -304,6 +345,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getAasAround() {
+        if ( aasAround == null ) throw new NoSuchElementException("This feature has no aasAround field");
         return aasAround;
     }
 
@@ -312,6 +354,7 @@ public class SnpEffFeature implements Feature {
     }
 
     public String getCustomIntervalID() {
+        if ( customIntervalID == null ) throw new NoSuchElementException("This feature has no customIntervalID field");
         return customIntervalID;
     }
 

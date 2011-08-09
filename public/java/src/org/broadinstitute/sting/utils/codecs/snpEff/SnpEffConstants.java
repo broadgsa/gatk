@@ -24,8 +24,14 @@
 
 package org.broadinstitute.sting.utils.codecs.snpEff;
 
+/**
+ * A set of constants associated with the SnpEff codec.
+ *
+ * @author David Roazen
+ */
 public class SnpEffConstants {
 
+    // Possible SnpEff biological effects and their associated impacts:
     public enum EffectType {
         START_GAINED                      (EffectImpact.HIGH),
         START_LOST                        (EffectImpact.HIGH),
@@ -93,6 +99,7 @@ public class SnpEffConstants {
         }
     }
 
+    // The kinds of variants supported by the SnpEff output format:
     public enum ChangeType {
         SNP,
         MNP,
@@ -100,6 +107,7 @@ public class SnpEffConstants {
         DEL
     }
 
+    // Possible zygosities of SnpEff variants:
     public enum Zygosity {
         Hom,
         Het

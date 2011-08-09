@@ -125,4 +125,15 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
             executeTest("Testing lookup vcf tabix vs. vcf tribble", spec);
         }
     }
+
+    @Test
+    public void testSnpEffAnnotations() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+            "-T VariantAnnotator -R " + b37KGReference + " -o %s -A SnpEff -B:variant,VCF " + validationDataLocation + "/1000G.exomes.vcf " +
+            "-B:SnpEff,SnpEff " + validationDataLocation + "/snpEff_1.9.6_1000G.exomes.vcf_hg37.61.out" + " -L 1",
+            1,
+            Arrays.asList("5fe3644744d3c084a179c3d204555333")
+        );
+        executeTest("Testing SnpEff annotations", spec);
+    }
 }

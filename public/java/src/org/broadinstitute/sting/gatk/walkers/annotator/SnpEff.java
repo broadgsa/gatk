@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants;
 import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffFeature;
@@ -38,9 +38,22 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
-public class SnpEff extends InfoFieldAnnotation implements StandardAnnotation {
+/**
+ * A set of genomic annotations based on the output of the SnpEff variant effect predictor tool
+ * (http://snpeff.sourceforge.net/).
+ *
+ * For each variant, chooses one of the effects of highest biological impact from the SnpEff
+ * output file (which must be bound to an RMD track named "SnpEff"), and adds annotations
+ * on that effect.
+ *
+ * The possible biological effects and their associated impacts are defined in the class:
+ * org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants
+ *
+ * @author David Roazen
+ */
+public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
-    // SnpEff field keys:
+    // SnpEff annotation key names:
     public static final String GENE_ID_KEY = "GENE_ID";
     public static final String GENE_NAME_KEY = "GENE_NAME";
     public static final String TRANSCRIPT_ID_KEY = "TRANSCRIPT_ID";
@@ -55,11 +68,14 @@ public class SnpEff extends InfoFieldAnnotation implements StandardAnnotation {
     public static final String CODON_NUM_KEY = "CODON_NUM";
     public static final String CDS_SIZE_KEY = "CDS_SIZE";
 
+    // Name of the RMD track bound to the raw SnpEff-generated output file:
     public static final String RMD_TRACK_NAME = "SnpEff";
 
     public Map<String, Object> annotate ( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
         List<Object> snpEffFeatures = tracker.getReferenceMetaData(RMD_TRACK_NAME);
 
+        // Add only annotations for one of the most biologically-significant effects as defined in
+        // the SnpEffConstants class:
         SnpEffFeature mostSignificantEffect = getMostSignificantEffect(snpEffFeatures);
         return generateAnnotations(mostSignificantEffect);
     }
