@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -58,6 +59,13 @@ import java.util.*;
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
+
+    /**
+      * A dbSNP VCF file from which to annotate.
+      *
+      * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
+      */
+    @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     // control the output
     @Output(doc="File to which variants should be written",required=true)

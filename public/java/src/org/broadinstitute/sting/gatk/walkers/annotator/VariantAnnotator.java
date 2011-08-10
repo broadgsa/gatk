@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,6 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -59,6 +61,23 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
     public RodBinding<SnpEffFeature> snpEffFile;
+
+    /**
+      * A dbSNP VCF file from which to annotate.
+      *
+      * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
+      */
+    @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+
+    /**
+      * A comparisons VCF file from which to annotate.
+      *
+      * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
+      *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
+      *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
+      */
+    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
+    public RodBinding<VariantContext> comps = RodBinding.makeUnbound(VariantContext.class);
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
