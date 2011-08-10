@@ -25,7 +25,9 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -53,6 +55,9 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
 
     // the divider to use in some of the text output
     private static final String DIVIDER = ",";
+
+    @Input(fullName="eval", shortName = "eval", doc="Input VCF eval file", required=true)
+    public List<RodBinding<VariantContext>> eval;
 
     @Output
     public PrintStream out;
@@ -108,7 +113,7 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
 
         // if the argument was set, check for equivalence
         if (allRecordsVariantContextEquivalent && tracker != null) {
-            Collection<VariantContext> col = tracker.getValues(VariantContext.class);
+            Collection<VariantContext> col = tracker.getValues(eval);
             VariantContext con = null;
             for (VariantContext contextInList : col)
                 if (con == null) con = contextInList;

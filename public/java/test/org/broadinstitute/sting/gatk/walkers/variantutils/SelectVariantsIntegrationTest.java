@@ -55,7 +55,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc:VCF " + b37hapmapGenotypes + " --variant:VCF " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc:VCF " + b37hapmapGenotypes + " --variant " + testFile + " -o %s -NO_HEADER",
                 1,
                 Arrays.asList("d2ba3ea30a810f6f0fbfb1b643292b6a")
         );
@@ -68,7 +68,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testFile = validationDataLocation + "combine.3.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 -B:variant,VCF " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant " + testFile + " -o %s -NO_HEADER",
                 1,
                 Arrays.asList("")
         );

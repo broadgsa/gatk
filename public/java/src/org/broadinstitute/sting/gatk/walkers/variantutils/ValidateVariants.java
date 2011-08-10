@@ -29,6 +29,7 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -54,6 +55,9 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     public enum ValidationType {
         ALL, REF, IDS, ALLELES, CHR_COUNTS
@@ -137,8 +141,8 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
         // get the RS IDs
         Set<String> rsIDs = null;
-        if ( tracker.hasValues(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-            List<Feature> dbsnpList = tracker.getValues(Feature.class, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME);
+        if ( tracker.hasValues(dbsnp.dbsnp) ) {
+            List<VariantContext> dbsnpList = tracker.getValues(dbsnp.dbsnp, ref.getLocus());
             rsIDs = new HashSet<String>();
             for ( Object d : dbsnpList ) {
                 if (d instanceof DbSNPFeature )
