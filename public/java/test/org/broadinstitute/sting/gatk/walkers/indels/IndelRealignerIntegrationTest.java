@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;

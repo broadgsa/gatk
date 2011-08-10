@@ -36,7 +36,6 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -157,21 +156,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Hidden
     @Argument(fullName="check_early",shortName="check_early",required=false,doc="Do early check of reads against existing consensuses")
     protected boolean CHECKEARLY = false;
-
-
-    // DEPRECATED
-
-    @Deprecated
-    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", doc="This argument is no longer used.", required=false)
-    protected boolean DEPRECATED_SORT_IN_COORDINATE_ORDER = false;
-
-    @Deprecated
-    @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
-    protected boolean DEPRECATED_REALIGN_MATES = false;
-
-    @Deprecated
-    @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", doc="This argument is no longer used. See --consensusDeterminationModel instead.", required=false)
-    protected boolean DEPRECATED_KNOWNS_ONLY = false;
 
 
     // DEBUGGING OPTIONS FOLLOW
