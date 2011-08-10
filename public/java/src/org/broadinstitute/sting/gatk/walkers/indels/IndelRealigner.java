@@ -30,10 +30,7 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.SequenceUtil;
 import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -85,6 +82,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         USE_READS,
         USE_SW
     }
+
+    @Input(fullName="known", shortName = "known", doc="Input VCF file with known indels", required=false)
+    public RodBinding<VariantContext> known = RodBinding.makeUnbound(VariantContext.class);
 
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
@@ -558,8 +558,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( indelRodsSeen.contains(rod) )
                     continue;
                 indelRodsSeen.add(rod);
-                if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod))
-                    knownIndelsToTry.add(VariantContextAdaptors.toVariantContext("", rod, ref));
+                if ( rod instanceof VariantContext )
+                    knownIndelsToTry.add((VariantContext)rod);
             }
         }
     }
