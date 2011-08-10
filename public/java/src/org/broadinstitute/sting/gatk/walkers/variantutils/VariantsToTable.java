@@ -31,7 +31,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -43,7 +42,6 @@ import java.util.*;
 /**
  * Emits specific fields as dictated by the user from one or more VCF files.
  */
-@Requires(value={})
 public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection

@@ -56,7 +56,6 @@ import java.util.*;
 /**
  * Converts variants from other file formats to VCF format.
  */
-@Requires(value={})
 @Reference(window=@Window(start=-40,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 

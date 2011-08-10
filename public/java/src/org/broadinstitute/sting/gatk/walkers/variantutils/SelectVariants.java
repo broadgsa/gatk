@@ -38,7 +38,6 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -54,7 +53,6 @@ import java.util.*;
  * Takes a VCF file, selects variants based on sample(s) in which it was found and/or on various annotation criteria,
  * recompute the value of certain annotations based on the new sample set, and output a new VCF with the results.
  */
-@Requires(value={})
 public class SelectVariants extends RodWalker<Integer, Integer> {
     /**
      * The VCF file we are selecting variants from.

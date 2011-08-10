@@ -48,7 +48,6 @@ import java.util.*;
  * Left-aligns indels from a variants file.
  */
 @Reference(window=@Window(start=-200,stop=200))
-@Requires(value={})
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection

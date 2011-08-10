@@ -50,7 +50,6 @@ import java.util.*;
 /**
  * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
  */
-@Requires(value={})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)

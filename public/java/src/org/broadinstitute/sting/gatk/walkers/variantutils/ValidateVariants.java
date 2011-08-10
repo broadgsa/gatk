@@ -50,7 +50,6 @@ import java.util.Set;
  * Validates a variants file.
  */
 @Reference(window=@Window(start=0,stop=100))
-@Requires(value={})
 public class ValidateVariants extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection

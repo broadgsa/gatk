@@ -32,7 +32,6 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -55,7 +54,6 @@ import java.util.Set;
  * in input variant file.  Will additional hold back a fraction of the sites for evaluation, marking the
  * genotypes at that sites as missing, and writing the truth of these sites to a second VCF file
  */
-@Requires(value={})
 public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> {
     @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;

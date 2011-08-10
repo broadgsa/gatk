@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -51,7 +50,6 @@ import java.util.*;
 /**
  * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input variant file
  */
-@Requires(value={})
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();

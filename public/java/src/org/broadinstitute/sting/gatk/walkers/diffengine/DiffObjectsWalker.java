@@ -29,7 +29,6 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 
 import java.io.File;
@@ -131,7 +130,6 @@ import java.util.List;
  * @author Mark DePristo
  * @since 7/4/11
  */
-@Requires(value={})
 public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     /**
      * Writes out a file of the DiffEngine format:

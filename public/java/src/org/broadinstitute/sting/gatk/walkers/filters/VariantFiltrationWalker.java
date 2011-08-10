@@ -46,7 +46,6 @@ import java.util.*;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={})
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
