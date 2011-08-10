@@ -83,7 +83,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     @Input(fullName="known", shortName = "known", doc="Input VCF file with known indels", required=false)
-    public RodBinding<VariantContext> known = RodBinding.makeUnbound(VariantContext.class);
+    public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;

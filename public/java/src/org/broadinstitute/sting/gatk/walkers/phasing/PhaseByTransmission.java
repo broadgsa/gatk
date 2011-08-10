@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -31,13 +33,16 @@ import java.util.*;
  * begin.
  */
 public class PhaseByTransmission extends RodWalker<Integer, Integer> {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
     @Argument(shortName="f", fullName="familySpec", required=true, doc="Patterns for the family structure (usage: mom+dad=child).  Specify several trios by supplying this argument many times and/or a file containing many patterns.")
     public ArrayList<String> familySpecs = null;
 
     @Output
     protected VCFWriter vcfWriter = null;
 
-    private final String ROD_NAME = "variant";
     private final String TRANSMISSION_PROBABILITY_TAG_NAME = "TP";
     private final String SOURCE_NAME = "PhaseByTransmission";
 
@@ -102,7 +107,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         trios = getFamilySpecsFromCommandLineInput(familySpecs);
 
         ArrayList<String> rodNames = new ArrayList<String>();
-        rodNames.add(ROD_NAME);
+        rodNames.add(variantCollection.variants.getName());
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
@@ -289,7 +294,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker != null) {
-            VariantContext vc = tracker.getFirstValue(VariantContext.class, ROD_NAME, context.getLocation());
+            VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
 
             Map<String, Genotype> genotypeMap = vc.getGenotypes();
 

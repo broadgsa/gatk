@@ -17,13 +17,13 @@ public class RealignerTargetCreatorIntegrationTest extends WalkerTest {
         executeTest("test standard", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                "-T RealignerTargetCreator -B:dbsnp,vcf " + b36dbSNP129 + " -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000 -o %s",
+                "-T RealignerTargetCreator --known " + b36dbSNP129 + " -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000 -o %s",
                  1,
                  Arrays.asList("0367d39a122c8ac0899fb868a82ef728"));
         executeTest("test dbsnp", spec2);
 
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                "-T RealignerTargetCreator -R " + b36KGReference + " -B:indels,VCF " + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -BTI indels -o %s",
+                "-T RealignerTargetCreator -R " + b36KGReference + " --known " + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -BTI known -o %s",
                  1,
                  Arrays.asList("5206cee6c01b299417bf2feeb8b3dc96"));
         executeTest("test rods only", spec3);

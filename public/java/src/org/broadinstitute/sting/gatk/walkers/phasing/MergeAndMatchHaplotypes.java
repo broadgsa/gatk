@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -24,6 +26,12 @@ public class MergeAndMatchHaplotypes extends RodWalker<Integer, Integer> {
     @Output
     protected VCFWriter vcfWriter = null;
 
+    @Input(fullName="pbt", shortName = "pbt", doc="Input VCF truth file", required=true)
+    public RodBinding<VariantContext> pbtTrack;
+
+    @Input(fullName="rbp", shortName = "rbp", doc="Input VCF truth file", required=true)
+    public RodBinding<VariantContext> rbpTrack;
+
     private Map<String, Genotype> pbtCache = new HashMap<String, Genotype>();
     private Map<String, Genotype> rbpCache = new HashMap<String, Genotype>();
 
@@ -31,7 +39,7 @@ public class MergeAndMatchHaplotypes extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         ArrayList<String> rodNames = new ArrayList<String>();
-        rodNames.add("pbt");
+        rodNames.add(pbtTrack.getName());
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
@@ -44,8 +52,8 @@ public class MergeAndMatchHaplotypes extends RodWalker<Integer, Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker != null) {
-            Collection<VariantContext> pbts = tracker.getValues(VariantContext.class, "pbt", ref.getLocus());
-            Collection<VariantContext> rbps = tracker.getValues(VariantContext.class, "rbp", ref.getLocus());
+            Collection<VariantContext> pbts = tracker.getValues(pbtTrack, ref.getLocus());
+            Collection<VariantContext> rbps = tracker.getValues(rbpTrack, ref.getLocus());
 
             VariantContext pbt = pbts.iterator().hasNext() ? pbts.iterator().next() : null;
             VariantContext rbp = rbps.iterator().hasNext() ? rbps.iterator().next() : null;

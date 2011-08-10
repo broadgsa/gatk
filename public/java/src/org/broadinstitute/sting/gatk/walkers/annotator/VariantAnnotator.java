@@ -50,12 +50,14 @@ import java.util.*;
 /**
  * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
  */
+@Requires(value={})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
-    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
     public RodBinding<SnpEffFeature> snpEffFile;
@@ -65,7 +67,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
       *
       * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
       */
-    @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     /**
       * A comparisons VCF file from which to annotate.

@@ -16,8 +16,8 @@ public class MergeAndMatchHaplotypesIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T MergeAndMatchHaplotypes",
                         "-R " + b37KGReference,
-                        "-B:pbt,VCF " + fundamentalTestPBTVCF,
-                        "-B:rbp,VCF " + fundamentalTestRBPVCF,
+                        "--pbt " + fundamentalTestPBTVCF,
+                        "--rbp " + fundamentalTestRBPVCF,
                         "-o %s"
                 ),
                 1,
