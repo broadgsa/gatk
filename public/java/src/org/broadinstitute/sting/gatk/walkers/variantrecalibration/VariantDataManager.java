@@ -52,7 +52,6 @@ public class VariantDataManager {
     private final double[] meanVector;
     private final double[] varianceVector; // this is really the standard deviation
     public final ArrayList<String> annotationKeys;
-    private final ExpandingArrayList<TrainingSet> trainingSets;
     private final VariantRecalibratorArgumentCollection VRAC;
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
 
@@ -63,7 +62,6 @@ public class VariantDataManager {
         this.VRAC = VRAC;
         meanVector = new double[this.annotationKeys.size()];
         varianceVector = new double[this.annotationKeys.size()];
-        trainingSets = new ExpandingArrayList<TrainingSet>();
     }
 
     public void setData( final ExpandingArrayList<VariantDatum> data ) {
