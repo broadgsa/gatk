@@ -468,6 +468,10 @@
         </javadoc>
     </target>
 
+    <target name="clean.gatkdocs">
+        <delete dir="gatkdocs"/>
+    </target>
+
     <target name="gatkdocs" depends="gatk.compile"
 	        description="Extract help key/value pair file from the JavaDoc tags.">
         <path id="doclet.classpath">
@@ -520,6 +524,8 @@
             <fileset dir="${java.classes}">
               <include name="**/utils/codecs/**/*.class"/>
               <include name="**/utils/variantcontext/**/*.class"/>
+              <include name="org/broadinstitute/sting/utils/exceptions/**"/>
+	      <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
             </fileset>
         </jar>
     </target>
@@ -1074,7 +1080,7 @@
        </findbugs>
     </target>
 
-    <target name="clean" description="clean up" depends="tribble.clean,clean.javadoc">
+    <target name="clean" description="clean up" depends="tribble.clean,clean.javadoc,clean.gatkdocs">
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
@@ -1087,7 +1093,7 @@
     <!-- Build gsalib R module -->
     <target name="gsalib">
       <exec executable="R" failonerror="true">
-        <arg line="R CMD INSTALL -l private/R/ private/R/src/gsalib/" />
+        <arg line="R CMD INSTALL -l public/R/ public/R/src/gsalib/" />
       </exec>
     </target>
 </project>

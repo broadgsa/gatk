@@ -24,14 +24,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -43,8 +42,11 @@ import java.util.*;
 /**
  * Emits specific fields as dictated by the user from one or more VCF files.
  */
-@Requires(value={})
 public class VariantsToTable extends RodWalker<Integer, Integer> {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
     @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;
 
@@ -78,8 +80,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 String x = "";
-                if (vc.hasAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY)) {
-                    Byte refByte = (Byte)(vc.getAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY));
+                if ( vc.hasReferenceBaseForIndel() ) {
+                    Byte refByte = vc.getReferenceBaseForIndel();
                     x=x+new String(new byte[]{refByte});
                 }
                 return x+vc.getReference().getDisplayString();
@@ -90,8 +92,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 StringBuilder x = new StringBuilder();
                 int n = vc.getAlternateAlleles().size();
                 if ( n == 0 ) return ".";
-                if (vc.hasAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY)) {
-                    Byte refByte = (Byte)(vc.getAttribute(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY));
+                if ( vc.hasReferenceBaseForIndel() ) {
+                    Byte refByte = vc.getReferenceBaseForIndel();
                     x.append(new String(new byte[]{refByte}));                    
                 }
 
@@ -132,8 +134,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             return 0;
 
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
-            Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
-            for ( VariantContext vc : vcs) {
+            for ( VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
                 if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
                     List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
                     out.println(Utils.join("\t", vals));

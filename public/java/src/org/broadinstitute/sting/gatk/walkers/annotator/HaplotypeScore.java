@@ -25,6 +25,8 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -48,13 +50,13 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
-public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
+public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 50;
     private final static char REGEXP_WILDCARD = '.';
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if (stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
 

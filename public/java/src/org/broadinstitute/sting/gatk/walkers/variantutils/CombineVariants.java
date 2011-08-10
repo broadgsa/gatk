@@ -25,16 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.apache.poi.hpsf.Variant;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -53,8 +49,22 @@ import java.util.*;
  *   priority list (if provided), emits a single record instance at every position represented in the rods.
  */
 @Reference(window=@Window(start=-50,stop=50))
-@Requires(value={})
 public class CombineVariants extends RodWalker<Integer, Integer> {
+    /**
+     * The VCF files to merge together
+     *
+     * variants can take any number of arguments on the command line.  Each -V argument
+     * will be included in the final merged output VCF.  If no explicit name is provided,
+     * the -V arguments will be named using the default algorithm: variants, variants2, variants3, etc.
+     * The user can override this by providing an explicit name -V:name,vcf for each -V argument,
+     * and each named argument will be labeled as such in the output (i.e., set=name rather than
+     * set=variants2).  The order of arguments does not matter unless except for the naming, so
+     * if you provide an rod priority list and no explicit names than variants, variants2, etc
+     * are techincally order dependent.  It is strongly recommended to provide explicit names when
+     * a rod priority list is provided.
+     */
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public List<RodBinding<VariantContext>> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -86,10 +96,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if variant is present in at least N input files.", required=false)
     public int minimumN = 1;
-
-    @Hidden
-    @Argument(fullName="masterMerge", shortName="master", doc="Master merge mode -- experts only.  You need to look at the code to understand it", required=false)
-    public boolean master = false;
 
     @Hidden
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
@@ -150,7 +156,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);
@@ -158,7 +164,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
             for ( final VariantContext vc : vcs ) {
-                vcfWriter.add( vc, ref.getBase() );
+                vcfWriter.add(vc);
             }
             
             return vcs.isEmpty() ? 0 : 1;
@@ -174,17 +180,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             return 0;
         
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
-        if ( master ) {
-            mergedVCs.add(VariantContextUtils.masterMerge(vcs, "master"));
-        } else {
-            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
-            // iterate over the types so that it's deterministic
-            for ( VariantContext.Type type : VariantContext.Type.values() ) {
-                if ( VCsByType.containsKey(type) )
-                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                            ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
-            }
+        Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+        // iterate over the types so that it's deterministic
+        for ( VariantContext.Type type : VariantContext.Type.values() ) {
+            if ( VCsByType.containsKey(type) )
+                mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                        priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                        SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
 
         for ( VariantContext mergedVC : mergedVCs ) {
@@ -198,7 +200,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
             if ( minimalVCF )
                 annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, Arrays.asList(SET_KEY));
-            vcfWriter.add(annotatedMergedVC, ref.getBase());
+            vcfWriter.add(annotatedMergedVC);
         }
 
         return vcs.isEmpty() ? 0 : 1;

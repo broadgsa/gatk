@@ -7,6 +7,8 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
@@ -16,6 +18,7 @@ import java.util.*;
  * quickly as possible, relying on VariantContext to do the validation of any contradictory (or malformed) record parameters.
  */
 public class VCFCodec extends AbstractVCFCodec {
+    public final static String VCF4_MAGIC_HEADER = "##fileformat=VCFv4";
 
     /**
      * @param reader the line reader to take header lines from
@@ -184,5 +187,8 @@ public class VCFCodec extends AbstractVCFCodec {
         return genotypes;
     }
 
-
+    @Override
+    public boolean canDecode(final File potentialInput) {
+        return canDecodeFile(potentialInput, VCF4_MAGIC_HEADER);
+    }
 }

@@ -57,7 +57,7 @@ public class GATKDoclet {
      * @throws java.io.IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
-        logger.setLevel(Level.INFO);
+        logger.setLevel(Level.DEBUG);
         // load arguments
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-build-timestamp"))
@@ -95,11 +95,15 @@ public class GATKDoclet {
         for ( ClassDoc doc : rootDoc.classes() ) {
             logger.debug("Considering " + doc);
             Class clazz = getClassForClassDoc(doc);
+
+            if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
+                logger.debug("foo");
+
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
-            if ( handler != null && handler.shouldBeProcessed(doc) ) {
+            if ( handler != null && handler.includeInDocs(doc) ) {
                 logger.info("Going to generate documentation for class " + doc);
-                String filename = handler.getDestinationFilename(doc);
+                String filename = handler.getDestinationFilename(doc, clazz);
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
                         filename, feature.groupName(),
                         feature, handler, doc, clazz,
@@ -216,7 +220,7 @@ public class GATKDoclet {
         Set<DocumentedGATKFeature> docFeatures = new HashSet<DocumentedGATKFeature>();
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
         for ( GATKDocWorkUnit workUnit : indexData ) {
-            data.add(workUnit.toMap());
+            data.add(workUnit.indexDataMap());
             docFeatures.add(workUnit.annotation);
         }
 

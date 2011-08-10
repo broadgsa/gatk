@@ -36,7 +36,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
  * Useful helper class to communicate the results of calculateGenotype to framework
  */
 public class VariantCallContext extends VariantContext {
-    public byte refBase;
 
     // Was the site called confidently, either reference or variant?
     public boolean confidentlyCalled = false;
@@ -53,16 +52,6 @@ public class VariantCallContext extends VariantContext {
         super(vc);
         this.confidentlyCalled = confidentlyCalledP;
         this.shouldEmit = shouldEmit;
-    }
-
-    VariantCallContext(VariantContext vc, byte ref, boolean confidentlyCalledP) {
-        super(vc);
-        this.refBase = ref;
-        this.confidentlyCalled = confidentlyCalledP;
-    }
-
-    public void setRefBase(byte ref) {
-        this.refBase = ref;
     }
 
     /* these methods are only implemented for GENOTYPE_GIVEN_ALLELES MODE */

@@ -63,12 +63,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         VariantContext vc = null;
 
         // search for usable record
-        for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), true, false) ) {
+        for( final VariantContext vc_input : tracker.getValues(VariantContext.class, "alleles", ref.getLocus()) ) {
             if ( vc_input != null && ! vc_input.isFiltered() && (! requireSNP || vc_input.isSNP() )) {
                 if ( vc == null ) {
                     vc = vc_input;
                 } else {
-                    logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record only");
+                    logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record");
                 }
             }
         }

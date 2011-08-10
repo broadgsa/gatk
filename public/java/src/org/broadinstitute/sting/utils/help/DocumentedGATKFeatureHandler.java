@@ -31,29 +31,70 @@ import java.io.*;
 import java.util.Set;
 
 /**
- *
+ * Extend this class to provide a documentation handler for GATKdocs
  */
 public abstract class DocumentedGATKFeatureHandler {
     private GATKDoclet doclet;
 
+    /**
+     * @return the javadoc RootDoc of this javadoc run
+     */
     protected RootDoc getRootDoc() {
         return this.doclet.rootDoc;
     }
 
+    /** Set the master doclet driving this handler */
     public void setDoclet(GATKDoclet doclet) {
         this.doclet = doclet;
     }
 
+    /**
+     * @return the GATKDoclet driving this documentation run
+     */
     public GATKDoclet getDoclet() {
         return doclet;
     }
 
-    public boolean shouldBeProcessed(ClassDoc doc) { return true; }
+    /**
+     * Should return false iff this handler wants GATKDoclet to skip documenting
+     * this ClassDoc.
+     * @param doc that is being considered for inclusion in the docs
+     * @return true if the doclet should document ClassDoc doc
+     */
+    public boolean includeInDocs(ClassDoc doc) { return true; }
 
-    public String getDestinationFilename(ClassDoc doc) {
-        return HelpUtils.getClassName(doc).replace(".", "_") + ".html";
+    /**
+     * Return the flat filename (no paths) that the handler would like the Doclet to
+     * write out the documentation for ClassDoc doc and its associated Class clazz
+     * @param doc
+     * @param clazz
+     * @return
+     */
+    public String getDestinationFilename(ClassDoc doc, Class clazz) {
+        return GATKDocUtils.htmlFilenameForClass(clazz);
     }
 
+    /**
+     * Return the name of the FreeMarker template we will use to process ClassDoc doc.
+     *
+     * Note this is a flat filename relative to settings/helpTemplates in the GATK source tree
+     * @param doc
+     * @return
+     * @throws IOException
+     */
     public abstract String getTemplateName(ClassDoc doc) throws IOException;
+
+    /**
+     * Actually generate the documentation map associated with toProcess
+     *
+     * Can use all to provide references and rootDoc for additional information, if necessary.
+     * Implementing methods should end with a call to setHandlerContext on toProcess, as in:
+     *
+     * toProcess.setHandlerContent(summary, rootMap);
+     *
+     * @param rootDoc
+     * @param toProcess
+     * @param all
+     */
     public abstract void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcess, Set<GATKDocWorkUnit> all);
 }

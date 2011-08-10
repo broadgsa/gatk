@@ -162,13 +162,13 @@ public class MathUtils {
         return Math.log10(sum) + maxValue;
     }
 
-    public static double sum(List<Double> values) {
+    public static double sumDoubles(List<Double> values) {
         double s = 0.0;
         for ( double v : values) s += v;
         return s;
     }
 
-    public static int sum(List<Integer> values) {
+    public static int sumIntegers(List<Integer> values) {
         int s = 0;
         for ( int v : values) s += v;
         return s;
@@ -460,7 +460,7 @@ public class MathUtils {
 
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = MathUtils.arrayMax( array );
+        double maxValue = MathUtils.arrayMaxDouble( array );
         for (int i = 0; i < array.size(); i++)
             normalized[i] = Math.pow(10, array.get(i) - maxValue);
 
@@ -551,7 +551,7 @@ public class MathUtils {
         return minI;
     }    
 
-    public static int arrayMax(List<Integer> array) {
+    public static int arrayMaxInt(List<Integer> array) {
         if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
         if ( array.size() == 0 ) throw new IllegalArgumentException("Array size cannot be 0!");
 
@@ -560,7 +560,7 @@ public class MathUtils {
         return m;
     }
 
-    public static double arrayMax(List<Double> array) {
+    public static double arrayMaxDouble(List<Double> array) {
         if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
         if ( array.size() == 0 ) throw new IllegalArgumentException("Array size cannot be 0!");
 
@@ -1355,5 +1355,4 @@ public class MathUtils {
     public static double log10Factorial (int x) {
         return log10Gamma(x+1);
     }
-
 }

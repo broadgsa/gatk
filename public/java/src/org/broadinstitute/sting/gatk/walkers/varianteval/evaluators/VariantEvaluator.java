@@ -8,6 +8,8 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.NewEvaluationConte
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.StateKey;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.Collection;
+
 public abstract class VariantEvaluator {
     public void initialize(VariantEvalWalker walker) {}
 
@@ -17,23 +19,16 @@ public abstract class VariantEvaluator {
     public abstract int getComparisonOrder();
 
     // called at all sites, regardless of eval context itself; useful for counting processed bases
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { }
+    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    }
+
+    public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return null;
     }
 
-    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
-        return update1(vc1, tracker, ref, context);
-    }
-
-
-    public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return null;
-    }
-
-    public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
-        return update2(vc1, vc2, tracker, ref, context);
     }
 
     public void finalizeEvaluation() {}

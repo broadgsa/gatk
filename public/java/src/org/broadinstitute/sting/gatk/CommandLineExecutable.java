@@ -25,21 +25,20 @@
 
 package org.broadinstitute.sting.gatk;
 
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * @author aaron
@@ -64,6 +63,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     private final Collection<Object> argumentSources = new ArrayList<Object>();
 
+    protected static Logger logger = Logger.getLogger(CommandLineExecutable.class);
+
     /**
      * this is the function that the inheriting class can expect to have called
      * when the command line system has initialized.
@@ -81,7 +82,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
             // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
             engine.setSAMFileIDs(ListFileUtils.unpackBAMFileList(getArgumentCollection().samFiles,parser));
-            engine.setReferenceMetaDataFiles(ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings,getArgumentCollection().DBSNPFile,parser));
 
             engine.setWalker(walker);
             walker.setToolkit(engine);
@@ -95,6 +95,25 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             // TODO: argument processing.
             loadArgumentsIntoObject(walker);
             argumentSources.add(walker);
+
+            Collection<RMDTriplet> newStyle = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
+
+            // todo: remove me when the old style system is removed
+            if ( getArgumentCollection().RODBindings.size() > 0 ) {
+                logger.warn("################################################################################");
+                logger.warn("################################################################################");
+                logger.warn("Deprecated -B rod binding syntax detected.  This syntax will be retired in GATK 1.2.");
+                logger.warn("Please use arguments defined by each specific walker instead.");
+                for ( String oldStyleRodBinding : getArgumentCollection().RODBindings ) {
+                    logger.warn("  -B rod binding with value " + oldStyleRodBinding + " tags: " + parser.getTags(oldStyleRodBinding).getPositionalTags());
+                }
+                logger.warn("################################################################################");
+                logger.warn("################################################################################");
+            }
+
+            Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindingsOldStyle(getArgumentCollection().RODBindings, parser);
+            oldStyle.addAll(newStyle);
+            engine.setReferenceMetaDataFiles(oldStyle);
 
             for (ReadFilter filter: filters) {
                 loadArgumentsIntoObject(filter);
@@ -111,6 +130,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         // always return 0
         return 0;
     }
+
 
     /**
      * Generate the GATK run report for this walker using the current GATKEngine, if -et is enabled.
@@ -142,7 +162,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
         return Arrays.asList( new VCFWriterArgumentTypeDescriptor(engine,System.out,argumentSources),
-                              new SAMFileReaderArgumentTypeDescriptor(engine),
                               new SAMFileWriterArgumentTypeDescriptor(engine,System.out),
                               new OutputStreamArgumentTypeDescriptor(engine,System.out) );
     }

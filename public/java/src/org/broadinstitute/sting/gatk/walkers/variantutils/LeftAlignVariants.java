@@ -28,7 +28,9 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -46,8 +48,10 @@ import java.util.*;
  * Left-aligns indels from a variants file.
  */
 @Reference(window=@Window(start=-200,stop=200))
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter baseWriter = null;
@@ -55,10 +59,11 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     private SortingVCFWriter writer;
 
     public void initialize() {
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+        String trackName = variantCollection.variants.getName();
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        Set<VCFHeaderLine> headerLines = vcfHeaders.get("variant").getMetaData();
+        Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaData();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
         writer = new SortingVCFWriter(baseWriter, 200);
@@ -68,7 +73,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         int changedSites = 0;
         for ( VariantContext vc : VCs )
@@ -90,10 +95,10 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
 
     private int alignAndWrite(VariantContext vc, final ReferenceContext ref) {
-        if ( vc.isBiallelic() && vc.isIndel() )
+        if ( vc.isBiallelic() && vc.isIndel() && !vc.isComplexIndel() )
             return writeLeftAlignedIndel(vc, ref);
         else {
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             return 0;
         }
     }
@@ -109,7 +114,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             indelLength = vc.getAlternateAllele(0).length();
 
         if ( indelLength > 200 ) {
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             return 0;
         }
 
@@ -137,17 +142,12 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             byte[] newBases = new byte[indelLength];
             System.arraycopy((vc.isDeletion() ? refSeq : originalIndel), indelIndex, newBases, 0, indelLength);
             Allele newAllele = Allele.create(newBases, vc.isDeletion());
-            newVC = updateAllele(newVC, newAllele);
+            newVC = updateAllele(newVC, newAllele, refSeq[indelIndex-1]);
 
-	    // we need to update the reference base just in case it changed
-	    Map<String, Object> attrs = new HashMap<String, Object>(newVC.getAttributes());
-	    attrs.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, refSeq[indelIndex-1]);
-	    newVC = VariantContext.modifyAttributes(newVC, attrs);
-
-            writer.add(newVC, refSeq[indelIndex-1]);
+            writer.add(newVC);
             return 1;
         } else {
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             return 0;
         }
     }
@@ -173,7 +173,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         return hap;
     }
 
-    public static VariantContext updateAllele(VariantContext vc, Allele newAllele) {
+    public static VariantContext updateAllele(VariantContext vc, Allele newAllele, Byte refBaseForIndel) {
         // create a mapping from original allele to new allele
         HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
         if ( newAllele.isReference() ) {
@@ -197,6 +197,6 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
         }
 
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), refBaseForIndel);
     }
 }

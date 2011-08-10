@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.Reference;
@@ -67,7 +67,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="stratificationModule", shortName="ST", doc="One or more specific stratification modules to apply to the eval track(s) (in addition to the standard stratifications, unless -noS is specified)", required=false)
     protected String[] STRATIFICATIONS_TO_USE = {};
 
-    @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)")
+    @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)", required=false)
     protected Boolean NO_STANDARD_STRATIFICATIONS = false;
 
     @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
@@ -77,7 +77,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noE is specified)", required=false)
     protected String[] MODULES_TO_USE = {};
 
-    @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)")
+    @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)", required=false)
     protected Boolean NO_STANDARD_MODULES = false;
 
     // Other arguments
@@ -230,6 +230,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                 for ( String evalName : evalNames ) {
                     for ( String sampleName : sampleNamesForStratification ) {
                         VariantContext eval = vcs.containsKey(evalName) && vcs.get(evalName) != null ? vcs.get(evalName).get(sampleName) : null;
+
+                        // todo: Eric, this is really the problem.  We select single eval and comp VCs independently
+                        // todo: discarding multiple eval tracks at the sites and not providing matched comps
+                        // todo: where appropriate.  Really this loop should look like:
+                        // todo: for each eval track:
+                        // todo:   for each eval in track:
+                        // todo:     for each compTrack:
+                        // todo:       comp = findMatchingComp(eval, compTrack) // find the matching comp in compTrack
+                        // todo:       call evalModule(eval, comp)
+                        // todo:       // may return null if no such comp exists, but proceed as eval modules may need to see eval / null pair
+                        // todo:       for each comp not matched by an eval in compTrack:
+                        // todo:         call evalModule(null, comp)
+                        // todo:         // need to call with null comp, as module
+                        // todo: note that the reason Kiran pre-computed the possible VCs is to apply the modifiers
+                        // todo: like subset to sample, etc.  So you probably will want a master map that maps
+                        // todo: from special eval bindings to the digested VC for efficiency.
 
                         if ( typesToUse != null ) {
                             if ( eval != null && ! typesToUse.contains(eval.getType()) ) eval = null;

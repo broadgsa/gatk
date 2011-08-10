@@ -23,15 +23,13 @@
  */
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.DisjointSet;
@@ -56,7 +54,7 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
  * Walks along all variant ROD loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using upstream and downstream reads).
  */
 @Allows(value = {DataSource.READS, DataSource.REFERENCE})
-@Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@Requires(value = {DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.READS)
 
 @ReadFilters({MappingQualityZeroReadFilter.class})
@@ -64,6 +62,13 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
 
 public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, PhasingStats> {
     private static final boolean DEBUG = false;
+    /**
+     * The VCF file we are phasing variants from.
+     *
+     * All heterozygous variants found in this VCF file will be phased, where possible
+     */
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
@@ -98,8 +103,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
 
-    private LinkedList<String> rodNames = null;
-
     public static final String PQ_KEY = "PQ";
 
     // In order to detect phase inconsistencies:
@@ -122,9 +125,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public void initialize() {
         if (maxPhaseSites <= 2)
             maxPhaseSites = 2; // by definition, must phase a site relative to previous site [thus, 2 in total]
-
-        rodNames = new LinkedList<String>();
-        rodNames.add("variant");
 
         /*
          Since we cap each base quality (BQ) by its read's mapping quality (MQ) [in Read.updateBaseAndQuality()], then:
@@ -175,8 +175,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         hInfo.add(new VCFInfoHeaderLine(PHASING_INCONSISTENT_KEY, 0, VCFHeaderLineType.Flag, "Are the reads significantly haplotype-inconsistent?"));
 
         // todo -- fix samplesToPhase
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples() : samplesToPhase);
+        String trackName = variantCollection.variants.getName();
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
+        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(trackName).getGenotypeSamples() : samplesToPhase);
         writer.writeHeader(new VCFHeader(hInfo, samples));
     }
 
@@ -207,9 +208,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         PhasingStats phaseStats = new PhasingStats();
         List<VariantContext> unprocessedList = new LinkedList<VariantContext>();
 
-        boolean requireStartHere = true; // only see each VariantContext once
-        boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
+        for (VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
             if (samplesToPhase != null) vc = reduceVCToSamples(vc, samplesToPhase);
 
             if (ReadBackedPhasingWalker.processVariantInPhasing(vc)) {

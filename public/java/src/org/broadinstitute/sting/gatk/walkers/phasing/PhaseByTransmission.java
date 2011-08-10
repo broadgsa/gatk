@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -31,13 +33,16 @@ import java.util.*;
  * begin.
  */
 public class PhaseByTransmission extends RodWalker<Integer, Integer> {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
     @Argument(shortName="f", fullName="familySpec", required=true, doc="Patterns for the family structure (usage: mom+dad=child).  Specify several trios by supplying this argument many times and/or a file containing many patterns.")
     public ArrayList<String> familySpecs = null;
 
     @Output
     protected VCFWriter vcfWriter = null;
 
-    private final String ROD_NAME = "variant";
     private final String TRANSMISSION_PROBABILITY_TAG_NAME = "TP";
     private final String SOURCE_NAME = "PhaseByTransmission";
 
@@ -102,7 +107,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         trios = getFamilySpecsFromCommandLineInput(familySpecs);
 
         ArrayList<String> rodNames = new ArrayList<String>();
-        rodNames.add(ROD_NAME);
+        rodNames.add(variantCollection.variants.getName());
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
@@ -234,7 +239,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         finalGenotypes.add(father);
         finalGenotypes.add(child);
 
-        if (mother.isCalled() && father.isCalled() && child.isCalled() && !(mother.isHet() && father.isHet() && child.isHet())) {
+        if (mother.isCalled() && father.isCalled() && child.isCalled()) {
             ArrayList<Genotype> possibleMotherGenotypes = createAllThreeGenotypes(ref, alt, mother);
             ArrayList<Genotype> possibleFatherGenotypes = createAllThreeGenotypes(ref, alt, father);
             ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(ref, alt, child);
@@ -265,12 +270,14 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 }
             }
 
-            Map<String, Object> attributes = new HashMap<String, Object>();
-            attributes.putAll(bestChildGenotype.getAttributes());
-            attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
-            bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
+            if (!(bestMotherGenotype.isHet() && bestFatherGenotype.isHet() && bestChildGenotype.isHet())) {
+                Map<String, Object> attributes = new HashMap<String, Object>();
+                attributes.putAll(bestChildGenotype.getAttributes());
+                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
+                bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
 
-            finalGenotypes = getPhasedGenotypes(bestMotherGenotype, bestFatherGenotype, bestChildGenotype);
+                finalGenotypes = getPhasedGenotypes(bestMotherGenotype, bestFatherGenotype, bestChildGenotype);
+            }
         }
 
         return finalGenotypes;
@@ -287,31 +294,29 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker != null) {
-            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, ROD_NAME, null, context.getLocation(), true, true);
+            VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
 
-            for (VariantContext vc : vcs) {
-                Map<String, Genotype> genotypeMap = vc.getGenotypes();
+            Map<String, Genotype> genotypeMap = vc.getGenotypes();
 
-                for (Trio trio : trios) {
-                    Genotype mother = vc.getGenotype(trio.getMother());
-                    Genotype father = vc.getGenotype(trio.getFather());
-                    Genotype child = vc.getGenotype(trio.getChild());
+            for (Trio trio : trios) {
+                Genotype mother = vc.getGenotype(trio.getMother());
+                Genotype father = vc.getGenotype(trio.getFather());
+                Genotype child = vc.getGenotype(trio.getChild());
 
-                    ArrayList<Genotype> trioGenotypes = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child);
+                ArrayList<Genotype> trioGenotypes = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child);
 
-                    Genotype phasedMother = trioGenotypes.get(0);
-                    Genotype phasedFather = trioGenotypes.get(1);
-                    Genotype phasedChild = trioGenotypes.get(2);
+                Genotype phasedMother = trioGenotypes.get(0);
+                Genotype phasedFather = trioGenotypes.get(1);
+                Genotype phasedChild = trioGenotypes.get(2);
 
-                    genotypeMap.put(phasedMother.getSampleName(), phasedMother);
-                    genotypeMap.put(phasedFather.getSampleName(), phasedFather);
-                    genotypeMap.put(phasedChild.getSampleName(), phasedChild);
-                }
-
-                VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeMap);
-
-                vcfWriter.add(newvc, ref.getBase());
+                genotypeMap.put(phasedMother.getSampleName(), phasedMother);
+                genotypeMap.put(phasedFather.getSampleName(), phasedFather);
+                genotypeMap.put(phasedChild.getSampleName(), phasedChild);
             }
+
+            VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeMap);
+
+            vcfWriter.add(newvc);
         }
 
         return null;

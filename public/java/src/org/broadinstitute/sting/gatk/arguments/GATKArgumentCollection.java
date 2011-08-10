@@ -117,11 +117,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
-
-    @Element(required = false)
-    @Input(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
-    public String DBSNPFile = null;
-
     /**
      * The override mechanism in the GATK, by default, populates the command-line arguments, then
      * the defaults from the walker annotations.  Unfortunately, walker annotations should be trumped
@@ -378,9 +373,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.excludeIntervals.equals(this.excludeIntervals)) {
-            return false;
-        }
-        if (!other.DBSNPFile.equals(this.DBSNPFile)) {
             return false;
         }
         if (!other.unsafe.equals(this.unsafe)) {

@@ -30,16 +30,12 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.SequenceUtil;
 import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -85,6 +81,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         USE_READS,
         USE_SW
     }
+
+    @Input(fullName="known", shortName = "known", doc="Input VCF file with known indels", required=false)
+    public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
@@ -157,21 +156,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Hidden
     @Argument(fullName="check_early",shortName="check_early",required=false,doc="Do early check of reads against existing consensuses")
     protected boolean CHECKEARLY = false;
-
-
-    // DEPRECATED
-
-    @Deprecated
-    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", doc="This argument is no longer used.", required=false)
-    protected boolean DEPRECATED_SORT_IN_COORDINATE_ORDER = false;
-
-    @Deprecated
-    @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
-    protected boolean DEPRECATED_REALIGN_MATES = false;
-
-    @Deprecated
-    @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", doc="This argument is no longer used. See --consensusDeterminationModel instead.", required=false)
-    protected boolean DEPRECATED_KNOWNS_ONLY = false;
 
 
     // DEBUGGING OPTIONS FOLLOW
@@ -558,8 +542,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( indelRodsSeen.contains(rod) )
                     continue;
                 indelRodsSeen.add(rod);
-                if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod))
-                    knownIndelsToTry.add(VariantContextAdaptors.toVariantContext("", rod, ref));
+                if ( rod instanceof VariantContext )
+                    knownIndelsToTry.add((VariantContext)rod);
             }
         }
     }

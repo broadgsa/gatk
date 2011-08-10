@@ -29,13 +29,11 @@ import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -49,8 +47,10 @@ import java.util.*;
 /**
  * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
     protected File file = null;
@@ -85,12 +85,13 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
             throw new UserException.BadInput("the chain file you are using is not compatible with the reference you are trying to lift over to; please use the appropriate chain file for the given reference");    
         }
 
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+        String trackName = variantCollection.variants.getName();
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
-        if ( vcfHeaders.containsKey("variant") )
-            metaData.addAll(vcfHeaders.get("variant").getMetaData());
+        if ( vcfHeaders.containsKey(trackName) )
+            metaData.addAll(vcfHeaders.get(trackName).getMetaData());
         if ( RECORD_ORIGINAL_LOCATION ) {
             metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
             metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));
@@ -125,14 +126,14 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                 vc = VariantContext.modifyAttributes(vc, attrs);
             }
 
-            VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, ref.getBase(), false);
+            VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, false);
             if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
                         originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),
                         originalVC.getReference(), originalVC.getAlternateAllele(0), newVC.getReference(), newVC.getAlternateAllele(0)));
             }
 
-            writer.add(vc, ref.getBase());
+            writer.add(vc);
             successfulIntervals++;
         } else {
             failedIntervals++;
@@ -143,7 +144,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         for ( VariantContext vc : VCs )
             convertAndWrite(vc, ref);
 

@@ -23,5 +23,4 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 public @interface Allows {
     DataSource[] value();
-    RMD[] referenceMetaData() default {};    
 }

@@ -25,10 +25,11 @@
 package org.broadinstitute.sting.utils.text;
 
 import org.broadinstitute.sting.commandline.ParsingEngine;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
@@ -92,7 +93,9 @@ public class ListFileUtils {
      * @param RODBindings a text equivale
      * @return a list of expanded, bound RODs.
      */
-    public static Collection<RMDTriplet> unpackRODBindings(final List<String> RODBindings, final String dbSNPFile, final ParsingEngine parser) {
+    @Deprecated
+    public static Collection<RMDTriplet> unpackRODBindingsOldStyle(final Collection<String> RODBindings, final ParsingEngine parser) {
+        // todo -- this is a strange home for this code.  Move into ROD system
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
         for (String fileName: RODBindings) {
@@ -120,20 +123,52 @@ public class ListFileUtils {
             rodBindings.add(new RMDTriplet(name,type,fileName,storageType,tags));
         }
 
-        if (dbSNPFile != null) {
-            if(dbSNPFile.toLowerCase().contains("vcf"))
-                throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
+        return rodBindings;
+    }
 
-            final Tags tags = parser.getTags(dbSNPFile);
-            String fileName = expandFileName(dbSNPFile);
-            RMDTriplet.RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDTriplet.RMDStorageType.STREAM : RMDTriplet.RMDStorageType.FILE;
+    /**
+     * Convert command-line argument representation of ROD bindings to something more easily understandable by the engine.
+     * @param RODBindings a text equivale
+     * @return a list of expanded, bound RODs.
+     */
+    public static Collection<RMDTriplet> unpackRODBindings(final Collection<RodBinding> RODBindings, final ParsingEngine parser) {
+        // todo -- this is a strange home for this code.  Move into ROD system
+        Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
+        FeatureManager builderForValidation = new FeatureManager();
 
-            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType,tags));
+        for (RodBinding rodBinding: RODBindings) {
+            String argValue = rodBinding.getSource();
+            String fileName = expandFileName(argValue);
+            String name = rodBinding.getName();
+            String type = rodBinding.getTribbleType();
+
+            RMDTriplet.RMDStorageType storageType = null;
+            if(rodBinding.getTags().getValue("storage") != null)
+                storageType = Enum.valueOf(RMDTriplet.RMDStorageType.class,rodBinding.getTags().getValue("storage"));
+            else if(fileName.toLowerCase().endsWith("stdin"))
+                storageType = RMDTriplet.RMDStorageType.STREAM;
+            else
+                storageType = RMDTriplet.RMDStorageType.FILE;
+
+            RMDTriplet triplet = new RMDTriplet(name,type,fileName,storageType,rodBinding.getTags());
+
+            // validate triplet type
+            FeatureManager.FeatureDescriptor descriptor = builderForValidation.getByTriplet(triplet);
+            if ( descriptor == null )
+                throw new UserException.UnknownTribbleType(rodBinding.getTribbleType(),
+                        String.format("Field %s had provided type %s but there's no such Tribble type.  Available types are %s",
+                                rodBinding.getName(), rodBinding.getTribbleType(), builderForValidation.userFriendlyListOfAvailableFeatures()));
+            if ( ! rodBinding.getType().isAssignableFrom(descriptor.getFeatureClass()) )
+                throw new UserException.BadArgumentValue(rodBinding.getName(),
+                        String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s",
+                                rodBinding.getName(), rodBinding.getType(), descriptor.getName()));
+
+
+            rodBindings.add(triplet);
         }
 
         return rodBindings;
     }
-
 
     /**
      * Expand any special characters that appear in the filename.  Right now, '-' is expanded to

@@ -46,7 +46,7 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
  * Walks along all variant ROD loci, and merges consecutive sites if they segregate in all samples in the ROD.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@Requires(value = {DataSource.REFERENCE})
 @By(DataSource.REFERENCE_ORDERED_DATA)
 
 public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
@@ -58,12 +58,9 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
     protected int maxGenomicDistanceForMNP = 1;
 
-    private LinkedList<String> rodNames = null;
+    private String rodName = "variant";
 
     public void initialize() {
-        rodNames = new LinkedList<String>();
-        rodNames.add("variant");
-
         initializeVcfWriter();
     }
 
@@ -77,8 +74,8 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(rodName));
+        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodName).getGenotypeSamples())));
     }
 
     public boolean generateExtendedEvents() {
@@ -101,9 +98,7 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
         if (tracker == null)
             return null;
 
-        boolean requireStartHere = true; // only see each VariantContext once
-        boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly))
+        for (VariantContext vc : tracker.getValues(VariantContext.class, rodName, context.getLocation()))
             writeVCF(vc);
 
         return 0;

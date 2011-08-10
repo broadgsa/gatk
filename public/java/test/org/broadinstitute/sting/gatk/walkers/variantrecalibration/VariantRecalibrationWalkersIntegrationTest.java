@@ -26,9 +26,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
-            "d33212a84368e821cbedecd4f59756d6",  // tranches
-            "4652dca41222bebdf9d9fda343b2a835",  // recal file
-            "243a397a33a935fcaccd5deb6d16f0c0"); // cut VCF
+            "0ddd1e0e483d2eaf56004615cea23ec7",  // tranches
+            "58780f63182e139fdbe17f6c18b5b774",  // recal file
+            "f67d844b6252a55452cf4167b77530b1"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -41,11 +41,13 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         //System.out.printf("PARAMS FOR %s is %s%n", vcf, clusterFile);
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b37KGReference +
-                        " -B:dbsnp,VCF,known=true,training=false,truth=false,prior=10.0 " + GATKDataLocation + "dbsnp_132_b37.leftAligned.vcf" +
-                        " -B:hapmap,VCF,known=false,training=true,truth=true,prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
-                        " -B:omni,VCF,known=false,training=true,truth=true,prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
+                        " -known:prior=10.0 " + GATKDataLocation + "dbsnp_132_b37.leftAligned.vcf" +
+                        " -training:prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
+                        " -truth:prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
+                        " -training:prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
+                        " -truth:prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
                         " -T VariantRecalibrator" +
-                        " -B:input,VCF " + params.inVCF +
+                        " -input " + params.inVCF +
                         " -L 20:1,000,000-40,000,000" +
                         " -an QD -an HaplotypeScore -an HRun" +
                         " -percentBad 0.07" +
@@ -64,7 +66,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T ApplyRecalibration" +
                         " -L 20:12,000,000-30,000,000" +
                         " -NO_HEADER" +
-                        " -B:input,VCF " + params.inVCF +
+                        " -input " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + MD5DB.getMD5FilePath(params.recalMD5, null),

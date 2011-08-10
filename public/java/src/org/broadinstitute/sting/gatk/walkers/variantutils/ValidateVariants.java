@@ -25,15 +25,16 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -50,10 +51,13 @@ import java.util.Set;
  * Validates a variants file.
  */
 @Reference(window=@Window(start=0,stop=100))
-@Requires(value={},referenceMetaData=@RMD(name=ValidateVariants.TARGET_ROD_NAME, type=VariantContext.class))
 public class ValidateVariants extends RodWalker<Integer, Integer> {
 
-    protected static final String TARGET_ROD_NAME = "variant";
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     public enum ValidationType {
         ALL, REF, IDS, ALLELES, CHR_COUNTS
@@ -74,19 +78,14 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     private File file = null;
 
     public void initialize() {
-        for ( ReferenceOrderedDataSource source : getToolkit().getRodDataSources() ) {
-            if ( source.getName().equals(TARGET_ROD_NAME) ) {
-                file = source.getFile();
-                break;
-            }
-        }
+        file = new File(variantCollection.variants.getSource());
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         for ( VariantContext vc : VCs )
             validate(vc, tracker, ref);
 
@@ -142,22 +141,24 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
         // get the RS IDs
         Set<String> rsIDs = null;
-        if ( tracker.hasROD(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-            List<Object> dbsnpList = tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME);
+        if ( tracker.hasValues(dbsnp.dbsnp) ) {
+            List<VariantContext> dbsnpList = tracker.getValues(dbsnp.dbsnp, ref.getLocus());
             rsIDs = new HashSet<String>();
             for ( Object d : dbsnpList ) {
                 if (d instanceof DbSNPFeature )
                     rsIDs.add(((DbSNPFeature)d).getRsID());
+                else if (d instanceof VariantContext )
+                    rsIDs.add(((VariantContext)d).getID());
             }
         }
 
         try {
             switch( type ) {
                 case ALL:
-                    vc.extraStrictValidation(observedRefAllele, rsIDs);
+                    vc.extraStrictValidation(observedRefAllele, ref.getBase(), rsIDs);
                     break;
                 case REF:
-                    vc.validateReferenceBases(observedRefAllele);
+                    vc.validateReferenceBases(observedRefAllele, ref.getBase());
                     break;
                 case IDS:
                     vc.validateRSIDs(rsIDs);

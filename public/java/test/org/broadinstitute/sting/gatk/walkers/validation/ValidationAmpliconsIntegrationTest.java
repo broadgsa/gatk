@@ -19,8 +19,8 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
         String maskVCF = validationDataLocation + "amplicon_mask_sites.vcf";
         String intervalTable = validationDataLocation + "amplicon_interval_table1.table";
-        String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons -B:ValidateAlleles,VCF "+siteVCF+" -o %s";
-        testArgs += " -B:ProbeIntervals,table "+intervalTable+" -BTI ProbeIntervals -B:MaskAlleles,VCF "+maskVCF;
+        String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons --ValidateAlleles:VCF "+siteVCF+" -o %s";
+        testArgs += " --ProbeIntervals:table "+intervalTable+" -BTI ProbeIntervals --MaskAlleles:VCF "+maskVCF;
         testArgs += " --virtualPrimerSize 30";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
                 Arrays.asList("27f9450afa132888a8994167f0035fd7"));
@@ -32,8 +32,8 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
         String maskVCF = validationDataLocation + "amplicon_mask_sites.vcf";
         String intervalTable = validationDataLocation + "amplicon_interval_table1.table";
-        String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons -B:ValidateAlleles,VCF "+siteVCF+" -o %s";
-        testArgs += " -B:ProbeIntervals,table "+intervalTable+" -BTI ProbeIntervals -B:MaskAlleles,VCF "+maskVCF;
+        String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons --ValidateAlleles:VCF "+siteVCF+" -o %s";
+        testArgs += " --ProbeIntervals:table "+intervalTable+" -BTI ProbeIntervals --MaskAlleles:VCF "+maskVCF;
         testArgs += " --virtualPrimerSize 30 --doNotUseBWA";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
                 Arrays.asList("f2611ff1d9cd5bedaad003251fed8bc1"));
@@ -45,8 +45,8 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
         String maskVCF = validationDataLocation + "amplicon_mask_sites.vcf";
         String intervalTable = validationDataLocation + "amplicon_interval_table1.table";
-        String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons -B:ValidateAlleles,VCF "+siteVCF+" -o %s";
-        testArgs += " -B:ProbeIntervals,table "+intervalTable+" -BTI ProbeIntervals -B:MaskAlleles,VCF "+maskVCF;
+        String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons --ValidateAlleles:VCF "+siteVCF+" -o %s";
+        testArgs += " --ProbeIntervals:table "+intervalTable+" -BTI ProbeIntervals --MaskAlleles:VCF "+maskVCF;
         testArgs += " --virtualPrimerSize 30 --filterMonomorphic";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
                 Arrays.asList("77b3f30e38fedad812125bdf6cf3255f"));

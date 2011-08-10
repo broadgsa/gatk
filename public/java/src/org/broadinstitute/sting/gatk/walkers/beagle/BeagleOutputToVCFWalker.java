@@ -25,15 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -51,15 +49,22 @@ import static java.lang.Math.log10;
 /**
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
  */
-@Requires(value={},referenceMetaData=@RMD(name=BeagleOutputToVCFWalker.INPUT_ROD_NAME, type=VariantContext.class))
-
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
-    public static final String INPUT_ROD_NAME = "variant";
-    public static final String COMP_ROD_NAME = "comp";
-    public static final String R2_ROD_NAME = "beagleR2";
-    public static final String PROBS_ROD_NAME = "beagleProbs";
-    public static final String PHASED_ROD_NAME = "beaglePhased";
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
+    public RodBinding<VariantContext> comp = RodBinding.makeUnbound(VariantContext.class);
+
+    @Input(fullName="beagleR2", shortName = "beagleR2", doc="VCF file", required=true)
+    public RodBinding<BeagleFeature> beagleR2;
+
+    @Input(fullName="beagleProbs", shortName = "beagleProbs", doc="VCF file", required=true)
+    public RodBinding<BeagleFeature> beagleProbs;
+
+    @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="VCF file", required=true)
+    public RodBinding<BeagleFeature> beaglePhased;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -97,17 +102,13 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         // Open output file specified by output VCF ROD
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            if (source.getName().equals(COMP_ROD_NAME)) {
-                hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
-                hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
-                hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
-                break;
-            }
-
+        if ( comp.isBound() ) {
+            hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
+            hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
+            hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
         }
 
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(INPUT_ROD_NAME));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variantCollection.variants.getName()));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
@@ -119,40 +120,34 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
         GenomeLoc loc = context.getLocation();
-        VariantContext vc_input = tracker.getVariantContext(ref,INPUT_ROD_NAME, null, loc, true);
+        VariantContext vc_input = tracker.getFirstValue(variantCollection.variants, loc);
 
-        VariantContext vc_comp = tracker.getVariantContext(ref,COMP_ROD_NAME, null, loc, true);
+        VariantContext vc_comp = tracker.getFirstValue(comp, loc);
 
         if ( vc_input == null  )
             return 0;
 
         if (vc_input.isFiltered()) {
-            vcfWriter.add(vc_input, ref.getBase());
+            vcfWriter.add(vc_input);
             return 1;
         }
-        List<Object> r2rods = tracker.getReferenceMetaData(R2_ROD_NAME);
 
+        BeagleFeature beagleR2Feature = tracker.getFirstValue(beagleR2);
         // ignore places where we don't have a variant
-        if ( r2rods.size() == 0 )
+        if ( beagleR2Feature == null )
             return 0;
 
-        BeagleFeature beagleR2Feature = (BeagleFeature)r2rods.get(0);
 
-        List<Object> gProbsrods = tracker.getReferenceMetaData(PROBS_ROD_NAME);
-
-        // ignore places where we don't have a variant
-        if ( gProbsrods.size() == 0 )
-            return 0;
-
-        BeagleFeature beagleProbsFeature = (BeagleFeature)gProbsrods.get(0);
-
-        List<Object> gPhasedrods = tracker.getReferenceMetaData(PHASED_ROD_NAME);
+        BeagleFeature beagleProbsFeature = tracker.getFirstValue(beagleProbs);
 
         // ignore places where we don't have a variant
-        if ( gPhasedrods.size() == 0 )
+        if ( beagleProbsFeature == null )
             return 0;
 
-        BeagleFeature beaglePhasedFeature = (BeagleFeature)gPhasedrods.get(0);
+        BeagleFeature beaglePhasedFeature = tracker.getFirstValue(beaglePhased);
+        // ignore places where we don't have a variant
+        if ( beaglePhasedFeature == null )
+            return 0;
 
         // get reference base for current position
         byte refByte = ref.getBase();
@@ -333,7 +328,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
 
-        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes), ref.getBase());
+        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes));
 
 
         return 1;

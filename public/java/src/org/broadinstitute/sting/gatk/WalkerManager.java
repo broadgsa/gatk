@@ -177,19 +177,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return The list of allowed reference meta data.
      */
     public static List<RMD> getAllowsMetaData(Class<? extends Walker> walkerClass) {
-        Allows allowsDataSource = getWalkerAllowed(walkerClass);
-        if (allowsDataSource == null)
-            return Collections.<RMD>emptyList();
-        return Arrays.asList(allowsDataSource.referenceMetaData());
-    }
-
-    /**
-     * Get a list of RODs allowed by the walker.
-     * @param walker Walker to query.
-     * @return The list of allowed reference meta data.
-     */
-    public static List<RMD> getAllowsMetaData(Walker walker) {
-        return getAllowsMetaData(walker.getClass());
+        return Collections.<RMD>emptyList();
     }
 
     /**
@@ -226,24 +214,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return True if the walker forbids this data type.  False otherwise.
      */
     public static boolean isAllowed(Class<? extends Walker> walkerClass, ReferenceOrderedDataSource rod) {
-        Allows allowsDataSource = getWalkerAllowed(walkerClass);
-
-        // Allows is less restrictive than requires.  If an allows
-        // clause is not specified, any kind of data is allowed.
-        if( allowsDataSource == null )
-            return true;
-
-        // The difference between unspecified RMD and the empty set of metadata can't be detected.
-        // Treat an empty 'allows' as 'allow everything'.  Maybe we can have a special RMD flag to account for this
-        // case in the future.
-        if( allowsDataSource.referenceMetaData().length == 0 )
-            return true;
-
-        for( RMD allowed: allowsDataSource.referenceMetaData() ) {
-            if( rod.matchesNameAndRecordType(allowed.name(),allowed.type()) )
-                return true;
-        }
-        return false;
+        return true;
     }
 
     /**
@@ -283,8 +254,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return The list of required reference meta data.
      */
     public static List<RMD> getRequiredMetaData(Class<? extends Walker> walkerClass) {
-        Requires requiresDataSource = getWalkerRequirements(walkerClass);
-        return Arrays.asList(requiresDataSource.referenceMetaData());
+        return Collections.emptyList();
     }
 
     /**

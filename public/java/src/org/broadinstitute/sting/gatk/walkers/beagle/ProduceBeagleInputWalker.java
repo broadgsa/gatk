@@ -25,16 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -54,10 +50,12 @@ import java.util.*;
 /**
  * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input variant file
  */
-@Requires(value={},referenceMetaData=@RMD(name=ProduceBeagleInputWalker.ROD_NAME, type=VariantContext.class))
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
-    public static final String ROD_NAME = "variant";
-    public static final String VALIDATION_ROD_NAME = "validation";
+
+    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    @Input(fullName="validation", shortName = "validation", doc="Input VCF file", required=false)
+    public RodBinding<VariantContext> validation = RodBinding.makeUnbound(VariantContext.class);
 
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
@@ -99,7 +97,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
 
-        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(ROD_NAME));
+        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variantCollection.variants.getName()));
 
         beagleWriter.print("marker alleleA alleleB");
         for ( String sample : samples )
@@ -121,8 +119,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext variant_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, true);
-            VariantContext validation_eval = tracker.getVariantContext(ref,VALIDATION_ROD_NAME,null,loc, true);
+            VariantContext variant_eval = tracker.getFirstValue(variantCollection.variants, loc);
+            VariantContext validation_eval = tracker.getFirstValue(validation, loc);
 
             if ( goodSite(variant_eval,validation_eval) ) {
                 if ( useValidation(validation_eval, ref) ) {
@@ -171,20 +169,20 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             logger.debug(String.format("boot: %d, test: %d, total: %d", bootstrapSetSize, testSetSize, bootstrapSetSize+testSetSize+1));
             if ( (bootstrapSetSize+1.0)/(1.0+bootstrapSetSize+testSetSize) <= bootstrap ) {
                 if ( bootstrapVCFOutput != null ) {
-                    bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER), ref.getBase() );
+                    bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER));
                 }
                 bootstrapSetSize++;
                 return true;
             } else {
                 if ( bootstrapVCFOutput != null ) {
-                    bootstrapVCFOutput.add(validation,ref.getBase());
+                    bootstrapVCFOutput.add(validation);
                 }
                 testSetSize++;
                 return false;
             }
         } else {
             if ( validation != null && bootstrapVCFOutput != null ) {
-                bootstrapVCFOutput.add(validation,ref.getBase());
+                bootstrapVCFOutput.add(validation);
             }
             return false;
         }
@@ -303,9 +301,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     private void initializeVcfWriter() {
-
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( VALIDATION_ROD_NAME );
+        final List<String> inputNames = Arrays.asList(validation.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

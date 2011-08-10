@@ -25,15 +25,18 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -41,6 +44,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -67,6 +71,9 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
+
+    @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
+    public List<RodBinding<Feature>> rods = Collections.emptyList();
 
     public void initialize() {
     }
@@ -112,17 +119,10 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      */
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
         ArrayList<String> rodStrings = new ArrayList<String>();
-        for ( GATKFeature datum : tracker.getAllRods() ) {
-            if ( datum != null && datum.getUnderlyingObject() instanceof ReferenceOrderedDatum ) {
-                rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron: this line still survives, try to remove it
-            }
+        for ( Feature datum : tracker.getValues(rods) ) {
+            rodStrings.add(datum.toString());
         }
         String rodString = Utils.join(", ", rodStrings);
-
-        DbSNPFeature dbsnp = tracker.lookup(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, DbSNPFeature.class);
-
-        if ( dbsnp != null)
-            rodString += DbSNPHelper.toMediumString(dbsnp);
 
         if ( !rodString.equals("") )
             rodString = "[ROD: " + rodString + "]";
@@ -132,8 +132,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     @Override
     public void onTraversalDone(Integer result) {
-        // Double check traversal result to make count is the same.
-        // TODO: Is this check necessary?
         out.println("[REDUCE RESULT] Traversal result is: " + result);
     }    
 }

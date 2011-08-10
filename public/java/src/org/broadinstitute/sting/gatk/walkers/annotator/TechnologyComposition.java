@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -24,12 +26,12 @@ import java.util.Map;
  * Time: 3:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class TechnologyComposition implements ExperimentalAnnotation,InfoFieldAnnotation {
+public class TechnologyComposition extends InfoFieldAnnotation implements ExperimentalAnnotation {
     private String nSLX = "NumSLX";
     private String n454 ="Num454";
     private String nSolid = "NumSOLiD";
     private String nOther = "NumOther";
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 

@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.StringToGenomeLocIteratorAdapter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;

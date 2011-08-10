@@ -25,12 +25,17 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import javax.script.Bindings;
 import java.util.List;
 import java.util.EnumSet;
 /**
@@ -42,6 +47,7 @@ public class ParsingEngineUnitTest extends BaseTest {
     @BeforeMethod
     public void setUp() {
         parsingEngine = new ParsingEngine(null);
+        RodBinding.resetNameCounter();
     }
 
     private class InputFileArgProvider {
@@ -62,7 +68,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         Assert.assertEquals(argProvider.inputFile,"na12878.bam","Argument is not correctly initialized");
     }
-    
+
     @Test
     public void multiCharShortNameArgumentTest() {
         final String[] commandLine = new String[] {"-out","out.txt"};
@@ -211,7 +217,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         Assert.assertEquals(argProvider.testEnum, TestEnum.ONE, "Enum value is not correct");
     }
-    
+
     @Test
     public void enumDefaultTest() {
         final String[] commandLine = new String[] {};
@@ -552,7 +558,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         commandLine = new String[] {"--foo","5","--bar","6"};
 
         parsingEngine.parse( commandLine );
-        parsingEngine.validate();        
+        parsingEngine.validate();
     }
 
     private class MutuallyExclusiveArgProvider {
@@ -617,5 +623,302 @@ public class ParsingEngineUnitTest extends BaseTest {
         RequiredArgProvider rap1 = new RequiredArgProvider();
         @ArgumentCollection
         RequiredArgProvider rap2 = new RequiredArgProvider();
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Tests of the RodBinding<T> system
+    //
+    // --------------------------------------------------------------------------------
+
+    private class SingleRodBindingArgProvider {
+        @Input(fullName="binding", shortName="V", required=false)
+        public RodBinding<Feature> binding = RodBinding.makeUnbound(Feature.class);
+    }
+
+    @Test
+    public void basicRodBindingArgumentTest() {
+        final String[] commandLine = new String[] {"-V:vcf","foo.vcf"};
+
+        parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        SingleRodBindingArgProvider argProvider = new SingleRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.isBound(), true, "Bound() isn't returning its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    private class ShortNameOnlyRodBindingArgProvider {
+        @Input(shortName="short", required=false)
+        public RodBinding<Feature> binding = RodBinding.makeUnbound(Feature.class);
+    }
+
+    @Test
+    public void shortNameOnlyRodBindingArgumentTest() {
+        final String[] commandLine = new String[] {"-short:vcf","foo.vcf"};
+
+        parsingEngine.addArgumentSource( ShortNameOnlyRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ShortNameOnlyRodBindingArgProvider argProvider = new ShortNameOnlyRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.isBound(), true, "Bound() isn't returning its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    @Test
+    public void unbasicRodBindingArgumentTest() {
+        final String[] commandLine = new String[] {};
+
+        parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        SingleRodBindingArgProvider argProvider = new SingleRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), RodBinding.UNBOUND_VARIABLE_NAME, "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), RodBinding.UNBOUND_SOURCE, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.isBound(), false, "Bound() isn't returning its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 0, "Tags aren't correctly set");
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void rodBindingArgumentTestMissingType() {
+        final String[] commandLine = new String[] {"-V","foo.vcf"};
+
+        parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        SingleRodBindingArgProvider argProvider = new SingleRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void rodBindingArgumentTestTooManyTags() {
+        final String[] commandLine = new String[] {"-V:x,y,z","foo.vcf"};
+
+        parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        SingleRodBindingArgProvider argProvider = new SingleRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+    }
+
+    private class VariantContextRodBindingArgProvider {
+        @Input(fullName = "binding", shortName="V")
+        public RodBinding<VariantContext> binding;
+    }
+
+    @Test
+    public void variantContextBindingArgumentTest() {
+        final String[] commandLine = new String[] {"-V:vcf","foo.vcf"};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    @Test
+    public void variantContextBindingArgumentTestVCF3() {
+        final String[] commandLine = new String[] {"-V:vcf3","foo.vcf"};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    private class ListRodBindingArgProvider {
+        @Input(fullName = "binding", shortName="V", required=false)
+        public List<RodBinding<Feature>> bindings;
+    }
+
+    @Test
+    public void listRodBindingArgumentTest() {
+        final String[] commandLine = new String[] {"-V:vcf","foo.vcf"};
+
+        parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ListRodBindingArgProvider argProvider = new ListRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.bindings.size(), 1, "Unexpected number of bindings");
+        RodBinding<Feature> binding = argProvider.bindings.get(0);
+        Assert.assertEquals(binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(binding.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    @Test
+    public void listRodBindingArgumentTest2Args() {
+        final String[] commandLine = new String[] {"-V:vcf","foo.vcf", "-V:vcf", "bar.vcf"};
+
+        parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ListRodBindingArgProvider argProvider = new ListRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.bindings.size(), 2, "Unexpected number of bindings");
+
+        RodBinding<Feature> binding = argProvider.bindings.get(0);
+        Assert.assertEquals(binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(binding.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+
+        RodBinding<Feature> binding2 = argProvider.bindings.get(1);
+        Assert.assertEquals(binding2.getName(), "binding2", "Name isn't set properly");
+        Assert.assertEquals(binding2.getSource(), "bar.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(binding2.getType(), Feature.class, "Type isn't set to its expected value");
+        Assert.assertEquals(binding2.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    @Test
+    public void listRodBindingArgumentTest0Args() {
+        final String[] commandLine = new String[] {};
+
+        parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ListRodBindingArgProvider argProvider = new ListRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertNull(argProvider.bindings, "Bindings were not null");
+    }
+
+    @Test
+    public void listRodBindingArgumentTestExplicitlyNamed() {
+        final String[] commandLine = new String[] {"-V:foo,vcf","foo.vcf", "-V:foo,vcf", "bar.vcf"};
+
+        parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ListRodBindingArgProvider argProvider = new ListRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.bindings.size(), 2, "Unexpected number of bindings");
+        Assert.assertEquals(argProvider.bindings.get(0).getName(), "foo", "Name isn't set properly");
+        Assert.assertEquals(argProvider.bindings.get(1).getName(), "foo2", "Name isn't set properly");
+    }
+
+    private final static String HISEQ_VCF = testDir + "HiSeq.10000.vcf";
+    private final static String TRANCHES_FILE = testDir + "tranches.6.txt";
+
+    @Test
+    public void variantContextBindingTestDynamicTyping1() {
+        final String[] commandLine = new String[] {"-V", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 0, "Tags aren't correctly set");
+    }
+
+    @Test
+    public void variantContextBindingTestDynamicTypingNameAsSingleArgument() {
+        final String[] commandLine = new String[] {"-V:name", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "name", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
+    }
+
+    @Test()
+    public void variantContextBindingTestDynamicTypingTwoTagsPassing() {
+        final String[] commandLine = new String[] {"-V:name,vcf", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.binding.getName(), "name", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 2, "Tags aren't correctly set");
+    }
+
+    @Test()
+    public void variantContextBindingTestDynamicTypingTwoTagsCausingTypeFailure() {
+        final String[] commandLine = new String[] {"-V:name,beagle", HISEQ_VCF};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+
+        Assert.assertEquals(argProvider.binding.getName(), "name", "Name isn't set properly");
+        Assert.assertEquals(argProvider.binding.getSource(), HISEQ_VCF, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTribbleType(), "beagle", "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 2, "Tags aren't correctly set");
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void variantContextBindingTestDynamicTypingUnknownTribbleType() {
+        final String[] commandLine = new String[] {"-V", TRANCHES_FILE};
+
+        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
     }
 }

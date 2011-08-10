@@ -2,7 +2,6 @@ package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.queue.extensions.picard._
 import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
 import org.broadinstitute.sting.utils.baq.BAQ.CalculationMode
@@ -12,6 +11,7 @@ import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
 import org.broadinstitute.sting.queue.util.QScriptUtils
+import org.broadinstitute.sting.queue.function.{CommandLineFunction, ListWriterFunction}
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -283,12 +283,6 @@ class DataProcessingPipeline extends QScript {
   ****************************************************************************/
 
 
-  // General arguments to GATK walkers
-  trait CommandLineGATKArgs extends CommandLineGATK {
-    this.reference_sequence = qscript.reference
-    this.memoryLimit = 4
-    this.isIntermediate = true
-  }
 
   // General arguments to non-GATK tools
   trait ExternalCommonArgs extends CommandLineFunction {
@@ -296,6 +290,14 @@ class DataProcessingPipeline extends QScript {
     this.isIntermediate = true
   }
 
+  // General arguments to GATK walkers
+  trait CommandLineGATKArgs extends CommandLineGATK with ExternalCommonArgs {
+    this.reference_sequence = qscript.reference
+  }
+
+  trait SAMargs extends PicardBamFunction with ExternalCommonArgs {
+      this.maxRecordsInRam = 100000
+  }
 
   case class target (inBams: File, outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
     if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
@@ -303,7 +305,7 @@ class DataProcessingPipeline extends QScript {
     this.out = outIntervals
     this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    if (!indels.isEmpty)
+    if (indels != null)
       this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
@@ -311,11 +313,12 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class clean (inBams: File, tIntervals: File, outBam: File) extends IndelRealigner with CommandLineGATKArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input_file :+= inBams
     this.targetIntervals = tIntervals
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    if (!qscript.indels.isEmpty)
+    if (qscript.indels != null)
       this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
@@ -365,6 +368,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = List(inBam)
     this.output = outBam
     this.metrics = metricsFile
@@ -373,6 +377,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = inBams
     this.output = outBam
     this.analysisName = queueLogDir + outBam + ".joinBams"
@@ -380,6 +385,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class sortSam (inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = List(inSam)
     this.output = outBam
     this.sortOrder = sortOrderP
@@ -390,7 +396,6 @@ class DataProcessingPipeline extends QScript {
   case class validate (inBam: File, outLog: File) extends ValidateSamFile with ExternalCommonArgs {
     this.input = List(inBam)
     this.output = outLog
-    this.maxRecordsInRam = 100000
     this.REFERENCE_SEQUENCE = qscript.reference
     this.isIntermediate = false
     this.analysisName = queueLogDir + outLog + ".validate"
@@ -399,6 +404,7 @@ class DataProcessingPipeline extends QScript {
 
 
   case class addReadGroup (inBam: File, outBam: File, readGroup: ReadGroup) extends AddOrReplaceReadGroups with ExternalCommonArgs {
+    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input = List(inBam)
     this.output = outBam
     this.RGID = readGroup.id
@@ -408,8 +414,6 @@ class DataProcessingPipeline extends QScript {
     this.RGPL = readGroup.pl
     this.RGPU = readGroup.pu
     this.RGSM = readGroup.sm
-    this.memoryLimit = 4
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".rg"
     this.jobName = queueLogDir + outBam + ".rg"
   }
@@ -435,6 +439,7 @@ class DataProcessingPipeline extends QScript {
     @Input(doc="bwa alignment index file") var sai = inSai
     @Output(doc="output aligned bam file") var alignedBam = outBam
     def commandLine = bwaPath + " samse " + reference + " " + sai + " " + bam + " > " + alignedBam
+    this.memoryLimit = 6
     this.analysisName = queueLogDir + outBam + ".bwa_sam_se"
     this.jobName = queueLogDir + outBam + ".bwa_sam_se"
   }
@@ -445,6 +450,7 @@ class DataProcessingPipeline extends QScript {
     @Input(doc="bwa alignment index file for 2nd mating pair") var sai2 = inSai2
     @Output(doc="output aligned bam file") var alignedBam = outBam
     def commandLine = bwaPath + " sampe " + reference + " " + sai1 + " " + sai2 + " " + bam + " " + bam + " > " + alignedBam
+    this.memoryLimit = 6
     this.analysisName = queueLogDir + outBam + ".bwa_sam_pe"
     this.jobName = queueLogDir + outBam + ".bwa_sam_pe"
   }
@@ -455,6 +461,4 @@ class DataProcessingPipeline extends QScript {
     this.analysisName = queueLogDir + outBamList + ".bamList"
     this.jobName = queueLogDir + outBamList + ".bamList"
   }
-
-
 }

@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -46,9 +46,14 @@ import java.util.*;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    @Input(fullName="mask", doc="Input ROD mask", required=false)
+    public RodBinding<Feature> mask = RodBinding.makeUnbound(Feature.class);
 
     @Output(doc="File to which variants should be written", required=true)
     protected VCFWriter writer = null;
@@ -70,7 +75,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="maskExtension", shortName="maskExtend", doc="How many bases beyond records from a provided 'mask' rod should variants be filtered; [default:0]", required=false)
     protected Integer MASK_EXTEND = 0;
-    @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
+    @Argument(fullName="maskName", shortName="maskName", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
 
     @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, should missing values be considered failing the expression (by default they are considered passing)?", required=false)
@@ -80,7 +85,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
 
-    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
     private ClusteredSnps clusteredSNPs = null;
     private GenomeLoc previousMaskPosition = null;
@@ -92,8 +96,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     private void initializeVcfWriter() {
 
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+        final List<String> inputNames = Arrays.asList(variantCollection.variants.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -110,12 +113,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( genotypeFilterExps.size() > 0 )
             hInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_FILTER_KEY, 1, VCFHeaderLineType.String, "Genotype-level filter"));
 
-        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            if ( source.getName().equals("mask") ) {
-                hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
-                break;
-            }
+        if ( mask.isBound() ) {
+            hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
         }
 
         writer.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
@@ -149,10 +148,10 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         // is there a SNP mask present?
-        boolean hasMask = tracker.getReferenceMetaData("mask").size() > 0;
+        boolean hasMask = tracker.hasValues(mask);
         if ( hasMask )
             previousMaskPosition = ref.getLocus();  // multi-base masks will get triggered over all bases of the mask
 
@@ -272,7 +271,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         else
             filteredVC = new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
-        writer.add( filteredVC, context.getReferenceContext().getBase() );
+        writer.add(filteredVC);
     }
 
     public Integer reduce(Integer value, Integer sum) {

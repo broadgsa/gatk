@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -34,7 +36,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -45,10 +46,9 @@ import java.util.*;
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
 @Reference(window=@Window(start=0,stop=40))
-@Requires(value={},referenceMetaData=@RMD(name=VariantValidationAssessor.INPUT_VARIANT_ROD_BINDING_NAME, type=VariantContext.class))
-public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, Byte>,Integer> {
-
-    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
+public class VariantValidationAssessor extends RodWalker<VariantContext,Integer> {
+    @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfwriter = null;
@@ -68,7 +68,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     private TreeSet<String> sampleNames = null;
 
     // variant context records
-    private ArrayList<Pair<VariantContext, Byte>> records = new ArrayList<Pair<VariantContext, Byte>>();
+    private ArrayList<VariantContext> records = new ArrayList<VariantContext>();
 
     // statistics
     private int numRecords = 0;
@@ -89,11 +89,11 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         return 0;
     }
 
-    public Pair<VariantContext, Byte> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return null;
 
-        VariantContext vc = tracker.getVariantContext(ref, INPUT_VARIANT_ROD_BINDING_NAME, ref.getLocus());
+        VariantContext vc = tracker.getFirstValue(variants, ref.getLocus());
         // ignore places where we don't have a variant
         if ( vc == null )
             return null;
@@ -104,7 +104,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         return addVariantInformationToCall(ref, vc);
     }
 
-    public Integer reduce(Pair<VariantContext, Byte> call, Integer numVariants) {
+    public Integer reduce(VariantContext call, Integer numVariants) {
         if ( call != null ) {
             numVariants++;
             records.add(call);
@@ -113,8 +113,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     }
 
     public void onTraversalDone(Integer finalReduce) {
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+        final List<String> inputNames = Arrays.asList(variants.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -155,12 +154,12 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         
         vcfwriter.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
 
-        for ( Pair<VariantContext, Byte> record : records )
-            vcfwriter.add(record.first, record.second);
+        for ( VariantContext record : records )
+            vcfwriter.add(record);
     }
 
 
-    private Pair<VariantContext, Byte> addVariantInformationToCall(ReferenceContext ref, VariantContext vContext) {
+    private VariantContext addVariantInformationToCall(ReferenceContext ref, VariantContext vContext) {
 
         // check possible filters
         double hwPvalue = hardyWeinbergCalculation(vContext);
@@ -202,9 +201,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
 
-        vContext = VariantContext.modifyAttributes(vContext, infoMap);
-
-        return new Pair<VariantContext, Byte>(vContext, ref.getBase());
+        return VariantContext.modifyAttributes(vContext, infoMap);
     }
 
     private double hardyWeinbergCalculation(VariantContext vc) {

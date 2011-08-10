@@ -43,7 +43,7 @@ import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -368,33 +368,6 @@ public class GenomeAnalysisEngine {
         // Check what the walker says is allowed against what was provided on the command line.
         if (arguments.referenceFile != null && !WalkerManager.isAllowed(walker, DataSource.REFERENCE))
             throw new ArgumentException("Walker does not allow a reference but one was provided.");
-    }
-
-    /**
-     * Verifies that all required reference-ordered data has been supplied, and any reference-ordered data that was not
-     * 'allowed' is still present.
-     *
-     * @param rods   Reference-ordered data to load.
-     */
-    protected void validateSuppliedReferenceOrderedData(List<ReferenceOrderedDataSource> rods) {
-        // Check to make sure that all required metadata is present.
-        List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
-        for (RMD required : allRequired) {
-            boolean found = false;
-            for (ReferenceOrderedDataSource rod : rods) {
-                if (rod.matchesNameAndRecordType(required.name(), required.type()))
-                    found = true;
-            }
-            if (!found)
-                throw new ArgumentException(String.format("Walker requires reference metadata to be supplied named '%s' of type '%s', but this metadata was not provided.  " +
-                                                          "Please supply the specified metadata file.", required.name(), required.type().getSimpleName()));
-        }
-
-        // Check to see that no forbidden rods are present.
-        for (ReferenceOrderedDataSource rod : rods) {
-            if (!WalkerManager.isAllowed(walker, rod))
-                throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s", walker.getClass(), rod.getName()));
-        }
     }
 
     protected void validateSuppliedIntervals() {
@@ -926,9 +899,6 @@ public class GenomeAnalysisEngine {
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
         RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType);
-        // try and make the tracks given their requests
-        // create of live instances of the tracks
-        List<RMDTrack> tracks = new ArrayList<RMDTrack>();
 
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
@@ -939,7 +909,6 @@ public class GenomeAnalysisEngine {
                                                            flashbackData()));
 
         // validation: check to make sure everything the walker needs is present, and that all sequence dictionaries match.
-        validateSuppliedReferenceOrderedData(dataSources);
         validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), dataSources, builder);
 
         return dataSources;

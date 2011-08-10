@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -15,9 +17,9 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.*;
 
 
-public class AlleleBalanceBySample implements GenotypeAnnotation, ExperimentalAnnotation {
+public class AlleleBalanceBySample extends GenotypeAnnotation implements ExperimentalAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
         Double ratio = annotateSNP(stratifiedContext, vc, g);
         if (ratio == null)
             return null;

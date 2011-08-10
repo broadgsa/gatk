@@ -24,47 +24,63 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.lang.annotation.AnnotationFormatError;
 import java.util.*;
 
 /**
  * Takes a VCF file, selects variants based on sample(s) in which it was found and/or on various annotation criteria,
  * recompute the value of certain annotations based on the new sample set, and output a new VCF with the results.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 public class SelectVariants extends RodWalker<Integer, Integer> {
+    /**
+     * The VCF file we are selecting variants from.
+     *
+     * Variants from this file are sent through the filtering and modifying routines as directed
+     * by the arguments to SelectVariants, and finally are emitted.
+     */
+    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    /**
+     * If provided, we will filter out variants that are "discordant" to the variants in this file
+     *
+     * A site is considered discordant if there exists some sample in eval that has a non-reference genotype
+     * and either the site isn't present in this track, the sample isn't present in this track,
+     * or the sample is called reference in this track.
+     */
+    @Input(fullName="discordance", shortName = "disc", doc="Output variants that were not called in this Feature comparison track", required=false)
+    private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
+
+    /**
+     * If provided, we will filter out any variant in variants that isn't "concordant" with the variants in this track.
+     *
+     * A site is considered concordant if (1) we are not looking for specific samples and there is a variant called
+     * in both variants and concordance tracks or (2) every sample present in eval is present in the concordance
+     * track and they have the sample genotype call.
+     */
+    @Input(fullName="concordance", shortName = "conc", doc="Output variants that were also called in this Feature comparison track", required=false)
+    private RodBinding<VariantContext> concordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -89,16 +105,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't include filtered loci.", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
-
-    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track. Use -disc ROD_NAME", required=false)
-    private String discordanceRodName = "";
-
-    @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track. Use -conc ROD_NAME", required=false)
-    private String concordanceRodName = "";
-
-    @Hidden
-    @Argument(fullName="inputAF", shortName =  "inputAF", doc="", required=false)
-    private String inputAFRodName = "";
 
     @Hidden
     @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
@@ -140,16 +146,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
         private VariantContext vc;
-        private byte refBase;
 
-        RandomVariantStructure(VariantContext vcP, byte refBaseP) {
+        RandomVariantStructure(VariantContext vcP) {
             vc = vcP;
-            refBase = refBaseP;
         }
 
-        public void set (VariantContext vcP, byte refBaseP) {
+        public void set (VariantContext vcP) {
             vc = vcP;
-            refBase = refBaseP;
         }
 
     }
@@ -164,9 +167,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private boolean CONCORDANCE_ONLY = false;
 
     private Set<MendelianViolation> mvSet = new HashSet<MendelianViolation>();
-
-    /* default name for the variant dataset (VCF) */
-    private final String variantRodName = "variant";
 
 
     /* variables used by the SELECT RANDOM modules */
@@ -192,8 +192,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      */
     public void initialize() {
         // Get list of samples to include in the output
-        ArrayList<String> rodNames = new ArrayList<String>();
-        rodNames.add(variantRodName);
+        List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
@@ -235,11 +234,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
 
         // Look at the parameters to decide which analysis to perform
-        DISCORDANCE_ONLY = discordanceRodName.length() > 0;
-        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceRodName);
+        DISCORDANCE_ONLY = discordanceTrack.isBound();
+        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceTrack.getName());
 
-        CONCORDANCE_ONLY = concordanceRodName.length() > 0;
-        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceRodName);
+        CONCORDANCE_ONLY = concordanceTrack.isBound();
+        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getName());
 
         if (MENDELIAN_VIOLATIONS) {
             if ( FAMILY_STRUCTURE_FILE != null) {
@@ -317,7 +316,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, variantRodName, null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
@@ -345,12 +344,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     break;
             }
             if (DISCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, null, context.getLocation(), true, false);
+                Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
                     return 0;
             }
             if (CONCORDANCE_ONLY) {
-                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, concordanceRodName, null, context.getLocation(), true, false);
+                Collection<VariantContext> compVCs = tracker.getValues(concordanceTrack, context.getLocation());
                 if (!isConcordant(vc, compVCs))
                     return 0;
             }
@@ -374,7 +373,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     randomlyAddVariant(++variantNumber, sub, ref.getBase());
                 }
                 else if (!SELECT_RANDOM_FRACTION || (!KEEP_AF_SPECTRUM && GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                    vcfWriter.add(sub, ref.getBase());
+                    vcfWriter.add(sub);
                 }
                 else {
                     if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
@@ -422,7 +421,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
                             //System.out.format("%s .. %4.4f\n",afo.toString(), af);
                             if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * afBoost *   afBoost)
-                                vcfWriter.add(sub, ref.getBase());
+                                vcfWriter.add(sub);
                         }
 
 
@@ -529,7 +528,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (SELECT_RANDOM_NUMBER) {
             int positionToPrint = positionToAdd;
             for (int i=0; i<numRandom; i++) {
-                vcfWriter.add(variantArray[positionToPrint].vc, variantArray[positionToPrint].refBase);
+                vcfWriter.add(variantArray[positionToPrint].vc);
                 positionToPrint = nextCircularPosition(positionToPrint);
             }
         }
@@ -555,6 +554,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
 
         VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
+
+        // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
+        if ( vc.getAlleles().size() != sub.getAlleles().size() )
+            sub = VariantContext.modifyGenotypes(sub, VariantContextUtils.stripPLs(vc.getGenotypes()));
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
 
@@ -592,13 +595,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     private void randomlyAddVariant(int rank, VariantContext vc, byte refBase) {
         if (nVariantsAdded < numRandom)
-            variantArray[nVariantsAdded++] = new RandomVariantStructure(vc, refBase);
+            variantArray[nVariantsAdded++] = new RandomVariantStructure(vc);
 
         else {
             double v = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             double t = (1.0/(rank-numRandom+1));
             if ( v < t) {
-                variantArray[positionToAdd].set(vc, refBase);
+                variantArray[positionToAdd].set(vc);
                 nVariantsAdded++;
                 positionToAdd = nextCircularPosition(positionToAdd);
             }

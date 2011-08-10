@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -52,13 +54,13 @@ import java.util.Map;
  * Time: 3:59:27 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
+public class ReadDepthAndAllelicFractionBySample extends GenotypeAnnotation {
 
         private static String REF_ALLELE = "REF";
 
         private static String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
-        public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref,
+        public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref,
                                             AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
             if ( g == null || !g.isCalled() )
                 return null;

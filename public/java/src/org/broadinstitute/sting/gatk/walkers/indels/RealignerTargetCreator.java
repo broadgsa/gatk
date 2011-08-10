@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.BadCigarFilter;
@@ -46,6 +48,8 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 reads, MQ0 reads, and reads with consecutive indel operators in the CIGAR string.
@@ -56,15 +60,19 @@ import java.util.ArrayList;
 @By(DataSource.REFERENCE)
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
+
     @Output
     protected PrintStream out;
+
+    @Input(fullName="known", shortName = "known", doc="Input VCF file with known indels", required=false)
+    public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
     // mismatch/entropy/SNP arguments
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy or SNP clusters", required=false)
     protected int windowSize = 10;
 
     @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of base qualities needing to mismatch for a position to have high entropy; to disable set to <= 0 or > 1", required=false)
-    protected double mismatchThreshold = 0.15;
+    protected double mismatchThreshold = 0.0;
 
     @Argument(fullName="minReadsAtLocus", shortName="minReads", doc="minimum reads at a locus to enable using the entropy calculation", required=false)
     protected int minReadsAtLocus = 4;
@@ -110,7 +118,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
         // look at the rods for indels or SNPs
         if ( tracker != null ) {
-            for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
+            for ( VariantContext vc : tracker.getValues(known) ) {
                 switch ( vc.getType() ) {
                     case INDEL:
                         hasIndel = true;

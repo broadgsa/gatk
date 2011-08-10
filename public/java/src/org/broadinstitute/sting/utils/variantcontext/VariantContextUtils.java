@@ -295,10 +295,7 @@ public class VariantContextUtils {
     @Requires("vc != null")
     @Ensures("result != null")
     public static VariantContext sitesOnlyVariantContext(VariantContext vc) {
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(),
-                vc.getAlleles(), vc.getNegLog10PError(),
-                vc.filtersWereApplied() ? vc.getFilters() : null,
-                vc.getAttributes());
+        return VariantContext.modifyGenotypes(vc, null);
     }
 
     /**
@@ -449,7 +446,7 @@ public class VariantContextUtils {
                                              FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase ) {
 
-        return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, filteredRecordMergeType, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false, false);
+        return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, filteredRecordMergeType, genotypeMergeOptions, annotateOrigin, printMessages, "set", false, false);
     }
 
     /**
@@ -464,7 +461,6 @@ public class VariantContextUtils {
      * @param genotypeMergeOptions      merge option for genotypes
      * @param annotateOrigin            should we annotate the set it came from?
      * @param printMessages             should we print messages?
-     * @param inputRefBase              the ref base
      * @param setKey                    the key name of the set
      * @param filteredAreUncalled       are filtered records uncalled?
      * @param mergeInfoWithMaxAC        should we merge in info from the VC with maximum allele count?
@@ -472,7 +468,7 @@ public class VariantContextUtils {
      */
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
-                                             boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey,
+                                             boolean annotateOrigin, boolean printMessages, String setKey,
                                              boolean filteredAreUncalled, boolean mergeInfoWithMaxAC ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
@@ -490,7 +486,7 @@ public class VariantContextUtils {
         for (VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc,inputRefBase,false));
+                VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc, false));
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;
@@ -592,6 +588,14 @@ public class VariantContextUtils {
             }
         }
 
+        // if we have more alternate alleles in the merged VC than in one or more of the original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
+        for ( VariantContext vc : VCs ) {
+            if ( vc.alleles.size() != alleles.size() ) {
+                genotypes = stripPLs(genotypes);
+                break;
+            }
+        }
+
         // take the VC with the maxAC and pull the attributes into a modifiable map
         if ( mergeInfoWithMaxAC && vcWithMaxAC != null ) {
             attributesWithMaxAC.putAll(vcWithMaxAC.getAttributes());
@@ -635,6 +639,16 @@ public class VariantContextUtils {
 
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
+    }
+
+    public static Map<String, Genotype> stripPLs(Map<String, Genotype> genotypes) {
+        Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
+
+        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
+            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? Genotype.removePLs(g.getValue()) : g.getValue());
+        }
+
+        return newGs;
     }
 
     public static Map<VariantContext.Type, List<VariantContext>> separateVariantContextsByType(Collection<VariantContext> VCs) {

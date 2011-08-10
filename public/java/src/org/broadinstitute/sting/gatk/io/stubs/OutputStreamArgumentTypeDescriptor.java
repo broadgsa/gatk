@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.File;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Type;
 
 /**
  * Insert an OutputStreamStub instead of a full-fledged concrete OutputStream implementations.
@@ -78,7 +79,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         ArgumentDefinition definition = createDefaultArgumentDefinition(source);
         String fileName = getArgumentValue( definition, matches );
 
@@ -91,7 +92,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
         engine.addOutput(stub);
 
-        Object result = createInstanceOfClass(type,stub);
+        Object result = createInstanceOfClass(makeRawTypeIfNecessary(type),stub);
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(result,getArgumentTags(matches));
         

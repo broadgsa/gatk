@@ -36,6 +36,8 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.GATKDocUtils;
+import org.broadinstitute.sting.utils.help.GATKDoclet;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
@@ -175,12 +177,8 @@ public class CommandLineGATK extends CommandLineExecutable {
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
 
-        formatter.format("Description:%n");
-
-        WalkerManager walkerManager = engine.getWalkerManager();
-        String walkerHelpText = walkerManager.getWalkerDescriptionText(walkerType);
-
-        printDescriptorLine(formatter,WALKER_INDENT,"",WALKER_INDENT,FIELD_SEPARATOR,walkerHelpText,TextFormattingUtils.DEFAULT_LINE_WIDTH);
+        formatter.format("For a full description of this walker, see its GATKdocs at:%n");
+        formatter.format("%s%n", GATKDocUtils.helpLinksToGATKDocs(walkerType));
 
         return additionalHelp.toString();
     }
@@ -193,8 +191,6 @@ public class CommandLineGATK extends CommandLineExecutable {
         // Construct a help string to output available walkers.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
-
-        formatter.format("Available analyses:%n");
 
         // Get the list of walker names from the walker manager.
         WalkerManager walkerManager = engine.getWalkerManager();

@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata.features.refseq;
 
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;

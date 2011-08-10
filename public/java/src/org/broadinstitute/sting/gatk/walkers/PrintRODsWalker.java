@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -61,11 +62,8 @@ public class PrintRODsWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
-        while ( rods.hasNext() ) {
-            Object rod = rods.next().getUnderlyingObject();
-            if (VariantContextAdaptors.canBeConvertedToVariantContext(rod) )
-                out.println(rod.toString());
+        for ( Feature feature : tracker.getValues(Feature.class) ) {
+            out.println(feature.toString());
         }
 
         return 1;
