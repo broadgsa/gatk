@@ -24,12 +24,12 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.DisjointSet;
@@ -67,8 +67,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
      *
      * All heterozygous variants found in this VCF file will be phased, where possible
      */
-    @Input(fullName="variant", shortName = "V", doc="Phase variants from this VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
@@ -175,8 +175,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         hInfo.add(new VCFInfoHeaderLine(PHASING_INCONSISTENT_KEY, 0, VCFHeaderLineType.Flag, "Are the reads significantly haplotype-inconsistent?"));
 
         // todo -- fix samplesToPhase
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getName()));
-        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(variants.getName()).getGenotypeSamples() : samplesToPhase);
+        String trackName = variantCollection.variants.getName();
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
+        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(trackName).getGenotypeSamples() : samplesToPhase);
         writer.writeHeader(new VCFHeader(hInfo, samples));
     }
 
@@ -207,7 +208,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         PhasingStats phaseStats = new PhasingStats();
         List<VariantContext> unprocessedList = new LinkedList<VariantContext>();
 
-        for (VariantContext vc : tracker.getValues(variants, context.getLocation())) {
+        for (VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
             if (samplesToPhase != null) vc = reduceVCToSamples(vc, samplesToPhase);
 
             if (ReadBackedPhasingWalker.processVariantInPhasing(vc)) {

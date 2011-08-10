@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.beagle;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -52,8 +53,8 @@ import java.util.*;
  */
 @Requires(value={})
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+
+    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="validation", shortName = "validation", doc="Input VCF file", required=false)
     public RodBinding<VariantContext> validation = RodBinding.makeUnbound(VariantContext.class);
@@ -98,7 +99,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
 
-        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
+        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variantCollection.variants.getName()));
 
         beagleWriter.print("marker alleleA alleleB");
         for ( String sample : samples )
@@ -120,7 +121,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext variant_eval = tracker.getFirstValue(variants, loc);
+            VariantContext variant_eval = tracker.getFirstValue(variantCollection.variants, loc);
             VariantContext validation_eval = tracker.getFirstValue(validation, loc);
 
             if ( goodSite(variant_eval,validation_eval) ) {

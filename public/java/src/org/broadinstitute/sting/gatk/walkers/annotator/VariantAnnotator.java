@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -35,7 +36,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -56,8 +56,7 @@ import java.util.*;
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
     public RodBinding<SnpEffFeature> snpEffFile;
@@ -142,7 +141,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             listAnnotationsAndExit();
 
         // get the list of all sample names from the variant VCF input rod, if applicable
-        List<String> rodName = Arrays.asList(variants.getName());
+        List<String> rodName = Arrays.asList(variantCollection.variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
 
         // add the non-VCF sample from the command-line, if applicable
@@ -166,7 +165,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variants.getName())) ) {
+        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
@@ -225,7 +224,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         if ( VCs.size() == 0 )
             return 0;
 
