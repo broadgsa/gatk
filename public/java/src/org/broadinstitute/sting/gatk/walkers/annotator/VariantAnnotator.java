@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
@@ -59,8 +60,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
+    /**
+     * A SnpEff output file from which to add annotations.
+     *
+     * The INFO field will be annotated with information on the most biologically-significant effect
+     * listed in the SnpEff output file for each variant.
+     */
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile;
+    public RodBinding<SnpEffFeature> snpEffFile = RodBinding.makeUnbound(SnpEffFeature.class);
 
     /**
       * A dbSNP VCF file from which to annotate.
@@ -115,6 +122,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     private Collection<VariantContext> indelBufferContext;
 
+    private Map<String, RodBinding<? extends Feature>> rodBindings = new HashMap<String, RodBinding<? extends Feature>>();
+
 
     private void listAnnotationsAndExit() {
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
@@ -157,10 +166,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
         }
 
+        initializeRodBindingMap();
+
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(getToolkit());
+            engine = new VariantAnnotatorEngine(getToolkit(), rodBindings);
         else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse);
+            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse, rodBindings);
         engine.initializeExpressions(expressionsToUse);
 
         // setup the header fields
@@ -178,6 +189,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( indelsOnly ) {
             indelBufferContext = null;
         }
+    }
+
+    private void initializeRodBindingMap() {
+        rodBindings.put(variantCollection.variants.getName(), variantCollection.variants);
+        rodBindings.put(snpEffFile.getName(), snpEffFile);
+        rodBindings.put(dbsnp.dbsnp.getName(), dbsnp.dbsnp);
+        rodBindings.put(comps.getName(), comps);
     }
 
     public static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {
