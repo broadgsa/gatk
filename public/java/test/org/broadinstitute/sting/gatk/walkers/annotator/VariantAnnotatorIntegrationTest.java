@@ -129,8 +129,8 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testSnpEffAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T VariantAnnotator -R " + b37KGReference + " -NO_HEADER -o %s -A SnpEff --variant:VCF " +
-            validationDataLocation + "1000G.exomes.vcf --snpEffFile:SnpEff " + validationDataLocation +
+            "-T VariantAnnotator -R " + b37KGReference + " -NO_HEADER -o %s -A SnpEff --variant " +
+            validationDataLocation + "1000G.exomes.vcf --snpEffFile  " + validationDataLocation +
             "snpEff_1.9.6_1000G.exomes.vcf_hg37.61.out -L 1:26,000,000-26,500,000",
             1,
             Arrays.asList("c08648a078368c80530bff004b3157f1")
