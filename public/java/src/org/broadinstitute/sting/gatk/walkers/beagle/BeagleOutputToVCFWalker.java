@@ -25,16 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -52,10 +49,10 @@ import static java.lang.Math.log10;
 /**
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
  */
-@Requires(value={})
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
     public RodBinding<VariantContext> comp = RodBinding.makeUnbound(VariantContext.class);
@@ -111,7 +108,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
         }
 
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variants.getName()));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variantCollection.variants.getName()));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
@@ -123,7 +120,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
         GenomeLoc loc = context.getLocation();
-        VariantContext vc_input = tracker.getFirstValue(variants, loc);
+        VariantContext vc_input = tracker.getFirstValue(variantCollection.variants, loc);
 
         VariantContext vc_comp = tracker.getFirstValue(comp, loc);
 

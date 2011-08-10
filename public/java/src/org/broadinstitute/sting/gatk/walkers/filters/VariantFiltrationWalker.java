@@ -26,13 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -49,12 +46,11 @@ import java.util.*;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={})
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="mask", doc="Input ROD mask", required=false)
     public RodBinding<Feature> mask = RodBinding.makeUnbound(Feature.class);
@@ -100,7 +96,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     private void initializeVcfWriter() {
 
-        final List<String> inputNames = Arrays.asList(variants.getName());
+        final List<String> inputNames = Arrays.asList(variantCollection.variants.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -152,7 +148,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         // is there a SNP mask present?
         boolean hasMask = tracker.hasValues(mask);

@@ -26,7 +26,6 @@ package org.broadinstitute.sting.gatk;
 
 import org.testng.Assert;
 import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
@@ -64,7 +63,6 @@ public class WalkerManagerUnitTest {
 }
 
 @Hidden
-@Requires(value={})
 class UninstantiableWalker extends Walker<Integer,Long> {
     // Private constructor will generate uninstantiable message
     private UninstantiableWalker() {}

@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -69,8 +70,11 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     public static final String CODON_NUM_KEY = "CODON_NUM";
     public static final String CDS_SIZE_KEY = "CDS_SIZE";
 
-    public Map<String, Object> annotate ( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
-        List<Feature> features = tracker.getValues(Feature.class);
+    public static final String SNPEFF_ROD_NAME = "snpEffFile";
+
+    public Map<String, Object> annotate ( RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
+        RodBinding<SnpEffFeature> snpEffRodBinding = (RodBinding<SnpEffFeature>)rodBindings.get(SNPEFF_ROD_NAME);
+        List<SnpEffFeature> features = tracker.getValues(snpEffRodBinding);
 
         // Add only annotations for one of the most biologically-significant effects as defined in
         // the SnpEffConstants class:
@@ -83,18 +87,14 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
         return generateAnnotations(mostSignificantEffect);
     }
 
-    private SnpEffFeature getMostSignificantEffect ( List<Feature> features ) {
+    private SnpEffFeature getMostSignificantEffect ( List<SnpEffFeature> snpEffFeatures ) {
         SnpEffFeature mostSignificantEffect = null;
 
-        for ( Feature feature : features ) {
-            if ( feature instanceof SnpEffFeature ) {
-                SnpEffFeature snpEffFeature = (SnpEffFeature)feature;
+        for ( SnpEffFeature snpEffFeature : snpEffFeatures ) {
+            if ( mostSignificantEffect == null ||
+                 snpEffFeature.isHigherImpactThan(mostSignificantEffect) ) {
 
-                if ( mostSignificantEffect == null ||
-                     snpEffFeature.isHigherImpactThan(mostSignificantEffect) ) {
-
-                    mostSignificantEffect = snpEffFeature;
-                }
+                mostSignificantEffect = snpEffFeature;
             }
         }
 

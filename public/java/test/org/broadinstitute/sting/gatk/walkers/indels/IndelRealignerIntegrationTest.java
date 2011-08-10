@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -28,7 +27,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         executeTest("test realigner defaults", spec1);
 
         WalkerTestSpec spec2 = new WalkerTestSpec(
-                baseCommand + "-B:indels,vcf " + knownIndels,
+                baseCommand + "-known " + knownIndels,
                 1,
                 Arrays.asList(base_md5_with_SW_or_VCF));
         executeTest("test realigner defaults with VCF", spec2);
@@ -37,7 +36,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
     public void testKnownsOnly() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
-                baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -B:indels,vcf " + knownIndels,
+                baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -known " + knownIndels,
                 1,
                 Arrays.asList("3dd5d2c9931b375455af0bff1a2c4888"));
         executeTest("realigner known indels only from VCF", spec1);
@@ -46,7 +45,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
     public void testUseSW() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
-                baseCommand + "--consensusDeterminationModel USE_SW -B:indels,vcf " + knownIndels,
+                baseCommand + "--consensusDeterminationModel USE_SW -known " + knownIndels,
                 1,
                 Arrays.asList(base_md5_with_SW_or_VCF));
         executeTest("realigner use SW from VCF", spec1);

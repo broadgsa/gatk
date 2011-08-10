@@ -28,9 +28,9 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -56,6 +56,11 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Inputs
     /////////////////////////////
+    /**
+     * The raw input variants to be recalibrated.
+     */
+    @Input(fullName="input", shortName = "input", doc="The raw input variants to be recalibrated", required=true)
+    public List<RodBinding<VariantContext>> input;
     @Input(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
     private File RECAL_FILE;
     @Input(fullName="tranches_file", shortName="tranchesFile", doc="The input tranches file describing where to cut the data", required=true)
@@ -101,17 +106,8 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         }
         Collections.reverse(tranches); // this algorithm wants the tranches ordered from best (lowest truth sensitivity) to worst (highest truth sensitivity)
 
-        for( final ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
-            if( d.getName().startsWith("input") ) {
-                inputNames.add(d.getName());
-                logger.info("Found input variant track with name " + d.getName());
-            } else {
-                logger.info("Not evaluating ROD binding " + d.getName());
-            }
-        }
-
-        if( inputNames.size() == 0 ) {
-            throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
+        for( final RodBinding rod : input ) {
+            inputNames.add( rod.getName() );
         }
 
         if( IGNORE_INPUT_FILTERS != null ) {
@@ -168,7 +164,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( VariantContext vc : tracker.getValues(VariantContext.class, inputNames, context.getLocation()) ) {
+        for( VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
             if( vc != null ) {
                 if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     String filterString = null;

@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -13,7 +15,8 @@ import java.util.Map;
 public abstract class GenotypeAnnotation extends VariantAnnotatorAnnotation {
 
     // return annotations for the given contexts/genotype split by sample
-    public abstract Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g);
+    public abstract Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings,
+                                                 ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g);
 
     // return the descriptions used for the VCF FORMAT meta field
     public abstract List<VCFFormatHeaderLine> getDescriptions();

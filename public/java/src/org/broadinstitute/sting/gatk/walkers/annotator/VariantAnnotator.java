@@ -25,7 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -54,11 +57,35 @@ import java.util.*;
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
+    /**
+     * A SnpEff output file from which to add annotations.
+     *
+     * The INFO field will be annotated with information on the most biologically-significant effect
+     * listed in the SnpEff output file for each variant.
+     */
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile;
+    public RodBinding<SnpEffFeature> snpEffFile = RodBinding.makeUnbound(SnpEffFeature.class);
+
+    /**
+      * A dbSNP VCF file from which to annotate.
+      *
+      * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
+      */
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+
+    /**
+      * A comparisons VCF file from which to annotate.
+      *
+      * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
+      *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
+      *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
+      */
+    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
+    public RodBinding<VariantContext> comps = RodBinding.makeUnbound(VariantContext.class);
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -95,6 +122,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     private Collection<VariantContext> indelBufferContext;
 
+    private Map<String, RodBinding<? extends Feature>> rodBindings = new HashMap<String, RodBinding<? extends Feature>>();
+
 
     private void listAnnotationsAndExit() {
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
@@ -123,7 +152,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             listAnnotationsAndExit();
 
         // get the list of all sample names from the variant VCF input rod, if applicable
-        List<String> rodName = Arrays.asList(variants.getName());
+        List<String> rodName = Arrays.asList(variantCollection.variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
 
         // add the non-VCF sample from the command-line, if applicable
@@ -137,17 +166,19 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
         }
 
+        initializeRodBindingMap();
+
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(getToolkit());
+            engine = new VariantAnnotatorEngine(getToolkit(), rodBindings);
         else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse);
+            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse, rodBindings);
         engine.initializeExpressions(expressionsToUse);
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variants.getName())) ) {
+        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
@@ -158,6 +189,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( indelsOnly ) {
             indelBufferContext = null;
         }
+    }
+
+    private void initializeRodBindingMap() {
+        rodBindings.put(variantCollection.variants.getName(), variantCollection.variants);
+        rodBindings.put(snpEffFile.getName(), snpEffFile);
+        rodBindings.put(dbsnp.dbsnp.getName(), dbsnp.dbsnp);
+        rodBindings.put(comps.getName(), comps);
     }
 
     public static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {
@@ -206,7 +244,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         if ( VCs.size() == 0 )
             return 0;
 

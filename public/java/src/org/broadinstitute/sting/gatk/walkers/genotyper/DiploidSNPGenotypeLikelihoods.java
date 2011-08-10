@@ -276,13 +276,11 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         if ( elt.isReducedRead() ) {
             // reduced read representation
             byte qual = elt.getReducedQual();
-            for ( int i = 0; i < elt.getReducedCount(); i++ ) {
-                add(obsBase, qual, (byte)0, (byte)0);
-            }
-            return elt.getQual();
+            add(obsBase, qual, (byte)0, (byte)0, elt.getReducedCount()); // fast calculation of n identical likelihoods
+            return elt.getReducedCount(); // we added nObs bases here
         } else {
             byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
-            return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0) : 0;
+            return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0, 1) : 0;
         }
     }
 
@@ -309,9 +307,11 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * @param qual1
      * @param obsBase2
      * @param qual2 can be 0, indicating no second base was observed for this fragment
+     * @param nObs The number of times this quad of values was seen.  Generally 1, but reduced reads
+     *  can have nObs > 1 for synthetic reads
      * @return
      */
-    private int add(byte obsBase1, byte qual1, byte obsBase2, byte qual2) {
+    private int add(byte obsBase1, byte qual1, byte obsBase2, byte qual2, int nObs) {
         // TODO-- Right now we assume that there are at most 2 reads per fragment.  This assumption is fine
         // TODO--   given the current state of next-gen sequencing, but may need to be fixed in the future.
         // TODO--   However, when that happens, we'll need to be a lot smarter about the caching we do here.
@@ -332,17 +332,15 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double likelihood = likelihoods[g.ordinal()];
-            
-            //if ( VERBOSE ) {
-            //    System.out.printf("  L(%c | G=%s, Q=%d, S=%s) = %f / %f%n",
-            //            observedBase, g, qualityScore, pow(10,likelihood) * 100, likelihood);
-            //}
-
-            log10Likelihoods[g.ordinal()] += likelihood;
-            log10Posteriors[g.ordinal()] += likelihood;
+            log10Likelihoods[g.ordinal()] += likelihood * nObs;
+            log10Posteriors[g.ordinal()] += likelihood * nObs;
         }
 
         return 1;
+    }
+
+    private int add(byte obsBase1, byte qual1, byte obsBase2, byte qual2) {
+        return add(obsBase1, qual1, obsBase2, qual2, 1);
     }
 
     // -------------------------------------------------------------------------------------

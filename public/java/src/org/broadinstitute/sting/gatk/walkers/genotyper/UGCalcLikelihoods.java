@@ -49,7 +49,6 @@ import java.util.TreeSet;
  * the name 'allele' so we know which alternate allele to use at each site.
  */
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
-@Requires(value={})
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.READS)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)

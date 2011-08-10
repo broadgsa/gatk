@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -64,8 +63,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
      * are techincally order dependent.  It is strongly recommended to provide explicit names when
      * a rod priority list is provided.
      */
-    @Input(fullName = "variant", shortName = "V", doc="The VCF files to merge together", required=true)
-    public List<RodBinding<VariantContext>> variantsToMerge;
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public List<RodBinding<VariantContext>> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -157,7 +156,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getValues(variantsToMerge, context.getLocation());
+        Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);

@@ -27,11 +27,16 @@ package org.broadinstitute.sting.utils.codecs.snpEff;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.TribbleException;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
+import org.broadinstitute.sting.gatk.refdata.SelfScopingFeatureCodec;
+
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.EffectType;
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.ChangeType;
 import static org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants.Zygosity;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
@@ -68,7 +73,7 @@ import java.io.IOException;
  *
  * @author David Roazen
  */
-public class SnpEffCodec implements FeatureCodec {
+public class SnpEffCodec implements FeatureCodec, SelfScopingFeatureCodec {
 
     public static final int EXPECTED_NUMBER_OF_FIELDS = 23;
     public static final String FIELD_DELIMITER_PATTERN = "\\t";
@@ -254,5 +259,17 @@ public class SnpEffCodec implements FeatureCodec {
                                                          headerTokens[columnIndex] + "\"");
             }
         }
+    }
+
+    public boolean canDecode ( final File potentialInput ) {
+        try {
+            LineReader reader = new AsciiLineReader(new FileInputStream(potentialInput));
+            readHeader(reader);
+        }
+        catch ( Exception e ) {
+            return false;
+        }
+
+        return true;
     }
 }
