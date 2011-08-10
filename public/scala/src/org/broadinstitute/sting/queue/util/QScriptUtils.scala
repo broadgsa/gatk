@@ -22,15 +22,15 @@ object QScriptUtils {
    * to have empty lines and comment lines (lines starting with #).
    */
   def createListFromFile(in: File):List[File] = {
-    // If the file provided ends with .bam, it is not a bam list, we treat it as a single file.
+    // If the file provided ends with .bam, .fasta or .fq, it is not a bam list, we treat it as a single file.
     // and return a list with only this file.
-    if (in.toString.endsWith(".bam"))
+    if (in.toString.endsWith(".bam") || in.toString.endsWith(".fasta") || in.toString.endsWith(".fq"))
       return List(in)
 
     var list: List[File] = List()
-    for (bam <- fromFile(in).getLines)
-      if (!bam.startsWith("#") && !bam.isEmpty )
-        list :+= new File(bam.trim())
+    for (file <- fromFile(in).getLines)
+      if (!file.startsWith("#") && !file.isEmpty )
+        list :+= new File(file.trim())
     list.sortWith(_.compareTo(_) < 0)
   }
 
