@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -55,7 +56,7 @@ public class VariantAnnotatorEngine {
     private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
     private HashMap<String, String> dbAnnotations = new HashMap<String, String>();
-
+    private Map<String, RodBinding<? extends Feature>> rodBindings;
 
     private static class VAExpression {
         public String fullName, bindingName, fieldName;
@@ -72,16 +73,18 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want all possible annotations
-    public VariantAnnotatorEngine(GenomeAnalysisEngine engine) {
+    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, Map<String, RodBinding<? extends Feature>> rodBindings) {
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
         requestedGenotypeAnnotations = AnnotationInterfaceManager.createAllGenotypeAnnotations();
         initializeDBs(engine);
+        this.rodBindings = rodBindings;
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse) {
+    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse, Map<String, RodBinding<? extends Feature>> rodBindings) {
         initializeAnnotations(annotationGroupsToUse, annotationsToUse);
         initializeDBs(engine);
+        this.rodBindings = rodBindings;
     }
 
     // select specific expressions to use
@@ -137,7 +140,7 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, ref, stratifiedContexts, vc);
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, rodBindings, ref, stratifiedContexts, vc);
             if ( annotationsFromCurrentType != null )
                 infoAnnotations.putAll(annotationsFromCurrentType);
         }
@@ -202,7 +205,7 @@ public class VariantAnnotatorEngine {
 
             Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
             for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                Map<String, Object> result = annotation.annotate(tracker, ref, context, vc, genotype);
+                Map<String, Object> result = annotation.annotate(tracker, rodBindings, ref, context, vc, genotype);
                 if ( result != null )
                     genotypeAnnotations.putAll(result);
             }
