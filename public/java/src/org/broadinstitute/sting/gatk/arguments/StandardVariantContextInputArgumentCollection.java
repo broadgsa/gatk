@@ -39,14 +39,9 @@ import org.simpleframework.xml.Root;
 public class StandardVariantContextInputArgumentCollection {
 
     /**
-     * The VCF input file(s)
+     * The VCF file we are using.
      *
-     * The variant track can take any number of arguments on the command line.  Each -V argument
-     * will be included as an input to the tool.  If no explicit name is provided,
-     * the -V arguments will be named using the default algorithm: variant, variant2, variant3, etc.
-     * The user can override this by providing an explicit name -V:name,vcf for each -V argument,
-     * and each named argument will be labeled as such in the output (i.e., set=name rather than
-     * set=variant2).  The order of arguments does not matter except for the naming.
+     * Variants from this file are used by this tool as input.
      */
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
