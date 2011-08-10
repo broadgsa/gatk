@@ -239,8 +239,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     // now with banding
     public int linearExactBanded(Map<String, Genotype> GLs,
-                           double[] log10AlleleFrequencyPriors,
-                           double[] log10AlleleFrequencyPosteriors) {
+                                 double[] log10AlleleFrequencyPriors,
+                                 double[] log10AlleleFrequencyPosteriors) {
         throw new NotImplementedException();
 //        final int numSamples = GLs.size();
 //        final int numChr = 2*numSamples;
@@ -419,7 +419,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
 
- 
+
     /**
      * Can be overridden by concrete subclasses
      * @param vc                   variant context with genotype likelihoods
@@ -517,10 +517,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             double qual = Double.NEGATIVE_INFINITY;
             double[] likelihoods = g.getLikelihoods().getAsVector();
- /*           System.out.format("Sample: %s GL:",sample);
-            for (int i=0; i < likelihoods.length; i++)
-                System.out.format("%1.4f ",likelihoods[i]);
-    */
+            /*           System.out.format("Sample: %s GL:",sample);
+                    for (int i=0; i < likelihoods.length; i++)
+                        System.out.format("%1.4f ",likelihoods[i]);
+            */
 
             for (int i=0; i < likelihoods.length; i++) {
                 if (i==bestGTguess)
@@ -531,14 +531,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             // qual contains now max(likelihoods[k]) for all k != bestGTguess
             qual = likelihoods[bestGTguess] - qual;
 
-            // likelihoods are stored row-wise in upper triangular matrix. IE
+            // likelihoods are stored row-wise in lower triangular matrix. IE
             // for 2 alleles they have ordering AA,AB,BB
-            // for 3 alleles they are ordered AA,AB,AC,BB,BC,CC
+            // for 3 alleles they are ordered AA,AB,BB,AC,BC,CC
             // Get now alleles corresponding to best index
             int kk=0;
             boolean done = false;
-            for (int i=0; i < vc.getNAlleles(); i++) {
-                for (int j=i; j < vc.getNAlleles(); j++){
+            for (int j=0; j < vc.getNAlleles(); j++) {
+                for (int i=0; i <= j; i++){
                     if (kk++ == bestGTguess) {
                         if (i==0)
                             myAlleles.add(vc.getReference());
@@ -565,7 +565,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 double chosenGenotype = normalized[bestGTguess];
                 qual = -1.0 * Math.log10(1.0 - chosenGenotype);
             }
- //System.out.println(myAlleles.toString());
+            //System.out.println(myAlleles.toString());
             calls.put(sample, new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
 
         }
@@ -592,7 +592,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             for (int j=0; j <=numChr; j++)
                 logYMatrix[i][j] = Double.NEGATIVE_INFINITY;
 
-         //YMatrix[0][0] = 1.0;
+        //YMatrix[0][0] = 1.0;
         logYMatrix[0][0] = 0.0;
         int j=0;
 
