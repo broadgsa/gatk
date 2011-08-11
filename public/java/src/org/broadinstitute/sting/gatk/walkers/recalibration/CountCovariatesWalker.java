@@ -25,15 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broad.tribble.bed.BEDCodec;
-import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.commandline.Gather;
-import org.broadinstitute.sting.commandline.Output;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableReadFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -42,8 +37,6 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -94,12 +87,17 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     @ArgumentCollection private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
-    @Output
-    PrintStream out;
-
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
+    /**
+     * This algorithm treats every reference mismatch as an indication of error. However, real genetic variation is expected to mismatch the reference,
+     * so it is critical that a database of known polymorphic sites is given to the tool in order to skip over those sites.
+     */
+    @Input(fullName="knownSites", shortName = "knownSites", doc="A database of known polymorphic sites to skip over in the recalibration algorithm", required=false)
+    public List<RodBinding<Feature>> knownSites = Collections.emptyList();
+    @Output
+    PrintStream out;
     @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the output covariates table recalibration file")
     @Gather(CountCovariatesGatherer.class)
     public PrintStream RECAL_FILE;
@@ -190,20 +188,8 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
         }
 
         // Warn the user if no dbSNP file or other variant mask was specified
-        boolean foundDBSNP = false;
-        for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
-            if( rod != null ) {
-                if( rod.getType().equals(DbSNPCodec.class) ||
-                        rod.getType().equals(VCFCodec.class) ||
-                        rod.getType().equals(VCF3Codec.class) ||
-                        rod.getType().equals(BEDCodec.class) ) {
-                    foundDBSNP = true;
-                    break;
-                }
-            }
-        }
-        if( !foundDBSNP && !RUN_WITHOUT_DBSNP ) {
-            throw new UserException.CommandLineException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
+        if( knownSites.isEmpty() && !RUN_WITHOUT_DBSNP ) {
+            throw new UserException.CommandLineException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.");
         }
 
         // Initialize the requested covariates by parsing the -cov argument
@@ -266,12 +252,6 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
             logger.info( "\t" + cov.getClass().getSimpleName() );
             cov.initialize( RAC ); // Initialize any covariate member variables using the shared argument collection
         }
-
-//        try {
-//            stream = new PrintStream( RAC.RECAL_FILE );
-//        } catch ( FileNotFoundException e ) {
-//            throw new RuntimeException( "Couldn't open output file: ", e );
-//        }
     }
 
 
@@ -290,13 +270,10 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      * @return Returns 1, but this value isn't used in the reduce step
      */
     public CountedData map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        // If any ROD covers this site then we assume it is a site of known genetic variation and we skip it
-        boolean isSNP = tracker.getNTracksWithBoundFeatures() > 0;
-        
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicative of poor quality
         CountedData counter = new CountedData();
-        if( !isSNP ) {
+        if( tracker.getValues(knownSites).size() == 0 ) { // If something here is in one of the knownSites tracks then skip over it, otherwise proceed
             // For each read at this locus
             for( final PileupElement p : context.getBasePileup() ) {
                 final GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
@@ -357,8 +334,6 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         return counter;
     }
-
-
 
    /**
      * Update the mismatch / total_base counts for a given class of loci.
