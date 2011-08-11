@@ -7,9 +7,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.Reference;
@@ -22,11 +20,11 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -148,7 +146,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         // Add a dummy comp track if none exists
         if ( comps.size() == 0 ) {
-            comps.add(new RodBinding(VariantContext.class, "none", "UNBOUND", "", new Tags()));
+            comps.add(new RodBinding<VariantContext>(VariantContext.class, "none", "UNBOUND", "", new Tags()));
         }
 
         // Cache the rod names
@@ -329,14 +327,27 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         if ( eval == null )
             return comps.iterator().next();
 
-        // find a matching comp
+        // find all of the matching comps
+        List<VariantContext> matchingComps = new ArrayList<VariantContext>(comps.size());
         for ( VariantContext comp : comps ) {
             if ( comp.getType() == eval.getType() )
-                return comp;
+                matchingComps.add(comp);
         }
 
         // if no matching comp, return null
-        return null;
+        if ( matchingComps.size() == 0 )
+            return null;
+
+        // find the comp which matches the alternate allele from eval
+        Allele altEval = eval.getAlternateAlleles().size() == 0 ? null : eval.getAlternateAllele(0);
+        for ( VariantContext comp : matchingComps ) {
+            Allele altComp = comp.getAlternateAlleles().size() == 0 ? null : comp.getAlternateAllele(0);
+            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp)) )
+                return comp;
+        }
+
+        // if none match, just return the first one
+        return matchingComps.get(0);
     }
 
     public Integer treeReduce(Integer lhs, Integer rhs) { return null; }
