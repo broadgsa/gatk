@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -69,9 +66,35 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
       */
     @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
-    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return null; }
-    public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
-    public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
+
+    /**
+     * The INFO field will be annotated with information on the most biologically-significant effect
+     * listed in the SnpEff output file for each variant.
+     */
+    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
+    public RodBinding<SnpEffFeature> snpEffFile;
+    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return snpEffFile; }
+
+    /**
+      * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
+      *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
+      *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
+      */
+    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
+    public List<RodBinding<VariantContext>> comps = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getCompRodBindings() { return comps; }
+
+    /**
+      * An external resource VCF file or files from which to annotate.
+      *
+      * One can add annotations from one of the resource VCFs to the output.
+      * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
+      * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
+      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+      */
+    @Input(fullName="resource", shortName = "resource", doc="external resource VCF file", required=false)
+    public List<RodBinding<VariantContext>> resources = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
     // control the output
     @Output(doc="File to which variants should be written",required=true)

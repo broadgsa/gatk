@@ -58,6 +58,7 @@ public class UnifiedGenotyperEngine {
 
     // the unified argument collection
     private final UnifiedArgumentCollection UAC;
+    public UnifiedArgumentCollection getUAC() { return UAC; }
 
     // the annotation engine
     private final VariantAnnotatorEngine annotationEngine;
@@ -232,7 +233,7 @@ public class UnifiedGenotyperEngine {
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
         VariantContext vc;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            VariantContext vcInput = SNPGenotypeLikelihoodsCalculationModel.getSNPVCFromAllelesRod(tracker, ref, false, logger);
+            VariantContext vcInput = SNPGenotypeLikelihoodsCalculationModel.getSNPVCFromAllelesRod(tracker, ref, false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
             vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles());
@@ -630,7 +631,7 @@ public class UnifiedGenotyperEngine {
             // no extended event pileup
             // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
             if (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
-                VariantContext vcInput = SNPGenotypeLikelihoodsCalculationModel.getSNPVCFromAllelesRod(tracker, refContext, false, logger);
+                VariantContext vcInput = SNPGenotypeLikelihoodsCalculationModel.getSNPVCFromAllelesRod(tracker, refContext, false, logger, UAC.alleles);
                 if (vcInput == null)
                     return null;
 
