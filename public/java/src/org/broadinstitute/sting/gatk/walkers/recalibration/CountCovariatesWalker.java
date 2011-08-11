@@ -100,7 +100,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the outputted covariates table recalibration file")
+    @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the output covariates table recalibration file")
     @Gather(CountCovariatesGatherer.class)
     public PrintStream RECAL_FILE;
 
@@ -124,8 +124,8 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     private final RecalDataManager dataManager = new RecalDataManager(); // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // A list to hold the covariate objects that were requested
-    private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
-    private static int DBSNP_VALIDATION_CHECK_FREQUENCY = 1000000;                // how often to validate dbsnp mismatch rate (in terms of loci seen)
+    private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;      // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
+    private static int DBSNP_VALIDATION_CHECK_FREQUENCY = 1000000;       // how often to validate dbsnp mismatch rate (in terms of loci seen)
 
     public static class CountedData {
         private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
@@ -136,7 +136,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         private long dbSNPCountsMM = 0, dbSNPCountsBases = 0;  // mismatch/base counts for dbSNP loci
         private long novelCountsMM = 0, novelCountsBases = 0;  // mismatch/base counts for non-dbSNP loci
-        private int lociSinceLastDbsnpCheck = 0;                               // loci since last dbsnp validation
+        private int lociSinceLastDbsnpCheck = 0;               // loci since last dbsnp validation
 
         /**
          * Adds the values of other to this, returning this
@@ -298,8 +298,8 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
         CountedData counter = new CountedData();
         if( !isSNP ) {
             // For each read at this locus
-            for( PileupElement p : context.getBasePileup() ) {
-                GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
+            for( final PileupElement p : context.getBasePileup() ) {
+                final GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
                 int offset = p.getOffset();
 
                 if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE  ) ) {
