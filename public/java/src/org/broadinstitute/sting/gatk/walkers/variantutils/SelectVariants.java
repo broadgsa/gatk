@@ -54,17 +54,9 @@ import java.util.*;
  * recompute the value of certain annotations based on the new sample set, and output a new VCF with the results.
  */
 public class SelectVariants extends RodWalker<Integer, Integer> {
-    /**
-     * The VCF file we are selecting variants from.
-     *
-     * Variants from this file are sent through the filtering and modifying routines as directed
-     * by the arguments to SelectVariants, and finally are emitted.
-     */
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * If provided, we will filter out variants that are "discordant" to the variants in this file
-     *
      * A site is considered discordant if there exists some sample in eval that has a non-reference genotype
      * and either the site isn't present in this track, the sample isn't present in this track,
      * or the sample is called reference in this track.
@@ -73,8 +65,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
 
     /**
-     * If provided, we will filter out any variant in variants that isn't "concordant" with the variants in this track.
-     *
      * A site is considered concordant if (1) we are not looking for specific samples and there is a variant called
      * in both variants and concordance tracks or (2) every sample present in eval is present in the concordance
      * track and they have the sample genotype call.
