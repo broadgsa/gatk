@@ -75,12 +75,12 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class type) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         OutputStreamStub stub = new OutputStreamStub(defaultOutputStream);
         engine.addOutput(stub);
-        return createInstanceOfClass(type,stub);        
+        return createInstanceOfClass((Class)type,stub);
     }
 
     @Override

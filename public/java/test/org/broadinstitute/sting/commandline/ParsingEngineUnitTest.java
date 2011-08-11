@@ -632,8 +632,8 @@ public class ParsingEngineUnitTest extends BaseTest {
     // --------------------------------------------------------------------------------
 
     private class SingleRodBindingArgProvider {
-        @Input(fullName="binding", shortName="V", required=false)
-        public RodBinding<Feature> binding = RodBinding.makeUnbound(Feature.class);
+        @Input(fullName="binding", shortName="V", required=true)
+        public RodBinding<Feature> binding;
     }
 
     @Test
@@ -656,7 +656,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     private class ShortNameOnlyRodBindingArgProvider {
         @Input(shortName="short", required=false)
-        public RodBinding<Feature> binding = RodBinding.makeUnbound(Feature.class);
+        public RodBinding<Feature> binding; // = RodBinding.makeUnbound(Feature.class);
     }
 
     @Test
@@ -677,22 +677,38 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
     }
 
+    private class OptionalRodBindingArgProvider {
+        @Input(fullName="binding", shortName="V", required=false)
+        public RodBinding<Feature> binding;
+
+        @Input(fullName="bindingNull", shortName="VN", required=false)
+        public RodBinding<VariantContext> bindingNull = null;
+    }
+
     @Test
-    public void unbasicRodBindingArgumentTest() {
+    public void optionalRodBindingArgumentTest() {
         final String[] commandLine = new String[] {};
 
-        parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
+        parsingEngine.addArgumentSource( OptionalRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
         parsingEngine.validate();
 
-        SingleRodBindingArgProvider argProvider = new SingleRodBindingArgProvider();
+        OptionalRodBindingArgProvider argProvider = new OptionalRodBindingArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
+        Assert.assertNotNull(argProvider.binding, "Default value not applied corrected to RodBinding");
         Assert.assertEquals(argProvider.binding.getName(), RodBinding.UNBOUND_VARIABLE_NAME, "Name isn't set properly");
         Assert.assertEquals(argProvider.binding.getSource(), RodBinding.UNBOUND_SOURCE, "Source isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.isBound(), false, "Bound() isn't returning its expected value");
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 0, "Tags aren't correctly set");
+
+        Assert.assertNotNull(argProvider.bindingNull, "Default value not applied corrected to RodBinding");
+        Assert.assertEquals(argProvider.bindingNull.getName(), RodBinding.UNBOUND_VARIABLE_NAME, "Name isn't set properly");
+        Assert.assertEquals(argProvider.bindingNull.getSource(), RodBinding.UNBOUND_SOURCE, "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.bindingNull.getType(), VariantContext.class, "Type isn't set to its expected value");
+        Assert.assertEquals(argProvider.bindingNull.isBound(), false, "Bound() isn't returning its expected value");
+        Assert.assertEquals(argProvider.bindingNull.getTags().getPositionalTags().size(), 0, "Tags aren't correctly set");
     }
 
     @Test(expectedExceptions = UserException.class)
