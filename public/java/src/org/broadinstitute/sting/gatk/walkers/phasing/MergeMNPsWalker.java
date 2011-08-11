@@ -25,11 +25,12 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
@@ -58,7 +59,8 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
     protected int maxGenomicDistanceForMNP = 1;
 
-    private String rodName = "variant";
+    @Input(fullName="variant", shortName = "V", doc="Select variants from this VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     public void initialize() {
         initializeVcfWriter();
@@ -74,8 +76,8 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(rodName));
-        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodName).getGenotypeSamples())));
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getName()));
+        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(variants.getName()).getGenotypeSamples())));
     }
 
     public boolean generateExtendedEvents() {
@@ -98,7 +100,7 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
         if (tracker == null)
             return null;
 
-        for (VariantContext vc : tracker.getValues(VariantContext.class, rodName, context.getLocation()))
+        for (VariantContext vc : tracker.getValues(variants, context.getLocation()))
             writeVCF(vc);
 
         return 0;

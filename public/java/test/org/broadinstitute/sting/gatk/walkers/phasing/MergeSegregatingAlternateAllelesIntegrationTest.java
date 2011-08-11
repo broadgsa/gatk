@@ -10,7 +10,7 @@ public class MergeSegregatingAlternateAllelesIntegrationTest extends WalkerTest 
     public static String baseTestString(String reference, String VCF, int maxDist) {
         return "-T MergeSegregatingAlternateAlleles" +
                 " -R " + reference +
-                " -B:variant,VCF " + validationDataLocation + VCF +
+                " --variant:vcf " + validationDataLocation + VCF +
                 " --maxGenomicDistance " + maxDist +
                 " -o %s" +
                 " -NO_HEADER";
