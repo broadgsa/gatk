@@ -29,10 +29,8 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -154,17 +152,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;
-
-        // Warn the user if a dbSNP file was specified since it isn't being used here
-        boolean foundDBSNP = false;
-        for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
-            if( rod.getName().equalsIgnoreCase(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                foundDBSNP = true;
-            }
-        }
-        if( foundDBSNP ) {
-            Utils.warnUser("A dbSNP rod file was specified but TableRecalibrationWalker doesn't make use of it.");
-        }
 
         // Read in the data from the csv file and populate the data map and covariates list
         logger.info( "Reading in the data from input csv file..." );
