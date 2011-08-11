@@ -50,9 +50,6 @@
     <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="contracts.version" value="1.0-20110609" />
     <property name="cofoja.jar" value="${lib.dir}/cofoja-${contracts.version}.jar"/>
-    
-    <!-- where to find the tribble distro -->
-    <property name="tribble.dir" value="tribble" />
 
     <!-- where to find 'findbugs', which you must set if you plan to use 'ant findbugs' -->
     <property name="findbugs.home" value="./findbugs"/>
@@ -245,6 +242,7 @@
 
       <!-- Create the build directory structure used by compile -->
       <mkdir dir="${build.dir}"/>
+      <mkdir dir="${lib.dir}"/>
       <mkdir dir="${java.classes}"/>
       <mkdir dir="${java.contracts}"/>
 
@@ -276,7 +274,7 @@
         </taskdef>
     </target>
 
-    <target name="gatk.compile.public.source" depends="tribble,init,resolve">
+    <target name="gatk.compile.public.source" depends="init,resolve">
         <javac fork="true" srcdir="${java.public.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
           <compilerarg value="-proc:none"/>
         </javac>    
@@ -337,7 +335,7 @@
     <target name="gatk.contracts" depends="gatk.contracts.public,gatk.contracts.private" 
             description="create GATK contracts" if="include.contracts" />
     
-    <target name="gatk.compile" depends="tribble,init,resolve,gatk.compile.source,gatk.contracts" />
+    <target name="gatk.compile" depends="init,resolve,gatk.compile.source,gatk.contracts" />
 
     <target name="init.queue-extensions.generate" depends="gatk.compile">
         <condition property="uptodate.queue-extensions.generate">
@@ -863,7 +861,7 @@
     </macrodef>
 
     <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
-    <target name="test" depends="test.compile,tribble.test" description="Run unit tests">
+    <target name="test" depends="test.compile" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
@@ -911,58 +909,6 @@
         <run-failed-test xmlfailedtestfile="${report}/*PipelineTest/testng-failed.xml" />
     </target>
 
-    <!-- ***************************************************************************** -->
-    <!-- ***********                     Tribble                             ********* -->
-    <!-- ***************************************************************************** -->
-    <target name="tribble.init" description="checks if tribble is available to build from source">
-        <condition property="tribble.compile.exists">
-            <available file="${tribble.dir}/build.xml"/>
-        </condition>
-    </target>
-
-    <!-- compile the library -->
-    <target name="tribble.compile" description="compiles the tribble library" depends="tribble.init" if="tribble.compile.exists">
-        <echo message="Building the Tribble Library..."/>
-        <ant antfile="build.xml" target="all" dir="${tribble.dir}" inheritAll="false"/>
-    </target>
-
-    <!-- copy the compiled library -->
-    <target name="tribble.compile.copy" description="Copies the compiled tribble library" depends="tribble.compile" if="tribble.compile.exists">
-        <copy todir="${lib.dir}">
-            <fileset dir="${tribble.dir}/dist" includes="*.jar"/>
-        </copy>
-    </target>
-
-    <!-- copy the precompiled library -->
-    <target name="tribble.library.copy" description="Copies the precompiled tribble library" depends="tribble.init" unless="tribble.compile.exists">
-        <echo message="Copying the Tribble Library..."/>
-        <copy todir="${lib.dir}">
-            <fileset dir="settings/repository/org.broad" includes="tribble*.jar"/>
-        </copy>
-    </target>
-
-    <target name="tribble" description="Copies the tribble jar" depends="tribble.compile.copy,tribble.library.copy"/>
-
-    <target name="tribble.test.init" description="runs the tribble tests" depends="tribble.init">
-        <condition property="tribble.test.run">
-            <and>
-                <isset property="tribble.compile.exists"/>
-                <not><isset property="single"/></not>
-            </and>
-        </condition>
-    </target>
-
-    <!-- test tribble using the unit tests set in tribble -->
-    <target name="tribble.test" description="runs the tribble tests" depends="tribble.test.init,tribble.compile" if="tribble.test.run">
-        <echo message="Testing the Tribble Library..."/>
-        <ant antfile="build.xml" target="test" dir="${tribble.dir}" inheritAll="false"/>
-    </target>
-
-    <!-- clean tribble -->
-    <target name="tribble.clean" description="cleans the tribble library" depends="tribble.init" if="tribble.compile.exists">
-        <echo message="Cleaning the Tribble Library..."/>
-        <ant antfile="build.xml" target="clean" dir="${tribble.dir}" inheritAll="false"/>
-    </target>
     <!-- ***************************************************************************** -->
 
     <target name="clean.javadoc">
@@ -1080,7 +1026,7 @@
        </findbugs>
     </target>
 
-    <target name="clean" description="clean up" depends="tribble.clean,clean.javadoc,clean.gatkdocs">
+    <target name="clean" description="clean up" depends="clean.javadoc,clean.gatkdocs">
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
