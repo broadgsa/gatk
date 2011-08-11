@@ -54,7 +54,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " -B:dbsnp,vcf " + b36dbSNP129 +
+                        " -knownSites " + b36dbSNP129 +
                         " -T CountCovariates" +
                         " -I " + bam +
                         ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
@@ -135,7 +135,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -standard" +
                             " -OQ" +
                             " -recalFile %s" +
-                            " -B:dbsnp,vcf " + b36dbSNP129,
+                            " -knownSites " + b36dbSNP129,
                     1, // just one output file
                     Arrays.asList(md5));
             executeTest("testCountCovariatesUseOriginalQuals", spec);
@@ -182,7 +182,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:dbsnp,vcf " + b36dbSNP129 +
+                            " -knownSites " + b36dbSNP129 +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -standard" +
@@ -226,30 +226,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testCountCovariatesVCF() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "170f0c3cc4b8d72c539136effeec9a16");
-
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            String bam = entry.getKey();
-            String md5 = entry.getValue();
-
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + b36KGReference +
-                            " -B:dbsnp,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
-                            " -T CountCovariates" +
-                            " -I " + bam +
-                            " -L 1:10,000,000-10,200,000" +
-                            " -standard" +
-                            " --solid_recal_mode SET_Q_ZERO" +
-                            " -recalFile %s",
-                    1, // just one output file
-                    Arrays.asList(md5));
-            executeTest("testCountCovariatesVCF", spec);
-        }
-    }
-
-    @Test
     public void testCountCovariatesBED() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "b460478d9683e827784e42bc352db8bb");
@@ -260,7 +236,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:bed,bed " + validationDataLocation + "recalibrationTest.bed" +
+                            " -knownSites:bed " + validationDataLocation + "recalibrationTest.bed" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:10,000,000-10,200,000" +
@@ -284,10 +260,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:anyNameABCD,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
+                            " -knownSites:anyNameABCD,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
-                            " -B:dbsnp,vcf " + b36dbSNP129 +
+                            " -knownSites " + b36dbSNP129 +
                             " -L 1:10,000,000-10,200,000" +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
@@ -312,7 +288,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " -B:dbsnp,vcf " + b36dbSNP129 +
+                            " -knownSites " + b36dbSNP129 +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -cov ReadGroupCovariate" +

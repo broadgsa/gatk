@@ -93,8 +93,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     @Output(doc="The output BAM file", required=true)
     private StingSAMFileWriter OUTPUT_BAM = null;
-    @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
-        doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
+    @Argument(fullName="preserve_qscores_less_than", shortName="pQ", doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
     private int PRESERVE_QSCORES_LESS_THAN = 5;
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points, default=1")
     private int SMOOTHING = 1;
