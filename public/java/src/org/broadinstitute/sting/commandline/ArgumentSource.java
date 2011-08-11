@@ -185,7 +185,7 @@ public class ArgumentSource {
      * @return A default value for the given type.
      */
     public Object createTypeDefault(ParsingEngine parsingEngine) {
-        return typeDescriptor.createTypeDefault(parsingEngine,this,field.getType());
+        return typeDescriptor.createTypeDefault(parsingEngine,this,field.getGenericType());
     }
 
     /**

@@ -27,6 +27,9 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 
@@ -61,6 +64,11 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "computeSLOD", shortName = "sl", doc = "If provided, we will calculate the SLOD", required = false)
     public boolean COMPUTE_SLOD = false;
 
+    /**
+     * When the UnifiedGenotyper is put into GENOTYPE_GIVEN_ALLELES mode it will genotype the samples using only the alleles provide in this rod binding
+     */
+    @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when in GENOTYPE_MODE = GENOTYPE_GIVEN_ALLELES", required=false)
+    public RodBinding<VariantContext> alleles;
 
     // control the error modes
     @Hidden
@@ -168,6 +176,7 @@ public class UnifiedArgumentCollection {
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
+        uac.alleles = alleles;
 
         uac.GET_GAP_PENALTIES_FROM_DATA = GET_GAP_PENALTIES_FROM_DATA;
         uac.INDEL_RECAL_FILE = INDEL_RECAL_FILE;

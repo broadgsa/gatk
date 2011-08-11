@@ -96,12 +96,13 @@ public abstract class ArgumentTypeDescriptor {
 
     /**
      * Generates a default for the given type.
+     *
      * @param parsingEngine the parsing engine used to validate this argument type descriptor.
      * @param source Source of the command-line argument.
      * @param type Type of value to create, in case the command-line argument system wants influence.
      * @return A default value for the given type.
      */
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
 
     /**
      * Given the given argument source and attributes, synthesize argument definitions for command-line arguments.
@@ -323,8 +324,9 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public boolean createsTypeDefault(ArgumentSource source) { return ! source.isRequired(); }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Class<?> type) {
-        return RodBinding.makeUnbound((Class<? extends Feature>)type);
+    public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Type type) {
+        Class parameterType = getParameterizedTypeClass(type);
+        return RodBinding.makeUnbound((Class<? extends Feature>)parameterType);
     }
 
     @Override
@@ -646,7 +648,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(multiplexer == null || multiplexedIds == null)
             throw new ReviewedStingException("No multiplexed ids available");
 
