@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.refdata.features;
 
 import net.sf.samtools.util.SequenceUtil;
-import org.broad.tribble.Feature;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.utils.Utils;
@@ -44,74 +43,15 @@ public class DbSNPHelper {
 
     private DbSNPHelper() {} // don't make a DbSNPHelper
 
-    public static DbSNPFeature getFirstRealSNP(List<Object> dbsnpList) {
-        if (dbsnpList == null)
-            return null;
-
-        DbSNPFeature dbsnp = null;
-        for (Object d : dbsnpList) {
-            if (d instanceof DbSNPFeature && DbSNPHelper.isSNP((DbSNPFeature)d)) {
-                dbsnp = (DbSNPFeature) d;
-                break;
-            }
-        }
-
-        return dbsnp;
-    }
-
-    public static String rsIDOfFirstRealSNP(List<Feature> featureList, boolean deleteMe) {
-        if (featureList == null)
-            return null;
-
-        String rsID = null;
-        for ( Feature d : featureList ) {
-            if ( d instanceof DbSNPFeature ) {
-                if ( DbSNPHelper.isSNP((DbSNPFeature)d) ) {
-                    rsID = ((DbSNPFeature)d).getRsID();
-                    break;
-                }
-            } else if ( d instanceof VariantContext) {
-                if ( ((VariantContext)d).isSNP() ) {
-                    rsID = ((VariantContext)d).getID();
-                    break;
-                }
-            }
-        }
-
-        return rsID;
-    }
-
-    public static String rsIDOfFirstRealSNP(List<VariantContext> VCs) {
+    public static String rsIDOfFirstRealVariant(List<VariantContext> VCs, VariantContext.Type type) {
         if ( VCs == null )
             return null;
 
         String rsID = null;
         for ( VariantContext vc : VCs ) {
-            if ( vc.isSNP() ) {
+            if ( vc.getType() == type ) {
                 rsID = vc.getID();
                 break;
-            }
-        }
-
-        return rsID;
-    }
-
-    public static String rsIDOfFirstRealIndel(List<Feature> featureList) {
-        if (featureList == null)
-            return null;
-
-        String rsID = null;
-        for ( Feature d : featureList ) {
-            if ( d instanceof DbSNPFeature ) {
-                if ( DbSNPHelper.isIndel((DbSNPFeature) d) ) {
-                    rsID = ((DbSNPFeature)d).getRsID();
-                    break;
-                }
-            } else if ( d instanceof VariantContext) {
-                if ( ((VariantContext)d).isIndel() ) {
-                    rsID = ((VariantContext)d).getID();
-                    break;
-                }
             }
         }
 

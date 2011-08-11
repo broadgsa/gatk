@@ -27,10 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -66,8 +64,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     @Input(fullName="variant", shortName = "V", doc="Input variant file", required=true)
     public RodBinding<Feature> variants;
 
-    @Input(fullName="dbsnp", shortName = "D", doc="dbSNP VCF for populating rsIDs", required=false)
-    public RodBinding<VariantContext> dbsnp;
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
     protected String sampleName = null;
@@ -89,7 +87,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = dbsnp == null ? null : DbSNPHelper.rsIDOfFirstRealSNP(tracker.getValues(dbsnp, context.getLocation()));
+        String rsID = dbsnp == null ? null : DbSNPHelper.rsIDOfFirstRealVariant(tracker.getValues(dbsnp.dbsnp, context.getLocation()), VariantContext.Type.SNP);
 
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
@@ -169,7 +167,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 throw new UserException.BadInput("No dbSNP rod was provided, but one is needed to decipher the correct indel alleles from the HapMap records");
 
             RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),getToolkit().getArguments().unsafe);
-            dbsnpIterator = builder.createInstanceOfTrack(VCFCodec.class, new File(dbsnp.getSource())).getIterator();
+            dbsnpIterator = builder.createInstanceOfTrack(VCFCodec.class, new File(dbsnp.dbsnp.getSource())).getIterator();
             // Note that we should really use some sort of seekable iterator here so that the search doesn't take forever
             // (but it's complicated because the hapmap location doesn't match the dbsnp location, so we don't know where to seek to)
         }

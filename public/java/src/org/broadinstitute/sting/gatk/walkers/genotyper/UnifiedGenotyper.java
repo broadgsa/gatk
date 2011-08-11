@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
@@ -34,16 +33,17 @@ import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -58,7 +58,7 @@ import java.util.*;
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
+public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -68,6 +68,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
       * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
       */
     @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+    public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
+    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return RodBinding.makeUnbound(SnpEffFeature.class); }
+    public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
+    public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
 
     // control the output
     @Output(doc="File to which variants should be written",required=true)
@@ -140,8 +144,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( verboseWriter != null )
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
 
-        // TODO: Fill in the final argument with actual RodBinding map
-        annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse, new HashMap<String, RodBinding<? extends Feature>>());
+        annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, this);
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
 
         // initialize the header
@@ -160,16 +163,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
 
         // also, check to see whether comp rods were included
-        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership"));
-            }
-            else if ( source.getName().startsWith(VariantAnnotatorEngine.dbPrefix) ) {
-                String name = source.getName().substring(VariantAnnotatorEngine.dbPrefix.length());
-                headerInfo.add(new VCFInfoHeaderLine(name, 0, VCFHeaderLineType.Flag, name + " Membership"));
-            }
-        }
+        if ( dbsnp.dbsnp.isBound() )
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership"));
 
         // FORMAT and INFO fields
         headerInfo.addAll(getSupportedHeaderStrings());

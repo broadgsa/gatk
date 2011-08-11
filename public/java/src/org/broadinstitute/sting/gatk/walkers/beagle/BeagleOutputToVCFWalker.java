@@ -55,7 +55,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
-    public RodBinding<VariantContext> comp = RodBinding.makeUnbound(VariantContext.class);
+    public RodBinding<VariantContext> comp;
 
     @Input(fullName="beagleR2", shortName = "beagleR2", doc="VCF file", required=true)
     public RodBinding<BeagleFeature> beagleR2;

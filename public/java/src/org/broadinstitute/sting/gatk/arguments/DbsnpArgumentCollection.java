@@ -42,7 +42,7 @@ public class DbsnpArgumentCollection {
       * A dbSNP VCF file.
       */
     @Input(fullName="dbsnp", shortName = "D", doc="dbSNP file", required=false)
-    public RodBinding<VariantContext> dbsnp = RodBinding.makeUnbound(VariantContext.class);
+    public RodBinding<VariantContext> dbsnp;
 
 }
 

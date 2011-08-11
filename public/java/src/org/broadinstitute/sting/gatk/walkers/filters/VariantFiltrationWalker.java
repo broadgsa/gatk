@@ -53,7 +53,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Input(fullName="mask", doc="Input ROD mask", required=false)
-    public RodBinding<Feature> mask = RodBinding.makeUnbound(Feature.class);
+    public RodBinding<Feature> mask;
 
     @Output(doc="File to which variants should be written", required=true)
     protected VCFWriter writer = null;

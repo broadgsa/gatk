@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
@@ -35,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -55,7 +55,7 @@ import java.util.*;
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class VariantAnnotator extends RodWalker<Integer, Integer> {
+public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatibleWalker {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -67,7 +67,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
      * listed in the SnpEff output file for each variant.
      */
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile = RodBinding.makeUnbound(SnpEffFeature.class);
+    public RodBinding<SnpEffFeature> snpEffFile;
+    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return snpEffFile; }
 
     /**
       * A dbSNP VCF file from which to annotate.
@@ -76,16 +77,30 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
       */
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+    public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
 
     /**
-      * A comparisons VCF file from which to annotate.
+      * A comparisons VCF file or files from which to annotate.
       *
       * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
       *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
       *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
       */
     @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
-    public RodBinding<VariantContext> comps = RodBinding.makeUnbound(VariantContext.class);
+    public List<RodBinding<VariantContext>> comps = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getCompRodBindings() { return comps; }
+
+    /**
+      * An external resource VCF file or files from which to annotate.
+      *
+      * One can add annotations from one of the resource VCFs to the output.
+      * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
+      * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
+      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+      */
+    @Input(fullName="resource", shortName = "resource", doc="external resource VCF file", required=false)
+    public List<RodBinding<VariantContext>> resources = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -121,8 +136,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     private VariantAnnotatorEngine engine;
 
     private Collection<VariantContext> indelBufferContext;
-
-    private Map<String, RodBinding<? extends Feature>> rodBindings = new HashMap<String, RodBinding<? extends Feature>>();
 
 
     private void listAnnotationsAndExit() {
@@ -166,12 +179,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
         }
 
-        initializeRodBindingMap();
-
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(getToolkit(), rodBindings);
+            engine = new VariantAnnotatorEngine(this);
         else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse, rodBindings);
+            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this);
         engine.initializeExpressions(expressionsToUse);
 
         // setup the header fields
@@ -189,13 +200,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( indelsOnly ) {
             indelBufferContext = null;
         }
-    }
-
-    private void initializeRodBindingMap() {
-        rodBindings.put(variantCollection.variants.getName(), variantCollection.variants);
-        rodBindings.put(snpEffFile.getName(), snpEffFile);
-        rodBindings.put(dbsnp.dbsnp.getName(), dbsnp.dbsnp);
-        rodBindings.put(comps.getName(), comps);
     }
 
     public static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {

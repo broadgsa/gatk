@@ -52,7 +52,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
     public List<RodBinding<VariantContext>> variants;
 
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
-    public RodBinding<VariantContext> snpmask = RodBinding.makeUnbound(VariantContext.class);
+    public RodBinding<VariantContext> snpmask;
 
     private int deletionBasesRemaining = 0;
 
