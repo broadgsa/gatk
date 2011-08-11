@@ -69,7 +69,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
       */
     @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
-    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return RodBinding.makeUnbound(SnpEffFeature.class); }
+    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return null; }
     public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
 

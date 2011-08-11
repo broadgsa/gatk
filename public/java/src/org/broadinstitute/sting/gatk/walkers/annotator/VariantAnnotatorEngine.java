@@ -109,7 +109,7 @@ public class VariantAnnotatorEngine {
 
         // check to see whether comp rods were included
         final RodBinding<VariantContext> dbsnp = walker.getDbsnpRodBinding();
-        if ( dbsnp.isBound() )
+        if ( dbsnp != null &&  dbsnp.isBound() )
             dbAnnotations.put(dbsnp, VCFConstants.DBSNP_KEY);
 
         final List<RodBinding<VariantContext>> comps = walker.getCompRodBindings();
