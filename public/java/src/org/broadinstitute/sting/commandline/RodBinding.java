@@ -64,7 +64,7 @@ public final class RodBinding<T extends Feature> {
      * @return the UNBOUND RodBinding producing objects of type T
      */
     @Requires("type != null")
-    public final static <T extends Feature> RodBinding<T> makeUnbound(Class<T> type) {
+    protected final static <T extends Feature> RodBinding<T> makeUnbound(Class<T> type) {
         return new RodBinding<T>(type);
     }
 

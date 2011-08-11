@@ -39,10 +39,11 @@ import org.simpleframework.xml.*;
 public class DbsnpArgumentCollection {
 
     /**
-      * A dbSNP VCF file.
-      */
+     * A dbSNP VCF file.  Variants in this track will be treated as "known" variants
+     * in tools using this track.
+     */
     @Input(fullName="dbsnp", shortName = "D", doc="dbSNP file", required=false)
-    public RodBinding<VariantContext> dbsnp = RodBinding.makeUnbound(VariantContext.class);
+    public RodBinding<VariantContext> dbsnp;
 
 }
 

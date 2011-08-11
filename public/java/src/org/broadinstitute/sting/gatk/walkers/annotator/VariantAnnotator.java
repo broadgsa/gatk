@@ -61,13 +61,11 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * A SnpEff output file from which to add annotations.
-     *
      * The INFO field will be annotated with information on the most biologically-significant effect
      * listed in the SnpEff output file for each variant.
      */
-    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile = RodBinding.makeUnbound(SnpEffFeature.class);
+    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
+    public RodBinding<SnpEffFeature> snpEffFile;
 
     /**
       * A dbSNP VCF file from which to annotate.
@@ -78,14 +76,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     /**
-      * A comparisons VCF file from which to annotate.
-      *
       * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
       *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
       *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
       */
-    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
-    public RodBinding<VariantContext> comps = RodBinding.makeUnbound(VariantContext.class);
+    @Input(fullName="comp", shortName = "comp", doc="A comparisons VCF file from which to annotate", required=false)
+    public RodBinding<VariantContext> comps;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
