@@ -61,8 +61,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * A SnpEff output file from which to add annotations.
-     *
      * The INFO field will be annotated with information on the most biologically-significant effect
      * listed in the SnpEff output file for each variant.
      */
@@ -80,8 +78,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
 
     /**
-      * A comparisons VCF file or files from which to annotate.
-      *
       * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
       *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
       *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).

@@ -62,7 +62,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * or the sample is called reference in this track.
      */
     @Input(fullName="discordance", shortName = "disc", doc="Output variants that were not called in this Feature comparison track", required=false)
-    private RodBinding<VariantContext> discordanceTrack = RodBinding.makeUnbound(VariantContext.class);
+    private RodBinding<VariantContext> discordanceTrack;
 
     /**
      * A site is considered concordant if (1) we are not looking for specific samples and there is a variant called
@@ -70,7 +70,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * track and they have the sample genotype call.
      */
     @Input(fullName="concordance", shortName = "conc", doc="Output variants that were also called in this Feature comparison track", required=false)
-    private RodBinding<VariantContext> concordanceTrack = RodBinding.makeUnbound(VariantContext.class);
+    private RodBinding<VariantContext> concordanceTrack;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
