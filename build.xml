@@ -43,6 +43,9 @@
     <property name="scala.classes" value="${build.dir}/scala/classes" />
 
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
+
+    <property name="javadoc.dir" value="javadoc" />
+    <property name="scaladoc.dir" value="scaladoc" />
     
     <!-- Contracts for Java -->
     <!-- To disable, run with -Duse.contracts=false -->
@@ -85,7 +88,6 @@
     <fileset id="all.java.source.files" dir="${basedir}">
         <patternset refid="all.java.source.pattern" />
     </fileset>
-
 
     <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
         <include name="**/*.java" />
@@ -165,6 +167,12 @@
     <target name="init.buildall">
         <!-- Set the properties needed to build everything -->
         <property name="gatk.target" value="private"/>
+        <property name="scala.target" value="core"/>
+    </target>
+
+    <target name="init.buildpublic">
+        <!-- Set the properties needed to build public only -->
+        <property name="gatk.target" value="core"/>
         <property name="scala.target" value="core"/>
     </target>
 
@@ -909,33 +917,58 @@
         <run-failed-test xmlfailedtestfile="${report}/*PipelineTest/testng-failed.xml" />
     </target>
 
-    <!-- ***************************************************************************** -->
+    <!-- ******************************************************************************** -->
+    <!-- Javadoc                                                                          -->
+    <!-- ******************************************************************************** -->
 
     <target name="clean.javadoc">
-        <delete dir="javadoc"/>
-        <delete dir="scaladoc"/>
+        <delete dir="${javadoc.dir}" />
     </target>
 
-    <target name="javadoc" depends="init.buildall,resolve,queue-extensions.generate,init.scala.compile" description="generates javadoc">
-        <mkdir dir="javadoc"/>
-        <javadoc destdir="javadoc"
-                 classpathref="external.dependencies">
-            <sourcepath path="${java.public.source.dir}"/>
-            <sourcepath path="${external.dir}"/>
+    <target name="init.javadoc">
+        <mkdir dir="${javadoc.dir}" />
+    </target>
+
+    <target name="javadoc" depends="init.buildpublic,generate.javadoc" description="Generates public javadoc" />
+
+    <target name="javadoc.private" depends="init.buildall,generate.javadoc" description="Generates public and private javadoc" />
+
+    <target name="generate.javadoc" depends="init.javadoc,resolve">
+        <javadoc destdir="${javadoc.dir}" classpathref="external.dependencies">
+            <fileset refid="java.source.files" />
+            <sourcepath path="${external.dir}" />
         </javadoc>
-        <javadoc destdir="javadoc"
-                 classpathref="external.dependencies">
-            <sourcepath path="${java.private.source.dir}"/>
-            <exclude name="**" unless="include.private" />
-        </javadoc>        
-        <mkdir dir="scaladoc"/>
-        <scaladoc srcdir="" destdir="scaladoc" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${scala.public.source.dir}"/>
-            <src path="${scala.private.source.dir}"/>
-            <src path="${queue-extensions.source.dir}"/>
-            <include name="**/*.scala"/>
+    </target>
+
+    <!-- ******************************************************************************** -->
+    <!-- Scaladoc                                                                         -->
+    <!-- ******************************************************************************** -->
+
+    <target name="clean.scaladoc">
+        <delete dir="${scaladoc.dir}" />
+    </target>
+
+    <target name="init.scaladoc">
+        <mkdir dir="${scaladoc.dir}" />
+    </target>
+
+    <!-- NOTE: the scaladoc targets require that the environment variable ANT_OPTS has been set to "-Xmx1G" -->
+
+    <target name="scaladoc" depends="init.buildpublic,generate.scaladoc" description="Generates public scaladoc -- set ANT_OPTS to -Xmx1G" />
+
+    <target name="scaladoc.private" depends="init.buildall,generate.scaladoc" description="Generates public and private scaladoc -- set ANT_OPTS to -Xmx1G" />
+
+    <target name="generate.scaladoc" depends="resolve,queue-extensions.generate,init.scala.compile,scala.compile,init.scaladoc">
+        <scaladoc srcdir="${basedir}" destdir="${scaladoc.dir}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
+            <include name="${scala.public.source.dir}/**/*.scala" />
+            <include name="${queue-extensions.source.dir}/**/*.scala" />
+            <include name="${scala.private.source.dir}/**/*.scala" if="include.private" />
         </scaladoc>
     </target>
+
+    <!-- ******************************************************************************** -->
+    <!-- Release-related tasks                                                            -->
+    <!-- ******************************************************************************** -->
 
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
     <target name="stage" description="stage files for distribution">
@@ -1026,7 +1059,7 @@
        </findbugs>
     </target>
 
-    <target name="clean" description="clean up" depends="clean.javadoc,clean.gatkdocs">
+    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs">
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
