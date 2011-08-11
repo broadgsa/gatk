@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
@@ -30,7 +29,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
 
     private static String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )
             return null;
 

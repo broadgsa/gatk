@@ -24,11 +24,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.Utils;
@@ -70,10 +70,8 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     public static final String CODON_NUM_KEY = "CODON_NUM";
     public static final String CDS_SIZE_KEY = "CDS_SIZE";
 
-    public static final String SNPEFF_ROD_NAME = "snpEffFile";
-
-    public Map<String, Object> annotate ( RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
-        RodBinding<SnpEffFeature> snpEffRodBinding = (RodBinding<SnpEffFeature>)rodBindings.get(SNPEFF_ROD_NAME);
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+        RodBinding<SnpEffFeature> snpEffRodBinding = walker.getSnpEffRodBinding();
         List<SnpEffFeature> features = tracker.getValues(snpEffRodBinding);
 
         // Add only annotations for one of the most biologically-significant effects as defined in

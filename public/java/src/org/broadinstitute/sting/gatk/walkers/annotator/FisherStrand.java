@@ -25,11 +25,10 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import cern.jet.math.Arithmetic;
-import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
@@ -48,7 +47,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( ! vc.isVariant() || vc.isFiltered() )
             return null;
 

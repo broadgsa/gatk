@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -29,7 +28,7 @@ public class GLstats extends InfoFieldAnnotation implements StandardAnnotation {
 
     private static final int MIN_SAMPLES = 10;
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, Map<String, RodBinding<? extends Feature>> rodBindings, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
         final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
