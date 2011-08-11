@@ -84,6 +84,17 @@ public abstract class ArgumentTypeDescriptor {
     public boolean createsTypeDefault(ArgumentSource source) { return false; }
 
     /**
+     * Returns a documentation-friendly value for the default of a type descriptor.
+     * Must be overridden if createsTypeDefault return true.  cannot be called otherwise
+     * @param source Source of the command-line argument.
+     * @return Friendly string of the default value, for documentation.  If doesn't create a default, throws
+     * and UnsupportedOperationException
+     */
+    public String typeDefaultDocString(ArgumentSource source) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Generates a default for the given type.
      * @param parsingEngine the parsing engine used to validate this argument type descriptor.
      * @param source Source of the command-line argument.
@@ -306,6 +317,19 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     public static boolean isRodBinding( Class type ) {
         return RodBinding.class.isAssignableFrom(type);
+    }
+
+    @Override
+    public boolean createsTypeDefault(ArgumentSource source) { return ! source.isRequired(); }
+
+    @Override
+    public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Class<?> type) {
+        return RodBinding.makeUnbound((Class<? extends Feature>)type);
+    }
+
+    @Override
+    public String typeDefaultDocString(ArgumentSource source) {
+        return "none";
     }
 
     @Override
@@ -639,6 +663,10 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         return multiplexedMapping;
     }
 
+    @Override
+    public String typeDefaultDocString(ArgumentSource source) {
+        return "None";
+    }
 
     @Override
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {

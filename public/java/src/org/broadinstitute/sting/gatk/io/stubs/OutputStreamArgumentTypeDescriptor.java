@@ -70,6 +70,11 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
+    public String typeDefaultDocString(ArgumentSource source) {
+        return "stdout";
+    }
+
+    @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");

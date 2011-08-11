@@ -129,6 +129,16 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                     // get the value of the field
                     if ( instance != null ) {
                         Object value = getFieldValue(toProcess.clazz, instance, fieldDoc.name());
+
+                        if ( value == null && argumentSource.createsTypeDefault() ) {
+                            // handle the case where there's an implicit default
+                            try {
+                                value = argumentSource.typeDefaultDocString();
+                            } catch (ReviewedStingException e) {
+                                ; // failed to create type default, don't worry about it
+                            }
+                        }
+
                         if ( value != null )
                             argBindings.put("defaultValue", prettyPrintValueString(value));
                     }
@@ -197,8 +207,11 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 return Arrays.toString((Object[])value);
             else
                 throw new RuntimeException("Unexpected array type in prettyPrintValue.  Value was " + value + " type is " + type);
-        } else
-            return value.toString();
+        } else if ( RodBinding.class.isAssignableFrom(value.getClass() ) )
+            // annoying special case to handle the UnBound() constructor
+            return "none";
+
+        return value.toString();
     }
 
     private Object makeInstanceIfPossible(Class c) {
@@ -220,10 +233,10 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // this last one is super dangerous, but some of these methods catch ClassNotFoundExceptions
         // and rethrow then as RuntimeExceptions
         catch (RuntimeException e) {}
-        finally {
-            if ( instance == null )
-                logger.warn(String.format("Unable to create instance of class %s => %s", c, instance));
-        }
+//        finally {
+//            if ( instance == null )
+//                logger.warn(String.format("Unable to create instance of class %s => %s", c, instance));
+//        }
 
         return instance;
     }

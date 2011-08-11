@@ -175,6 +175,10 @@ public class ArgumentSource {
         return typeDescriptor.createsTypeDefault(this);
     }
 
+    public String typeDefaultDocString() {
+        return typeDescriptor.typeDefaultDocString(this);
+    }
+
     /**
      * Generates a default for the given type.
      * @param parsingEngine the parsing engine used to validate this argument type descriptor.

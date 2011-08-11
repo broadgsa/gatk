@@ -104,7 +104,7 @@ public class TextFormattingUtils {
             bundle = ResourceBundle.getBundle(bundleName);
         }
         catch(MissingResourceException ex) {
-            logger.warn("Unable to load help text.  Help output will be sparse.");
+            //logger.warn("Unable to load help text.  Help output will be sparse.");
             // Generate an empty resource bundle.
             try {
                 bundle = new PropertyResourceBundle(new StringReader(""));

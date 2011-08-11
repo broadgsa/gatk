@@ -53,7 +53,6 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         this.engine = engine;
     }
 
-
     @Override
     public boolean supports( Class type ) {
         return SAMFileReader.class.isAssignableFrom(type);

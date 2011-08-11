@@ -93,7 +93,7 @@ public class GATKDoclet {
         TreeSet<GATKDocWorkUnit> m = new TreeSet<GATKDocWorkUnit>();
 
         for ( ClassDoc doc : rootDoc.classes() ) {
-            logger.debug("Considering " + doc);
+            //logger.debug("Considering " + doc);
             Class clazz = getClassForClassDoc(doc);
 
             if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
@@ -102,7 +102,7 @@ public class GATKDoclet {
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
             if ( handler != null && handler.includeInDocs(doc) ) {
-                logger.info("Going to generate documentation for class " + doc);
+                logger.info("Generating documentation for class " + doc);
                 String filename = handler.getDestinationFilename(doc, clazz);
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
                         filename, feature.groupName(),
