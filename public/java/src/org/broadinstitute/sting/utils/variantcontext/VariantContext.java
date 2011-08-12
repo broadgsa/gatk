@@ -1209,7 +1209,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     private void validateReferencePadding() {
-        boolean needsPadding = hasSymbolicAlleles() || (getReference().length() == getEnd() - getStart()); // off by one because padded base was removed
+        if (hasSymbolicAlleles()) // symbolic alleles don't need padding...
+            return;
+
+        boolean needsPadding = (getReference().length() == getEnd() - getStart()); // off by one because padded base was removed
 
         if ( needsPadding && !hasReferenceBaseForIndel() )
             throw new ReviewedStingException("Badly formed variant context at location " + getChr() + ":" + getStart() + "; no padded reference base was provided.");
