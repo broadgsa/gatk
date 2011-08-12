@@ -35,7 +35,7 @@ import java.util.Map;
  * a feature returned by the HapMap Codec - it represents contig, position, name,
  * alleles, other hapmap information, and genotypes for specified samples
  */
-public class HapMapFeature implements Feature {
+public class RawHapMapFeature implements Feature {
 
     public static final String NULL_ALLELE_STRING = "-";
     public static final String INSERTION = "I";
@@ -72,19 +72,19 @@ public class HapMapFeature implements Feature {
      * @param qccode ??
      * @param genotypes a list of strings, representing the genotypes for the list of samples
      */
-    public HapMapFeature(String name,
-                         String[] alleles,
-                         String contig,
-                         Long position,
-                         Strand strand,
-                         String assembly,
-                         String center,
-                         String protLSID,
-                         String assayLSID,
-                         String panelLSID,
-                         String qccode,
-                         String[] genotypes,
-                         String headerLine) {
+    public RawHapMapFeature(String name,
+                            String[] alleles,
+                            String contig,
+                            Long position,
+                            Strand strand,
+                            String assembly,
+                            String center,
+                            String protLSID,
+                            String assayLSID,
+                            String panelLSID,
+                            String qccode,
+                            String[] genotypes,
+                            String headerLine) {
         this.name = name;
         this.alleles = alleles;
         this.contig = contig;

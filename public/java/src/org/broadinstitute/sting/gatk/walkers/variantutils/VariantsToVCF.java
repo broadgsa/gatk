@@ -40,7 +40,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.hapmap.HapMapFeature;
+import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -124,19 +124,19 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         for ( Feature record : features ) {
             if ( VariantContextAdaptors.canBeConvertedToVariantContext(record) ) {
                 // we need to special case the HapMap format because indels aren't handled correctly
-                if ( record instanceof HapMapFeature) {
+                if ( record instanceof RawHapMapFeature) {
 
                     // is it an indel?
-                    HapMapFeature hapmap = (HapMapFeature)record;
-                    if ( hapmap.getAlleles()[0].equals(HapMapFeature.NULL_ALLELE_STRING) || hapmap.getAlleles()[1].equals(HapMapFeature.NULL_ALLELE_STRING) ) {
+                    RawHapMapFeature hapmap = (RawHapMapFeature)record;
+                    if ( hapmap.getAlleles()[0].equals(RawHapMapFeature.NULL_ALLELE_STRING) || hapmap.getAlleles()[1].equals(RawHapMapFeature.NULL_ALLELE_STRING) ) {
                         // get the dbsnp object corresponding to this record (needed to help us distinguish between insertions and deletions)
                         VariantContext dbsnpVC = getDbsnp(hapmap.getName());
                         if ( dbsnpVC == null || dbsnpVC.isMixed() )
                             continue;
 
                         Map<String, Allele> alleleMap = new HashMap<String, Allele>(2);
-                        alleleMap.put(HapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isInsertion()));
-                        alleleMap.put(HapMapFeature.INSERTION, Allele.create(((HapMapFeature)record).getAlleles()[1], !dbsnpVC.isInsertion()));
+                        alleleMap.put(RawHapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isInsertion()));
+                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create(((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isInsertion()));
                         hapmap.setActualAlleles(alleleMap);
 
                         // also, use the correct positioning for insertions
@@ -212,8 +212,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                         throw new IllegalStateException("No rod data is present, but we just created a VariantContext");
 
                     Feature f = features.get(0);
-                    if ( f instanceof HapMapFeature )
-                        samples.addAll(Arrays.asList(((HapMapFeature)f).getSampleIDs()));
+                    if ( f instanceof RawHapMapFeature )
+                        samples.addAll(Arrays.asList(((RawHapMapFeature)f).getSampleIDs()));
                     else
                         samples.addAll(vc.getSampleNames());
                 }

@@ -6,7 +6,7 @@ import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.hapmap.HapMapFeature;
+import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -226,7 +226,7 @@ public class VariantContextAdaptors {
          * @return HapMapFeature.
          */
         @Override
-        public Class<? extends Feature> getAdaptableFeatureType() { return HapMapFeature.class; }
+        public Class<? extends Feature> getAdaptableFeatureType() { return RawHapMapFeature.class; }
 
         /**
          * convert to a Variant Context, given:
@@ -240,7 +240,7 @@ public class VariantContextAdaptors {
             if ( ref == null )
                 throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires a reference context");
 
-            HapMapFeature hapmap = (HapMapFeature)input;
+            RawHapMapFeature hapmap = (RawHapMapFeature)input;
 
             int index = hapmap.getStart() - ref.getWindow().getStart();
             if ( index < 0 )
@@ -255,7 +255,7 @@ public class VariantContextAdaptors {
             // use the actual alleles, if available
             if ( alleleMap != null ) {
                 alleles.addAll(alleleMap.values());
-                Allele deletionAllele = alleleMap.get(HapMapFeature.INSERTION);  // yes, use insertion here (since we want the reference bases)
+                Allele deletionAllele = alleleMap.get(RawHapMapFeature.INSERTION);  // yes, use insertion here (since we want the reference bases)
                 if ( deletionAllele != null && deletionAllele.isReference() )
                     deletionLength = deletionAllele.length();
             } else {
