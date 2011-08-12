@@ -3,13 +3,11 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.Reference;
@@ -22,12 +20,11 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -46,6 +43,16 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Output
     protected PrintStream out;
 
+    @Input(fullName="eval", shortName = "eval", doc="Input evaluation file(s)", required=true)
+    public List<RodBinding<VariantContext>> evals;
+
+    @Input(fullName="comp", shortName = "comp", doc="Input comparison file(s)", required=false)
+    public List<RodBinding<VariantContext>> compsProvided = Collections.emptyList();
+    private List<RodBinding<VariantContext>> comps = new ArrayList<RodBinding<VariantContext>>();
+
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+
     // Help arguments
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit")
     protected Boolean LIST = false;
@@ -61,7 +68,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     protected Set<String> SAMPLE_EXPRESSIONS;
 
     @Argument(shortName="knownName", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
-    protected String[] KNOWN_NAMES = {DbSNPHelper.STANDARD_DBSNP_TRACK_NAME};
+    protected String[] KNOWN_NAMES = {};
 
     // Stratification arguments
     @Argument(fullName="stratificationModule", shortName="ST", doc="One or more specific stratification modules to apply to the eval track(s) (in addition to the standard stratifications, unless -noS is specified)", required=false)
@@ -115,6 +122,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     // The set of all possible evaluation contexts
     private HashMap<StateKey, NewEvaluationContext> evaluationContexts = null;
 
+    // important stratifications
+    private boolean byFilterIsEnabled = false;
+    private boolean perSampleIsEnabled = false;
+
     // Output report
     private GATKReport report = null;
 
@@ -134,28 +145,25 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Just list the modules, and exit quickly.
         if (LIST) { variantEvalUtils.listModulesAndExit(); }
 
-        // Categorize each rod as an eval or a comp rod.
-        for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
-            if ( d.getName().startsWith("eval") ) {
-                evalNames.add(d.getName());
-            } else if ( d.getName().startsWith("comp") || d.getName().startsWith(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                compNames.add(d.getName());
-            } else {
-                logger.info(String.format("Not evaluating ROD binding '%s' because the name did not start with %s, comp, or eval", d.getName(), Utils.join(", ", KNOWN_NAMES)));
-            }
-        }
-
-        // Barf if we don't have any eval tracks.
-        if (evalNames.size() == 0) {
-            throw new UserException("No evaluation tracks were specified.  Please bind one or more callsets to evaluate using the -B argument with a trackname that starts with the word 'eval'.");
+        // maintain the full list of comps
+        comps.addAll(compsProvided);
+        if ( dbsnp.dbsnp.isBound() ) {
+            comps.add(dbsnp.dbsnp);
+            knownNames.add(dbsnp.dbsnp.getName());
         }
 
         // Add a dummy comp track if none exists
-        if (compNames.size() == 0) {
-            compNames.add("none");
-        }
+        if ( comps.size() == 0 )
+            comps.add(new RodBinding<VariantContext>(VariantContext.class, "none", "UNBOUND", "", new Tags()));
 
-        // Set up set of known names
+        // Cache the rod names
+        for ( RodBinding<VariantContext> compRod : comps )
+            compNames.add(compRod.getName());
+
+        for ( RodBinding<VariantContext> evalRod : evals )
+            evalNames.add(evalRod.getName());
+
+        // Set up set of additional known names
         knownNames.addAll(Arrays.asList(KNOWN_NAMES));
 
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
@@ -190,6 +198,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+        for ( VariantStratifier vs : getStratificationObjects() ) {
+            if ( vs.getClass().getSimpleName().equals("Filter") )
+                byFilterIsEnabled = true;
+            else if ( vs.getClass().getSimpleName().equals("Sample") )
+                perSampleIsEnabled = true;
+        }
 
         // Initialize the evaluation contexts
         evaluationContexts = variantEvalUtils.initializeEvaluationContexts(stratificationObjects, evaluationObjects, null, null);
@@ -221,61 +235,66 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         if (tracker != null) {
             String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
 
-            //      track           sample  vc
-            HashMap<String, HashMap<String, VariantContext>> vcs = variantEvalUtils.getVariantContexts(tracker, ref, compNames, evalNames, typesToUse != null);
+            //      --------- track ---------           sample  - VariantContexts -
+            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false);
 
-            for ( String compName : compNames ) {
-                VariantContext comp = vcs.containsKey(compName) && vcs.get(compName) != null && vcs.get(compName).containsKey(ALL_SAMPLE_NAME) ? vcs.get(compName).get(ALL_SAMPLE_NAME) : null;
+            // for each eval track
+            for ( final RodBinding<VariantContext> evalRod : evals ) {
+                final HashMap<String, Set<VariantContext>> evalSet = evalVCs.containsKey(evalRod) ? evalVCs.get(evalRod) : new HashMap<String, Set<VariantContext>>(0);
 
-                for ( String evalName : evalNames ) {
-                    for ( String sampleName : sampleNamesForStratification ) {
-                        VariantContext eval = vcs.containsKey(evalName) && vcs.get(evalName) != null ? vcs.get(evalName).get(sampleName) : null;
+                // for each sample stratifier
+                for ( final String sampleName : sampleNamesForStratification ) {
+                    Set<VariantContext> evalSetBySample = evalSet.get(sampleName);
+                    if ( evalSetBySample == null ) {
+                        evalSetBySample = new HashSet<VariantContext>(1);
+                        evalSetBySample.add(null);
+                    }
 
-                        // todo: Eric, this is really the problem.  We select single eval and comp VCs independently
-                        // todo: discarding multiple eval tracks at the sites and not providing matched comps
-                        // todo: where appropriate.  Really this loop should look like:
-                        // todo: for each eval track:
-                        // todo:   for each eval in track:
-                        // todo:     for each compTrack:
-                        // todo:       comp = findMatchingComp(eval, compTrack) // find the matching comp in compTrack
-                        // todo:       call evalModule(eval, comp)
-                        // todo:       // may return null if no such comp exists, but proceed as eval modules may need to see eval / null pair
-                        // todo:       for each comp not matched by an eval in compTrack:
-                        // todo:         call evalModule(null, comp)
-                        // todo:         // need to call with null comp, as module
-                        // todo: note that the reason Kiran pre-computed the possible VCs is to apply the modifiers
-                        // todo: like subset to sample, etc.  So you probably will want a master map that maps
-                        // todo: from special eval bindings to the digested VC for efficiency.
-
-                        if ( typesToUse != null ) {
-                            if ( eval != null && ! typesToUse.contains(eval.getType()) ) eval = null;
-                            if ( comp != null && ! typesToUse.contains(comp.getType()) ) comp = null;
-//                            if ( eval != null ) logger.info("Keeping " + eval);
-                        }
-
-                        if (eval != null && aastr != null) {
+                    // for each eval in the track
+                    for ( VariantContext eval : evalSetBySample ) {
+                        // deal with ancestral alleles if requested
+                        if ( eval != null && aastr != null ) {
                             HashMap<String, Object> newAts = new HashMap<String, Object>(eval.getAttributes());
                             newAts.put("ANCESTRALALLELE", aastr);
-
                             eval = VariantContext.modifyAttributes(eval, newAts);
                         }
 
-                        HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
-                        for ( VariantStratifier vs : stratificationObjects ) {
-                            ArrayList<String> states = vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName);
-                            stateMap.put(vs, states);
-                        }
+                        // for each comp track
+                        for ( final RodBinding<VariantContext> compRod : comps ) {
+                            // no sample stratification for comps
+                            final Set<VariantContext> compSet = compVCs.get(compRod) == null ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
 
-                        ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
-                        variantEvalUtils.initializeStateKeys(stateMap, null, null, stateKeys);
+                            // find the comp
+                            final VariantContext comp = findMatchingComp(eval, compSet);
 
-                        HashSet<StateKey> stateKeysHash = new HashSet<StateKey>(stateKeys);
+                            HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
+                            for ( VariantStratifier vs : stratificationObjects ) {
+                                ArrayList<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
+                                stateMap.put(vs, states);
+                            }
 
-                        for ( StateKey stateKey : stateKeysHash ) {
-                            NewEvaluationContext nec = evaluationContexts.get(stateKey);
+                            ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
+                            variantEvalUtils.initializeStateKeys(stateMap, null, null, stateKeys);
 
-                            synchronized (nec) {
-                                nec.apply(tracker, ref, context, comp, eval);
+                            HashSet<StateKey> stateKeysHash = new HashSet<StateKey>(stateKeys);
+
+                            for ( StateKey stateKey : stateKeysHash ) {
+                                NewEvaluationContext nec = evaluationContexts.get(stateKey);
+
+                                // eval against the comp
+                                synchronized (nec) {
+                                    nec.apply(tracker, ref, context, comp, eval);
+                                }
+
+                                // eval=null against all comps of different type
+                                for ( VariantContext otherComp : compSet ) {
+                                    if ( otherComp != comp ) {
+                                        synchronized (nec) {
+                                            nec.apply(tracker, ref, context, otherComp, null);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -284,6 +303,38 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         return null;
+    }
+
+    private VariantContext findMatchingComp(final VariantContext eval, final Set<VariantContext> comps) {
+        // if no comps, return null
+        if ( comps == null || comps.isEmpty() )
+            return null;
+
+        // if no eval, return any comp
+        if ( eval == null )
+            return comps.iterator().next();
+
+        // find all of the matching comps
+        List<VariantContext> matchingComps = new ArrayList<VariantContext>(comps.size());
+        for ( VariantContext comp : comps ) {
+            if ( comp.getType() == eval.getType() )
+                matchingComps.add(comp);
+        }
+
+        // if no matching comp, return null
+        if ( matchingComps.size() == 0 )
+            return null;
+
+        // find the comp which matches the alternate allele from eval
+        Allele altEval = eval.getAlternateAlleles().size() == 0 ? null : eval.getAlternateAllele(0);
+        for ( VariantContext comp : matchingComps ) {
+            Allele altComp = comp.getAlternateAlleles().size() == 0 ? null : comp.getAlternateAllele(0);
+            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp)) )
+                return comp;
+        }
+
+        // if none match, just return the first one
+        return matchingComps.get(0);
     }
 
     public Integer treeReduce(Integer lhs, Integer rhs) { return null; }

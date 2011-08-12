@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
@@ -56,8 +57,9 @@ public class VariantEvalUtils {
     /**
      * Initialize required, standard and user-specified stratification objects
      *
-     * @param noStandardStrats don't use the standard stratifications
-     * @param modulesToUse     the list of stratification modules to use
+     * @param variantEvalWalker  the parent walker
+     * @param noStandardStrats   don't use the standard stratifications
+     * @param modulesToUse       the list of stratification modules to use
      * @return set of stratifications to use
      */
     public TreeSet<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
@@ -257,23 +259,6 @@ public class VariantEvalUtils {
     }
 
     /**
-     * Figure out what the allowable variation types are based on the eval context
-     *
-     * @param tracker   the reference metadata tracker
-     * @param ref       the reference context
-     * @param compNames the comp track names
-     * @param evalNames the evaluation track names
-     * @return the set of allowable variation types
-     */
-    public EnumSet<VariantContext.Type> getAllowableVariationTypes(RefMetaDataTracker tracker,
-                                                                   ReferenceContext ref,
-                                                                   Set<String> compNames,
-                                                                   Set<String> evalNames,
-                                                                   boolean dynamicSelectTypes ) {
-        return EnumSet.allOf(VariantContext.Type.class);
-    }
-
-    /**
      * Subset a VariantContext to a single sample
      *
      * @param vc         the VariantContext object containing multiple samples
@@ -295,7 +280,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values());
+        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values(), vc.getAlleles());
 
         HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());
 
@@ -321,78 +306,59 @@ public class VariantEvalUtils {
      *
      * @param tracker        the metadata tracker
      * @param ref            the reference context
-     * @param trackNames     the list of track names to process
-     * @param allowableTypes a set of allowable variation types
+     * @param tracks         the list of tracks to process
      * @param byFilter       if false, only accept PASSing VariantContexts.  Otherwise, accept both PASSing and filtered
      *                       sites
      * @param subsetBySample if false, do not separate the track into per-sample VCs
      * @param trackPerSample if false, don't stratify per sample (and don't cut up the VariantContext like we would need
      *                       to do this)
-     * @return a mapping of track names to a list of VariantContext objects
+     *
+     * @return the mapping of track to VC list that should be populated
      */
-    protected void bindVariantContexts(HashMap<String, HashMap<String, VariantContext>> bindings, RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean subsetBySample, boolean trackPerSample) {
-        for (String trackName : trackNames) {
-            HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
+    public HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, List<RodBinding<VariantContext>> tracks, boolean byFilter, boolean subsetBySample, boolean trackPerSample) {
+        if ( tracker == null )
+            return null;
 
-            VariantContext vc = tracker == null ? null : tracker.getFirstValue(VariantContext.class, trackName, ref.getLocus());
+        HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> bindings = new HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>>();
 
-            // First, filter the VariantContext to represent only the samples for evaluation
-            if (vc != null) {
+        for ( RodBinding<VariantContext> track : tracks ) {
+            HashMap<String, Set<VariantContext>> mapping = new HashMap<String, Set<VariantContext>>();
+
+            for ( VariantContext vc : tracker.getValues(track, ref.getLocus()) ) {
+
+                // First, filter the VariantContext to represent only the samples for evaluation
                 VariantContext vcsub = vc;
 
-                if (subsetBySample && vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation())) {
+                if ( subsetBySample && vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation()) ) {
                     vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
                 }
 
-                if ((byFilter || !vcsub.isFiltered())) {
-                    vcs.put(VariantEvalWalker.getAllSampleName(), vcsub);
+                if ( (byFilter || !vcsub.isFiltered()) ) {
+                    addMapping(mapping, VariantEvalWalker.getAllSampleName(), vcsub);
                 }
 
                 // Now, if stratifying, split the subsetted vc per sample and add each as a new context
-                if (vc.hasGenotypes() && trackPerSample) {
-                    for (String sampleName : variantEvalWalker.getSampleNamesForEvaluation()) {
+                if ( vc.hasGenotypes() && trackPerSample ) {
+                    for ( String sampleName : variantEvalWalker.getSampleNamesForEvaluation() ) {
                         VariantContext samplevc = getSubsetOfVariantContext(vc, sampleName);
 
-                        if ((byFilter || !samplevc.isFiltered())) {
-                            vcs.put(sampleName, samplevc);
+                        if ( byFilter || !samplevc.isFiltered() ) {
+                            addMapping(mapping, sampleName, samplevc);
                         }
                     }
                 }
 
-                bindings.put(trackName, vcs);
+                bindings.put(track, mapping);
             }
         }
+
+        return bindings;
     }
 
-    /**
-     * Maps track names to sample name to VariantContext objects.  For eval tracks, VariantContexts per specified sample
-     * are also included.
-     *
-     * @param tracker   the metadata tracker
-     * @param ref       the reference context
-     * @param compNames the list of comp names to process
-     * @param evalNames the list of eval names to process
-     * @return a mapping of track names to a list of VariantContext objects
-     */
-    public HashMap<String, HashMap<String, VariantContext>> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames, boolean dynamicSelectTypes) {
-        HashMap<String, HashMap<String, VariantContext>> vcs = new HashMap<String, HashMap<String, VariantContext>>();
-
-        EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, compNames, evalNames, dynamicSelectTypes);
-
-        boolean byFilter = false;
-        boolean perSampleIsEnabled = false;
-        for (VariantStratifier vs : variantEvalWalker.getStratificationObjects()) {
-            if (vs.getClass().getSimpleName().equals("Filter")) {
-                byFilter = true;
-            } else if (vs.getClass().getSimpleName().equals("Sample")) {
-                perSampleIsEnabled = true;
-            }
-        }
-
-        bindVariantContexts(vcs, tracker, ref, evalNames, allowableTypes, byFilter, true, perSampleIsEnabled);
-        bindVariantContexts(vcs, tracker, ref, compNames, allowableTypes, byFilter, false, false);
-
-        return vcs;
+    private void addMapping(HashMap<String, Set<VariantContext>> mappings, String sample, VariantContext vc) {
+        if ( !mappings.containsKey(sample) )
+            mappings.put(sample, new HashSet<VariantContext>());
+        mappings.get(sample).add(vc);
     }
 
     /**

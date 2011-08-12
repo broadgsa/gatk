@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -60,14 +57,16 @@ import java.util.*;
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
 
-    @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
+    @ArgumentCollection
+    private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     /**
       * A dbSNP VCF file from which to annotate.
       *
       * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
       */
-    @ArgumentCollection protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
     public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return null; }
     public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }

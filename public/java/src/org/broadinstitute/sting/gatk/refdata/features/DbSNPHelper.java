@@ -39,7 +39,6 @@ import java.util.List;
  * this class contains static helper methods for DbSNP
  */
 public class DbSNPHelper {
-    public static final String STANDARD_DBSNP_TRACK_NAME = "dbsnp";
 
     private DbSNPHelper() {} // don't make a DbSNPHelper
 
