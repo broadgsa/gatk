@@ -11,7 +11,6 @@ import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.BeforeMethod;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.walkers.qc.ValidateBAQWalker;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.Utils;
 
