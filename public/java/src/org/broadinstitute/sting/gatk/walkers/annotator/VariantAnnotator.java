@@ -64,7 +64,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * The INFO field will be annotated with information on the most biologically-significant effect
      * listed in the SnpEff output file for each variant.
      */
-    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file", required=false)
+    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
     public RodBinding<SnpEffFeature> snpEffFile;
     public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return snpEffFile; }
 

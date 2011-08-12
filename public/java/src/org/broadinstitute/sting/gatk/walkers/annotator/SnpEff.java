@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffConstants;
 import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -70,9 +71,11 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     public static final String CODON_NUM_KEY = "CODON_NUM";
     public static final String CDS_SIZE_KEY = "CDS_SIZE";
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate ( RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
         RodBinding<SnpEffFeature> snpEffRodBinding = walker.getSnpEffRodBinding();
-        List<SnpEffFeature> features = tracker.getValues(snpEffRodBinding);
+        validateRodBinding(snpEffRodBinding);
+
+        List<SnpEffFeature> features = tracker.getValues(snpEffRodBinding, ref.getLocus());
 
         // Add only annotations for one of the most biologically-significant effects as defined in
         // the SnpEffConstants class:
@@ -83,6 +86,13 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
         }
 
         return generateAnnotations(mostSignificantEffect);
+    }
+
+    private void validateRodBinding ( RodBinding<SnpEffFeature> snpEffRodBinding ) {
+        if ( snpEffRodBinding == null || ! snpEffRodBinding.isBound() ) {
+            throw new UserException("The SnpEff annotator requires that a SnpEff output file be provided " +
+                                    "as a rodbinding on the command line, but no SnpEff rodbinding was found.");
+        }
     }
 
     private SnpEffFeature getMostSignificantEffect ( List<SnpEffFeature> snpEffFeatures ) {
