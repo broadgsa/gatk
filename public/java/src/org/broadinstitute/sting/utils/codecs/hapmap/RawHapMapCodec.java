@@ -40,7 +40,7 @@ import java.util.Arrays;
  * in the file
  * 
  */
-public class HapMapCodec implements FeatureCodec {
+public class RawHapMapCodec implements FeatureCodec {
     // the minimum number of features in the HapMap file line
     private static final int minimumFeatureCount = 11;
 
@@ -67,7 +67,7 @@ public class HapMapCodec implements FeatureCodec {
             throw new IllegalArgumentException("Unable to parse line " + line + ", the length of split features is less than the minimum of " + minimumFeatureCount);
 
         // create a new feature given the array
-        return new HapMapFeature(array[0],
+        return new RawHapMapFeature(array[0],
                 array[1].split("/"),
                 array[2],
                 Long.valueOf(array[3]),
@@ -83,7 +83,7 @@ public class HapMapCodec implements FeatureCodec {
     }
 
     public Class getFeatureType() {
-        return HapMapFeature.class;
+        return RawHapMapFeature.class;
     }
 
     public Object readHeader(LineReader reader) {
