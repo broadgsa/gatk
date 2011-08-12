@@ -93,8 +93,8 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         selectTestSpec = new WalkerTestSpec(
             "-T VariantEval" +
             " -R " + b36KGReference +
-            " -B:eval,vcf3 " + testFile +
-            " -B:comp,vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
+            " --eval,vcf3 " + testFile +
+            " --comp,vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
             " -EV CompOverlap -noEV -noST" +
             " -o %s",
             1,
