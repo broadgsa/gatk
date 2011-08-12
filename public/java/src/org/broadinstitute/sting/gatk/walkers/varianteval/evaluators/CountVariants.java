@@ -93,28 +93,35 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nCalledLoci++;
 
-        if (vc1.isVariant()) nVariantLoci++;
-        switch (vc1.getType()) {
-            case NO_VARIATION:
-                nRefLoci++;
-                break;
-            case SNP:
-                nSNPs++;
-                if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
-                break;
-            case MNP:
-                nMNPs++;
-                if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
-                break;
-            case INDEL:
-                if (vc1.isInsertion()) nInsertions++;
-                else nDeletions++;
-                break;
-            case MIXED:
-                nComplex++;
-                break;
-            default:
-                throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
+        // Note from Eric:
+        // This is really not correct.  What we really want here is a polymorphic vs. monomorphic count (i.e. on the Genotypes).
+        // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
+        // added in a proxy check for monomorphic status here.
+        if ( !vc1.isVariant() || (vc1.hasGenotypes() && vc1.getHomRefCount() == vc1.getNSamples()) ) {
+            nRefLoci++;
+        } else {
+            nVariantLoci++;
+            switch (vc1.getType()) {
+                case NO_VARIATION:
+                    break;
+                case SNP:
+                    nSNPs++;
+                    if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                    break;
+                case MNP:
+                    nMNPs++;
+                    if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                    break;
+                case INDEL:
+                    if (vc1.isInsertion()) nInsertions++;
+                    else nDeletions++;
+                    break;
+                case MIXED:
+                    nComplex++;
+                    break;
+                default:
+                    throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
+            }
         }
 
         String refStr = vc1.getReference().getBaseString().toUpperCase();
