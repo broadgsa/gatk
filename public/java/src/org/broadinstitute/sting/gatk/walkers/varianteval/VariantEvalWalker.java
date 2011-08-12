@@ -47,7 +47,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public List<RodBinding<VariantContext>> evals;
 
     @Input(fullName="comp", shortName = "comp", doc="Input comparison file(s)", required=false)
-    public List<RodBinding<VariantContext>> comps = Collections.emptyList();
+    public List<RodBinding<VariantContext>> compsProvided = Collections.emptyList();
+    private List<RodBinding<VariantContext>> comps = new ArrayList<RodBinding<VariantContext>>();
 
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
@@ -67,7 +68,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     protected Set<String> SAMPLE_EXPRESSIONS;
 
     @Argument(shortName="knownName", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
-    protected String[] KNOWN_NAMES = {dbsnp.dbsnp.getName()};
+    protected String[] KNOWN_NAMES = {};
 
     // Stratification arguments
     @Argument(fullName="stratificationModule", shortName="ST", doc="One or more specific stratification modules to apply to the eval track(s) (in addition to the standard stratifications, unless -noS is specified)", required=false)
@@ -144,10 +145,16 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Just list the modules, and exit quickly.
         if (LIST) { variantEvalUtils.listModulesAndExit(); }
 
-        // Add a dummy comp track if none exists
-        if ( comps.size() == 0 ) {
-            comps.add(new RodBinding<VariantContext>(VariantContext.class, "none", "UNBOUND", "", new Tags()));
+        // maintain the full list of comps
+        comps.addAll(compsProvided);
+        if ( dbsnp.dbsnp.isBound() ) {
+            comps.add(dbsnp.dbsnp);
+            knownNames.add(dbsnp.dbsnp.getName());
         }
+
+        // Add a dummy comp track if none exists
+        if ( comps.size() == 0 )
+            comps.add(new RodBinding<VariantContext>(VariantContext.class, "none", "UNBOUND", "", new Tags()));
 
         // Cache the rod names
         for ( RodBinding<VariantContext> compRod : comps )
@@ -156,10 +163,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         for ( RodBinding<VariantContext> evalRod : evals )
             evalNames.add(evalRod.getName());
 
-        if ( dbsnp.dbsnp.isBound() )
-            compNames.add(dbsnp.dbsnp.getName());
-
-        // Set up set of known names
+        // Set up set of additional known names
         knownNames.addAll(Arrays.asList(KNOWN_NAMES));
 
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
@@ -293,23 +297,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 }
                             }
                         }
-
-                        // todo: Eric, this is really the problem.  We select single eval and comp VCs independently
-                        // todo: discarding multiple eval tracks at the sites and not providing matched comps
-                        // todo: where appropriate.  Really this loop should look like:
-                        // todo: for each eval track:
-                        // todo:   for each eval in track:
-                        // todo:     for each compTrack:
-                        // todo:       comp = findMatchingComp(eval, compTrack) // find the matching comp in compTrack
-                        // todo:       call evalModule(eval, comp)
-                        // todo:       // may return null if no such comp exists, but proceed as eval modules may need to see eval / null pair
-                        // todo:       for each comp not matched by an eval in compTrack:
-                        // todo:         call evalModule(null, comp)
-                        // todo:         // need to call with null comp, as module
-                        // todo: note that the reason Kiran pre-computed the possible VCs is to apply the modifiers
-                        // todo: like subset to sample, etc.  So you probably will want a master map that maps
-                        // todo: from special eval bindings to the digested VC for efficiency.
-
                     }
                 }
             }

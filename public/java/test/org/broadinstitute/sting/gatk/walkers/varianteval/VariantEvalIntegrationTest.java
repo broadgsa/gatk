@@ -20,8 +20,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
-                                        "-B:dbsnp,VCF " + b37dbSNP132,
-                                        "-B:eval,VCF " + fundamentalTestVCF,
+                                        "--dbsnp " + b37dbSNP132,
+                                        "--eval " + fundamentalTestVCF,
                                         "-noEV",
                                         "-EV CountVariants",
                                         "-noST",
@@ -40,8 +40,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -61,8 +61,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -83,8 +83,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -104,8 +104,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -125,8 +125,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -146,8 +146,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -167,8 +167,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -190,8 +190,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -215,7 +215,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -232,9 +232,9 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testSelect1() {
         String extraArgs = "-L 1:1-10,000,000";
         String tests = cmdRoot +
-                " -B:dbsnp,VCF " + b36dbSNP129 +
-                " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
-                " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+                " --dbsnp " + b36dbSNP129 +
+                " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
+                " --comp:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
                 1, Arrays.asList("14054badcd89b24c2375e1d09918f681"));
         executeTestParallel("testSelect1", spec);
@@ -244,7 +244,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testVEGenotypeConcordance() {
         String vcfFile = "GenotypeConcordanceEval.vcf";
 
-        WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF3 " + validationDataLocation + vcfFile + " -B:comp,VCF3 " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
+        WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG --eval:VCF3 " + validationDataLocation + vcfFile + " --comp:VCF3 " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                 1,
                 Arrays.asList("96f27163f16bb945f19c6623cd6db34e"));
         executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
@@ -252,7 +252,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testCompVsEvalAC() {
-        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
+        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("d1932be3748fcf6da77dc51aec323710"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
@@ -263,14 +263,14 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testTranches() {
-        String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + testDir + "tranches.6.txt";
+        String extraArgs = "-T VariantEval -R "+ hg18Reference +" --eval " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + testDir + "tranches.6.txt";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("984df6e94a546294fc7e0846cbac2dfe"));
         executeTestParallel("testTranches",spec);
     }
 
     @Test
     public void testCompOverlap() {
-        String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals -B:comphapmap,vcf " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf -B:eval,vcf " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
+        String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals --comp:comphapmap " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf --eval " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("462d4784dd55294ef9d5118217b157a5"));
         executeTestParallel("testCompOverlap",spec);
     }
@@ -280,10 +280,10 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-T VariantEval -R " +
                            b37KGReference +
                            " -L 20" +
-                           " -B:dbsnp,VCF " + b37dbSNP132 +
-                           " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
+                           " --dbsnp " + b37dbSNP132 +
+                           " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("0897dfba2f4a245faddce38000555cce"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("cbea5f9f8c046d4c014d261db352c43b"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -291,11 +291,11 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testMultipleEvalTracksWithoutGenotypes() {
         String extraArgs = "-T VariantEval -R " + b37KGReference +
                 " -L 20" +
-                " -B:dbsnp,VCF " + b37dbSNP132 +
-                " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
-                " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
+                " --dbsnp " + b37dbSNP132 +
+                " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
+                " --eval:evalBC " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("ead3602e14ec2944b5d9e4dacc08c819"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("d07a246963ae609643620c839b20cd1e"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
@@ -305,27 +305,27 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         String extraArgs =  "-T VariantEval" +
                            " -R " + b37KGReference +
-                           " -B:comp,VCF " + validationDataLocation + "/VariantEval/ALL.phase1.chr20.broad.snps.genotypes.subset.vcf" +
-                           " -B:eval,VCF " + validationDataLocation + "/VariantEval/NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.subset.vcf" +
-                           " -B:dbsnp,VCF " + dbsnp +
+                           " --comp " + validationDataLocation + "/VariantEval/ALL.phase1.chr20.broad.snps.genotypes.subset.vcf" +
+                           " --eval " + validationDataLocation + "/VariantEval/NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.subset.vcf" +
+                           " --dbsnp " + dbsnp +
                            " -L 20:10000000-10100000" +
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("167a347ce0729d1bc3d4fd5069ebd674"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("a3c2177849cb00fdff99574cff7f0e4f"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults() {
-        String md5 = "40471a84b501eb440ee2d42e3081f228";
+        String md5 = "dab415cc76846e18fcf8c78f2b2ee033";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestSNPsVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsVCF,
                         "-noEV",
                         "-EV CompOverlap",
                         "-sn HG00625",
@@ -342,8 +342,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-B:dbsnp,VCF " + b37dbSNP132,
-                        "-B:eval,VCF " + fundamentalTestSNPsOneSampleVCF,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsOneSampleVCF,
                         "-noEV",
                         "-EV CompOverlap",
                         "-noST",
@@ -363,8 +363,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
-                                        "-B:dbsnp,VCF " + b37dbSNP132,
-                                        "-B:eval,VCF " + fundamentalTestSNPsVCF,
+                                        "--dbsnp " + b37dbSNP132,
+                                        "--eval " + fundamentalTestSNPsVCF,
                                         "-noEV",
                                         "-EV CountVariants",
                                         "-noST",
