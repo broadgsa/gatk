@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -112,7 +113,42 @@ public class ReadUtils {
      * @version 0.1
      */
 
-    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR }
+    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR}
+
+    /**
+     * This enum represents all the different ways in which a read can overlap an interval.
+     *
+     * NO_OVERLAP:
+     * the read does not overlap the interval.
+     *
+     *   |----------------|                      (interval)
+     *                        <----------------> (read)
+     *
+     * LEFT_OVERLAP:
+     * the read starts before the beginning of the interval but ends inside of it
+     *
+     *          |----------------| (interval)
+     *   <---------------->        (read)
+     *
+     * RIGHT_OVERLAP:
+     * the read starts inside the interval but ends outside of it
+     *
+     *   |----------------|     (interval)
+     *       <----------------> (read)
+     *
+     * FULL_OVERLAP:
+     * the read starts before the interval and ends after the interval
+     *
+     *      |-----------|     (interval)
+     *  <-------------------> (read)
+     *
+     * CONTAINED:
+     * the read starts and ends inside the interval
+     *
+     *  |----------------|     (interval)
+     *     <-------->          (read)
+     */
+    public enum ReadAndIntervalOverlap {NO_OVERLAP, LEFT_OVERLAP, RIGHT_OVERLAP, FULL_OVERLAP, CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -567,6 +603,34 @@ public class ReadUtils {
             return e.getLength();
         else
             return 0;
+    }
+
+    /**
+     * Determines what is the position of the read in relation to the interval.
+     * Note: This function uses the UNCLIPPED ENDS of the reads for the comparison.
+     * @param read the read
+     * @param interval the interval
+     * @return the overlap type as described by ReadAndIntervalOverlap enum (see above)
+     */
+    public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
+        if ( (!read.getReferenceName().equals(interval.getContig())) ||
+             (read.getUnclippedEnd() < interval.getStart()) ||
+             (read.getUnclippedStart() > interval.getStop()) )
+            return ReadAndIntervalOverlap.NO_OVERLAP;
+
+        else if ( (read.getUnclippedStart() > interval.getStart()) &&
+                  (read.getUnclippedEnd() < interval.getStop()) )
+            return ReadAndIntervalOverlap.CONTAINED;
+
+        else if ( (read.getUnclippedStart() < interval.getStart()) &&
+                  (read.getUnclippedEnd() > interval.getStop()) )
+            return ReadAndIntervalOverlap.FULL_OVERLAP;
+
+        else if ( (read.getAlignmentStart() < interval.getStart()) )
+            return ReadAndIntervalOverlap.LEFT_OVERLAP;
+
+        else
+            return ReadAndIntervalOverlap.RIGHT_OVERLAP;
     }
 
 
