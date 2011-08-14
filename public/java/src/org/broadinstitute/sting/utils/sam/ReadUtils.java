@@ -618,8 +618,8 @@ public class ReadUtils {
              (read.getUnclippedStart() > interval.getStop()) )
             return ReadAndIntervalOverlap.NO_OVERLAP;
 
-        else if ( (read.getUnclippedStart() > interval.getStart()) &&
-                  (read.getUnclippedEnd() < interval.getStop()) )
+        else if ( (read.getUnclippedStart() >= interval.getStart()) &&
+                  (read.getUnclippedEnd() <= interval.getStop()) )
             return ReadAndIntervalOverlap.CONTAINED;
 
         else if ( (read.getUnclippedStart() < interval.getStart()) &&
