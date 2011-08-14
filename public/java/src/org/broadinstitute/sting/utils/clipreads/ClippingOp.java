@@ -4,6 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -17,21 +18,13 @@ import java.util.Vector;
  * according to the wishes of the supplid ClippingAlgorithm enum.
  */
 public class ClippingOp {
-    public final ClippingType type;
     public final int start, stop; // inclusive
-    public final Object extraInfo;
 
     public ClippingOp(int start, int stop) {
-        this(null, start, stop, null);
-    }
-
-    public ClippingOp(ClippingType type, int start, int stop, Object extraInfo) {
-        // todo -- remove type and extra info
-        this.type = type;
         this.start = start;
         this.stop = stop;
-        this.extraInfo = extraInfo;
     }
+
 
     public int getLength() {
         return stop - start + 1;
@@ -120,15 +113,6 @@ public class ClippingOp {
     }
 
     /**
-     * What is the type of a ClippingOp?
-     */
-    public enum ClippingType {
-        LOW_Q_SCORES,
-        WITHIN_CLIP_RANGE,
-        MATCHES_CLIP_SEQ
-    }
-
-    /**
      * Given a cigar string, get the number of bases hard or soft clipped at the start
      */
     private int getNewAlignmentStartOffset(final Cigar __cigar, final Cigar __oldCigar) {
@@ -196,7 +180,7 @@ public class ClippingOp {
         Vector<CigarElement> newElements = new Vector<CigarElement>();
         for (CigarElement curElem : __cigar.getCigarElements()) {
             if (!curElem.getOperator().consumesReadBases()) {
-                if (curLength > __startClipEnd && curLength < __endClipBegin) {
+                if (curElem.getOperator() == CigarOperator.HARD_CLIP || curLength > __startClipEnd && curLength < __endClipBegin) {
                     newElements.add(new CigarElement(curElem.getLength(), curElem.getOperator()));
                 }
                 continue;

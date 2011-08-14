@@ -432,16 +432,34 @@ public class ReadUtils {
                         keepEnd = rec.getReadLength() - l - 1;
                     newCigarElements.add(new CigarElement(l, CigarOperator.HARD_CLIP));
                     break;
-                case H:
-                    // TODO -- must be handled specially
-                    throw new ReviewedStingException("BUG: tell mark he forgot to implement this");
+
                 default:
                     newCigarElements.add(ce);
                     break;
             }
         }
 
-        return hardClipBases(rec, keepStart, keepEnd, newCigarElements);
+        // Merges tandem cigar elements like 5H10H or 2S5S to 15H or 7S
+        // this will happen if you soft clip a read that has been hard clipped before
+        // like: 5H20S => 5H20H
+        List<CigarElement> mergedCigarElements = new LinkedList<CigarElement>();
+        Iterator<CigarElement> cigarElementIterator = newCigarElements.iterator();
+        CigarOperator currentOperator = null;
+        int currentOperatorLength = 0;
+        while (cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            if (currentOperator != cigarElement.getOperator()) {
+                if (currentOperator != null)
+                    mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
+                currentOperator = cigarElement.getOperator();
+                currentOperatorLength = cigarElement.getLength();
+            }
+            else
+                currentOperatorLength += cigarElement.getLength();
+        }
+        mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
+
+        return hardClipBases(rec, keepStart, keepEnd, mergedCigarElements);
     }
 
     /**
@@ -460,8 +478,7 @@ public class ReadUtils {
             "keepEnd < rec.getReadLength()",
             "rec.getReadUnmappedFlag() || newCigarElements != null"})
     @Ensures("result != null")
-    public static SAMRecord hardClipBases(SAMRecord rec, int keepStart, int keepEnd,
-                                          List<CigarElement> newCigarElements) {
+    public static SAMRecord hardClipBases(SAMRecord rec, int keepStart, int keepEnd, List<CigarElement> newCigarElements) {
         int newLength = keepEnd - keepStart + 1;
         if ( newLength != rec.getReadLength() ) {
             try {
@@ -633,7 +650,43 @@ public class ReadUtils {
             return ReadAndIntervalOverlap.RIGHT_OVERLAP;
     }
 
+    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
+    @Ensures({"result >= 0", "result < read.getReadLength()"})
+    public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
+        int readBases = 0;
+        int refBases = 0;
+        int goal = refCoord - read.getUnclippedStart();  // read coords are 0-based!
+        boolean goalReached = false;
 
+        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        while (!goalReached && cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            int shift = 0;
+            if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+                goal -= cigarElement.getLength();
+            }
+
+            if (cigarElement.getOperator().consumesReferenceBases()) {
+                if (refBases + cigarElement.getLength() < goal) {
+                    shift = cigarElement.getLength();
+                }
+                else {
+                    shift = goal - refBases;
+                }
+                refBases += shift;
+            }
+            goalReached = refBases == goal;
+
+            if (cigarElement.getOperator().consumesReadBases()) {
+                readBases += goalReached ? shift : cigarElement.getLength();
+            }
+        }
+
+        if (!goalReached)
+            throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+
+        return readBases;
+    }
 
 
 }
