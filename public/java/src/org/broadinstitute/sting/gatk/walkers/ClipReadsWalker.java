@@ -42,6 +42,7 @@ import org.broadinstitute.sting.utils.clipreads.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipreads.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -98,22 +99,6 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      * List of cycle start / stop pairs (0-based, stop is included in the cycle to remove) to clip from the reads
      */
     List<Pair<Integer, Integer>> cyclesToClip = null;
-
-    public class ReadClipperWithData extends ReadClipper {
-        private ClippingData data;
-
-        public ReadClipperWithData(SAMRecord read) {
-            super(read);
-        }
-
-        public ClippingData getData() {
-            return data;
-        }
-
-        public void setData(ClippingData data) {
-            this.data = data;
-        }
-    }
 
     /**
      * The initialize function.
@@ -201,7 +186,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
             if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES ) {
                 read = ReadUtils.replaceSoftClipsWithMatches(read);
             }
-            ReadClipperWithData clipper = new ReadClipperWithData(read);
+            ReadClipperWithData clipper = new ReadClipperWithData(read, sequencesToClip);
 
             //
             // run all three clipping modules
@@ -224,6 +209,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
     private void clipSequences(ReadClipperWithData clipper) {
         if (sequencesToClip != null) {                // don't bother if we don't have any sequences to clip
             SAMRecord read = clipper.getRead();
+            ClippingData data = clipper.getData();
 
             for (SeqToClip stc : sequencesToClip) {
                 // we have a pattern for both the forward and the reverse strands
@@ -242,12 +228,11 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
                         //ClippingOp op = new ClippingOp(ClippingOp.ClippingType.MATCHES_CLIP_SEQ, start, stop, stc.seq);
                         ClippingOp op = new ClippingOp(start, stop);
                         clipper.addOp(op);
-                        ClippingData data = new ClippingData(sequencesToClip);
                         data.incSeqClippedBases(stc.seq, op.getLength());
-                        clipper.setData(data);
                     }
                 }
             }
+            clipper.setData(data);
         }
     }
 
@@ -275,6 +260,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
     private void clipCycles(ReadClipperWithData clipper) {
         if (cyclesToClip != null) {
             SAMRecord read = clipper.getRead();
+            ClippingData data = clipper.getData();
 
             for (Pair<Integer, Integer> p : cyclesToClip) {   // iterate over each cycle range
                 int cycleStart = p.first;
@@ -293,11 +279,10 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
                     //ClippingOp op = new ClippingOp(ClippingOp.ClippingType.WITHIN_CLIP_RANGE, start, stop, null);
                     ClippingOp op = new ClippingOp(start, stop);
                     clipper.addOp(op);
-                    ClippingData data = new ClippingData(sequencesToClip);
                     data.incNRangeClippedBases(op.getLength());
-                    clipper.setData(data);
                 }
             }
+            clipper.setData(data);
         }
     }
 
@@ -317,6 +302,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      */
     private void clipBadQualityScores(ReadClipperWithData clipper) {
         SAMRecord read = clipper.getRead();
+        ClippingData data = clipper.getData();
         int readLen = read.getReadBases().length;
         byte[] quals = read.getBaseQualities();
 
@@ -338,10 +324,9 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
             //clipper.addOp(new ClippingOp(ClippingOp.ClippingType.LOW_Q_SCORES, start, stop, null));
             ClippingOp op = new ClippingOp(start, stop);
             clipper.addOp(op);
-            ClippingData data = new ClippingData(sequencesToClip);
             data.incNQClippedBases(op.getLength());
-            clipper.setData(data);
         }
+        clipper.setData(data);
     }
 
     /**
@@ -369,8 +354,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
         data.nTotalBases += clipper.getRead().getReadLength();
         if (clipper.wasClipped()) {
             data.nClippedReads++;
+            data.addData(clipper.getData());
         }
-        data.addData(clipper.getData());
         return data;
     }
 
@@ -439,6 +424,13 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
             nQClippedBases += data.nQClippedBases;
             nRangeClippedBases += data.nRangeClippedBases;
             nSeqClippedBases += data.nSeqClippedBases;
+
+            for (String seqClip : data.seqClipCounts.keySet()) {
+                Long count = data.seqClipCounts.get(seqClip);
+                if (seqClipCounts.containsKey(seqClip))
+                    count += seqClipCounts.get(seqClip);
+                seqClipCounts.put(seqClip, count);
+            }
         }
 
         public String toString() {
@@ -463,4 +455,27 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
             return s.toString();
         }
     }
+
+    public class ReadClipperWithData extends ReadClipper {
+        private ClippingData data;
+
+        public ReadClipperWithData(SAMRecord read, List<SeqToClip> clipSeqs) {
+            super(read);
+            data = new ClippingData(clipSeqs);
+        }
+
+        public ClippingData getData() {
+            return data;
+        }
+
+        public void setData(ClippingData data) {
+            this.data = data;
+        }
+
+        public void addData(ClippingData data) {
+            this.data.addData(data);
+        }
+    }
+
+
 }
