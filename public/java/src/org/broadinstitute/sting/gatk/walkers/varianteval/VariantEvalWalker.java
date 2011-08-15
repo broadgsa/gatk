@@ -68,7 +68,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     protected Set<String> SAMPLE_EXPRESSIONS;
 
     @Argument(shortName="knownName", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
-    protected String[] KNOWN_NAMES = {};
+    protected HashSet<String> KNOWN_NAMES = new HashSet<String>();
+    List<RodBinding<VariantContext>> knowns = new ArrayList<RodBinding<VariantContext>>();
 
     // Stratification arguments
     @Argument(fullName="stratificationModule", shortName="ST", doc="One or more specific stratification modules to apply to the eval track(s) (in addition to the standard stratifications, unless -noS is specified)", required=false)
@@ -108,9 +109,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
-    private Set<String> compNames = new TreeSet<String>();
-    private Set<String> knownNames = new TreeSet<String>();
-    private Set<String> evalNames = new TreeSet<String>();
 
     private Set<String> sampleNamesForEvaluation = new TreeSet<String>();
     private Set<String> sampleNamesForStratification = new TreeSet<String>();
@@ -149,22 +147,23 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         comps.addAll(compsProvided);
         if ( dbsnp.dbsnp.isBound() ) {
             comps.add(dbsnp.dbsnp);
-            knownNames.add(dbsnp.dbsnp.getName());
+            knowns.add(dbsnp.dbsnp);
         }
 
         // Add a dummy comp track if none exists
         if ( comps.size() == 0 )
             comps.add(new RodBinding<VariantContext>(VariantContext.class, "none", "UNBOUND", "", new Tags()));
 
-        // Cache the rod names
-        for ( RodBinding<VariantContext> compRod : comps )
-            compNames.add(compRod.getName());
+        // Set up set of additional knowns
+        for ( RodBinding<VariantContext> compRod : comps ) {
+            if ( KNOWN_NAMES.contains(compRod.getName()) )
+                knowns.add(compRod);
+        }
 
+        // Collect the eval rod names
+        Set<String> evalNames = new TreeSet<String>();
         for ( RodBinding<VariantContext> evalRod : evals )
             evalNames.add(evalRod.getName());
-
-        // Set up set of additional known names
-        knownNames.addAll(Arrays.asList(KNOWN_NAMES));
 
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evalNames);
@@ -462,15 +461,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public static String getAllSampleName() { return ALL_SAMPLE_NAME; }
 
-    public Set<String> getKnownNames() { return knownNames; }
+    public List<RodBinding<VariantContext>> getKnowns() { return knowns; }
 
-    public Set<String> getEvalNames() { return evalNames; }
+    public List<RodBinding<VariantContext>> getEvals() { return evals; }
 
     public Set<String> getSampleNamesForEvaluation() { return sampleNamesForEvaluation; }
 
     public Set<String> getSampleNamesForStratification() { return sampleNamesForStratification; }
 
-    public Set<String> getCompNames() { return compNames; }
+    public List<RodBinding<VariantContext>> getComps() { return comps; }
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
 

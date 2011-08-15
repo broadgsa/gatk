@@ -1,24 +1,20 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Set;
 
 public class CompRod extends VariantStratifier implements RequiredStratification {
-    // Needs to know the comp rods
-    private Set<String> compNames;
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
-        this.compNames = compNames;
-
+    public void initialize() {
         states = new ArrayList<String>();
-        states.addAll(compNames);
+        for ( RodBinding<VariantContext> rod : getVariantEvalWalker().getComps() )
+            states.add(rod.getName());
     }
 
     public ArrayList<String> getAllStates() {
