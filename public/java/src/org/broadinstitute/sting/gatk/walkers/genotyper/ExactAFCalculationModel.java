@@ -34,7 +34,6 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -581,7 +580,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     // TODO -- remove me for clarity in this code
     //
     // -------------------------------------------------------------------------------------
-    public static int gdaN2GoldStandard(Map<String, Genotype> GLs,
+    public int gdaN2GoldStandard(Map<String, Genotype> GLs,
                                  double[] log10AlleleFrequencyPriors,
                                  double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
         int numSamples = GLs.size();
@@ -659,70 +658,4 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    // todo -- generalize and merge into gdaN2GoldStandard
-    public static int rfaN2GoldStandard(Map<String, GenotypeLikelihoods> GLs,
-                                 double[] log10AlleleFrequencyPriors,
-                                 double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
-        int numSamples = GLs.size();
-        int numChr = 2*numSamples;
-
-        double[][] logYMatrix = new double[1+numSamples][1+numChr];
-
-        for (int i=0; i <=numSamples; i++)
-            for (int j=0; j <=numChr; j++)
-                logYMatrix[i][j] = Double.NEGATIVE_INFINITY;
-
-        //YMatrix[0][0] = 1.0;
-        logYMatrix[0][0] = 0.0;
-        int j=0;
-
-        for ( Map.Entry<String, GenotypeLikelihoods> sample : GLs.entrySet() ) {
-            j++;
-
-            //double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(GLs.get(sample).getLikelihoods());
-            double[] genotypeLikelihoods = sample.getValue().getAsVector();
-            //double logDenominator = Math.log10(2.0*j*(2.0*j-1));
-            double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
-
-            // special treatment for k=0: iteration reduces to:
-            //YMatrix[j][0] = YMatrix[j-1][0]*genotypeLikelihoods[GenotypeType.AA.ordinal()];
-            logYMatrix[j][0] = logYMatrix[j-1][0] + genotypeLikelihoods[idxAA];
-
-            for (int k=1; k <= 2*j; k++ ) {
-
-                //double num = (2.0*j-k)*(2.0*j-k-1)*YMatrix[j-1][k] * genotypeLikelihoods[GenotypeType.AA.ordinal()];
-                double logNumerator[];
-                logNumerator = new double[3];
-                if (k < 2*j-1)
-                    logNumerator[0] = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + logYMatrix[j-1][k] +
-                            genotypeLikelihoods[idxAA];
-                else
-                    logNumerator[0] = Double.NEGATIVE_INFINITY;
-
-
-                if (k < 2*j)
-                    logNumerator[1] = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ logYMatrix[j-1][k-1] +
-                            genotypeLikelihoods[idxAB];
-                else
-                    logNumerator[1] = Double.NEGATIVE_INFINITY;
-
-                if (k > 1)
-                    logNumerator[2] = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + logYMatrix[j-1][k-2] +
-                            genotypeLikelihoods[idxBB];
-                else
-                    logNumerator[2] = Double.NEGATIVE_INFINITY;
-
-                double logNum = MathUtils.softMax(logNumerator);
-
-                //YMatrix[j][k] = num/den;
-                logYMatrix[j][k] = logNum - logDenominator;
-            }
-
-        }
-
-        for (int k=0; k <= numChr; k++)
-            log10AlleleFrequencyPosteriors[k] = logYMatrix[j][k] + log10AlleleFrequencyPriors[k];
-
-        return numChr;
-    }
 }

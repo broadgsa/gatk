@@ -31,8 +31,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -51,7 +49,7 @@ import java.util.*;
  *   priority list (if provided), emits a single record instance at every position represented in the rods.
  */
 @Reference(window=@Window(start=-50,stop=50))
-public class CombineVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer>{
+public class CombineVariants extends RodWalker<Integer, Integer> {
     /**
      * The VCF files to merge together
      *
@@ -211,8 +209,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     public Integer reduceInit() {
         return 0;
     }
-
-    public Integer treeReduce(Integer left, Integer right) { return left + right; }
 
     public Integer reduce(Integer counter, Integer sum) {
         return counter + sum;
