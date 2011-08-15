@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.Collections;
 import java.util.List;
 
 
@@ -49,7 +50,7 @@ import java.util.List;
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
     @Input(fullName = "variant", shortName = "V", doc="variants to model", required=false)
-    public List<RodBinding<VariantContext>> variants;
+    public List<RodBinding<VariantContext>> variants = Collections.emptyList();
 
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
     public RodBinding<VariantContext> snpmask;
