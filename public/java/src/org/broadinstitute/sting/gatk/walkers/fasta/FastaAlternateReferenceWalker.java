@@ -66,17 +66,18 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
         String refBase = String.valueOf((char)ref.getBase());
 
         // Check to see if we have a called snp
-        for ( VariantContext vc : tracker.getValues(VariantContext.class) ) {
-            if ( ! vc.getSource().equals(snpmask.getName())) {
-                if ( vc.isDeletion()) {
-                    deletionBasesRemaining = vc.getReference().length();
-                    // delete the next n bases, not this one
-                    return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
-                } else if ( vc.isInsertion()) {
-                    return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
-                } else if (vc.isSNP()) {
-                    return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
-                }
+        for ( VariantContext vc : tracker.getValues(variants) ) {
+            if ( vc.isFiltered() )
+                continue;
+
+            if ( vc.isDeletion()) {
+                deletionBasesRemaining = vc.getReference().length();
+                // delete the next n bases, not this one
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
+            } else if ( vc.isInsertion()) {
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
+            } else if (vc.isSNP()) {
+                return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
             }
         }
 
