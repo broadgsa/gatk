@@ -15,6 +15,7 @@ import java.util.List;
  */
 public class ReadClipper {
     SAMRecord read;
+    boolean wasClipped;
     List<ClippingOp> ops = null;
 
     /**
@@ -24,6 +25,7 @@ public class ReadClipper {
      */
     public ReadClipper(final SAMRecord read) {
         this.read = read;
+        this.wasClipped = false;
     }
 
     /**
@@ -41,7 +43,7 @@ public class ReadClipper {
     }
 
     public boolean wasClipped() {
-        return ops != null;
+        return wasClipped;
     }
 
     public SAMRecord getRead() {
@@ -52,7 +54,7 @@ public class ReadClipper {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
 
-        System.out.println("DEBUG -- clipping start/stop: " + start + "/" + stop);
+        System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
@@ -66,6 +68,28 @@ public class ReadClipper {
         this.read = hardClipByReferenceCoordinates(-1, left);
         this.ops = null; // reset the operations
         return hardClipByReferenceCoordinates(right, -1);
+    }
+
+    public SAMRecord hardClipLowQualEnds(byte lowQual) {
+        byte [] quals = read.getBaseQualities();
+        int leftClipIndex = 0;
+        int rightClipIndex = read.getReadLength() - 1;
+
+        // check how far we can clip both sides
+        while (quals[rightClipIndex] <= lowQual) rightClipIndex--;
+        while (quals[leftClipIndex] <= lowQual) leftClipIndex++;
+
+        // if the entire read should be clipped, then return an empty read. (--todo: maybe null is better? testing this for now)
+        if (leftClipIndex > rightClipIndex)
+            return (new SAMRecord(read.getHeader()));
+
+        if (rightClipIndex < read.getReadLength() - 1) {
+            this.addOp(new ClippingOp(rightClipIndex + 1, read.getReadLength() - 1));
+        }
+        if (leftClipIndex > 0 ) {
+            this.addOp(new ClippingOp(0, leftClipIndex - 1));
+        }
+        return this.clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 
     /**
@@ -83,6 +107,7 @@ public class ReadClipper {
                 for (ClippingOp op : getOps()) {
                     clippedRead = op.apply(algorithm, clippedRead);
                 }
+                wasClipped = true;
                 return clippedRead;
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e); // this should never happen
