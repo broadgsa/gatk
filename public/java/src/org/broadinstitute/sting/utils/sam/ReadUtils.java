@@ -655,16 +655,16 @@ public class ReadUtils {
     public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
-        int goal = refCoord - read.getAlignmentStart();  // read coords are 0-based!
+        int goal = refCoord - read.getAlignmentStart();  // The goal is to move this many reference bases
         boolean goalReached = refBases == goal;
 
         Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
         while (!goalReached && cigarElementIterator.hasNext()) {
             CigarElement cigarElement = cigarElementIterator.next();
             int shift = 0;
-            if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
-                goal -= cigarElement.getLength();
-            }
+            //if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+            //    goal -= cigarElement.getLength();
+            //}
 
             if (cigarElement.getOperator().consumesReferenceBases()) {
                 if (refBases + cigarElement.getLength() < goal) {

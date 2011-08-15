@@ -50,7 +50,7 @@ public class ReadClipper {
 
     public SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
-        int stop = (refStop < 0) ? read.getReadLength()-1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+        int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
 
         System.out.println("DEBUG -- clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
