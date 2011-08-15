@@ -650,13 +650,13 @@ public class ReadUtils {
             return ReadAndIntervalOverlap.RIGHT_OVERLAP;
     }
 
-    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
+    @Requires({"refCoord >= read.getAlignmentStart()", "refCoord <= read.getAlignmentEnd()"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
-        int goal = refCoord - read.getUnclippedStart();  // read coords are 0-based!
-        boolean goalReached = false;
+        int goal = refCoord - read.getAlignmentStart();  // read coords are 0-based!
+        boolean goalReached = refBases == goal;
 
         Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
         while (!goalReached && cigarElementIterator.hasNext()) {

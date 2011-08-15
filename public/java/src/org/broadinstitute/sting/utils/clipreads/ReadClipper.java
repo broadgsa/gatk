@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.clipreads;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.util.PositionalStream;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.jets3t.service.multi.ThreadedStorageService;
 
@@ -48,8 +49,10 @@ public class ReadClipper {
     }
 
     public SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
-        int start = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
-        int stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+        int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
+        int stop = (refStop < 0) ? read.getReadLength()-1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+
+        System.out.println("DEBUG -- clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
@@ -60,9 +63,9 @@ public class ReadClipper {
     }
 
     public SAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
-        this.read = hardClipByReferenceCoordinates(read.getUnclippedStart(), left);
+        this.read = hardClipByReferenceCoordinates(-1, left);
         this.ops = null; // reset the operations
-        return hardClipByReferenceCoordinates(right, read.getUnclippedEnd());
+        return hardClipByReferenceCoordinates(right, -1);
     }
 
     /**
