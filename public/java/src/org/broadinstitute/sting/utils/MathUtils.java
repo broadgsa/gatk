@@ -1418,6 +1418,7 @@ public class MathUtils {
         return 1.0-(new ChiSquare(contingencyTable.length*contingencyTable[0].length,null)).cdf(chi);
     }
 
+=======
     public static double marginalizedFisherExact(double[] spectrum1, double[] spectrum2, int ns1, int ns2) {
         int N = ns1 + ns2;
         int[] rowSums = { ns1, ns2 };
