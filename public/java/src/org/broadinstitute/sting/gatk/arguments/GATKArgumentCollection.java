@@ -101,6 +101,8 @@ public class GATKArgumentCollection {
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
+    @Deprecated
+    @Hidden
     @ElementList(required = false)
     @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form :<name>,<type> <file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
@@ -337,14 +339,6 @@ public class GATKArgumentCollection {
         }
         for (String s : walkerArgs.keySet()) {
             if (!other.walkerArgs.containsKey(s)) {
-                return false;
-            }
-        }
-        if (other.RODBindings.size() != RODBindings.size()) {
-            return false;
-        }
-        for (int x = 0; x < RODBindings.size(); x++) {
-            if (!RODBindings.get(x).equals(other.RODBindings.get(x))) {
                 return false;
             }
         }
