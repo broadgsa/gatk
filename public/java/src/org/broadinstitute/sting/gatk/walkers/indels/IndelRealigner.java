@@ -83,7 +83,9 @@ import java.util.*;
  *     <li>Running the realigner over those intervals (IndelRealigner)</li>
  *     </ol>
  *     <p>
- * An important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
+ * An important note: the input bam(s), reference, and known indel file(s) should be the same ones used for the RealignerTargetCreator step.
+ *
+ * Another important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
  * (or with reads from similar technologies).
  *
  * <h2>Input</h2>

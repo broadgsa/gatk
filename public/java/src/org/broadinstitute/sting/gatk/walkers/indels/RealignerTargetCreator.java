@@ -52,7 +52,51 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 reads, MQ0 reads, and reads with consecutive indel operators in the CIGAR string.
+ * Emits intervals for the Local Indel Realigner to target for cleaning.
+ *
+ * <p>
+ * The local realignment tool is designed to consume one or more BAM files and to locally realign reads such that the number of mismatching bases
+ * is minimized across all the reads. In general, a large percent of regions requiring local realignment are due to the presence of an insertion
+ * or deletion (indels) in the individual’s genome with respect to the reference genome.  Such alignment artifacts result in many bases mismatching
+ * the reference near the misalignment, which are easily mistaken as SNPs.  Moreover, since read mapping algorithms operate on each read independently,
+ * it is impossible to place reads on the reference genome such at mismatches are minimized across all reads.  Consequently, even when some reads are
+ * correctly mapped with indels, reads covering the indel near just the start or end of the read are often incorrectly mapped with respect the true indel,
+ * also requiring realignment.  Local realignment serves to transform regions with misalignments due to indels into clean reads containing a consensus
+ * indel suitable for standard variant discovery approaches.  Unlike most mappers, this walker uses the full alignment context to determine whether an
+ * appropriate alternate reference (i.e. indel) exists.  Following local realignment, the GATK tool Unified Genotyper can be used to sensitively and
+ * specifically identify indels.
+ * <p>
+ *     <ol>There are 2 steps to the realignment process:
+ *     <li>Determining (small) suspicious intervals which are likely in need of realignment (RealignerTargetCreator)</li>
+ *     <li>Running the realigner over those intervals (see the IndelRealigner tool)</li>
+ *     </ol>
+ *     <p>
+ * An important note: the input bam(s), reference, and known indel file(s) should be the same ones to be used for the IndelRealigner step.
+ *
+ * Another important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
+ * (or with reads from similar technologies).   This tool also ignores MQ0 reads and reads with consecutive indel operators in the CIGAR string.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more aligned BAM files and optionally one or more lists of known indels.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A list of target intervals to pass to the Indel Realigner.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -I <input.bam> \
+ *   -R <ref.fasta> \
+ *   -T RealignerTargetCreator \
+ *   -o <forIndelRealigner.intervals> \
+ *   [--known /path/to/indels.vcf]
+ * </pre>
+ *
+ * @author ebanks
  */
 @ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, BadCigarFilter.class})
 @Reference(window=@Window(start=-1,stop=50))
@@ -61,29 +105,41 @@ import java.util.List;
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
 
+    /**
+     * The target intervals for realignment.
+     */
     @Output
     protected PrintStream out;
 
+    /**
+     * Any number of VCF files representing known SNPs and/or indels.  Could be e.g. dbSNP and/or official 1000 Genomes indel calls.
+     * SNPs in these files will be ignored unless the --mismatchFraction argument is used.
+     */
     @Input(fullName="known", shortName = "known", doc="Input VCF file with known indels", required=false)
     public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
-    // mismatch/entropy/SNP arguments
+    /**
+     * Any two SNP calls and/or high entropy positions are considered clustered when they occur no more than this many basepairs apart.
+     */
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy or SNP clusters", required=false)
     protected int windowSize = 10;
 
-    @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of base qualities needing to mismatch for a position to have high entropy; to disable set to <= 0 or > 1", required=false)
+    /**
+     * To disable this behavior, set this value to <= 0 or > 1.  This feature is really only necessary when using an ungapped aligner
+     * (e.g. MAQ in the case of single-end read data) and should be used in conjunction with '--model USE_SW' in the IndelRealigner.
+     */
+    @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of base qualities needing to mismatch for a position to have high entropy", required=false)
     protected double mismatchThreshold = 0.0;
 
     @Argument(fullName="minReadsAtLocus", shortName="minReads", doc="minimum reads at a locus to enable using the entropy calculation", required=false)
     protected int minReadsAtLocus = 4;
 
-    // interval merging arguments
+    /**
+     * Because the realignment algorithm is N^2, allowing too large an interval might take too long to completely realign.
+     */
     @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size", required=false)
     protected int maxIntervalSize = 500;
 
-    @Deprecated
-    @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
-    protected boolean DEPRECATED_REALIGN_MATES = false;
 
     @Override
     public boolean generateExtendedEvents() { return true; }
