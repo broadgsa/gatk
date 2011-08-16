@@ -13,7 +13,7 @@ public class Sample extends VariantStratifier {
     @Override
     public void initialize() {
         samples = new ArrayList<String>();
-        samples.addAll(getVariantEvalWalker().getSampleNamesForEvaluation());
+        samples.addAll(getVariantEvalWalker().getSampleNamesForStratification());
     }
 
     public ArrayList<String> getAllStates() {
