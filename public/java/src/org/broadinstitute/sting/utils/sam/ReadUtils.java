@@ -148,7 +148,7 @@ public class ReadUtils {
      *  |----------------|     (interval)
      *     <-------->          (read)
      */
-    public enum ReadAndIntervalOverlap {NO_OVERLAP, LEFT_OVERLAP, RIGHT_OVERLAP, FULL_OVERLAP, CONTAINED}
+    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -634,24 +634,28 @@ public class ReadUtils {
         int start = getSoftUnclippedStart(read);
         int stop = getSoftUnclippedStop(read);
 
-        if ( (!read.getReferenceName().equals(interval.getContig())) ||
-             (stop < interval.getStart()) ||
-             (start > interval.getStop()) )
-            return ReadAndIntervalOverlap.NO_OVERLAP;
+        if ( !read.getReferenceName().equals(interval.getContig()) )
+            return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
+
+        else if  ( stop < interval.getStart() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_LEFT;
+
+        else if ( start > interval.getStop() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_RIGHT;
 
         else if ( (start >= interval.getStart()) &&
                   (stop <= interval.getStop()) )
-            return ReadAndIntervalOverlap.CONTAINED;
+            return ReadAndIntervalOverlap.OVERLAP_CONTAINED;
 
         else if ( (start < interval.getStart()) &&
                   (stop > interval.getStop()) )
-            return ReadAndIntervalOverlap.FULL_OVERLAP;
+            return ReadAndIntervalOverlap.OVERLAP_LEFT_AND_RIGHT;
 
         else if ( (start < interval.getStart()) )
-            return ReadAndIntervalOverlap.LEFT_OVERLAP;
+            return ReadAndIntervalOverlap.OVERLAP_LEFT;
 
         else
-            return ReadAndIntervalOverlap.RIGHT_OVERLAP;
+            return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
 
     public static int getSoftUnclippedStart(SAMRecord read) {
