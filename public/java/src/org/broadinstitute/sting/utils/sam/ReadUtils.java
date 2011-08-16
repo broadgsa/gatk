@@ -670,10 +670,11 @@ public class ReadUtils {
     }
 
     public static int getSoftUnclippedStop(SAMRecord read) {
-        int stop = getSoftUnclippedStart(read);
-        for (CigarElement cigarElement : read.getCigar().getCigarElements())
-            if (cigarElement.getOperator().consumesReadBases())
-                stop += cigarElement.getLength();
+        int stop = read.getAlignmentEnd();
+        List<CigarElement> cigarElementList  = read.getCigar().getCigarElements();
+        CigarElement lastCigarElement = cigarElementList.get(cigarElementList.size()-1);
+        if (lastCigarElement.getOperator() == CigarOperator.SOFT_CLIP)
+            stop += lastCigarElement.getLength();
         return stop;
     }
 
