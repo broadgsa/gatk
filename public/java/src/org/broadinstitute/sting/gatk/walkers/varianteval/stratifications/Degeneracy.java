@@ -2,13 +2,11 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 
 public class Degeneracy extends VariantStratifier {
     private ArrayList<String> states;
@@ -16,7 +14,7 @@ public class Degeneracy extends VariantStratifier {
     private HashMap<String, HashMap<Integer, String>> degeneracies;
 
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
+    public void initialize() {
         states = new ArrayList<String>();
         states.add("1-fold");
         states.add("2-fold");
