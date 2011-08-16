@@ -484,6 +484,9 @@ public class UnifiedGenotyperEngine {
 
         Map<String, AlignmentContext> stratifiedContexts = null;
 
+        if ( !BaseUtils.isRegularBase( refContext.getBase() ) )
+            return null;
+
         if ( model == GenotypeLikelihoodsCalculationModel.Model.INDEL ) {
 
             if (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
@@ -498,6 +501,7 @@ public class UnifiedGenotyperEngine {
                 stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
             } else {
+
                 // todo - tmp will get rid of extended events so this wont be needed
                 if (!rawContext.hasExtendedEventPileup())
                     return null;
@@ -514,9 +518,6 @@ public class UnifiedGenotyperEngine {
                 stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
             }
         } else if ( model == GenotypeLikelihoodsCalculationModel.Model.SNP ) {
-
-            if ( !BaseUtils.isRegularBase( refContext.getBase() ) )
-                return null;
 
             // stratify the AlignmentContext and cut by sample
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
