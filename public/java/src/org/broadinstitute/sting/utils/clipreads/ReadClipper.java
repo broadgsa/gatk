@@ -76,8 +76,8 @@ public class ReadClipper {
         int rightClipIndex = read.getReadLength() - 1;
 
         // check how far we can clip both sides
-        while (quals[rightClipIndex] <= lowQual) rightClipIndex--;
-        while (quals[leftClipIndex] <= lowQual) leftClipIndex++;
+        while (rightClipIndex >= 0 && quals[rightClipIndex] <= lowQual) rightClipIndex--;
+        while (leftClipIndex < read.getReadLength() && quals[leftClipIndex] <= lowQual) leftClipIndex++;
 
         // if the entire read should be clipped, then return an empty read. (--todo: maybe null is better? testing this for now)
         if (leftClipIndex > rightClipIndex)

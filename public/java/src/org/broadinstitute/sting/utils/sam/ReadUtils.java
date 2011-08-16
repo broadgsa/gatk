@@ -630,25 +630,50 @@ public class ReadUtils {
      * @return the overlap type as described by ReadAndIntervalOverlap enum (see above)
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
+
+        int start = getSoftUnclippedStart(read);
+        int stop = getSoftUnclippedStop(read);
+
         if ( (!read.getReferenceName().equals(interval.getContig())) ||
-             (read.getUnclippedEnd() < interval.getStart()) ||
-             (read.getUnclippedStart() > interval.getStop()) )
+             (stop < interval.getStart()) ||
+             (start > interval.getStop()) )
             return ReadAndIntervalOverlap.NO_OVERLAP;
 
-        else if ( (read.getUnclippedStart() >= interval.getStart()) &&
-                  (read.getUnclippedEnd() <= interval.getStop()) )
+        else if ( (start >= interval.getStart()) &&
+                  (stop <= interval.getStop()) )
             return ReadAndIntervalOverlap.CONTAINED;
 
-        else if ( (read.getUnclippedStart() < interval.getStart()) &&
-                  (read.getUnclippedEnd() > interval.getStop()) )
+        else if ( (start < interval.getStart()) &&
+                  (stop > interval.getStop()) )
             return ReadAndIntervalOverlap.FULL_OVERLAP;
 
-        else if ( (read.getAlignmentStart() < interval.getStart()) )
+        else if ( (start < interval.getStart()) )
             return ReadAndIntervalOverlap.LEFT_OVERLAP;
 
         else
             return ReadAndIntervalOverlap.RIGHT_OVERLAP;
     }
+
+    public static int getSoftUnclippedStart(SAMRecord read) {
+        int start = read.getUnclippedStart();
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                start += cigarElement.getLength();
+            else
+                break;
+        }
+        return start;
+    }
+
+    public static int getSoftUnclippedStop(SAMRecord read) {
+        int stop = getSoftUnclippedStart(read);
+        for (CigarElement cigarElement : read.getCigar().getCigarElements())
+            if (cigarElement.getOperator().consumesReadBases())
+                stop += cigarElement.getLength();
+        return stop;
+    }
+
+
 
     @Requires({"refCoord >= read.getAlignmentStart()", "refCoord <= read.getAlignmentEnd()"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
