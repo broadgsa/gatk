@@ -36,20 +36,61 @@ import java.util.*;
 
 /**
  * General-purpose tool for variant evaluation (% in dbSNP, genotype concordance, Ti/Tv ratios, and a lot more)
+ *
+ * <p>
+ * Given a variant callset, it is common to calculate various quality control metrics. These metrics include the number of
+ * raw or filtered SNP counts; ratio of transition mutations to transversions; concordance of a particular sample's calls
+ * to a genotyping chip; number of singletons per sample; etc. Furthermore, it is often useful to stratify these metrics
+ * by various criteria like functional class (missense, nonsense, silent), whether the site is CpG site, the amino acid
+ * degeneracy of the site, etc. VariantEval facilitates these calculations in two ways: by providing several built-in
+ * evaluation and stratification modules, and by providing a framework that permits the easy development of new evaluation
+ * and stratification modules.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more variant sets to evaluate plus any number of comparison sets.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Evaluation tables.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantEval \
+ *   -o output.eval.gatkreport \
+ *   --eval:set1 set1.vcf \
+ *   --eval:set2 set2.vcf \
+ *   [--comp comp.vcf]
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-50, stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
-    // Output arguments
+
     @Output
     protected PrintStream out;
 
+    /**
+     * The variant file(s) to evaluate.
+     */
     @Input(fullName="eval", shortName = "eval", doc="Input evaluation file(s)", required=true)
     public List<RodBinding<VariantContext>> evals;
 
+    /**
+     * The variant file(s) to compare against.
+     */
     @Input(fullName="comp", shortName = "comp", doc="Input comparison file(s)", required=false)
     public List<RodBinding<VariantContext>> compsProvided = Collections.emptyList();
     private List<RodBinding<VariantContext>> comps = new ArrayList<RodBinding<VariantContext>>();
 
+    /**
+     * dbSNP comparison VCF.  By default, the dbSNP file is used to specify the set of "known" variants.
+     * Other sets can be specified with the -knownName (--known_names) argument.
+     */
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
@@ -67,6 +108,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="sample", shortName="sn", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
     protected Set<String> SAMPLE_EXPRESSIONS;
 
+    /**
+     * List of rod tracks to be used for specifying "known" variants other than dbSNP.
+     */
     @Argument(shortName="knownName", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected HashSet<String> KNOWN_NAMES = new HashSet<String>();
     List<RodBinding<VariantContext>> knowns = new ArrayList<RodBinding<VariantContext>>();
@@ -81,7 +125,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
     protected Set<VariantContext.Type> typesToUse = null;
 
-    // Evaluator arguments
+    /**
+     * See the -list argument to view available modules.
+     */
     @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noE is specified)", required=false)
     protected String[] MODULES_TO_USE = {};
 
@@ -95,7 +141,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
 
-    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    /**
+     * This argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined.
+     */
+    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations", required=false)
     protected String FAMILY_STRUCTURE;
 
     @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
