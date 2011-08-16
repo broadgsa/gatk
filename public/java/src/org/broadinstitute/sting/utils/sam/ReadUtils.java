@@ -631,8 +631,8 @@ public class ReadUtils {
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
 
-        int start = getSoftUnclippedStart(read);
-        int stop = getSoftUnclippedStop(read);
+        int start = getRefCoordSoftUnclippedStart(read);
+        int stop = getRefCoordSoftUnclippedStop(read);
 
         if ( !read.getReferenceName().equals(interval.getContig()) )
             return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
@@ -658,7 +658,7 @@ public class ReadUtils {
             return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
 
-    public static int getSoftUnclippedStart(SAMRecord read) {
+    public static int getRefCoordSoftUnclippedStart(SAMRecord read) {
         int start = read.getUnclippedStart();
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
@@ -669,7 +669,7 @@ public class ReadUtils {
         return start;
     }
 
-    public static int getSoftUnclippedStop(SAMRecord read) {
+    public static int getRefCoordSoftUnclippedStop(SAMRecord read) {
         int stop = read.getAlignmentEnd();
         List<CigarElement> cigarElementList  = read.getCigar().getCigarElements();
         CigarElement lastCigarElement = cigarElementList.get(cigarElementList.size()-1);
