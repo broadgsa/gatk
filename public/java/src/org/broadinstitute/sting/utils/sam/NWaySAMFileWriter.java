@@ -135,6 +135,11 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     
     public void addAlignment(SAMRecord samRecord) {
         final SAMReaderID id = toolkit.getReaderIDForRead(samRecord);
+        String rg = samRecord.getStringAttribute("RG");
+        if ( rg != null ) {
+            String rg_orig = toolkit.getReadsDataSource().getOriginalReadGroupId(rg);
+            samRecord.setAttribute("RG",rg_orig);
+        }
         writerMap.get(id).addAlignment(samRecord);
     }
 
