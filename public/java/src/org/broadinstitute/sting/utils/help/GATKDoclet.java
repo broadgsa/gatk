@@ -96,8 +96,8 @@ public class GATKDoclet {
             //logger.debug("Considering " + doc);
             Class clazz = getClassForClassDoc(doc);
 
-            if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
-                logger.debug("foo");
+            //if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
+            //    logger.debug("foo");
 
             DocumentedGATKFeature feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
