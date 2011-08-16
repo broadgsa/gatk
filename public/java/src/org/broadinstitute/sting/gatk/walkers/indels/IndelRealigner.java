@@ -84,7 +84,7 @@ import java.util.*;
  *     </ol>
  *     <p>
  * An important note: the input bam(s), reference, and known indel file(s) should be the same ones used for the RealignerTargetCreator step.
- *
+ * <p>
  * Another important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
  * (or with reads from similar technologies).
  *
@@ -101,11 +101,11 @@ import java.util.*;
  * <h2>Examples</h2>
  * <pre>
  * java -Xmx4g -jar GenomeAnalysisTK.jar \
- *   -I <input.bam> \
- *   -R <ref.fasta> \
+ *   -I input.bam \
+ *   -R ref.fasta \
  *   -T IndelRealigner \
- *   -targetIntervals <intervalListFromRTC.intervals> \
- *   -o <realignedBam.bam> \
+ *   -targetIntervals intervalListFromRTC.intervals \
+ *   -o realignedBam.bam \
  *   [--known /path/to/indels.vcf] \
  *   [-compress 0]    (this argument recommended to speed up the process *if* this is only a temporary file; otherwise, use the default value)
  * </pre>

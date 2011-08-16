@@ -55,7 +55,7 @@ public @interface Output {
      * --help argument is specified.
      * @return Doc string associated with this command-line argument.
      */
-    String doc() default "An output file presented to the walker.  Will overwrite contents if file exists.";
+    String doc() default "An output file created by the walker.  Will overwrite contents if file exists";
 
     /**
      * Is this argument required.  If true, the command-line argument system will

@@ -52,7 +52,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Emits intervals for the Local Indel Realigner to target for cleaning.
+ * Emits intervals for the Local Indel Realigner to target for realignment.
  *
  * <p>
  * The local realignment tool is designed to consume one or more BAM files and to locally realign reads such that the number of mismatching bases
@@ -72,7 +72,7 @@ import java.util.List;
  *     </ol>
  *     <p>
  * An important note: the input bam(s), reference, and known indel file(s) should be the same ones to be used for the IndelRealigner step.
- *
+ * <p>
  * Another important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
  * (or with reads from similar technologies).   This tool also ignores MQ0 reads and reads with consecutive indel operators in the CIGAR string.
  *
@@ -89,10 +89,10 @@ import java.util.List;
  * <h2>Examples</h2>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -I <input.bam> \
- *   -R <ref.fasta> \
+ *   -I input.bam \
+ *   -R ref.fasta \
  *   -T RealignerTargetCreator \
- *   -o <forIndelRealigner.intervals> \
+ *   -o forIndelRealigner.intervals \
  *   [--known /path/to/indels.vcf]
  * </pre>
  *
