@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -112,7 +113,42 @@ public class ReadUtils {
      * @version 0.1
      */
 
-    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR }
+    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR}
+
+    /**
+     * This enum represents all the different ways in which a read can overlap an interval.
+     *
+     * NO_OVERLAP:
+     * the read does not overlap the interval.
+     *
+     *   |----------------|                      (interval)
+     *                        <----------------> (read)
+     *
+     * LEFT_OVERLAP:
+     * the read starts before the beginning of the interval but ends inside of it
+     *
+     *          |----------------| (interval)
+     *   <---------------->        (read)
+     *
+     * RIGHT_OVERLAP:
+     * the read starts inside the interval but ends outside of it
+     *
+     *   |----------------|     (interval)
+     *       <----------------> (read)
+     *
+     * FULL_OVERLAP:
+     * the read starts before the interval and ends after the interval
+     *
+     *      |-----------|     (interval)
+     *  <-------------------> (read)
+     *
+     * CONTAINED:
+     * the read starts and ends inside the interval
+     *
+     *  |----------------|     (interval)
+     *     <-------->          (read)
+     */
+    public enum ReadAndIntervalOverlap {NO_OVERLAP, LEFT_OVERLAP, RIGHT_OVERLAP, FULL_OVERLAP, CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -396,16 +432,34 @@ public class ReadUtils {
                         keepEnd = rec.getReadLength() - l - 1;
                     newCigarElements.add(new CigarElement(l, CigarOperator.HARD_CLIP));
                     break;
-                case H:
-                    // TODO -- must be handled specially
-                    throw new ReviewedStingException("BUG: tell mark he forgot to implement this");
+
                 default:
                     newCigarElements.add(ce);
                     break;
             }
         }
 
-        return hardClipBases(rec, keepStart, keepEnd, newCigarElements);
+        // Merges tandem cigar elements like 5H10H or 2S5S to 15H or 7S
+        // this will happen if you soft clip a read that has been hard clipped before
+        // like: 5H20S => 5H20H
+        List<CigarElement> mergedCigarElements = new LinkedList<CigarElement>();
+        Iterator<CigarElement> cigarElementIterator = newCigarElements.iterator();
+        CigarOperator currentOperator = null;
+        int currentOperatorLength = 0;
+        while (cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            if (currentOperator != cigarElement.getOperator()) {
+                if (currentOperator != null)
+                    mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
+                currentOperator = cigarElement.getOperator();
+                currentOperatorLength = cigarElement.getLength();
+            }
+            else
+                currentOperatorLength += cigarElement.getLength();
+        }
+        mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
+
+        return hardClipBases(rec, keepStart, keepEnd, mergedCigarElements);
     }
 
     /**
@@ -424,8 +478,7 @@ public class ReadUtils {
             "keepEnd < rec.getReadLength()",
             "rec.getReadUnmappedFlag() || newCigarElements != null"})
     @Ensures("result != null")
-    public static SAMRecord hardClipBases(SAMRecord rec, int keepStart, int keepEnd,
-                                          List<CigarElement> newCigarElements) {
+    public static SAMRecord hardClipBases(SAMRecord rec, int keepStart, int keepEnd, List<CigarElement> newCigarElements) {
         int newLength = keepEnd - keepStart + 1;
         if ( newLength != rec.getReadLength() ) {
             try {
@@ -569,7 +622,71 @@ public class ReadUtils {
             return 0;
     }
 
+    /**
+     * Determines what is the position of the read in relation to the interval.
+     * Note: This function uses the UNCLIPPED ENDS of the reads for the comparison.
+     * @param read the read
+     * @param interval the interval
+     * @return the overlap type as described by ReadAndIntervalOverlap enum (see above)
+     */
+    public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
+        if ( (!read.getReferenceName().equals(interval.getContig())) ||
+             (read.getUnclippedEnd() < interval.getStart()) ||
+             (read.getUnclippedStart() > interval.getStop()) )
+            return ReadAndIntervalOverlap.NO_OVERLAP;
 
+        else if ( (read.getUnclippedStart() >= interval.getStart()) &&
+                  (read.getUnclippedEnd() <= interval.getStop()) )
+            return ReadAndIntervalOverlap.CONTAINED;
+
+        else if ( (read.getUnclippedStart() < interval.getStart()) &&
+                  (read.getUnclippedEnd() > interval.getStop()) )
+            return ReadAndIntervalOverlap.FULL_OVERLAP;
+
+        else if ( (read.getAlignmentStart() < interval.getStart()) )
+            return ReadAndIntervalOverlap.LEFT_OVERLAP;
+
+        else
+            return ReadAndIntervalOverlap.RIGHT_OVERLAP;
+    }
+
+    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
+    @Ensures({"result >= 0", "result < read.getReadLength()"})
+    public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
+        int readBases = 0;
+        int refBases = 0;
+        int goal = refCoord - read.getUnclippedStart();  // read coords are 0-based!
+        boolean goalReached = false;
+
+        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        while (!goalReached && cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            int shift = 0;
+            if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+                goal -= cigarElement.getLength();
+            }
+
+            if (cigarElement.getOperator().consumesReferenceBases()) {
+                if (refBases + cigarElement.getLength() < goal) {
+                    shift = cigarElement.getLength();
+                }
+                else {
+                    shift = goal - refBases;
+                }
+                refBases += shift;
+            }
+            goalReached = refBases == goal;
+
+            if (cigarElement.getOperator().consumesReadBases()) {
+                readBases += goalReached ? shift : cigarElement.getLength();
+            }
+        }
+
+        if (!goalReached)
+            throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+
+        return readBases;
+    }
 
 
 }

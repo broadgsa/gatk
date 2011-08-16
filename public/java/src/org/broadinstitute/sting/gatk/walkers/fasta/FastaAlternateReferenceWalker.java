@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.Collections;
 import java.util.List;
 
 
@@ -49,7 +50,7 @@ import java.util.List;
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
     @Input(fullName = "variant", shortName = "V", doc="variants to model", required=false)
-    public List<RodBinding<VariantContext>> variants;
+    public List<RodBinding<VariantContext>> variants = Collections.emptyList();
 
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
     public RodBinding<VariantContext> snpmask;
@@ -66,17 +67,18 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
         String refBase = String.valueOf((char)ref.getBase());
 
         // Check to see if we have a called snp
-        for ( VariantContext vc : tracker.getValues(VariantContext.class) ) {
-            if ( ! vc.getSource().equals(snpmask.getName())) {
-                if ( vc.isDeletion()) {
-                    deletionBasesRemaining = vc.getReference().length();
-                    // delete the next n bases, not this one
-                    return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
-                } else if ( vc.isInsertion()) {
-                    return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
-                } else if (vc.isSNP()) {
-                    return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
-                }
+        for ( VariantContext vc : tracker.getValues(variants) ) {
+            if ( vc.isFiltered() )
+                continue;
+
+            if ( vc.isDeletion()) {
+                deletionBasesRemaining = vc.getReference().length();
+                // delete the next n bases, not this one
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
+            } else if ( vc.isInsertion()) {
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
+            } else if (vc.isSNP()) {
+                return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
             }
         }
 

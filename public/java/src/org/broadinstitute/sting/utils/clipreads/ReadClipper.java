@@ -1,6 +1,10 @@
 package org.broadinstitute.sting.utils.clipreads;
 
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.jets3t.service.multi.ThreadedStorageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +47,23 @@ public class ReadClipper {
         return read;
     }
 
+    public SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
+        int start = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
+        int stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+        this.addOp(new ClippingOp(start, stop));
+        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
+    }
+
+    public SAMRecord hardClipByReadCoordinates(int start, int stop) {
+        this.addOp(new ClippingOp(start, stop));
+        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
+    }
+
+    public SAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
+        this.read = hardClipByReferenceCoordinates(read.getUnclippedStart(), left);
+        this.ops = null; // reset the operations
+        return hardClipByReferenceCoordinates(right, read.getUnclippedEnd());
+    }
 
     /**
      * Return a new read corresponding to this.read that's been clipped according to ops, if any are present.

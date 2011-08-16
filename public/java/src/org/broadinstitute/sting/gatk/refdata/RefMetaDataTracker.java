@@ -333,10 +333,6 @@ public class RefMetaDataTracker {
         return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), onlyAtThisLoc, true, false);
     }
     @Deprecated
-    public <T extends Feature> List<T> getValues(final Class<T> type, final Collection<String> names, final GenomeLoc onlyAtThisLoc) {
-        return addValues(names, type, new ArrayList<T>(), onlyAtThisLoc, true, false);
-    }
-    @Deprecated
     public <T extends Feature> T getFirstValue(final Class<T> type, final String name) {
         return safeGetFirst(getValues(type, name));
     }
