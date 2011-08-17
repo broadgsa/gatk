@@ -469,10 +469,20 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                 // let's double check now that the read fits after the shift
                 if ( read.getAlignmentEnd() > normal_context.getStop()) {
                     // ooops, looks like the read does not fit into the window even after the latter was shifted!!
-                    throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
-                                             "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+                    // we used to die over such reads and require user to run with larger window size. Now we
+                    // just print a warning and discard the read (this means that our counts can be slightly off in
+                    // th epresence of such reads)
+                    //throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
+                    //                         "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+                    //                         read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
+                    //                         "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    System.out.println("WARNING: Read "+read.getReadName()+
+                             " is out of coverage window bounds. Probably window is too small and the window_size value must be increased.\n"+
+                             "  The read is ignored in this run (so all the counts/statistics reported will not include it).\n"+
+                                             "  Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
                                              read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
                                              "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    return 1;
                 }
             }
 

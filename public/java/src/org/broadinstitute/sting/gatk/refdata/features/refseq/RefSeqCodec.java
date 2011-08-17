@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata.features.refseq;
 
+import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
@@ -20,7 +21,7 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
      * The parser to use when resolving genome-wide locations.
      */
     private GenomeLocParser genomeLocParser;
-
+    private boolean zero_coding_length_user_warned = false;
     /**
      * Set the parser to use when resolving genetic data.
      * @param genomeLocParser The supplied parser.
@@ -60,9 +61,20 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         else if ( fields[3].length()==1 && fields[3].charAt(0)=='-') feature.setStrand(-1);
         else throw new UserException.MalformedFile("Expected strand symbol (+/-), found: "+fields[3] + " for line=" + line);
 
+        int coding_start = Integer.parseInt(fields[6])+1;
+        int coding_stop = Integer.parseInt(fields[7]);
+
+        if ( coding_start > coding_stop ) {
+            if ( ! zero_coding_length_user_warned ) {
+                Utils.warnUser("RefSeq file contains transcripts with zero coding length. "+
+                        "Such transcripts will be ignored (this warning is printed only once)");
+                zero_coding_length_user_warned = true;
+            }
+            return null;
+        }
 
         feature.setTranscript_interval(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));
-        feature.setTranscript_coding_interval(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(fields[6])+1, Integer.parseInt(fields[7])));
+        feature.setTranscript_coding_interval(genomeLocParser.createGenomeLoc(contig_name, coding_start, coding_stop));
         feature.setGene_name(fields[12]);
         String[] exon_starts = fields[9].split(",");
         String[] exon_stops = fields[10].split(",");
