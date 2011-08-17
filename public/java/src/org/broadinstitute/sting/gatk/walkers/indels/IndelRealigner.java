@@ -69,7 +69,7 @@ import java.util.*;
  * <p>
  * The local realignment tool is designed to consume one or more BAM files and to locally realign reads such that the number of mismatching bases
  * is minimized across all the reads. In general, a large percent of regions requiring local realignment are due to the presence of an insertion
- * or deletion (indels) in the individual’s genome with respect to the reference genome.  Such alignment artifacts result in many bases mismatching
+ * or deletion (indels) in the individual's genome with respect to the reference genome.  Such alignment artifacts result in many bases mismatching
  * the reference near the misalignment, which are easily mistaken as SNPs.  Moreover, since read mapping algorithms operate on each read independently,
  * it is impossible to place reads on the reference genome such at mismatches are minimized across all reads.  Consequently, even when some reads are
  * correctly mapped with indels, reads covering the indel near just the start or end of the read are often incorrectly mapped with respect the true indel,
