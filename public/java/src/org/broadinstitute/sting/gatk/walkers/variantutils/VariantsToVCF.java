@@ -53,6 +53,30 @@ import java.util.*;
 
 /**
  * Converts variants from other file formats to VCF format.
+ *
+ * <p>
+ * Note that there must be a Tribble feature/codec for the file format as well as an adaptor.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant file to filter.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A VCF file.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantsToVCF \
+ *   -o output.vcf \
+ *   --variant:RawHapMap input.hapmap \
+ *   --dbsnp dbsnp.vcf
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-40,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
@@ -61,15 +85,24 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     protected VCFWriter baseWriter = null;
     private SortingVCFWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 
+    /**
+     * Variants from this input file are used by this tool as input.
+     */
     @Input(fullName="variant", shortName = "V", doc="Input variant file", required=true)
     public RodBinding<Feature> variants;
 
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
-    @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
+    /**
+     * This argument is used for data (like GELI) with genotypes but no sample names encoded within.
+     */
+    @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod", required=false)
     protected String sampleName = null;
 
+    /**
+     * This argument is useful for fixing input VCFs with bad reference bases (the output will be a fixed version of the VCF).
+     */
     @Argument(fullName="fixRef", shortName="fixRef", doc="Fix common reference base in case there's an indel without padding", required=false)
     protected boolean fixReferenceBase = false;
 
