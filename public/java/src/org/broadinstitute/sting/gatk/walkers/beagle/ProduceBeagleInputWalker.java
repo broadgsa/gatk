@@ -68,7 +68,7 @@ import java.util.*;
  * <pre>
  *     java -Xmx2g -jar dist/GenomeAnalysisTK.jar -L 20 \
  *      -R reffile.fasta -T ProduceBeagleInput \
- *      -B:variant,VCF path_to_input_vcf/inputvcf.vcf -o path_to_beagle_output/beagle_output
+ *      -V path_to_input_vcf/inputvcf.vcf -o path_to_beagle_output/beagle_output
  * </pre>
  *
  */
