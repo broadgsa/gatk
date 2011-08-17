@@ -482,6 +482,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                                              "  Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
                                              read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
                                              "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    return 1;
                 }
             }
 
