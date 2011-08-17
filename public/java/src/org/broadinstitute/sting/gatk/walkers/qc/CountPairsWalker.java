@@ -39,6 +39,26 @@ import java.util.List;
  * query name order.  Breaks counts down by total pairs and number
  * of paired reads.
  *
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more bam files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Number of pairs seen.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CountPairs \
+ *   -o output.txt \
+ *   -I input.bam
+ * </pre>
+ *
  * @author mhanna
  */
 public class CountPairsWalker extends ReadPairWalker<Integer,Long> {
