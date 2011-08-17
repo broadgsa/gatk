@@ -135,6 +135,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public boolean ALLOW_MISSING_DATA = false;
 
     public void initialize() {
+        // print out the header
         out.println(Utils.join("\t", fieldsToTake));
     }
 
