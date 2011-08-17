@@ -43,10 +43,54 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.util.*;
 
 /**
- * Combines VCF records from different sources; supports both full merges and set unions.
+ * Combines VCF records from different sources.
+ *
+ * <p>
+ * CombineVariants combines VCF records from different sources. Any (unique) name can be used to bind your rod data
+ * and any number of sources can be input. This tool currently supports two different combination types for each of
+ * variants (the first 8 fields of the VCF) and genotypes (the rest).
  * Merge: combines multiple records into a single one; if sample names overlap then they are uniquified.
  * Union: assumes each rod represents the same set of samples (although this is not enforced); using the
- *   priority list (if provided), emits a single record instance at every position represented in the rods.
+ * priority list (if provided), it emits a single record instance at every position represented in the rods.
+ *
+ * CombineVariants will include a record at every site in all of your input VCF files, and annotate which input ROD
+ * bindings the record is present, pass, or filtered in in the set attribute in the INFO field. In effect,
+ * CombineVariants always produces a union of the input VCFs.  However, any part of the Venn of the N merged VCFs
+ * can be exacted using JEXL expressions on the set attribute using SelectVariants.  If you want to extract just
+ * the records in common between two VCFs, you would first run CombineVariants on the two files to generate a single
+ * VCF and then run SelectVariants to extract the common records with -select 'set == "Intersection"', as worked out
+ * in the detailed example on the wiki.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more variant sets to combine.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A combined VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CombineVariants \
+ *   --variant input1.vcf \
+ *   --variant input2.vcf \
+ *   -o output.vcf \
+ *   -genotypeMergeOptions UNIQUIFY
+ *
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CombineVariants \
+ *   --variant:foo input1.vcf \
+ *   --variant:bar input2.vcf \
+ *   -o output.vcf \
+ *   -genotypeMergeOptions PRIORITIZE
+ *   -priority foo,bar
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-50,stop=50))
 public class CombineVariants extends RodWalker<Integer, Integer> {
@@ -69,32 +113,43 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    // the types of combinations we currently allow
-    @Argument(shortName="genotypeMergeOptions", doc="How should we merge genotype records for samples shared across the ROD files?", required=false)
+    @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
     public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
 
-    @Argument(shortName="filteredRecordsMergeType", doc="How should we deal with records seen at the same site in the VCF, but with different FILTER fields?  KEEP_IF_ANY_UNFILTERED PASSes the record if any record is unfiltered, KEEP_IF_ALL_UNFILTERED requires all records to be unfiltered", required=false)
+    @Argument(shortName="filteredRecordsMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different FILTER fields", required=false)
     public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
 
-    @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=false)
+    /**
+     * Used when taking the union of variants that contain genotypes.  A complete priority list MUST be provided.
+     */
+    @Argument(fullName="rod_priority_list", shortName="priority", doc="A comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted", required=false)
     public String PRIORITY_STRING = null;
 
     @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
     public boolean printComplexMerges = false;
 
-    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotation don't appear in the combined VCF", required=false)
+    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotations don't appear in the combined VCF", required=false)
     public boolean filteredAreUncalled = false;
 
-    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype INFO field", required=false)
+    /**
+     * Used to generate a sites-only file.
+     */
+    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype FORMAT fields", required=false)
     public boolean minimalVCF = false;
 
-    @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
+    /**
+     * Set to 'null' if you don't want the set field emitted.
+     */
+    @Argument(fullName="setKey", shortName="setKey", doc="Key used in the INFO key=value tag emitted describing which set the combined VCF record came from", required=false)
     public String SET_KEY = "set";
 
-    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls so that one can simply perform a merge sort to combine the VCFs into one, drastically reducing the runtime.", required=false)
+    /**
+     * This option allows the user to perform a simple merge (concatenation) to combine the VCFs, drastically reducing the runtime..
+     */
+    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls", required=false)
     public boolean ASSUME_IDENTICAL_SAMPLES = false;
 
-    @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if variant is present in at least N input files.", required=false)
+    @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if the variant is present in at least N input files.", required=false)
     public int minimumN = 1;
 
     @Hidden
