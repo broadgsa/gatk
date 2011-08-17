@@ -40,7 +40,7 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Emits specific fields from a VCF file to a table-deliminated format
+ * Emits specific fields from a VCF file to a tab-deliminated table
  *
  * <p>
  * This walker accepts a single VCF file and writes out user-selected fields from the
