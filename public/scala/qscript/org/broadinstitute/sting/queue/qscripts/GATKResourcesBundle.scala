@@ -13,7 +13,7 @@ class GATKResourcesBundle extends QScript {
   var gatkJarFile: File = new File("dist/GenomeAnalysisTK.jar")
 
   @Argument(doc="liftOverPerl", required=false)
-  var liftOverPerl: File = new File("./perl/liftOverVCF.pl")
+  var liftOverPerl: File = new File("./public/perl/liftOverVCF.pl")
 
   @Argument(shortName = "ver", doc="The SVN version of this release", required=true)
   var VERSION: String = _
@@ -57,11 +57,11 @@ class GATKResourcesBundle extends QScript {
     //Console.printf("liftover(%s => %s)%n", inRef.name, outRef.name)
     (inRef.name, outRef.name) match {
       case ("b37", "hg19") =>
-        return new LiftOverPerl(in, out, new File("chainFiles/b37tohg19.chain"), inRef, outRef)
+        return new LiftOverPerl(in, out, new File("public/chainFiles/b37tohg19.chain"), inRef, outRef)
       case ("b37", "hg18") =>
-        return new LiftOverPerl(in, out, new File("chainFiles/b37tohg18.chain"), inRef, outRef)
+        return new LiftOverPerl(in, out, new File("public/chainFiles/b37tohg18.chain"), inRef, outRef)
       case ("b37", "b36") =>
-        return new LiftOverPerl(in, out, new File("chainFiles/b37tob36.chain"), inRef, outRef)
+        return new LiftOverPerl(in, out, new File("public/chainFiles/b37tob36.chain"), inRef, outRef)
       case _ => return null
     }
   }
@@ -85,7 +85,7 @@ class GATKResourcesBundle extends QScript {
     //
     b37 = new Reference("b37", new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta"))
     hg18 = new Reference("hg18", new File("/Users/depristo/Desktop/broadLocal/localData/Homo_sapiens_assembly18.fasta"))
-    exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
+    exampleFASTA = new Reference("exampleFASTA", new File("public/testdata/exampleFASTA.fasta"))
     refs = List(b37, hg18, exampleFASTA)
 
     val DATAROOT = "/Users/depristo/Desktop/broadLocal/localData/"
@@ -94,7 +94,7 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource(DATAROOT + "dbsnp_132_b37.vcf", "dbsnp_132", b37, true, false))
 
     addResource(new Resource(exampleFASTA.file, "exampleFASTA", exampleFASTA, false))
-    addResource(new Resource("testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
+    addResource(new Resource("public/testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
   }
 
   def initializeStandardDataFiles() = {
@@ -105,7 +105,7 @@ class GATKResourcesBundle extends QScript {
     b37 = new Reference("b37", new File("/humgen/1kg/reference/human_g1k_v37.fasta"))
     hg18 = new Reference("hg18", new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"))
     b36 = new Reference("b36", new File("/humgen/1kg/reference/human_b36_both.fasta"))
-    exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
+    exampleFASTA = new Reference("exampleFASTA", new File("public/testdata/exampleFASTA.fasta"))
     refs = List(hg19, b37, hg18, b36, exampleFASTA)
 
     addResource(new Resource(b37.file, "", b37, false))
@@ -134,6 +134,9 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf",
       "1000G_indels_for_realignment", b37, true, false))
 
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Mills_Devine_Indels_2011/ALL.wgs.indels_mills_devine_hg19_leftAligned_collapsed_double_hit.sites.vcf",
+      "indels_mills_devine", b37, true, true))
+    
     //
     // example call set for wiki tutorial
     //
@@ -152,8 +155,8 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/refGene_b37.sorted.txt",
       "refGene", b37, true, false))
 
-    addResource(new Resource("chainFiles/hg18tob37.chain", "", hg18, false, false))
-    addResource(new Resource("chainFiles/b36tob37.chain", "", b36, false, false))
+    addResource(new Resource("public/chainFiles/hg18tob37.chain", "", hg18, false, false))
+    addResource(new Resource("public/chainFiles/b36tob37.chain", "", b36, false, false))
 
     // todo -- chain files?
     // todo 1000G SNP and indel call sets?
@@ -162,7 +165,7 @@ class GATKResourcesBundle extends QScript {
     // exampleFASTA file
     //
     addResource(new Resource(exampleFASTA.file, "exampleFASTA", exampleFASTA, false))
-    addResource(new Resource("testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
+    addResource(new Resource("public/testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
   }
 
   def createBundleDirectories(dir: File) = {

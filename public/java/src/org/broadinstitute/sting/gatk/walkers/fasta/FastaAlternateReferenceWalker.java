@@ -61,6 +61,8 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         // Check to see if we have a called snp
         for ( VariantContext vc : vcs ) {
+            if ( vc.isFiltered() )
+                continue;
             if ( !vc.getSource().startsWith("snpmask") ) {
                 if ( vc.isDeletion()) {
                     deletionBasesRemaining = vc.getReference().length();
