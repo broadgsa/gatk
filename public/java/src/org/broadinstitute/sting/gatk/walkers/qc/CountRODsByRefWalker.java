@@ -25,7 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -33,25 +36,55 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
- * Prints out counts of the number of reference ordered data objects are
- * each locus for debugging RefWalkers.
+ * Prints out counts of the number of reference ordered data objects encountered.
+ *
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more rod files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Number of rods seen.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CountRODsByRef \
+ *   -o output.txt \
+ *   --rod input.vcf
+ * </pre>
+ *
  */
-public class CountRodByRefWalker extends RefWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> {
-    @Argument(fullName = "verbose", shortName = "v", doc="If true, Countrod will print out detailed information about the rods it finds and locations", required = false)
+public class CountRODsByRefWalker extends RefWalker<CountRODsWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> {
+
+    /**
+     * One or more input rod files
+     */
+    @Input(fullName="rod", shortName = "rod", doc="Input VCF file(s)", required=false)
+    public List<RodBinding<Feature>> rods = Collections.emptyList();
+
+    @Argument(fullName = "verbose", shortName = "v", doc="If true, this tool will print out detailed information about the rods it finds and locations", required = false)
     public boolean verbose = false;
 
-    @Argument(fullName = "showSkipped", shortName = "s", doc="If true, CountRod will print out the skippped locations", required = false)
+    @Argument(fullName = "showSkipped", shortName = "s", doc="If true, this tool will print out the skipped locations", required = false)
     public boolean showSkipped = false;
 
-    CountRodWalker crw = new CountRodWalker();
+    CountRODsWalker crw = new CountRODsWalker();
 
     public void initialize() {
         crw.verbose = verbose;
         crw.showSkipped = showSkipped;
     }
 
-    public CountRodWalker.Datum map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public CountRODsWalker.Datum map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return crw.map(tracker, ref, context);
     }
 
@@ -59,7 +92,7 @@ public class CountRodByRefWalker extends RefWalker<CountRodWalker.Datum, Pair<Ex
         return crw.reduceInit();
     }
 
-    public Pair<ExpandingArrayList<Long>, Long> reduce(CountRodWalker.Datum point, Pair<ExpandingArrayList<Long>, Long> sum) {
+    public Pair<ExpandingArrayList<Long>, Long> reduce(CountRODsWalker.Datum point, Pair<ExpandingArrayList<Long>, Long> sum) {
         return crw.reduce(point, sum);
     }
 }

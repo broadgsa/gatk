@@ -64,13 +64,13 @@ import java.util.*;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T CountRod \
+ *   -T CountRODs \
  *   -o output.txt \
  *   --rod input.vcf
  * </pre>
  *
  */
-public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
+public class CountRODsWalker extends RodWalker<CountRODsWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
     @Output
     public PrintStream out;
 
@@ -80,10 +80,10 @@ public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<Expandi
     @Input(fullName="rod", shortName = "rod", doc="Input VCF file(s)", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
-    @Argument(fullName = "verbose", shortName = "v", doc="If true, CountRod will print out detailed information about the rods it finds and locations", required = false)
+    @Argument(fullName = "verbose", shortName = "v", doc="If true, this tool will print out detailed information about the rods it finds and locations", required = false)
     public boolean verbose = false;
 
-    @Argument(fullName = "showSkipped", shortName = "s", doc="If true, CountRod will print out the skipped locations", required = false)
+    @Argument(fullName = "showSkipped", shortName = "s", doc="If true, this tool will print out the skipped locations", required = false)
     public boolean showSkipped = false;
 
     @Override
