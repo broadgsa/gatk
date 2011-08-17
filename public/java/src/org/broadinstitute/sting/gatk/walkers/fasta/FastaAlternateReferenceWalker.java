@@ -40,18 +40,48 @@ import java.util.List;
 
 
 /**
- * Generates an alternative reference sequence over the specified interval.  Given variant ROD tracks,
- * it replaces the reference bases at variation sites with the bases supplied by the ROD(s).  Additionally,
- * allows for a "snpmask" ROD to set overlapping bases to 'N'.
+ * Generates an alternative reference sequence over the specified interval.
+ *
+ * <p>
+ * Given variant ROD tracks, it replaces the reference bases at variation sites with the bases supplied by the ROD(s).
+ * Additionally, allows for a "snpmask" ROD to set overlapping bases to 'N'.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * The reference, requested intervals, and any number of variant rod files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A fasta file representing the requested intervals.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T FastaAlternateReferenceMaker \
+ *   -o output.fasta \
+ *   -L input.intervals \
+ *   --variant input.vcf \
+ *   [--snpmask mask.vcf]
+ * </pre>
+ *
  */
 @WalkerName("FastaAlternateReferenceMaker")
 @Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
+    /**
+     * Variants from these input files are used by this tool to construct an alternate reference.
+     */
     @Input(fullName = "variant", shortName = "V", doc="variants to model", required=false)
     public List<RodBinding<VariantContext>> variants = Collections.emptyList();
 
+    /**
+     * Snps from this file are used as a mask when constructing the alternate reference.
+     */
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
     public RodBinding<VariantContext> snpmask;
 

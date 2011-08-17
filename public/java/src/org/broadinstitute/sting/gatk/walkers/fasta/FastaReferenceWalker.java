@@ -38,14 +38,44 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import java.io.PrintStream;
 
 /**
- * Renders a new reference in FASTA format consisting of only those loci provided in the input data set.  Has optional
- * features to control the output format.
+ * Renders a new reference in FASTA format consisting of only those loci provided in the input data set.
+ *
+ * <p>
+ * The output format can be partially controlled using the provided command-line arguments.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * The reference and requested intervals.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A fasta file representing the requested intervals.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T FastaReference \
+ *   -o output.fasta \
+ *   -L input.intervals
+ * </pre>
+ *
  */
 @WalkerName("FastaReferenceMaker")
 public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
+
     @Output PrintStream out;
-    @Argument(fullName="lineWidth", shortName="lw", doc="Maximum length of sequence to write per line", required=false) public int fastaLineWidth=60;
-    @Argument(fullName="rawOnelineSeq", shortName="raw", doc="Print sequences with no FASTA header lines, one line per interval (i.e. lineWidth = infinity) - CAUTION: adjacent intervals will automatically be merged", required=false) public boolean fastaRawSeqs=false;
+
+    @Argument(fullName="lineWidth", shortName="lw", doc="Maximum length of sequence to write per line", required=false)
+    public int fastaLineWidth=60;
+
+    /**
+     *  Please note that when using this argument adjacent intervals will automatically be merged.
+     */
+    @Argument(fullName="rawOnelineSeq", shortName="raw", doc="Print sequences with no FASTA header lines, one line per interval (i.e. lineWidth = infinity)", required=false)
+    public boolean fastaRawSeqs=false;
 
     protected FastaSequence fasta;
 

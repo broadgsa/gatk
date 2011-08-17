@@ -27,8 +27,11 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -41,23 +44,46 @@ import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
- * Prints out counts of the number of reference ordered data objects are
- * each locus for debugging RodWalkers.
+ * Prints out counts of the number of reference ordered data objects encountered.
+ *
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more rod files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Number of rods seen.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CountRODs \
+ *   -o output.txt \
+ *   --rod input.vcf
+ * </pre>
+ *
  */
-public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
+public class CountRODsWalker extends RodWalker<CountRODsWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
     @Output
     public PrintStream out;
 
-    @Argument(fullName = "verbose", shortName = "v", doc="If true, Countrod will print out detailed information about the rods it finds and locations", required = false)
+    /**
+     * One or more input rod files
+     */
+    @Input(fullName="rod", shortName = "rod", doc="Input VCF file(s)", required=false)
+    public List<RodBinding<Feature>> rods = Collections.emptyList();
+
+    @Argument(fullName = "verbose", shortName = "v", doc="If true, this tool will print out detailed information about the rods it finds and locations", required = false)
     public boolean verbose = false;
 
-    @Argument(fullName = "showSkipped", shortName = "s", doc="If true, CountRod will print out the skippped locations", required = false)
+    @Argument(fullName = "showSkipped", shortName = "s", doc="If true, this tool will print out the skipped locations", required = false)
     public boolean showSkipped = false;
 
     @Override

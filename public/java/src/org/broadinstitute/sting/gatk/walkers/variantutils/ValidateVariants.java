@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.*;
@@ -34,7 +33,6 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -48,7 +46,32 @@ import java.util.Set;
 
 
 /**
- * Validates a variants file.
+ * Strictly validates a variants file.
+ *
+ * <p>
+ * ValidateVariants is a GATK tool that takes a VCF file and validates much of the information inside it.
+ * Checks include the correctness of the reference base(s), accuracy of AC & AN values, tests against rsIDs
+ * when a dbSNP file is provided, and that all alternate alleles are present in at least one sample.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant set to filter.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A filtered VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T ValidateVariants \
+ *   --variant input.vcf \
+ *   --dbsnp dbsnp.vcf
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=0,stop=100))
 public class ValidateVariants extends RodWalker<Integer, Integer> {
@@ -67,10 +90,13 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName = "validationType", shortName = "type", doc = "which validation type to run", required = false)
     protected ValidationType type = ValidationType.ALL;
 
-    @Argument(fullName = "doNotValidateFilteredRecords", shortName = "doNotValidateFilteredRecords", doc = "should we skip validation on filtered records?", required = false)
+    /**
+     * By default, even filtered records are validated.
+     */
+    @Argument(fullName = "doNotValidateFilteredRecords", shortName = "doNotValidateFilteredRecords", doc = "skip validation on filtered records", required = false)
     protected Boolean DO_NOT_VALIDATE_FILTERED = false;
 
-    @Argument(fullName = "warnOnErrors", shortName = "warnOnErrors", doc = "should we just emit warnings on errors instead of terminating the run?", required = false)
+    @Argument(fullName = "warnOnErrors", shortName = "warnOnErrors", doc = "just emit warnings on errors instead of terminating the run at the first instance", required = false)
     protected Boolean WARN_ON_ERROR = false;
 
     private long numErrors = 0;

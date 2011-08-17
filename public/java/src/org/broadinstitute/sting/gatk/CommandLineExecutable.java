@@ -96,24 +96,23 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             loadArgumentsIntoObject(walker);
             argumentSources.add(walker);
 
-            Collection<RMDTriplet> newStyle = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
+            Collection<RMDTriplet> rodBindings = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
 
             // todo: remove me when the old style system is removed
             if ( getArgumentCollection().RODBindings.size() > 0 ) {
                 logger.warn("################################################################################");
                 logger.warn("################################################################################");
-                logger.warn("Deprecated -B rod binding syntax detected.  This syntax will be retired in GATK 1.2.");
+                logger.warn("Deprecated -B rod binding syntax detected.  This syntax has been eliminated in GATK 1.2.");
                 logger.warn("Please use arguments defined by each specific walker instead.");
                 for ( String oldStyleRodBinding : getArgumentCollection().RODBindings ) {
                     logger.warn("  -B rod binding with value " + oldStyleRodBinding + " tags: " + parser.getTags(oldStyleRodBinding).getPositionalTags());
                 }
                 logger.warn("################################################################################");
                 logger.warn("################################################################################");
+                System.exit(1);
             }
 
-            Collection<RMDTriplet> oldStyle = ListFileUtils.unpackRODBindingsOldStyle(getArgumentCollection().RODBindings, parser);
-            oldStyle.addAll(newStyle);
-            engine.setReferenceMetaDataFiles(oldStyle);
+            engine.setReferenceMetaDataFiles(rodBindings);
 
             for (ReadFilter filter: filters) {
                 loadArgumentsIntoObject(filter);

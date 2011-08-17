@@ -46,6 +46,31 @@ import java.util.*;
 
 /**
  * Left-aligns indels from a variants file.
+ *
+ * <p>
+ * LeftAlignVariants is a tool that takes a VCF file and left-aligns any indels inside it.  The same indel can often be
+ * placed at multiple positions and still represent the same haplotype.  While the standard convention with VCF is to
+ * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant set to left-align.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A left-aligned VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T LeftAlignVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-200,stop=200))
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
