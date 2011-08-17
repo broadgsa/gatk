@@ -373,15 +373,15 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         if ( featureDescriptor != null ) {
                             tribbleType = featureDescriptor.getName();
                             logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
+                        } else {
+                            throw new UserException.CommandLineException(
+                                    String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
+                                            "Please add an explicit type tag :TYPE listing the correct type from among the supported types: %s",
+                                            manager.userFriendlyListOfAvailableFeatures()));
                         }
                     }
                 }
             }
-
-            if ( tribbleType == null ) // error handling
-                throw new UserException.CommandLineException(
-                        String.format("Could not parse argument %s with value %s",
-                                defaultDefinition.fullName, value));
 
             Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
             Class parameterType = getParameterizedTypeClass(type);
@@ -395,8 +395,8 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                             value, source.field.getName()));
         } catch (Exception e) {
             throw new UserException.CommandLineException(
-                    String.format("Failed to parse value %s for argument %s.",
-                            value, source.field.getName()));
+                    String.format("Failed to parse value %s for argument %s. Message: %s",
+                            value, source.field.getName(), e.getMessage()));
         }
     }
 
