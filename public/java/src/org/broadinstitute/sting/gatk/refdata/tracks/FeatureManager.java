@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.help.GATKDocUtils;
 import org.broadinstitute.sting.utils.help.HelpUtils;
 
 import javax.mail.Header;
@@ -225,7 +226,7 @@ public class FeatureManager  {
                 String oneDoc = String.format(format,
                         descriptor.getName(),
                         descriptor.getSimpleFeatureName(),
-                        HelpUtils.helpLinksToGATKDocs(descriptor.getCodecClass()));
+                        GATKDocUtils.helpLinksToGATKDocs(descriptor.getCodecClass()));
                 docs.append(oneDoc);
             }
         }
