@@ -263,7 +263,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      *
      * @return the type of record
      */
-    public Class getFeatureType() {
+    public Class<VariantContext> getFeatureType() {
         return VariantContext.class;
     }
 

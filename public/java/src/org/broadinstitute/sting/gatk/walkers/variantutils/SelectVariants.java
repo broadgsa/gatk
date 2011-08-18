@@ -191,16 +191,28 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     protected VCFWriter vcfWriter = null;
 
     @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample. Can be specified multiple times", required=false)
-    public Set<String> sampleNames;
+    public Set<String> sampleNames = new HashSet<String>(0);
 
     @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select many samples from the ROD tracks provided. Can be specified multiple times", required=false)
-    public Set<String> sampleExpressions;
+    public Set<String> sampleExpressions ;
 
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line) to include. Can be specified multiple times", required=false)
     public Set<File> sampleFiles;
 
     /**
-     * Note that thse expressions are evaluated *after* the specified samples are extracted and the INFO field annotations are updated.
+     * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
+     */
+    @Argument(fullName="exclude_sample_name", shortName="xl_sn", doc="Exclude genotypes from this sample. Can be specified multiple times", required=false)
+    public Set<String> XLsampleNames = new HashSet<String>(0);
+
+    /**
+     * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
+     */
+    @Argument(fullName="exclude_sample_file", shortName="xl_sf", doc="File containing a list of samples (one per line) to exclude. Can be specified multiple times", required=false)
+    public Set<File> XLsampleFiles;
+
+    /**
+     * Note that these expressions are evaluated *after* the specified samples are extracted and the INFO field annotations are updated.
      */
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data", required=false)
     public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<String>();
@@ -304,8 +316,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private ArrayList<Double> afBoosts = null;
     double bkDelta = 0.0;
 
-
-        private PrintStream outMVFileStream = null;
+    private PrintStream outMVFileStream = null;
 
 
     /**
@@ -321,19 +332,27 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
         Collection<String> samplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, sampleExpressions);
 
+        // first, add any requested samples
         samples.addAll(samplesFromFile);
         samples.addAll(samplesFromExpressions);
-        if (sampleNames != null)
-            samples.addAll(sampleNames);
+        samples.addAll(sampleNames);
 
-        if(samples.isEmpty()) {
+        // if none were requested, we want all of them
+        if ( samples.isEmpty() ) {
             samples.addAll(vcfSamples);
             NO_SAMPLES_SPECIFIED = true;
         }
 
-        for (String sample : samples) {
+        // now, exclude any requested samples
+        Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
+        samples.removeAll(XLsamplesFromFile);
+        samples.removeAll(XLsampleNames);
+
+        if ( samples.size() == 0 )
+            throw new UserException("All samples requested to be included were also requested to be excluded.");
+
+        for ( String sample : samples )
             logger.info("Including sample '" + sample + "'");
-        }
 
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);

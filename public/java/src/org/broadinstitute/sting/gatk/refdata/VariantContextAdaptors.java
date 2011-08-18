@@ -1,10 +1,11 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import net.sf.samtools.util.SequenceUtil;
 import org.broad.tribble.Feature;
+import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
@@ -92,6 +93,67 @@ public class VariantContextAdaptors {
     // --------------------------------------------------------------------------------------------------------------
 
     private static class DBSnpAdaptor implements VCAdaptor {
+        private static boolean isSNP(DbSNPFeature feature) {
+            return feature.getVariantType().contains("single") && feature.getLocationType().contains("exact");
+        }
+
+        private static boolean isMNP(DbSNPFeature feature) {
+            return feature.getVariantType().contains("mnp") && feature.getLocationType().contains("range");
+        }
+
+        private static boolean isInsertion(DbSNPFeature feature) {
+            return feature.getVariantType().contains("insertion");
+        }
+
+        private static boolean isDeletion(DbSNPFeature feature) {
+            return feature.getVariantType().contains("deletion");
+        }
+
+        private static boolean isIndel(DbSNPFeature feature) {
+            return isInsertion(feature) || isDeletion(feature) || isComplexIndel(feature);
+        }
+
+        public static boolean isComplexIndel(DbSNPFeature feature) {
+            return feature.getVariantType().contains("in-del");
+        }
+
+        /**
+         * gets the alternate alleles.  This method should return all the alleles present at the location,
+         * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+         * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+         * frequency).
+         *
+         * @return an alternate allele list
+         */
+        public static List<String> getAlternateAlleleList(DbSNPFeature feature) {
+            List<String> ret = new ArrayList<String>();
+            for (String allele : getAlleleList(feature))
+                if (!allele.equals(String.valueOf(feature.getNCBIRefBase()))) ret.add(allele);
+            return ret;
+        }
+
+        /**
+         * gets the alleles.  This method should return all the alleles present at the location,
+         * including the reference base.  The first allele should always be the reference allele, followed
+         * by an unordered list of alternate alleles.
+         *
+         * @return an alternate allele list
+         */
+        public static List<String> getAlleleList(DbSNPFeature feature) {
+            List<String> alleleList = new ArrayList<String>();
+            // add ref first
+            if ( feature.getStrand() == Strand.POSITIVE )
+                alleleList = Arrays.asList(feature.getObserved());
+            else
+                for (String str : feature.getObserved())
+                    alleleList.add(SequenceUtil.reverseComplement(str));
+            if ( alleleList.size() > 0 && alleleList.contains(feature.getNCBIRefBase())
+                    && !alleleList.get(0).equals(feature.getNCBIRefBase()) )
+                Collections.swap(alleleList, alleleList.indexOf(feature.getNCBIRefBase()), 0);
+
+            return alleleList;
+        }
+
         /**
          * Converts non-VCF formatted dbSNP records to VariantContext. 
          * @return DbSNPFeature.
@@ -102,18 +164,18 @@ public class VariantContextAdaptors {
         @Override        
         public VariantContext convert(String name, Object input, ReferenceContext ref) {
             DbSNPFeature dbsnp = (DbSNPFeature)input;
-            if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp)) )
+            if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
                 return null;
-            Allele refAllele = Allele.create(DbSNPHelper.getReference(dbsnp), true);
+            Allele refAllele = Allele.create(dbsnp.getNCBIRefBase(), true);
 
-            if ( DbSNPHelper.isSNP(dbsnp) || DbSNPHelper.isIndel(dbsnp) || DbSNPHelper.isMNP(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
+            if ( isSNP(dbsnp) || isIndel(dbsnp) || isMNP(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
                 // add the reference allele
                 List<Allele> alleles = new ArrayList<Allele>();
                 alleles.add(refAllele);
 
                 // add all of the alt alleles
                 boolean sawNullAllele = refAllele.isNull();
-                for ( String alt : DbSNPHelper.getAlternateAlleleList(dbsnp) ) {
+                for ( String alt : getAlternateAlleleList(dbsnp) ) {
                     if ( ! Allele.acceptableAlleleBases(alt) ) {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                         return null;

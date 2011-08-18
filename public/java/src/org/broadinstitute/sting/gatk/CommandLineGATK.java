@@ -34,10 +34,7 @@ import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.ApplicationDetails;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.GATKDocUtils;
-import org.broadinstitute.sting.utils.help.GATKDoclet;
+import org.broadinstitute.sting.utils.help.*;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
@@ -178,7 +175,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         Formatter formatter = new Formatter(additionalHelp);
 
         formatter.format("For a full description of this walker, see its GATKdocs at:%n");
-        formatter.format("%s%n", GATKDocUtils.helpLinksToGATKDocs(walkerType));
+        formatter.format("%s%n", HelpUtils.helpLinksToGATKDocs(walkerType));
 
         return additionalHelp.toString();
     }

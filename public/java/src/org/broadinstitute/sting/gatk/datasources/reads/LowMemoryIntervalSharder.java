@@ -59,8 +59,8 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
      */
     public FilePointer next() {
         FilePointer current = wrappedIterator.next();
-        //while(wrappedIterator.hasNext() && current.minus(wrappedIterator.peek()) == 0)
-        //    current = current.combine(parser,wrappedIterator.next());
+        while(wrappedIterator.hasNext() && current.minus(wrappedIterator.peek()) == 0)
+            current = current.combine(parser,wrappedIterator.next());
         return current;
     }
 

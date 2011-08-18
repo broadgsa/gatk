@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 public class SelectVariantsIntegrationTest extends WalkerTest {
     public static String baseTestString(String args) {
-        return "-T SelectVariants -R " + b36KGReference + " -L 1 -o %s" + args;
+        return "-T SelectVariants -R " + b36KGReference + " -L 1 -o %s -NO_HEADER" + args;
     }
 
     @Test
@@ -16,7 +16,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant:VCF3 " + testfile + " -NO_HEADER"),
+            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant:VCF3 " + testfile),
             1,
             Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
         );
@@ -25,11 +25,25 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testSampleExclusion() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+            "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s -NO_HEADER -xl_sn A -xl_sf " + samplesFile + " --variant:VCF3 " + testfile,
+            1,
+            Arrays.asList("730f021fd6ecf1d195dabbee2e233bfd")
+        );
+
+        executeTest("testSampleExclusion--" + testfile, spec);
+    }
+
+    @Test
     public void testRepeatedLineSelection() {
         String testfile = validationDataLocation + "test.dup.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -sn A -sn B -sn C --variant:VCF3 " + testfile + " -NO_HEADER"),
+                baseTestString(" -sn A -sn B -sn C --variant:VCF3 " + testfile),
                 1,
                 Arrays.asList("b74038779fe6485dbb8734ae48178356")
         );

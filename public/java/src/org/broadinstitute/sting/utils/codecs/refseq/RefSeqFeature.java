@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata.features.refseq;
+package org.broadinstitute.sting.utils.codecs.refseq;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;

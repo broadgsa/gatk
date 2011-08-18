@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata.features.table;
+package org.broadinstitute.sting.utils.codecs.table;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.GenomeLoc;
