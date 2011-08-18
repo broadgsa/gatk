@@ -689,8 +689,6 @@ public class GenomeAnalysisEngine {
         validateSuppliedReads();
         readsDataSource = createReadsDataSource(argCollection,genomeLocParser,referenceDataSource.getReference());
 
-        sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
-
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
