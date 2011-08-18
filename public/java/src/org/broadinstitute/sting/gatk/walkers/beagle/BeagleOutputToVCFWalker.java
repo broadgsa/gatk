@@ -64,11 +64,11 @@ import static java.lang.Math.log10;
  * <pre>
  *     java -Xmx4000m -jar dist/GenomeAnalysisTK.jar \
  *      -R reffile.fasta -T BeagleOutputToVCF \
- *      -B:variant,VCF input_vcf.vcf \
- *      -B:beagleR2,BEAGLE /myrun.beagle_output.r2 \
- *      -B:beaglePhased,BEAGLE /myrun.beagle_output.phased \
- *      -B:beagleProbs,BEAGLE /myrun.beagle_output.gprobs \
- *      --out output_vcf.vcf
+ *      -V input_vcf.vcf \
+ *      -beagleR2:BEAGLE /myrun.beagle_output.r2 \
+ *      -beaglePhased:BEAGLE /myrun.beagle_output.phased \
+ *      -beagleProbs:BEAGLE /myrun.beagle_output.gprobs \
+ *      -o output_vcf.vcf
  *      </pre>
 
  <p> Note that Beagle produces some of these files compressed as .gz, so gunzip must be run on them before walker is run in order to decompress them </p>
