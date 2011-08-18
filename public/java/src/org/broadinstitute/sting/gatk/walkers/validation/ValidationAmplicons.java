@@ -16,7 +16,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -195,17 +194,17 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         } else /* (mask != null && validate == null ) */ {
             if ( ! mask.isSNP() && ! mask.isFiltered() && ( ! filterMonomorphic || ! mask.isMonomorphic() )) {
                 logger.warn("Mask Variant Context on the following warning line is not a SNP. Currently we can only mask out SNPs. This probe will not be designed.");
-                logger.warn(String.format("%s:%d-%d\t%s\t%s",mask.getChr(),mask.getStart(),mask.getEnd(),mask.isInsertion() ? "INS" : "DEL", Utils.join(",",mask.getAlleles())));
+                logger.warn(String.format("%s:%d-%d\t%s\t%s",mask.getChr(),mask.getStart(),mask.getEnd(),mask.isSimpleInsertion() ? "INS" : "DEL", Utils.join(",",mask.getAlleles())));
                 sequenceInvalid = true;
-                invReason.add(mask.isInsertion() ? "INSERTION" : "DELETION");
+                invReason.add(mask.isSimpleInsertion() ? "INSERTION" : "DELETION");
                 // note: indelCounter could be > 0 (could have small deletion within larger one). This always selects
                 // the larger event.
-                int indelCounterNew = mask.isInsertion() ? 2 : mask.getEnd()-mask.getStart();
+                int indelCounterNew = mask.isSimpleInsertion() ? 2 : mask.getEnd()-mask.getStart();
                 if ( indelCounterNew > indelCounter ) {
                     indelCounter = indelCounterNew;
                 }
                 //sequence.append((char) ref.getBase());
-                //sequence.append(mask.isInsertion() ? 'I' : 'D');
+                //sequence.append(mask.isSimpleInsertion() ? 'I' : 'D');
                 sequence.append("N");
                 indelCounter--;
                 rawSequence.append(Character.toUpperCase((char) ref.getBase()));

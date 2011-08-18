@@ -96,9 +96,9 @@ public class IndelLengthHistogram extends VariantEvaluator {
         }
 
         if ( vc1.isIndel() ) {
-            if ( vc1.isInsertion() ) {
+            if ( vc1.isSimpleInsertion() ) {
                 indelHistogram.update(vc1.getAlternateAllele(0).length());
-            } else if ( vc1.isDeletion() ) {
+            } else if ( vc1.isSimpleDeletion() ) {
                 indelHistogram.update(-vc1.getReference().length());
             } else {
                 throw new ReviewedStingException("Indel type that is not insertion or deletion.");

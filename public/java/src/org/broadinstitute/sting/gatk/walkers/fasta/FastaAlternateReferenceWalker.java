@@ -101,11 +101,11 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
             if ( vc.isFiltered() )
                 continue;
 
-            if ( vc.isDeletion()) {
+            if ( vc.isSimpleDeletion()) {
                 deletionBasesRemaining = vc.getReference().length();
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
-            } else if ( vc.isInsertion()) {
+            } else if ( vc.isSimpleInsertion()) {
                 return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
             } else if (vc.isSNP()) {
                 return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());

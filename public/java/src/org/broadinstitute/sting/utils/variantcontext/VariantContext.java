@@ -583,24 +583,24 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * @return true if the alleles indicate a simple insertion (i.e., the reference allele is Null)
      */
-    public boolean isInsertion() {
-        // can't just call !isDeletion() because of complex indels
-        return getType() == Type.INDEL && getReference().isNull();
+    public boolean isSimpleInsertion() {
+        // can't just call !isSimpleDeletion() because of complex indels
+        return getType() == Type.INDEL && getReference().isNull() && isBiallelic();
     }
 
     /**
      * @return true if the alleles indicate a simple deletion (i.e., a single alt allele that is Null)
      */
-    public boolean isDeletion() {
-        // can't just call !isInsertion() because of complex indels
-        return getType() == Type.INDEL && getAlternateAllele(0).isNull();
+    public boolean isSimpleDeletion() {
+        // can't just call !isSimpleInsertion() because of complex indels
+        return getType() == Type.INDEL && getAlternateAllele(0).isNull() && isBiallelic();
     }
 
     /**
      * @return true if the alleles indicate neither a simple deletion nor a simple insertion
      */
     public boolean isComplexIndel() {
-        return isIndel() && !isDeletion() && !isInsertion();
+        return isIndel() && !isSimpleDeletion() && !isSimpleInsertion();
     }
 
     public boolean isSymbolic() {

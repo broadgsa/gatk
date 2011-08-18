@@ -44,7 +44,7 @@ public class IndelStatistics extends VariantEvaluator {
     @DataPoint(description = "Indel Statistics")
     IndelStats indelStats = null;
 
-    @DataPoint(description = "Indel Classification")
+   // @DataPoint(description = "Indel Classification")
     IndelClasses indelClasses = null;
 
     int numSamples = 0;
@@ -79,8 +79,7 @@ public class IndelStatistics extends VariantEvaluator {
     }
 
     static class IndelStats implements TableType {
-        protected final static String ALL_SAMPLES_KEY = "allSamples";
-        protected final static String[] COLUMN_KEYS;
+         protected final static String[] COLUMN_KEYS;
 
          static {
             COLUMN_KEYS= new String[NUM_SCALAR_COLUMNS+2*INDEL_SIZE_LIMIT+1];
@@ -104,13 +103,10 @@ public class IndelStatistics extends VariantEvaluator {
         }
 
         // map of sample to statistics
-        protected final HashMap<String, int[]> indelSummary = new HashMap<String, int[]>();
+        protected final  int[] indelSummary;
 
         public IndelStats(final VariantContext vc) {
-            indelSummary.put(ALL_SAMPLES_KEY, new int[COLUMN_KEYS.length]);
-            for( final String sample : vc.getGenotypes().keySet() ) {
-                indelSummary.put(sample, new int[COLUMN_KEYS.length]);
-            }
+            indelSummary = new int[COLUMN_KEYS.length];
         }
 
         /**
@@ -118,18 +114,18 @@ public class IndelStatistics extends VariantEvaluator {
          * @return one row per sample
          */
         public Object[] getRowKeys() {
-            return indelSummary.keySet().toArray(new String[indelSummary.size()]);
+            return new String[]{"all"};
         }
         public Object getCell(int x, int y) {
             final Object[] rowKeys = getRowKeys();
             if (y == IND_AT_CG_RATIO) {
 
-                int at = indelSummary.get(rowKeys[x])[IND_AT_EXP];
-                int cg = indelSummary.get(rowKeys[x])[IND_CG_EXP];
+                int at = indelSummary[IND_AT_EXP];
+                int cg = indelSummary[IND_CG_EXP];
                 return String.format("%4.2f",((double)at) / (Math.max(cg, 1)));
             }
             else
-                return String.format("%d",indelSummary.get(rowKeys[x])[y]);
+                return String.format("%d",indelSummary[y]);
 
         }
 
@@ -160,78 +156,31 @@ public class IndelStatistics extends VariantEvaluator {
             int eventLength = 0;
             boolean isInsertion = false, isDeletion = false;
 
-            if ( vc.isInsertion() ) {
+            if ( vc.isSimpleInsertion() ) {
                 eventLength = vc.getAlternateAllele(0).length();
-                indelSummary.get(ALL_SAMPLES_KEY)[IND_INS]++;
+                indelSummary[IND_INS]++;
                 isInsertion = true;
-            } else if ( vc.isDeletion() ) {
-                indelSummary.get(ALL_SAMPLES_KEY)[IND_DEL]++;
+            } else if ( vc.isSimpleDeletion() ) {
+                indelSummary[IND_DEL]++;
                 eventLength = -vc.getReference().length();
                 isDeletion = true;
             }
             else {
-                indelSummary.get(ALL_SAMPLES_KEY)[IND_COMPLEX]++;
+                indelSummary[IND_COMPLEX]++;
             }
             if (IndelUtils.isATExpansion(vc,ref))
-                indelSummary.get(ALL_SAMPLES_KEY)[IND_AT_EXP]++;
+                indelSummary[IND_AT_EXP]++;
             if (IndelUtils.isCGExpansion(vc,ref))
-                 indelSummary.get(ALL_SAMPLES_KEY)[IND_CG_EXP]++;
+                 indelSummary[IND_CG_EXP]++;
 
             // make sure event doesn't overstep array boundaries
             if (Math.abs(eventLength) < INDEL_SIZE_LIMIT) {
-                indelSummary.get(ALL_SAMPLES_KEY)[len2Index(eventLength)]++;
+                indelSummary[len2Index(eventLength)]++;
                 if (eventLength % 3 != 0)
-                    indelSummary.get(ALL_SAMPLES_KEY)[IND_FRAMESHIFT]++;
+                    indelSummary[IND_FRAMESHIFT]++;
             }
             else
-                indelSummary.get(ALL_SAMPLES_KEY)[IND_LONG]++;
-
-
-            for( final String sample : vc.getGenotypes().keySet() ) {
-                if ( indelSummary.containsKey(sample) ) {
-                    Genotype g = vc.getGenotype(sample);
-                    boolean isVariant = (g.isCalled() && !g.isHomRef());
-                    if (isVariant) {
-                        // update ins/del count
-                        if (isInsertion) {
-                            indelSummary.get(sample)[IND_INS]++;
-                        }
-                        else if (isDeletion)
-                            indelSummary.get(sample)[IND_DEL]++;
-                        else
-                            indelSummary.get(sample)[IND_COMPLEX]++;
-
-                        // update histogram
-                        if (Math.abs(eventLength) < INDEL_SIZE_LIMIT) {
-                            indelSummary.get(sample)[len2Index(eventLength)]++;
-                            if (eventLength % 3 != 0)
-                                indelSummary.get(sample)[IND_FRAMESHIFT]++;    
-                        }
-                        else
-                            indelSummary.get(sample)[IND_LONG]++;
-
-                        if (g.isHet())
-                            if (isInsertion)
-                                indelSummary.get(sample)[IND_HET_INS]++;
-                            else if (isDeletion)
-                                indelSummary.get(sample)[IND_HET_DEL]++;
-                        else
-                            if (isInsertion)
-                                indelSummary.get(sample)[IND_HOM_INS]++;
-                            else if (isDeletion)
-                                indelSummary.get(sample)[IND_HOM_DEL]++;
-
-                        if (IndelUtils.isATExpansion(vc,ref))
-                            indelSummary.get(sample)[IND_AT_EXP]++;
-                        if (IndelUtils.isCGExpansion(vc,ref))
-                             indelSummary.get(sample)[IND_CG_EXP]++;
-
-
-                    }
-                    else
-                        indelSummary.get(sample)[IND_HOM_REF]++;
-                }
-            }
+                indelSummary[IND_LONG]++;
 
 
         }

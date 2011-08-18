@@ -168,8 +168,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                             continue;
 
                         Map<String, Allele> alleleMap = new HashMap<String, Allele>(2);
-                        alleleMap.put(RawHapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isInsertion()));
-                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create(((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isInsertion()));
+                        alleleMap.put(RawHapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isSimpleInsertion()));
+                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create(((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isSimpleInsertion()));
                         hapmap.setActualAlleles(alleleMap);
 
                         // also, use the correct positioning for insertions

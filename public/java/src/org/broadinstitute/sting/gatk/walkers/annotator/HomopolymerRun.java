@@ -79,7 +79,7 @@ public class HomopolymerRun extends InfoFieldAnnotation implements StandardAnnot
         GenomeLoc locus = ref.getLocus();
         GenomeLoc window = ref.getWindow();
         int refBasePos = (int) (locus.getStart() - window.getStart())+1;
-        if ( vc.isDeletion() ) {
+        if ( vc.isSimpleDeletion() ) {
             // check that deleted bases are the same
             byte dBase = bases[refBasePos];
             for ( int i = 0; i < vc.getReference().length(); i ++ ) {
