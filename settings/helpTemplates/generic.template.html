@@ -98,7 +98,7 @@
   </#if>
   
   <#-- This class is related to other documented classes via sub/super relationships -->
-  <#if relatedDocs?size != 0> 
+  <#if relatedDocs?? && relatedDocs?size != 0> 
     <hr>
     <h2>Related capabilities</h2>
     <@relatedByType name="Superclasses" type="superclass"/>
