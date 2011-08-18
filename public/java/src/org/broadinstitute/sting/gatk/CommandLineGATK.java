@@ -31,6 +31,7 @@ import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -173,6 +174,10 @@ public class CommandLineGATK extends CommandLineExecutable {
         // Construct a help string to output details on this walker.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
+
+        formatter.format("Available Reference Ordered Data types:%n");
+        formatter.format(new FeatureManager().userFriendlyListOfAvailableFeatures());
+        formatter.format("%n");
 
         formatter.format("For a full description of this walker, see its GATKdocs at:%n");
         formatter.format("%s%n", HelpUtils.helpLinksToGATKDocs(walkerType));

@@ -376,7 +376,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         } else {
                             throw new UserException.CommandLineException(
                                     String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
-                                            "Please add an explicit type tag :TYPE listing the correct type from among the supported types: %s",
+                                            "Please add an explicit type tag :TYPE listing the correct type from among the supported types:%n%s",
                                             manager.userFriendlyListOfAvailableFeatures()));
                         }
                     }

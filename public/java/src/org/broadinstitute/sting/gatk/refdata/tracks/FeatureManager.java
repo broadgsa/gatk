@@ -36,7 +36,9 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.help.HelpUtils;
 
+import javax.mail.Header;
 import java.io.File;
 import java.util.*;
 
@@ -50,7 +52,7 @@ import java.util.*;
  * @author depristo
  */
 public class FeatureManager  {
-    public static class FeatureDescriptor {
+    public static class FeatureDescriptor implements Comparable<FeatureDescriptor> {
         final String name;
         final FeatureCodec codec;
 
@@ -62,6 +64,7 @@ public class FeatureManager  {
         public String getName() {
             return name;
         }
+        public String getSimpleFeatureName() { return getFeatureClass().getSimpleName(); }
         public FeatureCodec getCodec() {
             return codec;
         }
@@ -70,13 +73,18 @@ public class FeatureManager  {
 
         @Override
         public String toString() {
-            return String.format("FeatureDescriptor name=%s codec=%s feature=%s", getName(), getCodecClass().getName(), getFeatureClass().getName());
+            return String.format("FeatureDescriptor name=%s codec=%s feature=%s",
+                    getName(), getCodecClass().getName(), getFeatureClass().getName());
+        }
+
+        @Override
+        public int compareTo(FeatureDescriptor o) {
+            return getName().compareTo(o.getName());
         }
     }
 
     private final PluginManager<FeatureCodec> pluginManager;
-    private final Collection<FeatureDescriptor> featureDescriptors = new HashSet<FeatureDescriptor>();
-
+    private final Collection<FeatureDescriptor> featureDescriptors = new TreeSet<FeatureDescriptor>();
 
     /**
      * Construct a FeatureManager
@@ -189,10 +197,26 @@ public class FeatureManager  {
      */
     @Ensures("result != null")
     public String userFriendlyListOfAvailableFeatures() {
-        List<String> names = new ArrayList<String>();
-        for ( final FeatureDescriptor descriptor : featureDescriptors )
-            names.add(descriptor.getName());
-        return Utils.join(",", names);
+        final String nameHeader="Name", featureHeader = "FeatureType", docHeader="Documentation";
+
+        int maxNameLen = nameHeader.length(), maxFeatureNameLen = featureHeader.length();
+        for ( final FeatureDescriptor descriptor : featureDescriptors ) {
+            maxNameLen = Math.max(maxNameLen, descriptor.getName().length());
+            maxFeatureNameLen = Math.max(maxFeatureNameLen, descriptor.getSimpleFeatureName().length());
+        }
+
+        StringBuilder docs = new StringBuilder();
+        String format = "%" + maxNameLen + "s   %" + maxFeatureNameLen + "s   %s%n";
+        docs.append(String.format(format, nameHeader, featureHeader, docHeader));
+        for ( final FeatureDescriptor descriptor : featureDescriptors ) {
+            String oneDoc = String.format(format,
+                    descriptor.getName(),
+                    descriptor.getSimpleFeatureName(),
+                    HelpUtils.helpLinksToGATKDocs(descriptor.getCodecClass()));
+            docs.append(oneDoc);
+        }
+
+        return docs.toString();
     }
 
     /**
