@@ -32,8 +32,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
@@ -51,14 +51,48 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * A parallelizable walker designed to quickly aggregate relevant coverage statistics across samples in the input
- * file. Assesses the mean and median granular coverages of each sample, and generates part of a cumulative
- * distribution of % bases and % targets covered for certain depths. The granularity of DOC can be set by command
- * line arguments.
+ * Toolbox for assessing sequence coverage by a wide array of metrics, partitioned by sample, read group, or library
  *
+ * <p>
+ * DepthOfCoverage processes a set of bam files to determine coverage at different levels of partitioning and
+ * aggregation. Coverage can be analyzed per locus, per interval, per gene, or in total; can be partitioned by
+ * sample, by read group, by technology, by center, or by library; and can be summarized by mean, median, quartiles,
+ * and/or percentage of bases covered to or beyond a threshold.
+ * Additionally, reads and bases can be filtered by mapping or base quality score.
  *
- * @Author chartl
- * @Date Feb 22, 2010
+ * <h2>Input</h2>
+ * <p>
+ * One or more bam files (with proper headers) to be analyzed for coverage statistics
+ * (Optional) A REFSEQ Rod to aggregate coverage to the gene level
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
+ *  - no suffix: per locus coverage
+ *  - _summary: total, mean, median, quartiles, and threshold proportions, aggregated over all bases
+ *  - _statistics: coverage histograms (# locus with X coverage), aggregated over all bases
+ *  - _interval_summary: total, mean, median, quartiles, and threshold proportions, aggregated per interval
+ *  - _interval_statistics: 2x2 table of # of intervals covered to >= X depth in >=Y samples
+ *  - _gene_summary: total, mean, median, quartiles, and threshold proportions, aggregated per gene
+ *  - _gene_statistics: 2x2 table of # of genes covered to >= X depth in >= Y samples
+ *  - _cumulative_coverage_counts: coverage histograms (# locus with >= X coverage), aggregated over all bases
+ *  - _cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantEval \
+ *   -o file_name_base \
+ *   -I input_bams.list
+ *   [-geneList refSeq.sorted.txt] \
+ *   [-pt readgroup] \
+ *   [-ct 4 -ct 6 -ct 10] \
+ *   [-L my_capture_genes.interval_list]
+ * </pre>
+ *
  */
 // todo -- cache the map from sample names to means in the print functions, rather than regenerating each time
 // todo -- support for granular histograms for total depth; maybe n*[start,stop], bins*sqrt(n)

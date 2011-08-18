@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.gatk.refdata.features.refseq;
+package org.broadinstitute.sting.utils.codecs.refseq;
 
-import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
@@ -104,7 +103,7 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
     }
 
     @Override
-    public Class getFeatureType() {
+    public Class<RefSeqFeature> getFeatureType() {
         return RefSeqFeature.class;
     }
 }

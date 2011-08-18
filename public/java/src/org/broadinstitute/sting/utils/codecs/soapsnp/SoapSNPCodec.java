@@ -178,7 +178,7 @@ public class SoapSNPCodec implements FeatureCodec, NameAwareCodec {
     /**
      * @return VariantContext
      */
-    public Class getFeatureType() {
+    public Class<VariantContext> getFeatureType() {
         return VariantContext.class;
     }
 

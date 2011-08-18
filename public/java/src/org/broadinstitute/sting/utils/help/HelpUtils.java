@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import java.lang.reflect.Field;
 
 public class HelpUtils {
+
     protected static boolean implementsInterface(ProgramElementDoc classDoc, Class... interfaceClasses) {
         for (Class interfaceClass : interfaceClasses)
             if (assignableToClass(classDoc, interfaceClass, false))
@@ -74,4 +75,5 @@ public class HelpUtils {
                 String.format("%s.%s", containingPackage.name(), doc.name()) :
                 String.format("%s", doc.name());
     }
+
 }

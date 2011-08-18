@@ -66,15 +66,22 @@ public class RecalDataManager {
     private static boolean warnUserNullPlatform = false;
 
     public enum SOLID_RECAL_MODE {
+        /** Treat reference inserted bases as reference matching bases. Very unsafe! */
         DO_NOTHING,
+        /** Set reference inserted bases and the previous base (because of color space alignment details) to Q0. This is the default option. */
         SET_Q_ZERO,
+        /** In addition to setting the quality scores to zero, also set the base itself to 'N'. This is useful to visualize in IGV. */
         SET_Q_ZERO_BASE_N,
+        /** Look at the color quality scores and probabilistically decide to change the reference inserted base to be the base which is implied by the original color space instead of the reference. */
         REMOVE_REF_BIAS
     }
 
     public enum SOLID_NOCALL_STRATEGY {
+        /** When a no call is detected throw an exception to alert the user that recalibrating this SOLiD data is unsafe. This is the default option. */
         THROW_EXCEPTION,
+        /** Leave the read in the output bam completely untouched. This mode is only okay if the no calls are very rare. */
         LEAVE_READ_UNRECALIBRATED,
+        /** Mark these reads as failing vendor quality checks so they can be filtered out by downstream analyses. */
         PURGE_READ
     }
 

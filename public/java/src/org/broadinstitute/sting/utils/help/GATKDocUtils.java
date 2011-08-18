@@ -24,14 +24,10 @@
 
 package org.broadinstitute.sting.utils.help;
 
-/**
- * @author depristo
- * @since 8/8/11
- */
 public class GATKDocUtils {
-    private final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
-    private final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
-    private final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
+    public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
+    public final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
+    public final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
 
     public static String htmlFilenameForClass(Class c) {
         return c.getName().replace(".", "_") + ".html";

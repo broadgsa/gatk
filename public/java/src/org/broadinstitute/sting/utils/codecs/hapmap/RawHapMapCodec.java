@@ -82,7 +82,7 @@ public class RawHapMapCodec implements FeatureCodec {
                 headerLine);
     }
 
-    public Class getFeatureType() {
+    public Class<RawHapMapFeature> getFeatureType() {
         return RawHapMapFeature.class;
     }
 
