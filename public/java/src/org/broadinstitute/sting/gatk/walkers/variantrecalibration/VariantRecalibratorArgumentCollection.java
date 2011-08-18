@@ -53,14 +53,14 @@ public class VariantRecalibratorArgumentCollection {
     public double STD_THRESHOLD = 14.0;
     @Argument(fullName="qualThreshold", shortName="qual", doc="If a known variant has raw QUAL value less than -qual then don't use it for building the Gaussian mixture model.", required=false)
     public double QUAL_THRESHOLD = 80.0;
-    @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in variational Bayes algorithm.", required=false)
+    @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in the variational Bayes algorithm.", required=false)
     public double SHRINKAGE = 1.0;
-    @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algorithm.", required=false)
+    @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in the variational Bayes algorithm.", required=false)
     public double DIRICHLET_PARAMETER = 0.001;
-    @Argument(fullName="priorCounts", shortName="priorCounts", doc="The number of prior counts to use in variational Bayes algorithm.", required=false)
+    @Argument(fullName="priorCounts", shortName="priorCounts", doc="The number of prior counts to use in the variational Bayes algorithm.", required=false)
     public double PRIOR_COUNTS = 20.0;
     @Argument(fullName="percentBadVariants", shortName="percentBad", doc="What percentage of the worst scoring variants to use when building the Gaussian mixture model of bad variants. 0.07 means bottom 7 percent.", required=false)
     public double PERCENT_BAD_VARIANTS = 0.03;
-    @Argument(fullName="minNumBadVariants", shortName="minNumBad", doc="The minimum amount of worst scoring variants to use when building the Gaussian mixture model of bad variants. Will override -percentBad arugment if necessary.", required=false)
+    @Argument(fullName="minNumBadVariants", shortName="minNumBad", doc="The minimum amount of worst scoring variants to use when building the Gaussian mixture model of bad variants. Will override -percentBad argument if necessary.", required=false)
     public int MIN_NUM_BAD_VARIANTS = 2000;
 }
