@@ -48,19 +48,45 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input variant file
+ *  Converts the input VCF into a format accepted by the Beagle imputation/analysis program.
+ * <p>
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A VCF with variants to convert to Beagle format
+ * </p>
+ *
+ * <h2>Outputs</h2>
+ * <p>
+ * A single text file which can be fed to Beagle
+ * </p>
+ * <p>
+ * Optional: A file with a list of markers
+ * </p>
+  *
+ * <h2>Examples</h2>
+ * <pre>
+ *     java -Xmx2g -jar dist/GenomeAnalysisTK.jar -L 20 \
+ *      -R reffile.fasta -T ProduceBeagleInput \
+ *      -V path_to_input_vcf/inputvcf.vcf -o path_to_beagle_output/beagle_output
+ * </pre>
+ *
  */
+
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Input(fullName="validation", shortName = "validation", doc="Input VCF file", required=false)
+    @Hidden
+    @Input(fullName="validation", shortName = "validation", doc="Validation VCF file", required=false)
     public RodBinding<VariantContext> validation;
+
 
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
 
-    @Output(doc="File to which BEAGLE markers should be written", shortName="markers", fullName = "markers", required = false)
+    @Hidden
+     @Output(doc="File to which BEAGLE markers should be written", shortName="markers", fullName = "markers", required = false)
     protected PrintStream  markers = null;
     int markerCounter = 1;
 
@@ -73,14 +99,19 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Argument(doc="VQSqual key", shortName = "vqskey", required=false)
     protected String VQSLOD_KEY = "VQSqual";
 
-    @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
+    @Hidden
+     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
-    @Argument(fullName = "validation_genotype_ptrue", shortName = "valp", doc = "Flat probability to assign to validation genotypes. Will override GL field.", required = false)
+    @Hidden
+     @Argument(fullName = "validation_genotype_ptrue", shortName = "valp", doc = "Flat probability to assign to validation genotypes. Will override GL field.", required = false)
     public double validationPrior = -1.0;
-    @Argument(fullName = "validation_bootstrap", shortName = "bs", doc = "Proportion of records to be used in bootstrap set", required = false)
+    @Hidden
+     @Argument(fullName = "validation_bootstrap", shortName = "bs", doc = "Proportion of records to be used in bootstrap set", required = false)
     public double bootstrap = 0.0;
-    @Argument(fullName = "bootstrap_vcf",shortName = "bvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
+    @Hidden
+     @Argument(fullName = "bootstrap_vcf",shortName = "bvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
     VCFWriter bootstrapVCFOutput = null;
+
     @Argument(fullName = "checkIsMaleOnChrX", shortName = "checkIsMaleOnChrX", doc = "Set to true when Beagle-ing chrX and want to ensure male samples don't have heterozygous calls.", required = false)
     public boolean CHECK_IS_MALE_ON_CHR_X = false;
 

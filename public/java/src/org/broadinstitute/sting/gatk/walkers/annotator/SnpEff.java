@@ -161,19 +161,19 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
 
     public List<VCFInfoHeaderLine> getDescriptions() {
         return Arrays.asList(
-            new VCFInfoHeaderLine(GENE_ID_KEY,                  1, VCFHeaderLineType.String,  "Gene ID"),
-            new VCFInfoHeaderLine(GENE_NAME_KEY,                1, VCFHeaderLineType.String,  "Gene name"),
-            new VCFInfoHeaderLine(TRANSCRIPT_ID_KEY,            1, VCFHeaderLineType.String,  "Transcript ID"),
-            new VCFInfoHeaderLine(EXON_ID_KEY,                  1, VCFHeaderLineType.String,  "Exon ID"),
-            new VCFInfoHeaderLine(EXON_RANK_KEY,                1, VCFHeaderLineType.Integer, "Exon rank"),
-            new VCFInfoHeaderLine(WITHIN_NON_CODING_GENE_KEY,   0, VCFHeaderLineType.Flag,    "If present, gene is non-coding"),
-            new VCFInfoHeaderLine(EFFECT_KEY,                   1, VCFHeaderLineType.String,  "One of the most high-impact effects across all transcripts at this site"),
-            new VCFInfoHeaderLine(EFFECT_IMPACT_KEY,            1, VCFHeaderLineType.String,  "Impact of the effect " + Arrays.toString(SnpEffConstants.EffectImpact.values())),
-            new VCFInfoHeaderLine(EFFECT_EXTRA_INFORMATION_KEY, 1, VCFHeaderLineType.String,  "Additional information about the effect"),
-            new VCFInfoHeaderLine(OLD_NEW_AA_KEY,               1, VCFHeaderLineType.String,  "Old/New amino acid"),
-            new VCFInfoHeaderLine(OLD_NEW_CODON_KEY,            1, VCFHeaderLineType.String,  "Old/New codon"),
-            new VCFInfoHeaderLine(CODON_NUM_KEY,                1, VCFHeaderLineType.Integer, "Codon number"),
-            new VCFInfoHeaderLine(CDS_SIZE_KEY,                 1, VCFHeaderLineType.Integer, "CDS size")
+            new VCFInfoHeaderLine(GENE_ID_KEY,                  1, VCFHeaderLineType.String,  "Gene ID for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(GENE_NAME_KEY,                1, VCFHeaderLineType.String,  "Gene name for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(TRANSCRIPT_ID_KEY,            1, VCFHeaderLineType.String,  "Transcript ID for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(EXON_ID_KEY,                  1, VCFHeaderLineType.String,  "Exon ID for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(EXON_RANK_KEY,                1, VCFHeaderLineType.Integer, "Exon rank for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(WITHIN_NON_CODING_GENE_KEY,   0, VCFHeaderLineType.Flag,    "If this flag is present, the highest-impact effect resulting from the current variant is within a non-coding gene"),
+            new VCFInfoHeaderLine(EFFECT_KEY,                   1, VCFHeaderLineType.String,  "The highest-impact effect resulting from the current variant (or one of the highest-impact effects, if there is a tie)"),
+            new VCFInfoHeaderLine(EFFECT_IMPACT_KEY,            1, VCFHeaderLineType.String,  "Impact of the highest-impact effect resulting from the current variant " + Arrays.toString(SnpEffConstants.EffectImpact.values())),
+            new VCFInfoHeaderLine(EFFECT_EXTRA_INFORMATION_KEY, 1, VCFHeaderLineType.String,  "Additional information about the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(OLD_NEW_AA_KEY,               1, VCFHeaderLineType.String,  "Old/New amino acid for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(OLD_NEW_CODON_KEY,            1, VCFHeaderLineType.String,  "Old/New codon for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(CODON_NUM_KEY,                1, VCFHeaderLineType.Integer, "Codon number for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(CDS_SIZE_KEY,                 1, VCFHeaderLineType.Integer, "CDS size for the highest-impact effect resulting from the current variant")
         );
     }
 }

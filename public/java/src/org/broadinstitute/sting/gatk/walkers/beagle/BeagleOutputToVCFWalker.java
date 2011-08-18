@@ -48,6 +48,31 @@ import static java.lang.Math.log10;
 
 /**
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
+ *
+ * <p>This walker is intended to be run after Beagle has successfully executed. The full calling sequence for using Beagle along with the GATK is:      </p>
+ *
+ * <p>1. Run ProduceBeagleInputWalker.  </p>
+ * <p>2. Run Beagle</p>
+ * <p>3. Uncompress output files</p>
+ * <p>4. Run BeagleOutputToVCFWalker.</p>
+ *
+ *
+ * Note that this walker requires all input files produced by Beagle.
+ *
+ *
+ * <h2>Example</h2>
+ * <pre>
+ *     java -Xmx4000m -jar dist/GenomeAnalysisTK.jar \
+ *      -R reffile.fasta -T BeagleOutputToVCF \
+ *      -V input_vcf.vcf \
+ *      -beagleR2:BEAGLE /myrun.beagle_output.r2 \
+ *      -beaglePhased:BEAGLE /myrun.beagle_output.phased \
+ *      -beagleProbs:BEAGLE /myrun.beagle_output.gprobs \
+ *      -o output_vcf.vcf
+ *      </pre>
+
+ <p> Note that Beagle produces some of these files compressed as .gz, so gunzip must be run on them before walker is run in order to decompress them </p>
+
  */
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
@@ -57,21 +82,17 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
     public RodBinding<VariantContext> comp;
 
-    @Input(fullName="beagleR2", shortName = "beagleR2", doc="VCF file", required=true)
+    @Input(fullName="beagleR2", shortName = "beagleR2", doc="Beagle-produced .r2 file containing R^2 values for all markers", required=true)
     public RodBinding<BeagleFeature> beagleR2;
 
-    @Input(fullName="beagleProbs", shortName = "beagleProbs", doc="VCF file", required=true)
+    @Input(fullName="beagleProbs", shortName = "beagleProbs", doc="Beagle-produced .probs file containing posterior genotype probabilities", required=true)
     public RodBinding<BeagleFeature> beagleProbs;
 
-    @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="VCF file", required=true)
+    @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="Beagle-produced .phased file containing phased genotypes", required=true)
     public RodBinding<BeagleFeature> beaglePhased;
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="VCF File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
-
-    @Argument(fullName="output_file", shortName="output", doc="Please use --out instead" ,required=false)
-    @Deprecated
-    protected String oldOutputArg;
 
     @Argument(fullName="dont_mark_monomorphic_sites_as_filtered", shortName="keep_monomorphic", doc="If provided, we won't filter sites that beagle tags as monomorphic.  Useful for imputing a sample's genotypes from a reference panel" ,required=false)
     public boolean DONT_FILTER_MONOMORPHIC_SITES = false;
