@@ -57,13 +57,13 @@ public class IndelStatistics extends VariantEvaluator {
     private static final int IND_HET = 0;
     private static final int IND_INS = 1;
     private static final int IND_DEL = 2;
-    private static final int IND_AT_CG_RATIO = 3;
+    private static final int IND_COMPLEX = 3;
     private static final int IND_HET_INS = 4;
     private static final int IND_HOM_INS = 5;
     private static final int IND_HET_DEL = 6;
     private static final int IND_HOM_DEL = 7;
     private static final int IND_HOM_REF = 8;
-    private static final int IND_COMPLEX = 9;
+    private static final int IND_MIXED = 9;
     private static final int IND_LONG = 10;
     private static final int IND_AT_EXP = 11;
     private static final int IND_CG_EXP = 12;
@@ -86,7 +86,7 @@ public class IndelStatistics extends VariantEvaluator {
             COLUMN_KEYS[0] = "heterozygosity";
             COLUMN_KEYS[1] = "insertions";
             COLUMN_KEYS[2] = "deletions";
-            COLUMN_KEYS[3] = "AT_CG_expansion_ratio";
+            COLUMN_KEYS[3] = "complex";
             COLUMN_KEYS[4] = "het_insertions";
             COLUMN_KEYS[5] = "homozygous_insertions";
             COLUMN_KEYS[6] = "het_deletions";
@@ -117,16 +117,7 @@ public class IndelStatistics extends VariantEvaluator {
             return new String[]{"all"};
         }
         public Object getCell(int x, int y) {
-            final Object[] rowKeys = getRowKeys();
-            if (y == IND_AT_CG_RATIO) {
-
-                int at = indelSummary[IND_AT_EXP];
-                int cg = indelSummary[IND_CG_EXP];
-                return String.format("%4.2f",((double)at) / (Math.max(cg, 1)));
-            }
-            else
-                return String.format("%d",indelSummary[y]);
-
+            return String.format("%d",indelSummary[y]);
         }
 
         /**
@@ -165,40 +156,40 @@ public class IndelStatistics extends VariantEvaluator {
                 eventLength = -vc.getReference().length();
                 isDeletion = true;
             }
-            else {
+            else if (vc.isComplexIndel()) {
                 indelSummary[IND_COMPLEX]++;
             }
+            else if (vc.isMixed())
+                indelSummary[IND_MIXED]++;
+
             if (IndelUtils.isATExpansion(vc,ref))
                 indelSummary[IND_AT_EXP]++;
             if (IndelUtils.isCGExpansion(vc,ref))
                  indelSummary[IND_CG_EXP]++;
 
             // make sure event doesn't overstep array boundaries
-            if (Math.abs(eventLength) < INDEL_SIZE_LIMIT) {
-                indelSummary[len2Index(eventLength)]++;
-                if (eventLength % 3 != 0)
-                    indelSummary[IND_FRAMESHIFT]++;
+            if (vc.isSimpleDeletion() || vc.isSimpleInsertion()) {
+                if (Math.abs(eventLength) < INDEL_SIZE_LIMIT) {
+                    indelSummary[len2Index(eventLength)]++;
+                    if (eventLength % 3 != 0)
+                        indelSummary[IND_FRAMESHIFT]++;
+                }
+                else
+                    indelSummary[IND_LONG]++;
             }
-            else
-                indelSummary[IND_LONG]++;
-
 
         }
     }
 
     static class IndelClasses implements TableType {
-        protected final static String ALL_SAMPLES_KEY = "allSamples";
         protected final static String[] columnNames = IndelUtils.getIndelClassificationNames();
 
 
         // map of sample to statistics
-        protected final HashMap<String, int[]> indelClassSummary = new HashMap<String, int[]>();
+        protected final int[] indelClassSummary;
 
         public IndelClasses(final VariantContext vc) {
-            indelClassSummary.put(ALL_SAMPLES_KEY, new int[columnNames.length]);
-            for( final String sample : vc.getGenotypes().keySet() ) {
-                indelClassSummary.put(sample, new int[columnNames.length]);
-            }
+            indelClassSummary = new int[columnNames.length];
         }
 
         /**
@@ -206,11 +197,10 @@ public class IndelStatistics extends VariantEvaluator {
          * @return one row per sample
          */
         public Object[] getRowKeys() {
-            return indelClassSummary.keySet().toArray(new String[indelClassSummary.size()]);
+            return new String[]{"all"};
         }
         public Object getCell(int x, int y) {
-            final Object[] rowKeys = getRowKeys();
-            return String.format("%d",indelClassSummary.get(rowKeys[x])[y]);
+            return String.format("%d",indelClassSummary[y]);
         }
 
         /**
@@ -234,18 +224,7 @@ public class IndelStatistics extends VariantEvaluator {
         }
 
         private void incrementSampleStat(VariantContext vc, int index) {
-            indelClassSummary.get(ALL_SAMPLES_KEY)[index]++;
-            for( final String sample : vc.getGenotypes().keySet() ) {
-                 if ( indelClassSummary.containsKey(sample) ) {
-                     Genotype g = vc.getGenotype(sample);
-                     boolean isVariant = (g.isCalled() && !g.isHomRef());
-                     if (isVariant)
-                         // update  count
-                         indelClassSummary.get(sample)[index]++;
-
-                 }
-             }
-
+            indelClassSummary[index]++;
         }
         /*
          * increment the specified value
@@ -293,16 +272,13 @@ public class IndelStatistics extends VariantEvaluator {
 
         if (eval != null ) {
             if ( indelStats == null ) {
-                int nSamples = numSamples;
-
-                if ( nSamples != -1 )
-                    indelStats = new IndelStats(eval);
+                indelStats = new IndelStats(eval);
             }
             if ( indelClasses == null ) {
                 indelClasses = new IndelClasses(eval);
             }
 
-            if ( eval.isIndel() && eval.isBiallelic() ) {
+            if ( eval.isIndel() || eval.isMixed() ) {
                 if (indelStats != null )
                     indelStats.incrValue(eval, ref);
 
