@@ -255,21 +255,21 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                         put("name", otherUnit.name);}});
 
         }
-
-        List<Map<String, Object>> hierarchyDocs = new ArrayList<Map<String, Object>>();
-        for (final GATKDocWorkUnit other : all ) {
-            final String relation = classRelationship(toProcess.clazz, other.clazz);
-            if ( relation != null )
-                hierarchyDocs.add(
-                        new HashMap<String, Object>(){{
-                            put("filename", other.filename);
-                            put("relation", relation);
-                            put("name", other.name);}});
-
-        }
-
-        root.put("relatedDocs", hierarchyDocs);
         root.put("extradocs", extraDocsData);
+
+
+//        List<Map<String, Object>> hierarchyDocs = new ArrayList<Map<String, Object>>();
+//        for (final GATKDocWorkUnit other : all ) {
+//            final String relation = classRelationship(toProcess.clazz, other.clazz);
+//            if ( relation != null )
+//                hierarchyDocs.add(
+//                        new HashMap<String, Object>(){{
+//                            put("filename", other.filename);
+//                            put("relation", relation);
+//                            put("name", other.name);}});
+//
+//        }
+//        root.put("relatedDocs", hierarchyDocs);
     }
 
     private static final String classRelationship(Class me, Class other) {

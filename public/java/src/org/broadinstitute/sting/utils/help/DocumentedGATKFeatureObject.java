@@ -30,17 +30,24 @@ package org.broadinstitute.sting.utils.help;
  * @author depristo
  */
 class DocumentedGATKFeatureObject {
-    final boolean enable;
-    final String groupName, summary;
-    final Class[] extraDocs;
+    private final Class classToDoc;
+    private final boolean enable;
+    private final String groupName, summary;
+    private final Class[] extraDocs;
 
-    public DocumentedGATKFeatureObject(final boolean enable, final String groupName, final String summary, final Class[] extraDocs) {
+    public DocumentedGATKFeatureObject(Class classToDoc, final boolean enable, final String groupName, final String summary, final Class[] extraDocs) {
+        this.classToDoc = classToDoc;
         this.enable = enable;
         this.groupName = groupName;
         this.summary = summary;
         this.extraDocs = extraDocs;
     }
 
+    public DocumentedGATKFeatureObject(Class classToDoc, final String groupName, final String summary) {
+        this(classToDoc, true, groupName, summary, new Class[]{});
+    }
+
+    public Class getClassToDoc() { return classToDoc; }
     public boolean enable() { return enable; }
     public String groupName() { return groupName; }
     public String summary() { return summary; }

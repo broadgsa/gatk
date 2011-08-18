@@ -33,6 +33,7 @@ import freemarker.template.TemplateException;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
@@ -49,6 +50,14 @@ public class GATKDoclet {
     protected static boolean showHiddenFeatures = false;
 
     RootDoc rootDoc;
+
+    final static Collection<DocumentedGATKFeatureObject> STATIC_DOCS = new ArrayList<DocumentedGATKFeatureObject>();
+    static {
+        STATIC_DOCS.add(new DocumentedGATKFeatureObject(FeatureCodec.class,
+                "Reference ordered data (ROD) codecs",
+                "Tribble codecs for reading reference ordered data such as VCF or BED files"));
+    }
+
 
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
@@ -162,12 +171,20 @@ public class GATKDoclet {
 
     private DocumentedGATKFeatureObject getFeatureForClassDoc(ClassDoc doc) {
         Class<? extends Object> docClass = getClassForClassDoc(doc);
-        // todo -- add looked here to static TO DOC collection as well
-        if ( docClass != null && docClass.isAnnotationPresent(DocumentedGATKFeature.class) ) {
-            DocumentedGATKFeature f = docClass.getAnnotation(DocumentedGATKFeature.class);
-            return new DocumentedGATKFeatureObject(f.enable(), f.groupName(), f.summary(), f.extraDocs());
-        } else {
+
+        if ( docClass == null )
             return null; // not annotated so it shouldn't be documented
+
+        if ( docClass.isAnnotationPresent(DocumentedGATKFeature.class) ) {
+            DocumentedGATKFeature f = docClass.getAnnotation(DocumentedGATKFeature.class);
+            return new DocumentedGATKFeatureObject(docClass, f.enable(), f.groupName(), f.summary(), f.extraDocs());
+        } else {
+            for ( DocumentedGATKFeatureObject staticDocs : STATIC_DOCS ) {
+                if ( staticDocs.getClassToDoc().isAssignableFrom(docClass) ) {
+                    return new DocumentedGATKFeatureObject(docClass, staticDocs.enable(), staticDocs.groupName(), staticDocs.summary(), staticDocs.extraDocs());
+                }
+            }
+            return null;
         }
     }
 
@@ -212,16 +229,15 @@ public class GATKDoclet {
 
         Collections.sort(indexData);
 
-        Set<DocumentedGATKFeatureObject> docFeatures = new HashSet<DocumentedGATKFeatureObject>();
+        List<Map<String, String>> groups = new ArrayList<Map<String, String>>();
+        Set<String> seenDocumentationFeatures = new HashSet<String>();
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
         for ( GATKDocWorkUnit workUnit : indexData ) {
             data.add(workUnit.indexDataMap());
-            docFeatures.add(workUnit.annotation);
-        }
-
-        List<Map<String, String>> groups = new ArrayList<Map<String, String>>();
-        for ( DocumentedGATKFeatureObject feature : docFeatures ) {
-            groups.add(toMap(feature));
+            if ( ! seenDocumentationFeatures.contains(workUnit.annotation.groupName()) ) {
+                groups.add(toMap(workUnit.annotation));
+                seenDocumentationFeatures.add(workUnit.annotation.groupName());
+            }
         }
 
         root.put("data", data);
