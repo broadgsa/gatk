@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata.features.table;
+package org.broadinstitute.sting.utils.codecs.table;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.readers.LineReader;
@@ -51,7 +51,7 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
     }
 
     @Override
-    public Class getFeatureType() {
+    public Class<TableFeature> getFeatureType() {
         return TableFeature.class;
     }
 

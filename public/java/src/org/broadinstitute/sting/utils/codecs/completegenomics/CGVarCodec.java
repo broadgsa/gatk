@@ -117,7 +117,7 @@ public class CGVarCodec implements FeatureCodec {
         return new VariantContext("CGI", array[3], start, end, alleles, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
     }
 
-    public Class getFeatureType() {
+    public Class<VariantContext> getFeatureType() {
         return VariantContext.class;
     }
 

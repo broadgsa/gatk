@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.testng.Assert;
@@ -35,7 +34,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import javax.script.Bindings;
 import java.util.List;
 import java.util.EnumSet;
 /**

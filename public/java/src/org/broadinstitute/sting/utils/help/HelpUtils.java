@@ -32,6 +32,10 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import java.lang.reflect.Field;
 
 public class HelpUtils {
+    public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
+    public final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
+    public final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
+
     protected static boolean implementsInterface(ProgramElementDoc classDoc, Class... interfaceClasses) {
         for (Class interfaceClass : interfaceClasses)
             if (assignableToClass(classDoc, interfaceClass, false))
@@ -73,5 +77,18 @@ public class HelpUtils {
         return containingPackage.name().length() > 0 ?
                 String.format("%s.%s", containingPackage.name(), doc.name()) :
                 String.format("%s", doc.name());
+    }
+
+    public static String htmlFilenameForClass(Class c) {
+        return c.getName().replace(".", "_") + ".html";
+    }
+
+    public static String helpLinksToGATKDocs(Class c) {
+        String classPath = htmlFilenameForClass(c);
+        StringBuilder b = new StringBuilder();
+        b.append("release  version: ").append(URL_ROOT_FOR_RELEASE_GATKDOCS).append(classPath).append("\n");
+        b.append("stable   version: ").append(URL_ROOT_FOR_STABLE_GATKDOCS).append(classPath).append("\n");
+        b.append("unstable version: ").append(URL_ROOT_FOR_UNSTABLE_GATKDOCS).append(classPath).append("\n");
+        return b.toString();
     }
 }

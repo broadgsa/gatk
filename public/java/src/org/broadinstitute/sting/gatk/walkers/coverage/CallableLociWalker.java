@@ -42,50 +42,190 @@ import java.io.PrintStream;
 /**
  * Emits a data file containing information about callable, uncallable, poorly mapped, and other parts of the genome
  *
- * @Author depristo
- * @Date May 7, 2010
+ * <p>
+ * A very common question about a NGS set of reads is what areas of the genome are considered callable. The system
+ * considers the coverage at each locus and emits either a per base state or a summary interval BED file that
+ * partitions the genomic intervals into the following callable states:
+ * <dl>
+ *     <dt>REF_N</dt>
+ *        <dd>the reference base was an N, which is not considered callable the GATK</dd>
+ *     <dt>CALLABLE</dt>
+ *        <dd>the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE</dd>
+ *     <dt>NO_COVERAGE</dt>
+ *        <dd>absolutely no reads were seen at this locus, regardless of the filtering parameters</dd>
+ *     <dt>LOW_COVERAGE</dt>
+ *        <dd>there were less than min. depth bases at the locus, after applying filters</dd>
+ *     <dt>EXCESSIVE_COVERAGE</dt>
+ *        <dd>more than -maxDepth read at the locus, indicating some sort of mapping problem</dd>
+ *     <dt>POOR_MAPPING_QUALITY</dt>
+ *        <dd>more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads</dd>
+ * </dl>
+ * </p>
+ *
+ * <h2>Input</h2>
+ * <p>
+ *     A BAM file containing <b>exactly one sample</b>.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * <ul>
+ *     <li>-o: a OutputFormatted (recommended BED) file with the callable status covering each base</li>
+ *     <li>-summary: a table of callable status x count of all examined bases</li>
+ * </ul>
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ *     -T CallableLociWalker \
+ *     -I my.bam \
+ *     -summary my.summary \
+ *     -o my.bed
+ * </pre>
+ *
+ * would produce a BED file (my.bed) that looks like:
+ *
+ * <pre>
+ *     20 10000000 10000864 CALLABLE
+ *     20 10000865 10000985 POOR_MAPPING_QUALITY
+ *     20 10000986 10001138 CALLABLE
+ *     20 10001139 10001254 POOR_MAPPING_QUALITY
+ *     20 10001255 10012255 CALLABLE
+ *     20 10012256 10012259 POOR_MAPPING_QUALITY
+ *     20 10012260 10012263 CALLABLE
+ *     20 10012264 10012328 POOR_MAPPING_QUALITY
+ *     20 10012329 10012550 CALLABLE
+ *     20 10012551 10012551 LOW_COVERAGE
+ *     20 10012552 10012554 CALLABLE
+ *     20 10012555 10012557 LOW_COVERAGE
+ *     20 10012558 10012558 CALLABLE
+ *     et cetera...
+ * </pre>
+ * as well as a summary table that looks like:
+ *
+ * <pre>
+ *                        state nBases
+ *                        REF_N 0
+ *                     CALLABLE 996046
+ *                  NO_COVERAGE 121
+ *                 LOW_COVERAGE 928
+ *           EXCESSIVE_COVERAGE 0
+ *         POOR_MAPPING_QUALITY 2906
+ * </pre>
+ *
+ * @author Mark DePristo
+ * @since May 7, 2010
  */
 @By(DataSource.REFERENCE)
 public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableBaseState, CallableLociWalker.Integrator> {
     @Output
     PrintStream out;
 
-    @Argument(fullName = "maxLowMAPQ", shortName = "mlmq", doc = "Maximum value for MAPQ to be considered a problematic mapped read.  The gap between this value and mmq are reads that are not sufficiently well mapped for calling but aren't indicative of mapping problems.", required = false)
+    /**
+     * Callable loci summary counts (see outputs) will be written to this file.
+     */
+    @Output(fullName = "summary", shortName = "summary", doc = "Name of file for output summary", required = true)
+    File summaryFile;
+
+    /**
+     * The gap between this value and mmq are reads that are not sufficiently well mapped for calling but
+     * aren't indicative of mapping problems.  For example, if maxLowMAPQ = 1 and mmq = 20, then reads with
+     * MAPQ == 0 are poorly mapped, MAPQ >= 20 are considered as contributing to calling, where
+     * reads with MAPQ >= 1 and < 20 are not bad in and of themselves but aren't sufficiently good to contribute to
+     * calling.  In effect this reads are invisible, driving the base to the NO_ or LOW_COVERAGE states
+     */
+    @Argument(fullName = "maxLowMAPQ", shortName = "mlmq", doc = "Maximum value for MAPQ to be considered a problematic mapped read.", required = false)
     byte maxLowMAPQ = 1;
 
-    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to 50.", required = false)
+    /**
+     * Reads with MAPQ > minMappingQuality are treated as usable for variation detection, contributing to the CALLABLE
+     * state.
+     */
+    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth.", required = false)
     byte minMappingQuality = 10;
 
-    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to 20.", required = false)
+    /**
+     * Bases with less than minBaseQuality are viewed as not sufficiently high quality to contribute to the CALLABLE state
+     */
+    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth.", required = false)
     byte minBaseQuality = 20;
 
+    /**
+     * If the number of QC+ bases (on reads with MAPQ > minMappingQuality and with base quality > minBaseQuality) exceeds this
+     * value and is less than maxDepth the site is considered CALLABLE.
+     */
     @Argument(fullName = "minDepth", shortName = "minDepth", doc = "Minimum QC+ read depth before a locus is considered callable", required = false)
     int minDepth = 4;
 
+    /**
+     * If the QC+ depth exceeds this value the site is considered to have EXCESSIVE_DEPTH
+     */
     @Argument(fullName = "maxDepth", shortName = "maxDepth", doc = "Maximum read depth before a locus is considered poorly mapped", required = false)
     int maxDepth = -1;
 
+    /**
+     * We don't want to consider a site as POOR_MAPPING_QUALITY just because it has two reads, and one is MAPQ.  We
+     * won't assign a site to the POOR_MAPPING_QUALITY state unless there are at least minDepthForLowMAPQ reads
+     * covering the site.
+     */
     @Argument(fullName = "minDepthForLowMAPQ", shortName = "mdflmq", doc = "Minimum read depth before a locus is considered a potential candidate for poorly mapped", required = false)
     int minDepthLowMAPQ = 10;
 
-    @Argument(fullName = "maxFractionOfReadsWithLowMAPQ", shortName = "frlmq", doc = "Maximum read depth before a locus is considered poorly mapped", required = false)
+    /**
+     * If the number of reads at this site is greater than minDepthForLowMAPQ and the fraction of reads with low mapping quality
+     * exceeds this fraction then the site has POOR_MAPPING_QUALITY.
+     */
+    @Argument(fullName = "maxFractionOfReadsWithLowMAPQ", shortName = "frlmq", doc = "If the fraction of reads at a base with low mapping quality exceeds this value, the site may be poorly mapped", required = false)
     double maxLowMAPQFraction = 0.1;
 
-    @Argument(fullName = "format", shortName = "format", doc = "Output format for the system: either BED or STATE_PER_BASE", required = false)
+    /**
+     * The output of this walker will be written in this format.  The recommended option is BED.
+     */
+    @Argument(fullName = "format", shortName = "format", doc = "Output format", required = false)
     OutputFormat outputFormat;
 
-    @Argument(fullName = "summary", shortName = "summary", doc = "Name of file for output summary", required = true)
-    File summaryFile;
+    public enum OutputFormat {
+        /**
+         * The output will be written as a BED file.  There's a BED element for each
+         * continuous run of callable states (i.e., CALLABLE, REF_N, etc).  This is the recommended
+         * format
+         */
+        BED,
 
-    public enum OutputFormat { BED, STATE_PER_BASE }
+        /**
+         * Emit chr start stop state quads for each base.  Produces a potentially disasterously
+         * large amount of output.
+         */
+        STATE_PER_BASE
+    }
+
+    public enum CalledState {
+        /** the reference base was an N, which is not considered callable the GATK */
+        REF_N,
+        /** the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE */
+        CALLABLE,
+        /** absolutely no reads were seen at this locus, regardless of the filtering parameters */
+        NO_COVERAGE,
+        /** there were less than min. depth bases at the locus, after applying filters */
+        LOW_COVERAGE,
+        /** more than -maxDepth read at the locus, indicating some sort of mapping problem */
+        EXCESSIVE_COVERAGE,
+        /** more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads */
+        POOR_MAPPING_QUALITY
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD WALKER METHODS
     ////////////////////////////////////////////////////////////////////////////////////
 
+    @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
+    @Override
     public void initialize() {
+        if ( getToolkit().getSamples().size() > 1 )
+            throw new UserException.BadArgumentValue("-I", "CallableLoci only works for a single sample, but multiple samples were found in the provided BAM files: " + getToolkit().getSamples());
+
         try {
             PrintStream summaryOut = new PrintStream(summaryFile);
             summaryOut.close();
@@ -94,15 +234,15 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         }
     }
 
-    public static class Integrator {
-        long counts[] = new long[CalledState.values().length];
+    protected static class Integrator {
+        final long counts[] = new long[CalledState.values().length];
         CallableBaseState state = null;
     }
 
-    public static class CallableBaseState implements HasGenomeLocation {
-        public GenomeLocParser genomeLocParser;
+    protected static class CallableBaseState implements HasGenomeLocation {
+        final public GenomeLocParser genomeLocParser;
         public GenomeLoc loc;
-        public CalledState state;
+        final public CalledState state;
 
         public CallableBaseState(GenomeLocParser genomeLocParser,GenomeLoc loc, CalledState state) {
             this.genomeLocParser = genomeLocParser;
@@ -133,16 +273,10 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
 
         public String toString() {
             return String.format("%s %d %d %s", loc.getContig(), loc.getStart(), loc.getStop(), state);
-            //return String.format("%s %d %d %d %s", loc.getContig(), loc.getStart(), loc.getStop(), loc.getStop() - loc.getStart() + 1, state);
         }
     }
 
-    public enum CalledState { REF_N, CALLABLE, NO_COVERAGE, LOW_COVERAGE, EXCESSIVE_COVERAGE, POOR_MAPPING_QUALITY }
-
-    public Integrator reduceInit() {
-        return new Integrator();
-    }
-
+    @Override
     public CallableBaseState map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         CalledState state;
 
@@ -179,6 +313,12 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         return new CallableBaseState(getToolkit().getGenomeLocParser(),context.getLocation(), state);
     }
 
+    @Override
+    public Integrator reduceInit() {
+        return new Integrator();
+    }
+
+    @Override
     public Integrator reduce(CallableBaseState state, Integrator integrator) {
         // update counts
         integrator.counts[state.getState().ordinal()]++;
@@ -206,6 +346,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     // INTERVAL ON TRAVERSAL DONE
     ////////////////////////////////////////////////////////////////////////////////////
 
+    @Override
     public void onTraversalDone(Integrator result) {
         // print out the last state
         if ( result != null ) {

@@ -180,4 +180,19 @@ public class VCFUtils {
 
         return new HashSet<VCFHeaderLine>(map.values());
     }
+
+    public static String rsIDOfFirstRealVariant(List<VariantContext> VCs, VariantContext.Type type) {
+        if ( VCs == null )
+            return null;
+
+        String rsID = null;
+        for ( VariantContext vc : VCs ) {
+            if ( vc.getType() == type ) {
+                rsID = vc.getID();
+                break;
+            }
+        }
+
+        return rsID;
+    }
 }
