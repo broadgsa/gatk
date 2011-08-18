@@ -52,13 +52,13 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
     @Override
     public boolean includeInDocs(ClassDoc doc) {
-        return true;
-//        try {
-//            Class type = HelpUtils.getClassForDoc(doc);
-//            return JVMUtils.isConcrete(type);
-//        } catch ( ClassNotFoundException e ) {
-//            return false;
-//        }
+//        return true;
+        try {
+            Class type = HelpUtils.getClassForDoc(doc);
+            return JVMUtils.isConcrete(type);
+        } catch ( ClassNotFoundException e ) {
+            return false;
+        }
     }
 
 
@@ -256,20 +256,6 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
         }
         root.put("extradocs", extraDocsData);
-
-
-//        List<Map<String, Object>> hierarchyDocs = new ArrayList<Map<String, Object>>();
-//        for (final GATKDocWorkUnit other : all ) {
-//            final String relation = classRelationship(toProcess.clazz, other.clazz);
-//            if ( relation != null )
-//                hierarchyDocs.add(
-//                        new HashMap<String, Object>(){{
-//                            put("filename", other.filename);
-//                            put("relation", relation);
-//                            put("name", other.name);}});
-//
-//        }
-//        root.put("relatedDocs", hierarchyDocs);
     }
 
     private static final String classRelationship(Class me, Class other) {

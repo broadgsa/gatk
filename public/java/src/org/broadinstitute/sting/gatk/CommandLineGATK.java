@@ -50,7 +50,7 @@ import java.util.*;
 @DocumentedGATKFeature(
         groupName = "GATK Engine",
         summary = "Features and arguments for the GATK engine itself, available to all walkers.",
-        extraDocs = { ReadFilter.class, UserException.class })
+        extraDocs = { UserException.class })
 public class CommandLineGATK extends CommandLineExecutable {
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;
