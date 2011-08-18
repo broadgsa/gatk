@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata.features.beagle;
+package org.broadinstitute.sting.utils.codecs.beagle;
 /*
  * Copyright (c) 2010 The Broad Institute
  *

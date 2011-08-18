@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.refdata.features.sampileup;
+package org.broadinstitute.sting.utils.codecs.sampileup;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.broadinstitute.sting.gatk.refdata.features.sampileup.SAMPileupFeature.VariantType;
+import static org.broadinstitute.sting.utils.codecs.sampileup.SAMPileupFeature.VariantType;
 
 /**
  * A Tribble encoder / decoder for SAM pileup data. 

@@ -31,7 +31,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
+import org.broadinstitute.sting.utils.codecs.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;

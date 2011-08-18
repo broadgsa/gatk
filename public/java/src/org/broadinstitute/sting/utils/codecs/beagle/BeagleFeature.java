@@ -22,7 +22,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.broadinstitute.sting.gatk.refdata.features.beagle;
+package org.broadinstitute.sting.utils.codecs.beagle;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.variantcontext.Allele;

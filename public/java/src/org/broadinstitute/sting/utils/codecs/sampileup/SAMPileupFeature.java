@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.refdata.features.sampileup;
+package org.broadinstitute.sting.utils.codecs.sampileup;
 
 import net.sf.samtools.util.StringUtil;
 import org.broad.tribble.Feature;

@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.refdata.features.samread;
+package org.broadinstitute.sting.utils.codecs.samread;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.TextCigarCodec;

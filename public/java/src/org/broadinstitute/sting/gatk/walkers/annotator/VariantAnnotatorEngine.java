@@ -29,15 +29,11 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationInterfaceManager;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -158,7 +154,7 @@ public class VariantAnnotatorEngine {
     private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
-                String rsID = DbSNPHelper.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
+                String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
                 // annotate dbsnp id if available and not already there
                 if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )
