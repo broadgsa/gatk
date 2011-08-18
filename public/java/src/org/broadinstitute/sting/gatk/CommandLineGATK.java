@@ -175,7 +175,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         Formatter formatter = new Formatter(additionalHelp);
 
         formatter.format("For a full description of this walker, see its GATKdocs at:%n");
-        formatter.format("%s%n", HelpUtils.helpLinksToGATKDocs(walkerType));
+        formatter.format("%s%n", GATKDocUtils.helpLinksToGATKDocs(walkerType));
 
         return additionalHelp.toString();
     }
