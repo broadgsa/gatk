@@ -197,23 +197,37 @@ public class FeatureManager  {
      */
     @Ensures("result != null")
     public String userFriendlyListOfAvailableFeatures() {
+        return userFriendlyListOfAvailableFeatures(Feature.class);
+    }
+
+    /**
+     * Returns a list of the available tribble track names (vcf,dbsnp,etc) that we can load
+     * restricted to only Codecs producting Features consistent with the requiredFeatureType
+     * @return
+     */
+    @Ensures("result != null")
+    public String userFriendlyListOfAvailableFeatures(Class<? extends Feature> requiredFeatureType) {
         final String nameHeader="Name", featureHeader = "FeatureType", docHeader="Documentation";
 
         int maxNameLen = nameHeader.length(), maxFeatureNameLen = featureHeader.length();
         for ( final FeatureDescriptor descriptor : featureDescriptors ) {
-            maxNameLen = Math.max(maxNameLen, descriptor.getName().length());
-            maxFeatureNameLen = Math.max(maxFeatureNameLen, descriptor.getSimpleFeatureName().length());
+            if ( requiredFeatureType.isAssignableFrom(descriptor.getFeatureClass()) ) {
+                maxNameLen = Math.max(maxNameLen, descriptor.getName().length());
+                maxFeatureNameLen = Math.max(maxFeatureNameLen, descriptor.getSimpleFeatureName().length());
+            }
         }
 
         StringBuilder docs = new StringBuilder();
         String format = "%" + maxNameLen + "s   %" + maxFeatureNameLen + "s   %s%n";
         docs.append(String.format(format, nameHeader, featureHeader, docHeader));
         for ( final FeatureDescriptor descriptor : featureDescriptors ) {
-            String oneDoc = String.format(format,
-                    descriptor.getName(),
-                    descriptor.getSimpleFeatureName(),
-                    HelpUtils.helpLinksToGATKDocs(descriptor.getCodecClass()));
-            docs.append(oneDoc);
+            if ( requiredFeatureType.isAssignableFrom(descriptor.getFeatureClass()) ) {
+                String oneDoc = String.format(format,
+                        descriptor.getName(),
+                        descriptor.getSimpleFeatureName(),
+                        HelpUtils.helpLinksToGATKDocs(descriptor.getCodecClass()));
+                docs.append(oneDoc);
+            }
         }
 
         return docs.toString();

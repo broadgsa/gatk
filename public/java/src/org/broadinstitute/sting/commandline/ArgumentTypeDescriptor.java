@@ -338,6 +338,8 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
+        Class<? extends Feature> parameterType = getParameterizedTypeClass(type);
+
         try {
             String name = defaultDefinition.fullName;
             String tribbleType = null;
@@ -376,15 +378,14 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         } else {
                             throw new UserException.CommandLineException(
                                     String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
-                                            "Please add an explicit type tag :TYPE listing the correct type from among the supported types:%n%s",
-                                            manager.userFriendlyListOfAvailableFeatures()));
+                                            "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
+                                            manager.userFriendlyListOfAvailableFeatures(parameterType)));
                         }
                     }
                 }
             }
 
             Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
-            Class parameterType = getParameterizedTypeClass(type);
             RodBinding result = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
             parsingEngine.addTags(result,tags);
             parsingEngine.addRodBinding(result);
