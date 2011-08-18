@@ -222,7 +222,7 @@ public class SnpEffCodec implements FeatureCodec, SelfScopingFeatureCodec {
         return null;
     }
 
-    public Class getFeatureType() {
+    public Class<SnpEffFeature> getFeatureType() {
         return SnpEffFeature.class;
     }
 

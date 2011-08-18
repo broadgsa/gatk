@@ -104,7 +104,7 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
     }
 
     @Override
-    public Class getFeatureType() {
+    public Class<RefSeqFeature> getFeatureType() {
         return RefSeqFeature.class;
     }
 }

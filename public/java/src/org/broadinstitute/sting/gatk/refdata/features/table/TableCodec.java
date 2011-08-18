@@ -51,7 +51,7 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
     }
 
     @Override
-    public Class getFeatureType() {
+    public Class<TableFeature> getFeatureType() {
         return TableFeature.class;
     }
 
