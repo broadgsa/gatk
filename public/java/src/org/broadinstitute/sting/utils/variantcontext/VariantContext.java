@@ -1080,8 +1080,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public void validateReferenceBases(Allele reference, Byte paddedRefBase) {
-        // don't validate if we're an insertion
-        if ( !reference.isNull() && !reference.basesMatch(getReference()) ) {
+        // don't validate if we're an insertion or complex event
+        if ( !reference.isNull() && getReference().length() == 1 && !reference.basesMatch(getReference()) ) {
             throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
         }
 
