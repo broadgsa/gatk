@@ -50,22 +50,47 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
+ * First pass of the base quality score recalibration -- Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
  *
- * This walker is designed to work as the first pass in a two-pass processing step.
- * It does a by-locus traversal operating only at sites that are not in dbSNP.
- * We assume that all reference mismatches we see are therefore errors and indicative of poor base quality.
- * This walker generates tables based on various user-specified covariates (such as read group, reported quality score, cycle, and dinucleotide)
- * Since there is a large amount of data one can then calculate an empirical probability of error
- *   given the particular covariates seen at this site, where p(error) = num mismatches / num observations
- * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score)
- * The first non-comment line of the output file gives the name of the covariates that were used for this calculation.
+ * <p>
+ * This walker is designed to work as the first pass in a two-pass processing step. It does a by-locus traversal operating
+ * only at sites that are not in dbSNP. We assume that all reference mismatches we see are therefore errors and indicative
+ * of poor base quality. This walker generates tables based on various user-specified covariates (such as read group,
+ * reported quality score, cycle, and dinucleotide). Since there is a large amount of data one can then calculate an empirical
+ * probability of error given the particular covariates seen at this site, where p(error) = num mismatches / num observations.
+ * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score).
+ * <p>
+ * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified.
  *
- * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified
- * Note: This walker is designed to be used in conjunction with TableRecalibrationWalker.
+ * <p>
+ * See the GATK wiki for a tutorial and example recalibration accuracy plots.
+ * http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration
  *
- * @author rpoplin
- * @since Nov 3, 2009
+ * <h2>Input</h2>
+ * <p>
+ * A database of known polymorphic sites to skip over.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A recalibration table file in CSV format that is used by the TableRecalibration walker.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx4g -jar GenomeAnalysisTK.jar \
+ *   -R resources/Homo_sapiens_assembly18.fasta \
+ *   -knownSites bundle/hg18/dbsnp_132.hg18.vcf \
+ *   -knownSites another/optional/setOfSitesToMask.vcf \
+ *   -I my_reads.bam \
+ *   -T CountCovariates \
+ *   -cov ReadGroupCovariate \
+ *   -cov QualityScoreCovariate \
+ *   -cov CycleCovariate \
+ *   -cov DinucCovariate \
+ *   -recalFile my_reads.recal_data.csv
+ * </pre>
+ *
  */
 
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
@@ -96,8 +121,13 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      */
     @Input(fullName="knownSites", shortName = "knownSites", doc="A database of known polymorphic sites to skip over in the recalibration algorithm", required=false)
     public List<RodBinding<Feature>> knownSites = Collections.emptyList();
-    @Output
-    PrintStream out;
+
+    /**
+     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
+     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
+     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
+     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     */
     @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the output covariates table recalibration file")
     @Gather(CountCovariatesGatherer.class)
     public PrintStream RECAL_FILE;
@@ -114,6 +144,10 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     @Argument(fullName="dont_sort_output", shortName="unsorted", required=false, doc="If specified, the output table recalibration csv file will be in an unsorted, arbitrary order to save some run time.")
     private boolean DONT_SORT_OUTPUT = false;
+
+    /**
+     * This calculation is critically dependent on being able to skip over known polymorphic sites. Please be sure that you know what you are doing if you use this option.
+     */
     @Argument(fullName="run_without_dbsnp_potentially_ruining_quality", shortName="run_without_dbsnp_potentially_ruining_quality", required=false, doc="If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
     private boolean RUN_WITHOUT_DBSNP = false;
 
@@ -178,11 +212,11 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         // Print and exit if that's what was requested
         if ( LIST_ONLY ) {
-            out.println( "Available covariates:" );
+            logger.info( "Available covariates:" );
             for( Class<?> covClass : covariateClasses ) {
-                out.println( covClass.getSimpleName() );
+                logger.info( covClass.getSimpleName() );
             }
-            out.println();
+            logger.info("");
 
             System.exit( 0 ); // Early exit here because user requested it
         }

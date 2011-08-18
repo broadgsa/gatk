@@ -51,12 +51,27 @@ public class RecalibrationArgumentCollection {
     public String FORCE_PLATFORM = null;
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="The window size used by MinimumNQSCovariate for its calculation", required=false)
     public int WINDOW_SIZE = 5;
+
+    /**
+     * This window size tells the module in how big of a neighborhood around the current base it should look for the minimum base quality score.
+     */
     @Argument(fullName = "homopolymer_nback", shortName="nback", doc="The number of previous bases to look at in HomopolymerCovariate", required=false)
     public int HOMOPOLYMER_NBACK = 7;
     @Argument(fullName = "exception_if_no_tile", shortName="throwTileException", doc="If provided, TileCovariate will throw an exception when no tile can be found. The default behavior is to use tile = -1", required=false)
     public boolean EXCEPTION_IF_NO_TILE = false;
+
+    /**
+     * CountCovariates and TableRecalibration accept a --solid_recal_mode <MODE> flag which governs how the recalibrator handles the
+     * reads which have had the reference inserted because of color space inconsistencies.
+     */
     @Argument(fullName="solid_recal_mode", shortName="sMode", required = false, doc="How should we recalibrate solid bases in which the reference was inserted? Options = DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS")
     public RecalDataManager.SOLID_RECAL_MODE SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.SET_Q_ZERO;
+
+    /**
+     * CountCovariates and TableRecalibration accept a --solid_nocall_strategy <MODE> flag which governs how the recalibrator handles
+     * no calls in the color space tag. Unfortunately because of the reference inserted bases mentioned above, reads with no calls in
+     * their color space tag can not be recalibrated.
+     */
     @Argument(fullName = "solid_nocall_strategy", shortName="solid_nocall_strategy", doc="Defines the behavior of the recalibrator when it encounters no calls in the color space. Options = THROW_EXCEPTION, LEAVE_READ_UNRECALIBRATED, or PURGE_READ", required=false)
     public RecalDataManager.SOLID_NOCALL_STRATEGY SOLID_NOCALL_STRATEGY = RecalDataManager.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
 }
