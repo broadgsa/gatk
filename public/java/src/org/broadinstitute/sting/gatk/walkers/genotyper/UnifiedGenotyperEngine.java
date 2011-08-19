@@ -51,8 +51,11 @@ public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 
     public enum OUTPUT_MODE {
+        /** the default */
         EMIT_VARIANTS_ONLY,
+        /** include confident reference sites */
         EMIT_ALL_CONFIDENT_SITES,
+        /** any callable site regardless of confidence */
         EMIT_ALL_SITES
     }
 
