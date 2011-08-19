@@ -451,7 +451,7 @@ public class ParsingEngine {
      * @return A map of sources associated with this object and its aggregated objects and bindings to their bindings values
      */
     private Map<ArgumentSource, Object> extractArgumentBindings(Object obj, Class sourceClass, Field[] parentFields) {
-        Map<ArgumentSource, Object> bindings = new TreeMap<ArgumentSource, Object>();
+        Map<ArgumentSource, Object> bindings = new LinkedHashMap<ArgumentSource, Object>();
 
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();

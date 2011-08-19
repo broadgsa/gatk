@@ -120,7 +120,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         args.put("hidden", new ArrayList<Object>());
         args.put("depreciated", new ArrayList<Object>());
         try {
-            for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
+            for ( ArgumentSource argumentSource : new TreeSet<ArgumentSource>(parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc))) ) {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
                 Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?

@@ -375,13 +375,14 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         if ( featureDescriptor != null ) {
                             tribbleType = featureDescriptor.getName();
                             logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
-                        } else {
-                            throw new UserException.CommandLineException(
-                                    String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
-                                            "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
-                                            manager.userFriendlyListOfAvailableFeatures(parameterType)));
                         }
                     }
+
+                    if ( tribbleType == null )
+                        throw new UserException.CommandLineException(
+                                String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
+                                        "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
+                                        manager.userFriendlyListOfAvailableFeatures(parameterType)));
                 }
             }
 
