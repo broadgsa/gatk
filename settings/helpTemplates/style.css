@@ -85,25 +85,33 @@ hr
  * enum DT layout
 */
 
+dl {
+   margin-left: 3em;
+}
+
 dl.enum {
    margin-left: 3em;
    border: 1px dashed #ccc;
 }
 
-dt.enum {
+dt, dt.enum {
     font-weight: bold;
     text-decoration: underline;
 }
 
-dd.enum {
+/*
+dt, dd.enum {
     padding: 0 0 0.5em 0;
 }
+*/
 
 pre {
     border: thin solid lightgray;
     margin-left: 1em;
     margin-right: 4em;
+/*
     background-color: #e0fdff;
+*/
 }
 /*
  * clean table layouts
