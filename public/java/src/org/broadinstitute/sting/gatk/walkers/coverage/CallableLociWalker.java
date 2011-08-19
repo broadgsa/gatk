@@ -22,6 +22,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
+import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -154,6 +155,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
      * If the number of QC+ bases (on reads with MAPQ > minMappingQuality and with base quality > minBaseQuality) exceeds this
      * value and is less than maxDepth the site is considered CALLABLE.
      */
+    @Advanced
     @Argument(fullName = "minDepth", shortName = "minDepth", doc = "Minimum QC+ read depth before a locus is considered callable", required = false)
     int minDepth = 4;
 
@@ -168,6 +170,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
      * won't assign a site to the POOR_MAPPING_QUALITY state unless there are at least minDepthForLowMAPQ reads
      * covering the site.
      */
+    @Advanced
     @Argument(fullName = "minDepthForLowMAPQ", shortName = "mdflmq", doc = "Minimum read depth before a locus is considered a potential candidate for poorly mapped", required = false)
     int minDepthLowMAPQ = 10;
 
@@ -181,6 +184,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     /**
      * The output of this walker will be written in this format.  The recommended option is BED.
      */
+    @Advanced
     @Argument(fullName = "format", shortName = "format", doc = "Output format", required = false)
     OutputFormat outputFormat;
 

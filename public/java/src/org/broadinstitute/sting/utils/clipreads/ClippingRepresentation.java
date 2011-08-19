@@ -4,9 +4,28 @@ package org.broadinstitute.sting.utils.clipreads;
  * How should we represent a clipped bases in a read?
  */
 public enum ClippingRepresentation {
-    WRITE_NS,           // change the bases to Ns
-    WRITE_Q0S,          // change the quality scores to Q0
-    WRITE_NS_Q0S,       // change the quality scores to Q0 and write Ns
-    SOFTCLIP_BASES,     // change cigar string to S, but keep bases
-    HARDCLIP_BASES      // remove the bases from the read
+    /** Clipped bases are changed to Ns */
+    WRITE_NS,
+
+    /** Clipped bases are changed to have Q0 quality score */
+    WRITE_Q0S,
+
+    /** Clipped bases are change to have both an N base and a Q0 quality score */
+    WRITE_NS_Q0S,
+
+    /**
+     * Change the read's cigar string to soft clip (S, see sam-spec) away the bases.
+     * Note that this can only be applied to cases where the clipped bases occur
+     * at the start or end of a read.
+     */
+    SOFTCLIP_BASES,
+
+    /**
+     * Change the read's cigar string to hard clip (H, see sam-spec) away the bases.
+     * Hard clipping, unlike soft clipping, actually removes bases from the read,
+     * reducing the resulting file's size but introducing an irrevesible (i.e.,
+     * lossy) operation.  Note that this can only be applied to cases where the clipped
+     * bases occur at the start or end of a read.
+     */
+    HARDCLIP_BASES
 }
