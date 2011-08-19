@@ -54,7 +54,8 @@ import java.util.*;
 public class FeatureManagerUnitTest extends BaseTest {
     private static final File RANDOM_FILE = new File(validationDataLocation + "exampleGATKReport.eval");
     private static final File VCF3_FILE = new File(validationDataLocation + "vcfexample3.vcf");
-    private static final File VCF4_FILE = new File(validationDataLocation + "vcf4.1.example.vcf");
+    private static final File VCF4_FILE = new File(testDir + "HiSeq.10000.vcf");
+    private static final File VCF4_FILE_GZ = new File(testDir + "HiSeq.10000.vcf.gz");
 
     private FeatureManager manager;
     private GenomeLocParser genomeLocParser;
@@ -98,7 +99,8 @@ public class FeatureManagerUnitTest extends BaseTest {
         }
 
         public String toString() {
-            return String.format("FMTest name=%s codec=%s feature=%s file=%s", name, codec, feature, associatedFile);
+            return String.format("FMTest name=%s codec=%s feature=%s file=%s",
+                    name, codec.getSimpleName(), feature.getSimpleName(), associatedFile);
         }
     }
 
@@ -106,6 +108,7 @@ public class FeatureManagerUnitTest extends BaseTest {
     public Object[][] createTests() {
         new FMTest(VariantContext.class, VCF3Codec.class, "VCF3", VCF3_FILE);
         new FMTest(VariantContext.class, VCFCodec.class, "VCF", VCF4_FILE);
+        new FMTest(VariantContext.class, VCFCodec.class, "VCF", VCF4_FILE_GZ);
         new FMTest(TableFeature.class, BedTableCodec.class, "bedtable", null);
         return FMTest.getTests(FMTest.class);
     }

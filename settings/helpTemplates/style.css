@@ -42,6 +42,10 @@ p.version
     text-align: center;
 }
 
+p.args
+{
+    margin-left: 3em;
+}
 
 h1, h2, h3, h4
 {
@@ -81,17 +85,17 @@ hr
  * enum DT layout
 */
 
-dl {
-   border: 1px solid #ccc;
+dl.enum {
+   margin-left: 3em;
+   border: 1px dashed #ccc;
 }
 
-dt {
+dt.enum {
     font-weight: bold;
     text-decoration: underline;
 }
 
-dd {
-    margin: 0;
+dd.enum {
     padding: 0 0 0.5em 0;
 }
 

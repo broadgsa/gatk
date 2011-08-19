@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2010 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,32 +12,35 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.sting.gatk.filters;
 
-import java.lang.annotation.*;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.commandline.Argument;
 
 /**
- * An annotation to identify a class as a GATK capability for documentation
+ * Filter out reads with low mapping qualities.
  *
- * @author depristo
+ * @author ebanks
+ * @version 0.1
  */
-@Documented
-@Inherited
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface DocumentedGATKFeature {
-    public boolean enable() default true;
-    public String groupName();
-    public String summary() default "";
-    public Class[] extraDocs() default {};
+
+public class MappingQualityFilter extends ReadFilter {
+
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
+    public int MIN_MAPPING_QUALTY_SCORE = 10;
+
+    public boolean filterOut(SAMRecord rec) {
+        return (rec.getMappingQuality() < MIN_MAPPING_QUALTY_SCORE);
+    }
 }

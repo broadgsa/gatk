@@ -24,20 +24,32 @@
 
 package org.broadinstitute.sting.utils.help;
 
-import java.lang.annotation.*;
-
 /**
- * An annotation to identify a class as a GATK capability for documentation
+ * Documentation unit.  Effectively a class version of the DocumentedGATKFeature
  *
  * @author depristo
  */
-@Documented
-@Inherited
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface DocumentedGATKFeature {
-    public boolean enable() default true;
-    public String groupName();
-    public String summary() default "";
-    public Class[] extraDocs() default {};
+class DocumentedGATKFeatureObject {
+    private final Class classToDoc;
+    private final boolean enable;
+    private final String groupName, summary;
+    private final Class[] extraDocs;
+
+    public DocumentedGATKFeatureObject(Class classToDoc, final boolean enable, final String groupName, final String summary, final Class[] extraDocs) {
+        this.classToDoc = classToDoc;
+        this.enable = enable;
+        this.groupName = groupName;
+        this.summary = summary;
+        this.extraDocs = extraDocs;
+    }
+
+    public DocumentedGATKFeatureObject(Class classToDoc, final String groupName, final String summary) {
+        this(classToDoc, true, groupName, summary, new Class[]{});
+    }
+
+    public Class getClassToDoc() { return classToDoc; }
+    public boolean enable() { return enable; }
+    public String groupName() { return groupName; }
+    public String summary() { return summary; }
+    public Class[] extraDocs() { return extraDocs; }
 }

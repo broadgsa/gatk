@@ -36,31 +36,54 @@ import java.io.File;
 
 public class UnifiedArgumentCollection {
 
-    // control the various models to be used
     @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- SNP is the default option, while INDEL is also available for calling indels and BOTH is available for calling both together", required = false)
     public GenotypeLikelihoodsCalculationModel.Model GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
 
+    /**
+     * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
+     */
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
     public AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
 
+    /**
+     * The expected heterozygosity value used to compute prior likelihoods for any locus. The default priors are:
+     * het = 1e-3, P(hom-ref genotype) = 1 - 3 * het / 2, P(het genotype) = het, P(hom-var genotype) = het / 2
+     */
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
 
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
     public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
 
+    /**
+     * Specifies how to determine the alternate allele to use for genotyping
+     */
     @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
     public GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY;
 
     @Argument(fullName = "output_mode", shortName = "out_mode", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
     public UnifiedGenotyperEngine.OUTPUT_MODE OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY;
 
+    /**
+     * The minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls. Only genotypes with
+     * confidence >= this threshold are emitted as called sites. A reasonable threshold is 30 for high-pass calling (this
+     * is the default). Note that the confidence (QUAL) values for multi-sample low-pass (e.g. 4x per sample) calling might
+     * be significantly smaller with the new EXACT model than with our older GRID_SEARCH model, as the latter tended to
+     * over-estimate the confidence; for low-pass calling we tend to use much smaller thresholds (e.g. 4).
+     */
     @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
     public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
 
+    /**
+     * the minimum phred-scaled Qscore threshold to emit low confidence calls. Genotypes with confidence >= this but less
+     * than the calling threshold are emitted but marked as filtered.
+     */
     @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
+    /**
+     * This argument is not enabled by default because it increases the runtime by an appreciable amount.
+     */
     @Argument(fullName = "computeSLOD", shortName = "sl", doc = "If provided, we will calculate the SLOD", required = false)
     public boolean COMPUTE_SLOD = false;
 
@@ -80,7 +103,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "abort_at_too_much_coverage", doc = "Don't call a site if the downsampled coverage is greater than this value", required = false)
     public int COVERAGE_AT_WHICH_TO_ABORT = -1;
 
-
     // control the various parameters to be used
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 17;
@@ -91,11 +113,17 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
-
     // indel-related arguments
+    /**
+     * A candidate indel is genotyped (and potentially called) if there are this number of reads with a consensus indel at a site.
+     * Decreasing this value will increase sensitivity but at the cost of larger calling time and a larger number of false positives.
+     */
     @Argument(fullName = "min_indel_count_for_genotyping", shortName = "minIndelCnt", doc = "Minimum number of consensus indels required to trigger genotyping run", required = false)
     public int MIN_INDEL_COUNT_FOR_GENOTYPING = 5;
 
+    /**
+     * This argument informs the prior probability of having an indel at a site.
+     */
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
     public double INDEL_HETEROZYGOSITY = 1.0/8000;
 
@@ -126,21 +154,22 @@ public class UnifiedArgumentCollection {
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
+
     @Hidden
     @Argument(fullName = "dovit", shortName = "dovit", doc = "Output indel debug info", required = false)
     public boolean dovit = false;
+
     @Hidden
     @Argument(fullName = "GSA_PRODUCTION_ONLY", shortName = "GSA_PRODUCTION_ONLY", doc = "don't ever use me", required = false)
     public boolean GSA_PRODUCTION_ONLY = false;
+
     @Hidden
- 
     @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
     public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
 
     @Hidden
-     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
+    @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
-
 
     @Deprecated
     @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,20 +22,19 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.sting.commandline;
 
-import net.sf.samtools.SAMRecord;
+import java.lang.annotation.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Jul 19, 2010
+ * Indicates that a walker argument should is considered an advanced option.
  *
- * Filter out FailsVendorQualityCheck reads.
+ * @author Mark DePristo
+ * @version 0.1
  */
-
-public class FailsVendorQualityCheckReadFilter extends ReadFilter {
-    public boolean filterOut( final SAMRecord read ) {
-        return read.getReadFailsVendorQualityCheckFlag();
-    }
+@Documented
+@Inherited
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE,ElementType.FIELD})
+public @interface Advanced {
 }

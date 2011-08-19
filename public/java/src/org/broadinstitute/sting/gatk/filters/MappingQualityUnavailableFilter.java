@@ -25,17 +25,18 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 /**
  * Filter out mapping quality zero reads.
  *
- * @author hanna
+ * @author ebanks
  * @version 0.1
  */
 
-public class MappingQualityZeroReadFilter extends ReadFilter {
+public class MappingQualityUnavailableFilter extends ReadFilter {
     public boolean filterOut(SAMRecord rec) {
-        return (rec.getMappingQuality() == 0);
+        return (rec.getMappingQuality() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE);
     }
 }
 

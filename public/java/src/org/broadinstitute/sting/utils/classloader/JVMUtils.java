@@ -224,4 +224,14 @@ public class JVMUtils {
             throw new StingException("Unknown type: " + type + " (" + type.getClass().getName() + ")");
         }
     }
+
+    public static Class getParameterizedTypeClass(Type t) {
+        if ( t instanceof ParameterizedType ) {
+            ParameterizedType parameterizedType = (ParameterizedType)t;
+            if ( parameterizedType.getActualTypeArguments().length != 1 )
+                throw new ReviewedStingException("BUG: more than 1 generic type found on class" + t);
+            return (Class)parameterizedType.getActualTypeArguments()[0];
+        } else
+            throw new ReviewedStingException("BUG: could not find generic type on class " + t);
+    }
 }

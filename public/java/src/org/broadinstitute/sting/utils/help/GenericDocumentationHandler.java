@@ -30,14 +30,18 @@ import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.io.*;
-import java.lang.reflect.Field;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -52,13 +56,13 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
     @Override
     public boolean includeInDocs(ClassDoc doc) {
-        return true;
-//        try {
-//            Class type = HelpUtils.getClassForDoc(doc);
-//            return JVMUtils.isConcrete(type);
-//        } catch ( ClassNotFoundException e ) {
-//            return false;
-//        }
+//        return true;
+        try {
+            Class type = HelpUtils.getClassForDoc(doc);
+            return JVMUtils.isConcrete(type);
+        } catch ( ClassNotFoundException e ) {
+            return false;
+        }
     }
 
 
@@ -107,13 +111,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // attempt to instantiate the class
         Object instance = makeInstanceIfPossible(toProcess.clazz);
 
-        Map<String, List<Object>> args = new HashMap<String, List<Object>>();
+        Map<String, List<Map<String, Object>>> args = new HashMap<String, List<Map<String, Object>>>();
         root.put("arguments", args);
-        args.put("all", new ArrayList<Object>());
-        args.put("required", new ArrayList<Object>());
-        args.put("optional", new ArrayList<Object>());
-        args.put("hidden", new ArrayList<Object>());
-        args.put("depreciated", new ArrayList<Object>());
+        args.put("all", new ArrayList<Map<String, Object>>());
+        args.put("required", new ArrayList<Map<String, Object>>());
+        args.put("optional", new ArrayList<Map<String, Object>>());
+        args.put("advanced", new ArrayList<Map<String, Object>>());
+        args.put("hidden", new ArrayList<Map<String, Object>>());
+        args.put("depreciated", new ArrayList<Map<String, Object>>());
         try {
             for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
@@ -123,6 +128,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                     logger.debug(String.format("Processing %s", argumentSource));
                     String kind = "optional";
                     if ( argumentSource.isRequired() ) kind = "required";
+                    else if ( argumentSource.isAdvanced() ) kind = "advanced";
                     else if ( argumentSource.isHidden() ) kind = "hidden";
                     else if ( argumentSource.isDeprecated() ) kind = "depreciated";
 
@@ -149,8 +155,34 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                     logger.debug(String.format("Skipping hidden feature %s", argumentSource));
                 }
             }
+
+            // sort the arguments
+            for (Map.Entry<String,List<Map<String, Object>>> entry : args.entrySet()) {
+                entry.setValue(sortArguments(entry.getValue()));
+            }
         } catch ( ClassNotFoundException e ) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private List<Map<String, Object>> sortArguments(List<Map<String, Object>> unsorted) {
+        Collections.sort(unsorted, new CompareArgumentsByName());
+        return unsorted;
+    }
+
+    private class CompareArgumentsByName implements Comparator<Map<String, Object>> {
+        public int compare(Map<String, Object> x, Map<String, Object> y) {
+            return elt(x).compareTo(elt(y));
+        }
+
+        private String elt(Map<String, Object> m) {
+            String v = m.get("name").toString().toLowerCase();
+            if ( v.startsWith("--") )
+                return v.substring(2);
+            else if ( v.startsWith("-") )
+                return v.substring(1);
+            else
+                throw new RuntimeException("Expect to see arguments beginning with at least one -, but found " + v);
         }
     }
 
@@ -255,20 +287,6 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                         put("name", otherUnit.name);}});
 
         }
-
-        List<Map<String, Object>> hierarchyDocs = new ArrayList<Map<String, Object>>();
-        for (final GATKDocWorkUnit other : all ) {
-            final String relation = classRelationship(toProcess.clazz, other.clazz);
-            if ( relation != null )
-                hierarchyDocs.add(
-                        new HashMap<String, Object>(){{
-                            put("filename", other.filename);
-                            put("relation", relation);
-                            put("name", other.name);}});
-
-        }
-
-        root.put("relatedDocs", hierarchyDocs);
         root.put("extradocs", extraDocsData);
     }
 
@@ -309,6 +327,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 return fieldDoc;
 
             Field field = HelpUtils.getFieldForFieldDoc(fieldDoc);
+            if ( field == null )
+                throw new RuntimeException("Could not find the field corresponding to " + fieldDoc + ", presumably because the field is inaccessible");
             if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
                 ClassDoc typeDoc = getRootDoc().classNamed(fieldDoc.type().qualifiedTypeName());
                 if ( typeDoc == null )
@@ -333,15 +353,82 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return null;
     }
 
+    private static final int MAX_DISPLAY_NAME = 30;
+    Pair<String, String> displayNames(String s1, String s2) {
+        if ( s1 == null ) return new Pair<String, String>(s2, null);
+        if ( s2 == null ) return new Pair<String, String>(s1, null);
+
+        String l = s1.length() > s2.length() ? s1 : s2;
+        String s = s1.length() > s2.length() ? s2 : s1;
+
+        if ( l.length() > MAX_DISPLAY_NAME )
+            return new Pair<String, String>(s, l);
+        else
+            return new Pair<String, String>(l, s);
+    }
+
+    protected String argumentTypeString(Type type) {
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType)type;
+            List<String> subs = new ArrayList<String>();
+            for (Type actualType: parameterizedType.getActualTypeArguments())
+                subs.add(argumentTypeString(actualType));
+            return argumentTypeString(((ParameterizedType)type).getRawType()) + "[" + Utils.join(",", subs) + "]";
+        } else if (type instanceof GenericArrayType) {
+            return  argumentTypeString(((GenericArrayType)type).getGenericComponentType()) + "[]";
+        } else if (type instanceof WildcardType) {
+            throw new RuntimeException("We don't support wildcards in arguments: " + type);
+        } else if (type instanceof Class<?>) {
+            return ((Class) type).getSimpleName();
+        } else {
+            throw new StingException("Unknown type: " + type);
+        }
+    }
+
+    protected Class<? extends Feature> getFeatureTypeIfPossible(Type type) {
+        if ( type instanceof ParameterizedType) {
+            ParameterizedType paramType = (ParameterizedType)type;
+            if ( RodBinding.class.isAssignableFrom((Class<?>)paramType.getRawType()) ) {
+                return (Class<? extends Feature>)JVMUtils.getParameterizedTypeClass(type);
+            } else {
+                for ( Type paramtype : paramType.getActualTypeArguments() ) {
+                    Class<? extends Feature> x = getFeatureTypeIfPossible(paramtype);
+                    if ( x != null )
+                        return x;
+                }
+            }
+        }
+
+        return null;
+    }
+
     protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         Map<String, Object> root = new HashMap<String, Object>();
-        root.put("name", def.shortName != null ? "-" + def.shortName : "--" + def.fullName );
+        Pair<String, String> names = displayNames("-" + def.shortName, "--" + def.fullName);
 
-        if ( def.shortName != null && def.fullName != null )
-            root.put("synonyms", "--" + def.fullName);
+        root.put("name", names.getFirst() );
+
+        if ( names.getSecond() != null )
+            root.put("synonyms", names.getSecond());
 
         root.put("required", def.required ? "yes" : "no");
-        root.put("type", def.argumentType.getSimpleName());
+
+        // type of the field
+        root.put("type", argumentTypeString(source.field.getGenericType()));
+
+        Class<? extends Feature> featureClass = getFeatureTypeIfPossible(source.field.getGenericType());
+        if ( featureClass != null ) {
+            // deal with the allowable types
+            FeatureManager manager = new FeatureManager();
+            List<String> rodTypes = new ArrayList<String>();
+            for (FeatureManager.FeatureDescriptor descriptor : manager.getByFeature(featureClass) ) {
+                rodTypes.add(String.format("<a href=%s>%s</a>",
+                        GATKDocUtils.htmlFilenameForClass(descriptor.getCodecClass()),
+                        descriptor.getName()));
+            }
+
+            root.put("rodTypes", Utils.join(", ", rodTypes));
+        }
 
         // summary and fulltext
         root.put("summary", def.doc != null ? def.doc : "");

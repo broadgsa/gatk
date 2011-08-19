@@ -51,7 +51,7 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
     /** The javadoc documentation for clazz */
     final ClassDoc classDoc;
     /** The annotation that lead to this Class being in GATKDoc */
-    final DocumentedGATKFeature annotation;
+    final DocumentedGATKFeatureObject annotation;
     /** When was this walker built, and what's the absolute version number */
     final String buildTimestamp, absoluteVersion;
 
@@ -60,7 +60,7 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
     Map<String, Object> forTemplate;
 
     public GATKDocWorkUnit(String name, String filename, String group,
-                           DocumentedGATKFeature annotation, DocumentedGATKFeatureHandler handler,
+                           DocumentedGATKFeatureObject annotation, DocumentedGATKFeatureHandler handler,
                            ClassDoc classDoc, Class clazz,
                            String buildTimestamp, String absoluteVersion) {
         this.annotation = annotation;

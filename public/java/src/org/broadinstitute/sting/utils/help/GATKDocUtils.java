@@ -36,9 +36,9 @@ public class GATKDocUtils {
     public static String helpLinksToGATKDocs(Class c) {
         String classPath = htmlFilenameForClass(c);
         StringBuilder b = new StringBuilder();
-        b.append("release  version: ").append(URL_ROOT_FOR_RELEASE_GATKDOCS).append(classPath).append("\n");
-        b.append("stable   version: ").append(URL_ROOT_FOR_STABLE_GATKDOCS).append(classPath).append("\n");
-        b.append("unstable version: ").append(URL_ROOT_FOR_UNSTABLE_GATKDOCS).append(classPath).append("\n");
+        b.append(URL_ROOT_FOR_RELEASE_GATKDOCS).append(classPath);
+        //b.append("stable   version: ").append(URL_ROOT_FOR_STABLE_GATKDOCS).append(classPath).append("\n");
+        //b.append("unstable version: ").append(URL_ROOT_FOR_UNSTABLE_GATKDOCS).append(classPath).append("\n");
         return b.toString();
     }
 }
