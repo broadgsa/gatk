@@ -43,18 +43,65 @@ import java.io.*;
 import java.util.*;
 
 /**
+ * Javadoc Doclet that combines javadoc, GATK ParsingEngine annotations, and FreeMarker
+ * templates to produce html formatted GATKDocs for walkers
+ * and other classes.
  *
+ * This document has the following workflow:
+ *
+ * 1 -- walk the javadoc heirarchy, looking for class that have the
+ *   DocumentedGATKFeature annotation or are in the type heirarchy in the
+ *   static list of things to document, and are to be documented
+ * 2 -- construct for each a GATKDocWorkUnit, resulting in the complete
+ *   set of things to document
+ * 3 -- for each unit, actually generate an html page documenting it
+ *   as well as links to related features via their units.  Writing
+ *   of a specific class HTML is accomplished by a generate DocumentationHandler
+ * 4 -- write out an index of all units, organized by group
+ *
+ * The documented classes are restricted to only those with @DocumentedGATKFeature
+ * annotation or are in the STATIC_DOCS class.
  */
 public class GATKDoclet {
-    final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
-    final protected static File DESTINATION_DIR = new File("gatkdocs");
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
+
+    /** Where we find the help FreeMarker templates */
+    final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
+
+    /** Where we write the GATKDoc html directory */
+    final protected static File DESTINATION_DIR = new File("gatkdocs");
+
+    // ----------------------------------------------------------------------
+    //
+    // Global variables that are set on the command line by javadoc
+    //
+    // ----------------------------------------------------------------------
     protected static String buildTimestamp = null, absoluteVersion = null;
     protected static boolean showHiddenFeatures = false;
+
     protected static boolean testOnly = false;
 
+    /**
+     * Any class that's in this list will be included in the documentation
+     * when the -test argument is provided.  Useful for debugging.
+     */
+    private static final List<Class<?>> testOnlyKeepers = Arrays.asList(
+            DocumentationTest.class, CommandLineGATK.class, UserException.class);
+
+    /** The javadoc root doc */
     RootDoc rootDoc;
 
+    /** The set of all things we are going to document */
+    Set<GATKDocWorkUnit> myWorkUnits;
+
+    /**
+     * A static list of DocumentedGATKFeatureObjects.  Any class that is as or extends
+     * one of the DocumentedGATKFeatureObjects.clazz of this collection will also
+     * be documented, even if it doesn't have the @DocumentedGATKFeature annotation.  Useful
+     * when you want to document things that implement an interface (annotations on java
+     * interfaces aren't inherited) or whose base class isn't under your control (tribble
+     * codecs).
+     */
     final static Collection<DocumentedGATKFeatureObject> STATIC_DOCS = new ArrayList<DocumentedGATKFeatureObject>();
     static {
         STATIC_DOCS.add(new DocumentedGATKFeatureObject(FeatureCodec.class,
@@ -70,7 +117,8 @@ public class GATKDoclet {
      * @throws java.io.IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
-        logger.setLevel(Level.DEBUG);
+        logger.setLevel(Level.INFO);
+
         // load arguments
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-build-timestamp"))
@@ -83,8 +131,9 @@ public class GATKDoclet {
                 testOnly = true;
         }
 
-        GATKDoclet doclet = new GATKDoclet();
-        doclet.processDocs(rootDoc);
+        // process the docs
+        new GATKDoclet().processDocs(rootDoc);
+
         return true;
     }
 
@@ -104,17 +153,54 @@ public class GATKDoclet {
             return 0;
     }
 
+    /**
+     * Are we supposed to include @Hidden annotations in our documented output?
+     * @return
+     */
     public boolean showHiddenFeatures() {
         return showHiddenFeatures;
     }
 
-    public static boolean testOnly() {
-        return testOnly;
+    /**
+     *
+     * @param rootDoc
+     */
+    private void processDocs(RootDoc rootDoc) {
+        // setup the global access to the root
+        this.rootDoc = rootDoc;
+
+        try {
+            // basic setup
+            DESTINATION_DIR.mkdirs();
+            FileUtils.copyFile(new File(SETTINGS_DIR + "/style.css"), new File(DESTINATION_DIR + "/style.css"));
+
+            /* ------------------------------------------------------------------- */
+            /* You should do this ONLY ONCE in the whole application life-cycle:   */
+
+            Configuration cfg = new Configuration();
+            // Specify the data source where the template files come from.
+            cfg.setDirectoryForTemplateLoading(SETTINGS_DIR);
+            // Specify how templates will see the data-model. This is an advanced topic...
+            cfg.setObjectWrapper(new DefaultObjectWrapper());
+
+            myWorkUnits = computeWorkUnits();
+            for ( GATKDocWorkUnit workUnit : myWorkUnits ) {
+                processDocWorkUnit(cfg, workUnit);
+            }
+
+            processIndex(cfg, new ArrayList<GATKDocWorkUnit>(myWorkUnits));
+        } catch ( FileNotFoundException e ) {
+            throw new RuntimeException(e);
+        } catch ( IOException e ) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private static final List<Class<?>> testOnlyKeepers = Arrays.asList(
-            DocumentationTest.class, CommandLineGATK.class, UserException.class);
-    public Set<GATKDocWorkUnit> workUnits() {
+    /**
+     * Returns the set of all GATKDocWorkUnits that we are going to generate docs for.
+     * @return
+     */
+    private Set<GATKDocWorkUnit> computeWorkUnits() {
         TreeSet<GATKDocWorkUnit> m = new TreeSet<GATKDocWorkUnit>();
 
         for ( ClassDoc doc : rootDoc.classes() ) {
@@ -144,37 +230,13 @@ public class GATKDoclet {
         return m;
     }
 
-    protected void processDocs(RootDoc rootDoc) {
-        // setup the global access to the root
-        this.rootDoc = rootDoc;
-
-        try {
-            // basic setup
-            DESTINATION_DIR.mkdirs();
-            FileUtils.copyFile(new File(SETTINGS_DIR + "/style.css"), new File(DESTINATION_DIR + "/style.css"));
-
-            /* ------------------------------------------------------------------- */
-            /* You should do this ONLY ONCE in the whole application life-cycle:   */
-
-            Configuration cfg = new Configuration();
-            // Specify the data source where the template files come from.
-            cfg.setDirectoryForTemplateLoading(SETTINGS_DIR);
-            // Specify how templates will see the data-model. This is an advanced topic...
-            cfg.setObjectWrapper(new DefaultObjectWrapper());
-
-            Set<GATKDocWorkUnit> myWorkUnits = workUnits();
-            for ( GATKDocWorkUnit workUnit : myWorkUnits ) {
-                processDocWorkUnit(cfg, workUnit, myWorkUnits);
-            }
-
-            processIndex(cfg, new ArrayList<GATKDocWorkUnit>(myWorkUnits));
-        } catch ( FileNotFoundException e ) {
-            throw new RuntimeException(e);
-        } catch ( IOException e ) {
-            throw new RuntimeException(e);
-        }
-    }
-
+    /**
+     * Create a handler capable of documenting the class doc according to feature.  Returns
+     * null if no appropriate handler is found or doc shouldn't be documented at all.
+     * @param doc
+     * @param feature
+     * @return
+     */
     private DocumentedGATKFeatureHandler createHandler(ClassDoc doc, DocumentedGATKFeatureObject feature) {
         if ( feature != null ) {
             if ( feature.enable() ) {
@@ -189,6 +251,13 @@ public class GATKDoclet {
         return null;
     }
 
+    /**
+     * Returns the instantiated DocumentedGATKFeatureObject that describes the GATKDoc
+     * structure we will apply to Doc.
+     *
+     * @param doc
+     * @return null if this proves inappropriate or doc shouldn't be documented
+     */
     private DocumentedGATKFeatureObject getFeatureForClassDoc(ClassDoc doc) {
         Class<? extends Object> docClass = getClassForClassDoc(doc);
 
@@ -208,6 +277,11 @@ public class GATKDoclet {
         }
     }
 
+    /**
+     * Return the Java class described by the ClassDoc doc
+     * @param doc
+     * @return
+     */
     private Class<? extends Object> getClassForClassDoc(ClassDoc doc) {
         try {
             // todo -- what do I need the ? extends Object to pass the compiler?
@@ -223,10 +297,12 @@ public class GATKDoclet {
         }
     }
 
-    public static ClassDoc getClassDocForClass(RootDoc rootDoc, Class clazz) {
-        return rootDoc.classNamed(clazz.getName());
-    }
-
+    /**
+     * Create the html index listing all of the GATKDocs features
+     * @param cfg
+     * @param indexData
+     * @throws IOException
+     */
     private void processIndex(Configuration cfg, List<GATKDocWorkUnit> indexData) throws IOException {
         /* Get or create a template */
         Template temp = cfg.getTemplate("generic.index.template.html");
@@ -241,6 +317,12 @@ public class GATKDoclet {
         }
     }
 
+    /**
+     * Helpful function to create the html index.  Given all of the already run GATKDocWorkUnits,
+     * create the high-level grouping data listing individual features by group.
+     * @param indexData
+     * @return
+     */
     private Map<String, Object> groupIndexData(List<GATKDocWorkUnit> indexData) {
         //
         // root -> data -> { summary -> y, filename -> z }, etc
@@ -268,6 +350,11 @@ public class GATKDoclet {
         return root;
     }
 
+    /**
+     * Trivial helper routine that returns the map of name and summary given the annotation
+     * @param annotation
+     * @return
+     */
     private static final Map<String, String> toMap(DocumentedGATKFeatureObject annotation) {
         Map<String, String> root = new HashMap<String, String>();
         root.put("name", annotation.groupName());
@@ -275,18 +362,39 @@ public class GATKDoclet {
         return root;
     }
 
-    public final static GATKDocWorkUnit findWorkUnitForClass(Class c, Set<GATKDocWorkUnit> all) {
-        for ( final GATKDocWorkUnit unit : all )
+    /**
+     * Helper function that finding the GATKDocWorkUnit associated with class from among all of the work units
+     * @param c the class we are looking for
+     * @return the GATKDocWorkUnit whose .clazz.equals(c), or null if none could be found
+     */
+    public final GATKDocWorkUnit findWorkUnitForClass(Class c) {
+        for ( final GATKDocWorkUnit unit : this.myWorkUnits )
             if ( unit.clazz.equals(c) )
                 return unit;
         return null;
     }
 
-    private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit, Set<GATKDocWorkUnit> all)
+    /**
+     * Return the ClassDoc associated with clazz
+     * @param clazz
+     * @return
+     */
+    public ClassDoc getClassDocForClass(Class clazz) {
+        return rootDoc.classNamed(clazz.getName());
+    }
+
+    /**
+     * High-level function that processes a single DocWorkUnit unit using its handler
+     *
+     * @param cfg
+     * @param unit
+     * @throws IOException
+     */
+    private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit)
             throws IOException {
         //System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 
-        unit.handler.processOne(rootDoc, unit, all);
+        unit.handler.processOne(unit);
 
         // Get or create a template
         Template temp = cfg.getTemplate(unit.handler.getTemplateName(unit.classDoc));
