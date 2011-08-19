@@ -95,7 +95,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     // Help arguments
-    @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit")
+    @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit", required=false)
     protected Boolean LIST = false;
 
     // Partitioning the data arguments
