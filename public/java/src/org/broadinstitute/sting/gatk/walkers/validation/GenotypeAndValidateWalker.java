@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.validation;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -201,30 +198,58 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
 
 public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalker.CountedData, GenotypeAndValidateWalker.CountedData> implements TreeReducible<GenotypeAndValidateWalker.CountedData> {
 
+    /**
+     * The optional output file that will have all the variants used in the Genotype and Validation essay.
+     */
     @Output(doc="Generate a VCF file with the variants considered by the walker, with a new annotation \"callStatus\" which will carry the value called in the validation VCF or BAM file", required=false)
     protected VCFWriter vcfWriter = null;
 
+    /**
+     * The callset to be used as truth (default) or validated (if BAM file is set to truth).
+     */
     @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype", required=true)
     public RodBinding<VariantContext> alleles;
 
+    /**
+     * Makes the Unified Genotyper calls to the BAM file the truth dataset and validates the alleles ROD binding callset.
+     */
     @Argument(fullName ="set_bam_truth", shortName ="bt", doc="Use the calls on the reads (bam file) as the truth dataset and validate the calls on the VCF", required=false)
     private boolean bamIsTruth = false;
 
+    /**
+     * The minimum base quality score necessary for a base to be considered when calling a genotype. This argument is passed to the Unified Genotyper.
+     */
     @Argument(fullName="minimum_base_quality_score", shortName="mbq", doc="Minimum base quality score for calling a genotype", required=false)
     private int mbq = -1;
 
+    /**
+     * The maximum deletion fraction allowed in a site for calling a genotype. This argument is passed to the Unified Genotyper.
+     */
     @Argument(fullName="maximum_deletion_fraction", shortName="deletions", doc="Maximum deletion fraction for calling a genotype", required=false)
     private double deletions = -1;
 
+    /**
+     * the minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls. This argument is passed to the Unified Genotyper.
+     */
     @Argument(fullName="standard_min_confidence_threshold_for_calling", shortName="stand_call_conf", doc="the minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls", required=false)
     private double callConf = -1;
 
+    /**
+     * the minimum phred-scaled Qscore threshold to emit low confidence calls. This argument is passed to the Unified Genotyper.
+     */
     @Argument(fullName="standard_min_confidence_threshold_for_emitting", shortName="stand_emit_conf", doc="the minimum phred-scaled Qscore threshold to emit low confidence calls", required=false)
     private double emitConf = -1;
 
+    /**
+     * Only validate sites that have at least a given depth
+     */
     @Argument(fullName="condition_on_depth", shortName="depth", doc="Condition validation on a minimum depth of coverage by the reads", required=false)
     private int minDepth = -1;
 
+    /**
+     * If your VCF or BAM file has more than one sample and you only want to validate one, use this parameter to choose it.
+     */
+    @Hidden
     @Argument(fullName ="sample", shortName ="sn", doc="Name of the sample to validate (in case your VCF/BAM has more than one sample)", required=false)
     private String sample = "";
 
