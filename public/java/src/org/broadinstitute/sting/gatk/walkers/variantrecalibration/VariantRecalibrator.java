@@ -157,6 +157,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
      */
     @Argument(fullName="target_titv", shortName="titv", doc="The expected novel Ti/Tv ratio to use when calculating FDR tranches and for display on the optimization curve output figures. (approx 2.15 for whole genome experiments). ONLY USED FOR PLOTTING PURPOSES!", required=false)
     private double TARGET_TITV = 2.15;
+
+    /**
+     * See the input VCF file's INFO field for a list of all available annotations.
+     */
     @Argument(fullName="use_annotation", shortName="an", doc="The names of the annotations which should used for calculations", required=true)
     private String[] USE_ANNOTATIONS = null;
 

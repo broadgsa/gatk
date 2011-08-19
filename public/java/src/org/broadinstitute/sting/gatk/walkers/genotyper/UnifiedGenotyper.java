@@ -45,11 +45,71 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.PrintStream;
 import java.util.*;
 
-
 /**
- * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample and
- * multi-sample data.  The user can choose from several different incorporated calculation models.
+ * A variant caller which unifies the approaches of several disparate callers -- Works for single-sample and multi-sample data.
+ *
+ * <p>
+ * The GATK Unified Genotyper is a multiple-sample, technology-aware SNP and indel caller. It uses a Bayesian genotype
+ * likelihood model to estimate simultaneously the most likely genotypes and allele frequency in a population of N samples,
+ * emitting an accurate posterior probability of there being a segregating variant allele at each locus as well as for the
+ * genotype of each sample. The system can either emit just the variant sites or complete genotypes (which includes
+ * homozygous reference calls) satisfying some phred-scaled confidence value. The genotyper can make accurate calls on
+ * both single sample data and multi-sample data.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * The read data from which to make variant calls.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A raw, unfiltered, highly specific callset in VCF format.
+ * </p>
+ *
+ * <h2>Example generic command for multi-sample SNP calling</h2>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R resources/Homo_sapiens_assembly18.fasta \
+ *   -T UnifiedGenotyper \
+ *   -I sample1.bam [-I sample2.bam ...] \
+ *   --dbsnp dbSNP.vcf \
+ *   -o snps.raw.vcf \
+ *   -stand_call_conf [50.0] \
+ *   -stand_emit_conf 10.0 \
+ *   -dcov [50] \
+ *   [-L targets.interval_list]
+ * </pre>
+ *
+ * <p>
+ * The above command will call all of the samples in your provided BAM files [-I arguments] together and produce a VCF file
+ * with sites and genotypes for all samples. The easiest way to get the dbSNP file is from the GATK resource bundle. Several
+ * arguments have parameters that should be chosen based on the average coverage per sample in your data. See the detailed
+ * argument descriptions below.
+ * </p>
+ *
+ * <h2>Example command for generating calls at all sites</h2>
+ * <pre>
+ * java -jar /path/to/GenomeAnalysisTK.jar \
+ *   -l INFO \
+ *   -R resources/Homo_sapiens_assembly18.fasta \
+ *   -T UnifiedGenotyper \
+ *   -I /DCC/ftp/pilot_data/data/NA12878/alignment/NA12878.SLX.maq.SRP000031.2009_08.bam \
+ *   -o my.vcf \
+ *   --output_mode EMIT_ALL_SITES
+ * </pre>
+ *
+ * <h2>Caveats</h2>
+ * <ul>
+ * <li>The system is under active and continuous development. All outputs, the underlying likelihood model, arguments, and
+ * file formats are likely to change.</li>
+ * <li>The system can be very aggressive in calling variants. In the 1000 genomes project for pilot 2 (deep coverage of ~35x)
+ * we expect the raw Qscore > 50 variants to contain at least ~10% FP calls. We use extensive post-calling filters to eliminate
+ * most of these FPs. Variant Quality Score Recalibration is a tool to perform this filtering.</li>
+ * <li>We only handle diploid genotypes</li>
+ * </ul>
+ *
  */
+
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @ReadFilters( {BadMateFilter.class, MappingQualityUnavailableReadFilter.class} )
 @Reference(window=@Window(start=-200,stop=200))
@@ -61,10 +121,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     /**
-      * A dbSNP VCF file from which to annotate.
-      *
-      * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
-      */
+     * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
+     * dbSNP is not used in any way for the calculations themselves.
+     */
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
@@ -72,7 +131,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
 
-    // control the output
+    /**
+     * A raw, unfiltered, highly specific callset in VCF format.
+     */
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
 
@@ -82,9 +143,15 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
     protected PrintStream metricsWriter = null;
 
+    /**
+     * Which annotations to add to the output VCF file. See the VariantAnnotator -list argument to view available annotations.
+     */
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected List<String> annotationsToUse = new ArrayList<String>();
 
+    /**
+     * Which groups of annotations to add to the output VCF file. See the VariantAnnotator -list argument to view available groups.
+     */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected String[] annotationClassesToUse = { "Standard" };
 

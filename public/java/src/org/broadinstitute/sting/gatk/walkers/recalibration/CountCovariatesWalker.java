@@ -68,6 +68,8 @@ import java.util.Map;
  *
  * <h2>Input</h2>
  * <p>
+ * The input read data whose base quality scores need to be assessed.
+ * <p>
  * A database of known polymorphic sites to skip over.
  * </p>
  *
@@ -134,6 +136,10 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)
     private boolean LIST_ONLY = false;
+
+    /**
+     * See the -list argument to view available covariates.
+     */
     @Argument(fullName="covariate", shortName="cov", doc="Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required=false)
     private String[] COVARIATES = null;
     @Argument(fullName="standard_covs", shortName="standard", doc="Use the standard set of covariates in addition to the ones listed using the -cov argument", required=false)
