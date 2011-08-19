@@ -39,7 +39,7 @@ import java.util.List;
  * @author mhanna
  * @version 0.1
  */
-public class ArgumentSource implements Comparable<ArgumentSource> {
+public class ArgumentSource {
     /**
      * Field into which to inject command-line arguments.
      */
@@ -215,10 +215,5 @@ public class ArgumentSource implements Comparable<ArgumentSource> {
      */
     public String toString() {
         return field.getDeclaringClass().getSimpleName() + ": " + field.getName();
-    }
-
-    @Override
-    public int compareTo(final ArgumentSource argumentSource) {
-        return field.getName().toLowerCase().compareTo(argumentSource.field.getName().toLowerCase());
     }
 }

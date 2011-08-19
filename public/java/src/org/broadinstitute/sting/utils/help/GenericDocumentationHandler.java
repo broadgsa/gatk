@@ -111,16 +111,16 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // attempt to instantiate the class
         Object instance = makeInstanceIfPossible(toProcess.clazz);
 
-        Map<String, List<Object>> args = new HashMap<String, List<Object>>();
+        Map<String, List<Map<String, Object>>> args = new HashMap<String, List<Map<String, Object>>>();
         root.put("arguments", args);
-        args.put("all", new ArrayList<Object>());
-        args.put("required", new ArrayList<Object>());
-        args.put("optional", new ArrayList<Object>());
-        args.put("advanced", new ArrayList<Object>());
-        args.put("hidden", new ArrayList<Object>());
-        args.put("depreciated", new ArrayList<Object>());
+        args.put("all", new ArrayList<Map<String, Object>>());
+        args.put("required", new ArrayList<Map<String, Object>>());
+        args.put("optional", new ArrayList<Map<String, Object>>());
+        args.put("advanced", new ArrayList<Map<String, Object>>());
+        args.put("hidden", new ArrayList<Map<String, Object>>());
+        args.put("depreciated", new ArrayList<Map<String, Object>>());
         try {
-            for ( ArgumentSource argumentSource : new TreeSet<ArgumentSource>(parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc))) ) {
+            for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
                 Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
@@ -155,8 +155,34 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                     logger.debug(String.format("Skipping hidden feature %s", argumentSource));
                 }
             }
+
+            // sort the arguments
+            for (Map.Entry<String,List<Map<String, Object>>> entry : args.entrySet()) {
+                entry.setValue(sortArguments(entry.getValue()));
+            }
         } catch ( ClassNotFoundException e ) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private List<Map<String, Object>> sortArguments(List<Map<String, Object>> unsorted) {
+        Collections.sort(unsorted, new CompareArgumentsByName());
+        return unsorted;
+    }
+
+    private class CompareArgumentsByName implements Comparator<Map<String, Object>> {
+        public int compare(Map<String, Object> x, Map<String, Object> y) {
+            return elt(x).compareTo(elt(y));
+        }
+
+        private String elt(Map<String, Object> m) {
+            String v = m.get("name").toString().toLowerCase();
+            if ( v.startsWith("--") )
+                return v.substring(2);
+            else if ( v.startsWith("-") )
+                return v.substring(1);
+            else
+                throw new RuntimeException("Expect to see arguments beginning with at least one -, but found " + v);
         }
     }
 
