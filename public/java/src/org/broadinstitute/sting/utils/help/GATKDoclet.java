@@ -34,7 +34,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.gatk.walkers.qc.DocumentationTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
 import java.util.*;
@@ -48,6 +51,7 @@ public class GATKDoclet {
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
     protected static String buildTimestamp = null, absoluteVersion = null;
     protected static boolean showHiddenFeatures = false;
+    protected static boolean testOnly = false;
 
     RootDoc rootDoc;
 
@@ -75,6 +79,8 @@ public class GATKDoclet {
                 absoluteVersion = options[1];
             if (options[0].equals("-include-hidden"))
                 showHiddenFeatures = true;
+            if (options[0].equals("-test"))
+                testOnly = true;
         }
 
         GATKDoclet doclet = new GATKDoclet();
@@ -88,22 +94,36 @@ public class GATKDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-build-timestamp") || option.equals("-absolute-version") || option.equals("-include-hidden")) {
+        if(option.equals("-build-timestamp") ||
+                option.equals("-absolute-version") ||
+                option.equals("-include-hidden")) {
             return 2;
-        }
-        return 0;
+        } else if ( option.equals("-test") )
+            return 1;
+        else
+            return 0;
     }
 
     public boolean showHiddenFeatures() {
         return showHiddenFeatures;
     }
 
+    public static boolean testOnly() {
+        return testOnly;
+    }
+
+    private static final List<Class<?>> testOnlyKeepers = Arrays.asList(
+            DocumentationTest.class, CommandLineGATK.class, UserException.class);
     public Set<GATKDocWorkUnit> workUnits() {
         TreeSet<GATKDocWorkUnit> m = new TreeSet<GATKDocWorkUnit>();
 
         for ( ClassDoc doc : rootDoc.classes() ) {
             //logger.debug("Considering " + doc);
             Class clazz = getClassForClassDoc(doc);
+
+            // don't add anything that's not DocumentationTest if we are in test mode
+            if ( clazz != null && testOnly && ! testOnlyKeepers.contains(clazz) )
+                continue;
 
             //if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
             //    logger.debug("foo");
