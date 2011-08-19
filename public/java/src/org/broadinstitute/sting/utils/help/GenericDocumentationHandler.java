@@ -30,14 +30,18 @@ import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.io.*;
-import java.lang.reflect.Field;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -295,6 +299,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 return fieldDoc;
 
             Field field = HelpUtils.getFieldForFieldDoc(fieldDoc);
+            if ( field == null )
+                throw new RuntimeException("Could not find the field corresponding to " + fieldDoc + ", presumably because the field is inaccessible");
             if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
                 ClassDoc typeDoc = getRootDoc().classNamed(fieldDoc.type().qualifiedTypeName());
                 if ( typeDoc == null )
@@ -319,15 +325,82 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return null;
     }
 
+    private static final int MAX_DISPLAY_NAME = 30;
+    Pair<String, String> displayNames(String s1, String s2) {
+        if ( s1 == null ) return new Pair<String, String>(s2, null);
+        if ( s2 == null ) return new Pair<String, String>(s1, null);
+
+        String l = s1.length() > s2.length() ? s1 : s2;
+        String s = s1.length() > s2.length() ? s2 : s1;
+
+        if ( l.length() > MAX_DISPLAY_NAME )
+            return new Pair<String, String>(s, l);
+        else
+            return new Pair<String, String>(l, s);
+    }
+
+    protected String argumentTypeString(Type type) {
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType)type;
+            List<String> subs = new ArrayList<String>();
+            for (Type actualType: parameterizedType.getActualTypeArguments())
+                subs.add(argumentTypeString(actualType));
+            return argumentTypeString(((ParameterizedType)type).getRawType()) + "[" + Utils.join(",", subs) + "]";
+        } else if (type instanceof GenericArrayType) {
+            return  argumentTypeString(((GenericArrayType)type).getGenericComponentType()) + "[]";
+        } else if (type instanceof WildcardType) {
+            throw new RuntimeException("We don't support wildcards in arguments: " + type);
+        } else if (type instanceof Class<?>) {
+            return ((Class) type).getSimpleName();
+        } else {
+            throw new StingException("Unknown type: " + type);
+        }
+    }
+
+    protected Class<? extends Feature> getFeatureTypeIfPossible(Type type) {
+        if ( type instanceof ParameterizedType) {
+            ParameterizedType paramType = (ParameterizedType)type;
+            if ( RodBinding.class.isAssignableFrom((Class<?>)paramType.getRawType()) ) {
+                return (Class<? extends Feature>)JVMUtils.getParameterizedTypeClass(type);
+            } else {
+                for ( Type paramtype : paramType.getActualTypeArguments() ) {
+                    Class<? extends Feature> x = getFeatureTypeIfPossible(paramtype);
+                    if ( x != null )
+                        return x;
+                }
+            }
+        }
+
+        return null;
+    }
+
     protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         Map<String, Object> root = new HashMap<String, Object>();
-        root.put("name", def.shortName != null ? "-" + def.shortName : "--" + def.fullName );
+        Pair<String, String> names = displayNames("-" + def.shortName, "--" + def.fullName);
 
-        if ( def.shortName != null && def.fullName != null )
-            root.put("synonyms", "--" + def.fullName);
+        root.put("name", names.getFirst() );
+
+        if ( names.getSecond() != null )
+            root.put("synonyms", names.getSecond());
 
         root.put("required", def.required ? "yes" : "no");
-        root.put("type", def.argumentType.getSimpleName());
+
+        // type of the field
+        root.put("type", argumentTypeString(source.field.getGenericType()));
+
+        Class<? extends Feature> featureClass = getFeatureTypeIfPossible(source.field.getGenericType());
+        if ( featureClass != null ) {
+            // deal with the allowable types
+            FeatureManager manager = new FeatureManager();
+            List<String> rodTypes = new ArrayList<String>();
+            for (FeatureManager.FeatureDescriptor descriptor : manager.getByFeature(featureClass) ) {
+                rodTypes.add(String.format("<a href=%s>%s</a>",
+                        GATKDocUtils.htmlFilenameForClass(descriptor.getCodecClass()),
+                        descriptor.getName()));
+            }
+
+            root.put("rodTypes", Utils.join(", ", rodTypes));
+        }
 
         // summary and fulltext
         root.put("summary", def.doc != null ? def.doc : "");

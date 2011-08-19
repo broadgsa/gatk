@@ -325,7 +325,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Type type) {
-        Class parameterType = getParameterizedTypeClass(type);
+        Class parameterType = JVMUtils.getParameterizedTypeClass(type);
         return RodBinding.makeUnbound((Class<? extends Feature>)parameterType);
     }
 
@@ -338,7 +338,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
-        Class<? extends Feature> parameterType = getParameterizedTypeClass(type);
+        Class<? extends Feature> parameterType = JVMUtils.getParameterizedTypeClass(type);
 
         try {
             String name = defaultDefinition.fullName;
@@ -399,16 +399,6 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     String.format("Failed to parse value %s for argument %s. Message: %s",
                             value, source.field.getName(), e.getMessage()));
         }
-    }
-
-    private Class getParameterizedTypeClass(Type t) {
-        if ( t instanceof ParameterizedType ) {
-            ParameterizedType parameterizedType = (ParameterizedType)t;
-            if ( parameterizedType.getActualTypeArguments().length != 1 )
-                throw new ReviewedStingException("BUG: more than 1 generic type found on class" + t);
-            return (Class)parameterizedType.getActualTypeArguments()[0];
-        } else
-            throw new ReviewedStingException("BUG: could not find generic type on class " + t);
     }
 }
 

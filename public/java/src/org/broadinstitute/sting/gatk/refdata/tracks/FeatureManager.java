@@ -123,7 +123,7 @@ public class FeatureManager  {
      */
     @Requires("featureClass != null")
     public <T extends Feature> Collection<FeatureDescriptor> getByFeature(Class<T> featureClass) {
-        Set<FeatureDescriptor> consistentDescriptors = new HashSet<FeatureDescriptor>();
+        Set<FeatureDescriptor> consistentDescriptors = new TreeSet<FeatureDescriptor>();
 
         if (featureClass == null)
             throw new IllegalArgumentException("trackRecordType value is null, please pass in an actual class object");
