@@ -20,16 +20,21 @@
 <#macro argumentDetails arg>
     <h3><a name="${arg.name}">${arg.name}<#if arg.synonyms??> / ${arg.synonyms}</#if></a>
     (<#if arg.attributes??>${arg.attributes} </#if>${arg.type}<#if arg.defaultValue??> with default value ${arg.defaultValue}</#if>)</h3>
-    ${arg.summary}. ${arg.fulltext}<br>
+    <p class="args">
+    ${arg.summary}. ${arg.fulltext}
+    <#if arg.rodTypes??>${arg.name} binds reference ordered data.  This argument supports ROD files of the
+    following types: ${arg.rodTypes}</#if>
     <#if arg.options??>
-        <p>The ${arg.name} argument is an enumerated type (${arg.type}), which can have one of the following values:</p>
+        <br>
+        The ${arg.name} argument is an enumerated type (${arg.type}), which can have one of the following values:
         <dl class="enum">
         <#list arg.options as option>
-            <dt>${option.name}
-            <dd>${option.summary}
+            <dt class="enum">${option.name}</dt>
+            <dd class="enum">${option.summary}</dd>
         </#list>
         </dl>
     </#if>
+    </p>
 </#macro>     
    
 <#macro relatedByType name type>
