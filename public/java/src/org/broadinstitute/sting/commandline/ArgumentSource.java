@@ -39,7 +39,7 @@ import java.util.List;
  * @author mhanna
  * @version 0.1
  */
-public class ArgumentSource {
+public class ArgumentSource implements Comparable<ArgumentSource> {
     /**
      * Field into which to inject command-line arguments.
      */
@@ -152,6 +152,14 @@ public class ArgumentSource {
     }
 
     /**
+     * Is the given argument considered an advanced option when displaying on the command-line argument system.
+     * @return True if so.  False otherwise.
+     */
+    public boolean isAdvanced() {
+        return field.isAnnotationPresent(Advanced.class);
+    }
+
+    /**
      * Is this command-line argument dependent on some primitive argument types?
      * @return True if this command-line argument depends on other arguments; false otherwise.
      */
@@ -207,5 +215,10 @@ public class ArgumentSource {
      */
     public String toString() {
         return field.getDeclaringClass().getSimpleName() + ": " + field.getName();
+    }
+
+    @Override
+    public int compareTo(final ArgumentSource argumentSource) {
+        return field.getName().toLowerCase().compareTo(argumentSource.field.getName().toLowerCase());
     }
 }

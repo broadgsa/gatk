@@ -116,6 +116,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         args.put("all", new ArrayList<Object>());
         args.put("required", new ArrayList<Object>());
         args.put("optional", new ArrayList<Object>());
+        args.put("advanced", new ArrayList<Object>());
         args.put("hidden", new ArrayList<Object>());
         args.put("depreciated", new ArrayList<Object>());
         try {
@@ -127,6 +128,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                     logger.debug(String.format("Processing %s", argumentSource));
                     String kind = "optional";
                     if ( argumentSource.isRequired() ) kind = "required";
+                    else if ( argumentSource.isAdvanced() ) kind = "advanced";
                     else if ( argumentSource.isHidden() ) kind = "hidden";
                     else if ( argumentSource.isDeprecated() ) kind = "depreciated";
 
