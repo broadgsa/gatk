@@ -53,14 +53,14 @@ import java.util.*;
 public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     private static Logger logger = Logger.getLogger(GenericDocumentationHandler.class);
 
+    /**
+     * The max. length of the longest of --fullName -shortName argument name
+     * before we prefer the shorter option.
+     */
+    private static final int MAX_DISPLAY_NAME = 30;
+
     /** The Class we are documenting */
     private GATKDocWorkUnit toProcess;
-
-    /** The set of all classes we are documenting, for cross-referencing */
-    private Set<GATKDocWorkUnit> all;
-
-    /** The JavaDoc root */
-    private RootDoc rootDoc;
 
     @Override
     public boolean includeInDocs(ClassDoc doc) {
@@ -79,10 +79,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     @Override
-    public void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcessArg, Set<GATKDocWorkUnit> allArg) {
-        this.rootDoc = rootDoc;
+    public void processOne(GATKDocWorkUnit toProcessArg) {
         this.toProcess = toProcessArg;
-        this.all = allArg;
 
         //System.out.printf("%s class %s%n", toProcess.group, toProcess.classDoc);
         Map<String, Object> root = new HashMap<String, Object>();
@@ -126,7 +124,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
         // add in all of the explicitly related items
         for ( final Class extraDocClass : toProcess.annotation.extraDocs() ) {
-            final GATKDocWorkUnit otherUnit = GATKDoclet.findWorkUnitForClass(extraDocClass, all);
+            final GATKDocWorkUnit otherUnit = getDoclet().findWorkUnitForClass(extraDocClass);
             if ( otherUnit == null )
                 throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
             extraDocsData.add(
@@ -388,6 +386,13 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         return getFieldDoc(classDoc, name, true);
     }
 
+    /**
+     * Recursive helper routine to getFieldDoc()
+     * @param classDoc
+     * @param name
+     * @param primary
+     * @return
+     */
     private FieldDoc getFieldDoc(ClassDoc classDoc, String name, boolean primary) {
         //System.out.printf("Looking for %s in %s%n", name, classDoc.name());
         for ( FieldDoc fieldDoc : classDoc.fields(false) ) {
@@ -422,7 +427,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return null;
     }
 
-    private static final int MAX_DISPLAY_NAME = 30;
+    /**
+     * Returns a Pair of (main, synonym) names for argument with fullName s1 and
+     * shortName s2.  The main is selected to be the longest of the two, provided
+     * it doesn't exceed MAX_DISPLAY_NAME, in which case the shorter is taken.
+     * @param s1
+     * @param s2
+     * @return
+     */
     Pair<String, String> displayNames(String s1, String s2) {
         if ( s1 == null ) return new Pair<String, String>(s2, null);
         if ( s2 == null ) return new Pair<String, String>(s1, null);
@@ -436,6 +448,15 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return new Pair<String, String>(l, s);
     }
 
+    /**
+     * Returns a human readable string that describes the Type type of a GATK argument.
+     *
+     * This will include parameterized types, so that Set{T} shows up as Set(T) and not
+     * just Set in the docs.
+     *
+     * @param type
+     * @return
+     */
     protected String argumentTypeString(Type type) {
         if (type instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType)type;
@@ -454,6 +475,13 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
     }
 
+    /**
+     * Helper routine that returns the Feature.class required by a RodBinding,
+     * either T for RodBinding{T} or List{RodBinding{T}}.  Returns null if
+     * the Type doesn't fit either model.
+     * @param type
+     * @return
+     */
     protected Class<? extends Feature> getFeatureTypeIfPossible(Type type) {
         if ( type instanceof ParameterizedType) {
             ParameterizedType paramType = (ParameterizedType)type;
@@ -471,6 +499,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         return null;
     }
 
+    /**
+     * High-level entry point for creating a FreeMarker map describing the GATK argument
+     * source with definition def, with associated javadoc fieldDoc.
+     * @param fieldDoc
+     * @param source
+     * @param def
+     * @return a non-null Map binding argument keys with their values
+     */
     protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         Map<String, Object> root = new HashMap<String, Object>();
         Pair<String, String> names = displayNames("-" + def.shortName, "--" + def.fullName);
@@ -503,27 +539,29 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         root.put("summary", def.doc != null ? def.doc : "");
         root.put("fulltext", fieldDoc.commentText());
 
+        // What are our enum options?
+        if ( def.validOptions != null )
+            root.put("options", docForEnumArgument(source.field.getType()));
+
+        // general attributes
         List<String> attributes = new ArrayList<String>();
-        // this one below is just too much.
-        //attributes.add(def.ioType.annotationClass.getSimpleName());
         if ( def.required ) attributes.add("required");
-        // flag is just boolean, not interesting
-        //if ( def.isFlag ) attributes.add("flag");
-        if ( def.isHidden ) attributes.add("hidden");
         if ( source.isDeprecated() ) attributes.add("depreciated");
         if ( attributes.size() > 0 )
             root.put("attributes", Utils.join(", ", attributes));
 
-        if ( def.validOptions != null ) {
-            root.put("options", docForEnumArgument(source.field.getType()));
-        }
-
         return root;
     }
 
+    /**
+     * Helper routine that provides a FreeMarker map for an enumClass, grabbing the
+     * values of the enum and their associated javadoc documentation.
+     * @param enumClass
+     * @return
+     */
     @Requires("enumClass.isEnum()")
     private List<Map<String, Object>> docForEnumArgument(Class enumClass) {
-        ClassDoc doc = GATKDoclet.getClassDocForClass(rootDoc, enumClass);
+        ClassDoc doc = this.getDoclet().getClassDocForClass(enumClass);
         if ( doc == null ) //  || ! doc.isEnum() )
             throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got instead: " + doc);
 
@@ -537,5 +575,4 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
         return bindings;
     }
-
 }

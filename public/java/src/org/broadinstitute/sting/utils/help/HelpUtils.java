@@ -32,14 +32,6 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import java.lang.reflect.Field;
 
 public class HelpUtils {
-
-    protected static boolean implementsInterface(ProgramElementDoc classDoc, Class... interfaceClasses) {
-        for (Class interfaceClass : interfaceClasses)
-            if (assignableToClass(classDoc, interfaceClass, false))
-                return true;
-        return false;
-    }
-
     protected static boolean assignableToClass(ProgramElementDoc classDoc, Class lhsClass, boolean requireConcrete) {
         try {
             Class type = getClassForDoc(classDoc);

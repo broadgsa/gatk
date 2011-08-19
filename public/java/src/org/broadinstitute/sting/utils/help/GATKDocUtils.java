@@ -25,14 +25,33 @@
 package org.broadinstitute.sting.utils.help;
 
 public class GATKDocUtils {
+    /** The URL root for RELEASED GATKDOC units */
     public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
+    /** The URL root for STABLE GATKDOC units */
     public final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
+    /** The URL root for UNSTABLE GATKDOC units */
     public final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
 
+    /**
+     * Return the filename of the GATKDoc HTML that would be generated for Class.  This
+     * does not guarantee that the docs exist, or that docs would actually be generated
+     * for class (might not be annotated for documentation, for example).  But if
+     * this class is documented, GATKDocs will write the docs to a file named as returned
+     * by this function.
+     *
+     * @param c
+     * @return
+     */
     public static String htmlFilenameForClass(Class c) {
         return c.getName().replace(".", "_") + ".html";
     }
 
+    /**
+     * Returns a full URL http://etc/ linking to the documentation for class (assuming it
+     * exists).  Currently points to the RELEASE doc path only.
+     * @param c
+     * @return
+     */
     public static String helpLinksToGATKDocs(Class c) {
         String classPath = htmlFilenameForClass(c);
         StringBuilder b = new StringBuilder();

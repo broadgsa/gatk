@@ -25,12 +25,15 @@
 package org.broadinstitute.sting.utils.help;
 
 /**
- * Documentation unit.  Effectively a class version of the DocumentedGATKFeature
+ * Documentation unit.  Effectively a class version of the DocumentedGATKFeature.
+ * Immutable data structure.
  *
  * @author depristo
  */
 class DocumentedGATKFeatureObject {
+    /** Which class are we documenting.  Specific to each class being documented */
     private final Class classToDoc;
+    /** Are we enabled? */
     private final boolean enable;
     private final String groupName, summary;
     private final Class[] extraDocs;
