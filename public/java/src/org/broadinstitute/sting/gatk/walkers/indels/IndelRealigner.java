@@ -178,6 +178,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * will only proceed with the realignment (even above the given threshold) if it minimizes entropy among the reads (and doesn't simply
      * push the mismatch column to another position). This parameter is just a heuristic and should be adjusted based on your particular data set.
      */
+    @Advanced
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
@@ -185,30 +186,35 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * For expert users only!  To minimize memory consumption you can lower this number (but then the tool may skip realignment on regions with too much coverage;
      * and if the number is too low, it may generate errors during realignment). Just make sure to give Java enough memory! 4Gb should be enough with the default value.
      */
+    @Advanced
     @Argument(fullName="maxReadsInMemory", shortName="maxInMemory", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter", required=false)
     protected int MAX_RECORDS_IN_MEMORY = 150000;
 
     /**
      * For expert users only!
      */
+    @Advanced
     @Argument(fullName="maxIsizeForMovement", shortName="maxIsize", doc="maximum insert size of read pairs that we attempt to realign", required=false)
     protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
 
     /**
      * For expert users only!
      */
+    @Advanced
     @Argument(fullName="maxPositionalMoveAllowed", shortName="maxPosMove", doc="maximum positional move in basepairs that a read can be adjusted during realignment", required=false)
     protected int MAX_POS_MOVE_ALLOWED = 200;
 
     /**
      * For expert users only!  If you need to find the optimal solution regardless of running time, use a higher number.
      */
+    @Advanced
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_CONSENSUSES = 30;
 
     /**
      * For expert users only!  If you need to find the optimal solution regardless of running time, use a higher number.
      */
+    @Advanced
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_READS_FOR_CONSENSUSES = 120;
 
@@ -216,9 +222,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * For expert users only!  If this value is exceeded at a given interval, realignment is not attempted and the reads are passed to the output file(s) as-is.
      * If you need to allow more reads (e.g. with very deep coverage) regardless of memory, use a higher number.
      */
+    @Advanced
     @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment", required=false)
     protected int MAX_READS = 20000;
 
+    @Advanced
     @Argument(fullName="noOriginalAlignmentTags", shortName="noTags", required=false, doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam")
     protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
@@ -226,6 +234,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * For expert users only!  This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.
      * Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.
      */
+    @Advanced
     @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="The target intervals are not sorted")
     protected boolean TARGET_NOT_SORTED = false;
 
