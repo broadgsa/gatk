@@ -49,7 +49,7 @@
     
     <!-- Contracts for Java -->
     <!-- To disable, run with -Duse.contracts=false -->
-    <property name="use.contracts" value="true" />
+    <property name="use.contracts" value="false" />
     <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="contracts.version" value="1.0-20110609" />
     <property name="cofoja.jar" value="${lib.dir}/cofoja-${contracts.version}.jar"/>

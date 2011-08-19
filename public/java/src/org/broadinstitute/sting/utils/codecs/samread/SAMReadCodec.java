@@ -36,8 +36,21 @@ import org.broad.tribble.util.ParsingUtils;
 /**
  * Decodes a simple SAM text string.
  *
- * @author mhanna
- * @version 0.1
+ * <p>
+ * Reads in the SAM text version of a BAM file as a ROD.  For testing only
+ * </p>
+ *
+ * <p>
+ * See also: @see <a href="http://samtools.sourceforge.net">SAMTools</a> for format specification
+ * </p>
+ *
+ * <h2>File format example</h2>
+ * <pre>
+ *     SL-XBC:1:10:628:923#0	16	Escherichia_coli_K12	1	37	76M	=	1	0	AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGA	B@>87<;A@?@957:>>@AA@B>@A9AB@B>@A@@@@@A;=AAB@BBBBBCBBBB@>A>:ABB@BAABCB=CA@CB
+ * </pre>
+ *
+ * @author Matt Hanna
+ * @since 2009
  */
 public class SAMReadCodec implements FeatureCodec<SAMReadFeature> {
     /* SL-XBC:1:10:628:923#0	16	Escherichia_coli_K12	1	37	76M	=	1	0	AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGA	B@>87<;A@?@957:>>@AA@B>@A9AB@B>@A@@@@@A;=AAB@BBBBBCBBBB@>A>:ABB@BAABCB=CA@CB */

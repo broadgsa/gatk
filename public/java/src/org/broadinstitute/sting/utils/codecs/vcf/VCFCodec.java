@@ -12,12 +12,46 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
-
 /**
- * a feature codec for the VCF 4 specification.  Our aim is to read in the records and convert to VariantContext as
- * quickly as possible, relying on VariantContext to do the validation of any contradictory (or malformed) record parameters.
+ * A feature codec for the VCF 4 specification
+ *
+ * <p>
+ * VCF is a text file format (most likely stored in a compressed manner). It contains meta-information lines, a
+ * header line, and then data lines each containing information about a position in the genome.
+ * </p>
+ * <p>One of the main uses of next-generation sequencing is to discover variation amongst large populations
+ * of related samples. Recently the format for storing next-generation read alignments has been
+ * standardised by the SAM/BAM file format specification. This has significantly improved the
+ * interoperability of next-generation tools for alignment, visualisation, and variant calling.
+ * We propose the Variant Call Format (VCF) as a standarised format for storing the most prevalent
+ * types of sequence variation, including SNPs, indels and larger structural variants, together
+ * with rich annotations. VCF is usually stored in a compressed manner and can be indexed for
+ * fast data retrieval of variants from a range of positions on the reference genome.
+ * The format was developed for the 1000 Genomes Project, and has also been adopted by other projects
+ * such as UK10K, dbSNP, or the NHLBI Exome Project. VCFtools is a software suite that implements
+ * various utilities for processing VCF files, including validation, merging and comparing,
+ * and also provides a general Perl and Python API.
+ * The VCF specification and VCFtools are available from http://vcftools.sourceforge.net.</p>
+ *
+ * <p>
+ * See also: @see <a href="http://vcftools.sourceforge.net/specs.html">VCF specification</a><br>
+ * See also: @see <a href="http://www.ncbi.nlm.nih.gov/pubmed/21653522">VCF spec. publication</a>
+ * </p>
+ *
+ * <h2>File format example</h2>
+ * <pre>
+ *     ##fileformat=VCFv4.0
+ *     #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  NA12878
+ *     chr1    109     .       A       T       0       PASS  AC=1    GT:AD:DP:GL:GQ  0/1:610,327:308:-316.30,-95.47,-803.03:99
+ *     chr1    147     .       C       A       0       PASS  AC=1    GT:AD:DP:GL:GQ  0/1:294,49:118:-57.87,-34.96,-338.46:99
+ * </pre>
+ *
+ * @author Mark DePristo
+ * @since 2010
  */
 public class VCFCodec extends AbstractVCFCodec {
+    // Our aim is to read in the records and convert to VariantContext as quickly as possible, relying on VariantContext to do the validation of any contradictory (or malformed) record parameters.
+
     public final static String VCF4_MAGIC_HEADER = "##fileformat=VCFv4";
 
     /**

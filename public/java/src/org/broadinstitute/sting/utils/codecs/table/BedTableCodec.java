@@ -6,14 +6,19 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import java.util.Arrays;
 
 /**
- * Created by IntelliJ IDEA.
- * User: chartl
- * Date: 3/28/11
- * Time: 2:47 PM
- * To change this template use File | Settings | File Templates.
- */
-/**
- * The standard table codec with a slightly different parsing convention (expects loci as contig start stop, not contig:start-stop)
+ * The standard table codec that expects loci as contig start stop, not contig:start-stop
+ *
+ * <p>
+ * The standard table codec with a slightly different parsing convention
+ * (expects loci as contig start stop, not contig:start-stop)
+ * </p>
+ *
+ * <p>
+ * See also: TableCodec
+ * </p>
+ *
+ * @author Chris Hartl
+ * @since 2010
  */
 public class BedTableCodec extends TableCodec implements ReferenceDependentFeatureCodec {
 

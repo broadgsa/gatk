@@ -14,10 +14,9 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 
 public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser, SelfScopingFeatureCodec {
@@ -623,9 +622,21 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
     public final static boolean canDecodeFile(final File potentialInput, final String MAGIC_HEADER_LINE) {
         try {
-            char[] buff = new char[MAGIC_HEADER_LINE.length()];
-            new FileReader(potentialInput).read(buff, 0, MAGIC_HEADER_LINE.length());
+            return isVCFStream(new FileInputStream(potentialInput), MAGIC_HEADER_LINE) ||
+                    isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE);
+        } catch ( FileNotFoundException e ) {
+            return false;
+        } catch ( IOException e ) {
+            return false;
+        }
+    }
+
+    private final static boolean isVCFStream(final InputStream stream, final String MAGIC_HEADER_LINE) {
+        try {
+            byte[] buff = new byte[MAGIC_HEADER_LINE.length()];
+            stream.read(buff, 0, MAGIC_HEADER_LINE.length());
             String firstLine = new String(buff);
+            stream.close();
             return firstLine.startsWith(MAGIC_HEADER_LINE);
         } catch ( IOException e ) {
             return false;
