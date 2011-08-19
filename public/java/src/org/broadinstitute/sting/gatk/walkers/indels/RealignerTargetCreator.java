@@ -33,7 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.BadCigarFilter;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -98,7 +98,7 @@ import java.util.List;
  *
  * @author ebanks
  */
-@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, BadCigarFilter.class})
+@ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, BadCigarFilter.class})
 @Reference(window=@Window(start=-1,stop=50))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.REFERENCE)

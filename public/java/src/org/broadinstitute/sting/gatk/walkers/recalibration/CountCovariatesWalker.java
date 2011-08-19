@@ -29,8 +29,8 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableReadFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -97,7 +97,7 @@ import java.util.Map;
 
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
-@ReadFilters( {MappingQualityZeroReadFilter.class, MappingQualityUnavailableReadFilter.class} ) // Filter out all reads with zero or unavailable mapping quality
+@ReadFilters( {MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class} ) // Filter out all reads with zero or unavailable mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 @PartitionBy(PartitionType.LOCUS)
 public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.CountedData, CountCovariatesWalker.CountedData> implements TreeReducible<CountCovariatesWalker.CountedData> {

@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -17,7 +17,7 @@ import java.util.Set;
  * To change this template use File | Settings | File Templates.
  */
 @Requires({DataSource.READS,DataSource.REFERENCE})
-@ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentReadFilter.class})
+@ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class})
 public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
     public boolean filter(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets ) {

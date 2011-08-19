@@ -33,7 +33,7 @@ import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
@@ -78,7 +78,7 @@ import java.util.*;
  * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
  * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
  */
-@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, PlatformUnitFilter.class})
+@ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;

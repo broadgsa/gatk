@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
+ * Copyright (c) 2009 The Broad Institute
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -19,28 +18,24 @@
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.commandline.Argument;
 
 /**
- * Filter out reads with low mapping qualities.
+ * Filter out mapping quality zero reads.
  *
- * @author ebanks
+ * @author hanna
  * @version 0.1
  */
 
-public class MappingQualityReadFilter extends ReadFilter {
-
-    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
-    public int MIN_MAPPING_QUALTY_SCORE = 10;
-
+public class MappingQualityZeroFilter extends ReadFilter {
     public boolean filterOut(SAMRecord rec) {
-        return (rec.getMappingQuality() < MIN_MAPPING_QUALTY_SCORE);
+        return (rec.getMappingQuality() == 0);
     }
 }
+
