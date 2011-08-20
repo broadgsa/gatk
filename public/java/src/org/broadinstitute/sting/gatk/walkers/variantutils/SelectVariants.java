@@ -344,11 +344,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
 
         // now, exclude any requested samples
-        Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
-        samples.removeAll(XLsamplesFromFile);
-        samples.removeAll(XLsampleNames);
-
-        if ( samples.size() == 0 )
+        if (XLsampleFiles != null)
+            if(!XLsampleFiles.isEmpty()) {
+            Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
+            samples.removeAll(XLsamplesFromFile);
+            samples.removeAll(XLsampleNames);
+        }
+        if ( samples.size() == 0 && !NO_SAMPLES_SPECIFIED )
             throw new UserException("All samples requested to be included were also requested to be excluded.");
 
         for ( String sample : samples )
