@@ -12,7 +12,23 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import java.util.ArrayList;
 
 /**
- * the ref seq codec
+ * TODO FOR CHRIS HARTL
+ *
+ * <p>
+ * Codec Description
+ * </p>
+ *
+ * <p>
+ * See also: link to file specification
+ * </p>
+ *
+ * <h2>File format example</h2>
+ * <p>
+ *     A BAM file containing <b>exactly one sample</b>.
+ * </p>
+ *
+ * @author Mark DePristo
+ * @since 2010
  */
 public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature> {
 

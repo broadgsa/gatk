@@ -92,9 +92,7 @@ public abstract class DocumentedGATKFeatureHandler {
      *
      * toProcess.setHandlerContent(summary, rootMap);
      *
-     * @param rootDoc
      * @param toProcess
-     * @param all
      */
-    public abstract void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcess, Set<GATKDocWorkUnit> all);
+    public abstract void processOne(GATKDocWorkUnit toProcess);
 }

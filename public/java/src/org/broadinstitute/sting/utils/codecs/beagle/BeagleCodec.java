@@ -40,6 +40,29 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
+/**
+ * TODO GUILLERMO DEL ANGEL
+ *
+ * <p>
+ * Codec Description
+ * </p>
+ *
+ * <p>
+ * See also: @see <a href="http://vcftools.sourceforge.net/specs.html">VCF specification</a><br>
+ * </p>
+
+ * </p>
+ *
+ * <h2>File format example</h2>
+ * <pre>
+ *     line 1
+ *     line 2
+ *     line 3
+ * </pre>
+ *
+ * @author Mark DePristo
+ * @since 2010
+ */
 public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature> {
     private String[] header;
     public enum BeagleReaderType {PROBLIKELIHOOD, GENOTYPES, R2};

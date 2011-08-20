@@ -11,13 +11,40 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * implementation of a simple table (tab or comma delimited format) input files
+ * Reads tab deliminated tabular text files
+ *
+ * <p>
+ *     <ul>
+ *     <li>Header: must begin with line HEADER or track (for IGV), followed by any number of column names,
+ *     separated by whitespace.</li>
+ *     <li>Comment lines starting with # are ignored</li>
+ *     <li>Each non-header and non-comment line is split into parts by whitespace,
+ *     and these parts are assigned as a map to their corresponding column name in the header.
+ *     Note that the first element (corresponding to the HEADER column) must be a valid genome loc
+ *     such as 1, 1:1 or 1:1-10, which is the position of the Table element on the genome.  TableCodec
+ *     requires that there be one value for each column in the header, and no more, on all lines.</li>
+ *     </ul>
+ * </p>
+ *
+ * </p>
+ *
+ * <h2>File format example</h2>
+ * <pre>
+ *     HEADER a b c
+ *     1:1  1   2   3
+ *     1:2  4   5   6
+ *     1:3  7   8   9
+ * </pre>
+ *
+ * @author Mark DePristo
+ * @since 2009
  */
 public class TableCodec implements ReferenceDependentFeatureCodec {
-    protected String delimiterRegex = "\\s+";
-    protected String headerDelimiter = "HEADER";
-    protected String igvHeaderDelimiter = "track";
-    protected String commentDelimiter = "#";
+    final static protected String delimiterRegex = "\\s+";
+    final static protected String headerDelimiter = "HEADER";
+    final static protected String igvHeaderDelimiter = "track";
+    final static protected String commentDelimiter = "#";
+
     protected ArrayList<String> header = new ArrayList<String>();
 
     /**

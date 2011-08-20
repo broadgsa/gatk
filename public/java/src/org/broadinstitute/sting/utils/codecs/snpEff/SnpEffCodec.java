@@ -41,10 +41,11 @@ import java.io.IOException;
 
 /**
  * Codec for decoding the output format of the SnpEff variant effect predictor tool
- * (http://snpeff.sourceforge.net/).
  *
+ * <p>
  * This format has 23 tab-delimited fields:
  *
+ * <pre>
  * Chromosome
  * Position
  * Reference
@@ -68,10 +69,16 @@ import java.io.IOException;
  * Codons Around
  * Amino Acids Around
  * Custom Interval ID
+ * </pre>
+ * Note that we treat all except the Chromosome, Position, and Effect fields as optional.
+ * </p>
  *
- * We treat all except the Chromosome, Position, and Effect fields as optional.
+ * <p>
+ * See also: @see <a href="http://snpeff.sourceforge.net/">SNPEff project page</a>
+ * </p>
  *
  * @author David Roazen
+ * @since 2011
  */
 public class SnpEffCodec implements FeatureCodec, SelfScopingFeatureCodec {
 

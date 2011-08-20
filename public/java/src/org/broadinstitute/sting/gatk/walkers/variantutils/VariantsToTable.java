@@ -105,12 +105,14 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * By default this tool only emits values for fields where the FILTER field is either PASS or . (unfiltered).
      * Throwing this flag will cause $WalkerName to emit values regardless of the FILTER field value.
      */
+    @Advanced
     @Argument(fullName="showFiltered", shortName="raw", doc="If provided, field values from filtered records will be included in the output", required=false)
     public boolean showFiltered = false;
 
     /**
      * If provided, then this tool will exit with success after this number of records have been emitted to the file.
      */
+    @Advanced
     @Argument(fullName="maxRecords", shortName="M", doc="If provided, we will emit at most maxRecord records to the table", required=false)
     public int MAX_RECORDS = -1;
     int nRecords = 0;
@@ -121,6 +123,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * can make your resulting file unreadable and malformated according to tools like R, as the representation of
      * multi-allelic INFO field values can be lists of values.
      */
+    @Advanced
     @Argument(fullName="keepMultiAllelic", shortName="KMA", doc="If provided, we will not require the site to be biallelic", required=false)
     public boolean keepMultiAllelic = false;
 
@@ -131,6 +134,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * fields (e.g., AC not being calculated for filtered records, if included).  When provided, this argument
      * will cause VariantsToTable to write out NA values for missing fields instead of throwing an error.
      */
+    @Advanced
     @Argument(fullName="allowMissingData", shortName="AMD", doc="If provided, we will not require every record to contain every field", required=false)
     public boolean ALLOW_MISSING_DATA = false;
 

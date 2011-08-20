@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.help;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.FieldDoc;
@@ -31,8 +32,10 @@ import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broad.tribble.bed.FullBEDFeature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
@@ -49,14 +52,18 @@ import java.util.*;
  */
 public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     private static Logger logger = Logger.getLogger(GenericDocumentationHandler.class);
-    GATKDocWorkUnit toProcess;
-    ClassDoc classdoc;
-    Set<GATKDocWorkUnit> all;
-    RootDoc rootDoc;
+
+    /**
+     * The max. length of the longest of --fullName -shortName argument name
+     * before we prefer the shorter option.
+     */
+    private static final int MAX_DISPLAY_NAME = 30;
+
+    /** The Class we are documenting */
+    private GATKDocWorkUnit toProcess;
 
     @Override
     public boolean includeInDocs(ClassDoc doc) {
-//        return true;
         try {
             Class type = HelpUtils.getClassForDoc(doc);
             return JVMUtils.isConcrete(type);
@@ -72,11 +79,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     @Override
-    public void processOne(RootDoc rootDoc, GATKDocWorkUnit toProcessArg, Set<GATKDocWorkUnit> allArg) {
-        this.rootDoc = rootDoc;
+    public void processOne(GATKDocWorkUnit toProcessArg) {
         this.toProcess = toProcessArg;
-        this.all = allArg;
-        this.classdoc = toProcess.classDoc;
 
         //System.out.printf("%s class %s%n", toProcess.group, toProcess.classDoc);
         Map<String, Object> root = new HashMap<String, Object>();
@@ -88,71 +92,76 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         toProcess.setHandlerContent((String)root.get("summary"), root);
     }
 
+    /**
+     * Add high-level summary information about toProcess to root, such as its
+     * name, summary, description, version, etc.
+     *
+     * @param root
+     */
     protected void addHighLevelBindings(Map<String, Object> root) {
-        root.put("name", classdoc.name());
+        root.put("name", toProcess.classDoc.name());
 
         // Extract overrides from the doc tags.
         StringBuilder summaryBuilder = new StringBuilder();
-        for(Tag tag: classdoc.firstSentenceTags())
+        for(Tag tag: toProcess.classDoc.firstSentenceTags())
             summaryBuilder.append(tag.text());
         root.put("summary", summaryBuilder.toString());
-        root.put("description", classdoc.commentText().substring(summaryBuilder.toString().length()));
+        root.put("description", toProcess.classDoc.commentText().substring(summaryBuilder.toString().length()));
         root.put("timestamp", toProcess.buildTimestamp);
         root.put("version", toProcess.absoluteVersion);
 
-        for(Tag tag: classdoc.tags()) {
+        for(Tag tag: toProcess.classDoc.tags()) {
             root.put(tag.name(), tag.text());
         }
     }
 
+    /**
+     * Add bindings describing related GATK capabilites to toProcess
+     * @param root
+     */
+    protected void addRelatedBindings(Map<String, Object> root) {
+        List<Map<String, Object>> extraDocsData = new ArrayList<Map<String, Object>>();
+
+        // add in all of the explicitly related items
+        for ( final Class extraDocClass : toProcess.annotation.extraDocs() ) {
+            final GATKDocWorkUnit otherUnit = getDoclet().findWorkUnitForClass(extraDocClass);
+            if ( otherUnit == null )
+                throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
+            extraDocsData.add(
+                    new HashMap<String, Object>(){{
+                        put("filename", otherUnit.filename);
+                        put("name", otherUnit.name);}});
+
+        }
+        root.put("extradocs", extraDocsData);
+    }
+
+    /**
+     * Add information about all of the arguments available to toProcess to root
+     *
+     * @param root
+     */
     protected void addArgumentBindings(Map<String, Object> root) {
         ParsingEngine parsingEngine = createStandardGATKParsingEngine();
 
-        // attempt to instantiate the class
-        Object instance = makeInstanceIfPossible(toProcess.clazz);
-
-        Map<String, List<Map<String, Object>>> args = new HashMap<String, List<Map<String, Object>>>();
+        Map<String, List<Map<String, Object>>> args = createArgumentMap();
         root.put("arguments", args);
-        args.put("all", new ArrayList<Map<String, Object>>());
-        args.put("required", new ArrayList<Map<String, Object>>());
-        args.put("optional", new ArrayList<Map<String, Object>>());
-        args.put("advanced", new ArrayList<Map<String, Object>>());
-        args.put("hidden", new ArrayList<Map<String, Object>>());
-        args.put("depreciated", new ArrayList<Map<String, Object>>());
         try {
-            for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(classdoc)) ) {
+            // loop over all of the arguments according to the parsing engine
+            for ( final ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(toProcess.classDoc)) ) {
+                // todo -- why can you have multiple ones?
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
-                FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
-                Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef); // todo -- why can you have multiple ones?
+                FieldDoc fieldDoc = getFieldDoc(toProcess.classDoc, argumentSource.field.getName());
+                Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef);
                 if ( ! argumentSource.isHidden() || getDoclet().showHiddenFeatures() ) {
-                    logger.debug(String.format("Processing %s", argumentSource));
-                    String kind = "optional";
-                    if ( argumentSource.isRequired() ) kind = "required";
-                    else if ( argumentSource.isAdvanced() ) kind = "advanced";
-                    else if ( argumentSource.isHidden() ) kind = "hidden";
-                    else if ( argumentSource.isDeprecated() ) kind = "depreciated";
+                    final String kind = docKindOfArg(argumentSource);
 
-                    // get the value of the field
-                    if ( instance != null ) {
-                        Object value = getFieldValue(toProcess.clazz, instance, fieldDoc.name());
-
-                        if ( value == null && argumentSource.createsTypeDefault() ) {
-                            // handle the case where there's an implicit default
-                            try {
-                                value = argumentSource.typeDefaultDocString();
-                            } catch (ReviewedStingException e) {
-                                ; // failed to create type default, don't worry about it
-                            }
-                        }
-
-                        if ( value != null )
-                            argBindings.put("defaultValue", prettyPrintValueString(value));
-                    }
+                    final Object value = argumentValue(toProcess.clazz, argumentSource);
+                    if ( value != null )
+                        argBindings.put("defaultValue", prettyPrintValueString(value));
 
                     args.get(kind).add(argBindings);
                     args.get("all").add(argBindings);
-                } else {
-                    logger.debug(String.format("Skipping hidden feature %s", argumentSource));
                 }
             }
 
@@ -165,11 +174,78 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
     }
 
+    /**
+     * Return the argument kind (required, advanced, hidden, etc) of this argumentSource
+     * @param argumentSource
+     * @return
+     */
+    @Requires("argumentSource != null")
+    @Ensures("result != null")
+    private String docKindOfArg(ArgumentSource argumentSource) {
+        if ( argumentSource.isRequired() ) return "required";
+        else if ( argumentSource.isAdvanced() ) return "advanced";
+        else if ( argumentSource.isHidden() ) return "hidden";
+        else if ( argumentSource.isDeprecated() ) return "depreciated";
+        else return "optional";
+    }
+
+    /**
+     * Attempts to determine the value of argumentSource in an instantiated version of c
+     * @param c
+     * @param argumentSource
+     * @return value of argumentSource, or null if this isn't possible
+     */
+    @Requires({"c != null", "argumentSource != null"})
+    private Object argumentValue(Class c, ArgumentSource argumentSource) {
+        // get the value of the field
+        // attempt to instantiate the class
+        final Object instance = makeInstanceIfPossible(toProcess.clazz);
+        if ( instance != null ) {
+            final Object value = getFieldValue(instance, argumentSource.field.getName());
+            if ( value != null )
+                return value;
+
+            if ( argumentSource.createsTypeDefault() ) {
+                try { // handle the case where there's an implicit default
+                    return argumentSource.typeDefaultDocString();
+                } catch (ReviewedStingException e) {
+                    ; // failed to create type default, don't worry about it
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Create the argument map for holding class arguments
+     * @return
+     */
+    private Map<String, List<Map<String, Object>>> createArgumentMap() {
+        Map<String, List<Map<String, Object>>> args = new HashMap<String, List<Map<String, Object>>>();
+        args.put("all", new ArrayList<Map<String, Object>>());
+        args.put("required", new ArrayList<Map<String, Object>>());
+        args.put("optional", new ArrayList<Map<String, Object>>());
+        args.put("advanced", new ArrayList<Map<String, Object>>());
+        args.put("hidden", new ArrayList<Map<String, Object>>());
+        args.put("depreciated", new ArrayList<Map<String, Object>>());
+        return args;
+    }
+
+
+    /**
+     * Sorts the individual argument list in unsorted according to CompareArgumentsByName
+     * @param unsorted
+     * @return
+     */
     private List<Map<String, Object>> sortArguments(List<Map<String, Object>> unsorted) {
         Collections.sort(unsorted, new CompareArgumentsByName());
         return unsorted;
     }
 
+    /**
+     * Sort arguments by case-insensitive comparison ignoring the -- and - prefixes
+     */
     private class CompareArgumentsByName implements Comparator<Map<String, Object>> {
         public int compare(Map<String, Object> x, Map<String, Object> y) {
             return elt(x).compareTo(elt(y));
@@ -186,25 +262,32 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
     }
 
-    private Object getFieldValue(Class c, Object instance, String fieldName) {
-        Field field = JVMUtils.findField(c, fieldName);
-        if ( field != null ) {
-            Object value = JVMUtils.getFieldValue(field, instance);
-            //System.out.printf("Fetched value of field %s in class %s: %s%n", fieldName, c, value);
-            return value;
-        } else {
-            return findFieldValueInArgumentCollections(c, instance, fieldName);
-        }
-    }
-
-    private Object findFieldValueInArgumentCollections(Class c, Object instance, String fieldName) {
-        for ( Field field : JVMUtils.getAllFields(c) ) {
+    /**
+     * Utility function that finds the value of fieldName in any fields of ArgumentCollection fields in
+     * instance of class c.
+     *
+     * @param instance the object to query for the field value
+     * @param fieldName the name of the field we are looking for in instance
+     * @return The value assigned to field in the ArgumentCollection, otherwise null
+     */
+    private Object getFieldValue(Object instance, String fieldName) {
+        //
+        // subtle note.  If you have a field named X that is an ArgumentCollection that
+        // contains a field X as well, you need only consider fields in the argumentCollection, not
+        // matching the argument itself.
+        //
+        // @ArgumentCollection
+        // protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+        //
+        for ( Field field : JVMUtils.getAllFields(instance.getClass()) ) {
             if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
                 //System.out.printf("Searching for %s in argument collection field %s%n", fieldName, field);
                 Object fieldValue = JVMUtils.getFieldValue(field, instance);
-                Object value = getFieldValue(fieldValue.getClass(), fieldValue, fieldName);
+                Object value = getFieldValue(fieldValue, fieldName);
                 if ( value != null )
                     return value;
+            } else if ( field.getName().equals(fieldName) ) {
+                return JVMUtils.getFieldValue(field, instance);
             }
         }
 
@@ -212,6 +295,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     /**
+     * Pretty prints value
+     *
      * Assumes value != null
      * @param value
      * @return
@@ -246,6 +331,11 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         return value.toString();
     }
 
+    /**
+     * Attempt to instantiate class c, if possible.  Returns null if this proves impossible.
+     * @param c
+     * @return
+     */
     private Object makeInstanceIfPossible(Class c) {
         Object instance = null;
         try {
@@ -265,47 +355,16 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // this last one is super dangerous, but some of these methods catch ClassNotFoundExceptions
         // and rethrow then as RuntimeExceptions
         catch (RuntimeException e) {}
-//        finally {
-//            if ( instance == null )
-//                logger.warn(String.format("Unable to create instance of class %s => %s", c, instance));
-//        }
 
         return instance;
     }
 
-    protected void addRelatedBindings(Map<String, Object> root) {
-        List<Map<String, Object>> extraDocsData = new ArrayList<Map<String, Object>>();
 
-        // add in all of the explicitly related items
-        for ( final Class extraDocClass : toProcess.annotation.extraDocs() ) {
-            final GATKDocWorkUnit otherUnit = GATKDoclet.findWorkUnitForClass(extraDocClass, all);
-            if ( otherUnit == null )
-                throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
-            extraDocsData.add(
-                    new HashMap<String, Object>(){{
-                        put("filename", otherUnit.filename);
-                        put("name", otherUnit.name);}});
-
-        }
-        root.put("extradocs", extraDocsData);
-    }
-
-    private static final String classRelationship(Class me, Class other) {
-        if ( other.equals(me) )
-            // no circular references
-            return null;
-        else if ( other.isAssignableFrom(me) )
-            // toProcess is a superclass of other.clazz
-            return "superclass";
-        else if ( me.isAssignableFrom(other) )
-            // toProcess inherits from other.clazz
-            return "subclass";
-        else
-            return null;
-
-    }
-
-    protected ParsingEngine createStandardGATKParsingEngine() {
+    /**
+     * Create an instance of the GATK parsing engine, for argument processing with GATKDoclet
+     * @return
+     */
+    private ParsingEngine createStandardGATKParsingEngine() {
         CommandLineProgram clp = new CommandLineGATK();
         try {
             CommandLineProgram.start(clp, new String[]{}, true);
@@ -315,10 +374,25 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
     }
 
+    /**
+     * Gets the javadocs associated with field name in classDoc.  Throws a
+     * runtime exception if this proves impossible.
+     *
+     * @param classDoc
+     * @param name
+     * @return
+     */
     private FieldDoc getFieldDoc(ClassDoc classDoc, String name) {
         return getFieldDoc(classDoc, name, true);
     }
 
+    /**
+     * Recursive helper routine to getFieldDoc()
+     * @param classDoc
+     * @param name
+     * @param primary
+     * @return
+     */
     private FieldDoc getFieldDoc(ClassDoc classDoc, String name, boolean primary) {
         //System.out.printf("Looking for %s in %s%n", name, classDoc.name());
         for ( FieldDoc fieldDoc : classDoc.fields(false) ) {
@@ -353,7 +427,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return null;
     }
 
-    private static final int MAX_DISPLAY_NAME = 30;
+    /**
+     * Returns a Pair of (main, synonym) names for argument with fullName s1 and
+     * shortName s2.  The main is selected to be the longest of the two, provided
+     * it doesn't exceed MAX_DISPLAY_NAME, in which case the shorter is taken.
+     * @param s1
+     * @param s2
+     * @return
+     */
     Pair<String, String> displayNames(String s1, String s2) {
         if ( s1 == null ) return new Pair<String, String>(s2, null);
         if ( s2 == null ) return new Pair<String, String>(s1, null);
@@ -367,6 +448,15 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return new Pair<String, String>(l, s);
     }
 
+    /**
+     * Returns a human readable string that describes the Type type of a GATK argument.
+     *
+     * This will include parameterized types, so that Set{T} shows up as Set(T) and not
+     * just Set in the docs.
+     *
+     * @param type
+     * @return
+     */
     protected String argumentTypeString(Type type) {
         if (type instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType)type;
@@ -385,6 +475,13 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         }
     }
 
+    /**
+     * Helper routine that returns the Feature.class required by a RodBinding,
+     * either T for RodBinding{T} or List{RodBinding{T}}.  Returns null if
+     * the Type doesn't fit either model.
+     * @param type
+     * @return
+     */
     protected Class<? extends Feature> getFeatureTypeIfPossible(Type type) {
         if ( type instanceof ParameterizedType) {
             ParameterizedType paramType = (ParameterizedType)type;
@@ -402,6 +499,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         return null;
     }
 
+    /**
+     * High-level entry point for creating a FreeMarker map describing the GATK argument
+     * source with definition def, with associated javadoc fieldDoc.
+     * @param fieldDoc
+     * @param source
+     * @param def
+     * @return a non-null Map binding argument keys with their values
+     */
     protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         Map<String, Object> root = new HashMap<String, Object>();
         Pair<String, String> names = displayNames("-" + def.shortName, "--" + def.fullName);
@@ -434,27 +539,29 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         root.put("summary", def.doc != null ? def.doc : "");
         root.put("fulltext", fieldDoc.commentText());
 
+        // What are our enum options?
+        if ( def.validOptions != null )
+            root.put("options", docForEnumArgument(source.field.getType()));
+
+        // general attributes
         List<String> attributes = new ArrayList<String>();
-        // this one below is just too much.
-        //attributes.add(def.ioType.annotationClass.getSimpleName());
         if ( def.required ) attributes.add("required");
-        // flag is just boolean, not interesting
-        //if ( def.isFlag ) attributes.add("flag");
-        if ( def.isHidden ) attributes.add("hidden");
         if ( source.isDeprecated() ) attributes.add("depreciated");
         if ( attributes.size() > 0 )
             root.put("attributes", Utils.join(", ", attributes));
 
-        if ( def.validOptions != null ) {
-            root.put("options", docForEnumArgument(source.field.getType()));
-        }
-
         return root;
     }
 
+    /**
+     * Helper routine that provides a FreeMarker map for an enumClass, grabbing the
+     * values of the enum and their associated javadoc documentation.
+     * @param enumClass
+     * @return
+     */
     @Requires("enumClass.isEnum()")
     private List<Map<String, Object>> docForEnumArgument(Class enumClass) {
-        ClassDoc doc = GATKDoclet.getClassDocForClass(rootDoc, enumClass);
+        ClassDoc doc = this.getDoclet().getClassDocForClass(enumClass);
         if ( doc == null ) //  || ! doc.isEnum() )
             throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got instead: " + doc);
 
@@ -468,5 +575,4 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
         return bindings;
     }
-
 }

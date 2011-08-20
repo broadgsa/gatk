@@ -14,8 +14,20 @@ import java.util.*;
 
 
 /**
- * a feature codec for the VCF 3 specification.  Our aim is to read in the records and convert to VariantContext as
- * quickly as possible, relying on VariantContext to do the validation of any contradictory (or malformed) record parameters.
+ * A feature codec for the VCF3 specification, to read older VCF files.  VCF3 has been
+ * depreciated in favor of VCF4 (See VCF codec for the latest information)
+ *
+ * <p>
+ * Reads historical VCF3 encoded files (1000 Genomes Pilot results, for example)
+ * </p>
+ *
+ * <p>
+ * See also: @see <a href="http://vcftools.sourceforge.net/specs.html">VCF specification</a><br>
+ * See also: @see <a href="http://www.ncbi.nlm.nih.gov/pubmed/21653522">VCF spec. publication</a>
+ * </p>
+ *
+ * @author Mark DePristo
+ * @since 2010
  */
 public class VCF3Codec extends AbstractVCFCodec {
     public final static String VCF3_MAGIC_HEADER = "##fileformat=VCFv3";

@@ -38,10 +38,43 @@ import java.util.regex.Pattern;
 import static org.broadinstitute.sting.utils.codecs.sampileup.SAMPileupFeature.VariantType;
 
 /**
- * A Tribble encoder / decoder for SAM pileup data. 
+ * Decoder for SAM pileup data.  For GATK validation purposes only
  *
- * @author mhanna
- * @version 0.1
+ * <p>
+ *     Pileup format is first used by Tony Cox and Zemin Ning at the Sanger Institute.
+ *     It desribes the base-pair information at each chromosomal position. This format
+ *     facilitates SNP/indel calling and brief alignment viewing by eyes.
+ * </p>
+ * <p>
+ *     Each line consists of chromosome, 1-based coordinate, reference base, the
+ *     number of reads covering the site, read bases and base qualities. At the
+ *     read base column, a dot stands for a match to the reference base on the
+ *     forward strand, a comma for a match on the reverse strand, `ACGTN' for a mismatch
+ *     on the forward strand and `acgtn' for a mismatch on the reverse strand.
+ *     A pattern `\+[0-9]+[ACGTNacgtn]+' indicates there is an insertion between
+ *     this reference position and the next reference position. The length of the
+ *     insertion is given by the integer in the pattern, followed by the inserted sequence.
+ * </p>
+ *
+ * <p>
+ *     <br>See also: @see <a href="http://samtools.sourceforge.net/">SAMTools project</a></br>
+ *     <br>See also: @see <a href="http://samtools.sourceforge.net/pileup.shtml">Pileup format</a></br>
+ * </p>
+ *
+ * <h2>File format example</h2>
+ * <pre>
+ *     seq1 272 T 24  ,.$.....,,.,.,...,,,.,..^+. <<<+;<<<<<<<<<<<=<;<;7<&
+ *     seq1 273 T 23  ,.....,,.,.,...,,,.,..A <<<;<<<<<<<<<3<=<<<;<<+
+ *     seq1 274 T 23  ,.$....,,.,.,...,,,.,...    7<7;<;<<<<<<<<<=<;<;<<6
+ *     seq1 275 A 23  ,$....,,.,.,...,,,.,...^l.  <+;9*<<<<<<<<<=<<:;<<<<
+ *     seq1 276 G 22  ...T,,.,.,...,,,.,....  33;+<<7=7<<7<&<<1;<<6<
+ *     seq1 277 T 22  ....,,.,.,.C.,,,.,..G.  +7<;<<<<<<<&<=<<:;<<&<
+ *     seq1 278 G 23  ....,,.,.,...,,,.,....^k.   %38*<<;<7<<7<=<<<;<<<<<
+ *     seq1 279 C 23  A..T,,.,.,...,,,.,..... ;75&<<<<<<<<<=<<<9<<:<<
+ * </pre>
+ *
+ * @author Matt Hanna
+ * @since 2009
  */
 public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
     // the number of tokens we expect to parse from a pileup line
