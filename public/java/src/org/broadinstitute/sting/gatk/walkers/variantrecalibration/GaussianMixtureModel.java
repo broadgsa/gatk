@@ -44,6 +44,7 @@ import java.util.List;
 public class GaussianMixtureModel {
 
     protected final static Logger logger = Logger.getLogger(GaussianMixtureModel.class);
+    public final static double MIN_ACCEPTABLE_LOD_SCORE = -20000.0;
 
     private final ArrayList<MultivariateGaussian> gaussians;
     private final double shrinkage;
@@ -207,14 +208,23 @@ public class GaussianMixtureModel {
         for( final boolean isNull : datum.isNull ) {
             if( isNull ) { return evaluateDatumMarginalized( datum ); }
         }
+        // Fill an array with the log10 probability coming from each Gaussian and then use MathUtils to sum them up correctly
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
         int gaussianIndex = 0;
         for( final MultivariateGaussian gaussian : gaussians ) {
             pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + gaussian.evaluateDatumLog10( datum );
         }
-        return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
+        double lod = MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
+
+        // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
+        // Cap the values at an extremely negative value and spread them out randomly
+        if( lod < MIN_ACCEPTABLE_LOD_SCORE ) {
+            lod = MIN_ACCEPTABLE_LOD_SCORE - GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE;
+        }
+        return lod;
     }
 
+    // Used only to decide which covariate dimension is most divergent in order to report in the culprit info field annotation
     public Double evaluateDatumInOneDimension( final VariantDatum datum, final int iii ) {
         if(datum.isNull[iii]) { return null; }
 
@@ -225,11 +235,18 @@ public class GaussianMixtureModel {
             normal.setState( gaussian.mu[iii], gaussian.sigma.get(iii, iii) );
             pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + Math.log10( normal.pdf( datum.annotations[iii] ) );
         }
-        return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
+        double lod = MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
+
+        // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
+        // Cap the values at an extremely negative value and spread them out randomly
+        if( lod < MIN_ACCEPTABLE_LOD_SCORE ) {
+            lod = MIN_ACCEPTABLE_LOD_SCORE - GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE;
+        }
+        return lod;
     }
 
     public double evaluateDatumMarginalized( final VariantDatum datum ) {
-        int numSamples = 0;
+        int numRandomDraws = 0;
         double sumPVarInGaussian = 0.0;
         final int numIterPerMissingAnnotation = 10; // Trade off here between speed of computation and accuracy of the marginalization
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
@@ -248,10 +265,17 @@ public class GaussianMixtureModel {
 
                     // add this sample's probability to the pile in order to take an average in the end
                     sumPVarInGaussian += Math.pow(10.0, MathUtils.log10sumLog10(pVarInGaussianLog10)); // p = 10 ^ Sum(pi_k * p(v|n,k))
-                    numSamples++;
+                    numRandomDraws++;
                 }
             }
         }
-        return Math.log10( sumPVarInGaussian / ((double) numSamples) );
+        double lod = Math.log10( sumPVarInGaussian / ((double) numRandomDraws) );
+
+        // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
+        // Cap the values at an extremely negative value and spread them out randomly
+        if( lod < MIN_ACCEPTABLE_LOD_SCORE ) {
+            lod = MIN_ACCEPTABLE_LOD_SCORE - GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE;
+        }
+        return lod;
     }
 }

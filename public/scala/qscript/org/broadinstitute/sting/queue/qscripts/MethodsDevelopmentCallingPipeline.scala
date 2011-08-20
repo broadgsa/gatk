@@ -5,17 +5,6 @@ import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
 
-
-  // ToDos:
-  // reduce the scope of the datasets so the script is more nimble
-  // create gold standard BAQ'd bam files, no reason to always do it on the fly
-
-  // Analysis to add at the end of the script:
-  // auto generation of the cluster plots
-  // spike in NA12878 to the exomes and to the lowpass, analysis of how much of her variants are being recovered compared to single sample exome or HiSeq calls
-  // produce Kiran's Venn plots based on comparison between new VCF and gold standard produced VCF
-
-
 class MethodsDevelopmentCallingPipeline extends QScript {
   qscript =>
 
@@ -28,14 +17,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="dataset", doc="selects the datasets to run. If not provided, all datasets will be used", required=false)
   var datasets: List[String] = Nil
 
-  @Argument(shortName="skipGoldStandard", doc="doesn't run the pipeline with the goldstandard VCF files for comparison", required=false)
-  var skipGoldStandard: Boolean = false
+  @Argument(shortName="runGoldStandard", doc="run the pipeline with the goldstandard VCF files for comparison", required=false)
+  var runGoldStandard: Boolean = false
 
   @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
   var noBAQ: Boolean = false
-
-  @Argument(shortName="eval", doc="adds the VariantEval walker to the pipeline", required=false)
-  var eval: Boolean = false
 
   @Argument(shortName="indels", doc="calls indels with the Unified Genotyper", required=false)
   var callIndels: Boolean = false
@@ -51,8 +37,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   @Argument(shortName="sample", doc="Samples to include in Variant Eval", required=false)
   var samples: List[String] = Nil
-
-
 
   class Target(
           val baseName: String,
@@ -118,15 +102,15 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.17, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "HiSeq19" -> new Target("NA12878.HiSeq19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.17, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.17, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
@@ -177,9 +161,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         add(new snpCall(target))
         add(new VQSR(target, !goldStandard))
         add(new applyVQSR(target, !goldStandard))
-        if (eval) add(new snpEvaluation(target))
+        add(new snpEvaluation(target))
       }
-      if ( !skipGoldStandard ) {
+      if ( runGoldStandard ) {
         add(new VQSR(target, goldStandard))
         add(new applyVQSR(target, goldStandard))
       }
@@ -200,7 +184,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.memoryLimit = 3
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
-    this.scatterCount = 120
+    this.scatterCount = 140
+    this.nt = 2
     this.dcov = if ( t.isLowpass ) { 50 } else { 250 }
     this.stand_call_conf = if ( t.isLowpass ) { 4.0 } else { 30.0 }
     this.stand_emit_conf = if ( t.isLowpass ) { 4.0 } else { 30.0 }
@@ -259,9 +244,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.training :+= new TaggedFile( omni_b37, "prior=12.0")
     this.truth :+= new TaggedFile( omni_b37, "prior=12.0")
     this.training :+= new TaggedFile( training_1000G, "prior=10.0" )
-    this.badSites :+= new TaggedFile( badSites_1000G, "prior=2.0" )
     this.known :+= new TaggedFile( t.dbsnpFile, "prior=2.0" )
-    this.resource :+= new TaggedFile( projectConsensus_1000G, "prior=10.0" )
+    this.resource :+= new TaggedFile( projectConsensus_1000G, "prior=8.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "MQ", "FS")
     if(t.nSamples >= 10) {
         this.use_annotation ++= List("InbreedingCoeff")
@@ -275,12 +259,12 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.tranche ++= List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
     this.rscript_file = t.vqsrRscript
     this.analysisName = t.name + "_VQSR"
-    this.jobName =  queueLogDir + t.name + ".VQSR"
+    this.jobName = queueLogDir + t.name + ".VQSR"
   }
 
   // 4.) Apply the recalibration table to the appropriate tranches
   class applyVQSR (t: Target, goldStandard: Boolean) extends ApplyRecalibration with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = 4
+    this.memoryLimit = 6
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.input :+= ( if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
@@ -289,7 +273,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.ts_filter_level = t.trancheTarget
     this.out = t.recalibratedVCF
     this.analysisName = t.name + "_AVQSR"
-    this.jobName =  queueLogDir + t.name + ".applyVQSR"
+    this.jobName = queueLogDir + t.name + ".applyVQSR"
   }
 
   // 5.) Variant Evaluation Base(OPTIONAL)
@@ -308,7 +292,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.eval :+= t.recalibratedVCF
     this.out =  t.evalFile
     this.analysisName = t.name + "_VEs"
-    this.jobName =  queueLogDir + t.name + ".snp.eval"
+    this.jobName = queueLogDir + t.name + ".snp.eval"
   }
 
   // 5b.) Indel Evaluation (OPTIONAL)
@@ -317,6 +301,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.evalModule :+= "IndelStatistics"
     this.out =  t.evalIndelFile
     this.analysisName = t.name + "_VEi"
-    this.jobName =  queueLogDir + queueLogDir + t.name + ".indel.eval"
+    this.jobName = queueLogDir + queueLogDir + t.name + ".indel.eval"
   }
 }
