@@ -74,11 +74,7 @@ public class VariantRecalibratorEngine {
         for( final VariantDatum datum : data ) {
             final double thisLod = evaluateDatum( datum, model );
             if( Double.isNaN(thisLod) ) {
-                if( evaluateContrastively ) {
-                    throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
-                } else {
-                    throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe.");
-                }
+                throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
             }
 
             datum.lod = ( evaluateContrastively ?
