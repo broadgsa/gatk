@@ -272,7 +272,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
                     dataManager.parseTrainingSets( tracker, context.getLocation(), vc, datum, TRUST_ALL_POLYMORPHIC, rodToPriorMap, training, truth, known, badSites, resource ); // BUGBUG: need to clean this up to be a class, not a list of all the rod bindings
                     double priorFactor = QualityUtils.qualToProb( datum.prior );
-                    //if( PERFORM_PROJECT_CONSENSUS ) {
+                    //if( PERFORM_PROJECT_CONSENSUS ) { // BUGBUG: need to resurrect this functionality?
                     //    final double consensusPrior = QualityUtils.qualToProb( 1.0 + 5.0 * datum.consensusCount );
                     //    priorFactor = 1.0 - ((1.0 - priorFactor) * (1.0 - consensusPrior));
                     //}

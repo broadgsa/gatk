@@ -44,7 +44,6 @@ import java.util.List;
 public class GaussianMixtureModel {
 
     protected final static Logger logger = Logger.getLogger(GaussianMixtureModel.class);
-    public final static double MIN_ACCEPTABLE_LOD_SCORE = -20000.0;
 
     private final ArrayList<MultivariateGaussian> gaussians;
     private final double shrinkage;
@@ -214,14 +213,7 @@ public class GaussianMixtureModel {
         for( final MultivariateGaussian gaussian : gaussians ) {
             pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + gaussian.evaluateDatumLog10( datum );
         }
-        double lod = MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
-
-        // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
-        // Cap the values at an extremely negative value and spread them out randomly
-        if( lod < MIN_ACCEPTABLE_LOD_SCORE ) {
-            lod = MIN_ACCEPTABLE_LOD_SCORE - GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE;
-        }
-        return lod;
+        return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
     }
 
     // Used only to decide which covariate dimension is most divergent in order to report in the culprit info field annotation
@@ -235,14 +227,7 @@ public class GaussianMixtureModel {
             normal.setState( gaussian.mu[iii], gaussian.sigma.get(iii, iii) );
             pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + Math.log10( normal.pdf( datum.annotations[iii] ) );
         }
-        double lod = MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
-
-        // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
-        // Cap the values at an extremely negative value and spread them out randomly
-        if( lod < MIN_ACCEPTABLE_LOD_SCORE ) {
-            lod = MIN_ACCEPTABLE_LOD_SCORE - GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE;
-        }
-        return lod;
+        return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
     }
 
     public double evaluateDatumMarginalized( final VariantDatum datum ) {
@@ -269,13 +254,6 @@ public class GaussianMixtureModel {
                 }
             }
         }
-        double lod = Math.log10( sumPVarInGaussian / ((double) numRandomDraws) );
-
-        // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
-        // Cap the values at an extremely negative value and spread them out randomly
-        if( lod < MIN_ACCEPTABLE_LOD_SCORE ) {
-            lod = MIN_ACCEPTABLE_LOD_SCORE - GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE;
-        }
-        return lod;
+        return Math.log10( sumPVarInGaussian / ((double) numRandomDraws) );
     }
 }
