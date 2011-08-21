@@ -178,7 +178,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
                 switch ( vc.getType() ) {
                     case INDEL:
                         hasIndel = true;
-                        if ( vc.isInsertion() )
+                        if ( vc.isSimpleInsertion() )
                             hasInsertion = true;
                         break;
                     case SNP:
@@ -187,7 +187,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
                     case MIXED:
                         hasPointEvent = true;
                         hasIndel = true;
-                        if ( vc.isInsertion() )
+                        if ( vc.isSimpleInsertion() )
                             hasInsertion = true;
                         break;
                     default:

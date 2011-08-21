@@ -39,8 +39,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nInsertions = 0;
     @DataPoint(description = "Number of deletions")
     public long nDeletions = 0;
-    @DataPoint(description = "Number of complex loci")
+    @DataPoint(description = "Number of complex indels")
     public long nComplex = 0;
+    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)")
+    public long nMixed = 0;
 
 
     @DataPoint(description = "Number of no calls loci")
@@ -113,11 +115,15 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
                     break;
                 case INDEL:
-                    if (vc1.isInsertion()) nInsertions++;
-                    else nDeletions++;
+                    if (vc1.isSimpleInsertion())
+                        nInsertions++;
+                    else if (vc1.isSimpleDeletion())
+                        nDeletions++;
+                    else
+                        nComplex++;
                     break;
                 case MIXED:
-                    nComplex++;
+                    nMixed++;
                     break;
                 default:
                     throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
@@ -180,8 +186,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         heterozygosity = perLocusRate(nHets);
         heterozygosityPerBp = perLocusRInverseRate(nHets);
         hetHomRatio = ratio(nHets, nHomVar);
-        indelRate = perLocusRate(nDeletions + nInsertions);
-        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions);
+        indelRate = perLocusRate(nDeletions + nInsertions + nComplex);
+        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions + nComplex);
         deletionInsertionRatio = ratio(nDeletions, nInsertions);
     }
 }

@@ -121,9 +121,9 @@ public class IndelUtils {
         boolean done = false;
 
         ArrayList<Integer> inds = new ArrayList<Integer>();
-        if ( vc.isInsertion() ) {
+        if ( vc.isSimpleInsertion() ) {
             indelAlleleString = vc.getAlternateAllele(0).getDisplayString();
-        } else if ( vc.isDeletion() ) {
+        } else if ( vc.isSimpleDeletion() ) {
             indelAlleleString = vc.getReference().getDisplayString();
         }
         else {

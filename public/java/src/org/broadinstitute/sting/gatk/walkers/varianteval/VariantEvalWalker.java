@@ -311,7 +311,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         // for each comp track
                         for ( final RodBinding<VariantContext> compRod : comps ) {
                             // no sample stratification for comps
-                            final Set<VariantContext> compSet = compVCs.get(compRod) == null ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
+                            final HashMap<String, Set<VariantContext>> compSetHash = compVCs.get(compRod);
+                            final Set<VariantContext> compSet = (compSetHash == null || compSetHash.size() == 0) ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
 
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);

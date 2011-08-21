@@ -137,11 +137,11 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         Allele reportedRefAllele = vc.getReference();
         Allele observedRefAllele;
         // insertions
-        if ( vc.isInsertion() ) {
+        if ( vc.isSimpleInsertion() ) {
             observedRefAllele = Allele.create(Allele.NULL_ALLELE_STRING);
         }
         // deletions
-        else if ( vc.isDeletion() || vc.isMixed() || vc.isMNP() ) {
+        else if ( vc.isSimpleDeletion() || vc.isMixed() || vc.isMNP() ) {
             // we can't validate arbitrarily long deletions
             if ( reportedRefAllele.length() > 100 ) {
                 logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", reportedRefAllele.length(), vc.getChr(), vc.getStart()));

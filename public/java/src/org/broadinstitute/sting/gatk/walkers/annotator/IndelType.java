@@ -36,9 +36,9 @@ public class IndelType extends InfoFieldAnnotation implements ExperimentalAnnota
             if (!vc.isBiallelic())
                 type = "MULTIALLELIC_INDEL";
             else {
-                if (vc.isInsertion())
+                if (vc.isSimpleInsertion())
                     type = "INS.";
-                else if (vc.isDeletion())
+                else if (vc.isSimpleDeletion())
                     type = "DEL.";
                 else
                     type = "OTHER.";

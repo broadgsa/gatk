@@ -886,7 +886,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         for ( VariantContext knownIndel : knownIndelsToTry ) {
             if ( knownIndel == null || !knownIndel.isIndel() || knownIndel.isComplexIndel() )
                 continue;
-            byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
+            byte[] indelStr = knownIndel.isSimpleInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
             int start = knownIndel.getStart() - leftmostIndex + 1;
             Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel);
             if ( c != null )
@@ -1088,11 +1088,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( indexOnRef > 0 )
             cigar.add(new CigarElement(indexOnRef, CigarOperator.M));
 
-        if ( indel.isDeletion() ) {
+        if ( indel.isSimpleDeletion() ) {
             refIdx += indelStr.length;
             cigar.add(new CigarElement(indelStr.length, CigarOperator.D));
         }
-        else if ( indel.isInsertion() ) {
+        else if ( indel.isSimpleInsertion() ) {
             for ( byte b : indelStr )
                 sb.append((char)b);
             cigar.add(new CigarElement(indelStr.length, CigarOperator.I));

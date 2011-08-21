@@ -146,8 +146,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
         Assert.assertTrue(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
-        Assert.assertFalse(vc.isInsertion());
-        Assert.assertFalse(vc.isDeletion());
+        Assert.assertFalse(vc.isSimpleInsertion());
+        Assert.assertFalse(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -173,8 +173,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(VariantContext.Type.NO_VARIATION, vc.getType());
         Assert.assertFalse(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
-        Assert.assertFalse(vc.isInsertion());
-        Assert.assertFalse(vc.isDeletion());
+        Assert.assertFalse(vc.isSimpleInsertion());
+        Assert.assertFalse(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertFalse(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 1);
@@ -199,8 +199,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
         Assert.assertFalse(vc.isSNP());
         Assert.assertTrue(vc.isIndel());
-        Assert.assertFalse(vc.isInsertion());
-        Assert.assertTrue(vc.isDeletion());
+        Assert.assertFalse(vc.isSimpleInsertion());
+        Assert.assertTrue(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -226,8 +226,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
         Assert.assertFalse(vc.isSNP());
         Assert.assertTrue(vc.isIndel());
-        Assert.assertTrue(vc.isInsertion());
-        Assert.assertFalse(vc.isDeletion());
+        Assert.assertTrue(vc.isSimpleInsertion());
+        Assert.assertFalse(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -433,7 +433,7 @@ public class VariantContextUnitTest {
         Assert.assertFalse(vc14.isBiallelic());
 
         Assert.assertTrue(vc5.isIndel());
-        Assert.assertTrue(vc5.isDeletion());
+        Assert.assertTrue(vc5.isSimpleDeletion());
         Assert.assertTrue(vc5.isVariant());
         Assert.assertTrue(vc5.isBiallelic());
 
