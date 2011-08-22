@@ -84,12 +84,6 @@ class DataProcessingPipeline extends QScript {
   var nContigs: Int = 0               // Use the number of contigs for scatter gathering jobs
   var cleanModelEnum: ConsensusDeterminationModel = ConsensusDeterminationModel.USE_READS
 
-  if (cleaningModel == "KNOWNS_ONLY")  {
-    cleanModelEnum = ConsensusDeterminationModel.KNOWNS_ONLY
-  }
-  else if (cleaningModel == "USE_SW") {
-    cleanModelEnum = ConsensusDeterminationModel.USE_SW
-  }
 
 
 
@@ -200,6 +194,15 @@ class DataProcessingPipeline extends QScript {
     return realignedBams
   }
 
+  def getIndelCleaningModel(): ConsensusDeterminationModel = {
+    if (cleaningModel == "KNOWNS_ONLY")
+      ConsensusDeterminationModel.KNOWNS_ONLY
+    else if (cleaningModel == "USE_SW")
+      ConsensusDeterminationModel.USE_SW
+    else
+      ConsensusDeterminationModel.USE_READS
+  }
+
 
   /****************************************************************************
   * Main script
@@ -207,6 +210,8 @@ class DataProcessingPipeline extends QScript {
 
 
   def script = {
+
+    cleanModelEnum = getIndelCleaningModel()
 
     // keep a record of the number of contigs in the first bam file in the list
     val bams = QScriptUtils.createListFromFile(input)
@@ -300,13 +305,13 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class target (inBams: File, outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
-    if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
+    if (cleanModelEnum != ConsensusDeterminationModel.KNOWNS_ONLY)
       this.input_file :+= inBams
     this.out = outIntervals
     this.mismatchFraction = 0.0
-    this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
+    this.known :+= qscript.dbSNP
     if (indels != null)
-      this.rodBind :+= RodBind("indels", "VCF", indels)
+      this.known :+= qscript.indels
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -317,10 +322,10 @@ class DataProcessingPipeline extends QScript {
     this.input_file :+= inBams
     this.targetIntervals = tIntervals
     this.out = outBam
-    this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
+    this.known :+= qscript.dbSNP
     if (qscript.indels != null)
-      this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
-    this.consensusDeterminationModel =  consensusDeterminationModel
+      this.known :+= qscript.indels
+    this.consensusDeterminationModel = cleanModelEnum
     this.compress = 0
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
@@ -328,7 +333,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
+    this.knownSites :+= qscript.dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
@@ -372,6 +377,7 @@ class DataProcessingPipeline extends QScript {
     this.input = List(inBam)
     this.output = outBam
     this.metrics = metricsFile
+    this.memoryLimit = 16
     this.analysisName = queueLogDir + outBam + ".dedup"
     this.jobName = queueLogDir + outBam + ".dedup"
   }
