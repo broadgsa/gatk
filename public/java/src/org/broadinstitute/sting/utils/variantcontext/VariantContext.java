@@ -823,7 +823,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     private void loadGenotypes() {
         if ( !hasAttribute(UNPARSED_GENOTYPE_MAP_KEY) ) {
-            genotypes = NO_GENOTYPES;
+            if ( genotypes == null )
+                genotypes = NO_GENOTYPES;
             return;
         }
 
