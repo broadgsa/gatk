@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.extensions.picard
 import org.broadinstitute.sting.commandline._
 
 import java.io.File
+import org.broadinstitute.sting.queue.QScript._
 
 /*
  * Created by IntelliJ IDEA.
@@ -21,7 +22,15 @@ class SortSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFun
   var output: File = _
 
   @Output(doc="The output bam index", shortName = "out_index", fullName = "output_bam_index_file", required = false)
-  var outputIndex: File = new File(output + ".bai")
+  var outputIndex: File = _
+
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
+    if (outputIndex == null && output != null)
+      outputIndex = new File(output.getName.stripSuffix(".bam") + ".bai")
+  }
+
+
 
   override def inputBams = input
   override def outputBam = output

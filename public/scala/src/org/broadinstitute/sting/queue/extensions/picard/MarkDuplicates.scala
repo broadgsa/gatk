@@ -21,7 +21,7 @@ class MarkDuplicates extends org.broadinstitute.sting.queue.function.JavaCommand
   var output: File = _
 
   @Output(doc="The output bam index", shortName = "out_index", fullName = "output_bam_index_file", required = false)
-  var outputIndex: File = new File(output + ".bai")
+  var outputIndex: File = _
 
   @Output(doc="File to write duplication metrics to", shortName = "out_metrics", fullName = "output_metrics_file", required = false)
   var metrics: File = new File(output + ".metrics")
@@ -34,6 +34,13 @@ class MarkDuplicates extends org.broadinstitute.sting.queue.function.JavaCommand
 
   @Argument(doc = "This number, plus the maximum RAM available to the JVM, determine the memory footprint used by some of the sorting collections.  If you are running out of memory, try reducing this number.", shortName = "sorting_ratio", fullName = "sorting_collection_size_ratio", required = false)
   var SORTING_COLLECTION_SIZE_RATIO: Double = -1
+
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
+    if (outputIndex == null && output != null)
+      outputIndex = new File(output.getName.stripSuffix(".bam") + ".bai")
+  }
+
 
   override def inputBams = input
   override def outputBam = output
