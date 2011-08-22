@@ -218,7 +218,6 @@ class DataProcessingPipeline extends QScript {
     return revertedBAM
   }
 
-
   /****************************************************************************
   * Main script
   ****************************************************************************/
@@ -271,13 +270,12 @@ class DataProcessingPipeline extends QScript {
       val postValidateLog = swapExt(bam, ".bam", ".post.validation")
 
 
-      //todo -- update the validation to work with .list files
       // Validation is an optional step for the BAM file generated after
       // alignment and the final bam file of the pipeline.
-//      if (!noValidation) {
-//        add(validate(bam, preValidateLog),
-//            validate(recalBam, postValidateLog))
-//      }
+      if (!noValidation && sampleFile.endsWith(".bam")) {        // todo -- implement validation for .list BAM files
+        add(validate(sampleFile, preValidateLog),
+            validate(recalBam, postValidateLog))
+      }
 
       if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
         add(target(sampleFile, targetIntervals))
@@ -390,7 +388,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates with ExternalCommonArgs {
-    this.input = List(inBam)
+    this.input :+= inBam
     this.output = outBam
     this.metrics = metricsFile
     this.memoryLimit = 16
@@ -406,7 +404,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class sortSam (inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam with ExternalCommonArgs {
-    this.input = List(inSam)
+    this.input :+= inSam
     this.output = outBam
     this.sortOrder = sortOrderP
     this.analysisName = queueLogDir + outBam + ".sortSam"
@@ -414,7 +412,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class validate (inBam: File, outLog: File) extends ValidateSamFile with ExternalCommonArgs {
-    this.input = List(inBam)
+    this.input :+= inBam
     this.output = outLog
     this.REFERENCE_SEQUENCE = qscript.reference
     this.isIntermediate = false
@@ -424,8 +422,7 @@ class DataProcessingPipeline extends QScript {
 
 
   case class addReadGroup (inBam: File, outBam: File, readGroup: ReadGroup) extends AddOrReplaceReadGroups with ExternalCommonArgs {
-    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
-    this.input = List(inBam)
+    this.input :+= inBam
     this.output = outBam
     this.RGID = readGroup.id
     this.RGCN = readGroup.cn

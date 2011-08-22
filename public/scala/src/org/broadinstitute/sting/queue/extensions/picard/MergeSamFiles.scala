@@ -16,7 +16,7 @@ class MergeSamFiles extends org.broadinstitute.sting.queue.function.JavaCommandL
   javaMainClass = "net.sf.picard.sam.MergeSamFiles"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
-  var input: List[File] = _
+  var input: List[File] = Nil
 
   @Output(doc="The output merged BAM file", shortName = "output", fullName = "output_bam_file", required = true)
   var output: File = _

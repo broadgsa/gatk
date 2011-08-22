@@ -15,7 +15,7 @@ class MarkDuplicates extends org.broadinstitute.sting.queue.function.JavaCommand
   javaMainClass = "net.sf.picard.sam.MarkDuplicates"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
-  var input: List[File] = _
+  var input: List[File] = Nil
 
   @Output(doc="The output file to write marked records to", shortName = "output", fullName = "output_bam_file", required = true)
   var output: File = _

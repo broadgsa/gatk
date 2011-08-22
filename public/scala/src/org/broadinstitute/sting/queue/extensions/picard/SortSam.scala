@@ -16,7 +16,7 @@ class SortSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFun
   javaMainClass = "net.sf.picard.sam.SortSam"
 
   @Input(doc="The input SAM or BAM files to sort.", shortName = "input", fullName = "input_bam_files", required = true)
-  var input: List[File] = _
+  var input: List[File] = Nil
 
   @Output(doc="The sorted BAM or SAM output file.", shortName = "output", fullName = "output_bam_file", required = true)
   var output: File = _
