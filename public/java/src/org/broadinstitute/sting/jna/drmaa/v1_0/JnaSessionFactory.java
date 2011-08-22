@@ -22,11 +22,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.gridengine
+package org.broadinstitute.sting.jna.drmaa.v1_0;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.drmaa.DrmaaJobManager
+import org.ggf.drmaa.Session;
+import org.ggf.drmaa.SessionFactory;
 
-class GridEngineJobManager extends DrmaaJobManager {
-  override def create(function: CommandLineFunction) = new GridEngineJobRunner(session, function)
+/**
+ * JNA mapping from Java to C DRMAA binding.
+ */
+@SuppressWarnings("unused")
+public class JnaSessionFactory extends SessionFactory {
+    @Override
+    public Session getSession() {
+        return new JnaSession();
+    }
 }

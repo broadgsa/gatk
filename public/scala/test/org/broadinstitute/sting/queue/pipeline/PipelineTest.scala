@@ -43,12 +43,14 @@ object PipelineTest extends BaseTest with Logging {
 
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
 
-  val run = System.getProperty("pipeline.run") == "run"
+  final val run = System.getProperty("pipeline.run") == "run"
 
-  private val jobRunners = {
+  final val allJobRunners = {
     val commandLinePluginManager = new CommandLinePluginManager
-    commandLinePluginManager.getPlugins.map(commandLinePluginManager.getName(_)).filterNot(_ == "Shell")
+    commandLinePluginManager.getPlugins.map(commandLinePluginManager.getName(_)).toList
   }
+
+  final val defaultJobRunners = List("Lsf706", "GridEngine")
 
   /**
    * Returns the top level output path to this test.
@@ -79,9 +81,12 @@ object PipelineTest extends BaseTest with Logging {
    * @param pipelineTest test to run.
    */
   def executeTest(pipelineTest: PipelineTestSpec) {
+    var jobRunners = pipelineTest.jobRunners
+    if (jobRunners == null)
+      jobRunners = defaultJobRunners;
     jobRunners.foreach(executeTest(pipelineTest, _))
   }
-  
+
   /**
    * Runs the pipelineTest.
    * @param pipelineTest test to run.

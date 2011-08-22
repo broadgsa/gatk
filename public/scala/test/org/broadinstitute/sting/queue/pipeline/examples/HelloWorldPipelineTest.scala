@@ -33,6 +33,7 @@ class HelloWorldPipelineTest {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorld"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala"
+    spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
 
@@ -40,23 +41,89 @@ class HelloWorldPipelineTest {
   def testHelloWorldWithPrefix() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPrefix"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPrefix HelloWorld"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -jobPrefix HelloWorld"
+    spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
 
   @Test
   def testHelloWorldWithMemoryLimit() {
     val spec = new PipelineTestSpec
-    spec.name = "HelloWorldWithPrefix"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -memLimit 1.25"
+    spec.name = "HelloWorldMemoryLimit"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -memLimit 1.25"
+    spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
 
-  @Test(enabled=false)
+  @Test
   def testHelloWorldWithPriority() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPriority"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPriority 100"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -jobPriority 100"
+    spec.jobRunners = PipelineTest.allJobRunners
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testHelloWorldWithLsfResource() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithLsfResource"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -jobResReq rusage[iodine_io=1] -jobResReq select[swp>0] -jobResReq order[swp]"
+    spec.jobRunners = List("Lsf706")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testHelloWorldWithLsfResourceAndMemoryLimit() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithLsfResourceAndMemoryLimit"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -memLimit 1.25 -jobResReq rusage[iodine_io=1] -jobResReq select[swp>0] -jobResReq order[swp]"
+    spec.jobRunners = List("Lsf706")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testHelloWorldWithLsfEnvironment() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithLsfEnvironment"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -jobEnv tv"
+    spec.jobRunners = List("Lsf706")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testHelloWorldWithGridEngineResource() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithGridEngineResource"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -jobResReq s_core=1000M"
+    spec.jobRunners = List("GridEngine")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testHelloWorldWithGridEngineResourceAndMemoryLimit() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithGridEngineResourceAndMemoryLimit"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -memLimit 1.25 -jobResReq s_core=1000M"
+    spec.jobRunners = List("GridEngine")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testHelloWorldWithGridEngineEnvironment() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithGridEngineEnvironment"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -jobEnv \"make 1\""
+    spec.jobRunners = List("GridEngine")
     PipelineTest.executeTest(spec)
   }
 }
