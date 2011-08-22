@@ -374,7 +374,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
                         if ( featureDescriptor != null ) {
                             tribbleType = featureDescriptor.getName();
-                            logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
+                            logger.info("Dynamically determined type of " + file + " to be " + tribbleType);
                         }
                     }
 
