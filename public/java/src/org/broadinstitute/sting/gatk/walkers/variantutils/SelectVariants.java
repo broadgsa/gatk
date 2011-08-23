@@ -341,7 +341,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         // first, add any requested samples
         samples.addAll(samplesFromFile);
         samples.addAll(samplesFromExpressions);
-        if (sampleNames != null)
         samples.addAll(sampleNames);
 
         // if none were requested, we want all of them
