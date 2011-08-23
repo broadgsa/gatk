@@ -65,10 +65,53 @@ import java.util.*;
 
 /**
  * Performs local realignment of reads based on misalignments due to the presence of indels.
- * Unlike most mappers, this walker uses the full alignment context to determine whether an
- * appropriate alternate reference (i.e. indel) exists and updates SAMRecords accordingly.
+ *
+ * <p>
+ * The local realignment tool is designed to consume one or more BAM files and to locally realign reads such that the number of mismatching bases
+ * is minimized across all the reads. In general, a large percent of regions requiring local realignment are due to the presence of an insertion
+ * or deletion (indels) in the individual's genome with respect to the reference genome.  Such alignment artifacts result in many bases mismatching
+ * the reference near the misalignment, which are easily mistaken as SNPs.  Moreover, since read mapping algorithms operate on each read independently,
+ * it is impossible to place reads on the reference genome such at mismatches are minimized across all reads.  Consequently, even when some reads are
+ * correctly mapped with indels, reads covering the indel near just the start or end of the read are often incorrectly mapped with respect the true indel,
+ * also requiring realignment.  Local realignment serves to transform regions with misalignments due to indels into clean reads containing a consensus
+ * indel suitable for standard variant discovery approaches.  Unlike most mappers, this walker uses the full alignment context to determine whether an
+ * appropriate alternate reference (i.e. indel) exists.  Following local realignment, the GATK tool Unified Genotyper can be used to sensitively and
+ * specifically identify indels.
+ * <p>
+ *     <ol>There are 2 steps to the realignment process:
+ *     <li>Determining (small) suspicious intervals which are likely in need of realignment (see the RealignerTargetCreator tool)</li>
+ *     <li>Running the realigner over those intervals (IndelRealigner)</li>
+ *     </ol>
+ *     <p>
+ * An important note: the input bam(s), reference, and known indel file(s) should be the same ones used for the RealignerTargetCreator step.
+ * <p>
+ * Another important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
+ * (or with reads from similar technologies).
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more aligned BAM files and optionally one or more lists of known indels.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A realigned version of your input BAM file(s).
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx4g -jar GenomeAnalysisTK.jar \
+ *   -I input.bam \
+ *   -R ref.fasta \
+ *   -T IndelRealigner \
+ *   -targetIntervals intervalListFromRTC.intervals \
+ *   -o realignedBam.bam \
+ *   [--known /path/to/indels.vcf] \
+ *   [-compress 0]    (this argument recommended to speed up the process *if* this is only a temporary file; otherwise, use the default value)
+ * </pre>
+ *
+ * @author ebanks
  */
-//Reference(window=@Window(start=-30,stop=30))
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
@@ -77,88 +120,145 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     public static final String PROGRAM_RECORD_NAME = "GATK IndelRealigner";
 
     public enum ConsensusDeterminationModel {
+        /**
+         * Uses only indels from a provided ROD of known indels.
+         */
         KNOWNS_ONLY,
+        /**
+         * Additionally uses indels already present in the original alignments of the reads.
+         */
         USE_READS,
+        /**
+         * Additionally uses 'Smith-Waterman' to generate alternate consenses.
+         */
         USE_SW
     }
 
-    @Input(fullName="known", shortName = "known", doc="Input VCF file with known indels", required=false)
+    /**
+     * Any number of VCF files representing known indels to be used for constructing alternate consenses.
+     * Could be e.g. dbSNP and/or official 1000 Genomes indel calls.  Non-indel variants in these files will be ignored.
+     */
+    @Input(fullName="known", shortName = "known", doc="Input VCF file(s) with known indels", required=false)
     public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
+    /**
+     * The interval list output from the RealignerTargetCreator tool using the same bam(s), reference, and known indel file(s).
+     */
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
 
+    /**
+     * This term is equivalent to "significance" - i.e. is the improvement significant enough to merit realignment? Note that this number
+     * should be adjusted based on your particular data set. For low coverage and/or when looking for indels with low allele frequency,
+     * this number should be smaller.
+     */
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     protected double LOD_THRESHOLD = 5.0;
 
-    @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
-    protected double MISMATCH_THRESHOLD = 0.15;
-
+    /**
+     * The realigned bam file.
+     */
     @Output(required=false, doc="Output bam")
     protected StingSAMFileWriter writer = null;
     protected ConstrainedMateFixingManager manager = null;
     protected SAMFileWriter writerToUse = null;
 
-    @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "How should we determine the possible alternate consenses? -- in the order of least permissive to most permissive there is KNOWNS_ONLY (use only indels from known indels provided in RODs), USE_READS (additionally use indels already present in the original alignments of the reads), and USE_SW (additionally use 'Smith-Waterman' to generate alternate consenses).  The default is USE_READS", required = false)
+    /**
+     * We recommend that users run with USE_READS when trying to realign high quality longer read data mapped with a gapped aligner;
+     * Smith-Waterman is really only necessary when using an ungapped aligner (e.g. MAQ in the case of single-end read data).
+     */
+    @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "Determines how to compute the possible alternate consenses", required = false)
     public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_READS;
 
 
     // ADVANCED OPTIONS FOLLOW
 
-    @Argument(fullName="maxReadsInMemory", shortName="maxInMemory", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
-                "Keep it low to minimize memory consumption (but the tool may skip realignment on regions with too much coverage.  If it is too low, it may generate errors during realignment); keep it high to maximize realignment (but make sure to give Java enough memory).", required=false)
+    /**
+     * For expert users only!  This is similar to the argument in the RealignerTargetCreator walker. The point here is that the realigner
+     * will only proceed with the realignment (even above the given threshold) if it minimizes entropy among the reads (and doesn't simply
+     * push the mismatch column to another position). This parameter is just a heuristic and should be adjusted based on your particular data set.
+     */
+    @Advanced
+    @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
+    protected double MISMATCH_THRESHOLD = 0.15;
+
+    /**
+     * For expert users only!  To minimize memory consumption you can lower this number (but then the tool may skip realignment on regions with too much coverage;
+     * and if the number is too low, it may generate errors during realignment). Just make sure to give Java enough memory! 4Gb should be enough with the default value.
+     */
+    @Advanced
+    @Argument(fullName="maxReadsInMemory", shortName="maxInMemory", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter", required=false)
     protected int MAX_RECORDS_IN_MEMORY = 150000;
 
+    /**
+     * For expert users only!
+     */
+    @Advanced
     @Argument(fullName="maxIsizeForMovement", shortName="maxIsize", doc="maximum insert size of read pairs that we attempt to realign", required=false)
     protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
 
+    /**
+     * For expert users only!
+     */
+    @Advanced
     @Argument(fullName="maxPositionalMoveAllowed", shortName="maxPosMove", doc="maximum positional move in basepairs that a read can be adjusted during realignment", required=false)
     protected int MAX_POS_MOVE_ALLOWED = 200;
 
+    /**
+     * For expert users only!  If you need to find the optimal solution regardless of running time, use a higher number.
+     */
+    @Advanced
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_CONSENSUSES = 30;
 
+    /**
+     * For expert users only!  If you need to find the optimal solution regardless of running time, use a higher number.
+     */
+    @Advanced
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_READS_FOR_CONSENSUSES = 120;
 
-    @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment; "+
-                       "if this value is exceeded, realignment is not attempted and the reads are passed to the output file(s) as-is", required=false)
+    /**
+     * For expert users only!  If this value is exceeded at a given interval, realignment is not attempted and the reads are passed to the output file(s) as-is.
+     * If you need to allow more reads (e.g. with very deep coverage) regardless of memory, use a higher number.
+     */
+    @Advanced
+    @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment", required=false)
     protected int MAX_READS = 20000;
 
-    @Argument(fullName="noPGTag", shortName="noPG", required=false,
-            doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. "+
-                "This option is required in order to pass integration tests.")
-    protected boolean NO_PG_TAG = false;
-
-    @Argument(fullName="noOriginalAlignmentTags", shortName="noTags", required=false,
-            doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam.")
+    @Advanced
+    @Argument(fullName="noOriginalAlignmentTags", shortName="noTags", required=false, doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam")
     protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
-    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false,
-            doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, "+
-                "it will throw an exception.  Use this argument when your interval list is not sorted to instruct "+"" +
-                "the Realigner to first sort it in memory.")
+    /**
+     * For expert users only!  This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.
+     * Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.
+     */
+    @Advanced
+    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="The target intervals are not sorted")
     protected boolean TARGET_NOT_SORTED = false;
 
-    //NWay output: testing, not ready for the prime time, hence hidden:
-
-    @Hidden
-    @Argument(fullName="nWayOut", shortName="nWayOut", required=false,
-            doc="Generate one output file for each input (-I) bam file. Reads from all input files "+
-                "will be realigned together, but then each read will be saved in the output file corresponding to "+
-                "the input file the read came from. There are two ways to generate output bam file names: 1) if the "+
-                "value of this argument is a general string (e.g. '.cleaned.bam'), then "+
-                "extensions (\".bam\" or \".sam\") will be stripped from the input file names and the provided string value "+
-                "will be pasted on instead; 2) if the value ends with a '.map' (e.g. input_output.map), then  " +
-                "the two-column tab-separated file with the specified name must exist and list unique output file name (2nd column)" +
-                "for each input file name (1st column).")
+    /**
+     * Reads from all input files will be realigned together, but then each read will be saved in the output file corresponding to the input file that
+     * the read came from. There are two ways to generate output bam file names: 1) if the value of this argument is a general string (e.g. '.cleaned.bam'),
+     * then extensions (".bam" or ".sam") will be stripped from the input file names and the provided string value will be pasted on instead; 2) if the
+     * value ends with a '.map' (e.g. input_output.map), then the two-column tab-separated file with the specified name must exist and list unique output
+     * file name (2nd column) for each input file name (1st column).
+     */
+    @Argument(fullName="nWayOut", shortName="nWayOut", required=false, doc="Generate one output file for each input (-I) bam file")
     protected String N_WAY_OUT = null;
+
+
+    // DEBUGGING OPTIONS FOLLOW
+
     @Hidden
     @Argument(fullName="check_early",shortName="check_early",required=false,doc="Do early check of reads against existing consensuses")
     protected boolean CHECKEARLY = false;
 
-
-    // DEBUGGING OPTIONS FOLLOW
+    @Hidden
+    @Argument(fullName="noPGTag", shortName="noPG", required=false,
+            doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY.  This option is required in order to pass integration tests.")
+    protected boolean NO_PG_TAG = false;
 
     @Hidden
     @Output(fullName="indelsFileForDebugging", shortName="indels", required=false, doc="Output file (text) for the indels found; FOR DEBUGGING PURPOSES ONLY")
@@ -786,7 +886,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         for ( VariantContext knownIndel : knownIndelsToTry ) {
             if ( knownIndel == null || !knownIndel.isIndel() || knownIndel.isComplexIndel() )
                 continue;
-            byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
+            byte[] indelStr = knownIndel.isSimpleInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
             int start = knownIndel.getStart() - leftmostIndex + 1;
             Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel);
             if ( c != null )
@@ -988,11 +1088,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( indexOnRef > 0 )
             cigar.add(new CigarElement(indexOnRef, CigarOperator.M));
 
-        if ( indel.isDeletion() ) {
+        if ( indel.isSimpleDeletion() ) {
             refIdx += indelStr.length;
             cigar.add(new CigarElement(indelStr.length, CigarOperator.D));
         }
-        else if ( indel.isInsertion() ) {
+        else if ( indel.isSimpleInsertion() ) {
             for ( byte b : indelStr )
                 sb.append((char)b);
             cigar.add(new CigarElement(indelStr.length, CigarOperator.I));

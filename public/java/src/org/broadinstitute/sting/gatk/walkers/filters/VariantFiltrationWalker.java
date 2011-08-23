@@ -45,6 +45,34 @@ import java.util.*;
 
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
+ *
+ * <p>
+ * VariantFiltration is a GATK tool for hard-filtering variant calls based on certain criteria.
+ * Records are hard-filtered by changing the value in the FILTER field to something other than PASS.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant set to filter.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A filtered VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantFiltration \
+ *   -o output.vcf \
+ *   --variant input.vcf \
+ *   --filterExpression "AB < 0.2 || MQ0 > 50" \
+ *   --filterName "Nov09filters" \
+ *   --mask mask.vcf \
+ *   --maskName InDel
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
@@ -52,33 +80,65 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
+    /**
+     * Any variant which overlaps entries from the provided mask rod will be filtered.
+     */
     @Input(fullName="mask", doc="Input ROD mask", required=false)
     public RodBinding<Feature> mask;
 
     @Output(doc="File to which variants should be written", required=true)
     protected VCFWriter writer = null;
 
-    @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
+    /**
+     * VariantFiltration accepts any number of JEXL expressions (so you can have two named filters by using
+     * --filterName One --filterExpression "X < 1" --filterName Two --filterExpression "X > 2").
+     */
+    @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter", required=false)
     protected ArrayList<String> FILTER_EXPS = new ArrayList<String>();
-    @Argument(fullName="filterName", shortName="filterName", doc="Names to use for the list of filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
+
+    /**
+     * This name is put in the FILTER field for variants that get filtered.  Note that there must be a 1-to-1 mapping between filter expressions and filter names.
+     */
+    @Argument(fullName="filterName", shortName="filterName", doc="Names to use for the list of filters", required=false)
     protected ArrayList<String> FILTER_NAMES = new ArrayList<String>();
 
+    /**
+     * Similar to the INFO field based expressions, but used on the FORMAT (genotype) fields instead.
+     * VariantFiltration will add the sample-level FT tag to the FORMAT field of filtered samples (this does not affect the record's FILTER tag).
+     * One can filter normally based on most fields (e.g. "GQ < 5.0"), but the GT (genotype) field is an exception. We have put in convenience
+     * methods so that one can now filter out hets ("isHet == 1"), refs ("isHomRef == 1"), or homs ("isHomVar == 1").
+     */
     @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see wiki docs for more info)", required=false)
     protected ArrayList<String> GENOTYPE_FILTER_EXPS = new ArrayList<String>();
+
+    /**
+     * Similar to the INFO field based expressions, but used on the FORMAT (genotype) fields instead.
+     */
     @Argument(fullName="genotypeFilterName", shortName="G_filterName", doc="Names to use for the list of sample/genotype filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
     protected ArrayList<String> GENOTYPE_FILTER_NAMES = new ArrayList<String>();
 
-    @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster (see also --clusterWindowSize); [default:3]", required=false)
+    /**
+     * Works together with the --clusterWindowSize argument.
+     */
+    @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster", required=false)
     protected Integer clusterSize = 3;
-    @Argument(fullName="clusterWindowSize", shortName="window", doc="The window size (in bases) in which to evaluate clustered SNPs (to disable the clustered SNP filter, set this value to less than 1); [default:0]", required=false)
+
+    /**
+     * Works together with the --clusterSize argument.  To disable the clustered SNP filter, set this value to less than 1.
+     */
+    @Argument(fullName="clusterWindowSize", shortName="window", doc="The window size (in bases) in which to evaluate clustered SNPs", required=false)
     protected Integer clusterWindow = 0;
 
-    @Argument(fullName="maskExtension", shortName="maskExtend", doc="How many bases beyond records from a provided 'mask' rod should variants be filtered; [default:0]", required=false)
+    @Argument(fullName="maskExtension", shortName="maskExtend", doc="How many bases beyond records from a provided 'mask' rod should variants be filtered", required=false)
     protected Integer MASK_EXTEND = 0;
-    @Argument(fullName="maskName", shortName="maskName", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
+    @Argument(fullName="maskName", shortName="maskName", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call", required=false)
     protected String MASK_NAME = "Mask";
 
-    @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, should missing values be considered failing the expression (by default they are considered passing)?", required=false)
+    /**
+     * By default, if JEXL cannot evaluate your expression for a particular record because one of the annotations is not present, the whole expression evaluates as PASSing.
+     * Use this argument to have it evaluate as failing filters instead for these cases.
+     */
+    @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, missing values should be considered failing the expression", required=false)
     protected Boolean FAIL_MISSING_VALUES = false;
 
     // JEXL expressions for the filters

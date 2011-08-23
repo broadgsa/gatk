@@ -14,10 +14,9 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 
 public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser, SelfScopingFeatureCodec {
@@ -155,8 +154,44 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
-        return reallyDecode(line);
+        String[] locParts = new String[6];
+        ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+
+        // get our alleles (because the end position depends on them)
+        String ref = getCachedString(locParts[3].toUpperCase());
+        String alts = getCachedString(locParts[4].toUpperCase());
+        List<Allele> alleles = parseAlleles(ref, alts, lineNo);
+
+        // find out our location
+        int start = Integer.valueOf(locParts[1]);
+        int stop = start;
+
+        // ref alleles don't need to be single bases for monomorphic sites
+        if ( alleles.size() == 1 ) {
+            stop = start + alleles.get(0).length() - 1;
+        } else if ( !isSingleNucleotideEvent(alleles) ) {
+            stop = clipAlleles(start, ref, alleles, null, lineNo);
+        }
+
+        return new VCFLocFeature(locParts[0], start, stop);
     }
+
+    private final static class VCFLocFeature implements Feature {
+
+        final String chr;
+        final int start, stop;
+
+        private VCFLocFeature(String chr, int start, int stop) {
+            this.chr = chr;
+            this.start = start;
+            this.stop = stop;
+        }
+
+        public String getChr() { return chr; }
+        public int getStart() { return start; }
+        public int getEnd() { return stop; }
+    }
+
 
     /**
      * decode the line into a feature (VariantContext)
@@ -208,7 +243,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
         // parse out the required fields
         String contig = getCachedString(parts[0]);
-        long pos = Long.valueOf(parts[1]);
+        int pos = Integer.valueOf(parts[1]);
         String id = null;
         if ( parts[2].length() == 0 )
             generateException("The VCF specification requires a valid ID field");
@@ -228,7 +263,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         Map<String, Object> attributes = parseInfo(info, id);
 
         // find out our current location, and clip the alleles down to their minimum length
-        long loc = pos;
+        int loc = pos;
         // ref alleles don't need to be single bases for monomorphic sites
         if ( alleles.size() == 1 ) {
             loc = pos + alleles.get(0).length() - 1;
@@ -263,7 +298,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      *
      * @return the type of record
      */
-    public Class getFeatureType() {
+    public Class<VariantContext> getFeatureType() {
         return VariantContext.class;
     }
 
@@ -507,9 +542,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @param ref the reference string
      * @param unclippedAlleles the list of unclipped alleles
      * @param clippedAlleles output list of clipped alleles
-     * @return a list of alleles, clipped to the reference
+     * @return the new reference end position of this event
      */
-    protected static long clipAlleles(long position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
+    protected static int clipAlleles(int position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
 
         // Note that the computation of forward clipping here is meant only to see whether there is a common
         // base to all alleles, and to correctly compute reverse clipping,
@@ -535,11 +570,13 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             if (clipping) reverseClipped++;
         }
 
-        for (Allele a : unclippedAlleles) {
-            if (a.isSymbolic()) {
-                clippedAlleles.add(a);
-            } else {
-                clippedAlleles.add(Allele.create(Arrays.copyOfRange(a.getBases(),0,a.getBases().length-reverseClipped),a.isReference()));
+        if ( clippedAlleles != null ) {
+            for ( Allele a : unclippedAlleles ) {
+                if ( a.isSymbolic() ) {
+                    clippedAlleles.add(a);
+                } else {
+                    clippedAlleles.add(Allele.create(Arrays.copyOfRange(a.getBases(),0,a.getBases().length-reverseClipped),a.isReference()));
+                }
             }
         }
 
@@ -623,9 +660,21 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
     public final static boolean canDecodeFile(final File potentialInput, final String MAGIC_HEADER_LINE) {
         try {
-            char[] buff = new char[MAGIC_HEADER_LINE.length()];
-            new FileReader(potentialInput).read(buff, 0, MAGIC_HEADER_LINE.length());
+            return isVCFStream(new FileInputStream(potentialInput), MAGIC_HEADER_LINE) ||
+                    isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE);
+        } catch ( FileNotFoundException e ) {
+            return false;
+        } catch ( IOException e ) {
+            return false;
+        }
+    }
+
+    private final static boolean isVCFStream(final InputStream stream, final String MAGIC_HEADER_LINE) {
+        try {
+            byte[] buff = new byte[MAGIC_HEADER_LINE.length()];
+            stream.read(buff, 0, MAGIC_HEADER_LINE.length());
             String firstLine = new String(buff);
+            stream.close();
             return firstLine.startsWith(MAGIC_HEADER_LINE);
         } catch ( IOException e ) {
             return false;

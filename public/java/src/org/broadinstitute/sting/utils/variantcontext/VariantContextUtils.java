@@ -345,11 +345,33 @@ public class VariantContextUtils {
     }
 
     public enum GenotypeMergeType {
-        UNIQUIFY, PRIORITIZE, UNSORTED, REQUIRE_UNIQUE
+        /**
+         * Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
+         */
+        UNIQUIFY,
+        /**
+         * Take genotypes in priority order (see the priority argument).
+         */
+        PRIORITIZE,
+        /**
+         * Take the genotypes in any order.
+         */
+        UNSORTED,
+        /**
+         * Require that all samples/genotypes be unique between all inputs.
+         */
+        REQUIRE_UNIQUE
     }
 
     public enum FilteredRecordMergeType {
-        KEEP_IF_ANY_UNFILTERED, KEEP_IF_ALL_UNFILTERED
+        /**
+         * Union - leaves the record if any record is unfiltered.
+         */
+        KEEP_IF_ANY_UNFILTERED,
+        /**
+         * Requires all records present at site to be unfiltered. VCF files that don't contain the record don't influence this.
+         */
+        KEEP_IF_ALL_UNFILTERED
     }
 
     /**

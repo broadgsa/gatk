@@ -233,12 +233,14 @@ public class VariantDataManager {
     }
 
     public void parseTrainingSets( final RefMetaDataTracker tracker, final GenomeLoc genomeLoc, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC, final HashMap<String, Double> rodToPriorMap,
-                                   final List<RodBinding<VariantContext>> training, final List<RodBinding<VariantContext>> truth, final List<RodBinding<VariantContext>> known, final List<RodBinding<VariantContext>> badSites) {
+                                   final List<RodBinding<VariantContext>> training, final List<RodBinding<VariantContext>> truth, final List<RodBinding<VariantContext>> known, final List<RodBinding<VariantContext>> badSites, final List<RodBinding<VariantContext>> resource) {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
         datum.atAntiTrainingSite = false;
         datum.prior = 2.0;
+
+        //BUGBUG: need to clean this up
 
         for( final RodBinding<VariantContext> rod : training ) {
             for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
@@ -260,6 +262,13 @@ public class VariantDataManager {
             for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
                 if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
                     datum.isKnown = true;
+                    datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
+                }
+            }
+        }
+        for( final RodBinding<VariantContext> rod : resource ) {
+            for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
+                if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
                     datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
                 }
             }

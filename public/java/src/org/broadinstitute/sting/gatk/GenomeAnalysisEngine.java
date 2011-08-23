@@ -689,8 +689,6 @@ public class GenomeAnalysisEngine {
         validateSuppliedReads();
         readsDataSource = createReadsDataSource(argCollection,genomeLocParser,referenceDataSource.getReference());
 
-        sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
-
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
@@ -963,7 +961,7 @@ public class GenomeAnalysisEngine {
 
     /**
      * Get the list of intervals passed to the engine.
-     * @return List of intervals.
+     * @return List of intervals, or null if no intervals are in use
      */
     public GenomeLocSortedSet getIntervals() {
         return this.intervals;

@@ -10,7 +10,7 @@ import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
+import org.broadinstitute.sting.utils.codecs.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;

@@ -36,25 +36,66 @@ import java.util.*;
 
 /**
  * General-purpose tool for variant evaluation (% in dbSNP, genotype concordance, Ti/Tv ratios, and a lot more)
+ *
+ * <p>
+ * Given a variant callset, it is common to calculate various quality control metrics. These metrics include the number of
+ * raw or filtered SNP counts; ratio of transition mutations to transversions; concordance of a particular sample's calls
+ * to a genotyping chip; number of singletons per sample; etc. Furthermore, it is often useful to stratify these metrics
+ * by various criteria like functional class (missense, nonsense, silent), whether the site is CpG site, the amino acid
+ * degeneracy of the site, etc. VariantEval facilitates these calculations in two ways: by providing several built-in
+ * evaluation and stratification modules, and by providing a framework that permits the easy development of new evaluation
+ * and stratification modules.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more variant sets to evaluate plus any number of comparison sets.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Evaluation tables.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantEval \
+ *   -o output.eval.gatkreport \
+ *   --eval:set1 set1.vcf \
+ *   --eval:set2 set2.vcf \
+ *   [--comp comp.vcf]
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-50, stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
-    // Output arguments
+
     @Output
     protected PrintStream out;
 
+    /**
+     * The variant file(s) to evaluate.
+     */
     @Input(fullName="eval", shortName = "eval", doc="Input evaluation file(s)", required=true)
     public List<RodBinding<VariantContext>> evals;
 
+    /**
+     * The variant file(s) to compare against.
+     */
     @Input(fullName="comp", shortName = "comp", doc="Input comparison file(s)", required=false)
     public List<RodBinding<VariantContext>> compsProvided = Collections.emptyList();
     private List<RodBinding<VariantContext>> comps = new ArrayList<RodBinding<VariantContext>>();
 
+    /**
+     * dbSNP comparison VCF.  By default, the dbSNP file is used to specify the set of "known" variants.
+     * Other sets can be specified with the -knownName (--known_names) argument.
+     */
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     // Help arguments
-    @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit")
+    @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit", required=false)
     protected Boolean LIST = false;
 
     // Partitioning the data arguments
@@ -67,8 +108,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="sample", shortName="sn", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
     protected Set<String> SAMPLE_EXPRESSIONS;
 
+    /**
+     * List of rod tracks to be used for specifying "known" variants other than dbSNP.
+     */
     @Argument(shortName="knownName", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
-    protected String[] KNOWN_NAMES = {};
+    protected HashSet<String> KNOWN_NAMES = new HashSet<String>();
+    List<RodBinding<VariantContext>> knowns = new ArrayList<RodBinding<VariantContext>>();
 
     // Stratification arguments
     @Argument(fullName="stratificationModule", shortName="ST", doc="One or more specific stratification modules to apply to the eval track(s) (in addition to the standard stratifications, unless -noS is specified)", required=false)
@@ -80,7 +125,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
     protected Set<VariantContext.Type> typesToUse = null;
 
-    // Evaluator arguments
+    /**
+     * See the -list argument to view available modules.
+     */
     @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noE is specified)", required=false)
     protected String[] MODULES_TO_USE = {};
 
@@ -94,7 +141,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
 
-    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    /**
+     * This argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined.
+     */
+    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations", required=false)
     protected String FAMILY_STRUCTURE;
 
     @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
@@ -108,9 +158,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
-    private Set<String> compNames = new TreeSet<String>();
-    private Set<String> knownNames = new TreeSet<String>();
-    private Set<String> evalNames = new TreeSet<String>();
 
     private Set<String> sampleNamesForEvaluation = new TreeSet<String>();
     private Set<String> sampleNamesForStratification = new TreeSet<String>();
@@ -149,22 +196,23 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         comps.addAll(compsProvided);
         if ( dbsnp.dbsnp.isBound() ) {
             comps.add(dbsnp.dbsnp);
-            knownNames.add(dbsnp.dbsnp.getName());
+            knowns.add(dbsnp.dbsnp);
         }
 
         // Add a dummy comp track if none exists
         if ( comps.size() == 0 )
             comps.add(new RodBinding<VariantContext>(VariantContext.class, "none", "UNBOUND", "", new Tags()));
 
-        // Cache the rod names
-        for ( RodBinding<VariantContext> compRod : comps )
-            compNames.add(compRod.getName());
+        // Set up set of additional knowns
+        for ( RodBinding<VariantContext> compRod : comps ) {
+            if ( KNOWN_NAMES.contains(compRod.getName()) )
+                knowns.add(compRod);
+        }
 
+        // Collect the eval rod names
+        Set<String> evalNames = new TreeSet<String>();
         for ( RodBinding<VariantContext> evalRod : evals )
             evalNames.add(evalRod.getName());
-
-        // Set up set of additional known names
-        knownNames.addAll(Arrays.asList(KNOWN_NAMES));
 
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evalNames);
@@ -263,7 +311,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         // for each comp track
                         for ( final RodBinding<VariantContext> compRod : comps ) {
                             // no sample stratification for comps
-                            final Set<VariantContext> compSet = compVCs.get(compRod) == null ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
+                            final HashMap<String, Set<VariantContext>> compSetHash = compVCs.get(compRod);
+                            final Set<VariantContext> compSet = (compSetHash == null || compSetHash.size() == 0) ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
 
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
@@ -462,15 +511,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public static String getAllSampleName() { return ALL_SAMPLE_NAME; }
 
-    public Set<String> getKnownNames() { return knownNames; }
+    public List<RodBinding<VariantContext>> getKnowns() { return knowns; }
 
-    public Set<String> getEvalNames() { return evalNames; }
+    public List<RodBinding<VariantContext>> getEvals() { return evals; }
 
     public Set<String> getSampleNamesForEvaluation() { return sampleNamesForEvaluation; }
 
     public Set<String> getSampleNamesForStratification() { return sampleNamesForStratification; }
 
-    public Set<String> getCompNames() { return compNames; }
+    public List<RodBinding<VariantContext>> getComps() { return comps; }
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
 

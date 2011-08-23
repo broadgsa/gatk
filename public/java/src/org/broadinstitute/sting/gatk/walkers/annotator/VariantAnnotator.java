@@ -49,7 +49,34 @@ import java.util.*;
 
 
 /**
- * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
+ * Annotates variant calls with context information.
+ *
+ * <p>
+ * VariantAnnotator is a GATK tool for annotating variant calls based on their context.
+ * The tool is modular; new annotations can be written easily without modifying VariantAnnotator itself.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant set to annotate and optionally one or more BAM files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * An annotated VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantAnnotator \
+ *   -I input.bam \
+ *   -o output.vcf \
+ *   -A DepthOfCoverage
+ *   --variant input.vcf \
+ *   --dbsnp dbsnp.vcf
+ * </pre>
+ *
  */
 @Requires(value={})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
@@ -69,8 +96,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return snpEffFile; }
 
     /**
-      * A dbSNP VCF file from which to annotate.
-      *
       * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
       */
     @ArgumentCollection
@@ -101,15 +126,25 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
-    protected String sampleName = null;
-
+    /**
+     * See the -list argument to view available annotations.
+     */
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected List<String> annotationsToUse = new ArrayList<String>();
 
+    /**
+     * See the -list argument to view available groups.
+     */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected List<String> annotationGroupsToUse = new ArrayList<String>();
 
+    /**
+     * This option enables you to add annotations from one VCF to another.
+     *
+     * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
+     * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
+     * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+     */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
     protected List<String> expressionsToUse = new ArrayList<String>();
 
@@ -126,8 +161,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Hidden
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
-
-    private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
 
     private VariantAnnotatorEngine engine;
 
@@ -163,12 +196,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // get the list of all sample names from the variant VCF input rod, if applicable
         List<String> rodName = Arrays.asList(variantCollection.variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
-
-        // add the non-VCF sample from the command-line, if applicable
-        if ( sampleName != null  ) {
-            nonVCFsampleName.put(sampleName.toUpperCase(), "variant");
-            samples.add(sampleName.toUpperCase());
-        }
 
         // if there are no valid samples, warn the user
         if ( samples.size() == 0 ) {

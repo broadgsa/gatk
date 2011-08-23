@@ -3,11 +3,9 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Set;
 
 public abstract class VariantStratifier implements Comparable {
     private VariantEvalWalker variantEvalWalker;
@@ -27,7 +25,7 @@ public abstract class VariantStratifier implements Comparable {
         this.variantEvalWalker = variantEvalWalker;
     }
 
-    public abstract void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames);
+    public abstract void initialize();
 
     public ArrayList<String> getAllStates() {
         return new ArrayList<String>();

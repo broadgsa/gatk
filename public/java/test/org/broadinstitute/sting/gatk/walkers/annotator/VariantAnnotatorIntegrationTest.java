@@ -133,7 +133,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
             validationDataLocation + "1000G.exomes.vcf --snpEffFile  " + validationDataLocation +
             "snpEff_1.9.6_1000G.exomes.vcf_hg37.61.out -L 1:26,000,000-26,500,000",
             1,
-            Arrays.asList("c08648a078368c80530bff004b3157f1")
+            Arrays.asList("03eae1dab19a9358250890594bf53607")
         );
         executeTest("Testing SnpEff annotations", spec);
     }

@@ -38,12 +38,32 @@ import java.util.List;
 
 /**
  * Walks along reference and calculates the GC content for each interval.
+ *
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more BAM files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * GC content calculations per interval.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T GCContentByInterval \
+ *   -o output.txt \
+ *   -I input.bam \
+ *   -L input.intervals
+ * </pre>
+ *
  */
 @Allows(value = {DataSource.REFERENCE})
 @Requires(value = {DataSource.REFERENCE})
-
 @By(DataSource.REFERENCE)
-
 public class GCContentByIntervalWalker extends LocusWalker<Long, Long> {
     @Output
     protected PrintStream out;

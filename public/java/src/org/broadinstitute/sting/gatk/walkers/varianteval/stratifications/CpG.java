@@ -2,11 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Set;
 
 /**
  * CpG is a stratification module for VariantEval that divides the input data by within/not within a CpG site
@@ -24,7 +22,7 @@ public class CpG extends VariantStratifier {
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
+    public void initialize() {
         states = new ArrayList<String>();
         states.add("all");
         states.add("CpG");
@@ -40,7 +38,7 @@ public class CpG extends VariantStratifier {
         if (ref != null && ref.getBases() != null) {
             String fwRefBases = new String(ref.getBases());
 
-            String leftFlank = fwRefBases.substring((fwRefBases.length()/2) - 1, (fwRefBases.length()/2) + 1);
+            //String leftFlank = fwRefBases.substring((fwRefBases.length()/2) - 1, (fwRefBases.length()/2) + 1);
             String rightFlank = fwRefBases.substring((fwRefBases.length()/2), (fwRefBases.length()/2) + 2);
 
             //if (leftFlank.equalsIgnoreCase("CG") || leftFlank.equalsIgnoreCase("GC") || rightFlank.equalsIgnoreCase("CG") || rightFlank.equalsIgnoreCase("GC")) {

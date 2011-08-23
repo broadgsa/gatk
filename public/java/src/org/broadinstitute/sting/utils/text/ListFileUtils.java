@@ -156,12 +156,13 @@ public class ListFileUtils {
             FeatureManager.FeatureDescriptor descriptor = builderForValidation.getByTriplet(triplet);
             if ( descriptor == null )
                 throw new UserException.UnknownTribbleType(rodBinding.getTribbleType(),
-                        String.format("Field %s had provided type %s but there's no such Tribble type.  Available types are %s",
-                                rodBinding.getName(), rodBinding.getTribbleType(), builderForValidation.userFriendlyListOfAvailableFeatures()));
+                        String.format("Field %s had provided type %s but there's no such Tribble type.  The compatible types are: %n%s",
+                                rodBinding.getName(), rodBinding.getTribbleType(), builderForValidation.userFriendlyListOfAvailableFeatures(rodBinding.getType())));
             if ( ! rodBinding.getType().isAssignableFrom(descriptor.getFeatureClass()) )
                 throw new UserException.BadArgumentValue(rodBinding.getName(),
-                        String.format("Field %s expected type %s, but the type of the input file provided on the command line was %s. Please make sure that you have provided the correct file type and/or that you are not binding your rod to a name matching one of the available types.",
-                                rodBinding.getName(), rodBinding.getType(), descriptor.getName()));
+                        String.format("Field %s expects Features of type %s, but the input file produces Features of type %s. The compatible types are: %n%s",
+                                rodBinding.getName(), rodBinding.getType().getSimpleName(), descriptor.getSimpleFeatureName(),
+                                builderForValidation.userFriendlyListOfAvailableFeatures(rodBinding.getType())));
 
 
             rodBindings.add(triplet);

@@ -39,8 +39,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nInsertions = 0;
     @DataPoint(description = "Number of deletions")
     public long nDeletions = 0;
-    @DataPoint(description = "Number of complex loci")
+    @DataPoint(description = "Number of complex indels")
     public long nComplex = 0;
+    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)")
+    public long nMixed = 0;
 
 
     @DataPoint(description = "Number of no calls loci")
@@ -97,27 +99,35 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // This is really not correct.  What we really want here is a polymorphic vs. monomorphic count (i.e. on the Genotypes).
         // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
         // added in a proxy check for monomorphic status here.
-        if ( !vc1.isVariant() || (vc1.hasGenotypes() && vc1.getHomRefCount() == vc1.getNSamples()) ) {
+        // Protect against case when vc only as no-calls too - can happen if we strafity by sample and sample as a single no-call.
+       if ( !vc1.isVariant() || (vc1.hasGenotypes() &&  vc1.getHomRefCount() + vc1.getNoCallCount() == vc1.getNSamples()) ) {
             nRefLoci++;
         } else {
-            nVariantLoci++;
-            switch (vc1.getType()) {
+             switch (vc1.getType()) {
                 case NO_VARIATION:
                     break;
                 case SNP:
+                    nVariantLoci++;
                     nSNPs++;
                     if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
                     break;
                 case MNP:
+                    nVariantLoci++;
                     nMNPs++;
                     if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
                     break;
                 case INDEL:
-                    if (vc1.isInsertion()) nInsertions++;
-                    else nDeletions++;
+                    nVariantLoci++;
+                    if (vc1.isSimpleInsertion())
+                        nInsertions++;
+                    else if (vc1.isSimpleDeletion())
+                        nDeletions++;
+                    else
+                        nComplex++;
                     break;
                 case MIXED:
-                    nComplex++;
+                    nVariantLoci++;
+                    nMixed++;
                     break;
                 default:
                     throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
@@ -180,8 +190,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         heterozygosity = perLocusRate(nHets);
         heterozygosityPerBp = perLocusRInverseRate(nHets);
         hetHomRatio = ratio(nHets, nHomVar);
-        indelRate = perLocusRate(nDeletions + nInsertions);
-        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions);
+        indelRate = perLocusRate(nDeletions + nInsertions + nComplex);
+        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions + nComplex);
         deletionInsertionRatio = ratio(nDeletions, nInsertions);
     }
 }

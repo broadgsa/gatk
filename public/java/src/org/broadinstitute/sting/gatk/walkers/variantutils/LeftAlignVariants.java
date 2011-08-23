@@ -46,6 +46,31 @@ import java.util.*;
 
 /**
  * Left-aligns indels from a variants file.
+ *
+ * <p>
+ * LeftAlignVariants is a tool that takes a VCF file and left-aligns any indels inside it.  The same indel can often be
+ * placed at multiple positions and still represent the same haplotype.  While the standard convention with VCF is to
+ * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant set to left-align.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A left-aligned VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T LeftAlignVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-200,stop=200))
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
@@ -108,7 +133,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
         // get the indel length
         int indelLength;
-        if ( vc.isDeletion() )
+        if ( vc.isSimpleDeletion() )
             indelLength = vc.getReference().length();
         else
             indelLength = vc.getAlternateAllele(0).length();
@@ -125,7 +150,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         // create a CIGAR string to represent the event
         ArrayList<CigarElement> elements = new ArrayList<CigarElement>();
         elements.add(new CigarElement(originalIndex, CigarOperator.M));
-        elements.add(new CigarElement(indelLength, vc.isDeletion() ? CigarOperator.D : CigarOperator.I));
+        elements.add(new CigarElement(indelLength, vc.isSimpleDeletion() ? CigarOperator.D : CigarOperator.I));
         elements.add(new CigarElement(refSeq.length - originalIndex, CigarOperator.M));
         Cigar originalCigar = new Cigar(elements);
 
@@ -140,8 +165,8 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
             int indelIndex = originalIndex-difference;
             byte[] newBases = new byte[indelLength];
-            System.arraycopy((vc.isDeletion() ? refSeq : originalIndel), indelIndex, newBases, 0, indelLength);
-            Allele newAllele = Allele.create(newBases, vc.isDeletion());
+            System.arraycopy((vc.isSimpleDeletion() ? refSeq : originalIndel), indelIndex, newBases, 0, indelLength);
+            Allele newAllele = Allele.create(newBases, vc.isSimpleDeletion());
             newVC = updateAllele(newVC, newAllele, refSeq[indelIndex-1]);
 
             writer.add(newVC);
@@ -153,14 +178,14 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     }
 
     private static byte[] makeHaplotype(VariantContext vc, byte[] ref, int indexOfRef, int indelLength) {
-        byte[] hap = new byte[ref.length + (indelLength * (vc.isDeletion() ? -1 : 1))];
+        byte[] hap = new byte[ref.length + (indelLength * (vc.isSimpleDeletion() ? -1 : 1))];
 
         // add the bases before the indel
         System.arraycopy(ref, 0, hap, 0, indexOfRef);
         int currentPos = indexOfRef;
 
         // take care of the indel
-        if ( vc.isDeletion() ) {
+        if ( vc.isSimpleDeletion() ) {
             indexOfRef += indelLength;
         } else {
             System.arraycopy(vc.getAlternateAllele(0).getBases(), 0, hap, currentPos, indelLength);

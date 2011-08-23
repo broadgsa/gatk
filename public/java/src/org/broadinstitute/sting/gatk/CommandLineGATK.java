@@ -31,13 +31,11 @@ import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.ApplicationDetails;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.GATKDocUtils;
-import org.broadinstitute.sting.utils.help.GATKDoclet;
+import org.broadinstitute.sting.utils.help.*;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
@@ -52,7 +50,7 @@ import java.util.*;
 @DocumentedGATKFeature(
         groupName = "GATK Engine",
         summary = "Features and arguments for the GATK engine itself, available to all walkers.",
-        extraDocs = { ReadFilter.class, UserException.class })
+        extraDocs = { UserException.class })
 public class CommandLineGATK extends CommandLineExecutable {
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;
@@ -176,6 +174,10 @@ public class CommandLineGATK extends CommandLineExecutable {
         // Construct a help string to output details on this walker.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
+
+        formatter.format("Available Reference Ordered Data types:%n");
+        formatter.format(new FeatureManager().userFriendlyListOfAvailableFeatures());
+        formatter.format("%n");
 
         formatter.format("For a full description of this walker, see its GATKdocs at:%n");
         formatter.format("%s%n", GATKDocUtils.helpLinksToGATKDocs(walkerType));

@@ -14,9 +14,8 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
+import org.broadinstitute.sting.utils.codecs.table.TableFeature;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -31,21 +30,77 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: chartl
- * Date: 6/13/11
- * Time: 2:12 PM
- * To change this template use File | Settings | File Templates.
+ * Creates FASTA sequences for use in Seqenom or PCR utilities for site amplification and subsequent validation
+ *
+ * <p>
+ * ValidationAmplicons consumes a VCF and an Interval list and produces FASTA sequences from which PCR primers or probe
+ * sequences can be designed. In addition, ValidationAmplicons uses BWA to check for specificity of tracts of bases within
+ * the output amplicon, lower-casing non-specific tracts, allows for users to provide sites to mask out, and specifies
+ * reasons why the site may fail validation (nearby variation, for example).
+ * </p>
+ *
+ * <h2>Input</h2>
+ * <p>
+ * Requires a VCF containing alleles to design amplicons towards, a VCF of variants to mask out of the amplicons, and an
+ * interval list defining the size of the amplicons around the sites to be validated
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Output is a FASTA-formatted file with some modifications at probe sites. For instance:
+ * <pre>
+ * >20:207414 INSERTION=1,VARIANT_TOO_NEAR_PROBE=1, 20_207414
+ * CCAACGTTAAGAAAGAGACATGCGACTGGGTgcggtggctcatgcctggaaccccagcactttgggaggccaaggtgggc[A/G*]gNNcacttgaggtcaggagtttgagaccagcctggccaacatggtgaaaccccgtctctactgaaaatacaaaagttagC
+ * >20:792122 Valid 20_792122
+ * TTTTTTTTTagatggagtctcgctcttatcgcccaggcNggagtgggtggtgtgatcttggctNactgcaacttctgcct[-/CCC*]cccaggttcaagtgattNtcctgcctcagccacctgagtagctgggattacaggcatccgccaccatgcctggctaatTT
+ * >20:994145 Valid 20_994145
+ * TCCATGGCCTCCCCCTGGCCCACGAAGTCCTCAGCCACCTCCTTCCTGGAGGGCTCAGCCAAAATCAGACTGAGGAAGAAG[AAG/-*]TGGTGGGCACCCACCTTCTGGCCTTCCTCAGCCCCTTATTCCTAGGACCAGTCCCCATCTAGGGGTCCTCACTGCCTCCC
+ * >20:1074230 SITE_IS_FILTERED=1, 20_1074230
+ * ACCTGATTACCATCAATCAGAACTCATTTCTGTTCCTATCTTCCACCCACAATTGTAATGCCTTTTCCATTTTAACCAAG[T/C*]ACTTATTATAtactatggccataacttttgcagtttgaggtatgacagcaaaaTTAGCATACATTTCATTTTCCTTCTTC
+ * >20:1084330 DELETION=1, 20_1084330
+ * CACGTTCGGcttgtgcagagcctcaaggtcatccagaggtgatAGTTTAGGGCCCTCTCAAGTCTTTCCNGTGCGCATGG[GT/AC*]CAGCCCTGGGCACCTGTNNNNNNNNNNNNNTGCTCATGGCCTTCTAGATTCCCAGGAAATGTCAGAGCTTTTCAAAGCCC
+ *</pre>
+ * are amplicon sequences resulting from running the tool. The flags (preceding the sequence itself) can be:
+ *
+ * Valid                     // amplicon is valid
+ * SITE_IS_FILTERED=1        // validation site is not marked 'PASS' or '.' in its filter field ("you are trying to validate a filtered variant")
+ * VARIANT_TOO_NEAR_PROBE=1  // there is a variant too near to the variant to be validated, potentially shifting the mass-spec peak
+ * MULTIPLE_PROBES=1,        // multiple variants to be validated found inside the same amplicon
+ * DELETION=6,INSERTION=5,   // 6 deletions and 5 insertions found inside the amplicon region (from the "mask" VCF), will be potentially difficult to validate
+ * DELETION=1,               // deletion found inside the amplicon region, could shift mass-spec peak
+ * START_TOO_CLOSE,          // variant is too close to the start of the amplicon region to give sequenom a good chance to find a suitable primer
+ * END_TOO_CLOSE,            // variant is too close to the end of the amplicon region to give sequenom a good chance to find a suitable primer
+ * NO_VARIANTS_FOUND,        // no variants found within the amplicon region
+ * INDEL_OVERLAPS_VALIDATION_SITE, // an insertion or deletion interferes directly with the site to be validated (i.e. insertion directly preceding or postceding, or a deletion that spans the site itself)
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre></pre>
+ *    java
+ *      -jar GenomeAnalysisTK.jar
+ *      -T ValidationAmplicons
+ *      -R /humgen/1kg/reference/human_g1k_v37.fasta
+ *      -BTI ProbeIntervals
+ *      -ProbeIntervals:table interval_table.table
+ *      -ValidateAlleles:vcf sites_to_validate.vcf
+ *      -MaskAlleles:vcf mask_sites.vcf
+ *      --virtualPrimerSize 30
+ *      -o probes.fasta
+ * </pre>
+ *
+ * @author chartl
+ * @since July 2011
  */
 @Requires(value={DataSource.REFERENCE})
 public class ValidationAmplicons extends RodWalker<Integer,Integer> {
-    @Input(fullName = "ProbeIntervals", doc="Chris document me", required=true)
+    @Input(fullName = "ProbeIntervals", doc="A collection of intervals in table format with optional names that represent the "+
+                                            "intervals surrounding the probe sites amplicons should be designed for", required=true)
     RodBinding<TableFeature> probeIntervals;
 
-    @Input(fullName = "ValidateAlleles", doc="Chris document me", required=true)
+    @Input(fullName = "ValidateAlleles", doc="A VCF containing the sites and alleles you want to validate. Restricted to *BI-Allelic* sites", required=true)
     RodBinding<VariantContext> validateAlleles;
 
-    @Input(fullName = "MaskAlleles", doc="Chris document me", required=true)
+    @Input(fullName = "MaskAlleles", doc="A VCF containing the sites you want to MASK from the designed amplicon (e.g. by Ns or lower-cased bases)", required=true)
     RodBinding<VariantContext> maskAlleles;
 
 
@@ -195,17 +250,17 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         } else /* (mask != null && validate == null ) */ {
             if ( ! mask.isSNP() && ! mask.isFiltered() && ( ! filterMonomorphic || ! mask.isMonomorphic() )) {
                 logger.warn("Mask Variant Context on the following warning line is not a SNP. Currently we can only mask out SNPs. This probe will not be designed.");
-                logger.warn(String.format("%s:%d-%d\t%s\t%s",mask.getChr(),mask.getStart(),mask.getEnd(),mask.isInsertion() ? "INS" : "DEL", Utils.join(",",mask.getAlleles())));
+                logger.warn(String.format("%s:%d-%d\t%s\t%s",mask.getChr(),mask.getStart(),mask.getEnd(),mask.isSimpleInsertion() ? "INS" : "DEL", Utils.join(",",mask.getAlleles())));
                 sequenceInvalid = true;
-                invReason.add(mask.isInsertion() ? "INSERTION" : "DELETION");
+                invReason.add(mask.isSimpleInsertion() ? "INSERTION" : "DELETION");
                 // note: indelCounter could be > 0 (could have small deletion within larger one). This always selects
                 // the larger event.
-                int indelCounterNew = mask.isInsertion() ? 2 : mask.getEnd()-mask.getStart();
+                int indelCounterNew = mask.isSimpleInsertion() ? 2 : mask.getEnd()-mask.getStart();
                 if ( indelCounterNew > indelCounter ) {
                     indelCounter = indelCounterNew;
                 }
                 //sequence.append((char) ref.getBase());
-                //sequence.append(mask.isInsertion() ? 'I' : 'D');
+                //sequence.append(mask.isSimpleInsertion() ? 'I' : 'D');
                 sequence.append("N");
                 indelCounter--;
                 rawSequence.append(Character.toUpperCase((char) ref.getBase()));

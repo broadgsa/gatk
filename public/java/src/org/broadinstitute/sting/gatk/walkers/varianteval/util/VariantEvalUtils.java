@@ -103,7 +103,7 @@ public class VariantEvalUtils {
                 try {
                     VariantStratifier vs = c.newInstance();
                     vs.setVariantEvalWalker(variantEvalWalker);
-                    vs.initialize(variantEvalWalker.getJexlExpressions(), variantEvalWalker.getCompNames(), variantEvalWalker.getKnownNames(), variantEvalWalker.getEvalNames(), variantEvalWalker.getSampleNamesForStratification(), variantEvalWalker.getContigNames());
+                    vs.initialize();
 
                     strats.add(vs);
                 } catch (InstantiationException e) {
@@ -347,9 +347,9 @@ public class VariantEvalUtils {
                         }
                     }
                 }
-
-                bindings.put(track, mapping);
             }
+
+            bindings.put(track, mapping);
         }
 
         return bindings;

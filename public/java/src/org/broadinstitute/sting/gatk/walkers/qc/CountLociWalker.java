@@ -11,7 +11,31 @@ import java.io.PrintStream;
 
 /**
  * Walks over the input data set, calculating the total number of covered loci for diagnostic purposes.
+ *
+ * <p>
  * Simplest example of a locus walker.
+ *
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more BAM files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Number of loci traversed.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CountLoci \
+ *   -o output.txt \
+ *   -I input.bam \
+ *   [-L input.intervals]
+ * </pre>
+ *
  */
 public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
     @Output(doc="Write count to this file instead of STDOUT")

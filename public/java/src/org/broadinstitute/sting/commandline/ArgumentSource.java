@@ -152,6 +152,14 @@ public class ArgumentSource {
     }
 
     /**
+     * Is the given argument considered an advanced option when displaying on the command-line argument system.
+     * @return True if so.  False otherwise.
+     */
+    public boolean isAdvanced() {
+        return field.isAnnotationPresent(Advanced.class);
+    }
+
+    /**
      * Is this command-line argument dependent on some primitive argument types?
      * @return True if this command-line argument depends on other arguments; false otherwise.
      */

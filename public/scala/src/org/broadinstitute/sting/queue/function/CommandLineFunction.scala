@@ -11,11 +11,26 @@ trait CommandLineFunction extends QFunction with Logging {
   /** Upper memory limit */
   var memoryLimit: Option[Double] = None
 
+  /** Resident memory limit */
+  var residentLimit: Option[Double] = None
+
+  /** Resident memory request */
+  var residentRequest: Option[Double] = None
+
   /** Job project to run the command */
   var jobProject: String = _
 
   /** Job queue to run the command */
   var jobQueue: String = _
+
+  /** Native arguments to pass to the job runner */
+  var jobNativeArgs: List[String] = Nil
+
+  /** Native arguments to pass to the job runner */
+  var jobResourceRequests: List[String] = Nil
+
+  /** Environment names to pass to the job runner */
+  var jobEnvironmentNames: List[String] = Nil
 
   override def copySettingsTo(function: QFunction) {
     super.copySettingsTo(function)
@@ -24,13 +39,27 @@ trait CommandLineFunction extends QFunction with Logging {
         if (commandLineFunction.memoryLimit.isEmpty)
           commandLineFunction.memoryLimit = this.memoryLimit
 
+        if (commandLineFunction.residentLimit.isEmpty)
+          commandLineFunction.residentLimit = this.residentLimit
+
+        if (commandLineFunction.residentRequest.isEmpty)
+          commandLineFunction.residentRequest = this.residentRequest
+
         if (commandLineFunction.jobProject == null)
           commandLineFunction.jobProject = this.jobProject
 
         if (commandLineFunction.jobQueue == null)
           commandLineFunction.jobQueue = this.jobQueue
 
-        commandLineFunction.jobQueue = this.jobQueue
+        if (commandLineFunction.jobNativeArgs.isEmpty)
+          commandLineFunction.jobNativeArgs = this.jobNativeArgs
+
+        if (commandLineFunction.jobResourceRequests.isEmpty)
+          commandLineFunction.jobResourceRequests = this.jobResourceRequests
+
+        if (commandLineFunction.jobEnvironmentNames.isEmpty)
+          commandLineFunction.jobEnvironmentNames = this.jobEnvironmentNames
+
       case _ => /* ignore */
     }
   }
@@ -53,8 +82,29 @@ trait CommandLineFunction extends QFunction with Logging {
     if (jobProject == null)
       jobProject = qSettings.jobProject
 
+    if (jobNativeArgs.isEmpty)
+      jobNativeArgs = qSettings.jobNativeArgs
+
+    if (jobResourceRequests.isEmpty)
+      jobResourceRequests = qSettings.jobResourceRequests
+
+    if (jobEnvironmentNames.isEmpty)
+      jobEnvironmentNames = qSettings.jobEnvironmentNames
+
     if (memoryLimit.isEmpty)
       memoryLimit = qSettings.memoryLimit
+
+    if (residentLimit.isEmpty)
+      residentLimit = qSettings.residentLimit
+
+    if (residentRequest.isEmpty)
+      residentRequest = qSettings.residentRequest
+
+    if (residentRequest.isEmpty)
+      residentRequest = memoryLimit
+
+    if (residentLimit.isEmpty)
+      residentLimit = residentRequest.map( _ * 1.2 )
 
     super.freezeFieldValues()
   }

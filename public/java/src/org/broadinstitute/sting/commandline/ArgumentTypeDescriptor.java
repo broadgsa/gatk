@@ -325,7 +325,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Type type) {
-        Class parameterType = getParameterizedTypeClass(type);
+        Class parameterType = JVMUtils.getParameterizedTypeClass(type);
         return RodBinding.makeUnbound((Class<? extends Feature>)parameterType);
     }
 
@@ -338,6 +338,8 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
+        Class<? extends Feature> parameterType = JVMUtils.getParameterizedTypeClass(type);
+
         try {
             String name = defaultDefinition.fullName;
             String tribbleType = null;
@@ -372,19 +374,19 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
                         if ( featureDescriptor != null ) {
                             tribbleType = featureDescriptor.getName();
-                            logger.warn("Dynamically determined type of " + file + " to be " + tribbleType);
+                            logger.info("Dynamically determined type of " + file + " to be " + tribbleType);
                         }
                     }
+
+                    if ( tribbleType == null )
+                        throw new UserException.CommandLineException(
+                                String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
+                                        "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
+                                        manager.userFriendlyListOfAvailableFeatures(parameterType)));
                 }
             }
 
-            if ( tribbleType == null ) // error handling
-                throw new UserException.CommandLineException(
-                        String.format("Could not parse argument %s with value %s",
-                                defaultDefinition.fullName, value));
-
             Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
-            Class parameterType = getParameterizedTypeClass(type);
             RodBinding result = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
             parsingEngine.addTags(result,tags);
             parsingEngine.addRodBinding(result);
@@ -395,19 +397,9 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                             value, source.field.getName()));
         } catch (Exception e) {
             throw new UserException.CommandLineException(
-                    String.format("Failed to parse value %s for argument %s.",
-                            value, source.field.getName()));
+                    String.format("Failed to parse value %s for argument %s. Message: %s",
+                            value, source.field.getName(), e.getMessage()));
         }
-    }
-
-    private Class getParameterizedTypeClass(Type t) {
-        if ( t instanceof ParameterizedType ) {
-            ParameterizedType parameterizedType = (ParameterizedType)t;
-            if ( parameterizedType.getActualTypeArguments().length != 1 )
-                throw new ReviewedStingException("BUG: more than 1 generic type found on class" + t);
-            return (Class)parameterizedType.getActualTypeArguments()[0];
-        } else
-            throw new ReviewedStingException("BUG: could not find generic type on class " + t);
     }
 }
 

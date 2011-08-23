@@ -88,14 +88,6 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         collect.intervals.add("intervals".toLowerCase());
         collect.excludeIntervals = new ArrayList<String>();
         collect.numberOfThreads = 1;
-
-        // make some rod bindings up
-        ArrayList<String> fakeBindings = new ArrayList<String>();
-        fakeBindings.add("Bind1");
-        fakeBindings.add("Bind2");
-        fakeBindings.add("Bind3");
-
-        collect.RODBindings = fakeBindings;
     }
 
 

@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.refdata.features.DbSNPHelper;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -53,6 +52,30 @@ import java.util.*;
 
 /**
  * Converts variants from other file formats to VCF format.
+ *
+ * <p>
+ * Note that there must be a Tribble feature/codec for the file format as well as an adaptor.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant file to filter.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A VCF file.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantsToVCF \
+ *   -o output.vcf \
+ *   --variant:RawHapMap input.hapmap \
+ *   --dbsnp dbsnp.vcf
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-40,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
@@ -61,15 +84,24 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     protected VCFWriter baseWriter = null;
     private SortingVCFWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 
+    /**
+     * Variants from this input file are used by this tool as input.
+     */
     @Input(fullName="variant", shortName = "V", doc="Input variant file", required=true)
     public RodBinding<Feature> variants;
 
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
-    @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
+    /**
+     * This argument is used for data (like GELI) with genotypes but no sample names encoded within.
+     */
+    @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod", required=false)
     protected String sampleName = null;
 
+    /**
+     * This argument is useful for fixing input VCFs with bad reference bases (the output will be a fixed version of the VCF).
+     */
     @Argument(fullName="fixRef", shortName="fixRef", doc="Fix common reference base in case there's an indel without padding", required=false)
     protected boolean fixReferenceBase = false;
 
@@ -87,7 +119,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = dbsnp == null ? null : DbSNPHelper.rsIDOfFirstRealVariant(tracker.getValues(dbsnp.dbsnp, context.getLocation()), VariantContext.Type.SNP);
+        String rsID = dbsnp == null ? null : VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbsnp.dbsnp, context.getLocation()), VariantContext.Type.SNP);
 
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
@@ -135,8 +167,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                             continue;
 
                         Map<String, Allele> alleleMap = new HashMap<String, Allele>(2);
-                        alleleMap.put(RawHapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isInsertion()));
-                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create(((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isInsertion()));
+                        alleleMap.put(RawHapMapFeature.DELETION, Allele.create(Allele.NULL_ALLELE_STRING, dbsnpVC.isSimpleInsertion()));
+                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create(((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isSimpleInsertion()));
                         hapmap.setActualAlleles(alleleMap);
 
                         // also, use the correct positioning for insertions

@@ -144,6 +144,9 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, BAMIndex.BAMIndexSuffix, ".bam"));
 
+        } else if ((RodBinding.class.equals(argumentDefinition.argumentType) || RodBinding.class.equals(argumentDefinition.componentType)) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
+            return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, Tribble.STANDARD_INDEX_EXTENSION));
+
         } else if (argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Collections.singletonList(new InputArgumentField(argumentDefinition));
 
@@ -196,7 +199,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     // if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT)
-    // Change intervals exclusize of intervalsString.
+    // Change intervals exclusive of intervalsString.
     private static class IntervalFileArgumentField extends InputArgumentField {
         public IntervalFileArgumentField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
@@ -332,9 +335,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
     }
 
-    /**
-     * The other extreme of a NamedRodBindingField, allows the user to specify the track name, track type, and the file.
-     */
+    // Allows the user to specify the track name, track type, and the file.
     public static class RodBindArgumentField extends ArgumentDefinitionField {
         public RodBindArgumentField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
@@ -347,25 +348,28 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
     }
 
-    /**
-     * Named input_files.
-     */
+    // Tagged input_files or other rods.
     public static class InputTaggedFileDefinitionField extends ArgumentDefinitionField {
         public InputTaggedFileDefinitionField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
         }
         @Override protected Class<?> getInnerType() { return null; } // TaggedFile does not need to be imported.
-        @Override protected String getFieldType() { return "List[File]"; }
-        @Override protected String getDefaultValue() { return "Nil"; }
+        @Override protected String getFieldType() { return argumentDefinition.isMultiValued ? "List[File]" :  "File"; }
+        @Override protected String getDefaultValue() { return argumentDefinition.isMultiValued ? "Nil" : "_"; }
         @Override protected String getCommandLineTemplate() {
-            return " + repeat(\"\", %3$s, format=TaggedFile.formatCommandLine(\"%1$s\"))";
+            if (argumentDefinition.isMultiValued) {
+                return " + repeat(\"\", %3$s, format=TaggedFile.formatCommandLine(\"%1$s\"))";
+            } else if (!argumentDefinition.required) {
+                return " + optional(\"\", %3$s, format=TaggedFile.formatCommandLine(\"%1$s\"))";
+            } else {
+                return " + TaggedFile.formatCommandLine(\"%1$s\")(\"\", %3$s, \"\")";
+            }
         }
     }
 
-    /**
-     * Adds optional inputs for the indexes of any bams or sams added to this function.
-     */
+    // Adds optional inputs for the indexes of any rods added to this function.
     private static class InputIndexesArgumentField extends ArgumentField {
+        private final boolean originalIsMultiValued;
         private final String indexFieldName;
         private final String originalFieldName;
         private final String indexSuffix;
@@ -374,14 +378,19 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             this(originalArgumentDefinition, indexSuffix, null);
         }
         public InputIndexesArgumentField(ArgumentDefinition originalArgumentDefinition, String indexSuffix, String originalSuffix) {
-            this.indexFieldName = originalArgumentDefinition.fullName + "Indexes";
+            this.originalIsMultiValued = originalArgumentDefinition.isMultiValued;
+            this.indexFieldName = originalArgumentDefinition.fullName + "Index" + (originalIsMultiValued ? "es" : "");
             this.originalFieldName = originalArgumentDefinition.fullName;
             this.indexSuffix = indexSuffix;
             this.originalSuffix = originalSuffix;
         }
         @Override protected Class<? extends Annotation> getAnnotationIOClass() { return Input.class; }
         @Override public String getCommandLineAddition() { return ""; }
-        @Override protected String getDoc() { return "Dependencies on any indexes of " + this.originalFieldName; }
+        @Override protected String getDoc() {
+            return originalIsMultiValued
+                    ? "Dependencies on any indexes of " + this.originalFieldName
+                    : "Dependencies on the index of " + this.originalFieldName;
+        }
         @Override protected String getFullName() { return this.indexFieldName; }
         @Override protected boolean isRequired() { return false; }
         @Override protected String getFieldType() { return "List[File]"; }
@@ -389,24 +398,41 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected Class<?> getInnerType() { return File.class; }
         @Override protected String getRawFieldName() { return this.indexFieldName; }
         @Override protected String getFreezeFields() {
-            if (originalSuffix == null) {
-                return String.format(
-                        ("%1$s ++= %2$s" +
-                                ".filter(orig => orig != null)" +
-                                ".map(orig => new File(orig.getPath + \"%3$s\"))%n"),
-                        indexFieldName, originalFieldName, indexSuffix);
+            if (originalIsMultiValued) {
+                if (originalSuffix == null) {
+                    return String.format(
+                            ("%1$s ++= %2$s" +
+                                    ".filter(orig => orig != null)" +
+                                    ".map(orig => new File(orig.getPath + \"%3$s\"))%n"),
+                            indexFieldName, originalFieldName, indexSuffix);
+                } else {
+                    return String.format(
+                            ("%1$s ++= %2$s" +
+                                    ".filter(orig => orig != null && orig.getName.endsWith(\"%4$s\"))" +
+                                    ".flatMap(orig => Array(" +
+                                    " new File(orig.getPath + \"%3$s\")," +
+                                    " new File(orig.getPath.stripSuffix(\"%4$s\") + \"%3$s\") ))%n"),
+                            indexFieldName, originalFieldName, indexSuffix, originalSuffix);
+                }
             } else {
-                return String.format(
-                        ("%1$s ++= %2$s" +
-                                ".filter(orig => orig != null && orig.getName.endsWith(\"%4$s\"))" +
-                                ".flatMap(orig => Array(" +
-                                " new File(orig.getPath + \"%3$s\")," +
-                                " new File(orig.getPath.stripSuffix(\"%4$s\") + \"%3$s\") ))%n"),
-                        indexFieldName, originalFieldName, indexSuffix, originalSuffix);
+                if (originalSuffix == null) {
+                    return String.format(
+                            ("if (%2$s != null)%n  " +
+                                    "%1$s :+= new File(%2$s.getPath + \"%3$s\")%n"),
+                            indexFieldName, originalFieldName, indexSuffix);
+                } else {
+                    return String.format(
+                            ("if (%2$s != null && %2$s.getName.endsWith(\"%4$s\"))%n  " +
+                                    "%1$s ++= Array(" +
+                                    " new File(%2$s.getPath + \"%3$s\")," +
+                                    " new File(%2$s.getPath.stripSuffix(\"%4$s\") + \"%3$s\") )%n"),
+                            indexFieldName, originalFieldName, indexSuffix, originalSuffix);
+                }
             }
         }
     }
 
+    // Tracks an automatically generated index
     private static abstract class OutputIndexArgumentField extends ArgumentField {
         protected final String indexFieldName;
         protected final String originalFieldName;
@@ -456,6 +482,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
     }
 
+    // Allows setting the format for floats and doubles
     private static class FormatterArgumentField extends ArgumentField {
         private final ArgumentField argumentField;
         public FormatterArgumentField(ArgumentField argumentField) {

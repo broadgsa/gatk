@@ -1,23 +1,25 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Set;
+import java.util.List;
 
 public class AlleleCount extends VariantStratifier {
     // needs to know the variant context
     private ArrayList<String> states = new ArrayList<String>();
 
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
+    public void initialize() {
+        List<RodBinding<VariantContext>> evals = getVariantEvalWalker().getEvals();
+
         // we can only work with a single eval VCF, and it must have genotypes
-        if ( evalNames.size() != 1 )
+        if ( evals.size() != 1 )
             throw new UserException.BadArgumentValue("AlleleCount", "AlleleCount stratification only works with a single eval vcf");
 
         // There are 2 x n sample chromosomes for diploids

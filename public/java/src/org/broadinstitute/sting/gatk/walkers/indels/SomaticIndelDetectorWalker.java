@@ -33,15 +33,15 @@ import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.Transcript;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -78,7 +78,7 @@ import java.util.*;
  * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
  * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
  */
-@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, PlatformUnitFilter.class})
+@ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;
@@ -469,10 +469,20 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                 // let's double check now that the read fits after the shift
                 if ( read.getAlignmentEnd() > normal_context.getStop()) {
                     // ooops, looks like the read does not fit into the window even after the latter was shifted!!
-                    throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
-                                             "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+                    // we used to die over such reads and require user to run with larger window size. Now we
+                    // just print a warning and discard the read (this means that our counts can be slightly off in
+                    // th epresence of such reads)
+                    //throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
+                    //                         "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+                    //                         read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
+                    //                         "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    System.out.println("WARNING: Read "+read.getReadName()+
+                             " is out of coverage window bounds. Probably window is too small and the window_size value must be increased.\n"+
+                             "  The read is ignored in this run (so all the counts/statistics reported will not include it).\n"+
+                                             "  Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
                                              read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
                                              "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    return 1;
                 }
             }
 
