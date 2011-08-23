@@ -320,7 +320,9 @@ class QGraph extends Logging {
       logger.debug("+++++++")
       foreachFunction(readyJobs.toList, edge => {
         if (running) {
+          edge.myRunInfo.startTime = new Date()
           logEdge(edge)
+          edge.myRunInfo.doneTime = new Date()
           edge.markAsDone
         }
       })
@@ -1038,7 +1040,7 @@ class QGraph extends Logging {
   def isShutdown = !running
 
   def getFunctionsAndStatus(functions: List[QFunction]): Map[QFunction, JobRunInfo] = {
-    getFunctionEdges.map(edge => (edge.function, edge.runInfo)).toMap
+    getFunctionEdges.map(edge => (edge.function, edge.getRunInfo)).toMap
   }
 
   /**

@@ -53,7 +53,13 @@ import java.util.Date
 /**
  * Base class containing all of the information about a job run.
  */
-class JobRunInfo(startTime: Date, doneTime: Date, memUsedInGb: Int, hostName: String, status: RunnerStatus.Value) {
+class JobRunInfo {
+  var startTime: Date = _
+  var doneTime: Date = _
+  var memUsedInGb: Int = -1
+  var hostName: String = "localhost"
+  var status: RunnerStatus.Value = RunnerStatus.DONE
+
   def getStatus = status
   def getStartTime = startTime
   def getDoneTime = doneTime
@@ -69,7 +75,5 @@ class JobRunInfo(startTime: Date, doneTime: Date, memUsedInGb: Int, hostName: St
 }
 
 object JobRunInfo {
-  def default = new JobRunInfo(new Date(), new Date(), 1, "localhost", RunnerStatus.DONE)
-  def detailed(startTime: Date, doneTime: Date, memUsedInGb: Int, hostName: String) =
-    new JobRunInfo(startTime, doneTime, memUsedInGb, hostName, RunnerStatus.DONE)
+  def default: JobRunInfo = new JobRunInfo()
 }
