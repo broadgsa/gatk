@@ -145,7 +145,7 @@ class RecalibrateBaseQualities extends QScript {
   }
 
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
+    this.knownSites :+= dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
