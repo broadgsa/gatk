@@ -51,10 +51,21 @@ trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
   /** The last time the status was updated */
   protected var lastStatusUpdate: Long = _
 
-  final override def status = this.lastStatus
+  /** The runner specific priority for a minimum priority job */
+  protected val minRunnerPriority = 0
 
-  def residentRequestMB: Option[Double] = function.memoryLimit.map(_ * 1024)
-  def residentLimitMB: Option[Double] = residentRequestMB.map( _ * 1.2 )
+  /** The runner specific priority for a maximum priority job */
+  protected val maxRunnerPriority = 0
+
+  /** The priority of the function in the range defined by the runner */
+  protected def functionPriority = {
+    function.jobPriority.map { priority =>
+      (((priority / 100D) * (maxRunnerPriority - minRunnerPriority)) + minRunnerPriority).
+        round.intValue() min maxRunnerPriority max minRunnerPriority
+    }
+  }
+
+  final override def status = this.lastStatus
 
   override def init() {
     super.init()

@@ -361,6 +361,13 @@ class QGraph extends Logging {
         settings.jobRunner = "Shell"
       commandLineManager = commandLinePluginManager.createByName(settings.jobRunner)
 
+      for (mgr <- managers) {
+        if (mgr != null) {
+          val manager = mgr.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
+          manager.init()
+        }
+      }
+
       if (settings.startFromScratch)
         logger.info("Removing outputs from previous runs.")
 
@@ -1034,18 +1041,26 @@ class QGraph extends Logging {
       for (mgr <- managers) {
         if (mgr != null) {
           val manager = mgr.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
-          val managerRunners = runners
-            .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
-            .asInstanceOf[Set[JobRunner[QFunction]]]
-          if (managerRunners.size > 0)
-            try {
-              manager.tryStop(managerRunners)
-            } catch {
-              case e => /* ignore */
+          try {
+            val managerRunners = runners
+              .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
+              .asInstanceOf[Set[JobRunner[QFunction]]]
+            if (managerRunners.size > 0)
+              try {
+                manager.tryStop(managerRunners)
+              } catch {
+                case e => /* ignore */
+              }
+            for (runner <- managerRunners) {
+              try {
+                runner.cleanup()
+              } catch {
+                case e => /* ignore */
+              }
             }
-          for (runner <- managerRunners) {
+          } finally {
             try {
-              runner.cleanup()
+              manager.exit()
             } catch {
               case e => /* ignore */
             }

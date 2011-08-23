@@ -138,6 +138,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Input(fullName="badSites", shortName = "badSites", doc="A list of known bad variants used to supplement training the negative model", required=false)
     public List<RodBinding<VariantContext>> badSites = Collections.emptyList();
 
+    /**
+     * Any set of sites for which you would like to apply a prior probability but for which you don't want to use as training, truth, or known sites.
+     */
+    @Input(fullName="resource", shortName = "resource", doc="A list of sites for which to apply a prior probability of being correct but which aren't used by the algorithm", required=false)
+    public List<RodBinding<VariantContext>> resource = Collections.emptyList();
+
     /////////////////////////////
     // Outputs
     /////////////////////////////
@@ -226,6 +232,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         allInputBindings.addAll(training);
         allInputBindings.addAll(known);
         allInputBindings.addAll(badSites);
+        allInputBindings.addAll(resource);
         for( final RodBinding<VariantContext> rod : allInputBindings ) {
             try {
                 rodToPriorMap.put(rod.getName(), (rod.getTags().containsKey("prior") ? Double.parseDouble(rod.getTags().getValue("prior")) : 0.0) );
@@ -263,9 +270,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
 
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
-                    dataManager.parseTrainingSets( tracker, context.getLocation(), vc, datum, TRUST_ALL_POLYMORPHIC, rodToPriorMap, training, truth, known, badSites );
+                    dataManager.parseTrainingSets( tracker, context.getLocation(), vc, datum, TRUST_ALL_POLYMORPHIC, rodToPriorMap, training, truth, known, badSites, resource ); // BUGBUG: need to clean this up to be a class, not a list of all the rod bindings
                     double priorFactor = QualityUtils.qualToProb( datum.prior );
-                    //if( PERFORM_PROJECT_CONSENSUS ) {
+                    //if( PERFORM_PROJECT_CONSENSUS ) { // BUGBUG: need to resurrect this functionality?
                     //    final double consensusPrior = QualityUtils.qualToProb( 1.0 + 5.0 * datum.consensusCount );
                     //    priorFactor = 1.0 - ((1.0 - priorFactor) * (1.0 - consensusPrior));
                     //}

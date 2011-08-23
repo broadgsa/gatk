@@ -91,7 +91,7 @@ public class LibBatIntegrationTest extends BaseTest {
     }
 
     @Test
-    public void testSubmitEcho() throws InterruptedException {
+    public void testSubmitEcho() throws Exception {
         String queue = "hour";
         File outFile = createNetworkTempFile("LibBatIntegrationTest-", ".out");
 
@@ -113,6 +113,10 @@ public class LibBatIntegrationTest extends BaseTest {
         req.options2 |= LibBat.SUB2_JOB_PRIORITY;
 
         req.command = "echo \"Hello world.\"";
+
+        String[] argv = {"", "-a", "tv"};
+        int setOptionResult = LibBat.setOption_(argv.length, new StringArray(argv), "a:", req, ~0, ~0, ~0, null);
+        Assert.assertTrue(setOptionResult != -1, "setOption_ returned -1");
 
         submitReply reply = new submitReply();
         long jobId = LibBat.lsb_submit(req, reply);
@@ -142,6 +146,9 @@ public class LibBatIntegrationTest extends BaseTest {
         Assert.assertTrue(Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_DONE), String.format("Unexpected job status: 0x%02x", jobStatus));
 
         Assert.assertTrue(FileUtils.waitFor(outFile, 120), "File not found: " + outFile.getAbsolutePath());
+        System.out.println("--- output ---");
+        System.out.println(FileUtils.readFileToString(outFile));
+        System.out.println("--- output ---");
         Assert.assertTrue(outFile.delete(), "Unable to delete " + outFile.getAbsolutePath());
         Assert.assertEquals(reply.queue, req.queue, "LSF reply queue does not match requested queue.");
         System.out.println("Validating that we reached the end of the test without exit.");

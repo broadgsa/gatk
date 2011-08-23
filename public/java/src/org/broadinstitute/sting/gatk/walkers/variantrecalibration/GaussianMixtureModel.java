@@ -207,6 +207,7 @@ public class GaussianMixtureModel {
         for( final boolean isNull : datum.isNull ) {
             if( isNull ) { return evaluateDatumMarginalized( datum ); }
         }
+        // Fill an array with the log10 probability coming from each Gaussian and then use MathUtils to sum them up correctly
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
         int gaussianIndex = 0;
         for( final MultivariateGaussian gaussian : gaussians ) {
@@ -215,6 +216,7 @@ public class GaussianMixtureModel {
         return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
     }
 
+    // Used only to decide which covariate dimension is most divergent in order to report in the culprit info field annotation
     public Double evaluateDatumInOneDimension( final VariantDatum datum, final int iii ) {
         if(datum.isNull[iii]) { return null; }
 
@@ -229,7 +231,7 @@ public class GaussianMixtureModel {
     }
 
     public double evaluateDatumMarginalized( final VariantDatum datum ) {
-        int numSamples = 0;
+        int numRandomDraws = 0;
         double sumPVarInGaussian = 0.0;
         final int numIterPerMissingAnnotation = 10; // Trade off here between speed of computation and accuracy of the marginalization
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
@@ -248,10 +250,10 @@ public class GaussianMixtureModel {
 
                     // add this sample's probability to the pile in order to take an average in the end
                     sumPVarInGaussian += Math.pow(10.0, MathUtils.log10sumLog10(pVarInGaussianLog10)); // p = 10 ^ Sum(pi_k * p(v|n,k))
-                    numSamples++;
+                    numRandomDraws++;
                 }
             }
         }
-        return Math.log10( sumPVarInGaussian / ((double) numSamples) );
+        return Math.log10( sumPVarInGaussian / ((double) numRandomDraws) );
     }
 }

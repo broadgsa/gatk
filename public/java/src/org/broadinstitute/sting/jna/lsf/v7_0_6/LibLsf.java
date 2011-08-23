@@ -495,14 +495,19 @@ public class LibLsf {
 
 
 
-    public enum valueType {
-        LS_BOOLEAN, LS_NUMERIC, LS_STRING, LS_EXTERNAL
+    public static interface valueType {
+          public static final int LS_BOOLEAN = 0;
+          public static final int LS_NUMERIC = 1;
+          public static final int LS_STRING = 2;
+          public static final int LS_EXTERNAL = 3;
     }
 
 
 
-    public enum orderType {
-        INCR, DECR, NA
+    public static interface orderType {
+          public static final int INCR = 0;
+          public static final int DECR = 1;
+          public static final int NA = 2;
     }
 
 
@@ -1567,8 +1572,13 @@ public class LibLsf {
     public static final int NIO_TASK_ALL = 0x03;
     public static final int NIO_TASK_CONNECTED = 0x04;
 
-    public static enum nioType {
-        NIO_STATUS, NIO_STDOUT, NIO_EOF, NIO_IOERR, NIO_REQUEUE, NIO_STDERR
+    public static interface nioType {
+          public static final int NIO_STATUS = 0;
+          public static final int NIO_STDOUT = 1;
+          public static final int NIO_EOF = 2;
+          public static final int NIO_IOERR = 3;
+          public static final int NIO_REQUEUE = 4;
+          public static final int NIO_STDERR = 5;
     }
 
 

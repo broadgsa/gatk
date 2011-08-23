@@ -91,6 +91,54 @@ public class LibBat {
         Native.register("bat");
     }
 
+    // Via support@platform.com:
+    //    For equivalent api of bsub -a "xxx aaa qqq", option -a is not in struct submit, we
+    //    have to use setOption_ to set it. setOption_ can be used in user program by including
+    //    cmd.h or opensource.h of LSF opensource. You can refer to cmd.sub.c in opensource.
+    //
+    //    Here is a demonstration on the api for bsub -a
+    //    =========================================================================
+    //    /*define external setOption_ function*/
+    //    extern int setOption_(int argc, char **argv, char *template,
+    //    struct submit *req, int mask, int mask2, char **errMsg);
+    //
+    //    int setEsub(char *esub, struct submit *req) {
+    //    int x;
+    //    char *template, *arg[3];
+    //    /*set esub with the following strings and set array length*/
+    //    arg[0] = "blah";
+    //    arg[1] = "-a";
+    //    arg[2] = test;
+    //    /* -a "test", You can add additional esubs in here.  Just make sure they're space delimited.  ie. "test mpich lammpi" */
+    //    x=3;
+    //    /*set template*/
+    //    template = "a:"
+    //    /*run setOption_()*/
+    //    if (setOption_(x, arg, template, req, ~0, ~0, ~0, NULL) == -1) {
+    //    return(-1);
+    //    }
+    //    else {
+    //    return(0);
+    //    }
+    //    }
+    //    =========================================================================
+
+    /**
+     * Used for setting esub and other options not in struct submit.
+     * Via support@platform.com
+     *
+     * @param argc number of args
+     * @param argv arguments including a first argument that will not be used
+     * @param template a colon delimited list of arguments in getopt format
+     * @param jobSubReq the lsf submit
+     * @param mask unknown
+     * @param mask2 unknown
+     * @param mask3 unknown
+     * @param errMsg unknown
+     * @return -1 if the option setting failed
+     */
+    public static native int setOption_(int argc, Pointer argv, String template, submit jobSubReq, int mask, int mask2, int mask3, Pointer errMsg);
+
     /** Max job name length as defined by 'man bsub'. */
     public static final int MAX_JOB_NAME_LEN = 4094;
 
@@ -9690,8 +9738,10 @@ public class LibBat {
 *  for a service class.
  */
 
-    public enum objectives {
-        GOAL_DEADLINE, GOAL_VELOCITY, GOAL_THROUGHPUT
+    public static interface objectives {
+        public static int GOAL_DEADLINE = 0;
+        public static int GOAL_VELOCITY = 1;
+        public static int GOAL_THROUGHPUT = 2;
     }
 
 
@@ -15109,52 +15159,46 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \addtogroup _consumertype _consumertype
      * consumer types
      */
-    public static enum consumerType {
+    public static interface consumerType {
         /**
          * < Queues
          */
-        LIMIT_QUEUES(1),
+        public static final int LIMIT_QUEUES = 1;
 
         /**
          * < Per-queue
          */
-        LIMIT_PER_QUEUE(2),
+        public static final int LIMIT_PER_QUEUE = 2;
 
         /**
          * < Users
          */
-        LIMIT_USERS(3),
+        public static final int LIMIT_USERS = 3;
 
         /**
          * < Per-users
          */
-        LIMIT_PER_USER(4),
+        public static final int LIMIT_PER_USER = 4;
 
         /**
          * < Hosts
          */
-        LIMIT_HOSTS(5),
+        public static final int LIMIT_HOSTS = 5;
 
         /**
          * < Per-host
          */
-        LIMIT_PER_HOST(6),
+        public static final int LIMIT_PER_HOST = 6;
 
         /**
          * < Projects
          */
-        LIMIT_PROJECTS(7),
+        public static final int LIMIT_PROJECTS = 7;
 
         /**
          * < Per-project
          */
-        LIMIT_PER_PROJECT(8);
-
-        private int value;
-
-        private consumerType(int value) {
-            this.value = value;
-        }
+        public static final int LIMIT_PER_PROJECT = 8;
     }
 
 
@@ -19011,20 +19055,27 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 /*  [] mis-matched in RMS[] */
     public static final int RMS_BRACKETS_MISMATCH_ERR = (-22);
 
-    public static enum rmsAllocType_t {
-        RMS_ALLOC_TYPE_UNKNOWN, RMS_ALLOC_TYPE_SLOAD, RMS_ALLOC_TYPE_SNODE, RMS_ALLOC_TYPE_MCONT
+    public static interface rmsAllocType_t {
+          public static final int RMS_ALLOC_TYPE_UNKNOWN = 0;
+          public static final int RMS_ALLOC_TYPE_SLOAD = 1;
+          public static final int RMS_ALLOC_TYPE_SNODE = 2;
+          public static final int RMS_ALLOC_TYPE_MCONT = 3;
     }
 
 
 
-    public static enum rmsTopology_t {
-        RMS_TOPOLOGY_UNKNOWN, RMS_TOPOLOGY_PTILE, RMS_TOPOLOGY_NODES
+    public static interface rmsTopology_t {
+          public static final int RMS_TOPOLOGY_UNKNOWN = 0;
+          public static final int RMS_TOPOLOGY_PTILE = 1;
+          public static final int RMS_TOPOLOGY_NODES = 2;
     }
 
 
 
-    public static enum rmsFlags_t {
-        RMS_FLAGS_UNKNOWN, RMS_FLAGS_RAILS, RMS_FLAGS_RAILMASK
+    public static interface rmsFlags_t {
+          public static final int RMS_FLAGS_UNKNOWN = 0;
+          public static final int RMS_FLAGS_RAILS = 1;
+          public static final int RMS_FLAGS_RAILMASK = 2;
     }
 
 

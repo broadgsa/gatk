@@ -30,6 +30,9 @@ import org.broadinstitute.sting.queue.function.QFunction
  * Creates and stops JobRunners
  */
 trait JobManager[TFunction <: QFunction, TRunner <: JobRunner[TFunction]] {
+  def init() {}
+  def exit() {}
+
   /** The class type of the runner.  Available at runtime even after erasure. */
   def functionType: Class[TFunction]
 
@@ -52,6 +55,5 @@ trait JobManager[TFunction <: QFunction, TRunner <: JobRunner[TFunction]] {
    * Stops a list of functions.
    * @param runners Runners to stop.
    */
-  def tryStop(runners: Set[TRunner]) {
-  }
+  def tryStop(runners: Set[TRunner]) {}
 }

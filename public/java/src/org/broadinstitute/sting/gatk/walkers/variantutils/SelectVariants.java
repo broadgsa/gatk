@@ -209,7 +209,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
      */
     @Argument(fullName="exclude_sample_file", shortName="xl_sf", doc="File containing a list of samples (one per line) to exclude. Can be specified multiple times", required=false)
-    public Set<File> XLsampleFiles;
+    public Set<File> XLsampleFiles = new HashSet<File>(0);
 
     /**
      * Note that these expressions are evaluated *after* the specified samples are extracted and the INFO field annotations are updated.
@@ -344,12 +344,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
 
         // now, exclude any requested samples
-        if (XLsampleFiles != null)
-            if(!XLsampleFiles.isEmpty()) {
-            Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
-            samples.removeAll(XLsamplesFromFile);
-            samples.removeAll(XLsampleNames);
-        }
+        Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
+        samples.removeAll(XLsamplesFromFile);
+        samples.removeAll(XLsampleNames);
+
         if ( samples.size() == 0 && !NO_SAMPLES_SPECIFIED )
             throw new UserException("All samples requested to be included were also requested to be excluded.");
 

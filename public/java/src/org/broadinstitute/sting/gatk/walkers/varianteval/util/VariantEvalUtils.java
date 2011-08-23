@@ -347,9 +347,9 @@ public class VariantEvalUtils {
                         }
                     }
                 }
-
-                bindings.put(track, mapping);
             }
+
+            bindings.put(track, mapping);
         }
 
         return bindings;
