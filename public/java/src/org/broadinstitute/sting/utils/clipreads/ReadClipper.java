@@ -54,7 +54,7 @@ public class ReadClipper {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
 
-        System.out.println("Clipping start/stop: " + start + "/" + stop);
+        //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
