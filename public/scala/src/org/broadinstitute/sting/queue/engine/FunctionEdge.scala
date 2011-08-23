@@ -23,6 +23,8 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
    */
   var depth = -1
 
+  var runInfo: JobRunInfo = JobRunInfo.default // todo: replace after testing with _
+
   /**
    * Initializes with the current status of the function.
    */
@@ -88,6 +90,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
             tailError()
           } else if (currentStatus == RunnerStatus.DONE) {
             try {
+              runInfo = runner.getRunInfo
               runner.cleanup()
               function.doneOutputs.foreach(_.createNewFile())
             } catch {

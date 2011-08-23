@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.queue
 
+import engine.JobRunInfo
 import org.broadinstitute.sting.queue.function.QFunction
 import annotation.target.field
 import io.Source
@@ -61,8 +62,9 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    * A default handler for the onExecutionDone() function.  By default this doesn't do anything
    * except print out a fine status message.
    */
-  def onExecutionDone(jobs: List[QFunction], success: Boolean) {
+  def onExecutionDone(jobs: Map[QFunction, JobRunInfo], success: Boolean) {
     logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", jobs.size))
+    for ( (f, info) <- jobs ) logger.info("  %s %s".format(f.jobName, info))
   }
 
   /**

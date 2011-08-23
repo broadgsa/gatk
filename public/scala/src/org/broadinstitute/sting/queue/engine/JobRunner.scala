@@ -70,6 +70,11 @@ trait JobRunner[TFunction <: QFunction] {
   }
 
   /**
+   * Must be overloaded
+   */
+  def getRunInfo: JobRunInfo = JobRunInfo.default
+
+  /**
    * Calls back to a hook that an expert user can setup to modify a job.
    * @param value Value to modify.
    */
