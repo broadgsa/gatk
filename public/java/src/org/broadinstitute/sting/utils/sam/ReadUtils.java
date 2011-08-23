@@ -148,7 +148,7 @@ public class ReadUtils {
      *  |----------------|     (interval)
      *     <-------->          (read)
      */
-    public enum ReadAndIntervalOverlap {NO_OVERLAP, LEFT_OVERLAP, RIGHT_OVERLAP, FULL_OVERLAP, CONTAINED}
+    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -630,41 +630,71 @@ public class ReadUtils {
      * @return the overlap type as described by ReadAndIntervalOverlap enum (see above)
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
-        if ( (!read.getReferenceName().equals(interval.getContig())) ||
-             (read.getUnclippedEnd() < interval.getStart()) ||
-             (read.getUnclippedStart() > interval.getStop()) )
-            return ReadAndIntervalOverlap.NO_OVERLAP;
 
-        else if ( (read.getUnclippedStart() >= interval.getStart()) &&
-                  (read.getUnclippedEnd() <= interval.getStop()) )
-            return ReadAndIntervalOverlap.CONTAINED;
+        int start = getRefCoordSoftUnclippedStart(read);
+        int stop = getRefCoordSoftUnclippedStop(read);
 
-        else if ( (read.getUnclippedStart() < interval.getStart()) &&
-                  (read.getUnclippedEnd() > interval.getStop()) )
-            return ReadAndIntervalOverlap.FULL_OVERLAP;
+        if ( !read.getReferenceName().equals(interval.getContig()) )
+            return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
 
-        else if ( (read.getAlignmentStart() < interval.getStart()) )
-            return ReadAndIntervalOverlap.LEFT_OVERLAP;
+        else if  ( stop < interval.getStart() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_LEFT;
+
+        else if ( start > interval.getStop() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_RIGHT;
+
+        else if ( (start >= interval.getStart()) &&
+                  (stop <= interval.getStop()) )
+            return ReadAndIntervalOverlap.OVERLAP_CONTAINED;
+
+        else if ( (start < interval.getStart()) &&
+                  (stop > interval.getStop()) )
+            return ReadAndIntervalOverlap.OVERLAP_LEFT_AND_RIGHT;
+
+        else if ( (start < interval.getStart()) )
+            return ReadAndIntervalOverlap.OVERLAP_LEFT;
 
         else
-            return ReadAndIntervalOverlap.RIGHT_OVERLAP;
+            return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
 
-    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
+    public static int getRefCoordSoftUnclippedStart(SAMRecord read) {
+        int start = read.getUnclippedStart();
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                start += cigarElement.getLength();
+            else
+                break;
+        }
+        return start;
+    }
+
+    public static int getRefCoordSoftUnclippedStop(SAMRecord read) {
+        int stop = read.getAlignmentEnd();
+        List<CigarElement> cigarElementList  = read.getCigar().getCigarElements();
+        CigarElement lastCigarElement = cigarElementList.get(cigarElementList.size()-1);
+        if (lastCigarElement.getOperator() == CigarOperator.SOFT_CLIP)
+            stop += lastCigarElement.getLength();
+        return stop;
+    }
+
+
+
+    @Requires({"refCoord >= read.getAlignmentStart()", "refCoord <= read.getAlignmentEnd()"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
-        int goal = refCoord - read.getUnclippedStart();  // read coords are 0-based!
-        boolean goalReached = false;
+        int goal = refCoord - read.getAlignmentStart();  // The goal is to move this many reference bases
+        boolean goalReached = refBases == goal;
 
         Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
         while (!goalReached && cigarElementIterator.hasNext()) {
             CigarElement cigarElement = cigarElementIterator.next();
             int shift = 0;
-            if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
-                goal -= cigarElement.getLength();
-            }
+            //if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+            //    goal -= cigarElement.getLength();
+            //}
 
             if (cigarElement.getOperator().consumesReferenceBases()) {
                 if (refBases + cigarElement.getLength() < goal) {
