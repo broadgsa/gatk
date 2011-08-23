@@ -822,8 +822,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     // ---------------------------------------------------------------------------------------------------------
 
     private void loadGenotypes() {
-        if ( !hasAttribute(UNPARSED_GENOTYPE_MAP_KEY) )
+        if ( !hasAttribute(UNPARSED_GENOTYPE_MAP_KEY) ) {
+            if ( genotypes == null )
+                genotypes = NO_GENOTYPES;
             return;
+        }
 
         Object parserObj = getAttribute(UNPARSED_GENOTYPE_PARSER_KEY);
         if ( parserObj == null || !(parserObj instanceof VCFParser) )

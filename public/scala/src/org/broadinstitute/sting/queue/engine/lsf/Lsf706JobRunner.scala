@@ -34,6 +34,8 @@ import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
 import com.sun.jna.ptr.IntByReference
 import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
 import com.sun.jna.{Structure, StringArray, NativeLong}
+import java.util.regex.Pattern
+import java.lang.StringBuffer
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -47,12 +49,22 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
   private var jobId = -1L
   override def jobIdString = jobId.toString
 
+  protected override val minRunnerPriority = 1
+  protected override val maxRunnerPriority = Lsf706JobRunner.maxUserPriority
+
+  private val selectString = new StringBuffer()
+  private val usageString = new StringBuffer()
+  private val requestString = new StringBuffer()
+
   /**
    * Dispatches the function on the LSF cluster.
    * @param function Command to run.
    */
   def start() {
     Lsf706JobRunner.lsfLibLock.synchronized {
+
+      parseResourceRequest()
+
       val request = new submit
       for (i <- 0 until LibLsf.LSF_RLIM_NLIMITS)
         request.rLimits(i) = LibLsf.DEFAULT_RLIMIT;
@@ -81,28 +93,45 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
       }
 
       // If the resident set size is requested pass on the memory request
-      if (residentRequestMB.isDefined) {
-        val memInUnits = Lsf706JobRunner.convertUnits(residentRequestMB.get)
-        request.resReq = "select[mem>%1$d] rusage[mem=%1$d]".format(memInUnits)
+      if (function.residentRequest.isDefined) {
+        val memInUnits = Lsf706JobRunner.convertUnits(function.residentRequest.get)
+        appendRequest("select", selectString, "&&", "mem>%d".format(memInUnits))
+        appendRequest("rusage", usageString, ",", "mem=%d".format(memInUnits))
+      }
+
+      val resReq = getResourceRequest
+      if (resReq.length > 0) {
+        request.resReq = resReq
         request.options |= LibBat.SUB_RES_REQ
       }
 
       // If the resident set size limit is defined specify the memory limit
-      if (residentLimitMB.isDefined) {
-        val memInUnits = Lsf706JobRunner.convertUnits(residentLimitMB.get)
+      if (function.residentLimit.isDefined) {
+        val memInUnits = Lsf706JobRunner.convertUnits(function.residentLimit.get)
         request.rLimits(LibLsf.LSF_RLIMIT_RSS) = memInUnits
       }
 
       // If the priority is set (user specified Int) specify the priority
-      if (function.jobPriority.isDefined) {
-        request.userPriority = function.jobPriority.get
+      val priority = functionPriority
+      if (priority.isDefined) {
+        request.userPriority = priority.get
         request.options2 |= LibBat.SUB2_JOB_PRIORITY
       }
 
-      // Broad specific requirement, our esub requires there be a project
-      // else it will spit out a warning to stdout. see $LSF_SERVERDIR/esub
-      request.projectName = if (function.jobProject != null) function.jobProject else "Queue"
-      request.options |= LibBat.SUB_PROJECT_NAME
+      // Set the project to either the function or LSF default
+      val project = if (function.jobProject != null) function.jobProject else Lsf706JobRunner.defaultProject
+      if (project != null) {
+        request.projectName = project
+        request.options |= LibBat.SUB_PROJECT_NAME
+      }
+
+      // Set the esub names based on the job envorinment names
+      if (!function.jobEnvironmentNames.isEmpty) {
+        val argv = Array("", "-a", function.jobEnvironmentNames.mkString(" "))
+        val setOptionResult = LibBat.setOption_(argv.length, new StringArray(argv), "a:", request, ~0, ~0, ~0, null);
+        if (setOptionResult == -1)
+          throw new QException("setOption_() returned -1 while setting esub");
+      }
 
       // LSF specific: get the max runtime for the jobQueue and pass it for this job
       request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
@@ -132,6 +161,41 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
     logger.debug("Job Id %s status / exitStatus / exitInfo: ??? / ??? / ???".format(jobId))
     super.checkUnknownStatus()
   }
+
+  private def parseResourceRequest() {
+    requestString.setLength(0)
+    selectString.setLength(0)
+    usageString.setLength(0)
+
+    requestString.append(function.jobResourceRequests.mkString(" "))
+    extractSection(requestString, "select", selectString)
+    extractSection(requestString, "rusage", usageString)
+  }
+
+  private def extractSection(requestString: StringBuffer, section: String, sectionString: StringBuffer) {
+    val pattern = Pattern.compile(section + "\\s*\\[[^\\]]+\\]\\s*");
+    val matcher = pattern.matcher(requestString.toString)
+    if (matcher.find()) {
+      sectionString.setLength(0)
+      sectionString.append(matcher.group().trim())
+
+      val sb = new StringBuffer
+      matcher.appendReplacement(sb, "")
+      matcher.appendTail(sb)
+
+      requestString.setLength(0)
+      requestString.append(sb)
+    }
+  }
+
+  private def appendRequest(section: String, sectionString: StringBuffer, separator: String, request: String) {
+    if (sectionString.length() == 0)
+      sectionString.append(section).append("[").append(request).append("]")
+    else
+      sectionString.insert(sectionString.length() - 1, separator + request)
+  }
+
+  private def getResourceRequest = "%s %s %s".format(selectString, usageString, requestString).trim()
 }
 
 object Lsf706JobRunner extends Logging {
@@ -141,15 +205,23 @@ object Lsf706JobRunner extends Logging {
   /** Number of seconds for a non-normal exit status before we give up on expecting LSF to retry the function. */
   private val retryExpiredSeconds = 5 * 60
 
-  initLsf()
-
   /**
    * Initialize the Lsf library.
    */
-  private def initLsf() {
+  private val (defaultQueue, defaultProject, maxUserPriority) = {
     lsfLibLock.synchronized {
       if (LibBat.lsb_init("Queue") < 0)
         throw new QException(LibBat.lsb_sperror("lsb_init() failed"))
+
+      val parameterInfo = LibBat.lsb_parameterinfo(null, null, 0);
+      var defaultQueue: String = parameterInfo.defaultQueues
+      val defaultProject = parameterInfo.defaultProject
+      val maxUserPriority = parameterInfo.maxUserPriority
+
+      if (defaultQueue != null && defaultQueue.indexOf(' ') > 0)
+        defaultQueue = defaultQueue.split(" ")(0)
+
+      (defaultQueue, defaultProject, maxUserPriority)
     }
   }
 
@@ -249,17 +321,6 @@ object Lsf706JobRunner extends Logging {
     }
   }
 
-  /** The name of the default queue. */
-  private lazy val defaultQueue: String = {
-    lsfLibLock.synchronized {
-      val numQueues = new IntByReference(1)
-      val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
-      if (queueInfo == null)
-        throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for the default queue"))
-      queueInfo.queue
-    }
-  }
-
   /** The run limits for each queue. */
   private var queueRlimitRun = Map.empty[String,Int]
 
@@ -299,15 +360,15 @@ object Lsf706JobRunner extends Logging {
       Structure.autoRead(unitsParam.asInstanceOf[Array[Structure]])
 
       unitsParam(0).paramValue match {
-        case "MB" => 1D
-        case "GB" => 1024D
-        case "TB" => 1024D * 1024
-        case "PB" => 1024D * 1024 * 1024
-        case "EB" => 1024D * 1024 * 1024 * 1024
-        case null => 1D
+        case "MB" => 1 / 1024D
+        case "GB" => 1D
+        case "TB" => 1024D
+        case "PB" => 1024D * 1024
+        case "EB" => 1024D * 1024 * 1024
+        case null => 1 / 1024D
       }
     }
   }
 
-  private def convertUnits(mb: Double) = (mb / unitDivisor).ceil.toInt
+  private def convertUnits(gb: Double) = (gb / unitDivisor).ceil.toInt
 }

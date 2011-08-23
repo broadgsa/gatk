@@ -41,11 +41,26 @@ class QSettings {
   @Argument(fullName="job_queue", shortName="jobQueue", doc="Default queue for compute farm jobs.", required=false)
   var jobQueue: String = _
 
-  @Argument(fullName="job_priority", shortName="jobPriority", doc="Default priority for jobs.", required=false)
+  @Argument(fullName="job_priority", shortName="jobPriority", doc="Default priority for jobs. Min = 0, Max = 100", required=false)
   var jobPriority: Option[Int] = None
 
-  @Argument(fullName="default_memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
+  @Argument(fullName="job_native_arg", shortName="jobNative", doc="Native arguments to pass to the job runner.", required=false)
+  var jobNativeArgs: List[String] = Nil
+
+  @Argument(fullName="job_resource_request", shortName="jobResReq", doc="Resource requests to pass to the job runner.", required=false)
+  var jobResourceRequests: List[String] = Nil
+
+  @Argument(fullName="job_environment_name", shortName="jobEnv", doc="Environment names for the job runner.", required=false)
+  var jobEnvironmentNames: List[String] = Nil
+
+  @Argument(fullName="memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
   var memoryLimit: Option[Double] = None
+
+  @Argument(fullName="resident_memory_limit", shortName="resMemLimit", doc="Default resident memory limit for jobs, in gigabytes.", required=false)
+  var residentLimit: Option[Double] = None
+
+  @Argument(fullName="resident_memory_request", shortName="resMemReq", doc="Default resident memory request for jobs, in gigabytes.", required=false)
+  var residentRequest: Option[Double] = None
 
   @Argument(fullName="run_directory", shortName="runDir", doc="Root directory to run functions from.", required=false)
   var runDirectory = new File(".")

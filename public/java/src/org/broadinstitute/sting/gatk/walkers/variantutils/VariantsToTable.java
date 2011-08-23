@@ -206,28 +206,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
 
             if (field.equals("AF") || field.equals("AC")) {
-                     String afo = val;
-
-                     double af=0;
-                     if (afo.contains(",")) {
-                         String[] afs = afo.split(",");
-                         afs[0] = afs[0].substring(1,afs[0].length());
-                         afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
-
-                         double[] afd = new double[afs.length];
-
-                         for (int k=0; k < afd.length; k++)
-                             afd[k] = Double.valueOf(afs[k]);
-
-                         af = MathUtils.arrayMax(afd);
-                         //af = Double.valueOf(afs[0]);
-
-                     }
-                     else
-                         if (!afo.equals("NA"))
-                             af = Double.valueOf(afo);
-
-                val = Double.toString(af);
+                      if (val.contains(",")) {
+                         // strip [,] and spaces
+                         val = val.replace("[","");
+                         val = val.replace("]","");
+                         val = val.replace(" ","");
+                        }
 
             }
             vals.add(val);

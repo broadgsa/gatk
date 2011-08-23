@@ -223,6 +223,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
+    @Argument(fullName="excludeBiallelic", shortName="xl_biallelic", doc="Select only multi-allelic variants, excluding any biallelic one.", required=false)
+    private boolean EXCLUDE_BIALLELIC = false;
+
+    @Argument(fullName="selectMultiallelic", shortName="xl_multiallelic", doc="Select only biallelic variants, excluding any multi-allelic one.", required=false)
+    private boolean EXCLUDE_MULTIALLELIC = false;
+
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't update the AC, AF, or AN values in the INFO field after selecting", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
@@ -493,6 +499,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 if (!isConcordant(vc, compVCs))
                     return 0;
             }
+            if (EXCLUDE_BIALLELIC && vc.isBiallelic())
+                return 0;
+
+            if (EXCLUDE_MULTIALLELIC && !vc.isBiallelic())
+                return 0;
 
             // TODO - add ability to also select MNPs
             // TODO - move variant selection arguments to the engine so other walkers can also do this

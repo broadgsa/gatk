@@ -99,22 +99,25 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // This is really not correct.  What we really want here is a polymorphic vs. monomorphic count (i.e. on the Genotypes).
         // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
         // added in a proxy check for monomorphic status here.
-        if ( !vc1.isVariant() || (vc1.hasGenotypes() && vc1.getHomRefCount() == vc1.getNSamples()) ) {
+        // Protect against case when vc only as no-calls too - can happen if we strafity by sample and sample as a single no-call.
+       if ( !vc1.isVariant() || (vc1.hasGenotypes() &&  vc1.getHomRefCount() + vc1.getNoCallCount() == vc1.getNSamples()) ) {
             nRefLoci++;
         } else {
-            nVariantLoci++;
-            switch (vc1.getType()) {
+             switch (vc1.getType()) {
                 case NO_VARIATION:
                     break;
                 case SNP:
+                    nVariantLoci++;
                     nSNPs++;
                     if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
                     break;
                 case MNP:
+                    nVariantLoci++;
                     nMNPs++;
                     if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
                     break;
                 case INDEL:
+                    nVariantLoci++;
                     if (vc1.isSimpleInsertion())
                         nInsertions++;
                     else if (vc1.isSimpleDeletion())
@@ -123,6 +126,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                         nComplex++;
                     break;
                 case MIXED:
+                    nVariantLoci++;
                     nMixed++;
                     break;
                 default:
