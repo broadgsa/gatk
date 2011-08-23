@@ -147,22 +147,22 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
-        if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
-            for ( VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
-                if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
-                    List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
-                    out.println(Utils.join("\t", vals));
-                }
+        nRecords++;
+        for ( VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
+            if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
+                List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
+                out.println(Utils.join("\t", vals));
             }
-
-            return 1;
-        } else {
-            if ( nRecords >= MAX_RECORDS ) {
-                logger.warn("Calling sys exit to leave after " + nRecords + " records");
-                System.exit(0); // todo -- what's the recommend way to abort like this?
-            }
-            return 0;
         }
+
+        return 1;
+    }
+
+    @Override
+    public boolean isDone() {
+        boolean done = MAX_RECORDS != -1 && nRecords >= MAX_RECORDS;
+        if ( done) logger.warn("isDone() will return true to leave after " + nRecords + " records");
+        return done ;
     }
 
     private static final boolean isWildCard(String s) {

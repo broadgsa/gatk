@@ -173,7 +173,9 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
          *   -> those with the same mate pair position, for paired reads
          *   -> those flagged as unpaired and duplicated but having the same start and end
          */
+        boolean done = walker.isDone();
         for (SAMRecord read : iter) {
+            if ( done ) break;
             // get the genome loc from the read
             GenomeLoc site = engine.getGenomeLocParser().createGenomeLoc(read);
 
@@ -194,6 +196,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
             }
 
             printProgress(dataProvider.getShard(),site);
+            done = walker.isDone();
         }
 
         return sum;
