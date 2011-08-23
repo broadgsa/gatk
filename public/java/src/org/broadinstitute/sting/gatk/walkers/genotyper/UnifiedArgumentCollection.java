@@ -156,7 +156,7 @@ public class UnifiedArgumentCollection {
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
 
     @Hidden
-    @Argument(fullName = "dovit", shortName = "dovit", doc = "Output indel debug info", required = false)
+    @Argument(fullName = "dovit", shortName = "dovit", doc = "Perform full Viterbi calculation when evaluating the HMM", required = false)
     public boolean dovit = false;
 
     @Hidden
