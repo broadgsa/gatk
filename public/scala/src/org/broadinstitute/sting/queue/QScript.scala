@@ -58,6 +58,14 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
   def script()
 
   /**
+   * A default handler for the onExecutionDone() function.  By default this doesn't do anything
+   * except print out a fine status message.
+   */
+  def onExecutionDone(jobs: List[QFunction], success: Boolean) {
+    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", jobs.size))
+  }
+
+  /**
    * The command line functions that will be executed for this QScript.
    */
   var functions = List.empty[QFunction]
