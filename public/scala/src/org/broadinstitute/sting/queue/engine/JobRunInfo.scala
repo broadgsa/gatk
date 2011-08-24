@@ -67,7 +67,10 @@ class JobRunInfo {
   def getHostname = hostName
 
   def getRuntimeInMs: Long = {
-    getDoneTime.getTime - getStartTime.getTime
+    if ( getDoneTime != null && getStartTime != null )
+      getDoneTime.getTime - getStartTime.getTime
+    else
+      -1
   }
 
   override def toString: String =
