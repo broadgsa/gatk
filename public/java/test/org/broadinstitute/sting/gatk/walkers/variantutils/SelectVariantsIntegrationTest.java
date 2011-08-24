@@ -77,6 +77,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         executeTest("testConcordance--" + testFile, spec);
     }
 
+    @Test
+    public void testVariantTypeSelection() {
+        String testFile = validationDataLocation + "complexExample1.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -restrictAllelesTo MULTIALLELIC -selectType MIXED --variant " + testFile + " -o %s -NO_HEADER",
+                1,
+                Arrays.asList("e0b12c0b47a8a7a988b3587b47bfa8cf")
+        );
+
+        executeTest("testVariantTypeSelection--" + testFile, spec);
+    }
+
     @Test(enabled=false)
     public void testRemovePLs() {
         String testFile = validationDataLocation + "combine.3.vcf";

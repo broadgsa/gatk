@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.apache.poi.hpsf.Variant;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -165,6 +166,23 @@ import java.util.*;
  *   -o output.vcf \
  *   -fraction 0.5
  *
+ * Select only indels from a VCF:
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -selectType INDEL
+ *
+ * Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column):
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -selectType SNP -selectType MNP \
+ *   -restrictAllelesTo MULTIALLELIC
+ *
  * </pre>
  *
  */
@@ -223,11 +241,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
-    @Argument(fullName="excludeBiallelic", shortName="xl_biallelic", doc="Select only multi-allelic variants, excluding any biallelic one.", required=false)
-    private boolean EXCLUDE_BIALLELIC = false;
 
-    @Argument(fullName="selectMultiallelic", shortName="xl_multiallelic", doc="Select only biallelic variants, excluding any multi-allelic one.", required=false)
-    private boolean EXCLUDE_MULTIALLELIC = false;
+    /**
+     * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a vcf.
+     * For example, a multiallelic record such as:
+     * 1    100 .   A   AAA,AAAAA
+     * will be excluded if "-restrictAllelesTo BIALLELIC" is included, because there are two alternate alleles, whereas a record such as:
+     * 1    100 .   A  T
+     * will be included in that case, but would be excluded if "-restrictAllelesTo MULTIALLELIC
+     */
+    @Argument(fullName="restrictAllelesTo", shortName="restrictAllelesTo", doc="Select only variants of a particular allelicity. Valid options are ALL (default), MULTIALLELIC or BIALLELIC", required=false)
+    private  NumberAlleleRestriction alleleRestriction = NumberAlleleRestriction.ALL;
 
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't update the AC, AF, or AN values in the INFO field after selecting", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
@@ -272,11 +296,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track", required=false)
     private double fractionRandom = 0;
 
-    @Argument(fullName="selectSNPs", shortName="snps", doc="Select only SNPs from the input file", required=false)
-    private boolean SELECT_SNPS = false;
+    /**
+      * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
+     * When specified one or more times, a particular type of variant is selected.
+     *
+      */
+    @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file. Valid types are INDEL, SNP, MIXED, MNP, SYMBOLIC, NO_VARIATION. Can be specified multiple times", required=false)
+    private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<VariantContext.Type>();
 
-    @Argument(fullName="selectIndels", shortName="indels", doc="Select only indels from the input file", required=false)
-    private boolean SELECT_INDELS = false;
 
     @Hidden
     @Argument(fullName="outMVFile", shortName="outMVFile", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
@@ -296,6 +323,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     }
 
+    public enum NumberAlleleRestriction {
+           ALL,
+           BIALLELIC,
+           MULTIALLELIC
+    }
+
+    private ArrayList<VariantContext.Type> selectedTypes = new ArrayList<VariantContext.Type>();
     private ArrayList<String> selectNames = new ArrayList<String>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
@@ -360,6 +394,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         for ( String sample : samples )
             logger.info("Including sample '" + sample + "'");
 
+
+
+        // if user specified types to include, add these, otherwise, add all possible variant context types to list of vc types to include
+        if (TYPES_TO_INCLUDE.isEmpty()) {
+
+            for (VariantContext.Type t : VariantContext.Type.values())
+                selectedTypes.add(t);
+
+        }
+        else {
+            for (VariantContext.Type t : TYPES_TO_INCLUDE)
+                selectedTypes.add(t);
+
+        }
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
@@ -499,18 +547,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 if (!isConcordant(vc, compVCs))
                     return 0;
             }
-            if (EXCLUDE_BIALLELIC && vc.isBiallelic())
-                return 0;
 
-            if (EXCLUDE_MULTIALLELIC && !vc.isBiallelic())
-                return 0;
-
-            // TODO - add ability to also select MNPs
-            // TODO - move variant selection arguments to the engine so other walkers can also do this
-            if (SELECT_INDELS && !(vc.isIndel() || vc.isMixed()))
+            if (alleleRestriction.equals(NumberAlleleRestriction.BIALLELIC) && !vc.isBiallelic())
                 continue;
 
-            if (SELECT_SNPS && !vc.isSNP())
+            if (alleleRestriction.equals(NumberAlleleRestriction.MULTIALLELIC) && vc.isBiallelic())
+                continue;
+
+            if (!selectedTypes.contains(vc.getType()))
                 continue;
 
             VariantContext sub = subsetRecord(vc, samples);
