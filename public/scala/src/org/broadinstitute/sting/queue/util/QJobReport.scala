@@ -49,15 +49,15 @@ trait QJobReport extends QFunction {
   def getName: String = features.get("jobName").get
 
   private def addRunInfo(info: JobRunInfo) {
+    logger.info("info " + info)
     features = features ++ Map(
       "analysisName" -> this.analysisName,
       "jobName" -> this.jobName,
       "intermediate" -> this.isIntermediate,
-      "startTime" -> info.getStartTime,
-      "doneTime" -> info.getDoneTime,
+      "startTime" -> info.getFormattedStartTime,
+      "doneTime" -> info.getFormattedDoneTime,
       "memUsedInGb" -> info.getMemoryUsedInGb,
-      "runtime" -> info.getRuntimeInMs,
-      "hostName" -> info.getHostname).mapValues(_.toString)
+      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")
   }
 
   def setJobLogging(group: String) {
@@ -71,7 +71,8 @@ trait QJobReport extends QFunction {
 }
 
 object QJobReport {
-  def printReport(jobs: Map[QFunction, JobRunInfo], dest: File) {
+  def printReport(jobsRaw: Map[QFunction, JobRunInfo], dest: File) {
+    val jobs = jobsRaw.filter(_._2.isFilledIn)
     val jobLogs: List[QJobReport] = jobLoggingSublist(jobs.keys.toList)
     jobLogs.foreach((job: QJobReport) => job.addRunInfo(jobs.get(job).get))
     val stream = new PrintStream(new FileOutputStream(dest))

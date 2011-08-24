@@ -31,11 +31,12 @@ import org.broadinstitute.sting.jna.lsf.v7_0_6.{LibLsf, LibBat}
 import org.broadinstitute.sting.utils.Utils
 import org.broadinstitute.sting.jna.clibrary.LibC
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
-import com.sun.jna.ptr.IntByReference
 import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
-import com.sun.jna.{Structure, StringArray, NativeLong}
 import java.util.regex.Pattern
 import java.lang.StringBuffer
+import java.util.Date
+import com.sun.jna.{Pointer, Structure, StringArray, NativeLong}
+import com.sun.jna.ptr.{PointerByReference, IntByReference}
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -271,12 +272,21 @@ object Lsf706JobRunner extends Logging {
 
     logger.debug("Job Id %s status / exitStatus / exitInfo: 0x%02x / 0x%02x / 0x%02x".format(runner.jobId, jobStatus, exitStatus, exitInfo))
 
+    def updateRunInfo() {
+      runner.getRunInfo.startTime = new Date(jobInfo.startTime.longValue)
+      runner.getRunInfo.doneTime = new Date(jobInfo.endTime.longValue)
+      runner.getRunInfo.hostName = "unavailable" // TODO : exHosts
+      runner.getRunInfo.memUsedInGb = jobInfo.runRusage.mem
+    }
+
     runner.updateStatus(
       if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_DONE)) {
         // Done successfully.
+        updateRunInfo()
         RunnerStatus.DONE
       } else if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_EXIT) && !willRetry(exitInfo, endTime)) {
         // Exited function that (probably) won't be retried.
+        updateRunInfo()
         RunnerStatus.FAILED
       } else {
         // Note that we still saw the job in the system.

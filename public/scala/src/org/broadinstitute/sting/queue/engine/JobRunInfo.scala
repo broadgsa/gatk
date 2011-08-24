@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.queue.engine
 
 import java.util.Date
+import java.text.SimpleDateFormat
 
 /*
  * Copyright (c) 2011, The Broad Institute
@@ -57,14 +58,20 @@ class JobRunInfo {
   var startTime: Date = _
   var doneTime: Date = _
   var memUsedInGb: Int = -1
-  var hostName: String = "localhost"
   var status: RunnerStatus.Value = RunnerStatus.DONE
 
   def getStatus = status
+
   def getStartTime = startTime
   def getDoneTime = doneTime
+  def getFormattedStartTime = formatTime(getStartTime)
+  def getFormattedDoneTime = formatTime(getDoneTime)
+
+  val formatter = new SimpleDateFormat("dd.MM.yy/H:mm:ss:SSS");
+  private def formatTime(d: Date) = if ( d != null ) formatter.format(d) else "null"
+
   def getMemoryUsedInGb = memUsedInGb
-  def getHostname = hostName
+  def isFilledIn = startTime != null
 
   def getRuntimeInMs: Long = {
     if ( getDoneTime != null && getStartTime != null )
@@ -74,7 +81,7 @@ class JobRunInfo {
   }
 
   override def toString: String =
-    "started %s ended %s runtime %s on host %s using %d Gb memory".format(getStartTime, getDoneTime, getRuntimeInMs, getHostname, getMemoryUsedInGb)
+    "started %s ended %s runtime %s using %d Gb memory".format(getFormattedStartTime, getFormattedDoneTime, getRuntimeInMs, getMemoryUsedInGb)
 }
 
 object JobRunInfo {
