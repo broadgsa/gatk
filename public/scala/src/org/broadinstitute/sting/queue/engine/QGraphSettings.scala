@@ -69,6 +69,9 @@ class QGraphSettings {
   @Argument(fullName="expanded_dot_graph", shortName="expandedDot", doc="Outputs the queue graph of scatter gather to a .dot file.  Otherwise overwrites the dot_graph", required=false)
   var expandedDotFile: File = _
 
+  @Argument(fullName="jobReport", shortName="jobReport", doc="File where we will write the Queue job report", required=false)
+  var jobReportFile: File = new File("queue_job_report.gatkreport.txt")
+
   @ArgumentCollection
   val qSettings = new QSettings
 }

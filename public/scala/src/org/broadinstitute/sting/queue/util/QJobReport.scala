@@ -32,7 +32,7 @@ import java.io.{FileOutputStream, PrintStream, File}
 /**
  * A mixin to add Job info to the class
  */
-trait JobLogging extends QFunction {
+trait QJobReport extends QFunction {
   private var group: String = _
   private var features: Map[String, String] = null
 
@@ -70,16 +70,18 @@ trait JobLogging extends QFunction {
   }
 }
 
-object JobLogging {
-  def printLogs(jobs: Map[QFunction, JobRunInfo], dest: File) {
-    val jobLogs: List[JobLogging] = jobLoggingSublist(jobs.keys.toList)
-    jobLogs.foreach((job: JobLogging) => job.addRunInfo(jobs.get(job).get))
-    printJobLogging(jobLogs, new PrintStream(new FileOutputStream(dest)))
+object QJobReport {
+  def printReport(jobs: Map[QFunction, JobRunInfo], dest: File) {
+    val jobLogs: List[QJobReport] = jobLoggingSublist(jobs.keys.toList)
+    jobLogs.foreach((job: QJobReport) => job.addRunInfo(jobs.get(job).get))
+    val stream = new PrintStream(new FileOutputStream(dest))
+    printJobLogging(jobLogs, stream)
+    stream.close()
   }
 
-  private def jobLoggingSublist(l: List[QFunction]): List[JobLogging] = {
-    def asJogLogging(qf: QFunction): JobLogging = qf match {
-      case x: JobLogging => x
+  private def jobLoggingSublist(l: List[QFunction]): List[QJobReport] = {
+    def asJogLogging(qf: QFunction): QJobReport = qf match {
+      case x: QJobReport => x
       case _ => null
     }
 
@@ -90,7 +92,7 @@ object JobLogging {
    * Prints the JobLogging logs to a GATKReport.  First splits up the
    * logs by group, and for each group generates a GATKReportTable
    */
-  private def printJobLogging(logs: List[JobLogging], stream: PrintStream) {
+  private def printJobLogging(logs: List[QJobReport], stream: PrintStream) {
     // create the report
     val report: GATKReport = new GATKReport
 
@@ -112,11 +114,11 @@ object JobLogging {
     report.print(stream)
   }
 
-  private def groupLogs(logs: List[JobLogging]): Map[String, List[JobLogging]] = {
+  private def groupLogs(logs: List[QJobReport]): Map[String, List[QJobReport]] = {
     logs.groupBy(_.getGroup)
   }
 
-  private def logKeys(logs: List[JobLogging]): Set[String] = {
+  private def logKeys(logs: List[QJobReport]): Set[String] = {
     // the keys should be the same for each log, but we will check that
     val keys = Set[String](logs(0).getFeatureNames : _*)
 

@@ -115,9 +115,8 @@ class QCommandLine extends CommandLineProgram with Logging {
     // walk over each script, calling onExecutionDone
     for (script <- allQScripts) {
       script.onExecutionDone(qGraph.getFunctionsAndStatus(script.functions), qGraph.success)
-      val reportFile = new File("joblogging.gatkreport.txt")
-      logger.info("Writing JobLogging GATKReport to file " + reportFile)
-      JobLogging.printLogs(qGraph.getFunctionsAndStatus(script.functions), reportFile)
+      logger.info("Writing JobLogging GATKReport to file " + settings.jobReportFile)
+      QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), settings.jobReportFile)
     }
 
     if (!qGraph.success) {
