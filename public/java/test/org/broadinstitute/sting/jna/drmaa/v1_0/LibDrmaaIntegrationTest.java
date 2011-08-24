@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class LibDrmaaIntegrationTest extends BaseTest {
+    private String implementation = null;
 
     @Test
     public void testDrmaa() throws Exception {
@@ -79,10 +80,24 @@ public class LibDrmaaIntegrationTest extends BaseTest {
             Assert.fail(String.format("Could not get DRMAA implementation from the DRMAA library: %s", error.getString(0)));
 
         System.out.println(String.format("DRMAA implementation(s): %s", drmaaImplementation.getString(0)));
+
+        this.implementation = drmaaImplementation.getString(0);
     }
 
-    @Test
+    @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
+        if (implementation.indexOf("LSF") >= 0) {
+            System.err.println("    *********************************************************");
+            System.err.println("   ***********************************************************");
+            System.err.println("   ****                                                   ****");
+            System.err.println("  ****  Skipping LibDrmaaIntegrationTest.testSubmitEcho()  ****");
+            System.err.println("  ****     Are you using the dotkit .combined_LSF_SGE?     ****");
+            System.err.println("   ****                                                   ****");
+            System.err.println("   ***********************************************************");
+            System.err.println("    *********************************************************");
+            return;
+        }
+
         Memory error = new Memory(LibDrmaa.DRMAA_ERROR_STRING_BUFFER);
         int errnum;
 
@@ -129,7 +144,7 @@ public class LibDrmaaIntegrationTest extends BaseTest {
             errnum = LibDrmaa.drmaa_set_vector_attribute(jt, LibDrmaa.DRMAA_V_ARGV, args, error, LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN);
 
             if (errnum != LibDrmaa.DRMAA_ERRNO.DRMAA_ERRNO_SUCCESS)
-                Assert.fail(String.format("Could not set attribute \"%s\": %s", LibDrmaa.DRMAA_REMOTE_COMMAND, error.getString(0)));
+                Assert.fail(String.format("Could not set attribute \"%s\": %s", LibDrmaa.DRMAA_V_ARGV, error.getString(0)));
 
             errnum = LibDrmaa.drmaa_run_job(jobIdMem, LibDrmaa.DRMAA_JOBNAME_BUFFER_LEN, jt, error, LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN);
 
