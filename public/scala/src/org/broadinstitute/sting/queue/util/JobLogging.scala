@@ -27,6 +27,7 @@ import org.broadinstitute.sting.queue.function.QFunction
 import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
+import java.io.{FileOutputStream, PrintStream, File}
 
 /**
  * A mixin to add Job info to the class
@@ -70,10 +71,10 @@ trait JobLogging extends QFunction {
 }
 
 object JobLogging {
-  def printLogs(jobs: Map[QFunction, JobRunInfo]) {
+  def printLogs(jobs: Map[QFunction, JobRunInfo], dest: File) {
     val jobLogs: List[JobLogging] = jobLoggingSublist(jobs.keys.toList)
     jobLogs.foreach((job: JobLogging) => job.addRunInfo(jobs.get(job).get))
-    printJobLogging(jobLogs)
+    printJobLogging(jobLogs, new PrintStream(new FileOutputStream(dest)))
   }
 
   private def jobLoggingSublist(l: List[QFunction]): List[JobLogging] = {
@@ -89,7 +90,7 @@ object JobLogging {
    * Prints the JobLogging logs to a GATKReport.  First splits up the
    * logs by group, and for each group generates a GATKReportTable
    */
-  private def printJobLogging(logs: List[JobLogging]) {
+  private def printJobLogging(logs: List[JobLogging], stream: PrintStream) {
     // create the report
     val report: GATKReport = new GATKReport
 
@@ -108,7 +109,7 @@ object JobLogging {
       }
     }
 
-    report.print(System.out)
+    report.print(stream)
   }
 
   private def groupLogs(logs: List[JobLogging]): Map[String, List[JobLogging]] = {
