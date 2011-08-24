@@ -209,6 +209,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     /**
      * the complete constructor.  Makes a complete VariantContext from its arguments
+     * This is the only constructor that is able to create indels! DO NOT USE THE OTHER ONES.
      *
      * @param source          source
      * @param contig          the contig
@@ -293,7 +294,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
+     * Create a new variant context with genotypes but without Perror, filters, and attributes
      *
      * @param source          source
      * @param contig          the contig
