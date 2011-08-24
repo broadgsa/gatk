@@ -313,7 +313,6 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class clean (inBams: File, tIntervals: File, outBam: File) extends IndelRealigner with CommandLineGATKArgs {
-    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
     this.input_file :+= inBams
     this.targetIntervals = tIntervals
     this.out = outBam
