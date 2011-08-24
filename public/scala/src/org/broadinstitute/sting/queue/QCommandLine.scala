@@ -115,6 +115,7 @@ class QCommandLine extends CommandLineProgram with Logging {
     // walk over each script, calling onExecutionDone
     for (script <- allQScripts) {
       script.onExecutionDone(qGraph.getFunctionsAndStatus(script.functions), qGraph.success)
+      JobLogging.printLogs(qGraph.getFunctionsAndStatus(script.functions))
     }
 
     if (!qGraph.success) {
