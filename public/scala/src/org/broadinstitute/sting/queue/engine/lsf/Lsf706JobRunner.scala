@@ -275,8 +275,7 @@ object Lsf706JobRunner extends Logging {
     def updateRunInfo() {
       runner.getRunInfo.startTime = new Date(jobInfo.startTime.longValue)
       runner.getRunInfo.doneTime = new Date(jobInfo.endTime.longValue)
-      runner.getRunInfo.hostName = "unavailable" // TODO : exHosts
-      runner.getRunInfo.memUsedInGb = jobInfo.runRusage.mem
+      runner.getRunInfo.memUsedInGb = jobInfo.runRusage.mem // todo -- ask khalid about units here
     }
 
     runner.updateStatus(
