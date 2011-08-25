@@ -115,8 +115,10 @@ class QCommandLine extends CommandLineProgram with Logging {
     // walk over each script, calling onExecutionDone
     for (script <- allQScripts) {
       script.onExecutionDone(qGraph.getFunctionsAndStatus(script.functions), qGraph.success)
-      logger.info("Writing JobLogging GATKReport to file " + settings.jobReportFile)
-      QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), settings.jobReportFile)
+      if ( ! settings.disableJobReport ) {
+        logger.info("Writing JobLogging GATKReport to file " + settings.jobReportFile)
+        QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), settings.jobReportFile)
+        // todo -- execute Rscript here once generic RScript execution system is implemented      }
     }
 
     if (!qGraph.success) {
