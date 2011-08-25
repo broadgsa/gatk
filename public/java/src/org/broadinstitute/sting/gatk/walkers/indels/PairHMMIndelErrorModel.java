@@ -274,7 +274,7 @@ public class PairHMMIndelErrorModel {
         this.doViterbi = dovit;
     }
 
-    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP) {
+    public PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP) {
 
 
         this.logGapOpenProbability = -indelGOP/10.0; // QUAL to log prob
@@ -754,7 +754,7 @@ public class PairHMMIndelErrorModel {
 
             // check if we've already computed likelihoods for this pileup element (i.e. for this read at this location)
             if (indelLikelihoodMap.containsKey(p)) {
-                HashMap<Allele,Double> el =  indelLikelihoodMap.get(p);
+                HashMap<Allele,Double> el = indelLikelihoodMap.get(p);
                 int j=0;
                 for (Allele a: haplotypeMap.keySet()) {
                     readLikelihoods[readIdx][j++] = el.get(a);
@@ -1055,7 +1055,6 @@ public class PairHMMIndelErrorModel {
             genotypeLikelihoods[i] -= maxElement;
 
         return genotypeLikelihoods;
-
     }
 
     /**
