@@ -290,7 +290,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         if ( !header.samplesWereAlreadySorted() )
             vc.getGenotypes();
 
-        // Trim bases of all alleles if necessary
         return vc;
     }
 
