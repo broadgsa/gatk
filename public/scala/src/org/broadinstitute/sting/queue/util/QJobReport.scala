@@ -49,7 +49,7 @@ trait QJobReport extends Logging {
 
   def setRunInfo(info: JobRunInfo) {
     logger.info("info " + info)
-    reportFeatures = reportFeatures ++ Map(
+    reportFeatures = Map(
       "iteration" -> 1,
       "analysisName" -> self.analysisName,
       "jobName" -> QJobReport.workAroundSameJobNames(this),
@@ -58,7 +58,7 @@ trait QJobReport extends Logging {
       "doneTime" -> info.getDoneTime.getTime,
       "formattedStartTime" -> info.getFormattedStartTime,
       "formattedDoneTime" -> info.getFormattedDoneTime,
-      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")
+      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null") ++ reportFeatures
 
 //    // handle the special case of iterations
 //    reportFeatures.get("iteration") match {
