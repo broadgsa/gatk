@@ -57,7 +57,6 @@ import java.text.SimpleDateFormat
 class JobRunInfo {
   var startTime: Date = _
   var doneTime: Date = _
-  var memUsedInGb: Int = -1
   var status: RunnerStatus.Value = RunnerStatus.DONE
 
   def getStatus = status
@@ -67,10 +66,9 @@ class JobRunInfo {
   def getFormattedStartTime = formatTime(getStartTime)
   def getFormattedDoneTime = formatTime(getDoneTime)
 
-  val formatter = new SimpleDateFormat("dd.MM.yy/H:mm:ss:SSS");
+  val formatter = new SimpleDateFormat("yy-MM-dd H:mm:ss:SSS");
   private def formatTime(d: Date) = if ( d != null ) formatter.format(d) else "null"
 
-  def getMemoryUsedInGb = memUsedInGb
   def isFilledIn = startTime != null
 
   def getRuntimeInMs: Long = {
@@ -81,7 +79,7 @@ class JobRunInfo {
   }
 
   override def toString: String =
-    "started %s ended %s runtime %s using %d Gb memory".format(getFormattedStartTime, getFormattedDoneTime, getRuntimeInMs, getMemoryUsedInGb)
+    "started %s ended %s runtime %s".format(getFormattedStartTime, getFormattedDoneTime, getRuntimeInMs)
 }
 
 object JobRunInfo {

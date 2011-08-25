@@ -28,72 +28,91 @@ import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
 import java.io.{FileOutputStream, PrintStream, File}
+import org.broadinstitute.sting.queue.function.scattergather.{GathererFunction, ScatterFunction}
 
 /**
  * A mixin to add Job info to the class
  */
-trait QJobReport extends QFunction {
-  private var group: String = _
-  private var features: Map[String, String] = null
+// todo -- need to enforce QFunction to have copySettingTo work
+trait QJobReport extends Logging {
+  self: QFunction =>
 
-  def getGroup = group
-  def isEnabled = group != null
-  def getFeatureNames: List[String] = features.keys.toList
-  def getFeatures = features
-  def get(key: String): String = {
-    features.get(key) match {
+  // todo -- might make more sense to mix in the variables
+  protected var reportGroup: String = null
+  protected var reportFeatures: Map[String, String] = Map()
+
+  def includeInReport = getReportGroup != null
+  def setRunInfo(info: JobRunInfo) {
+    logger.info("info " + info)
+    reportFeatures = reportFeatures ++ Map(
+      "analysisName" -> self.analysisName,
+      "jobName" -> QJobReport.workAroundSameJobNames(this),
+      "intermediate" -> self.isIntermediate,
+      "startTime" -> info.getStartTime.getTime,
+      "doneTime" -> info.getDoneTime.getTime,
+      "formattedStartTime" -> info.getFormattedStartTime,
+      "formattedDoneTime" -> info.getFormattedDoneTime,
+      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")
+  }
+
+  def getReportGroup = reportGroup
+  def getReportFeatures = reportFeatures
+
+  def getReportFeatureNames: List[String] = getReportFeatures.keys.toList
+  def getReportFeature(key: String): String = {
+    getReportFeatures.get(key) match {
       case Some(x) => x
       case None => throw new RuntimeException("Get called with key %s but no value was found".format(key))
     }
   }
-  def getName: String = features.get("jobName").get
 
-  private def addRunInfo(info: JobRunInfo) {
-    logger.info("info " + info)
-    features = features ++ Map(
-      "analysisName" -> this.analysisName,
-      "jobName" -> this.jobName,
-      "intermediate" -> this.isIntermediate,
-      "startTime" -> info.getFormattedStartTime,
-      "doneTime" -> info.getFormattedDoneTime,
-      "memUsedInGb" -> info.getMemoryUsedInGb,
-      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")
+  def getReportName: String = getReportFeature("jobName")
+
+  def configureJobReport(group: String) {
+    this.reportGroup = group
   }
 
-  def setJobLogging(group: String) {
-    this.group = group
+  def configureJobReport(group: String, features: Map[String, Any]) {
+    this.reportGroup = group
+    this.reportFeatures = features.mapValues(_.toString)
   }
 
-  def setJobLogging(group: String, features: Map[String, Any]) {
-    this.group = group
-    this.features = features.mapValues(_.toString)
+  // copy the QJobReport information -- todo : what's the best way to do this?
+  override def copySettingsTo(function: QFunction) {
+    self.copySettingsTo(function)
+    function.reportGroup = this.reportGroup
+    function.reportFeatures = this.reportFeatures
   }
 }
 
 object QJobReport {
+  // todo -- fixme to have a unique name for Scatter/gather jobs as well
+  var seenCounter = 1
+  var seenNames = Set[String]()
+
   def printReport(jobsRaw: Map[QFunction, JobRunInfo], dest: File) {
-    val jobs = jobsRaw.filter(_._2.isFilledIn)
-    val jobLogs: List[QJobReport] = jobLoggingSublist(jobs.keys.toList)
-    jobLogs.foreach((job: QJobReport) => job.addRunInfo(jobs.get(job).get))
+    val jobs = jobsRaw.filter(_._2.isFilledIn).filter(_._1.includeInReport)
+    jobs foreach {case (qf, info) => qf.setRunInfo(info)}
     val stream = new PrintStream(new FileOutputStream(dest))
-    printJobLogging(jobLogs, stream)
+    printJobLogging(jobs.keys.toList, stream)
     stream.close()
   }
 
-  private def jobLoggingSublist(l: List[QFunction]): List[QJobReport] = {
-    def asJogLogging(qf: QFunction): QJobReport = qf match {
-      case x: QJobReport => x
-      case _ => null
+  def workAroundSameJobNames(func: QFunction):String = {
+    if ( seenNames.apply(func.jobName) ) {
+      seenCounter += 1
+      "%s_%d".format(func.jobName, seenCounter)
+    } else {
+      seenNames += func.jobName
+      func.jobName
     }
-
-    l.map(asJogLogging).filter(_ != null)
   }
 
   /**
    * Prints the JobLogging logs to a GATKReport.  First splits up the
    * logs by group, and for each group generates a GATKReportTable
    */
-  private def printJobLogging(logs: List[QJobReport], stream: PrintStream) {
+  private def printJobLogging(logs: List[QFunction], stream: PrintStream) {
     // create the report
     val report: GATKReport = new GATKReport
 
@@ -108,25 +127,25 @@ object QJobReport {
       keys.foreach(table.addColumn(_, 0))
       for (log <- groupLogs) {
         for ( key <- keys )
-          table.set(log.getName, key, log.get(key))
+          table.set(log.getReportName, key, log.getReportFeature(key))
       }
     }
 
     report.print(stream)
   }
 
-  private def groupLogs(logs: List[QJobReport]): Map[String, List[QJobReport]] = {
-    logs.groupBy(_.getGroup)
+  private def groupLogs(logs: List[QFunction]): Map[String, List[QFunction]] = {
+    logs.groupBy(_.getReportGroup)
   }
 
-  private def logKeys(logs: List[QJobReport]): Set[String] = {
+  private def logKeys(logs: List[QFunction]): Set[String] = {
     // the keys should be the same for each log, but we will check that
-    val keys = Set[String](logs(0).getFeatureNames : _*)
+    val keys = Set[String](logs(0).getReportFeatureNames : _*)
 
     for ( log <- logs )
-      if ( keys.sameElements(Set(log.getFeatureNames)) )
+      if ( keys.sameElements(Set(log.getReportFeatureNames)) )
         throw new UserException(("All JobLogging jobs in the same group must have the same set of features.  " +
-          "We found one with %s and another with %s").format(keys, log.getFeatureNames))
+          "We found one with %s and another with %s").format(keys, log.getReportFeatureNames))
 
     keys
   }
