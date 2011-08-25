@@ -29,22 +29,28 @@ import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
 import java.io.{FileOutputStream, PrintStream, File}
 import org.broadinstitute.sting.queue.function.scattergather.{GathererFunction, ScatterFunction}
+import org.broadinstitute.sting.utils.R.RScriptExecutor.RScriptArgumentCollection
+import org.broadinstitute.sting.utils.R.RScriptExecutor
+import org.broadinstitute.sting.queue.QScript
 
 /**
  * A mixin to add Job info to the class
  */
-// todo -- need to enforce QFunction to have copySettingTo work
 trait QJobReport extends Logging {
   self: QFunction =>
 
-  // todo -- might make more sense to mix in the variables
   protected var reportGroup: String = null
   protected var reportFeatures: Map[String, String] = Map()
+  protected var reportEnabled: Boolean = true
 
-  def includeInReport = getReportGroup != null
+  def includeInReport = reportEnabled
+  def enableReport() { reportEnabled = true }
+  def disableReport() { reportEnabled = false }
+
   def setRunInfo(info: JobRunInfo) {
     logger.info("info " + info)
     reportFeatures = reportFeatures ++ Map(
+      "iteration" -> 1,
       "analysisName" -> self.analysisName,
       "jobName" -> QJobReport.workAroundSameJobNames(this),
       "intermediate" -> self.isIntermediate,
@@ -53,9 +59,15 @@ trait QJobReport extends Logging {
       "formattedStartTime" -> info.getFormattedStartTime,
       "formattedDoneTime" -> info.getFormattedDoneTime,
       "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")
+
+//    // handle the special case of iterations
+//    reportFeatures.get("iteration") match {
+//      case None => reportFeatures("iteration") = 1
+//      case _ => ;
+//    }
   }
 
-  def getReportGroup = reportGroup
+  def getReportGroup = analysisName
   def getReportFeatures = reportFeatures
 
   def getReportFeatureNames: List[String] = getReportFeatures.keys.toList
@@ -68,24 +80,20 @@ trait QJobReport extends Logging {
 
   def getReportName: String = getReportFeature("jobName")
 
-  def configureJobReport(group: String) {
-    this.reportGroup = group
-  }
-
-  def configureJobReport(group: String, features: Map[String, Any]) {
-    this.reportGroup = group
+  def configureJobReport(features: Map[String, Any]) {
     this.reportFeatures = features.mapValues(_.toString)
   }
 
   // copy the QJobReport information -- todo : what's the best way to do this?
   override def copySettingsTo(function: QFunction) {
     self.copySettingsTo(function)
-    function.reportGroup = this.reportGroup
     function.reportFeatures = this.reportFeatures
   }
 }
 
 object QJobReport {
+  val JOB_REPORT_QUEUE_SCRIPT = "queueJobReport.R"
+
   // todo -- fixme to have a unique name for Scatter/gather jobs as well
   var seenCounter = 1
   var seenNames = Set[String]()
@@ -96,6 +104,12 @@ object QJobReport {
     val stream = new PrintStream(new FileOutputStream(dest))
     printJobLogging(jobs.keys.toList, stream)
     stream.close()
+  }
+
+  def plotReport(args: RScriptArgumentCollection, jobReportFile: File) {
+    val executor = new RScriptExecutor(args, false) // don't except on error
+    val pdf = jobReportFile.getAbsolutePath + ".pdf"
+    executor.callRScripts(JOB_REPORT_QUEUE_SCRIPT, jobReportFile.getAbsolutePath, pdf)
   }
 
   def workAroundSameJobNames(func: QFunction):String = {
