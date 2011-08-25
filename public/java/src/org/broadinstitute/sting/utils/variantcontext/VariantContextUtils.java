@@ -657,10 +657,82 @@ public class VariantContextUtils {
 
         VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
         // Trim the padded bases of all alleles if necessary
-        merged = AbstractVCFCodec.createVariantContextWithTrimmedAlleles(merged);
+        merged = createVariantContextWithTrimmedAlleles(merged);
 
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
+    }
+
+    public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
+        // see if we need to trim common reference base from all alleles
+        boolean trimVC;
+
+        // We need to trim common reference base from all alleles in all genotypes if a ref base is common to all alleles
+        Allele refAllele = inputVC.getReference();
+        if (!inputVC.isVariant())
+            trimVC = false;
+        else if (refAllele.isNull())
+            trimVC = false;
+        else {
+            trimVC = (AbstractVCFCodec.computeForwardClipping(new ArrayList<Allele>(inputVC.getAlternateAlleles()),
+                    inputVC.getReference().getDisplayString()) > 0);
+         }
+
+        // nothing to do if we don't need to trim bases
+        if (trimVC) {
+            List<Allele> alleles = new ArrayList<Allele>();
+            Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+
+            // set the reference base for indels in the attributes
+            Map<String,Object> attributes = new TreeMap<String,Object>(inputVC.getAttributes());
+
+            Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
+
+            for (Allele a : inputVC.getAlleles()) {
+                if (a.isSymbolic()) {
+                    alleles.add(a);
+                    originalToTrimmedAlleleMap.put(a, a);
+                } else {
+                    // get bases for current allele and create a new one with trimmed bases
+                    byte[] newBases = Arrays.copyOfRange(a.getBases(), 1, a.length());
+                    Allele trimmedAllele = Allele.create(newBases, a.isReference());
+                    alleles.add(trimmedAllele);
+                    originalToTrimmedAlleleMap.put(a, trimmedAllele);
+                }
+            }
+
+            // detect case where we're trimming bases but resulting vc doesn't have any null allele. In that case, we keep original representation
+            // example: mixed records such as {TA*,TGA,TG}
+            boolean hasNullAlleles = false;
+
+            for (Allele a: originalToTrimmedAlleleMap.values()) {
+                if (a.isNull())
+                    hasNullAlleles = true;
+                if (a.isReference())
+                    refAllele = a;
+             }
+
+             if (!hasNullAlleles)
+               return inputVC;
+           // now we can recreate new genotypes with trimmed alleles
+            for ( Map.Entry<String, Genotype> sample : inputVC.getGenotypes().entrySet() ) {
+
+                List<Allele> originalAlleles = sample.getValue().getAlleles();
+                List<Allele> trimmedAlleles = new ArrayList<Allele>();
+                for ( Allele a : originalAlleles ) {
+                    if ( a.isCalled() )
+                        trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
+                    else
+                        trimmedAlleles.add(Allele.NO_CALL);
+                }
+                genotypes.put(sample.getKey(), Genotype.modifyAlleles(sample.getValue(), trimmedAlleles));
+
+            }
+            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
+
+        }
+
+        return inputVC;
     }
 
     public static Map<String, Genotype> stripPLs(Map<String, Genotype> genotypes) {
