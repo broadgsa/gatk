@@ -70,7 +70,7 @@ class QGraphSettings {
   var expandedDotFile: File = _
 
   @Argument(fullName="jobReport", shortName="jobReport", doc="File where we will write the Queue job report", required=false)
-  var jobReportFile: File = new File("/dev/stdout")
+  var jobReportFile: File = new File("queue_jobreport.gatkreport.txt")
 
   @ArgumentCollection
   val qSettings = new QSettings
