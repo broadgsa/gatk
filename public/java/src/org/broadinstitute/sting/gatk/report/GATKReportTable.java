@@ -92,6 +92,8 @@ import java.util.regex.Pattern;
  * @author Khalid Shakir
  */
 public class GATKReportTable {
+    /** REGEX that matches any table with an invalid name */
+    public final static String INVALID_TABLE_NAME_REGEX = "[^a-zA-Z0-9_\\-\\.]";
     private static final GATKReportVersion LATEST_REPORT_VERSION = GATKReportVersion.V0_2;
     private String tableName;
     private String tableDescription;
@@ -111,7 +113,7 @@ public class GATKReportTable {
      * @return  true if the name is valid, false if otherwise
      */
     private boolean isValidName(String name) {
-        Pattern p = Pattern.compile("[^a-zA-Z0-9_\\-\\.]");
+        Pattern p = Pattern.compile(INVALID_TABLE_NAME_REGEX);
         Matcher m = p.matcher(name);
 
         return !m.find();
