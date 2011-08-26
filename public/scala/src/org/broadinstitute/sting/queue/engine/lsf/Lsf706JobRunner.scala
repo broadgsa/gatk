@@ -273,8 +273,9 @@ object Lsf706JobRunner extends Logging {
     logger.debug("Job Id %s status / exitStatus / exitInfo: 0x%02x / 0x%02x / 0x%02x".format(runner.jobId, jobStatus, exitStatus, exitInfo))
 
     def updateRunInfo() {
-      runner.getRunInfo.startTime = new Date(jobInfo.startTime.longValue)
-      runner.getRunInfo.doneTime = new Date(jobInfo.endTime.longValue)
+      // the platform LSF startTimes are in seconds, not milliseconds, so convert to the java convention
+      runner.getRunInfo.startTime = new Date(jobInfo.startTime.longValue * 1000)
+      runner.getRunInfo.doneTime = new Date(jobInfo.endTime.longValue * 1000)
     }
 
     runner.updateStatus(
