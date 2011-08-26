@@ -48,9 +48,10 @@ public class LinearMicroScheduler extends MicroScheduler {
         walker.initialize();
         Accumulator accumulator = Accumulator.create(engine,walker);
 
+        boolean done = walker.isDone();
         int counter = 0;
         for (Shard shard : shardStrategy ) {
-            if ( shard == null ) // we ran out of shards that aren't owned
+            if ( done || shard == null ) // we ran out of shards that aren't owned
                 break;
 
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
@@ -61,6 +62,7 @@ public class LinearMicroScheduler extends MicroScheduler {
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();
+                    if ( walker.isDone() ) break;
                 }
                 windowMaker.close();
             }
@@ -70,6 +72,8 @@ public class LinearMicroScheduler extends MicroScheduler {
                 accumulator.accumulate(dataProvider,result);
                 dataProvider.close();
             }
+
+            done = walker.isDone();
         }
 
         Object result = accumulator.finishTraversal();

@@ -234,7 +234,7 @@ public class DiffEngine {
 
         // now that we have a specific list of values we want to show, display them
         GATKReport report = new GATKReport();
-        final String tableName = "diffences";
+        final String tableName = "differences";
         report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", false);
         GATKReportTable table = report.getTable(tableName);
         table.addPrimaryKey("Difference", true);

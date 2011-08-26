@@ -33,6 +33,7 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
         logger.debug(String.format("TraverseLoci.traverse: Shard is %s", dataProvider));
 
         LocusView locusView = getLocusView( walker, dataProvider );
+        boolean done = false;
 
         if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
 
@@ -46,7 +47,7 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
             LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
 
             // We keep processing while the next reference location is within the interval
-            while( locusView.hasNext() ) {
+            while( locusView.hasNext() && ! done ) {
                 AlignmentContext locus = locusView.next();
                 GenomeLoc location = locus.getLocation();
 
@@ -76,15 +77,17 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
                 if (keepMeP) {
                     M x = walker.map(tracker, refContext, locus);
                     sum = walker.reduce(x, sum);
+                    done = walker.isDone();
                 }
 
                 printProgress(dataProvider.getShard(),locus.getLocation());
             }
         }
 
-            // We have a final map call to execute here to clean up the skipped based from the
-            // last position in the ROD to that in the interval
-        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
+        // We have a final map call to execute here to clean up the skipped based from the
+        // last position in the ROD to that in the interval
+        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA && ! walker.isDone() ) {
+            // only do this if the walker isn't done!
             RodLocusView rodLocusView = (RodLocusView)locusView;
             long nSkipped = rodLocusView.getLastSkippedBases();
             if ( nSkipped > 0 ) {

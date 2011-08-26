@@ -38,6 +38,7 @@ import org.apache.commons.lang.StringUtils
 import org.broadinstitute.sting.queue.util._
 import collection.immutable.{TreeSet, TreeMap}
 import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
+import java.util.Date
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -319,7 +320,9 @@ class QGraph extends Logging {
       logger.debug("+++++++")
       foreachFunction(readyJobs.toList, edge => {
         if (running) {
+          edge.myRunInfo.startTime = new Date()
           logEdge(edge)
+          edge.myRunInfo.doneTime = new Date()
           edge.markAsDone
         }
       })
@@ -940,6 +943,14 @@ class QGraph extends Logging {
   }
 
   /**
+   * Utility function for running a method over all function edges.
+   * @param edgeFunction Function to run for each FunctionEdge.
+   */
+  private def getFunctionEdges: List[FunctionEdge] = {
+    jobGraph.edgeSet.toList.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[List[FunctionEdge]]
+  }
+
+  /**
    * Utility function for running a method over all functions, but traversing the nodes in order of dependency.
    * @param edgeFunction Function to run for each FunctionEdge.
    */
@@ -1027,6 +1038,10 @@ class QGraph extends Logging {
    * Returns true if the graph was shutdown instead of exiting on its own.
    */
   def isShutdown = !running
+
+  def getFunctionsAndStatus(functions: List[QFunction]): Map[QFunction, JobRunInfo] = {
+    getFunctionEdges.map(edge => (edge.function, edge.getRunInfo)).toMap
+  }
 
   /**
    * Kills any forked jobs still running.

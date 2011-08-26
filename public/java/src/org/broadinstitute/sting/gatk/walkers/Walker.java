@@ -127,6 +127,17 @@ public abstract class Walker<MapType, ReduceType> {
     public void initialize() { }
 
     /**
+     * A function for overloading in subclasses providing a mechanism to abort early from a walker.
+     *
+     * If this ever returns true, then the Traversal engine will stop executing map calls
+     * and start the process of shutting down the walker in an orderly fashion.
+     * @return
+     */
+    public boolean isDone() {
+        return false;
+    }
+
+    /**
      * Provide an initial value for reduce computations.
      * @return Initial value of reduce.
      */
