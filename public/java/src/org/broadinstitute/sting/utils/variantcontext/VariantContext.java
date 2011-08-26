@@ -209,6 +209,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     /**
      * the complete constructor.  Makes a complete VariantContext from its arguments
+     * This is the only constructor that is able to create indels! DO NOT USE THE OTHER ONES.
      *
      * @param source          source
      * @param contig          the contig
@@ -257,9 +258,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param negLog10PError  qual
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
+     * @param referenceBaseForIndel   padded reference base
      */
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
-        this(source, contig, start, stop, alleles, NO_GENOTYPES, negLog10PError, filters, attributes, null, true);
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, Byte referenceBaseForIndel) {
+        this(source, contig, start, stop, alleles, NO_GENOTYPES, negLog10PError, filters, attributes, referenceBaseForIndel, true);
     }
 
     /**
@@ -293,7 +295,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
+     * Create a new variant context with genotypes but without Perror, filters, and attributes
      *
      * @param source          source
      * @param contig          the contig
