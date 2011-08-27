@@ -31,6 +31,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -38,6 +39,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -91,12 +93,12 @@ import java.util.regex.Pattern;
  *   -resources resources/  \
  *   -ignoreQ 5
  * </pre>
- * 
+ *
  */
 
 @DocumentedGATKFeature(
-    groupName = "AnalyzeCovariates",
-    summary = "Package to plot residual accuracy versus error covariates for the base quality score recalibrator")
+        groupName = "AnalyzeCovariates",
+        summary = "Package to plot residual accuracy versus error covariates for the base quality score recalibrator")
 public class AnalyzeCovariates extends CommandLineProgram {
 
     /////////////////////////////
@@ -118,7 +120,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
     private String PATH_TO_RESOURCES = "public/R/";
     @Argument(fullName = "ignoreQ", shortName = "ignoreQ", doc = "Ignore bases with reported quality less than this number.", required = false)
     private int IGNORE_QSCORES_LESS_THAN = 5;
-    @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)            
+    @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)
     private int NUM_READ_GROUPS_TO_PROCESS = -1; // -1 means process all read groups
 
     /**
@@ -323,13 +325,14 @@ public class AnalyzeCovariates extends CommandLineProgram {
     }
 
     private void callRScripts() {
+        RScriptExecutor.RScriptArgumentCollection argumentCollection =
+                new RScriptExecutor.RScriptArgumentCollection(PATH_TO_RSCRIPT, Arrays.asList(PATH_TO_RESOURCES));
+        RScriptExecutor executor = new RScriptExecutor(argumentCollection, true);
 
         int numReadGroups = 0;
-        
+
         // for each read group
         for( Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
-
-            Process p;
             if(++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS || NUM_READ_GROUPS_TO_PROCESS == -1) {
 
                 String readGroup = readGroupKey.toString();
@@ -338,35 +341,19 @@ public class AnalyzeCovariates extends CommandLineProgram {
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
                     Covariate cov = requestedCovariates.get(iii);
-                    try {
-
-                        if (DO_INDEL_QUALITY) {
-                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_indelQuality.R" + " " +
-                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                         cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
-                             p.waitFor();
-                            
-                        }   else {
+                    final String outputFilename = OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat";
+                    if (DO_INDEL_QUALITY) {
+                        executor.callRScripts("plot_indelQuality.R", outputFilename,
+                                cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                    }   else {
                         if( iii == 1 ) {
-                                // Analyze reported quality
-                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
-                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                            IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE + " " + MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
-                                p.waitFor();
-                            } else { // Analyze all other covariates
-                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
-                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                            cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
-                                p.waitFor();
-                            }
+                            // Analyze reported quality
+                            executor.callRScripts("plot_residualError_QualityScoreCovariate.R", outputFilename,
+                                    IGNORE_QSCORES_LESS_THAN, MAX_QUALITY_SCORE, MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                        } else { // Analyze all other covariates
+                            executor.callRScripts("plot_residualError_OtherCovariate.R", outputFilename,
+                                    cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
                         }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        System.exit(-1);
-                    } catch (IOException e) {
-                        System.out.println("Fatal Exception: Perhaps RScript jobs are being spawned too quickly? One work around is to process fewer read groups using the -numRG option.");
-                        e.printStackTrace();
-                        System.exit(-1);
                     }
                 }
             } else { // at the maximum number of read groups so break out

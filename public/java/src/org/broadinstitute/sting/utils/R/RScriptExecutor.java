@@ -57,8 +57,16 @@ public class RScriptExecutor {
         public String PATH_TO_RSCRIPT = "Rscript";
 
         @Advanced
-        @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
+        @Argument(fullName = "path_to_Rresources", shortName = "Rresources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
         public List<String> PATH_TO_RESOURCES = Arrays.asList("public/R/", "private/R/");
+
+        public RScriptArgumentCollection() {}
+
+        /** For testing and convenience */
+        public RScriptArgumentCollection(final String PATH_TO_RSCRIPT, final List<String> PATH_TO_RESOURCES) {
+            this.PATH_TO_RSCRIPT = PATH_TO_RSCRIPT;
+            this.PATH_TO_RESOURCES = PATH_TO_RESOURCES;
+        }
     }
 
     final RScriptArgumentCollection myArgs;
@@ -69,11 +77,11 @@ public class RScriptExecutor {
         this.exceptOnError = exceptOnError;
     }
 
-    public void callRScripts(String scriptName, String... scriptArgs) {
+    public void callRScripts(String scriptName, Object... scriptArgs) {
         callRScripts(scriptName, Arrays.asList(scriptArgs));
     }
 
-    public void callRScripts(String scriptName, List<String> scriptArgs) {
+    public void callRScripts(String scriptName, List<Object> scriptArgs) {
         try {
             final File pathToScript = findScript(scriptName);
             if ( pathToScript == null ) return; // we failed but shouldn't exception out
