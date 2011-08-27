@@ -48,8 +48,9 @@
     <property name="scaladoc.dir" value="scaladoc" />
     
     <!-- Contracts for Java -->
-    <!-- To disable, run with -Duse.contracts=false -->
-    <property name="use.contracts" value="false" />
+    <!-- By default, enabled only for test targets -->
+    <!-- To disable for test targets, run with -Duse.contracts=false -->
+    <!-- To enable for non-test targets, run with -Duse.contracts=true -->
     <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="contracts.version" value="1.0-20110609" />
     <property name="cofoja.jar" value="${lib.dir}/cofoja-${contracts.version}.jar"/>
@@ -174,6 +175,10 @@
         <!-- Set the properties needed to build public only -->
         <property name="gatk.target" value="core"/>
         <property name="scala.target" value="core"/>
+    </target>
+
+    <target name="init.usecontracts">
+        <property name="use.contracts" value="true" />
     </target>
 
     <target name="git.describe">
@@ -485,11 +490,16 @@
             <pathelement location="${java.classes}" />
         </path>
 
+        <!-- Run with -Dgatkdocs.include.hidden=true to include documentation for hidden features -->
+        <condition property="gatkdocs.include.hidden.arg" value="-include-hidden" else="">
+            <isset property="gatkdocs.include.hidden" />
+        </condition>
+
         <javadoc doclet="org.broadinstitute.sting.utils.help.GATKDoclet"
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
-                 additionalparam="-private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"> <!-- -test to only do DocumentationTest walker -->
+                 additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"> <!-- -test to only do DocumentationTest walker -->
             <sourcefiles>
                 <union>
                     <fileset refid="all.java.source.files"/>
@@ -744,8 +754,7 @@
         </scalac>
     </target>
 
-    <target name="test.compile" depends="test.java.compile,test.scala.compile">
-    </target>
+    <target name="test.compile" depends="init.usecontracts,test.java.compile,test.scala.compile" />
 
     <!-- new scala target -->
     
