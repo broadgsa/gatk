@@ -48,8 +48,9 @@
     <property name="scaladoc.dir" value="scaladoc" />
     
     <!-- Contracts for Java -->
-    <!-- To disable, run with -Duse.contracts=false -->
-    <property name="use.contracts" value="false" />
+    <!-- By default, enabled only for test targets -->
+    <!-- To disable for test targets, run with -Duse.contracts=false -->
+    <!-- To enable for non-test targets, run with -Duse.contracts=true -->
     <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="contracts.version" value="1.0-20110609" />
     <property name="cofoja.jar" value="${lib.dir}/cofoja-${contracts.version}.jar"/>
@@ -174,6 +175,10 @@
         <!-- Set the properties needed to build public only -->
         <property name="gatk.target" value="core"/>
         <property name="scala.target" value="core"/>
+    </target>
+
+    <target name="init.usecontracts">
+        <property name="use.contracts" value="true" />
     </target>
 
     <target name="git.describe">
@@ -744,8 +749,7 @@
         </scalac>
     </target>
 
-    <target name="test.compile" depends="test.java.compile,test.scala.compile">
-    </target>
+    <target name="test.compile" depends="init.usecontracts,test.java.compile,test.scala.compile" />
 
     <!-- new scala target -->
     
