@@ -4,6 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
 import org.broad.tribble.util.PositionalStream;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.jets3t.service.multi.ThreadedStorageService;
 
@@ -53,6 +54,9 @@ public class ReadClipper {
     public SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+
+        if (start < 0 || stop > read.getReadLength() - 1)
+            throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
         //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
