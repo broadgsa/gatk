@@ -632,7 +632,7 @@ public class ReadUtils {
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
 
         int start = getRefCoordSoftUnclippedStart(read);
-        int stop = getRefCoordSoftUnclippedStop(read);
+        int stop = getRefCoordSoftUnclippedEnd(read);
 
         if ( !read.getReferenceName().equals(interval.getContig()) )
             return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
@@ -658,6 +658,7 @@ public class ReadUtils {
             return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
 
+    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd()"})
     public static int getRefCoordSoftUnclippedStart(SAMRecord read) {
         int start = read.getUnclippedStart();
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
@@ -669,51 +670,93 @@ public class ReadUtils {
         return start;
     }
 
-    public static int getRefCoordSoftUnclippedStop(SAMRecord read) {
-        int stop = read.getAlignmentEnd();
-        List<CigarElement> cigarElementList  = read.getCigar().getCigarElements();
-        CigarElement lastCigarElement = cigarElementList.get(cigarElementList.size()-1);
-        if (lastCigarElement.getOperator() == CigarOperator.SOFT_CLIP)
-            stop += lastCigarElement.getLength();
-        return stop;
+    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd()"})
+    public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
+        int stop = read.getUnclippedStart();
+        int shift = 0;
+        for (CigarElement cigarElement : read.getCigar().getCigarElements())
+            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
+                shift += cigarElement.getLength();
+
+        return (shift == 0) ? stop : stop+shift-1;
+    }
+
+    /**
+     * Looks for a read coordinate that corresponds to the reference coordinate in the soft clipped region before
+     * the alignment start of the read.
+     *
+     * @param read
+     * @param refCoord
+     * @return the corresponding read coordinate or -1 if it failed to find it (it has been hard clipped before)
+     */
+    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord < read.getAlignmentStart()"})
+    private static int getReadCoordinateForReferenceCoordinateBeforeAlignmentStart(SAMRecord read, int refCoord) {
+        if (getRefCoordSoftUnclippedStart(read) <= refCoord)
+            return refCoord - getRefCoordSoftUnclippedStart(read) + 1;
+        return -1;
     }
 
 
+    /**
+     * Looks for a read coordinate that corresponds to the reference coordinate in the soft clipped region after
+     * the alignment end of the read.
+     *
+     * @param read
+     * @param refCoord
+     * @return the corresponding read coordinate or -1 if it failed to find it (it has been hard clipped before)
+     */
+    @Requires({"refCoord <= read.getUnclippedEnd()", "refCoord > read.getAlignmentEnd()"})
+    private static int getReadCoordinateForReferenceCoordinateBeforeAlignmentEnd(SAMRecord read, int refCoord) {
+        if (getRefCoordSoftUnclippedEnd(read) > refCoord)
+            return refCoord - read.getAlignmentEnd() + 1;
+        return -1;
+    }
 
-    @Requires({"refCoord >= read.getAlignmentStart()", "refCoord <= read.getAlignmentEnd()"})
+
+    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
-        int goal = refCoord - read.getAlignmentStart();  // The goal is to move this many reference bases
-        boolean goalReached = refBases == goal;
 
-        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
-        while (!goalReached && cigarElementIterator.hasNext()) {
-            CigarElement cigarElement = cigarElementIterator.next();
-            int shift = 0;
-            //if (refBases == 0 && readBases == 0 && cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
-            //    goal -= cigarElement.getLength();
-            //}
-
-            if (cigarElement.getOperator().consumesReferenceBases()) {
-                if (refBases + cigarElement.getLength() < goal) {
-                    shift = cigarElement.getLength();
-                }
-                else {
-                    shift = goal - refBases;
-                }
-                refBases += shift;
-            }
-            goalReached = refBases == goal;
-
-            if (cigarElement.getOperator().consumesReadBases()) {
-                readBases += goalReached ? shift : cigarElement.getLength();
-            }
+        if (refCoord < read.getAlignmentStart()) {
+            readBases = getReadCoordinateForReferenceCoordinateBeforeAlignmentStart(read, refCoord);
+            if (readBases < 0)
+                throw new ReviewedStingException("Requested a coordinate in a hard clipped area of the read. No equivalent read coordinate.");
         }
+        else if (refCoord > read.getAlignmentEnd()) {
+            readBases = getReadCoordinateForReferenceCoordinateBeforeAlignmentEnd(read, refCoord);
+            if (readBases < 0)
+                throw new ReviewedStingException("Requested a coordinate in a hard clipped area of the read. No equivalent read coordinate.");
+        }
+        else {
+            int goal = refCoord - read.getAlignmentStart();  // The goal is to move this many reference bases
+            boolean goalReached = refBases == goal;
 
-        if (!goalReached)
-            throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+            Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+            while (!goalReached && cigarElementIterator.hasNext()) {
+                CigarElement cigarElement = cigarElementIterator.next();
+                int shift = 0;
+
+                if (cigarElement.getOperator().consumesReferenceBases()) {
+                    if (refBases + cigarElement.getLength() < goal) {
+                        shift = cigarElement.getLength();
+                    }
+                    else {
+                        shift = goal - refBases;
+                    }
+                    refBases += shift;
+                }
+                goalReached = refBases == goal;
+
+                if (cigarElement.getOperator().consumesReadBases()) {
+                    readBases += goalReached ? shift : cigarElement.getLength();
+                }
+            }
+
+            if (!goalReached)
+                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+        }
 
         return readBases;
     }
