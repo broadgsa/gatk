@@ -51,7 +51,15 @@ public class ReadClipper {
         return read;
     }
 
-    public SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
+    public SAMRecord hardClipByReferenceCoordinatesLeftTail(int refStop) {
+        return hardClipByReferenceCoordinates(-1, refStop);
+    }
+
+    public SAMRecord hardClipByReferenceCoordinatesRightTail(int refStart) {
+        return hardClipByReferenceCoordinates(refStart, -1);
+    }
+
+    private SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
 
