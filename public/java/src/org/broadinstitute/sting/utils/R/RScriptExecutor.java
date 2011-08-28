@@ -32,6 +32,7 @@ import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
 import org.broadinstitute.sting.utils.PathUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,11 +54,19 @@ public class RScriptExecutor {
     public static class RScriptArgumentCollection {
         @Advanced
         @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-        private String PATH_TO_RSCRIPT = "Rscript";
+        public String PATH_TO_RSCRIPT = "Rscript";
 
         @Advanced
-        @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-        private List<String> PATH_TO_RESOURCES = Arrays.asList("public/R/", "private/R/");
+        @Argument(fullName = "path_to_Rresources", shortName = "Rresources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
+        public List<String> PATH_TO_RESOURCES = Arrays.asList("public/R/", "private/R/");
+
+        public RScriptArgumentCollection() {}
+
+        /** For testing and convenience */
+        public RScriptArgumentCollection(final String PATH_TO_RSCRIPT, final List<String> PATH_TO_RESOURCES) {
+            this.PATH_TO_RSCRIPT = PATH_TO_RSCRIPT;
+            this.PATH_TO_RESOURCES = PATH_TO_RESOURCES;
+        }
     }
 
     final RScriptArgumentCollection myArgs;
@@ -68,11 +77,11 @@ public class RScriptExecutor {
         this.exceptOnError = exceptOnError;
     }
 
-    public void callRScripts(String scriptName, String... scriptArgs) {
+    public void callRScripts(String scriptName, Object... scriptArgs) {
         callRScripts(scriptName, Arrays.asList(scriptArgs));
     }
 
-    public void callRScripts(String scriptName, List<String> scriptArgs) {
+    public void callRScripts(String scriptName, List<Object> scriptArgs) {
         try {
             final File pathToScript = findScript(scriptName);
             if ( pathToScript == null ) return; // we failed but shouldn't exception out
@@ -98,7 +107,7 @@ public class RScriptExecutor {
             }
         }
 
-        generateException("Couldn't find script: " + scriptName + " in " + myArgs.PATH_TO_RSCRIPT);
+        generateException("Couldn't find script: " + scriptName + " in " + myArgs.PATH_TO_RESOURCES);
         return null;
     }
 
@@ -112,7 +121,7 @@ public class RScriptExecutor {
 
     private void generateException(String msg, Throwable e) {
         if ( exceptOnError )
-            throw new RuntimeException(msg, e);
+            throw new UserException(msg, e);
         else
             logger.warn(msg + (e == null ? "" : ":" + e.getMessage()));
     }

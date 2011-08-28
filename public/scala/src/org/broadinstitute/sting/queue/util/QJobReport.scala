@@ -51,7 +51,7 @@ trait QJobReport extends Logging {
     logger.info("info " + info)
     reportFeatures = Map(
       "iteration" -> 1,
-      "analysisName" -> self.analysisName,
+      "analysisName" -> getReportGroup,
       "jobName" -> QJobReport.workAroundSameJobNames(this),
       "intermediate" -> self.isIntermediate,
       "startTime" -> info.getStartTime.getTime,
@@ -59,15 +59,12 @@ trait QJobReport extends Logging {
       "formattedStartTime" -> info.getFormattedStartTime,
       "formattedDoneTime" -> info.getFormattedDoneTime,
       "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null") ++ reportFeatures
-
-//    // handle the special case of iterations
-//    reportFeatures.get("iteration") match {
-//      case None => reportFeatures("iteration") = 1
-//      case _ => ;
-//    }
+    // note -- by adding reportFeatures second we override iteration
+    // (or any other binding) with the user provided value
   }
 
-  def getReportGroup = analysisName
+  /** The report Group is the analysis name transform to only contain valid GATKReportTable characters */
+  def getReportGroup = self.analysisName.replaceAll(GATKReportTable.INVALID_TABLE_NAME_REGEX, "_")
   def getReportFeatures = reportFeatures
 
   def getReportFeatureNames: List[String] = getReportFeatures.keys.toList
