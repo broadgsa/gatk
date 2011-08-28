@@ -116,9 +116,11 @@ class QCommandLine extends CommandLineProgram with Logging {
     for (script <- allQScripts) {
       script.onExecutionDone(qGraph.getFunctionsAndStatus(script.functions), qGraph.success)
       if ( ! settings.disableJobReport ) {
-        logger.info("Writing JobLogging GATKReport to file " + settings.jobReportFile)
-        QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), settings.jobReportFile)
-        QJobReport.plotReport(settings.rScriptArgs, settings.jobReportFile)
+        val jobStringName = (QScriptUtils.?(settings.jobReportFile)).getOrElse(settings.qSettings.jobNamePrefix + ".jobreport.txt")
+        val jobReportFile = new File(jobStringName)
+        logger.info("Writing JobLogging GATKReport to file " + jobReportFile)
+        QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), jobReportFile)
+        QJobReport.plotReport(settings.rScriptArgs, jobReportFile)
       }
     }
 

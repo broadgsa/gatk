@@ -57,4 +57,6 @@ object QScriptUtils {
   }
 
 
+  def ?[A <: AnyRef](ref: A): Option[A] =
+    if (ref eq null) None else Some(ref)
 }

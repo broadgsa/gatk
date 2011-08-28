@@ -71,7 +71,7 @@ class QGraphSettings {
   var expandedDotFile: File = _
 
   @Argument(fullName="jobReport", shortName="jobReport", doc="File where we will write the Queue job report", required=false)
-  var jobReportFile: File = new File("queue_jobreport.gatkreport.txt")
+  var jobReportFile: String = _
 
   @Advanced
   @Argument(fullName="disableJobReport", shortName="disabpleJobReport", doc="If provided, we will not create a job report", required=false)
