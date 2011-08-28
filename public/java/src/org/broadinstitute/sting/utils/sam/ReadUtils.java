@@ -674,11 +674,14 @@ public class ReadUtils {
     public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
         int stop = read.getUnclippedStart();
         int shift = 0;
-        for (CigarElement cigarElement : read.getCigar().getCigarElements())
-            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
-                shift += cigarElement.getLength();
-
-        return (shift == 0) ? stop : stop+shift-1;
+        CigarOperator lastOperator = null;
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            stop += shift;
+            lastOperator = cigarElement.getOperator();
+            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                shift = cigarElement.getLength();
+        }
+        return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
     }
 
     /**
