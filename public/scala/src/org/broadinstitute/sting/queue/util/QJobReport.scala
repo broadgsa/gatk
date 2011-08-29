@@ -48,12 +48,13 @@ trait QJobReport extends Logging {
   def disableReport() { reportEnabled = false }
 
   def setRunInfo(info: JobRunInfo) {
-    logger.info("info " + info)
+    //logger.info("info " + info)
     reportFeatures = Map(
       "iteration" -> 1,
       "analysisName" -> getReportGroup,
       "jobName" -> QJobReport.workAroundSameJobNames(this),
       "intermediate" -> self.isIntermediate,
+      "exechosts" -> info.getExecHosts,
       "startTime" -> info.getStartTime.getTime,
       "doneTime" -> info.getDoneTime.getTime,
       "formattedStartTime" -> info.getFormattedStartTime,

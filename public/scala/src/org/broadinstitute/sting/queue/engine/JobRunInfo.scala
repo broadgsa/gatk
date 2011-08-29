@@ -39,6 +39,7 @@ class JobRunInfo {
   var startTime: Date = _
   /** The done time with millisecond resolution of this job */
   var doneTime: Date = _
+  var exechosts: String = "localhost"
 
   def getStartTime = startTime
   def getDoneTime = doneTime
@@ -47,6 +48,8 @@ class JobRunInfo {
 
   /** Helper function that pretty prints the date */
   private def formatTime(d: Date) = if ( d != null ) formatter.format(d) else "null"
+
+  def getExecHosts = exechosts
 
   /**
    * Was any information set for this jobInfo?  JobInfo can be unset because

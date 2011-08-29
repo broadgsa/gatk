@@ -46,7 +46,6 @@ import org.simpleframework.xml.stream.Format;
 import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -230,22 +229,6 @@ public class GATKRunReport {
     }
 
 
-    /**
-     * Helper utility that calls into the InetAddress system to resolve the hostname.  If this fails,
-     * unresolvable gets returned instead.
-     *
-     * @return
-     */
-    private String resolveHostname() {
-        try {
-            return InetAddress.getLocalHost().getCanonicalHostName();
-        }
-        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
-            return "unresolvable";
-            // handle exception
-        }
-    }
-
     public void postReport(PhoneHomeOption type) {
         logger.debug("Posting report of type " + type);
         switch (type) {
@@ -325,7 +308,7 @@ public class GATKRunReport {
 
     private void postReportToAWSS3() {
         // modifying example code from http://jets3t.s3.amazonaws.com/toolkit/code-samples.html
-        this.hostName = resolveHostname(); // we want to fill in the host name
+        this.hostName = Utils.resolveHostname(); // we want to fill in the host name
         File localFile = postReportToLocalDisk(new File("./"));
         logger.debug("Generating GATK report to AWS S3 based on local file " + localFile);
         if ( localFile != null ) { // we succeeded in creating the local file

@@ -29,6 +29,7 @@ import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.Pair;
 
+import java.net.InetAddress;
 import java.util.*;
 
 /**
@@ -632,5 +633,21 @@ public class Utils {
 
     public static boolean isFlagSet(int value, int flag) {
         return ((value & flag) == flag);
+    }
+
+    /**
+     * Helper utility that calls into the InetAddress system to resolve the hostname.  If this fails,
+     * unresolvable gets returned instead.
+     *
+     * @return
+     */
+    public static final String resolveHostname() {
+        try {
+            return InetAddress.getLocalHost().getCanonicalHostName();
+        }
+        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
+            return "unresolvable";
+            // handle exception
+        }
     }
 }

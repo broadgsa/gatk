@@ -64,7 +64,8 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    */
   def onExecutionDone(jobs: Map[QFunction, JobRunInfo], success: Boolean) {
     logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", jobs.size))
-    for ( (f, info) <- jobs ) logger.info("  %s %s".format(f.jobName, info))
+    // this is too much output
+    // for ( (f, info) <- jobs ) logger.info("  %s %s".format(f.jobName, info))
   }
 
   /**

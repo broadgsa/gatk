@@ -39,6 +39,7 @@ import org.broadinstitute.sting.queue.util._
 import collection.immutable.{TreeSet, TreeMap}
 import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
 import java.util.Date
+import org.broadinstitute.sting.utils.Utils
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -321,6 +322,7 @@ class QGraph extends Logging {
       foreachFunction(readyJobs.toList, edge => {
         if (running) {
           edge.myRunInfo.startTime = new Date()
+          edge.getRunInfo.exechosts = Utils.resolveHostname()
           logEdge(edge)
           edge.myRunInfo.doneTime = new Date()
           edge.markAsDone
