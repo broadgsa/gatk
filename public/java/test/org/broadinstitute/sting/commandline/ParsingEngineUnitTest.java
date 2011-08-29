@@ -40,6 +40,8 @@ import java.util.EnumSet;
  * Test suite for the parsing engine.
  */
 public class ParsingEngineUnitTest extends BaseTest {
+    /** we absolutely cannot have this file existing, or we'll fail the UnitTest */
+    private final static String NON_EXISTANT_FILENAME_VCF = "this_file_should_not_exist_on_disk_123456789.vcf";
     private ParsingEngine parsingEngine;
 
     @BeforeMethod
@@ -636,7 +638,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void basicRodBindingArgumentTest() {
-        final String[] commandLine = new String[] {"-V:vcf","foo.vcf"};
+        final String[] commandLine = new String[] {"-V:vcf",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -646,7 +648,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.isBound(), true, "Bound() isn't returning its expected value");
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
@@ -659,7 +661,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void shortNameOnlyRodBindingArgumentTest() {
-        final String[] commandLine = new String[] {"-short:vcf","foo.vcf"};
+        final String[] commandLine = new String[] {"-short:vcf",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( ShortNameOnlyRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -669,7 +671,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.isBound(), true, "Bound() isn't returning its expected value");
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
@@ -711,7 +713,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test(expectedExceptions = UserException.class)
     public void rodBindingArgumentTestMissingType() {
-        final String[] commandLine = new String[] {"-V","foo.vcf"};
+        final String[] commandLine = new String[] {"-V",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -723,7 +725,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test(expectedExceptions = UserException.class)
     public void rodBindingArgumentTestTooManyTags() {
-        final String[] commandLine = new String[] {"-V:x,y,z","foo.vcf"};
+        final String[] commandLine = new String[] {"-V:x,y,z",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( SingleRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -740,7 +742,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void variantContextBindingArgumentTest() {
-        final String[] commandLine = new String[] {"-V:vcf","foo.vcf"};
+        final String[] commandLine = new String[] {"-V:vcf",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -750,14 +752,14 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
     }
 
     @Test
     public void variantContextBindingArgumentTestVCF3() {
-        final String[] commandLine = new String[] {"-V:vcf3","foo.vcf"};
+        final String[] commandLine = new String[] {"-V:vcf3",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -767,7 +769,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(argProvider.binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(argProvider.binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
     }
@@ -779,7 +781,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void listRodBindingArgumentTest() {
-        final String[] commandLine = new String[] {"-V:vcf","foo.vcf"};
+        final String[] commandLine = new String[] {"-V:vcf",NON_EXISTANT_FILENAME_VCF};
 
         parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -791,14 +793,14 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.bindings.size(), 1, "Unexpected number of bindings");
         RodBinding<Feature> binding = argProvider.bindings.get(0);
         Assert.assertEquals(binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
         Assert.assertEquals(binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
     }
 
     @Test
     public void listRodBindingArgumentTest2Args() {
-        final String[] commandLine = new String[] {"-V:vcf","foo.vcf", "-V:vcf", "bar.vcf"};
+        final String[] commandLine = new String[] {"-V:vcf",NON_EXISTANT_FILENAME_VCF, "-V:vcf", "bar.vcf"};
 
         parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -811,7 +813,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         RodBinding<Feature> binding = argProvider.bindings.get(0);
         Assert.assertEquals(binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(binding.getSource(), "foo.vcf", "Source isn't set to its expected value");
+        Assert.assertEquals(binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
         Assert.assertEquals(binding.getType(), Feature.class, "Type isn't set to its expected value");
         Assert.assertEquals(binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
 
@@ -838,7 +840,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void listRodBindingArgumentTestExplicitlyNamed() {
-        final String[] commandLine = new String[] {"-V:foo,vcf","foo.vcf", "-V:foo,vcf", "bar.vcf"};
+        final String[] commandLine = new String[] {"-V:foo,vcf",NON_EXISTANT_FILENAME_VCF, "-V:foo,vcf", "bar.vcf"};
 
         parsingEngine.addArgumentSource( ListRodBindingArgProvider.class );
         parsingEngine.parse( commandLine );
