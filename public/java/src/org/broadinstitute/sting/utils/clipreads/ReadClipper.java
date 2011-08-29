@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.utils.clipreads;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
+import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
-import org.broad.tribble.util.PositionalStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.jets3t.service.multi.ThreadedStorageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +65,9 @@ public class ReadClipper {
 
         //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
-        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
+        SAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);
+        this.ops = null;
+        return clippedRead;
     }
 
     public SAMRecord hardClipByReadCoordinates(int start, int stop) {
@@ -76,10 +75,12 @@ public class ReadClipper {
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 
+    @Requires("left <= right")
     public SAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
-        this.read = hardClipByReferenceCoordinates(-1, left);
-        this.ops = null; // reset the operations
-        return hardClipByReferenceCoordinates(right, -1);
+        if (left == right)
+            return new SAMRecord(read.getHeader());
+        this.read = hardClipByReferenceCoordinates(right, -1);
+        return hardClipByReferenceCoordinates(-1, left);
     }
 
     public SAMRecord hardClipLowQualEnds(byte lowQual) {

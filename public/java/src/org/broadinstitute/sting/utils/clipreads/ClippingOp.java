@@ -5,15 +5,11 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.apache.poi.hssf.record.PageBreakRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 
-import java.io.PipedOutputStream;
-import java.lang.reflect.Array;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Stack;
 import java.util.Vector;
 
 /**
@@ -256,15 +252,17 @@ public class ClippingOp {
         if (start == 0 && stop == read.getReadLength() -1)
             return new SAMRecord(read.getHeader());
 
-        int newLength = read.getReadLength() - (stop - start + 1);
+        CigarShift cigarShift = hardClipCigar(read.getCigar(), start, stop);
+
+        // the cigar may force a shift left or right (or both) in case we are left with insertions
+        // starting or ending the read after applying the hard clip on start/stop.
+        int newLength = read.getReadLength() - (stop - start + 1) - cigarShift.shiftFromStart - cigarShift.shiftFromEnd;
         byte [] newBases = new byte[newLength];
         byte [] newQuals = new byte[newLength];
-        int copyStart = (start == 0) ? stop + 1 : 0;
+        int copyStart = (start == 0) ? stop + 1 + cigarShift.shiftFromStart : cigarShift.shiftFromStart;
 
         System.arraycopy(read.getReadBases(), copyStart, newBases, 0, newLength);
         System.arraycopy(read.getBaseQualities(), copyStart, newQuals, 0, newLength);
-
-        Cigar newCigar = hardClipCigar(read.getCigar(), start, stop);
 
         SAMRecord hardClippedRead;
         try {
@@ -275,16 +273,16 @@ public class ClippingOp {
 
         hardClippedRead.setBaseQualities(newQuals);
         hardClippedRead.setReadBases(newBases);
-        hardClippedRead.setCigar(newCigar);
+        hardClippedRead.setCigar(cigarShift.cigar);
         if (start == 0)
-            hardClippedRead.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), newCigar));
+            hardClippedRead.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), cigarShift.cigar));
 
         return hardClippedRead;
 
     }
 
     @Requires({"!cigar.isEmpty()"})
-    private Cigar hardClipCigar (Cigar cigar, int start, int stop) {
+    private CigarShift hardClipCigar (Cigar cigar, int start, int stop) {
         Cigar newCigar = new Cigar();
         int index = 0;
         int totalHardClipCount = stop - start + 1;
@@ -373,7 +371,59 @@ public class ClippingOp {
             }
             newCigar.add(new CigarElement(totalHardClipCount + alignmentShift, CigarOperator.HARD_CLIP));
         }
-        return newCigar;
+        return cleanHardClippedCigar(newCigar);
+    }
+
+    /**
+     * Checks if a hard clipped cigar left a read starting or ending with insertions/deletions
+     * and cleans it up accordingly.
+     *
+     * @param cigar
+     * @return
+     */
+    private CigarShift cleanHardClippedCigar(Cigar cigar) {
+        Cigar cleanCigar = new Cigar();
+        int shiftFromStart = 0;
+        int shiftFromEnd = 0;
+        Stack<CigarElement> cigarStack = new Stack<CigarElement>();
+        Stack<CigarElement> inverseCigarStack = new Stack<CigarElement>();
+
+        for (CigarElement cigarElement : cigar.getCigarElements())
+            cigarStack.push(cigarElement);
+
+        for (int i = 1; i <= 2; i++) {
+            int shift = 0;
+            boolean readHasStarted = false;
+
+            while(!cigarStack.empty()) {
+                CigarElement cigarElement = cigarStack.pop();
+
+                if ( !readHasStarted &&
+                        cigarElement.getOperator() != CigarOperator.INSERTION &&
+                        cigarElement.getOperator() != CigarOperator.DELETION &&
+                        cigarElement.getOperator() != CigarOperator.HARD_CLIP)
+                    readHasStarted = true;
+                else if ( !readHasStarted && cigarElement.getOperator() == CigarOperator.INSERTION)
+                    shift += cigarElement.getLength();
+
+                if (readHasStarted || cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+                    if (i==1)
+                        inverseCigarStack.push(cigarElement);
+                    else
+                        cleanCigar.add(cigarElement);
+                }
+            }
+            // first pass  (i=1) is from end to start of the cigar elements
+            if (i == 1) {
+                shiftFromEnd = shift;
+                cigarStack = inverseCigarStack;
+            }
+            // second pass (i=2) is from start to end with the end already cleaned
+            else {
+                shiftFromStart = shift;
+            }
+        }
+        return new CigarShift(cleanCigar, shiftFromStart, shiftFromEnd);
     }
 
     private int calculateAlignmentStartShift(Cigar oldCigar, Cigar newCigar) {
@@ -395,10 +445,8 @@ public class ClippingOp {
                 break;
         }
 
-
         return shift;
     }
-
 
     private int calculateHardClippingAlignmentShift(CigarElement cigarElement, int clippedLength) {
         if (cigarElement.getOperator() == CigarOperator.INSERTION) {
@@ -413,5 +461,17 @@ public class ClippingOp {
             return cigarElement.getLength();
 
         return 0;
+    }
+
+    private class CigarShift {
+        private Cigar cigar;
+        private int shiftFromStart;
+        private int shiftFromEnd;
+
+        private CigarShift(Cigar cigar, int shiftFromStart, int shiftFromEnd) {
+            this.cigar = cigar;
+            this.shiftFromStart = shiftFromStart;
+            this.shiftFromEnd = shiftFromEnd;
+        }
     }
 }
