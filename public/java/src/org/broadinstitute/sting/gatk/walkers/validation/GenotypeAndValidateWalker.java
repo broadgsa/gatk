@@ -347,12 +347,14 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         }
 
         VariantCallContext call;
-        if ( vcComp.isSNP() )
+        if ( vcComp.isSNP() ) {
             call = snpEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-        else if ( vcComp.isIndel() ) {
+        } else if ( vcComp.isIndel() ) {
             call = indelEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-        }
-        else {
+        } else if ( bamIsTruth ) {
+            // assume it's a SNP if no variation is present; this is necessary so that we can test supposed monomorphic sites against the truth bam
+            call = snpEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
+        } else {
             logger.info("Not SNP or INDEL " + vcComp.getChr() + ":" + vcComp.getStart() + " " + vcComp.getAlleles());
             return counter;
         }
