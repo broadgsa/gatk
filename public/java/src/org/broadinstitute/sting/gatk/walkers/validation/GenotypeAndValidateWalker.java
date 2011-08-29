@@ -303,7 +303,10 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         uac.alleles = alleles;
         if (!bamIsTruth) uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         if (mbq >= 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
-        if (deletions >= 0) uac.MAX_DELETION_FRACTION = deletions;
+        if (deletions >= 0)
+            uac.MAX_DELETION_FRACTION = deletions;
+        else
+            uac.MAX_DELETION_FRACTION = 1.0;
         if (emitConf >= 0) uac.STANDARD_CONFIDENCE_FOR_EMITTING = emitConf;
         if (callConf >= 0) uac.STANDARD_CONFIDENCE_FOR_CALLING = callConf;
 
