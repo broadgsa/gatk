@@ -4,9 +4,9 @@ import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.util.QScriptUtils
 import net.sf.samtools.SAMFileHeader.SortOrder
-import org.broadinstitute.sting.queue.extensions.picard.{SortSam, AddOrReplaceReadGroups}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.commandline.Hidden
+import org.broadinstitute.sting.queue.extensions.picard.{ReorderSam, SortSam, AddOrReplaceReadGroups}
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,7 +16,7 @@ import org.broadinstitute.sting.commandline.Hidden
  */
 
 
-class RecalibrateBaseQualities extends QScript {
+class PacbioProcessingPipeline extends QScript {
 
   @Input(doc="input FASTA/FASTQ/BAM file - or list of FASTA/FASTQ/BAM files. ", shortName="i", required=true)
   var input: File = _
@@ -39,13 +39,16 @@ class RecalibrateBaseQualities extends QScript {
   @Input(doc="The path to the binary of bwa to align fasta/fastq files", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
+  @Input(doc="Input is a BLASR generated BAM file", shortName = "blasr", fullName="blasr_bam", required=false)
+  var BLASR_BAM: Boolean = false
+
   @Hidden
   @Input(doc="The default base qualities to use before recalibration. Default is Q20 (should be good for every dataset)." , shortName = "dbq", required=false)
   var dbq: Int = 20
 
-
-
-
+  @Hidden
+  @Input(shortName="bwastring", required=false)
+  var bwastring: String = ""
 
   val queueLogDir: String = ".qlog/"
 
@@ -57,8 +60,6 @@ class RecalibrateBaseQualities extends QScript {
 
       var USE_BWA: Boolean = false
 
-      println("DEBUG: processing " + file + "\nDEBUG: name -- " + file.getName)
-
       if (file.endsWith(".fasta") || file.endsWith(".fq")) {
         if (bwaPath == null) {
           throw new UserException("You provided a fasta/fastq file but didn't provide the path for BWA");
@@ -69,28 +70,34 @@ class RecalibrateBaseQualities extends QScript {
       // FASTA -> BAM steps
       val alignedSam: File = file.getName + ".aligned.sam"
       val sortedBam: File = swapExt(alignedSam, ".sam", ".bam")
-      val qualBam: File = swapExt(sortedBam, ".bam", ".q.bam")
       val rgBam: File = swapExt(file, ".bam", ".rg.bam")
 
       val bamBase = if (USE_BWA) {rgBam} else {file}
 
       // BAM Steps
+      val mqBAM: File = swapExt(bamBase, ".bam", ".mq.bam")
       val recalFile1: File = swapExt(bamBase, ".bam", ".recal1.csv")
       val recalFile2: File = swapExt(bamBase, ".bam", ".recal2.csv")
       val recalBam: File   = swapExt(bamBase, ".bam", ".recal.bam")
       val path1: String    = recalBam + ".before"
       val path2: String    = recalBam + ".after"
 
-
       if (USE_BWA) {
         add(align(file, alignedSam),
             sortSam(alignedSam, sortedBam),
-            addQuals(sortedBam, qualBam, dbq),
-            addReadGroup(qualBam, rgBam, sample))
+            addReadGroup(sortedBam, rgBam, sample))
       }
 
-      add(cov(bamBase, recalFile1),
-          recal(bamBase, recalFile1, recalBam),
+      else if (BLASR_BAM) {
+        val reorderedBAM = swapExt(bamBase, ".bam", ".reordered.bam")
+        add(reorder(bamBase, reorderedBAM),
+            changeMQ(reorderedBAM, mqBAM))
+      }
+
+      val bam = if (BLASR_BAM) {mqBAM} else {bamBase}
+
+      add(cov(bam, recalFile1),
+          recal(bam, recalFile1, recalBam),
           cov(recalBam, recalFile2),
           analyzeCovariates(recalFile1, path1),
           analyzeCovariates(recalFile2, path2))
@@ -110,13 +117,13 @@ class RecalibrateBaseQualities extends QScript {
 
 
   case class align(@Input inFastq: File, @Output outSam: File) extends ExternalCommonArgs {
-    def commandLine = bwaPath + " bwasw -b5 -q2 -r1 -z10 -t8 " + reference + " " + inFastq + " > " + outSam
+    def commandLine = bwaPath + " bwasw -b5 -q2 -r1 -z20 -t16 " + reference + " " + inFastq + " > " + outSam
+    this.memoryLimit = 8
     this.analysisName = queueLogDir + outSam + ".bwa_sam_se"
     this.jobName = queueLogDir + outSam + ".bwa_sam_se"
   }
 
-  case class sortSam (@Input inSam: File, @Output outBam: File) extends SortSam with ExternalCommonArgs {
-    @Output(doc="output bai file") var bai = swapExt(outBam, ".bam", ".bai")
+  case class sortSam (inSam: File, outBam: File) extends SortSam with ExternalCommonArgs {
     this.input = List(inSam)
     this.output = outBam
     this.sortOrder = SortOrder.coordinate
@@ -124,10 +131,16 @@ class RecalibrateBaseQualities extends QScript {
     this.jobName = queueLogDir + outBam + ".sortSam"
   }
 
-  case class addQuals(inBam: File, outBam: File, qual: Int) extends PrintReads with CommandLineGATKArgs {
+  case class reorder (inSam: File, outSam: File) extends ReorderSam with ExternalCommonArgs {
+    this.input = List(inSam)
+    this.output = outSam
+    this.sortReference = reference
+  }
+
+  case class changeMQ(inBam: File, outBam: File) extends PrintReads with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.out = outBam
-    this.DBQ = qual
+    this.read_filter :+= "ReassignMappingQuality"
   }
 
   case class addReadGroup (inBam: File, outBam: File, sample: String) extends AddOrReplaceReadGroups with ExternalCommonArgs {
@@ -145,7 +158,8 @@ class RecalibrateBaseQualities extends QScript {
   }
 
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
+    this.DBQ = dbq
+    this.knownSites :+= dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
@@ -155,6 +169,7 @@ class RecalibrateBaseQualities extends QScript {
   }
 
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
+    this.DBQ = dbq
     this.input_file :+= inBam
     this.recal_file = inRecalFile
     this.out = outBam

@@ -82,8 +82,10 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
         // get the reference ordered data
         ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
 
+        boolean done = walker.isDone();
         // while we still have more reads
         for (SAMRecord read : reads) {
+            if ( done ) break;
             // ReferenceContext -- the reference bases covered by the read
             ReferenceContext refContext = null;
 
@@ -106,6 +108,7 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
 
             GenomeLoc locus = read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ? null : engine.getGenomeLocParser().createGenomeLoc(read.getReferenceName(),read.getAlignmentStart());
             printProgress(dataProvider.getShard(),locus);
+            done = walker.isDone();
         }
         return sum;
     }

@@ -30,14 +30,14 @@ import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.{QException, QSettings}
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
-import org.broadinstitute.sting.queue.util.{Logging, CollectionUtils, IOUtils, ReflectionUtils}
+import org.broadinstitute.sting.queue.util._
 
 /**
  * The base interface for all functions in Queue.
  * Inputs and outputs are specified as Sets of values.
  * Inputs are matched to other outputs by using .equals()
  */
-trait QFunction extends Logging {
+trait QFunction extends Logging with QJobReport {
   /** A short description of this step in the graph */
   var analysisName: String = "<function>"
 
@@ -83,11 +83,17 @@ trait QFunction extends Logging {
    */
   var deleteIntermediateOutputs = true
 
+  // -------------------------------------------------------
+  //
+  // job run information
+  //
+  // -------------------------------------------------------
+
   /**
    * Copies settings from this function to another function.
    * @param function QFunction to copy values to.
    */
-  def copySettingsTo(function: QFunction) {
+  override def copySettingsTo(function: QFunction) {
     function.analysisName = this.analysisName
     function.jobName = this.jobName
     function.qSettings = this.qSettings
@@ -99,6 +105,8 @@ trait QFunction extends Logging {
     function.updateJobRun = this.updateJobRun
     function.isIntermediate = this.isIntermediate
     function.deleteIntermediateOutputs = this.deleteIntermediateOutputs
+    function.reportGroup = this.reportGroup
+    function.reportFeatures = this.reportFeatures
   }
 
   /** File to redirect any output.  Defaults to <jobName>.out */

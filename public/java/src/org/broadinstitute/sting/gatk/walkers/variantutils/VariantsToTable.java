@@ -124,8 +124,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * multi-allelic INFO field values can be lists of values.
      */
     @Advanced
-    @Argument(fullName="keepMultiAllelic", shortName="KMA", doc="If provided, we will not require the site to be biallelic", required=false)
-    public boolean keepMultiAllelic = false;
+     @Argument(fullName="keepMultiAllelic", shortName="KMA", doc="If provided, we will not require the site to be biallelic", required=false)
+     public boolean keepMultiAllelic = false;
+
+    @Hidden
+    @Argument(fullName="logACSum", shortName="logACSum", doc="Log sum of AC instead of max value in case of multiallelic variants", required=false)
+     public boolean logACSum = false;
 
     /**
      * By default, this tool throws a UserException when it encounters a field without a value in some record.  This
@@ -147,22 +151,21 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
-        if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
-            for ( VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
-                if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
-                    List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
-                    out.println(Utils.join("\t", vals));
-                }
+        for ( VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
+            if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
+                List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA, keepMultiAllelic, logACSum);
+                out.println(Utils.join("\t", vals));
             }
-
-            return 1;
-        } else {
-            if ( nRecords >= MAX_RECORDS ) {
-                logger.warn("Calling sys exit to leave after " + nRecords + " records");
-                System.exit(0); // todo -- what's the recommend way to abort like this?
-            }
-            return 0;
         }
+        
+        return 1;
+    }
+
+    @Override
+    public boolean isDone() {
+        boolean done = MAX_RECORDS != -1 && nRecords >= MAX_RECORDS;
+        if ( done) logger.warn("isDone() will return true to leave after " + nRecords + " records");
+        return done ;
     }
 
     private static final boolean isWildCard(String s) {
@@ -176,9 +179,11 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * @param fields a non-null list of fields to capture from VC
      * @param allowMissingData if false, then throws a UserException if any field isn't found in vc.  Otherwise
      *   provides a value of NA
+     *   @param kma if true, multiallelic variants are to be kept
+     *   @param logsum if true, AF and AC are computed based on sum of allele counts. Otherwise, based on allele with highest count.
      * @return
      */
-    public static List<String> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData) {
+    private static List<String> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData, boolean kma, boolean logsum) {
         List<String> vals = new ArrayList<String>();
 
         for ( String field : fields ) {
@@ -206,12 +211,31 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
 
             if (field.equals("AF") || field.equals("AC")) {
-                      if (val.contains(",")) {
-                         // strip [,] and spaces
-                         val = val.replace("[","");
-                         val = val.replace("]","");
-                         val = val.replace(" ","");
-                        }
+                     String afo = val;
+
+                     double af=0;
+                     if (afo.contains(",")) {
+                         String[] afs = afo.split(",");
+                         afs[0] = afs[0].substring(1,afs[0].length());
+                         afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
+
+                         double[] afd = new double[afs.length];
+
+                         for (int k=0; k < afd.length; k++)
+                             afd[k] = Double.valueOf(afs[k]);
+
+                         if (kma && logsum)
+                             af = MathUtils.sum(afd);
+                         else
+                         af = MathUtils.arrayMax(afd);
+                         //af = Double.valueOf(afs[0]);
+
+                     }
+                     else
+                         if (!afo.equals("NA"))
+                             af = Double.valueOf(afo);
+
+                val = Double.toString(af);
 
             }
             vals.add(val);
@@ -220,6 +244,9 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         return vals;
     }
 
+    public static List<String> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData) {
+        return extractFields(vc, fields, allowMissingData, false, false);
+    }
     //
     // default reduce -- doesn't do anything at all
     //
@@ -243,7 +270,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 String x = "";
-                if ( vc.hasReferenceBaseForIndel() ) {
+                if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() ) {
                     Byte refByte = vc.getReferenceBaseForIndel();
                     x=x+new String(new byte[]{refByte});
                 }
@@ -255,7 +282,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 StringBuilder x = new StringBuilder();
                 int n = vc.getAlternateAlleles().size();
                 if ( n == 0 ) return ".";
-                if ( vc.hasReferenceBaseForIndel() ) {
+                if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() ) {
                     Byte refByte = vc.getReferenceBaseForIndel();
                     x.append(new String(new byte[]{refByte}));
                 }

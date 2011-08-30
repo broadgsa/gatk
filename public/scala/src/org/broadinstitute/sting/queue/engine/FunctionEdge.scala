@@ -23,6 +23,8 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
    */
   var depth = -1
 
+  val myRunInfo: JobRunInfo = JobRunInfo.default // purely for dryRun testing
+
   /**
    * Initializes with the current status of the function.
    */
@@ -178,5 +180,9 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
     e.printStackTrace(printWriter)
     printWriter.close
     IOUtils.writeContents(functionErrorFile, stackTrace.toString)
+  }
+
+  def getRunInfo = {
+    if ( runner == null ) myRunInfo else runner.getRunInfo
   }
 }
