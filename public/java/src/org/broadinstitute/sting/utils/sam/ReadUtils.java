@@ -680,6 +680,8 @@ public class ReadUtils {
             lastOperator = cigarElement.getOperator();
             if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
                 shift = cigarElement.getLength();
+            else
+                shift = 0;
         }
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
     }
@@ -710,8 +712,8 @@ public class ReadUtils {
      */
     @Requires({"refCoord <= read.getUnclippedEnd()", "refCoord > read.getAlignmentEnd()"})
     private static int getReadCoordinateForReferenceCoordinateBeforeAlignmentEnd(SAMRecord read, int refCoord) {
-        if (getRefCoordSoftUnclippedEnd(read) > refCoord)
-            return refCoord - read.getAlignmentEnd() + 1;
+        if (getRefCoordSoftUnclippedEnd(read) >= refCoord)
+            return refCoord - getRefCoordSoftUnclippedStart(read) + 1;
         return -1;
     }
 
