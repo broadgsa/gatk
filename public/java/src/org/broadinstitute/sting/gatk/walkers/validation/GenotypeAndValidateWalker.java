@@ -253,6 +253,13 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     @Argument(fullName ="sample", shortName ="sn", doc="Name of the sample to validate (in case your VCF/BAM has more than one sample)", required=false)
     private String sample = "";
 
+    /**
+     * Print out discordance sites to standard out.
+     */
+    @Hidden
+    @Argument(fullName ="print_interesting_sites", shortName ="print_interesting", doc="Print out interesting sites to standard out", required=false)
+    private boolean printInterestingSites;
+
     private UnifiedGenotyperEngine snpEngine;
     private UnifiedGenotyperEngine indelEngine;
 
@@ -301,7 +308,12 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
         uac.alleles = alleles;
-        if (!bamIsTruth) uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
+
+        // TODO -- if we change this tool to actually validate against the called allele, then this if statement is needed;
+        // TODO -- for now, though, we need to be able to validate the right allele (because we only test isVariant below) [EB]
+        //if (!bamIsTruth)
+        uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
+
         if (mbq >= 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
         if (deletions >= 0)
             uac.MAX_DELETION_FRACTION = deletions;
@@ -371,19 +383,26 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
                 if (call.isVariant()) {
                     if (vcComp.isVariant())
                         counter.nAltCalledAlt = 1L;  // todo -- may wanna check if the alts called are the same?
-                    else
+                    else {
                         counter.nAltCalledRef = 1L;
+                        if ( printInterestingSites )
+                            System.out.println("Truth=ALT Call=REF at " + call.getChr() + ":" + call.getStart());
+                    }
                 }
                 // If truth is a confident ALT call
                 else {
-                    if (vcComp.isVariant())
+                    if (vcComp.isVariant()) {
                         counter.nRefCalledAlt = 1L;
-                    else
+                        if ( printInterestingSites )
+                            System.out.println("Truth=REF Call=ALT at " + call.getChr() + ":" + call.getStart());
+                    } else
                         counter.nRefCalledRef = 1L;
                 }
             }
             else {
                 counter.nNotConfidentCalls = 1L;
+                if ( printInterestingSites )
+                    System.out.println("Truth is not confident at " + call.getChr() + ":" + call.getStart());
                 writeVariant = false;
             }
         }
@@ -396,17 +415,24 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             if (call.isCalledAlt(callConf)) {
                 if (vcComp.getAttribute("GV").equals("T"))
                     counter.nAltCalledAlt = 1L;
-                else
+                else {
                     counter.nRefCalledAlt = 1L;
+                    if ( printInterestingSites )
+                        System.out.println("Truth=REF Call=ALT at " + call.getChr() + ":" + call.getStart());
+                }
             }
             else if (call.isCalledRef(callConf)) {
-                if (vcComp.getAttribute("GV").equals("T"))
+                if (vcComp.getAttribute("GV").equals("T")) {
                     counter.nAltCalledRef = 1L;
-                else
+                    if ( printInterestingSites )
+                        System.out.println("Truth=ALT Call=REF at " + call.getChr() + ":" + call.getStart());
+                } else
                     counter.nRefCalledRef = 1L;
             }
             else {
                 counter.nNotConfidentCalls = 1L;
+                if ( printInterestingSites )
+                    System.out.println("Truth is not confident at " + call.getChr() + ":" + call.getStart());
                 writeVariant = false;
             }
         }
