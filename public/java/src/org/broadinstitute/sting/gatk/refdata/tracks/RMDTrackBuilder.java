@@ -27,20 +27,21 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broad.tribble.*;
+import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.FeatureSource;
+import org.broad.tribble.Tribble;
+import org.broad.tribble.TribbleException;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
+import org.broad.tribble.source.PerformanceLoggingFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -51,7 +52,10 @@ import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 
 
@@ -70,6 +74,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * our log, which we use to capture anything from this class
      */
     private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
+    public final static boolean MEASURE_TRIBBLE_QUERY_PERFORMANCE = false;
 
     // a constant we use for marking sequence dictionary entries in the Tribble index property list
     public static final String SequenceDictionaryPropertyPredicate = "DICT:";
@@ -214,7 +219,10 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                     sequenceDictionary = getSequenceDictionaryFromProperties(index);
                 }
 
-                featureSource = new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(descriptor, name));
+                if ( MEASURE_TRIBBLE_QUERY_PERFORMANCE )
+                    featureSource = new PerformanceLoggingFeatureSource(inputFile.getAbsolutePath(), index, createCodec(descriptor, name));
+                else
+                    featureSource = new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(descriptor, name));
             }
             catch (TribbleException e) {
                 throw new UserException(e.getMessage());
