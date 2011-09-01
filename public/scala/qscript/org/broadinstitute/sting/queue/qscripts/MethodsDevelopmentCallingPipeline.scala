@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.queue.qscripts
 
-import org.broadinstitute.sting.commandline.Hidden
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
@@ -70,7 +69,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandardClusterFile = new File(goldStandardName + ".clusters")
   }
 
-  val hg19 = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")  
+  val b37_decoy = new File("/humgen/1kg/reference/human_g1k_v37_decoy.fasta")
+  val hg19 = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
   val hg18 = new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta")
   val b36 = new File("/humgen/1kg/reference/human_b36_both.fasta")
   val b37 = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
@@ -122,6 +122,14 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 3),
     "WGSTrio" -> new Target("CEUTrio.WGS", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.bwa.cleaned.recal.bam"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
+    "WExTrioDecoy" -> new Target("CEUTrio.HiSeq.WEx.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.b37_decoy.list"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 3),
+    "WGSTrioDecoy" -> new Target("CEUTrio.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37_decoy.list"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
