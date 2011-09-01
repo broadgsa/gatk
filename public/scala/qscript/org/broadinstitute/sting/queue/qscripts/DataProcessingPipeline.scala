@@ -159,7 +159,7 @@ class DataProcessingPipeline extends QScript {
     for (rg <- readGroups) {
       val intermediateInBam: File = if (index == readGroups.length) { inBam } else { swapExt(outBam, ".bam", index+1 + "-rg.bam") }
       val intermediateOutBam: File = if (index > 1) {swapExt(outBam, ".bam", index + "-rg.bam") } else { outBam}
-      val readGroup = new ReadGroup(rg.getReadGroupId, rg.getPlatform, rg.getLibrary, rg.getPlatformUnit, rg.getSample, rg.getSequencingCenter, rg.getDescription)
+      val readGroup = new ReadGroup(rg.getReadGroupId, rg.getLibrary, rg.getPlatform, rg.getPlatformUnit, rg.getSample, rg.getSequencingCenter, rg.getDescription)
       add(addReadGroup(intermediateInBam, intermediateOutBam, readGroup))
       index = index - 1
     }
