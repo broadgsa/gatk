@@ -50,7 +50,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
             }
 
             String refStr = vc.getReference().getBaseString().toUpperCase();
-            String aaStr = vc.getAttributeAsString("ANCESTRALALLELE").toUpperCase();
+            String aaStr = vc.getAttributeAsString("ANCESTRALALLELE", null).toUpperCase();
 
             if (aaStr != null && !aaStr.equalsIgnoreCase("null") && !aaStr.equals(".")) {
                 BaseUtils.BaseSubstitutionType aaSubType = BaseUtils.SNPSubstitutionType(aaStr.getBytes()[0], vc.getAlternateAllele(0).getBases()[0]);

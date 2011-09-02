@@ -130,7 +130,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
 ////                System.out.printf("  ac = %d%n", ac);
             }
             else
-                ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY);
+                ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
             return ac > 0 ? SiteStatus.POLY : SiteStatus.MONO;
         } else if ( vc.hasGenotypes() ) {
             return vc.isPolymorphic() ? SiteStatus.POLY : SiteStatus.MONO;

@@ -192,7 +192,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             if ( getters.containsKey(field) ) {
                 val = getters.get(field).get(vc);
             } else if ( vc.hasAttribute(field) ) {
-                val = vc.getAttributeAsString(field);
+                val = vc.getAttributeAsString(field, null);
             } else if ( isWildCard(field) ) {
                 Set<String> wildVals = new HashSet<String>();
                 for ( Map.Entry<String,Object> elt : vc.getAttributes().entrySet()) {

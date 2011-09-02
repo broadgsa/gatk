@@ -219,7 +219,8 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public static Double getPQ(Genotype gt) {
-        return gt.getAttributeAsDoubleNoException(ReadBackedPhasingWalker.PQ_KEY);
+        Double d = gt.getAttributeAsDouble(ReadBackedPhasingWalker.PQ_KEY, -1);
+        return d == -1 ? null : d;
     }
 
     public static boolean topMatchesTop(AllelePair b1, AllelePair b2) {

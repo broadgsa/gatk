@@ -32,7 +32,7 @@ public class FunctionalClass extends VariantStratifier {
             String type = null;
 
             if (eval.hasAttribute("refseq.functionalClass")) {
-                type = eval.getAttributeAsString("refseq.functionalClass");
+                type = eval.getAttributeAsString("refseq.functionalClass", null);
             } else if (eval.hasAttribute("refseq.functionalClass_1")) {
                 int annotationId = 1;
                 String key;
@@ -40,7 +40,7 @@ public class FunctionalClass extends VariantStratifier {
                 do {
                     key = String.format("refseq.functionalClass_%d", annotationId);
 
-                    String newtype = eval.getAttributeAsString(key);
+                    String newtype = eval.getAttributeAsString(key, null);
 
                     if ( newtype != null && !newtype.equalsIgnoreCase("null") &&
                          ( type == null ||
