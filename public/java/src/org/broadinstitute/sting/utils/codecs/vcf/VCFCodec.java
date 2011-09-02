@@ -110,11 +110,8 @@ public class VCFCodec extends AbstractVCFCodec {
         if ( filterString.equals(VCFConstants.UNFILTERED) )
             return null;
 
-        // empty set for passes filters
-        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
-
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v4) )
-            return fFields;
+            return Collections.emptySet();
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) )
             generateException(VCFConstants.PASSES_FILTERS_v3 + " is an invalid filter name in vcf4");
         if ( filterString.length() == 0 )
@@ -124,6 +121,8 @@ public class VCFCodec extends AbstractVCFCodec {
         if ( filterHash.containsKey(filterString) )
             return filterHash.get(filterString);
 
+        // empty set for passes filters
+        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
         // otherwise we have to parse and cache the value
         if ( filterString.indexOf(VCFConstants.FILTER_CODE_SEPARATOR) == -1 )
             fFields.add(filterString);
@@ -132,7 +131,7 @@ public class VCFCodec extends AbstractVCFCodec {
 
         filterHash.put(filterString, fFields);
 
-        return fFields;
+        return Collections.unmodifiableSet(fFields);
     }
 
 
