@@ -17,7 +17,7 @@ public class QualityUtils {
 
     private static double qualToErrorProbCache[] = new double[256];
     static {
-        for (byte i = 0; i < 256; i++) qualToErrorProbCache[i] = qualToErrorProbRaw(i);
+        for (int i = 0; i < 256; i++) qualToErrorProbCache[i] = qualToErrorProbRaw((byte)i);
     }
 
     /**
