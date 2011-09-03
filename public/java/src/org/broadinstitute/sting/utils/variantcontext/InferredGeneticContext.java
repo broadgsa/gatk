@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+
 import java.util.*;
 
 
@@ -213,7 +215,7 @@ public final class InferredGeneticContext {
 
     public int getAttributeAsInt(String key, int defaultValue) {
         Object x = getAttribute(key);
-        if ( x == null ) return defaultValue;
+        if ( x == null || x == VCFConstants.MISSING_VALUE_v4 ) return defaultValue;
         if ( x instanceof Integer ) return (Integer)x;
         return Integer.valueOf((String)x); // throws an exception if this isn't a string
     }
