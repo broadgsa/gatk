@@ -275,7 +275,7 @@ public class StandardVCFWriter implements VCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // FILTER
-            String filters = vc.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters())) : (filtersWereAppliedToContext || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
+            String filters = getFilterString(vc, filtersWereAppliedToContext);
             mWriter.write(filters);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -319,7 +319,14 @@ public class StandardVCFWriter implements VCFWriter {
         } catch (IOException e) {
             throw new RuntimeException("Unable to write the VCF object to " + locationString());
         }
+    }
 
+    public static final String getFilterString(final VariantContext vc) {
+        return getFilterString(vc, false);
+    }
+
+    public static final String getFilterString(final VariantContext vc, boolean forcePASS) {
+        return vc.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters())) : (forcePASS || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
     }
 
     private String getQualValue(double qual) {
@@ -462,7 +469,7 @@ public class StandardVCFWriter implements VCFWriter {
         mWriter.write(encoding);
     }
 
-    private static String formatVCFField(Object val) {
+    public static String formatVCFField(Object val) {
         String result;
         if ( val == null )
             result = VCFConstants.MISSING_VALUE_v4;
