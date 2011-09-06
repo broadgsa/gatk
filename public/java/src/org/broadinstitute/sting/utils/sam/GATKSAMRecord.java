@@ -41,6 +41,10 @@ public class GATKSAMRecord extends SAMRecord {
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
 
+    /** A private cache for the reduced read quality.  Null indicates the value hasn't be fetched yet or isn't available */
+    private boolean lookedUpReducedReadQuality = false;
+    private Integer reducedReadQuality;
+
     // These temporary attributes were added here to make life easier for
     // certain algorithms by providing a way to label or attach arbitrary data to
     // individual GATKSAMRecords.
@@ -338,7 +342,17 @@ public class GATKSAMRecord extends SAMRecord {
 
     public Object getAttribute(final String tag) { return mRecord.getAttribute(tag); }
 
-    public Integer getIntegerAttribute(final String tag) { return mRecord.getIntegerAttribute(tag); }
+    public Integer getIntegerAttribute(final String tag) {
+        if ( tag == ReadUtils.REDUCED_READ_QUALITY_TAG ) {
+            if ( ! lookedUpReducedReadQuality ) {
+                lookedUpReducedReadQuality = true;
+                reducedReadQuality = mRecord.getIntegerAttribute(tag);
+            }
+            return reducedReadQuality;
+        } else {
+            return mRecord.getIntegerAttribute(tag);
+        }
+    }
 
     public Short getShortAttribute(final String tag) { return mRecord.getShortAttribute(tag); }
 
