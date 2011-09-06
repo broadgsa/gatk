@@ -12,7 +12,9 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  inputFileName = "~/Desktop/broadLocal/GATK/unstable/report.txt"
+  #inputFileName = "~/Desktop/broadLocal/GATK/unstable/report.txt"
+  inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
+  #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
 }
 
@@ -113,11 +115,22 @@ plotGroup <- function(groupTable) {
   textplot(as.data.frame(sum), show.rownames=F)
   title(paste("Job summary for", name, "itemizing each iteration"), cex=3)
 
+  # histogram of job times by groupAnnotations
+  if ( length(groupAnnotations) == 1 && dim(sub)[1] > 1 ) {
+    # todo -- how do we group by annotations?
+    p <- ggplot(data=sub, aes(x=runtime)) + geom_histogram()
+    p <- p + xlab("runtime in seconds") + ylab("No. of jobs")
+    p <- p + opts(title=paste("Job runtime histogram for", name))
+    print(p)
+  }
+  
   # as above, but averaging over all iterations
   groupAnnotationsNoIteration = setdiff(groupAnnotations, "iteration")
-  sum = cast(melt(sub, id.vars=groupAnnotationsNoIteration, measure.vars=c("runtime")), ... ~ ., fun.aggregate=c(mean, sd))
-  textplot(as.data.frame(sum), show.rownames=F)
-  title(paste("Job summary for", name, "averaging over all iterations"), cex=3)
+  if ( dim(sub)[1] > 1 ) {
+    sum = cast(melt(sub, id.vars=groupAnnotationsNoIteration, measure.vars=c("runtime")), ... ~ ., fun.aggregate=c(mean, sd))
+    textplot(as.data.frame(sum), show.rownames=F)
+    title(paste("Job summary for", name, "averaging over all iterations"), cex=3)
+  }
 }
     
 # print out some useful basic information
@@ -146,7 +159,7 @@ plotJobsGantt(gatkReportData, T)
 plotJobsGantt(gatkReportData, F)
 plotProgressByTime(gatkReportData)
 for ( group in gatkReportData ) {
-  plotGroup(group)
+ plotGroup(group)
 }
   
 if ( ! is.na(outputPDF) ) {
