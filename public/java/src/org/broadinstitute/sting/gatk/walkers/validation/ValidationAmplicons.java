@@ -39,6 +39,9 @@ import java.util.List;
  * reasons why the site may fail validation (nearby variation, for example).
  * </p>
  *
+ * <b>If any of the command-line arguments for this tool are not clear to you,
+ * please email chartl at broadinstitute dot org and he will gladly explain them in more detail.</b>
+ *
  * <h2>Input</h2>
  * <p>
  * Requires a VCF containing alleles to design amplicons towards, a VCF of variants to mask out of the amplicons, and an

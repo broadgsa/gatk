@@ -60,6 +60,9 @@ import java.util.*;
  * and/or percentage of bases covered to or beyond a threshold.
  * Additionally, reads and bases can be filtered by mapping or base quality score.
  *
+ * <b>If any of the command-line arguments for this tool are not clear to you,
+ * please email chartl at broadinstitute dot org and he will gladly explain them in more detail.</b>
+ *
  * <h2>Input</h2>
  * <p>
  * One or more bam files (with proper headers) to be analyzed for coverage statistics
