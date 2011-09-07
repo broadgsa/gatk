@@ -115,7 +115,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     LinkedList<ProcessingHistory> history = new LinkedList<ProcessingHistory>();
 
     /** We use the SimpleTimer to time our run */
-    private SimpleTimer timer = new SimpleTimer("Traversal");
+    private SimpleTimer timer = null;
 
     // How long can we go without printing some progress info?
     private static final int PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES = 1000;
@@ -209,11 +209,16 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         }
     }
     /**
-     * Should be called to indicate that we're going to process records and the timer should start ticking
+     * Should be called to indicate that we're going to process records and the timer should start ticking.  This
+     * function should be called right before any traversal work is done, to avoid counting setup costs in the
+     * processing costs and inflating the estimated runtime.
      */
-    public void startTimers() {
-        timer.start();
-        lastProgressPrintTime = timer.currentTime();
+    public void startTimersIfNecessary() {
+        if ( timer == null ) {
+            timer = new SimpleTimer("Traversal");
+            timer.start();
+            lastProgressPrintTime = timer.currentTime();
+        }
     }
 
     /**

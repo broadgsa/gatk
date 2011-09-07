@@ -15,6 +15,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.JexlExpression;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
@@ -24,6 +25,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -224,12 +226,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
         sampleNamesForStratification.add(ALL_SAMPLE_NAME);
 
-        // Initialize select expressions
-        for (VariantContextUtils.JexlVCMatchExp jexl : VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS)) {
-            SortableJexlVCMatchExp sjexl = new SortableJexlVCMatchExp(jexl.name, jexl.exp);
-            jexlExpressions.add(sjexl);
-        }
-
         // Add select expressions for anything in the tranches file
         if ( TRANCHE_FILENAME != null ) {
             // we are going to build a few select names automatically from the tranches file
@@ -240,15 +236,26 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             }
         }
 
+        // Initialize select expressions
+        for (VariantContextUtils.JexlVCMatchExp jexl : VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS)) {
+            SortableJexlVCMatchExp sjexl = new SortableJexlVCMatchExp(jexl.name, jexl.exp);
+            jexlExpressions.add(sjexl);
+        }
+
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+        boolean usingJEXL = false;
         for ( VariantStratifier vs : getStratificationObjects() ) {
             if ( vs.getClass().getSimpleName().equals("Filter") )
                 byFilterIsEnabled = true;
             else if ( vs.getClass().getSimpleName().equals("Sample") )
                 perSampleIsEnabled = true;
+            usingJEXL = usingJEXL || vs.getClass().equals(JexlExpression.class);
         }
+
+        if ( TRANCHE_FILENAME != null && ! usingJEXL )
+            throw new UserException.BadArgumentValue("tf", "Requires the JexlExpression ST to enabled");
 
         // Initialize the evaluation contexts
         evaluationContexts = variantEvalUtils.initializeEvaluationContexts(stratificationObjects, evaluationObjects, null, null);
