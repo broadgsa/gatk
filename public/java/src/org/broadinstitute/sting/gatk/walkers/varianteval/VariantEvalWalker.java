@@ -149,9 +149,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
-    @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
-    private String TRANCHE_FILENAME = null;
-
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
     private File ancestralAlignmentsFile = null;
 
@@ -226,16 +223,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
         sampleNamesForStratification.add(ALL_SAMPLE_NAME);
 
-        // Add select expressions for anything in the tranches file
-        if ( TRANCHE_FILENAME != null ) {
-            // we are going to build a few select names automatically from the tranches file
-            for ( Tranche t : Tranche.readTranches(new File(TRANCHE_FILENAME)) ) {
-                logger.info("Adding select for all variant above the pCut of : " + t);
-                SELECT_EXPS.add(String.format(VariantRecalibrator.VQS_LOD_KEY + " >= %.2f", t.minVQSLod));
-                SELECT_NAMES.add(String.format("TS-%.2f", t.ts));
-            }
-        }
-
         // Initialize select expressions
         for (VariantContextUtils.JexlVCMatchExp jexl : VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS)) {
             SortableJexlVCMatchExp sjexl = new SortableJexlVCMatchExp(jexl.name, jexl.exp);
@@ -245,17 +232,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
-        boolean usingJEXL = false;
         for ( VariantStratifier vs : getStratificationObjects() ) {
             if ( vs.getClass().getSimpleName().equals("Filter") )
                 byFilterIsEnabled = true;
             else if ( vs.getClass().getSimpleName().equals("Sample") )
                 perSampleIsEnabled = true;
-            usingJEXL = usingJEXL || vs.getClass().equals(JexlExpression.class);
         }
-
-        if ( TRANCHE_FILENAME != null && ! usingJEXL )
-            throw new UserException.BadArgumentValue("tf", "Requires the JexlExpression ST to enabled");
 
         // Initialize the evaluation contexts
         evaluationContexts = variantEvalUtils.initializeEvaluationContexts(stratificationObjects, evaluationObjects, null, null);

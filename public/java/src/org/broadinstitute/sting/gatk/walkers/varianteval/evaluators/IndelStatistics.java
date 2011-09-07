@@ -270,7 +270,7 @@ public class IndelStatistics extends VariantEvaluator {
 
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        if (eval != null ) {
+        if (eval != null && eval.isPolymorphic()) {
             if ( indelStats == null ) {
                 indelStats = new IndelStats(eval);
             }

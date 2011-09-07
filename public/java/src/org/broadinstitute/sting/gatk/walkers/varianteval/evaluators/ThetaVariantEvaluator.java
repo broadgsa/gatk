@@ -37,77 +37,74 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
     }
 
     public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (vc == null || !vc.isSNP() || !vc.hasGenotypes()) {
+        if (vc == null || !vc.isSNP() || !vc.hasGenotypes() || vc.isMonomorphic()) {
             return null; //no interesting sites
         }
 
-        if (vc.hasGenotypes()) {
+        //this maps allele to a count
+        ConcurrentMap<String, Integer> alleleCounts = new ConcurrentHashMap<String, Integer>();
 
-            //this maps allele to a count
-            ConcurrentMap<String, Integer> alleleCounts = new ConcurrentHashMap<String, Integer>();
+        int numHetsHere = 0;
+        float numGenosHere = 0;
+        int numIndsHere = 0;
 
-            int numHetsHere = 0;
-            float numGenosHere = 0;
-            int numIndsHere = 0;
+        for (Genotype genotype : vc.getGenotypes().values()) {
+            numIndsHere++;
+            if (!genotype.isNoCall()) {
+                //increment stats for heterozygosity
+                if (genotype.isHet()) {
+                    numHetsHere++;
+                }
 
-            for (Genotype genotype : vc.getGenotypes().values()) {
-                numIndsHere++;
-                if (!genotype.isNoCall()) {
-                    //increment stats for heterozygosity
-                    if (genotype.isHet()) {
-                        numHetsHere++;
-                    }
+                numGenosHere++;
+                //increment stats for pairwise mismatches
 
-                    numGenosHere++;
-                    //increment stats for pairwise mismatches
-
-                    for (Allele allele : genotype.getAlleles()) {
-                        if (allele.isNonNull() && allele.isCalled()) {
-                            String alleleString = allele.toString();
-                            alleleCounts.putIfAbsent(alleleString, 0);
-                            alleleCounts.put(alleleString, alleleCounts.get(alleleString) + 1);
-                        }
+                for (Allele allele : genotype.getAlleles()) {
+                    if (allele.isNonNull() && allele.isCalled()) {
+                        String alleleString = allele.toString();
+                        alleleCounts.putIfAbsent(alleleString, 0);
+                        alleleCounts.put(alleleString, alleleCounts.get(alleleString) + 1);
                     }
                 }
             }
-            if (numGenosHere > 0) {
-                //only if have one called genotype at least
-                this.numSites++;
+        }
+        if (numGenosHere > 0) {
+            //only if have one called genotype at least
+            this.numSites++;
 
-                this.totalHet += numHetsHere / numGenosHere;
+            this.totalHet += numHetsHere / numGenosHere;
 
-                //compute based on num sites
-                float harmonicFactor = 0;
-                for (int i = 1; i <= numIndsHere; i++) {
-                    harmonicFactor += 1.0 / i;
-                }
-                this.thetaRegionNumSites += 1.0 / harmonicFactor;
+            //compute based on num sites
+            float harmonicFactor = 0;
+            for (int i = 1; i <= numIndsHere; i++) {
+                harmonicFactor += 1.0 / i;
+            }
+            this.thetaRegionNumSites += 1.0 / harmonicFactor;
 
-                //now compute pairwise mismatches
-                float numPairwise = 0;
-                float numDiffs = 0;
-                for (String allele1 : alleleCounts.keySet()) {
-                    int allele1Count = alleleCounts.get(allele1);
+            //now compute pairwise mismatches
+            float numPairwise = 0;
+            float numDiffs = 0;
+            for (String allele1 : alleleCounts.keySet()) {
+                int allele1Count = alleleCounts.get(allele1);
 
-                    for (String allele2 : alleleCounts.keySet()) {
-                        if (allele1.compareTo(allele2) < 0) {
-                            continue;
-                        }
-                        if (allele1 .compareTo(allele2) == 0) {
-                            numPairwise += allele1Count * (allele1Count - 1) * .5;
+                for (String allele2 : alleleCounts.keySet()) {
+                    if (allele1.compareTo(allele2) < 0) {
+                        continue;
+                    }
+                    if (allele1 .compareTo(allele2) == 0) {
+                        numPairwise += allele1Count * (allele1Count - 1) * .5;
 
-                        }
-                        else {
-                            int allele2Count = alleleCounts.get(allele2);
-                            numPairwise += allele1Count * allele2Count;
-                            numDiffs += allele1Count * allele2Count;
-                        }
+                    }
+                    else {
+                        int allele2Count = alleleCounts.get(allele2);
+                        numPairwise += allele1Count * allele2Count;
+                        numDiffs += allele1Count * allele2Count;
                     }
                 }
+            }
 
-                if (numPairwise > 0) {
-                    this.totalAvgDiffs += numDiffs / numPairwise;
-                }
+            if (numPairwise > 0) {
+                this.totalAvgDiffs += numDiffs / numPairwise;
             }
         }
 
