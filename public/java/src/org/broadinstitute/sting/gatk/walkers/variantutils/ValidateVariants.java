@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.TribbleException;
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
@@ -41,7 +40,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 
@@ -168,14 +166,9 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         // get the RS IDs
         Set<String> rsIDs = null;
         if ( tracker.hasValues(dbsnp.dbsnp) ) {
-            List<VariantContext> dbsnpList = tracker.getValues(dbsnp.dbsnp, ref.getLocus());
             rsIDs = new HashSet<String>();
-            for ( Object d : dbsnpList ) {
-                if (d instanceof DbSNPFeature )
-                    rsIDs.add(((DbSNPFeature)d).getRsID());
-                else if (d instanceof VariantContext )
-                    rsIDs.add(((VariantContext)d).getID());
-            }
+            for ( VariantContext rsID : tracker.getValues(dbsnp.dbsnp, ref.getLocus()) )
+                rsIDs.add(rsID.getID());
         }
 
         try {
