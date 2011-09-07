@@ -261,7 +261,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         return String.format("%s -select '%s' -selectName %s", cmd, select, name);
     }
 
-    @Test
+    @Test(enabled = false) // no longer supported in the GATK
     public void testTranches() {
         String extraArgs = "-T VariantEval -R "+ hg18Reference +" --eval " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + testDir + "tranches.6.txt";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("6af2b9959aa1778a5b712536de453952"));
