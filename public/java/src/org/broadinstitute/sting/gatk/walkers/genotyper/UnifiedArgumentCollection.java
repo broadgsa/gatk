@@ -52,6 +52,11 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
 
+    /**
+     * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
+     * distinguish between PCR errors vs. sequencing errors.  The practical implication for this value is that it
+     * effectively acts as a cap on the base qualities.
+     */
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
     public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
 

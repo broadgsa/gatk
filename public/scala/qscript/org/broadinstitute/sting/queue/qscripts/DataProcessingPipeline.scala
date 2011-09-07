@@ -11,7 +11,7 @@ import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
 import org.broadinstitute.sting.queue.util.QScriptUtils
-import org.broadinstitute.sting.queue.function.{CommandLineFunction, ListWriterFunction}
+import org.broadinstitute.sting.queue.function.ListWriterFunction
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -31,7 +31,7 @@ class DataProcessingPipeline extends QScript {
   var reference: File = _
 
   @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
-  var dbSNP: File = _
+  var dbSNP: List[File] = List()
 
   /****************************************************************************
   * Optional Parameters
@@ -43,7 +43,7 @@ class DataProcessingPipeline extends QScript {
 //
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
-  var indels: File = _
+  var indels: List[File] = List()
 
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
@@ -159,7 +159,7 @@ class DataProcessingPipeline extends QScript {
     for (rg <- readGroups) {
       val intermediateInBam: File = if (index == readGroups.length) { inBam } else { swapExt(outBam, ".bam", index+1 + "-rg.bam") }
       val intermediateOutBam: File = if (index > 1) {swapExt(outBam, ".bam", index + "-rg.bam") } else { outBam}
-      val readGroup = new ReadGroup(rg.getReadGroupId, rg.getPlatform, rg.getLibrary, rg.getPlatformUnit, rg.getSample, rg.getSequencingCenter, rg.getDescription)
+      val readGroup = new ReadGroup(rg.getReadGroupId, rg.getLibrary, rg.getPlatform, rg.getPlatformUnit, rg.getSample, rg.getSequencingCenter, rg.getDescription)
       add(addReadGroup(intermediateInBam, intermediateOutBam, readGroup))
       index = index - 1
     }
@@ -321,9 +321,9 @@ class DataProcessingPipeline extends QScript {
       this.input_file = inBams
     this.out = outIntervals
     this.mismatchFraction = 0.0
-    this.known :+= qscript.dbSNP
+    this.known ++= qscript.dbSNP
     if (indels != null)
-      this.known :+= qscript.indels
+      this.known ++= qscript.indels
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -333,9 +333,9 @@ class DataProcessingPipeline extends QScript {
     this.input_file = inBams
     this.targetIntervals = tIntervals
     this.out = outBam
-    this.known :+= qscript.dbSNP
+    this.known ++= qscript.dbSNP
     if (qscript.indels != null)
-      this.known :+= qscript.indels
+      this.known ++= qscript.indels
     this.consensusDeterminationModel = cleanModelEnum
     this.compress = 0
     this.scatterCount = nContigs
@@ -344,7 +344,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.knownSites :+= qscript.dbSNP
+    this.knownSites ++= qscript.dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
