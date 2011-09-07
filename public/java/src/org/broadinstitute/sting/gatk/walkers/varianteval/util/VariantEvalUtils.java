@@ -277,7 +277,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values(), vc.getAlleles());
+        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values());
 
         HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());
 

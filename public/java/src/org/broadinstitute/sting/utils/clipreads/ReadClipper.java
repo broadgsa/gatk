@@ -63,6 +63,10 @@ public class ReadClipper {
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
+        // TODO add requires statement/check in the Hardclip function
+        if ( start > stop )
+            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
+
         //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
         SAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);
