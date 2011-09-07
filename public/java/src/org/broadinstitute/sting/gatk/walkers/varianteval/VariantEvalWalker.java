@@ -15,6 +15,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.JexlExpression;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
@@ -24,6 +25,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -122,9 +124,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)", required=false)
     protected Boolean NO_STANDARD_STRATIFICATIONS = false;
 
-    @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
-    protected Set<VariantContext.Type> typesToUse = null;
-
     /**
      * See the -list argument to view available modules.
      */
@@ -149,9 +148,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
-
-    @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
-    private String TRANCHE_FILENAME = null;
 
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
     private File ancestralAlignmentsFile = null;
@@ -233,16 +229,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             jexlExpressions.add(sjexl);
         }
 
-        // Add select expressions for anything in the tranches file
-        if ( TRANCHE_FILENAME != null ) {
-            // we are going to build a few select names automatically from the tranches file
-            for ( Tranche t : Tranche.readTranches(new File(TRANCHE_FILENAME)) ) {
-                logger.info("Adding select for all variant above the pCut of : " + t);
-                SELECT_EXPS.add(String.format(VariantRecalibrator.VQS_LOD_KEY + " >= %.2f", t.minVQSLod));
-                SELECT_NAMES.add(String.format("TS-%.2f", t.ts));
-            }
-        }
-
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
@@ -317,9 +303,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
 
-                            HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
+                            HashMap<VariantStratifier, List<String>> stateMap = new HashMap<VariantStratifier, List<String>>();
                             for ( VariantStratifier vs : stratificationObjects ) {
-                                ArrayList<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
+                                List<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
                                 stateMap.put(vs, states);
                             }
 

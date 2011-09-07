@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * CpG is a stratification module for VariantEval that divides the input data by within/not within a CpG site
@@ -19,21 +20,14 @@ import java.util.ArrayList;
  * A CpG site is defined as a site where the reference base at a locus is a C and the adjacent reference base in the 3' direction is a G.
  */
 public class CpG extends VariantStratifier {
-    private ArrayList<String> states;
-
     @Override
     public void initialize() {
-        states = new ArrayList<String>();
         states.add("all");
         states.add("CpG");
         states.add("non_CpG");
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         boolean isCpG = false;
         if (ref != null && ref.getBases() != null) {
             String fwRefBases = new String(ref.getBases());

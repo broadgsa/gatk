@@ -7,10 +7,12 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
+/**
+ * Experimental stratification by the degeneracy of an amino acid, according to VCF annotation.  Not safe
+ */
 public class Degeneracy extends VariantStratifier {
-    private ArrayList<String> states;
-
     private HashMap<String, HashMap<Integer, String>> degeneracies;
 
     @Override
@@ -77,11 +79,7 @@ public class Degeneracy extends VariantStratifier {
         }
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("all");

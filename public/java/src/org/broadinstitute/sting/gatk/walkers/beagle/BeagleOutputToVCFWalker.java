@@ -79,24 +79,45 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
+    /**
+     * If this argument is present, the original allele frequencies and counts from this vcf are added as annotations ACH,AFH and ANH. at each record present in this vcf
+     */
     @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
     public RodBinding<VariantContext> comp;
 
+
+    /**
+     * This required argument is used to annotate each site in the vcf INFO field with R2 annotation. Will be NaN if Beagle determined there are no variant samples.
+     */
     @Input(fullName="beagleR2", shortName = "beagleR2", doc="Beagle-produced .r2 file containing R^2 values for all markers", required=true)
     public RodBinding<BeagleFeature> beagleR2;
 
+    /**
+     * These values will populate the GL field for each sample and contain the posterior probability of each genotype given the data after phasing and imputation.
+     */
     @Input(fullName="beagleProbs", shortName = "beagleProbs", doc="Beagle-produced .probs file containing posterior genotype probabilities", required=true)
     public RodBinding<BeagleFeature> beagleProbs;
 
+    /**
+     * By default, all genotypes will be marked in the VCF as "phased", using the "|" separator after Beagle.
+     */
     @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="Beagle-produced .phased file containing phased genotypes", required=true)
     public RodBinding<BeagleFeature> beaglePhased;
 
     @Output(doc="VCF File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
+    /**
+     * If this argument is absent, and if Beagle determines that there is no sample in a site that has a variant genotype, the site will be marked as filtered (Default behavior).
+     * If the argument is present, the site won't be marked as filtered under this condition even if there are no variant genotypes.
+     */
     @Argument(fullName="dont_mark_monomorphic_sites_as_filtered", shortName="keep_monomorphic", doc="If provided, we won't filter sites that beagle tags as monomorphic.  Useful for imputing a sample's genotypes from a reference panel" ,required=false)
     public boolean DONT_FILTER_MONOMORPHIC_SITES = false;
 
+    /**
+     * Value between 0 and 1. If the probability of getting a genotype correctly (based on the posterior genotype probabilities and the actual genotype) is below this threshold,
+     * a genotype will be substitute by a no-call.
+     */
     @Argument(fullName="no" +
             "call_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
     private double noCallThreshold = 0.0;

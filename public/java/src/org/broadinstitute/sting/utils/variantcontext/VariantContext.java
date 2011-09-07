@@ -973,7 +973,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return true if it's monomorphic
      */
     public boolean isMonomorphic() {
-        return ! isVariant() || getChromosomeCount(getReference()) == getChromosomeCount();
+        return ! isVariant() || (hasGenotypes() && getHomRefCount() + getNoCallCount() == getNSamples());
     }
 
     /**

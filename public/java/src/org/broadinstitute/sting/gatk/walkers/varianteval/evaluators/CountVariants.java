@@ -100,11 +100,12 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
         // added in a proxy check for monomorphic status here.
         // Protect against case when vc only as no-calls too - can happen if we strafity by sample and sample as a single no-call.
-       if ( !vc1.isVariant() || (vc1.hasGenotypes() &&  vc1.getHomRefCount() + vc1.getNoCallCount() == vc1.getNSamples()) ) {
+       if ( vc1.isMonomorphic() ) {
             nRefLoci++;
         } else {
              switch (vc1.getType()) {
                 case NO_VARIATION:
+                    // shouldn't get here
                     break;
                 case SNP:
                     nVariantLoci++;

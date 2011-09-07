@@ -77,6 +77,11 @@ import java.util.*;
  * if even a weak evidence for the same indel, not necessarily a confident call, exists in the first sample ("Normal"), or as somatic
  * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
  * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
+ *
+ * <b>If any of the general usage of this tool or any of the command-line arguments for this tool are not clear to you,
+ * please email asivache at broadinstitute dot org and he will gladly explain everything in more detail.</b>
+ *
+ *
  */
 @ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {

@@ -40,7 +40,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
     }
 
     public void updateTiTv(VariantContext vc, boolean updateStandard) {
-        if (vc != null && vc.isSNP() && vc.isBiallelic()) {
+        if (vc != null && vc.isSNP() && vc.isBiallelic() && vc.isPolymorphic()) {
             if (VariantContextUtils.isTransition(vc)) {
                 if (updateStandard) nTiInComp++;
                 else nTi++;

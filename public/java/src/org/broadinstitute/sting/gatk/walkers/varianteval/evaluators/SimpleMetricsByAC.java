@@ -166,7 +166,7 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
                 }
             }
 
-            if ( eval.isSNP() && eval.isBiallelic() && metrics != null ) {
+            if ( eval.isSNP() && eval.isBiallelic() && eval.isPolymorphic() && metrics != null ) {
                 metrics.incrValue(eval);
             }
         }
