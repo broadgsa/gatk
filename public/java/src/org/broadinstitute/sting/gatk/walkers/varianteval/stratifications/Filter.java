@@ -5,24 +5,20 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Stratifies by the FILTER status (PASS, FAIL) of the eval records
+ */
 public class Filter extends VariantStratifier {
-    // needs to know the variant context
-    private ArrayList<String> states;
-
     @Override
     public void initialize() {
-        states = new ArrayList<String>();
         states.add("called");
         states.add("filtered");
         states.add("raw");
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("raw");

@@ -57,6 +57,7 @@ public class ShardTraverser implements Callable {
 
     public Object call() {
         try {
+            traversalEngine.startTimersIfNecessary();
             long startTime = System.currentTimeMillis();
 
             Object accumulator = walker.reduceInit();

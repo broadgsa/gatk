@@ -214,7 +214,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select many samples from the ROD tracks provided. Can be specified multiple times", required=false)
     public Set<String> sampleExpressions ;
 
-    @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line) to include. Can be specified multiple times", required=false)
+    @Input(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line) to include. Can be specified multiple times", required=false)
     public Set<File> sampleFiles;
 
     /**
@@ -226,7 +226,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     /**
      * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
      */
-    @Argument(fullName="exclude_sample_file", shortName="xl_sf", doc="File containing a list of samples (one per line) to exclude. Can be specified multiple times", required=false)
+    @Input(fullName="exclude_sample_file", shortName="xl_sf", doc="File containing a list of samples (one per line) to exclude. Can be specified multiple times", required=false)
     public Set<File> XLsampleFiles = new HashSet<File>(0);
 
     /**

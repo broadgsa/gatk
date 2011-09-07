@@ -97,7 +97,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");
 
-        traversalEngine.startTimers();
         ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
 

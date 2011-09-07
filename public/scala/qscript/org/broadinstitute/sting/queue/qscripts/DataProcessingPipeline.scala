@@ -11,7 +11,7 @@ import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
 import org.broadinstitute.sting.queue.util.QScriptUtils
-import org.broadinstitute.sting.queue.function.{CommandLineFunction, ListWriterFunction}
+import org.broadinstitute.sting.queue.function.ListWriterFunction
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -31,19 +31,14 @@ class DataProcessingPipeline extends QScript {
   var reference: File = _
 
   @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
-  var dbSNP: File = _
+  var dbSNP: List[File] = List()
 
   /****************************************************************************
   * Optional Parameters
   ****************************************************************************/
 
-
-//  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
-//  var sortSamJar: File = _
-//
-
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
-  var indels: File = _
+  var indels: List[File] = List()
 
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
@@ -132,24 +127,6 @@ class DataProcessingPipeline extends QScript {
       }
     }
     return sampleTable.toMap
-
-//    println("\n\n*** INPUT FILES ***\n")
-//    // Creating one file for each sample in the dataset
-//    val sampleBamFiles = scala.collection.mutable.Map.empty[String, File]
-//    for ((sample, flist) <- sampleTable) {
-//
-//      println(sample + ":")
-//      for (f <- flist)
-//        println (f)
-//      println()
-//
-//      val sampleFileName = new File(qscript.outputDir + qscript.projectName + "." + sample + ".list")
-//      sampleBamFiles(sample) = sampleFileName
-//      //add(writeList(flist, sampleFileName))
-//    }
-//    println("*** INPUT FILES ***\n\n")
-//
-//    return sampleBamFiles.toMap
   }
 
   // Rebuilds the Read Group string to give BWA
@@ -321,9 +298,9 @@ class DataProcessingPipeline extends QScript {
       this.input_file = inBams
     this.out = outIntervals
     this.mismatchFraction = 0.0
-    this.known :+= qscript.dbSNP
+    this.known ++= qscript.dbSNP
     if (indels != null)
-      this.known :+= qscript.indels
+      this.known ++= qscript.indels
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -333,9 +310,9 @@ class DataProcessingPipeline extends QScript {
     this.input_file = inBams
     this.targetIntervals = tIntervals
     this.out = outBam
-    this.known :+= qscript.dbSNP
+    this.known ++= qscript.dbSNP
     if (qscript.indels != null)
-      this.known :+= qscript.indels
+      this.known ++= qscript.indels
     this.consensusDeterminationModel = cleanModelEnum
     this.compress = 0
     this.scatterCount = nContigs
@@ -344,7 +321,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.knownSites :+= qscript.dbSNP
+    this.knownSites ++= qscript.dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
