@@ -112,6 +112,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
      @Argument(fullName = "bootstrap_vcf",shortName = "bvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
     VCFWriter bootstrapVCFOutput = null;
 
+    /**
+     * If sample gender is known, this flag should be set to true to ensure that Beagle treats male Chr X properly.
+     */
     @Argument(fullName = "checkIsMaleOnChrX", shortName = "checkIsMaleOnChrX", doc = "Set to true when Beagle-ing chrX and want to ensure male samples don't have heterozygous calls.", required = false)
     public boolean CHECK_IS_MALE_ON_CHR_X = false;
 
