@@ -26,8 +26,11 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureSource;
+import org.broad.tribble.iterators.CloseableTribbleIterator;
+import org.broad.tribble.source.PerformanceLoggingFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -47,7 +50,6 @@ import java.io.IOException;
  */
 public class RMDTrack {
     private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
-    private final static boolean DEBUG = false;
 
     // the basics of a track:
     private final Class type;           // our type
@@ -113,8 +115,10 @@ public class RMDTrack {
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
-        if ( DEBUG ) logger.debug("Issuing query for %s: " + interval);
-        return new FeatureToGATKFeatureIterator(genomeLocParser, reader.query(interval.getContig(),interval.getStart(),interval.getStop()), this.getName());
+        CloseableTribbleIterator<Feature> iter = reader.query(interval.getContig(),interval.getStart(),interval.getStop());
+        if ( RMDTrackBuilder.MEASURE_TRIBBLE_QUERY_PERFORMANCE )
+            logger.warn("Query " + getName() + ":" + ((PerformanceLoggingFeatureSource)reader).getPerformanceLog());
+        return new FeatureToGATKFeatureIterator(genomeLocParser, iter, this.getName());
     }
 
     public void close() {

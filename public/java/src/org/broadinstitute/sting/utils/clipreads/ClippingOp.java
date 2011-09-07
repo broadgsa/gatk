@@ -252,7 +252,8 @@ public class ClippingOp {
         if (start == 0 && stop == read.getReadLength() -1)
             return new SAMRecord(read.getHeader());
 
-        CigarShift cigarShift = hardClipCigar(read.getCigar(), start, stop);
+        // If the read is unmapped there is no Cigar string and neither should we create a new cigar string
+        CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);
 
         // the cigar may force a shift left or right (or both) in case we are left with insertions
         // starting or ending the read after applying the hard clip on start/stop.

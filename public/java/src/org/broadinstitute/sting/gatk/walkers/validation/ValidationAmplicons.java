@@ -93,20 +93,30 @@ import java.util.List;
  */
 @Requires(value={DataSource.REFERENCE})
 public class ValidationAmplicons extends RodWalker<Integer,Integer> {
+    /**
+     * A Table-formatted file listing amplicon contig, start, stop, and a name for the amplicon (or probe)
+     */
     @Input(fullName = "ProbeIntervals", doc="A collection of intervals in table format with optional names that represent the "+
                                             "intervals surrounding the probe sites amplicons should be designed for", required=true)
     RodBinding<TableFeature> probeIntervals;
-
+    /**
+     * A VCF file containing the bi-allelic sites for validation. Filtered records will prompt a warning, and will be flagged as filtered in the output fastq.
+     */
     @Input(fullName = "ValidateAlleles", doc="A VCF containing the sites and alleles you want to validate. Restricted to *BI-Allelic* sites", required=true)
     RodBinding<VariantContext> validateAlleles;
-
+    /**
+     * A VCF file containing variants to be masked. A mask variant overlapping a validation site will be ignored at the validation site.
+     */
     @Input(fullName = "MaskAlleles", doc="A VCF containing the sites you want to MASK from the designed amplicon (e.g. by Ns or lower-cased bases)", required=true)
     RodBinding<VariantContext> maskAlleles;
-
 
     @Argument(doc="Lower case SNPs rather than replacing with 'N'",fullName="lowerCaseSNPs",required=false)
     boolean lowerCaseSNPs = false;
 
+    /**
+     * BWA single-end alignment is used as a primer specificity proxy. Low-complexity regions (that don't align back to themselves as a best hit) are lowercased.
+     * This changes the size of the k-mer used for alignment.
+     */
     @Argument(doc="Size of the virtual primer to use for lower-casing regions with low specificity",fullName="virtualPrimerSize",required=false)
     int virtualPrimerSize = 20;
 

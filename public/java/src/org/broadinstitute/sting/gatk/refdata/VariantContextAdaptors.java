@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import net.sf.samtools.util.SequenceUtil;
 import org.broad.tribble.Feature;
 import org.broad.tribble.annotation.Strand;
-import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.dbsnp.OldDbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -93,27 +93,27 @@ public class VariantContextAdaptors {
     // --------------------------------------------------------------------------------------------------------------
 
     private static class DBSnpAdaptor implements VCAdaptor {
-        private static boolean isSNP(DbSNPFeature feature) {
+        private static boolean isSNP(OldDbSNPFeature feature) {
             return feature.getVariantType().contains("single") && feature.getLocationType().contains("exact");
         }
 
-        private static boolean isMNP(DbSNPFeature feature) {
+        private static boolean isMNP(OldDbSNPFeature feature) {
             return feature.getVariantType().contains("mnp") && feature.getLocationType().contains("range");
         }
 
-        private static boolean isInsertion(DbSNPFeature feature) {
+        private static boolean isInsertion(OldDbSNPFeature feature) {
             return feature.getVariantType().contains("insertion");
         }
 
-        private static boolean isDeletion(DbSNPFeature feature) {
+        private static boolean isDeletion(OldDbSNPFeature feature) {
             return feature.getVariantType().contains("deletion");
         }
 
-        private static boolean isIndel(DbSNPFeature feature) {
+        private static boolean isIndel(OldDbSNPFeature feature) {
             return isInsertion(feature) || isDeletion(feature) || isComplexIndel(feature);
         }
 
-        public static boolean isComplexIndel(DbSNPFeature feature) {
+        public static boolean isComplexIndel(OldDbSNPFeature feature) {
             return feature.getVariantType().contains("in-del");
         }
 
@@ -125,7 +125,7 @@ public class VariantContextAdaptors {
          *
          * @return an alternate allele list
          */
-        public static List<String> getAlternateAlleleList(DbSNPFeature feature) {
+        public static List<String> getAlternateAlleleList(OldDbSNPFeature feature) {
             List<String> ret = new ArrayList<String>();
             for (String allele : getAlleleList(feature))
                 if (!allele.equals(String.valueOf(feature.getNCBIRefBase()))) ret.add(allele);
@@ -139,7 +139,7 @@ public class VariantContextAdaptors {
          *
          * @return an alternate allele list
          */
-        public static List<String> getAlleleList(DbSNPFeature feature) {
+        public static List<String> getAlleleList(OldDbSNPFeature feature) {
             List<String> alleleList = new ArrayList<String>();
             // add ref first
             if ( feature.getStrand() == Strand.POSITIVE )
@@ -156,14 +156,14 @@ public class VariantContextAdaptors {
 
         /**
          * Converts non-VCF formatted dbSNP records to VariantContext. 
-         * @return DbSNPFeature.
+         * @return OldDbSNPFeature.
          */
         @Override
-        public Class<? extends Feature> getAdaptableFeatureType() { return DbSNPFeature.class; }
+        public Class<? extends Feature> getAdaptableFeatureType() { return OldDbSNPFeature.class; }
 
         @Override        
         public VariantContext convert(String name, Object input, ReferenceContext ref) {
-            DbSNPFeature dbsnp = (DbSNPFeature)input;
+            OldDbSNPFeature dbsnp = (OldDbSNPFeature)input;
             if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
                 return null;
             Allele refAllele = Allele.create(dbsnp.getNCBIRefBase(), true);

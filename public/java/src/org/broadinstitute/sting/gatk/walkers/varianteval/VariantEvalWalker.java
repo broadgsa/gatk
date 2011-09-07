@@ -122,9 +122,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)", required=false)
     protected Boolean NO_STANDARD_STRATIFICATIONS = false;
 
-    @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
-    protected Set<VariantContext.Type> typesToUse = null;
-
     /**
      * See the -list argument to view available modules.
      */
@@ -317,9 +314,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
 
-                            HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
+                            HashMap<VariantStratifier, List<String>> stateMap = new HashMap<VariantStratifier, List<String>>();
                             for ( VariantStratifier vs : stratificationObjects ) {
-                                ArrayList<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
+                                List<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
                                 stateMap.put(vs, states);
                             }
 

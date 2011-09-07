@@ -5,25 +5,22 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Stratifies by nonsense, missense, silent, and all annotations in the input ROD, from the INFO field annotation.
+ */
 public class FunctionalClass extends VariantStratifier {
-    // needs to know the variant context
-    private ArrayList<String> states;
-
     @Override
     public void initialize() {
-        states = new ArrayList<String>();
         states.add("all");
         states.add("silent");
         states.add("missense");
         states.add("nonsense");
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("all");
