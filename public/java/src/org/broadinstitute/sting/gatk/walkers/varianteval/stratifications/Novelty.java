@@ -7,32 +7,31 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
+/**
+ * Stratifies by whether a site in in the list of known RODs (e.g., dbsnp by default)
+ */
 public class Novelty extends VariantStratifier implements StandardStratification {
     // needs the variant contexts and known names
     private List<RodBinding<VariantContext>> knowns;
-    final private ArrayList<String> states = new ArrayList<String>(Arrays.asList("all", "known", "novel"));
 
 
     @Override
     public void initialize() {
+        states = new ArrayList<String>(Arrays.asList("all", "known", "novel"));
         knowns = getVariantEvalWalker().getKnowns();
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (tracker != null && eval != null) {
             final Collection<VariantContext> knownComps = tracker.getValues(knowns, ref.getLocus());
             for ( final VariantContext c : knownComps ) {
                 // loop over sites, looking for something that matches the type eval
                 if ( eval.getType() == c.getType() ) {
-                    return new ArrayList<String>(Arrays.asList("all", "known"));
+                    return Arrays.asList("all", "known");
                 }
             }
         }
 
-        return new ArrayList<String>(Arrays.asList("all", "novel"));
+        return Arrays.asList("all", "novel");
     }
 }
