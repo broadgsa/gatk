@@ -22,11 +22,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.gvcf;
+package org.broadinstitute.sting.utils.gcf;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -64,8 +62,8 @@ import java.util.*;
  * @author Your Name
  * @since Date created
  */
-public class GVCFHeader {
-    final protected static Logger logger = Logger.getLogger(GVCFHeader.class);
+public class GCFHeader {
+    final protected static Logger logger = Logger.getLogger(GCFHeader.class);
 
     private static byte[] MAGIC_HEADER = "GVCF0.1\1".getBytes();
     final List<Allele> alleles;
@@ -73,14 +71,14 @@ public class GVCFHeader {
     final List<String> samples;
     final List<Set<String>> filters;
 
-    public GVCFHeader(final Map<Allele, Integer> allelesIn, final Map<String, Integer> stringIn, final Map<String, Integer> samplesIn) {
+    public GCFHeader(final Map<Allele, Integer> allelesIn, final Map<String, Integer> stringIn, final Map<String, Integer> samplesIn) {
         this.alleles = linearize(allelesIn);
         this.strings = linearize(stringIn);
         this.samples = linearize(samplesIn);
         this.filters = null; // not used with this constructor
     }
 
-    public GVCFHeader(DataInputStream inputStream) throws IOException {
+    public GCFHeader(DataInputStream inputStream) throws IOException {
         byte[] headerTest = new byte[MAGIC_HEADER.length];
         inputStream.read(headerTest);
         if ( ! Arrays.equals(headerTest, MAGIC_HEADER) ) {

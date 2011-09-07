@@ -22,12 +22,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.gvcf;
+package org.broadinstitute.sting.utils.gcf;
 
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -42,7 +39,7 @@ import java.util.*;
  * @author Your Name
  * @since Date created
  */
-public class GVCF {
+public class GCF {
     private final static int RECORD_TERMINATOR = 123456789;
     private int chromOffset;
     private int start, stop;
@@ -54,10 +51,10 @@ public class GVCF {
     private String info;
     private int filterOffset;
 
-    private List<GVCFGenotype> genotypes = Collections.emptyList();
+    private List<GCFGenotype> genotypes = Collections.emptyList();
 
-    public GVCF(final GVCFHeaderBuilder gvcfHeaderBuilder, final VariantContext vc, boolean skipGenotypes) {
-        chromOffset = gvcfHeaderBuilder.encodeString(vc.getChr());
+    public GCF(final GCFHeaderBuilder GCFHeaderBuilder, final VariantContext vc, boolean skipGenotypes) {
+        chromOffset = GCFHeaderBuilder.encodeString(vc.getChr());
         start = vc.getStart();
         stop = vc.getEnd();
         refPad = vc.hasReferenceBaseForIndel() ? vc.getReferenceBaseForIndel() : 0;
@@ -67,22 +64,22 @@ public class GVCF {
         alleleMap = new ArrayList<Allele>(vc.getNAlleles());
         alleleOffsets = new int[vc.getNAlleles()];
         alleleMap.add(vc.getReference());
-        alleleOffsets[0] = gvcfHeaderBuilder.encodeAllele(vc.getReference());
+        alleleOffsets[0] = GCFHeaderBuilder.encodeAllele(vc.getReference());
         for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
             alleleMap.add(vc.getAlternateAllele(i));
-            alleleOffsets[i+1] = gvcfHeaderBuilder.encodeAllele(vc.getAlternateAllele(i));
+            alleleOffsets[i+1] = GCFHeaderBuilder.encodeAllele(vc.getAlternateAllele(i));
         }
 
         qual = (float)vc.getNegLog10PError(); //qualToByte(vc.getPhredScaledQual());
-        info = infoFieldString(vc, gvcfHeaderBuilder);
-        filterOffset = gvcfHeaderBuilder.encodeString(StandardVCFWriter.getFilterString(vc));
+        info = infoFieldString(vc, GCFHeaderBuilder);
+        filterOffset = GCFHeaderBuilder.encodeString(StandardVCFWriter.getFilterString(vc));
 
         if ( ! skipGenotypes ) {
-            genotypes = encodeGenotypes(gvcfHeaderBuilder, vc);
+            genotypes = encodeGenotypes(GCFHeaderBuilder, vc);
         }
     }
 
-    public GVCF(DataInputStream inputStream, boolean skipGenotypes) throws IOException {
+    public GCF(DataInputStream inputStream, boolean skipGenotypes) throws IOException {
         chromOffset = inputStream.readInt();
         start = inputStream.readInt();
         stop = inputStream.readInt();
@@ -99,9 +96,9 @@ public class GVCF {
             genotypes = Collections.emptyList();
             inputStream.skipBytes(sizeOfGenotypes);
         } else {
-            genotypes = new ArrayList<GVCFGenotype>(nGenotypes);
+            genotypes = new ArrayList<GCFGenotype>(nGenotypes);
             for ( int i = 0; i < nGenotypes; i++ )
-                genotypes.add(new GVCFGenotype(this, inputStream));
+                genotypes.add(new GCFGenotype(this, inputStream));
         }
 
         int recordDone = inputStream.readInt();
@@ -109,7 +106,7 @@ public class GVCF {
             throw new UserException.MalformedFile("Record not terminated by RECORD_TERMINATOR key");
     }
 
-    public VariantContext decode(final String source, final GVCFHeader header) {
+    public VariantContext decode(final String source, final GCFHeader header) {
         final String contig = header.getString(chromOffset);
         alleleMap = header.getAlleles(alleleOffsets);
         double negLog10PError = qual; // QualityUtils.qualToErrorProb(qual);
@@ -122,7 +119,7 @@ public class GVCF {
         return new VariantContext(source, contig, start, stop, alleleMap, genotypes, negLog10PError, filters, attributes, refPadByte);
     }
 
-    private Map<String, Genotype> decodeGenotypes(final GVCFHeader header) {
+    private Map<String, Genotype> decodeGenotypes(final GCFHeader header) {
         if ( genotypes.isEmpty() )
             return VariantContext.NO_GENOTYPES;
         else {
@@ -138,15 +135,15 @@ public class GVCF {
         }
     }
 
-    private List<GVCFGenotype> encodeGenotypes(final GVCFHeaderBuilder gvcfHeaderBuilder, final VariantContext vc) {
+    private List<GCFGenotype> encodeGenotypes(final GCFHeaderBuilder GCFHeaderBuilder, final VariantContext vc) {
         int nGenotypes = vc.getNSamples();
         if ( nGenotypes > 0 ) {
-            List<GVCFGenotype> genotypes = new ArrayList<GVCFGenotype>(nGenotypes);
+            List<GCFGenotype> genotypes = new ArrayList<GCFGenotype>(nGenotypes);
             for ( int i = 0; i < nGenotypes; i++ ) genotypes.add(null);
 
             for ( Genotype g : vc.getGenotypes().values() ) {
-                int i = gvcfHeaderBuilder.encodeSample(g.getSampleName());
-                genotypes.set(i, new GVCFGenotype(gvcfHeaderBuilder, alleleMap, g));
+                int i = GCFHeaderBuilder.encodeSample(g.getSampleName());
+                genotypes.set(i, new GCFGenotype(GCFHeaderBuilder, alleleMap, g));
             }
 
             return genotypes;
@@ -174,7 +171,7 @@ public class GVCF {
         outputStream.writeInt(nGenotypes);
         outputStream.writeInt(expectedSizeOfGenotypes);
         int obsSizeOfGenotypes = 0;
-        for ( GVCFGenotype g : genotypes )
+        for ( GCFGenotype g : genotypes )
             obsSizeOfGenotypes += g.write(outputStream);
         if ( obsSizeOfGenotypes != expectedSizeOfGenotypes )
             throw new RuntimeException("Expect and observed genotype sizes disagree! expect = " + expectedSizeOfGenotypes + " obs =" + obsSizeOfGenotypes);
@@ -183,7 +180,7 @@ public class GVCF {
         return outputStream.size() - startSize;
     }
 
-    private final String infoFieldString(VariantContext vc, final GVCFHeaderBuilder gvcfHeaderBuilder) {
+    private final String infoFieldString(VariantContext vc, final GCFHeaderBuilder GCFHeaderBuilder) {
         StringBuilder s = new StringBuilder();
 
         boolean first = true;
@@ -191,7 +188,7 @@ public class GVCF {
             String key = field.getKey();
             if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
                 continue;
-            int stringIndex = gvcfHeaderBuilder.encodeString(key);
+            int stringIndex = GCFHeaderBuilder.encodeString(key);
             String outputValue = StandardVCFWriter.formatVCFField(field.getValue());
             if ( outputValue != null ) {
                 if ( ! first ) s.append(";");

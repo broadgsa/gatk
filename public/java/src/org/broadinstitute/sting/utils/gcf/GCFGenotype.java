@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.gvcf;
+package org.broadinstitute.sting.utils.gcf;
 
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -38,7 +38,7 @@ import java.util.*;
  * @author Your Name
  * @since Date created
  */
-public class GVCFGenotype {
+public class GCFGenotype {
     private byte gq;
     private int gt;
     private int dp;
@@ -48,8 +48,8 @@ public class GVCFGenotype {
     // todo -- what to do about phasing?  Perhaps we shouldn't support it
     // todo -- is the FL field generic or just a flag?  Should we even support per sample filtering?
 
-    public GVCFGenotype(final GVCFHeaderBuilder gvcfHeaderBuilder, final List<Allele> allAlleles, Genotype genotype) {
-        gq = GVCF.qualToByte(genotype.getPhredScaledQual());
+    public GCFGenotype(final GCFHeaderBuilder GCFHeaderBuilder, final List<Allele> allAlleles, Genotype genotype) {
+        gq = GCF.qualToByte(genotype.getPhredScaledQual());
         gt = encodeAlleles(genotype.getAlleles(), allAlleles);
 
         dp = genotype.getAttributeAsInt("DP", 0);
@@ -65,13 +65,13 @@ public class GVCFGenotype {
         return nAlleles*(nAlleles+1) / 2;
     }
 
-    public GVCFGenotype(GVCF gvcf, DataInputStream inputStream) throws IOException {
+    public GCFGenotype(GCF GCF, DataInputStream inputStream) throws IOException {
         int gqInt = inputStream.readUnsignedByte();
         gq = (byte)gqInt;
         gt = inputStream.readInt();
         dp = inputStream.readInt();
-        ad = GVCF.readIntArray(inputStream, gvcf.getNAlleles());
-        pl = GVCF.readByteArray(inputStream, nAllelesToNPls(gvcf.getNAlleles()));
+        ad = GCF.readIntArray(inputStream, GCF.getNAlleles());
+        pl = GCF.readByteArray(inputStream, nAllelesToNPls(GCF.getNAlleles()));
     }
 
     // 2 alleles => 1 + 8 + 8 + 3 => 20
@@ -82,7 +82,7 @@ public class GVCFGenotype {
                 + 1 * pl.length; // pl
     }
 
-    public Genotype decode(final String sampleName, final GVCFHeader header, GVCF gvcf, List<Allele> alleleIndex) {
+    public Genotype decode(final String sampleName, final GCFHeader header, GCF GCF, List<Allele> alleleIndex) {
         final List<Allele> alleles = decodeAlleles(gt, alleleIndex);
         final double negLog10PError = gq / 10.0;
         final Set<String> filters = Collections.emptySet();
@@ -140,8 +140,8 @@ public class GVCFGenotype {
         outputStream.writeByte(gq);
         outputStream.writeInt(gt);
         outputStream.writeInt(dp);
-        GVCF.writeIntArray(ad, outputStream, false);
-        GVCF.writeByteArray(pl, outputStream, false);
+        GCF.writeIntArray(ad, outputStream, false);
+        GCF.writeByteArray(pl, outputStream, false);
         return outputStream.size() - startSize;
     }
 }

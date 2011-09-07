@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.gvcf;
+package org.broadinstitute.sting.utils.gcf;
 
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
@@ -56,13 +56,13 @@ import java.util.Map;
  * @author Your Name
  * @since Date created
  */
-public class GVCFHeaderBuilder {
+public class GCFHeaderBuilder {
     Map<Allele, Integer> alleles = new HashMap<Allele, Integer>();
     Map<String, Integer> strings = new HashMap<String, Integer>();
     Map<String, Integer> samples = new HashMap<String, Integer>();
 
-    public GVCFHeader createHeader() {
-        return new GVCFHeader(alleles, strings, samples);
+    public GCFHeader createHeader() {
+        return new GCFHeader(alleles, strings, samples);
     }
 
     public int encodeString(final String chr)    { return encode(strings, chr); }
