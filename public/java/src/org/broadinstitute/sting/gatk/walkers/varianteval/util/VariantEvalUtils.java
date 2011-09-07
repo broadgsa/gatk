@@ -266,10 +266,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested sample
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
-        ArrayList<String> sampleNames = new ArrayList<String>();
-        sampleNames.add(sampleName);
-
-        return getSubsetOfVariantContext(vc, sampleNames);
+        return getSubsetOfVariantContext(vc, Arrays.asList(sampleName));
     }
 
     /**
@@ -371,12 +368,12 @@ public class VariantEvalUtils {
      * @param stateKeys  all the state keys
      * @return a list of state keys
      */
-    public ArrayList<StateKey> initializeStateKeys(HashMap<VariantStratifier, ArrayList<String>> stateMap, Stack<HashMap<VariantStratifier, ArrayList<String>>> stateStack, StateKey stateKey, ArrayList<StateKey> stateKeys) {
+    public ArrayList<StateKey> initializeStateKeys(HashMap<VariantStratifier, List<String>> stateMap, Stack<HashMap<VariantStratifier, List<String>>> stateStack, StateKey stateKey, ArrayList<StateKey> stateKeys) {
         if (stateStack == null) {
-            stateStack = new Stack<HashMap<VariantStratifier, ArrayList<String>>>();
+            stateStack = new Stack<HashMap<VariantStratifier, List<String>>>();
 
             for (VariantStratifier vs : stateMap.keySet()) {
-                HashMap<VariantStratifier, ArrayList<String>> oneSetOfStates = new HashMap<VariantStratifier, ArrayList<String>>();
+                HashMap<VariantStratifier, List<String>> oneSetOfStates = new HashMap<VariantStratifier, List<String>>();
                 oneSetOfStates.put(vs, stateMap.get(vs));
 
                 stateStack.add(oneSetOfStates);
@@ -384,10 +381,10 @@ public class VariantEvalUtils {
         }
 
         if (!stateStack.isEmpty()) {
-            Stack<HashMap<VariantStratifier, ArrayList<String>>> newStateStack = new Stack<HashMap<VariantStratifier, ArrayList<String>>>();
+            Stack<HashMap<VariantStratifier, List<String>>> newStateStack = new Stack<HashMap<VariantStratifier, List<String>>>();
             newStateStack.addAll(stateStack);
 
-            HashMap<VariantStratifier, ArrayList<String>> oneSetOfStates = newStateStack.pop();
+            HashMap<VariantStratifier, List<String>> oneSetOfStates = newStateStack.pop();
             VariantStratifier vs = oneSetOfStates.keySet().iterator().next();
 
             for (String state : oneSetOfStates.get(vs)) {

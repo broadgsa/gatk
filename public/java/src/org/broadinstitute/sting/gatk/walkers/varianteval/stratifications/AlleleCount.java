@@ -10,10 +10,13 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Stratifies the eval RODs by the allele count of the alternate allele
+ *
+ * Looks at the AC value in the INFO field, and uses that value if present.  If absent,
+ * computes the AC from the genotypes themselves.  For no AC can be computed, 0 is used.
+ */
 public class AlleleCount extends VariantStratifier {
-    // needs to know the variant context
-    private ArrayList<String> states = new ArrayList<String>();
-
     @Override
     public void initialize() {
         List<RodBinding<VariantContext>> evals = getVariantEvalWalker().getEvals();
@@ -35,11 +38,7 @@ public class AlleleCount extends VariantStratifier {
         getVariantEvalWalker().getLogger().info("AlleleCount using " + nchrom + " chromosomes");
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>(1);
 
         if (eval != null) {
