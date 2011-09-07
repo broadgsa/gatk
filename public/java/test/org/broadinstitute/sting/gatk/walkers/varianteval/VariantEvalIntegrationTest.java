@@ -264,7 +264,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testTranches() {
         String extraArgs = "-T VariantEval -R "+ hg18Reference +" --eval " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + testDir + "tranches.6.txt";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("984df6e94a546294fc7e0846cbac2dfe"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("6af2b9959aa1778a5b712536de453952"));
         executeTestParallel("testTranches",spec);
     }
 
