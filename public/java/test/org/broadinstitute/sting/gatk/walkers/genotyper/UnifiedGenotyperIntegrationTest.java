@@ -32,24 +32,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("test MultiSample Pilot1", spec);
     }
 
-    //    @Test
-    // todo - currently not working because when calling indels, using GENOTYPE_GIVEN_ALLELES yields a different result than in normal mode. To be fixed when extended events are removed.
-    public void testMultiSamplePilot2AndRecallingWithAlleles() {
-        String md5 = "b45636b29891f9df573ad2af6f507ee0";
-
-        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList(md5));
-        List<File> result = executeTest("test MultiSample Pilot2", spec1).getFirst();
-
-        GenomeAnalysisEngine.resetRandomGenerator();
-
-        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + result.get(0).getAbsolutePath() + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList(md5));
-        executeTest("test MultiSample Pilot2 with alleles passed in", spec2);       
-    }
-
     @Test
     public void testWithAllelesPassedIn() {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
@@ -86,15 +68,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 Arrays.asList("gz"), Arrays.asList(COMPRESSED_OUTPUT_MD5));
         executeTest("test compressed output", spec);
     }
-
-    // todo -- fixme
-//    @Test
-//    public void testCompressedOutputParallel() {
-//        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-//                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000 -nt 4", 1,
-//                Arrays.asList("gz"), Arrays.asList(COMPRESSED_OUTPUT_MD5));
-//        executeTest("testCompressedOutput-nt4", spec);
-//    }
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -296,6 +269,13 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
                 Arrays.asList("94977d6e42e764280e9deaf4e3ac8c80"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in and emitting all sites", spec2);
+
+        WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
+                baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
+                        "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
+                Arrays.asList("408d3aba4d094c067fc00a43992c2292"));
+        executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
+
     }
 
 
