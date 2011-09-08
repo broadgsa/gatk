@@ -749,7 +749,6 @@ public class UnifiedGenotyperEngine {
 
         // search for usable record
         for( final VariantContext vc_input : tracker.getValues(allelesBinding, loc) ) {
-            //System.out.println(vc_input);
             if ( vc_input != null && ! vc_input.isFiltered() && (! requireSNP || vc_input.isSNP() )) {
                 if ( vc == null ) {
                     vc = vc_input;
