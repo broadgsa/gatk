@@ -60,10 +60,13 @@ public class AssignSomaticStatus extends RodWalker<Integer, Integer> {
     @Argument(shortName="somaticPriorQ", fullName="somaticPriorQ", required=false, doc="Phred-scaled probability that a site is a somatic mutation")
     public byte somaticPriorQ = 60;
 
+    @Argument(shortName="somaticMinLOD", fullName="somaticMinLOD", required=false, doc="Phred-scaled min probability that a site should be called somatic mutation")
+    public byte somaticMinLOD = 1;
+
     @Output
     protected VCFWriter vcfWriter = null;
 
-    private final String SOMATIC_TAG_NAME = "SOMATIC";
+    private final String SOMATIC_LOD_TAG_NAME = "SOMATIC_LOD";
     private final String SOURCE_NAME = "AssignSomaticStatus";
 
     private Set<String> tumorSamples = new HashSet<String>();
@@ -93,43 +96,75 @@ public class AssignSomaticStatus extends RodWalker<Integer, Integer> {
 
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
         headerLines.addAll(VCFUtils.getHeaderFields(this.getToolkit()));
-        headerLines.add(new VCFFormatHeaderLine(SOMATIC_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the site is a somatic mutation"));
+        headerLines.add(new VCFInfoHeaderLine(VCFConstants.SOMATIC_KEY, 0, VCFHeaderLineType.Flag, "Is this a confidently called somatic mutation"));
+        headerLines.add(new VCFFormatHeaderLine(SOMATIC_LOD_TAG_NAME, 1, VCFHeaderLineType.Float, "log10 probability that the site is a somatic mutation"));
         headerLines.add(new VCFHeaderLine("source", SOURCE_NAME));
         vcfWriter.writeHeader(new VCFHeader(headerLines, vcfSamples));
     }
 
     private double log10pNonRefInSamples(final VariantContext vc, final Set<String> samples) {
-        return log10pSumInSamples(vc, samples, false);
-    }
+        double[] log10ps = log10PLFromSamples(vc, samples, false);
+        return MathUtils.log10sumLog10(log10ps); // product of probs => prod in real space
+     }
 
     private double log10pRefInSamples(final VariantContext vc, final Set<String> samples) {
-        return log10pSumInSamples(vc, samples, true);
+        double[] log10ps = log10PLFromSamples(vc, samples, true);
+        return MathUtils.sum(log10ps); // product is sum
     }
 
-    private double log10pSumInSamples(final VariantContext vc, final Set<String> samples, boolean calcRefP) {
-        double log10p = 0;
+    private double[] log10PLFromSamples(final VariantContext vc, final Set<String> samples, boolean calcRefP) {
+        double[] log10p = new double[samples.size()];
 
+        int i = 0;
         for ( final String sample : samples ) {
             Genotype g = vc.getGenotype(sample);
-            if ( g.isNoCall() ) {
-                log10p += 0;
-            } else {
+            double log10pSample = -1000;
+            if ( ! g.isNoCall() ) {
                 double[] gLikelihoods = MathUtils.normalizeFromLog10(g.getLikelihoods().getAsVector());
-                double log10pNonRefSample = Math.log10(calcRefP ? gLikelihoods[0] : 1 - gLikelihoods[0]);
-                log10p += log10pNonRefSample;
+                log10pSample = Math.log10(calcRefP ? gLikelihoods[0] : 1 - gLikelihoods[0]);
+                log10pSample = Double.isInfinite(log10pSample) ? -10000 : log10pSample;
             }
+            log10p[i++] = log10pSample;
         }
 
         return log10p;
     }
 
+    /**
+     * P(somatic | D)
+     *   = P(somatic) * P(D | somatic)
+     *   = P(somatic) * P(D | normals are ref) * P(D | tumors are non-ref)
+     *
+     * P(! somatic | D)
+     *   = P(! somatic) * P(D | ! somatic)
+     *   = P(! somatic) *
+     *      * (  P(D | normals are non-ref) * P(D | tumors are non-ref) [germline]
+     *         + P(D | normals are ref) * P(D | tumors are ref)) [no-variant at all]
+     *
+     * @param vc
+     * @return
+     */
     private double calcLog10pSomatic(final VariantContext vc) {
-        // walk over tumors, and calculate pNonRef
+        // walk over tumors
         double log10pNonRefInTumors = log10pNonRefInSamples(vc, tumorSamples);
+        double log10pRefInTumors = log10pRefInSamples(vc, tumorSamples);
+
+        // walk over normals
+        double log10pNonRefInNormals = log10pNonRefInSamples(vc, normalSamples);
         double log10pRefInNormals = log10pRefInSamples(vc, normalSamples);
-        double log10SomaticPrior = MathUtils.phredScaleToLog10Probability(somaticPriorQ);
-        double log10Somatic = log10SomaticPrior + log10pNonRefInTumors - log10pRefInNormals;
-        return log10Somatic;
+
+        // priors
+        double log10pSomaticPrior = MathUtils.phredScaleToLog10Probability(somaticPriorQ);
+        double log10pNotSomaticPrior = Math.log10(1 - MathUtils.phredScaleToProbability(somaticPriorQ));
+
+        double log10pNotSomaticGermline = log10pNonRefInNormals + log10pNonRefInTumors;
+        double log10pNotSomaticNoVariant = log10pRefInNormals + log10pRefInTumors;
+
+        double log10pNotSomatic = log10pNotSomaticPrior + MathUtils.log10sumLog10(new double[]{log10pNotSomaticGermline, log10pNotSomaticNoVariant});
+        double log10pSomatic = log10pSomaticPrior + log10pNonRefInTumors + log10pRefInNormals;
+        double lod = log10pSomatic - log10pNotSomatic;
+
+        return Double.isInfinite(lod) ? -10000 : lod;
     }
 
     /**
@@ -148,7 +183,9 @@ public class AssignSomaticStatus extends RodWalker<Integer, Integer> {
 
                 // write in the somatic status probability
                 Map<String, Object> attrs = new HashMap<String, Object>(); // vc.getAttributes());
-                attrs.put(SOMATIC_TAG_NAME, MathUtils.log10ProbabilityToPhredScale(log10pSomatic));
+                attrs.put(SOMATIC_LOD_TAG_NAME, log10pSomatic);
+                if ( log10pSomatic > somaticMinLOD )
+                    attrs.put(VCFConstants.SOMATIC_KEY, true);
                 VariantContext newvc = VariantContext.modifyAttributes(vc, attrs);
 
                 vcfWriter.add(newvc);
