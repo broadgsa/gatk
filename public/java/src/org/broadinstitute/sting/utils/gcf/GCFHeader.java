@@ -30,9 +30,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -65,25 +63,45 @@ import java.util.*;
 public class GCFHeader {
     final protected static Logger logger = Logger.getLogger(GCFHeader.class);
 
-    private static byte[] MAGIC_HEADER = "GVCF0.1\1".getBytes();
+    public final static int GCF_VERSION = 1;
+    public final static byte[] GCF_FILE_START_MARKER = "GCF\1".getBytes();
+    public final static int FOOTER_START_MARKER = -1;
+    public final static long HEADER_FORWARD_REFERENCE_OFFSET = GCF_FILE_START_MARKER.length + 4; // for the version
+
+    final int version;
+    long footerPosition;
     final List<Allele> alleles;
     final List<String> strings;
     final List<String> samples;
     final List<Set<String>> filters;
 
     public GCFHeader(final Map<Allele, Integer> allelesIn, final Map<String, Integer> stringIn, final Map<String, Integer> samplesIn) {
+        version = GCF_VERSION;
+        footerPosition = 0;
         this.alleles = linearize(allelesIn);
         this.strings = linearize(stringIn);
         this.samples = linearize(samplesIn);
         this.filters = null; // not used with this constructor
     }
 
-    public GCFHeader(DataInputStream inputStream) throws IOException {
-        byte[] headerTest = new byte[MAGIC_HEADER.length];
+    public GCFHeader(FileInputStream fileInputStream) throws IOException {
+        DataInputStream inputStream = new DataInputStream(fileInputStream);
+        byte[] headerTest = new byte[GCF_FILE_START_MARKER.length];
         inputStream.read(headerTest);
-        if ( ! Arrays.equals(headerTest, MAGIC_HEADER) ) {
-            throw new UserException("Could not read GVCF file.  MAGIC_HEADER missing.  Saw " + headerTest);
+        if ( ! Arrays.equals(headerTest, GCF_FILE_START_MARKER) ) {
+            throw new UserException("Could not read GVCF file.  GCF_FILE_START_MARKER missing.  Saw " + new String(headerTest));
         } else {
+            version = inputStream.readInt();
+            logger.info("Read GCF version " + version);
+            footerPosition = inputStream.readLong();
+            logger.info("Read footer position of " + footerPosition);
+            long lastPos = fileInputStream.getChannel().position();
+            logger.info("  Last position is " + lastPos);
+
+            // seek to the footer
+            fileInputStream.getChannel().position(footerPosition);
+            if ( inputStream.readInt() != FOOTER_START_MARKER )
+                throw new UserException.MalformedFile("Malformed GCF file: couldn't find the footer marker");
             alleles = stringsToAlleles(readStrings(inputStream));
             strings = readStrings(inputStream);
             samples = readStrings(inputStream);
@@ -91,19 +109,28 @@ public class GCFHeader {
             logger.info(String.format("String map of %d elements", strings.size()));
             logger.info(String.format("Sample map of %d elements", samples.size()));
             filters = initializeFilterCache();
+            fileInputStream.getChannel().position(lastPos);
         }
     }
 
-    public int write(final DataOutputStream outputStream) throws IOException {
+    public static int writeHeader(final DataOutputStream outputStream) throws IOException {
         int startBytes = outputStream.size();
-        outputStream.write(MAGIC_HEADER);
+        outputStream.write(GCF_FILE_START_MARKER);
+        outputStream.writeInt(GCF_VERSION);
+        outputStream.writeLong(0);
+        return outputStream.size() - startBytes;
+    }
+
+    public int writeFooter(final DataOutputStream outputStream) throws IOException {
+        int startBytes = outputStream.size();
+        outputStream.writeInt(FOOTER_START_MARKER); // has to be the same as chrom encoding
         write(outputStream, allelesToStrings(alleles));
         write(outputStream, strings);
         write(outputStream, samples);
         return outputStream.size() - startBytes;
     }
 
-    public void write(DataOutputStream outputStream, List<String> l) throws IOException {
+    private void write(DataOutputStream outputStream, List<String> l) throws IOException {
         outputStream.writeInt(l.size());
         for ( String elt : l ) outputStream.writeUTF(elt);
     }

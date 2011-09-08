@@ -79,8 +79,13 @@ public class GCF {
         }
     }
 
-    public GCF(DataInputStream inputStream, boolean skipGenotypes) throws IOException {
+    public GCF(DataInputStream inputStream, boolean skipGenotypes) throws IOException, EOFException {
         chromOffset = inputStream.readInt();
+
+        // have we reached the footer?
+        if ( chromOffset == GCFHeader.FOOTER_START_MARKER )
+            throw new EOFException();
+
         start = inputStream.readInt();
         stop = inputStream.readInt();
         id = inputStream.readUTF();
@@ -104,6 +109,32 @@ public class GCF {
         int recordDone = inputStream.readInt();
         if ( recordDone != RECORD_TERMINATOR )
             throw new UserException.MalformedFile("Record not terminated by RECORD_TERMINATOR key");
+    }
+
+    public int write(DataOutputStream outputStream) throws IOException {
+        int startSize = outputStream.size();
+        outputStream.writeInt(chromOffset);
+        outputStream.writeInt(start);
+        outputStream.writeInt(stop);
+        outputStream.writeUTF(id);
+        outputStream.writeByte(refPad);
+        writeIntArray(alleleOffsets, outputStream, true);
+        outputStream.writeFloat(qual);
+        outputStream.writeUTF(info);
+        outputStream.writeInt(filterOffset);
+
+        int nGenotypes = genotypes.size();
+        int expectedSizeOfGenotypes = nGenotypes == 0 ? 0 : genotypes.get(0).sizeInBytes() * nGenotypes;
+        outputStream.writeInt(nGenotypes);
+        outputStream.writeInt(expectedSizeOfGenotypes);
+        int obsSizeOfGenotypes = 0;
+        for ( GCFGenotype g : genotypes )
+            obsSizeOfGenotypes += g.write(outputStream);
+        if ( obsSizeOfGenotypes != expectedSizeOfGenotypes )
+            throw new RuntimeException("Expect and observed genotype sizes disagree! expect = " + expectedSizeOfGenotypes + " obs =" + obsSizeOfGenotypes);
+
+        outputStream.writeInt(RECORD_TERMINATOR);
+        return outputStream.size() - startSize;
     }
 
     public VariantContext decode(final String source, final GCFHeader header) {
@@ -154,31 +185,6 @@ public class GCF {
 
     public int getNAlleles() { return alleleOffsets.length; }
 
-    public int write(DataOutputStream outputStream) throws IOException {
-        int startSize = outputStream.size();
-        outputStream.writeInt(chromOffset);
-        outputStream.writeInt(start);
-        outputStream.writeInt(stop);
-        outputStream.writeUTF(id);
-        outputStream.writeByte(refPad);
-        writeIntArray(alleleOffsets, outputStream, true);
-        outputStream.writeFloat(qual);
-        outputStream.writeUTF(info);
-        outputStream.writeInt(filterOffset);
-
-        int nGenotypes = genotypes.size();
-        int expectedSizeOfGenotypes = nGenotypes == 0 ? 0 : genotypes.get(0).sizeInBytes() * nGenotypes;
-        outputStream.writeInt(nGenotypes);
-        outputStream.writeInt(expectedSizeOfGenotypes);
-        int obsSizeOfGenotypes = 0;
-        for ( GCFGenotype g : genotypes )
-            obsSizeOfGenotypes += g.write(outputStream);
-        if ( obsSizeOfGenotypes != expectedSizeOfGenotypes )
-            throw new RuntimeException("Expect and observed genotype sizes disagree! expect = " + expectedSizeOfGenotypes + " obs =" + obsSizeOfGenotypes);
-
-        outputStream.writeInt(RECORD_TERMINATOR);
-        return outputStream.size() - startSize;
-    }
 
     private final String infoFieldString(VariantContext vc, final GCFHeaderBuilder GCFHeaderBuilder) {
         StringBuilder s = new StringBuilder();
@@ -200,13 +206,14 @@ public class GCF {
         return s.toString();
     }
 
-    private final static int BUFFER_SIZE = 1048576; // 2**20
-    public static DataOutputStream createOutputStream(final File file) throws FileNotFoundException {
-        return new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file), BUFFER_SIZE));
+    protected final static int BUFFER_SIZE = 1048576; // 2**20
+
+    public static DataInputStream createDataInputStream(final InputStream stream) {
+        return new DataInputStream(new BufferedInputStream(stream, BUFFER_SIZE));
     }
 
-    public static DataInputStream createInputStream(final File file) throws FileNotFoundException {
-        return new DataInputStream(new BufferedInputStream(new FileInputStream(file), BUFFER_SIZE));
+    public static FileInputStream createFileInputStream(final File file) throws FileNotFoundException {
+        return new FileInputStream(file);
     }
 
     protected final static int[] readIntArray(final DataInputStream inputStream) throws IOException {
