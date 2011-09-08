@@ -15,6 +15,26 @@ public class VariantEvalIntegrationTest extends WalkerTest {
             " -R " + b36KGReference;
 
     @Test
+    public void testStratifySamplesAndExcludeMonomorphicSites() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                                buildCommandLine(
+                                        "-T VariantEval",
+                                        "-R " + b37KGReference,
+                                        "--dbsnp " + b37dbSNP132,
+                                        "--eval " + variantEvalTestDataRoot + "/CEU.trio.callsForVE.vcf",
+                                        "-noEV",
+                                        "-EV TiTvVariantEvaluator",
+                                        "-ST Sample",
+                                        "-BTI eval",
+                                        "-o %s"
+                                ),
+                                1,
+                                Arrays.asList("6a71b17c19f5914c277a99f45f5d9c39")
+                              );
+        executeTest("testStratifySamplesAndExcludeMonomorphicSites", spec);
+    }
+
+    @Test
     public void testFundamentalsCountVariantsSNPsAndIndels() {
         WalkerTestSpec spec = new WalkerTestSpec(
                                 buildCommandLine(
