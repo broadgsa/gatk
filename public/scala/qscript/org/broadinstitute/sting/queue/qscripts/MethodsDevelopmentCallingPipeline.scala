@@ -22,8 +22,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
   var noBAQ: Boolean = false
 
-  @Argument(shortName="indels", doc="calls indels with the Unified Genotyper", required=false)
-  var callIndels: Boolean = false
+  @Argument(shortName="noIndels", doc="do not call indels with the Unified Genotyper", required=false)
+  var noIndels: Boolean = false
 
   @Argument(shortName="LOCAL_ET", doc="Doesn't use the AWS S3 storage for ET option", required=false)
   var LOCAL_ET: Boolean = false
@@ -165,7 +165,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandard = true
     for (target <- targets) {
       if( !skipCalling ) {
-        if (callIndels) add(new indelCall(target), new indelFilter(target), new indelEvaluation(target))
+        if (!noIndels) add(new indelCall(target), new indelFilter(target), new indelEvaluation(target))
         add(new snpCall(target))
         add(new VQSR(target, !goldStandard))
         add(new applyVQSR(target, !goldStandard))
