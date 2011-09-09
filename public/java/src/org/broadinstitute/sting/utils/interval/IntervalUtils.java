@@ -334,28 +334,6 @@ public class IntervalUtils {
     }
 
     /**
-     * Splits an interval list into multiple sublists.
-     * @param locs The genome locs to split.
-     * @param splits The stop points for the genome locs returned by splitFixedIntervals.
-     * @return A list of lists of genome locs, split according to splits
-     */
-    public static List<List<GenomeLoc>> splitIntervalsToSubLists(List<GenomeLoc> locs, List<Integer> splits) {
-        int locIndex = 1;
-        int start = 0;
-        List<List<GenomeLoc>> sublists = new ArrayList<List<GenomeLoc>>(splits.size());
-        for (Integer stop: splits) {
-            List<GenomeLoc> curList = new ArrayList<GenomeLoc>();
-            for (int i = start; i < stop; i++)
-                curList.add(locs.get(i));
-            start = stop;
-            sublists.add(curList);
-        }
-
-        return sublists;
-    }
-
-
-    /**
      * Splits an interval list into multiple files.
      * @param fileHeader The sam file header.
      * @param splits Pre-divided genome locs returned by splitFixedIntervals.
@@ -384,39 +362,27 @@ public class IntervalUtils {
     public static List<List<GenomeLoc>> splitFixedIntervals(List<GenomeLoc> locs, int numParts) {
         if (locs.size() < numParts)
             throw new UserException.BadArgumentValue("scatterParts", String.format("Cannot scatter %d locs into %d parts.", locs.size(), numParts));
+
         final long locsSize = intervalSize(locs);
-        final List<Integer> splitPoints = new ArrayList<Integer>();
-        addFixedSplit(splitPoints, locs, locsSize, 0, locs.size(), numParts);
-        Collections.sort(splitPoints);
-        splitPoints.add(locs.size());
-        return splitIntervalsToSubLists(locs, splitPoints);
-    }
+        final double idealSplitSize = locsSize / numParts;
+        final List<List<GenomeLoc>> splits = new ArrayList<List<GenomeLoc>>(numParts);
+        final LinkedList<GenomeLoc> remainingLocs = new LinkedList<GenomeLoc>(locs);
 
-    private static void addFixedSplit(List<Integer> splitPoints, List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int numParts) {
-        if (numParts < 2)
-            return;
-        int halfParts = (numParts + 1) / 2;
-        Pair<Integer, Long> splitPoint = getFixedSplit(locs, locsSize, startIndex, stopIndex, halfParts, numParts - halfParts);
-        int splitIndex = splitPoint.first;
-        long splitSize = splitPoint.second;
-        splitPoints.add(splitIndex);
-        addFixedSplit(splitPoints, locs, splitSize, startIndex, splitIndex, halfParts);
-        addFixedSplit(splitPoints, locs, locsSize - splitSize, splitIndex, stopIndex, numParts - halfParts);
-    }
+        for ( int i = 0; i < numParts; i++ ) {
+            long splitSize = 0;
+            List<GenomeLoc> split = new ArrayList<GenomeLoc>();
+            while ( ! remainingLocs.isEmpty() ) {
+                final GenomeLoc toAdd = remainingLocs.pop();
+                splitSize += toAdd.size();
+                split.add(toAdd);
+                final long nextEltSize = remainingLocs.isEmpty() ? 0 : remainingLocs.peek().size();
+                if ( splitSize + (i % 2 == 0 ? 0 : nextEltSize) > idealSplitSize )
+                    break;
+            }
+            splits.add(split);
+        }
 
-    private static Pair<Integer, Long> getFixedSplit(List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int minLocs, int maxLocs) {
-        int splitIndex = startIndex;
-        long splitSize = 0;
-        for (int i = 0; i < minLocs; i++) {
-            splitSize += locs.get(splitIndex).size();
-            splitIndex++;
-        }
-        long halfSize = locsSize / 2;
-        while (splitIndex < (stopIndex - maxLocs) && splitSize < halfSize) {
-            splitSize += locs.get(splitIndex).size();
-            splitIndex++;
-        }
-        return new Pair<Integer, Long>(splitIndex, splitSize);
+        return splits;
     }
 
     /**

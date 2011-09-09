@@ -855,8 +855,8 @@
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
                 <jvmarg line="${cofoja.jvm.args}"/>
-<!--                 <jvmarg value="-Xdebug"/> -->
-<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
+                <jvmarg value="-Xdebug"/>
+                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
                 <classpath>
                     <path refid="external.dependencies" />
                     <pathelement location="${java.classes}" />
