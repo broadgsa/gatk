@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -46,6 +47,7 @@ public class VariantAnnotatorEngine {
 
     private HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
     private AnnotatorCompatibleWalker walker;
+    private GenomeAnalysisEngine toolkit;
 
     private static class VAExpression {
 
@@ -71,16 +73,18 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want all possible annotations
-    public VariantAnnotatorEngine(AnnotatorCompatibleWalker walker) {
+    public VariantAnnotatorEngine(AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
+        this.toolkit = toolkit;
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
         requestedGenotypeAnnotations = AnnotationInterfaceManager.createAllGenotypeAnnotations();
         initializeDBs();
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, AnnotatorCompatibleWalker walker) {
+    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
+        this.toolkit = toolkit;
         initializeAnnotations(annotationGroupsToUse, annotationsToUse);
         initializeDBs();
     }
@@ -112,11 +116,11 @@ public class VariantAnnotatorEngine {
 
     public void invokeAnnotationInitializationMethods() {
         for ( VariantAnnotatorAnnotation annotation : requestedInfoAnnotations ) {
-            annotation.initialize(walker);
+            annotation.initialize(walker, toolkit);
         }
 
         for ( VariantAnnotatorAnnotation annotation : requestedGenotypeAnnotations ) {
-            annotation.initialize(walker);
+            annotation.initialize(walker, toolkit);
         }
     }
 

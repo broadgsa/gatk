@@ -817,6 +817,28 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         throw new IllegalArgumentException("Requested " + i + " alternative allele but there are only " + n + " alternative alleles " + this);
     }
 
+    /**
+     * @param  other  VariantContext whose alternate alleles to compare against
+     * @return true if this VariantContext has the same alternate alleles as other,
+     *         regardless of ordering. Otherwise returns false.
+     */
+    public boolean hasSameAlternateAllelesAs ( VariantContext other ) {
+        Set<Allele> thisAlternateAlleles = getAlternateAlleles();
+        Set<Allele> otherAlternateAlleles = other.getAlternateAlleles();
+
+        if ( thisAlternateAlleles.size() != otherAlternateAlleles.size() ) {
+            return false;
+        }
+
+        for ( Allele allele : thisAlternateAlleles ) {
+            if ( ! otherAlternateAlleles.contains(allele) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // Working with genotypes

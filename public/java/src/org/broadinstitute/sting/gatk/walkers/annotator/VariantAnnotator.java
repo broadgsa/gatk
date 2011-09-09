@@ -40,7 +40,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -93,8 +92,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * listed in the SnpEff output file for each variant.
      */
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile;
-    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return snpEffFile; }
+    public RodBinding<VariantContext> snpEffFile;
+    public RodBinding<VariantContext> getSnpEffRodBinding() { return snpEffFile; }
 
     /**
       * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
@@ -204,9 +203,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         }
 
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(this);
+            engine = new VariantAnnotatorEngine(this, getToolkit());
         else
-            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this);
+            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
 
         engine.invokeAnnotationInitializationMethods();
