@@ -291,7 +291,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompOverlap() {
         String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals --comp:comphapmap " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf --eval " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("462d4784dd55294ef9d5118217b157a5"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("009ecc8376a20dce81ff5299ef6bfecb"));
         executeTestParallel("testCompOverlap",spec);
     }
 
@@ -332,13 +332,13 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("a3c2177849cb00fdff99574cff7f0e4f"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("0b81d97f843ec4a1a4222d1f9949bfca"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults() {
-        String md5 = "dab415cc76846e18fcf8c78f2b2ee033";
+        String md5 = "b0565ac61b2860248e4abd478a177b5e";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
