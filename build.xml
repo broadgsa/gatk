@@ -896,6 +896,18 @@
         </sequential>
     </macrodef>
 
+    <target name="alltests">
+        <antcall target="test" inheritAll="false"/>
+        <antcall target="integrationtest" inheritAll="false"/>
+        <antcall target="pipelinetest" inheritAll="false"/>
+    </target>
+
+    <target name="alltests.public">
+        <antcall target="test.public" inheritAll="false"/>
+        <antcall target="integrationtest.public" inheritAll="false"/>
+        <antcall target="pipelinetest.public" inheritAll="false"/>
+    </target>
+
     <!-- Our four different test conditions: Test, IntegrationTest, PerformanceTest, PipelineTest -->
     <target name="test" depends="init.buildall,test.compile" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
