@@ -113,4 +113,16 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
 
         executeTest("test bad alt allele", spec);
     }
+
+    @Test
+    public void testBadAllele2() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+            baseTestString("validationExampleBad3.vcf", "ALLELES"),
+            0,
+            UserException.MalformedFile.class
+        );
+
+        executeTest("test bad alt allele", spec);
+    }
+
 }
