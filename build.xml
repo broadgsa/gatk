@@ -821,15 +821,12 @@
     <!-- TEST -->
     <macrodef name="run-test">
         <attribute name="testtype"/>
+        <attribute name="outputdir"/>
         <attribute name="runfailed"/>
 
         <sequential>
             <condition property="run.failed.tests">
                 <equals arg1="@{runfailed}" arg2="true"/>
-            </condition>
-
-            <condition property="test.output.dir" value="${report}/@{testtype}" else="${report}/failed_rerun">
-                <not><isset property="run.failed.tests"/></not>
             </condition>
 
             <!-- Get the pipeline run type.  Default to dry.  -->
@@ -841,10 +838,10 @@
                 <isset property="include.contracts" />
             </condition>
 
-            <mkdir dir="${test.output.dir}"/>
+            <mkdir dir="@{outputdir}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
-            <testng outputDir="${test.output.dir}"
+            <testng outputDir="@{outputdir}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
                     workingDir="${basedir}"
@@ -885,11 +882,11 @@
             </testng>
 
             <!-- generate a report for Bamboo or Hudson to read in -->
-            <junitreport todir="${test.output.dir}">
-                <fileset dir="${test.output.dir}">
+            <junitreport todir="@{outputdir}">
+                <fileset dir="@{outputdir}">
                     <include name="*/*.xml"/>
                 </fileset>
-                <report format="noframes" todir="${test.output.dir}"/>
+                <report format="noframes" todir="@{outputdir}"/>
             </junitreport>
 
             <fail message="test failed" if="test.failure" />
@@ -913,7 +910,7 @@
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${ttype}" runfailed="false"/>
+        <run-test testtype="${ttype}" outputdir="${report}/${ttype}" runfailed="false"/>
     </target>
     <target name="test.public" depends="init.buildpublic,test"/>
 
@@ -921,7 +918,7 @@
         <condition property="itype" value="*IntegrationTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${itype}" runfailed="false"/>
+        <run-test testtype="${itype}" outputdir="${report}/${itype}" runfailed="false"/>
     </target>
     <target name="integrationtest.public" depends="init.buildpublic,integrationtest"/>
 
@@ -929,7 +926,7 @@
        <condition property="ptype" value="*PerformanceTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${ptype}" runfailed="false"/>
+        <run-test testtype="${ptype}" outputdir="${report}/${ptype}" runfailed="false"/>
     </target>
     <target name="performancetest.public" depends="init.buildpublic,performancetest" />
 
@@ -937,7 +934,7 @@
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${pipetype}" runfailed="false"/>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
     </target>
     <target name="pipelinetest.public" depends="init.buildpublic,pipelinetest" />
 
@@ -946,24 +943,24 @@
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${pipetype}" runfailed="false"/>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
     </target>
     <target name="pipelinetestrun.public" depends="init.buildpublic,pipelinetestrun" />
 
     <target name="failed-test" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*UnitTest/testng-failed.xml" runfailed="true"/>
+        <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
     <target name="failed-integration" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" runfailed="true"/>
+        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
     <target name="failed-performance" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*PerformanceTest/testng-failed.xml" runfailed="true"/>
+        <run-test testtype="${report}/*PerformanceTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
     <target name="failed-pipeline" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" runfailed="true"/>
+        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
     <!-- ******************************************************************************** -->
