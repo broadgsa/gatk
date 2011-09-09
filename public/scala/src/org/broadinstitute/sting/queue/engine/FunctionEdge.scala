@@ -154,7 +154,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
       val maxLines = 100
       val tailLines = IOUtils.tail(errorFile, maxLines)
       val nl = "%n".format()
-      val summary = if (tailLines.size <= maxLines) "Last %d lines".format(maxLines) else "Contents"
+      val summary = if (tailLines.size > maxLines) "Last %d lines".format(maxLines) else "Contents"
       logger.error("%s of %s:%n%s".format(summary, errorFile, tailLines.mkString(nl)))
     } else {
       logger.error("Unable to access log file: %s".format(errorFile))
