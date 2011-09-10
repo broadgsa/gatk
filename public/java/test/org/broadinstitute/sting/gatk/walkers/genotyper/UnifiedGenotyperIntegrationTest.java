@@ -18,6 +18,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
     private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm INDEL --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -NO_HEADER -glm INDEL --dbsnp " + b37dbSNP132;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -28,7 +29,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("149e6ad9b3fd23551254a691286a96b3"));
+                Arrays.asList("4bd3e874d071c4df250dce32cf441aab"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
@@ -276,7 +277,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 Arrays.asList("e66b7321e2ac91742ad3ef91040daafd"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
 
+        WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
+                baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
+                        "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
+                Arrays.asList("b6c3f771e8844a64681187ebb2b620f1"));
+        executeTest("test MultiSample 1000G Phase1 indels with complicated records emitting all sites", spec4);
+
     }
+
 
 
 }
