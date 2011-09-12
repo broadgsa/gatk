@@ -29,10 +29,7 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationInterfaceManager;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -111,6 +108,16 @@ public class VariantAnnotatorEngine {
         final List<RodBinding<VariantContext>> comps = walker.getCompRodBindings();
         for ( RodBinding<VariantContext> rod : comps )
             dbAnnotations.put(rod, rod.getName());
+    }
+
+    public void invokeAnnotationInitializationMethods() {
+        for ( VariantAnnotatorAnnotation annotation : requestedInfoAnnotations ) {
+            annotation.initialize(walker);
+        }
+
+        for ( VariantAnnotatorAnnotation annotation : requestedGenotypeAnnotations ) {
+            annotation.initialize(walker);
+        }
     }
 
     public Set<VCFHeaderLine> getVCFAnnotationDescriptions() {
