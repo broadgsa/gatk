@@ -338,6 +338,7 @@ public class GATKRunReport {
                 //logger.info("Uploading " + localFile + " to AWS bucket");
                 S3Object s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
                 logger.debug("Uploaded to AWS: " + s3Object);
+                logger.info("Uploaded run statistics report to AWS S3");
             } catch ( S3ServiceException e ) {
                 exceptDuringRunReport("S3 exception occurred", e);
             } catch ( NoSuchAlgorithmException e ) {
