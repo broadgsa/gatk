@@ -55,7 +55,7 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * Evaluation tables.
+ * Evaluation tables detailing the results of the eval modules which were applied.
  * </p>
  *
  * <h2>Examples</h2>
@@ -151,6 +151,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
     private File ancestralAlignmentsFile = null;
+
+    @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp and eval tracks with exactly matching reference and alternate alleles will be counted as overlapping", required=false)
+    private boolean requireStrictAlleleMatch = false;
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
@@ -360,16 +363,16 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         if ( matchingComps.size() == 0 )
             return null;
 
-        // find the comp which matches the alternate allele from eval
+        // find the comp which matches both the reference allele and alternate allele from eval
         Allele altEval = eval.getAlternateAlleles().size() == 0 ? null : eval.getAlternateAllele(0);
         for ( VariantContext comp : matchingComps ) {
             Allele altComp = comp.getAlternateAlleles().size() == 0 ? null : comp.getAlternateAllele(0);
-            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp)) )
+            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp) && eval.getReference().equals(comp.getReference())) )
                 return comp;
         }
 
-        // if none match, just return the first one
-        return matchingComps.get(0);
+        // if none match, just return the first one unless we require a strict match
+        return (requireStrictAlleleMatch ? null : matchingComps.get(0));
     }
 
     public Integer treeReduce(Integer lhs, Integer rhs) { return null; }

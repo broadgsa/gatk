@@ -6,10 +6,7 @@
     <dependencies>
       <!-- Recalibration analysis script -->
       <class name="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
-      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate" />
-      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate" />
-      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate" />
-      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.*" />
     </dependencies>
   </executable>
   <resources>

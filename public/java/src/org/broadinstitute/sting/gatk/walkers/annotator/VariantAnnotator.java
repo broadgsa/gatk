@@ -86,6 +86,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    public RodBinding<VariantContext> getVariantRodBinding() { return variantCollection.variants; }
 
     /**
      * The INFO field will be annotated with information on the most biologically-significant effect
@@ -207,6 +208,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         else
             engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this);
         engine.initializeExpressions(expressionsToUse);
+
+        engine.invokeAnnotationInitializationMethods();
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones

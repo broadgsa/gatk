@@ -248,12 +248,10 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.input :+= ( if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
-    this.training :+= new TaggedFile( t.hapmapFile, "prior=15.0")
-    this.truth :+= new TaggedFile( t.hapmapFile, "prior=15.0")
-    this.training :+= new TaggedFile( omni_b37, "prior=12.0")
-    this.truth :+= new TaggedFile( omni_b37, "prior=12.0")
-    this.training :+= new TaggedFile( training_1000G, "prior=10.0" )
-    this.known :+= new TaggedFile( t.dbsnpFile, "prior=2.0" )
+    this.resource :+= new TaggedFile( t.hapmapFile, "training=true,truth=true,prior=15.0" )
+    this.resource :+= new TaggedFile( omni_b37, "training=true,truth=true,prior=12.0" )
+    this.resource :+= new TaggedFile( training_1000G, "training=true,prior=10.0" )
+    this.resource :+= new TaggedFile( t.dbsnpFile, "known=true,prior=2.0" )
     this.resource :+= new TaggedFile( projectConsensus_1000G, "prior=8.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "MQ", "FS")
     if(t.nSamples >= 10) {

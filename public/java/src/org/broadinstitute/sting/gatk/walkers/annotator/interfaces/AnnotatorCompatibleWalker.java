@@ -9,6 +9,7 @@ import java.util.List;
 public interface AnnotatorCompatibleWalker {
 
     // getter methods for various used bindings
+    public abstract RodBinding<VariantContext> getVariantRodBinding();
     public abstract RodBinding<SnpEffFeature> getSnpEffRodBinding();
     public abstract RodBinding<VariantContext> getDbsnpRodBinding();
     public abstract List<RodBinding<VariantContext>> getCompRodBindings();
