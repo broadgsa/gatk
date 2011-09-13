@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
@@ -127,6 +128,11 @@ public class GenomeAnalysisEngine {
     private Collection<ReadFilter> filters;
 
     /**
+     * Controls the allocation of threads between CPU vs IO.
+     */
+    private ThreadAllocation threadAllocation;
+
+    /**
      * A currently hacky unique name for this GATK instance
      */
     private String myName = "GATK_" + Math.abs(getRandomGenerator().nextInt());
@@ -199,6 +205,9 @@ public class GenomeAnalysisEngine {
         if (this.getArguments().nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
+        // Determine how the threads should be divided between CPU vs. IO.
+        determineThreadAllocation();
+
         // Prepare the data for traversal.
         initializeDataSources();
 
@@ -218,7 +227,7 @@ public class GenomeAnalysisEngine {
         // create the output streams                     "
         initializeOutputStreams(microScheduler.getOutputTracker());
 
-        ShardStrategy shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
+        Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(this.walker, shardStrategy);
@@ -267,6 +276,16 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Parse out the thread allocation from the given command-line argument.
+     */
+    private void determineThreadAllocation() {
+        Tags tags = parsingEngine.getTags(argCollection.numberOfThreads);
+        Integer numCPUThreads = tags.containsKey("cpu") ? Integer.parseInt(tags.getValue("cpu")) : null;
+        Integer numIOThreads = tags.containsKey("io") ? Integer.parseInt(tags.getValue("io")) : null;
+        this.threadAllocation = new ThreadAllocation(argCollection.numberOfThreads,numCPUThreads,numIOThreads);
+    }
+
+    /**
      * Allow subclasses and others within this package direct access to the walker manager.
      * @return The walker manager used by this package.
      */
@@ -286,7 +305,7 @@ public class GenomeAnalysisEngine {
             throw new UserException.CommandLineException("Read-based traversals require a reference file but none was given");
         }
 
-        return MicroScheduler.create(this,walker,this.getReadsDataSource(),this.getReferenceDataSource().getReference(),this.getRodDataSources(),this.getArguments().numberOfThreads);
+        return MicroScheduler.create(this,walker,this.getReadsDataSource(),this.getReferenceDataSource().getReference(),this.getRodDataSources(),threadAllocation);
     }
 
     protected DownsamplingMethod getDownsamplingMethod() {
@@ -397,103 +416,49 @@ public class GenomeAnalysisEngine {
      * @param intervals intervals
      * @return the sharding strategy
      */
-    protected ShardStrategy getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
+    protected Iterable<Shard> getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
         ValidationExclusion exclusions = (readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
         ReferenceDataSource referenceDataSource = this.getReferenceDataSource();
-        // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
-        // sharding system; it's required with the new sharding system only for locus walkers.
-        if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
-            if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
+
+        // If reads are present, assume that accessing the reads is always the dominant factor and shard based on that supposition.
+        if(!readsDataSource.isEmpty()) {
+            if(!readsDataSource.hasIndex() && !exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
                 throw new UserException.CommandLineException("Cannot process the provided BAM file(s) because they were not indexed.  The GATK does offer limited processing of unindexed BAMs in --unsafe mode, but this GATK feature is currently unsupported.");
-            if(intervals != null && !argCollection.allowIntervalsWithUnindexedBAM)
+            if(!readsDataSource.hasIndex() && intervals != null && !argCollection.allowIntervalsWithUnindexedBAM)
                 throw new UserException.CommandLineException("Cannot perform interval processing when reads are present but no index is available.");
 
-            Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
-                shardType = Shard.ShardType.LOCUS;
+                if(intervals == null)
+                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                else
+                    return readsDataSource.createShardIteratorOverIntervals(intervals,new LocusShardBalancer());
             }
-            else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker)
-                shardType = Shard.ShardType.READ;
+            else if(walker instanceof ReadWalker || walker instanceof ReadPairWalker || walker instanceof DuplicateWalker) {
+                // Apply special validation to read pair walkers.
+                if(walker instanceof ReadPairWalker) {
+                    if(readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
+                        throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers are exceptions in that they cannot be run on coordinate-sorted BAMs but instead require query name-sorted files.  You will need to resort your input BAM file in query name order to use this walker.");
+                    if(intervals != null && !intervals.isEmpty())
+                        throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
+                }
+
+                if(intervals == null)
+                    return readsDataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
+                else
+                    return readsDataSource.createShardIteratorOverIntervals(intervals,new ReadShardBalancer());
+            }
             else
-                throw new UserException.CommandLineException("The GATK cannot currently process unindexed BAM files");
-
-            List<GenomeLoc> region;
-            if(intervals != null)
-                region = intervals.toList();
-            else {
-                region = new ArrayList<GenomeLoc>();
-                for(SAMSequenceRecord sequenceRecord: drivingDataSource.getSequenceDictionary().getSequences())
-                    region.add(getGenomeLocParser().createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
-            }
-
-            return new MonolithicShardStrategy(getGenomeLocParser(), readsDataSource,shardType,region);
+                throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
         }
-
-        ShardStrategy shardStrategy;
-        ShardStrategyFactory.SHATTER_STRATEGY shardType;
-
-        long SHARD_SIZE = 100000L;
-
-        if (walker instanceof LocusWalker) {
-            if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
-
-            if (intervals != null && !intervals.isEmpty()) {
-                if (readsDataSource == null)
-                    throw new IllegalArgumentException("readsDataSource is null");
-                if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
-
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource.getReference(),
-                        ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE,
-                        getGenomeLocParser(),
-                        intervals);
-            } else
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource.getReference(),
-                        ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE,getGenomeLocParser());
-        } else if (walker instanceof ReadWalker ||
-                walker instanceof DuplicateWalker) {
-            shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
-
-            if (intervals != null && !intervals.isEmpty()) {
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource.getReference(),
-                        shardType,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE,
-                        getGenomeLocParser(),
-                        intervals);
-            } else {
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource.getReference(),
-                        shardType,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE,
-                        getGenomeLocParser());
-            }
-        } else if (walker instanceof ReadPairWalker) {
-            if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
-                throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers are exceptions in that they cannot be run on coordinate-sorted BAMs but instead require query name-sorted files.  You will need to resort your input BAM file in query name order to use this walker.");
-            if(intervals != null && !intervals.isEmpty())
-                throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
-
-            shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                    referenceDataSource.getReference(),
-                    ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
-                    drivingDataSource.getSequenceDictionary(),
-                    SHARD_SIZE,
-                    getGenomeLocParser());
-        } else
-            throw new ReviewedStingException("Unable to support walker of type" + walker.getClass().getName());
-
-        return shardStrategy;
+        else {
+            final int SHARD_SIZE = walker instanceof RodWalker ? 100000000 : 100000;
+            if(intervals == null)
+                return referenceDataSource.createShardsOverEntireReference(readsDataSource,genomeLocParser,SHARD_SIZE);
+            else
+                return referenceDataSource.createShardsOverIntervals(readsDataSource,intervals,SHARD_SIZE);
+        }
     }
 
     protected boolean flashbackData() {
@@ -751,6 +716,8 @@ public class GenomeAnalysisEngine {
 
         return new SAMDataSource(
                 samReaderIDs,
+                threadAllocation,
+                argCollection.numberOfBAMFileHandles,
                 genomeLocParser,
                 argCollection.useOriginalBaseQualities,
                 argCollection.strictnessLevel,
@@ -763,8 +730,7 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,
-                argCollection.defaultBaseQualities,
-                !argCollection.disableLowMemorySharding);
+                argCollection.defaultBaseQualities);
     }
 
     /**

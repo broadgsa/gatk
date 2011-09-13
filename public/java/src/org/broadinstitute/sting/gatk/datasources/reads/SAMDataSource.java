@@ -37,8 +37,10 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.*;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -71,7 +73,7 @@ public class SAMDataSource {
     /**
      * Tools for parsing GenomeLocs, for verifying BAM ordering against general ordering.
      */
-    private final GenomeLocParser genomeLocParser;
+    protected final GenomeLocParser genomeLocParser;
 
     /**
      * Identifiers for the readers driving this data source.
@@ -91,12 +93,17 @@ public class SAMDataSource {
     /**
      * How far along is each reader?
      */
-    private final Map<SAMReaderID, SAMFileSpan> readerPositions = new HashMap<SAMReaderID,SAMFileSpan>();
+    private final Map<SAMReaderID,GATKBAMFileSpan> readerPositions = new HashMap<SAMReaderID,GATKBAMFileSpan>();
 
     /**
      * The merged header.
      */
     private final SAMFileHeader mergedHeader;
+
+    /**
+     * The constituent headers of the unmerged files.
+     */
+    private final Map<SAMReaderID,SAMFileHeader> headers = new HashMap<SAMReaderID,SAMFileHeader>();
 
     /**
      * The sort order of the BAM files.  Files without a sort order tag are assumed to be
@@ -131,17 +138,24 @@ public class SAMDataSource {
     private final SAMResourcePool resourcePool;
 
     /**
-     * Whether to enable the new low-memory sharding mechanism.
+     * Asynchronously loads BGZF blocks.
      */
-    private boolean enableLowMemorySharding = false;
+    private final BGZFBlockLoadingDispatcher dispatcher;
+
+    /**
+     * How are threads allocated.
+     */
+    private final ThreadAllocation threadAllocation;
 
     /**
      * Create a new SAM data source given the supplied read metadata.
      * @param samFiles list of reads files.
      */
-    public SAMDataSource(Collection<SAMReaderID> samFiles,GenomeLocParser genomeLocParser) {
+    public SAMDataSource(Collection<SAMReaderID> samFiles, ThreadAllocation threadAllocation, Integer numFileHandles, GenomeLocParser genomeLocParser) {
         this(
                 samFiles,
+                threadAllocation,
+                numFileHandles,
                 genomeLocParser,
                 false,
                 SAMFileReader.ValidationStringency.STRICT,
@@ -150,8 +164,7 @@ public class SAMDataSource {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 false,
-                false,
-                true);
+                false);
     }
 
     /**
@@ -159,6 +172,8 @@ public class SAMDataSource {
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
+            ThreadAllocation threadAllocation,
+            Integer numFileHandles,
             GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
             SAMFileReader.ValidationStringency strictness,
@@ -167,9 +182,10 @@ public class SAMDataSource {
             ValidationExclusion exclusionList,
             Collection<ReadFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
-            boolean generateExtendedEvents,
-            boolean enableLowMemorySharding) {
+            boolean generateExtendedEvents) {
         this(   samFiles,
+                threadAllocation,
+                numFileHandles,
                 genomeLocParser,
                 useOriginalBaseQualities,
                 strictness,
@@ -182,8 +198,7 @@ public class SAMDataSource {
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
-                (byte) -1,
-                enableLowMemorySharding);
+                (byte) -1);
         }
 
     /**
@@ -205,6 +220,8 @@ public class SAMDataSource {
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
+            ThreadAllocation threadAllocation,
+            Integer numFileHandles,
             GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
             SAMFileReader.ValidationStringency strictness,
@@ -217,13 +234,19 @@ public class SAMDataSource {
             BAQ.CalculationMode cmode,
             BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader,
-            byte defaultBaseQualities,
-            boolean enableLowMemorySharding) {
-        this.enableLowMemorySharding(enableLowMemorySharding);
+            byte defaultBaseQualities) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
         readerIDs = samFiles;
+
+        this.threadAllocation = threadAllocation;
+        // TODO: Consider a borrowed-thread dispatcher implementation.
+        if(this.threadAllocation.getNumIOThreads() > 0)
+            dispatcher = new BGZFBlockLoadingDispatcher(this.threadAllocation.getNumIOThreads(), numFileHandles != null ? numFileHandles : 1);
+        else
+            dispatcher = null;
+
         validationStringency = strictness;
         for (SAMReaderID readerID : samFiles) {
             if (!readerID.samFile.canRead())
@@ -235,9 +258,12 @@ public class SAMDataSource {
         SAMReaders readers = resourcePool.getAvailableReaders();
 
         // Determine the sort order.
-        for(SAMFileReader reader: readers.values()) {
+        for(SAMReaderID readerID: readerIDs) {
             // Get the sort order, forcing it to coordinate if unsorted.
+            SAMFileReader reader = readers.getReader(readerID);
             SAMFileHeader header = reader.getFileHeader();
+
+            headers.put(readerID,header);
 
             if ( header.getReadGroups().isEmpty() ) {
                 throw new UserException.MalformedBAM(readers.getReaderID(reader).samFile,
@@ -275,7 +301,7 @@ public class SAMDataSource {
                 qmode,
                 refReader,
                 defaultBaseQualities);
-        
+
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.
         for(SAMReaderID id: readerIDs) {
@@ -296,12 +322,10 @@ public class SAMDataSource {
             originalToMergedReadGroupMappings.put(id,mappingToMerged);
         }
 
-        if(enableLowMemorySharding) {
-            for(SAMReaderID id: readerIDs) {
-                File indexFile = findIndexFile(id.samFile);
-                if(indexFile != null)
-                    bamIndices.put(id,new GATKBAMIndex(indexFile));
-            }
+        for(SAMReaderID id: readerIDs) {
+            File indexFile = findIndexFile(id.samFile);
+            if(indexFile != null)
+                bamIndices.put(id,new GATKBAMIndex(indexFile));
         }
 
         resourcePool.releaseReaders(readers);
@@ -313,22 +337,6 @@ public class SAMDataSource {
      * @return
      */
     public ReadProperties getReadsInfo() { return readProperties; }
-
-    /**
-     * Enable experimental low-memory sharding.
-     * @param enable True to enable sharding.  False otherwise.
-     */
-    public void enableLowMemorySharding(final boolean enable) {
-        enableLowMemorySharding = enable;
-    }
-
-    /**
-     * Returns whether low-memory sharding is enabled.
-     * @return True if enabled, false otherwise.
-     */
-    public boolean isLowMemoryShardingEnabled() {
-        return enableLowMemorySharding;
-    }
 
     /**
      * Checks to see whether any reads files are supplying data.
@@ -368,7 +376,7 @@ public class SAMDataSource {
      * Retrieves the current position within the BAM file.
      * @return A mapping of reader to current position.
      */
-    public Map<SAMReaderID,SAMFileSpan> getCurrentPosition() {
+    public Map<SAMReaderID,GATKBAMFileSpan> getCurrentPosition() {
         return readerPositions;
     }
 
@@ -381,7 +389,7 @@ public class SAMDataSource {
     }
 
     public SAMFileHeader getHeader(SAMReaderID id) {
-        return resourcePool.getReadersWithoutLocking().getReader(id).getFileHeader();
+        return headers.get(id);
     }
 
     /**
@@ -405,44 +413,20 @@ public class SAMDataSource {
     }
 
     /**
-     * No read group collisions at this time because only one SAM file is currently supported.
-     * @return False always.
-     */
-    public boolean hasReadGroupCollisions() {
-        return hasReadGroupCollisions;
-    }
-
-    /**
      * True if all readers have an index.
      * @return True if all readers have an index.
      */
     public boolean hasIndex() {
-        if(enableLowMemorySharding)
-            return readerIDs.size() == bamIndices.size();
-        else {
-            for(SAMFileReader reader: resourcePool.getReadersWithoutLocking()) {
-                if(!reader.hasIndex())
-                    return false;
-            }
-            return true;
-        }
+        return readerIDs.size() == bamIndices.size();
     }
 
     /**
      * Gets the index for a particular reader.  Always preloaded.
-     * TODO: Should return object of type GATKBAMIndex, but cannot because there
-     * TODO: is no parent class of both BAMIndex and GATKBAMIndex.  Change when new
-     * TODO: sharding system goes live.      
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
      */
-    public Object getIndex(final SAMReaderID id) {
-        if(enableLowMemorySharding)
-            return bamIndices.get(id);
-        else {
-            SAMReaders readers = resourcePool.getReadersWithoutLocking();
-            return readers.getReader(id).getBrowseableIndex();
-        }
+    public GATKBAMIndex getIndex(final SAMReaderID id) {
+        return bamIndices.get(id);
     }
 
     /**
@@ -454,7 +438,7 @@ public class SAMDataSource {
     }
 
     /**
-     * Gets the cumulative read metrics for shards already processed. 
+     * Gets the cumulative read metrics for shards already processed.
      * @return Cumulative read metrics.
      */
     public ReadMetrics getCumulativeReadMetrics() {
@@ -507,10 +491,6 @@ public class SAMDataSource {
     }
 
     public StingSAMIterator seek(Shard shard) {
-        // todo: refresh monolithic sharding implementation
-        if(shard instanceof MonolithicShard)
-            return seekMonolithic(shard);
-
         if(shard.buffersReads()) {
             return shard.iterator();
         }
@@ -540,7 +520,7 @@ public class SAMDataSource {
      */
     private void initializeReaderPositions(SAMReaders readers) {
         for(SAMReaderID id: getReaderIDs())
-            readerPositions.put(id,readers.getReader(id).getFilePointerSpanningReads());
+            readerPositions.put(id,new GATKBAMFileSpan(readers.getReader(id).getFilePointerSpanningReads()));
     }
 
     /**
@@ -548,7 +528,6 @@ public class SAMDataSource {
      * @param readers Readers from which to load data.
      * @param shard The shard specifying the data limits.
      * @param enableVerification True to verify.  For compatibility with old sharding strategy.
-     *        TODO: Collapse this flag when the two sharding systems are merged.
      * @return An iterator over the selected data.
      */
     private StingSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
@@ -559,14 +538,20 @@ public class SAMDataSource {
 
         for(SAMReaderID id: getReaderIDs()) {
             CloseableIterator<SAMRecord> iterator = null;
-            if(!shard.isUnmapped() && shard.getFileSpans().get(id) == null)
-                continue;
-            iterator = shard.getFileSpans().get(id) != null ?
-                    readers.getReader(id).iterator(shard.getFileSpans().get(id)) :
-                    readers.getReader(id).queryUnmapped();
+
+            // TODO: null used to be the signal for unmapped, but we've replaced that with a simple index query for the last bin.
+            // TODO: Kill this check once we've proven that the design elements are gone.
+            if(shard.getFileSpans().get(id) == null)
+                throw new ReviewedStingException("SAMDataSource: received null location for reader " + id + ", but null locations are no longer supported.");
+
+            if(threadAllocation.getNumIOThreads() > 0) {
+                BlockInputStream inputStream = readers.getInputStream(id);
+                inputStream.submitAccessPlan(new SAMReaderPosition(id,inputStream,(GATKBAMFileSpan)shard.getFileSpans().get(id)));
+            }
+            iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
             if(readProperties.getReadBufferSize() != null)
                 iterator = new BufferingReadIterator(iterator,readProperties.getReadBufferSize());
-            if(shard.getGenomeLocs() != null)
+            if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
             mergingIterator.addIterator(readers.getReader(id),iterator);
         }
@@ -585,40 +570,13 @@ public class SAMDataSource {
     }
 
     /**
-     * A stopgap measure to handle monolithic sharding
-     * @param shard the (monolithic) shard.
-     * @return An iterator over the monolithic shard.
-     */
-    private StingSAMIterator seekMonolithic(Shard shard) {
-        SAMReaders readers = resourcePool.getAvailableReaders();
-
-        // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
-        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
-        for(SAMReaderID id: getReaderIDs())
-            mergingIterator.addIterator(readers.getReader(id),readers.getReader(id).iterator());
-
-        return applyDecoratingIterators(shard.getReadMetrics(),
-                shard instanceof ReadShard,
-                readProperties.useOriginalBaseQualities(),
-                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
-                readProperties.getDownsamplingMethod().toFraction,
-                readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                readProperties.getSupplementalFilters(),
-                readProperties.getBAQCalculationMode(),
-                readProperties.getBAQQualityMode(),
-                readProperties.getRefReader(),
-                readProperties.defaultBaseQualities());
-    }
-
-    /**
      * Adds this read to the given shard.
      * @param shard The shard to which to add the read.
      * @param id The id of the given reader.
      * @param read The read to add to the shard.
      */
     private void addReadToBufferingShard(Shard shard,SAMReaderID id,SAMRecord read) {
-        SAMFileSpan endChunk = read.getFileSource().getFilePointer().getContentsFollowing();
+        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
         shard.addRead(read);
         readerPositions.put(id,endChunk);
     }
@@ -690,19 +648,6 @@ public class SAMDataSource {
         }
 
         /**
-         * Dangerous internal method; retrieves any set of readers, whether in iteration or not.
-         * Used to handle non-exclusive, stateless operations, such as index queries.
-         * @return Any collection of SAMReaders, whether in iteration or not.
-         */
-        protected SAMReaders getReadersWithoutLocking() {
-            synchronized(this) {
-                if(allResources.size() == 0)
-                    createNewResource();
-            }
-            return allResources.get(0);
-        }
-
-        /**
          * Choose a set of readers from the pool to use for this query.  When complete,
          * @return
          */
@@ -754,18 +699,31 @@ public class SAMDataSource {
         private final Map<SAMReaderID,SAMFileReader> readers = new LinkedHashMap<SAMReaderID,SAMFileReader>();
 
         /**
+         * The inptu streams backing
+         */
+        private final Map<SAMReaderID,BlockInputStream> inputStreams = new LinkedHashMap<SAMReaderID,BlockInputStream>();
+
+        /**
          * Derive a new set of readers from the Reads metadata.
          * @param readerIDs reads to load.
          * @param validationStringency validation stringency.
          */
         public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
             for(SAMReaderID readerID: readerIDs) {
-                SAMFileReader reader = new SAMFileReader(readerID.samFile);
+                File indexFile = findIndexFile(readerID.samFile);
+
+                SAMFileReader reader = null;
+
+                if(threadAllocation.getNumIOThreads() > 0) {
+                    BlockInputStream blockInputStream = new BlockInputStream(dispatcher,readerID,false);
+                    reader = new SAMFileReader(blockInputStream,indexFile,false);
+                    inputStreams.put(readerID,blockInputStream);
+                }
+                else
+                    reader = new SAMFileReader(readerID.samFile,indexFile,false);
                 reader.setSAMRecordFactory(factory);
+
                 reader.enableFileSource(true);
-                reader.enableIndexMemoryMapping(false);
-                if(!enableLowMemorySharding)
-                    reader.enableIndexCaching(true);
                 reader.setValidationStringency(validationStringency);
 
                 final SAMFileHeader header = reader.getFileHeader();
@@ -784,6 +742,15 @@ public class SAMDataSource {
             if(!readers.containsKey(id))
                 throw new NoSuchElementException("No reader is associated with id " + id);
             return readers.get(id);
+        }
+
+        /**
+         * Retrieve the input stream backing a reader.
+         * @param id The ID of the reader to retrieve.
+         * @return the reader associated with the given id.
+         */
+        public BlockInputStream getInputStream(final SAMReaderID id) {
+            return inputStreams.get(id);
         }
 
         /**
@@ -883,7 +850,7 @@ public class SAMDataSource {
      * Filters out reads that do not overlap the current GenomeLoc.
      * Note the custom implementation: BAM index querying returns all reads that could
      * possibly overlap the given region (and quite a few extras).  In order not to drag
-     * down performance, this implementation is highly customized to its task. 
+     * down performance, this implementation is highly customized to its task.
      */
     private class IntervalOverlapFilteringIterator implements CloseableIterator<SAMRecord> {
         /**
@@ -903,7 +870,7 @@ public class SAMDataSource {
 
         /**
          * Custom representation of interval bounds.
-         * Makes it simpler to track current position. 
+         * Makes it simpler to track current position.
          */
         private int[] intervalContigIndices;
         private int[] intervalStarts;
@@ -941,7 +908,7 @@ public class SAMDataSource {
                     i++;
                 }
             }
-            
+
             advance();
         }
 
@@ -1070,6 +1037,40 @@ public class SAMDataSource {
 
         return indexFile;
     }
+
+    /**
+     * Creates a BAM schedule over all reads in the BAM file, both mapped and unmapped.  The outgoing stream
+     * will be as granular as possible given our current knowledge of the best ways to split up BAM files.
+     * @return An iterator that spans all reads in all BAM files.
+     */
+    public Iterable<Shard> createShardIteratorOverAllReads(final ShardBalancer shardBalancer) {
+        shardBalancer.initialize(this,IntervalSharder.shardOverAllReads(this,genomeLocParser),genomeLocParser);
+        return shardBalancer;
+    }
+
+    /**
+     * Creates a BAM schedule over all mapped reads in the BAM file, when a 'mapped' read is defined as any
+     * read that has been assigned
+     * @return
+     */
+    public Iterable<Shard> createShardIteratorOverMappedReads(final SAMSequenceDictionary sequenceDictionary, final ShardBalancer shardBalancer) {
+        shardBalancer.initialize(this,IntervalSharder.shardOverMappedReads(this,sequenceDictionary,genomeLocParser),genomeLocParser);
+        return shardBalancer;
+    }
+
+    /**
+     * Create a schedule for processing the initialized BAM file using the given interval list.
+     * The returned schedule should be as granular as possible.
+     * @param intervals The list of intervals for which to create the schedule.
+     * @return A granular iterator over file pointers.
+     */
+    public Iterable<Shard> createShardIteratorOverIntervals(final GenomeLocSortedSet intervals,final ShardBalancer shardBalancer) {
+        if(intervals == null)
+            throw new ReviewedStingException("Unable to create schedule from intervals; no intervals were provided.");
+        shardBalancer.initialize(this,IntervalSharder.shardOverIntervals(SAMDataSource.this,intervals),genomeLocParser);
+        return shardBalancer;
+    }
 }
+
 
 

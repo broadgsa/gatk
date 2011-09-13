@@ -5,14 +5,13 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.reads.ReadShardBalancer;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
-import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -66,7 +65,6 @@ public class TraverseReadsUnitTest extends BaseTest {
     private List<SAMReaderID> bamList;
     private Walker countReadWalker;
     private File output;
-    private long readSize = 100000;
     private TraverseReads traversalEngine = null;
 
     private IndexedFastaSequenceFile ref = null;
@@ -117,18 +115,14 @@ public class TraverseReadsUnitTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testUnmappedReadCount() {
-        SAMDataSource dataSource = new SAMDataSource(bamList,genomeLocParser);
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref, ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
-                ref.getSequenceDictionary(),
-                readSize,
-                genomeLocParser);
+        SAMDataSource dataSource = new SAMDataSource(bamList,new ThreadAllocation(),null,genomeLocParser);
+        Iterable<Shard> shardStrategy = dataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
 
         countReadWalker.initialize();
         Object accumulator = countReadWalker.reduceInit();
 
-        while (shardStrategy.hasNext()) {
+        for(Shard shard: shardStrategy) {
             traversalEngine.startTimersIfNecessary();
-            Shard shard = shardStrategy.next();
 
             if (shard == null) {
                 fail("Shard == null");

@@ -30,11 +30,11 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -87,20 +87,20 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @param reads         the informations associated with the reads
      * @param reference     the reference file
      * @param rods          the rods to include in the traversal
-     * @param nThreadsToUse Number of threads to utilize.
+     * @param threadAllocation Number of threads to utilize.
      *
      * @return The best-fit microscheduler.
      */
-    public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
-        if (walker instanceof TreeReducible && nThreadsToUse > 1) {
+    public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
+        if (walker instanceof TreeReducible && threadAllocation.getNumCPUThreads() > 1) {
             if(walker.isReduceByInterval())
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             if(walker instanceof ReadWalker)
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",nThreadsToUse));
-            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, nThreadsToUse);
+            logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",threadAllocation.getNumCPUThreads()));
+            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads());
         } else {
-            if(nThreadsToUse > 1)
+            if(threadAllocation.getNumCPUThreads() > 1)
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             return new LinearMicroScheduler(engine, walker, reads, reference, rods);
         }
@@ -156,7 +156,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      *
      * @return the return type of the walker
      */
-    public abstract Object execute(Walker walker, ShardStrategy shardStrategy);
+    public abstract Object execute(Walker walker, Iterable<Shard> shardStrategy);
 
     /**
      * Retrieves the object responsible for tracking and managing output.

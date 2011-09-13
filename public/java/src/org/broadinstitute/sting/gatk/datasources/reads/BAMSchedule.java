@@ -84,21 +84,21 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
     /**
      * Create a new BAM schedule based on the given index.
-     * @param indexFiles Index files.
+     * @param dataSource The SAM data source to use.
      * @param intervals List of 
      */
-    public BAMSchedule(final Map<SAMReaderID,GATKBAMIndex> indexFiles, final List<GenomeLoc> intervals) {
+    public BAMSchedule(final SAMDataSource dataSource, final List<GenomeLoc> intervals) {
         if(intervals.isEmpty())
             throw new ReviewedStingException("Tried to write schedule for empty interval list.");
 
-        referenceSequence = intervals.get(0).getContigIndex();
+        referenceSequence = dataSource.getHeader().getSequence(intervals.get(0).getContig()).getSequenceIndex();
 
         createScheduleFile();
 
-        readerIDs.addAll(indexFiles.keySet());
+        readerIDs.addAll(dataSource.getReaderIDs());
 
         for(final SAMReaderID reader: readerIDs) {
-            final GATKBAMIndex index = indexFiles.get(reader);
+            final GATKBAMIndex index = dataSource.getIndex(reader);
             final GATKBAMIndexData indexData = index.readReferenceSequence(referenceSequence);
 
             int currentBinInLowestLevel = GATKBAMIndex.getFirstBinInLevel(GATKBAMIndex.getNumIndexLevels()-1);
@@ -237,7 +237,10 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
         if(selectedIterators.isEmpty())
             return;
 
+        // Create the target schedule entry
         BAMScheduleEntry mergedScheduleEntry = new BAMScheduleEntry(currentStart,currentStop);
+
+        // For each schedule entry with data, load the data into the merged schedule.
         for (int reader = selectedIterators.nextSetBit(0); reader >= 0; reader = selectedIterators.nextSetBit(reader+1)) {
             PeekableIterator<BAMScheduleEntry> scheduleIterator = scheduleIterators.get(reader);
             BAMScheduleEntry individualScheduleEntry = scheduleIterator.peek();
@@ -246,6 +249,11 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             // If the schedule iterator ends after this entry, consume it.
             if(individualScheduleEntry.stop <= currentStop)
                 scheduleIterator.next();
+        }
+
+        // For each schedule entry without data, add a blank entry.
+        for (int reader = selectedIterators.nextClearBit(0); reader < readerIDs.size(); reader = selectedIterators.nextClearBit(reader+1)) {
+            mergedScheduleEntry.addFileSpan(readerIDs.get(reader),new GATKBAMFileSpan());
         }
 
         nextScheduleEntry = mergedScheduleEntry;

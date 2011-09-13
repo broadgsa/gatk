@@ -27,7 +27,12 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKChunk;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileSpan;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.*;
@@ -42,21 +47,86 @@ public class BAMScheduler implements Iterator<FilePointer> {
 
     private FilePointer nextFilePointer = null;
 
-    private final GenomeLocSortedSet loci;
+    private GenomeLocSortedSet loci;
+    private PeekableIterator<GenomeLoc> locusIterator;
+    private GenomeLoc currentLocus;
 
-    private final PeekableIterator<GenomeLoc> locusIterator;
+    public static BAMScheduler createOverMappedReads(final SAMDataSource dataSource, final SAMSequenceDictionary referenceSequenceDictionary, final GenomeLocParser parser) {
+        BAMScheduler scheduler = new BAMScheduler(dataSource);
+        GenomeLocSortedSet intervals = new GenomeLocSortedSet(parser);
+        for(SAMSequenceRecord sequence: referenceSequenceDictionary.getSequences()) {
+            // Match only on sequence name; trust startup validation to make sure all the sequences match.
+            if(dataSource.getHeader().getSequenceDictionary().getSequence(sequence.getSequenceName()) != null)
+                intervals.add(parser.createOverEntireContig(sequence.getSequenceName()));
+        }
+        scheduler.populateFilteredIntervalList(intervals);
+        return scheduler;
+    }
 
-    private GenomeLoc currentLocus;    
+    public static BAMScheduler createOverAllReads(final SAMDataSource dataSource, final GenomeLocParser parser) {
+        BAMScheduler scheduler = new BAMScheduler(dataSource);
+        scheduler.populateUnfilteredIntervalList(parser);
+        return scheduler;
+    }
 
-    public BAMScheduler(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
+    public static BAMScheduler createOverIntervals(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
+        BAMScheduler scheduler = new BAMScheduler(dataSource);
+        scheduler.populateFilteredIntervalList(loci);
+        return scheduler;
+    }
+
+
+    private BAMScheduler(final SAMDataSource dataSource) {
         this.dataSource = dataSource;
-        for(SAMReaderID reader: dataSource.getReaderIDs())
-            indexFiles.put(reader,(GATKBAMIndex)dataSource.getIndex(reader));
+        for(SAMReaderID reader: dataSource.getReaderIDs()) {
+            GATKBAMIndex index = dataSource.getIndex(reader);
+            if(index != null)
+                indexFiles.put(reader,dataSource.getIndex(reader));
+        }
+    }
+
+    /**
+     * The consumer has asked for a bounded set of locations.  Prepare an iterator over those locations.
+     * @param loci The list of locations to search and iterate over.
+     */
+    private void populateFilteredIntervalList(final GenomeLocSortedSet loci) {
         this.loci = loci;
-        locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
-        if(locusIterator.hasNext())
-            currentLocus = locusIterator.next();
-        advance();
+        if(!indexFiles.isEmpty()) {
+            // If index data is available, start up the iterator.
+            locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
+            if(locusIterator.hasNext())
+                currentLocus = locusIterator.next();
+            advance();
+        }
+        else {
+            // Otherwise, seed the iterator with a single file pointer over the entire region.
+            nextFilePointer = generatePointerOverEntireFileset();
+            for(GenomeLoc locus: loci)
+                nextFilePointer.addLocation(locus);
+            locusIterator = new PeekableIterator<GenomeLoc>(Collections.<GenomeLoc>emptyList().iterator());
+        }
+    }
+
+    /**
+     * The consumer has provided null, meaning to iterate over all available data.  Create a file pointer stretching
+     * from just before the start of the region to the end of the region.
+     */
+    private void populateUnfilteredIntervalList(final GenomeLocParser parser) {
+        this.loci = new GenomeLocSortedSet(parser);
+        locusIterator = new PeekableIterator<GenomeLoc>(Collections.<GenomeLoc>emptyList().iterator());
+        nextFilePointer = generatePointerOverEntireFileset();
+    }
+
+    /**
+     * Generate a span that runs from the end of the BAM header to the end of the fle.
+     * @return A file pointer over the specified region.
+     */
+    private FilePointer generatePointerOverEntireFileset() {
+        FilePointer filePointer = new FilePointer();
+        Map<SAMReaderID,GATKBAMFileSpan> currentPosition = dataSource.getCurrentPosition();
+        for(SAMReaderID reader: dataSource.getReaderIDs())
+            filePointer.addFileSpans(reader,createSpanToEndOfFile(currentPosition.get(reader).getGATKChunks().get(0).getChunkStart()));
+        return filePointer;
     }
 
     public boolean hasNext() {
@@ -67,7 +137,9 @@ public class BAMScheduler implements Iterator<FilePointer> {
         if(!hasNext())
             throw new NoSuchElementException("No next element available in interval sharder");
         FilePointer currentFilePointer = nextFilePointer;
+        nextFilePointer = null;
         advance();
+
         return currentFilePointer;
     }
 
@@ -79,13 +151,12 @@ public class BAMScheduler implements Iterator<FilePointer> {
         if(loci.isEmpty())
             return;
 
-        nextFilePointer = null;
         while(nextFilePointer == null && currentLocus != null) {
             // special case handling of the unmapped shard.
             if(currentLocus == GenomeLoc.UNMAPPED) {
                 nextFilePointer = new FilePointer(GenomeLoc.UNMAPPED);
                 for(SAMReaderID id: dataSource.getReaderIDs())
-                    nextFilePointer.addFileSpans(id,new GATKBAMFileSpan(new GATKChunk(indexFiles.get(id).getStartOfLastLinearBin(),Long.MAX_VALUE)));
+                    nextFilePointer.addFileSpans(id,createSpanToEndOfFile(indexFiles.get(id).getStartOfLastLinearBin()));
                 currentLocus = null;
                 continue;
             }
@@ -96,7 +167,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             int coveredRegionStop = Integer.MAX_VALUE;
             GenomeLoc coveredRegion = null;
 
-            BAMScheduleEntry scheduleEntry = getNextOverlappingBAMScheduleEntry(indexFiles,currentLocus);
+            BAMScheduleEntry scheduleEntry = getNextOverlappingBAMScheduleEntry(currentLocus);
 
             // No overlapping data at all.
             if(scheduleEntry != null) {
@@ -108,7 +179,6 @@ public class BAMScheduler implements Iterator<FilePointer> {
             }
             else {
                 // Always create a file span, whether there was covered data or not.  If there was no covered data, then the binTree is empty.
-                //System.out.printf("Shard: index file = %s; reference sequence = %d; ",index.getIndexFile(),currentLocus.getContigIndex());
                 for(SAMReaderID reader: indexFiles.keySet())
                     nextFilePointer.addFileSpans(reader,new GATKBAMFileSpan());
             }
@@ -116,21 +186,13 @@ public class BAMScheduler implements Iterator<FilePointer> {
             // Early exit if no bins were found.
             if(coveredRegion == null) {
                 // for debugging only: maximum split is 16384.                
-                if(currentLocus.size() > 16384) {
-                    GenomeLoc[] splitContigs = currentLocus.split(currentLocus.getStart()+16384);
-                    nextFilePointer.addLocation(splitContigs[0]);
-                    currentLocus = splitContigs[1];
-                }
-                else {
-                    nextFilePointer.addLocation(currentLocus);
-                    currentLocus = locusIterator.hasNext() ? locusIterator.next() : null;
-                }
+                nextFilePointer.addLocation(currentLocus);
+                currentLocus = locusIterator.hasNext() ? locusIterator.next() : null;
                 continue;
             }
 
             // Early exit if only part of the first interval was found.
             if(currentLocus.startsBefore(coveredRegion)) {
-                // for debugging only: maximum split is 16384.
                 int splitPoint = Math.min(coveredRegion.getStart()-currentLocus.getStart(),16384)+currentLocus.getStart();
                 GenomeLoc[] splitContigs = currentLocus.split(splitPoint);
                 nextFilePointer.addLocation(splitContigs[0]);
@@ -175,25 +237,30 @@ public class BAMScheduler implements Iterator<FilePointer> {
 
     /**
      * Get the next overlapping tree of bins associated with the given BAM file.
-     * @param indices BAM indices.
      * @param currentLocus The actual locus for which to check overlap.
      * @return The next schedule entry overlapping with the given list of loci.
      */
-    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final Map<SAMReaderID,GATKBAMIndex> indices, final GenomeLoc currentLocus) {
+    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final GenomeLoc currentLocus) {
+        // Make sure that we consult the BAM header to ensure that we're using the correct contig index for this contig name.
+        // This will ensure that if the two sets of contigs don't quite match (b36 male vs female ref, hg19 Epstein-Barr), then
+        // we'll be using the correct contig index for the BAMs.
+        // TODO: Warning: assumes all BAMs use the same sequence dictionary!  Get around this with contig aliasing.
+        final int currentContigIndex = dataSource.getHeader().getSequence(currentLocus.getContig()).getSequenceIndex();
+
         // Stale reference sequence or first invocation.  (Re)create the binTreeIterator.
-        if(lastReferenceSequenceLoaded == null || lastReferenceSequenceLoaded != currentLocus.getContigIndex()) {
+        if(lastReferenceSequenceLoaded == null || lastReferenceSequenceLoaded != currentContigIndex) {
             if(bamScheduleIterator != null)
                 bamScheduleIterator.close();
-            lastReferenceSequenceLoaded = currentLocus.getContigIndex();
+            lastReferenceSequenceLoaded = currentContigIndex;
 
             // Naive algorithm: find all elements in current contig for proper schedule creation.
             List<GenomeLoc> lociInContig = new LinkedList<GenomeLoc>();
             for(GenomeLoc locus: loci) {
-                if(locus.getContigIndex() == lastReferenceSequenceLoaded)
+                if(dataSource.getHeader().getSequence(locus.getContig()).getSequenceIndex() == lastReferenceSequenceLoaded)
                     lociInContig.add(locus);
             }
 
-            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(indices,lociInContig));
+            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(dataSource,lociInContig));
         }
 
         if(!bamScheduleIterator.hasNext())
@@ -207,6 +274,15 @@ public class BAMScheduler implements Iterator<FilePointer> {
         }                                   
 
         return (bamScheduleEntry != null && bamScheduleEntry.overlaps(currentLocus)) ? bamScheduleEntry : null;
+    }
+
+    /**
+     * Create a span from the given start point to the end of the file.
+     * @param startOfRegion Start of the region, in encoded coordinates (block start << 16 & block offset).
+     * @return A file span from the given point to the end of the file.
+     */
+    private GATKBAMFileSpan createSpanToEndOfFile(final long startOfRegion) {
+      return new GATKBAMFileSpan(new GATKChunk(startOfRegion,Long.MAX_VALUE));
     }
 
 }
