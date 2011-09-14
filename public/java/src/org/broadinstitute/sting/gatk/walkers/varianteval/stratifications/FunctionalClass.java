@@ -2,29 +2,21 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.SnpEff;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Stratifies by low-, moderate-, and high-impact genomic effect using SnpEff annotations produced by VariantAnnotator
+ * Stratifies by nonsense, missense, silent, and all annotations in the input ROD, from the INFO field annotation.
  */
 public class FunctionalClass extends VariantStratifier {
-
-    public static final String LOW_IMPACT_STATE_NAME =      "low-impact";
-    public static final String MODERATE_IMPACT_STATE_NAME = "moderate-impact";
-    public static final String HIGH_IMPACT_STATE_NAME =     "high-impact";
-
-    public static final String EFFECT_IMPACT_ATTRIBUTE_KEY = SnpEff.InfoFieldKey.EFF_IMPACT.toString();
-
     @Override
     public void initialize() {
         states.add("all");
-        states.add(LOW_IMPACT_STATE_NAME);
-        states.add(MODERATE_IMPACT_STATE_NAME);
-        states.add(HIGH_IMPACT_STATE_NAME);
+        states.add("silent");
+        states.add("missense");
+        states.add("nonsense");
     }
 
 
@@ -33,17 +25,36 @@ public class FunctionalClass extends VariantStratifier {
 
         relevantStates.add("all");
 
-        if ( eval != null && eval.isVariant() && eval.hasAttribute(EFFECT_IMPACT_ATTRIBUTE_KEY) ) {
-            String effectImpact = eval.getAttributeAsString(EFFECT_IMPACT_ATTRIBUTE_KEY);
+        if (eval != null && eval.isVariant()) {
+            String type = null;
 
-            if ( effectImpact.equals(SnpEff.EffectImpact.LOW.toString()) ) {
-                relevantStates.add(LOW_IMPACT_STATE_NAME);
+            if (eval.hasAttribute("refseq.functionalClass")) {
+                type = eval.getAttributeAsString("refseq.functionalClass");
+            } else if (eval.hasAttribute("refseq.functionalClass_1")) {
+                int annotationId = 1;
+                String key;
+
+                do {
+                    key = String.format("refseq.functionalClass_%d", annotationId);
+
+                    String newtype = eval.getAttributeAsString(key);
+
+                    if ( newtype != null && !newtype.equalsIgnoreCase("null") &&
+                         ( type == null ||
+                         ( type.equals("silent") && !newtype.equals("silent") ) ||
+                         ( type.equals("missense") && newtype.equals("nonsense") ) )
+                       ) {
+                        type = newtype;
+                    }
+
+                    annotationId++;
+                } while (eval.hasAttribute(key));
             }
-            else if ( effectImpact.equals(SnpEff.EffectImpact.MODERATE.toString()) ) {
-                relevantStates.add(MODERATE_IMPACT_STATE_NAME);
-            }
-            else if ( effectImpact.equals(SnpEff.EffectImpact.HIGH.toString()) ) {
-                relevantStates.add(HIGH_IMPACT_STATE_NAME);
+
+            if (type != null) {
+                if      (type.equals("silent"))   { relevantStates.add("silent");   }
+                else if (type.equals("missense")) { relevantStates.add("missense"); }
+                else if (type.equals("nonsense")) { relevantStates.add("nonsense"); }
             }
         }
 

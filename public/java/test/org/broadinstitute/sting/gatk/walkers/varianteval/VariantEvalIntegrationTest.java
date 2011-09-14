@@ -123,8 +123,9 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T VariantEval",
-                        "-R " + hg19Reference,
-                        "--eval " + validationDataLocation + "snpEff.AFR.unfiltered.VariantAnnotator.output.vcf",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestVCF,
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
@@ -133,7 +134,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("e93b3d66a5c150cbf1ae4262ec075d2d")
+                Arrays.asList("e40b77e7ed6581328e373a24b93cd170")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithFunctionalClass", spec);
     }
