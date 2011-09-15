@@ -32,7 +32,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 1,
                                 Arrays.asList("f5f811ceb973d7fd6c1b2b734f1b2b12")
                               );
-        executeTest("testStratifySamplesAndExcludeMonomorphicSites", spec);
+        executeTest("testFunctionClassWithSnpeff", spec);
     }
 
     @Test

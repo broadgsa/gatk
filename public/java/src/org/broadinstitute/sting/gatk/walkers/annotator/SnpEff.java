@@ -68,21 +68,29 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     // Key names for the INFO field annotations we will add to each record, along
     // with parsing-related information:
     public enum InfoFieldKey {
-        EFF                   (-1),
-        EFF_IMPACT            (0),
-        EFF_CODON_CHANGE      (1),
-        EFF_AMINO_ACID_CHANGE (2),
-        EFF_GENE_NAME         (3),
-        EFF_GENE_BIOTYPE      (4),
-        EFF_TRANSCRIPT_ID     (6),
-        EFF_EXON_ID           (7);
+        EFFECT_KEY            ("SNPEFF_EFFECT",           -1),
+        IMPACT_KEY            ("SNPEFF_IMPACT",            0),
+        CODON_CHANGE_KEY      ("SNPEFF_CODON_CHANGE",      1),
+        AMINO_ACID_CHANGE_KEY ("SNPEFF_AMINO_ACID_CHANGE", 2),
+        GENE_NAME_KEY         ("SNPEFF_GENE_NAME",         3),
+        GENE_BIOTYPE_KEY      ("SNPEFF_GENE_BIOTYPE",      4),
+        TRANSCRIPT_ID_KEY     ("SNPEFF_TRANSCRIPT_ID",     6),
+        EXON_ID_KEY           ("SNPEFF_EXON_ID",           7);
+
+        // Actual text of the key
+        private final String keyName;
 
         // Index within the effect metadata subfields from the SnpEff EFF annotation
         // where each key's associated value can be found during parsing.
         private final int fieldIndex;
 
-        InfoFieldKey ( int fieldIndex ) {
+        InfoFieldKey ( String keyName, int fieldIndex ) {
+            this.keyName = keyName;
             this.fieldIndex = fieldIndex;
+        }
+
+        public String getKeyName() {
+            return keyName;
         }
 
         public int getFieldIndex() {
@@ -292,27 +300,27 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     }
 
     public List<String> getKeyNames() {
-        return Arrays.asList( InfoFieldKey.EFF.toString(),
-                              InfoFieldKey.EFF_IMPACT.toString(),
-                              InfoFieldKey.EFF_CODON_CHANGE.toString(),
-                              InfoFieldKey.EFF_AMINO_ACID_CHANGE.toString(),
-                              InfoFieldKey.EFF_GENE_NAME.toString(),
-                              InfoFieldKey.EFF_GENE_BIOTYPE.toString(),
-                              InfoFieldKey.EFF_TRANSCRIPT_ID.toString(),
-                              InfoFieldKey.EFF_EXON_ID.toString()
+        return Arrays.asList( InfoFieldKey.EFFECT_KEY.getKeyName(),
+                              InfoFieldKey.IMPACT_KEY.getKeyName(),
+                              InfoFieldKey.CODON_CHANGE_KEY.getKeyName(),
+                              InfoFieldKey.AMINO_ACID_CHANGE_KEY.getKeyName(),
+                              InfoFieldKey.GENE_NAME_KEY.getKeyName(),
+                              InfoFieldKey.GENE_BIOTYPE_KEY.getKeyName(),
+                              InfoFieldKey.TRANSCRIPT_ID_KEY.getKeyName(),
+                              InfoFieldKey.EXON_ID_KEY.getKeyName()
                             );
     }
 
     public List<VCFInfoHeaderLine> getDescriptions() {
         return Arrays.asList(
-            new VCFInfoHeaderLine(InfoFieldKey.EFF.toString(),                   1, VCFHeaderLineType.String,  "The highest-impact effect resulting from the current variant (or one of the highest-impact effects, if there is a tie)"),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_IMPACT.toString(),            1, VCFHeaderLineType.String,  "Impact of the highest-impact effect resulting from the current variant " + Arrays.toString(EffectImpact.values())),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_CODON_CHANGE.toString(),      1, VCFHeaderLineType.String,  "Old/New codon for the highest-impact effect resulting from the current variant"),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_AMINO_ACID_CHANGE.toString(), 1, VCFHeaderLineType.String,  "Old/New amino acid for the highest-impact effect resulting from the current variant"),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_GENE_NAME.toString(),         1, VCFHeaderLineType.String,  "Gene name for the highest-impact effect resulting from the current variant"),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_GENE_BIOTYPE.toString(),      1, VCFHeaderLineType.String,  "Gene biotype for the highest-impact effect resulting from the current variant"),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_TRANSCRIPT_ID.toString(),     1, VCFHeaderLineType.String,  "Transcript ID for the highest-impact effect resulting from the current variant"),
-            new VCFInfoHeaderLine(InfoFieldKey.EFF_EXON_ID.toString(),           1, VCFHeaderLineType.String,  "Exon ID for the highest-impact effect resulting from the current variant")
+            new VCFInfoHeaderLine(InfoFieldKey.EFFECT_KEY.getKeyName(),            1, VCFHeaderLineType.String,  "The highest-impact effect resulting from the current variant (or one of the highest-impact effects, if there is a tie)"),
+            new VCFInfoHeaderLine(InfoFieldKey.IMPACT_KEY.getKeyName(),            1, VCFHeaderLineType.String,  "Impact of the highest-impact effect resulting from the current variant " + Arrays.toString(EffectImpact.values())),
+            new VCFInfoHeaderLine(InfoFieldKey.CODON_CHANGE_KEY.getKeyName(),      1, VCFHeaderLineType.String,  "Old/New codon for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(InfoFieldKey.AMINO_ACID_CHANGE_KEY.getKeyName(), 1, VCFHeaderLineType.String,  "Old/New amino acid for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(InfoFieldKey.GENE_NAME_KEY.getKeyName(),         1, VCFHeaderLineType.String,  "Gene name for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(InfoFieldKey.GENE_BIOTYPE_KEY.getKeyName(),      1, VCFHeaderLineType.String,  "Gene biotype for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(InfoFieldKey.TRANSCRIPT_ID_KEY.getKeyName(),     1, VCFHeaderLineType.String,  "Transcript ID for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(InfoFieldKey.EXON_ID_KEY.getKeyName(),           1, VCFHeaderLineType.String,  "Exon ID for the highest-impact effect resulting from the current variant")
         );
     }
 
@@ -375,16 +383,16 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
             }
 
             try {
-                impact = EffectImpact.valueOf(effectMetadata[InfoFieldKey.EFF_IMPACT.getFieldIndex()]);
+                impact = EffectImpact.valueOf(effectMetadata[InfoFieldKey.IMPACT_KEY.getFieldIndex()]);
             }
             catch ( IllegalArgumentException e ) {
-                parseError(String.format("Unrecognized value for effect impact: %s", effectMetadata[InfoFieldKey.EFF_IMPACT.getFieldIndex()]));
+                parseError(String.format("Unrecognized value for effect impact: %s", effectMetadata[InfoFieldKey.IMPACT_KEY.getFieldIndex()]));
             }
 
-            codonChange = effectMetadata[InfoFieldKey.EFF_CODON_CHANGE.getFieldIndex()];
-            aminoAcidChange = effectMetadata[InfoFieldKey.EFF_AMINO_ACID_CHANGE.getFieldIndex()];
-            geneName = effectMetadata[InfoFieldKey.EFF_GENE_NAME.getFieldIndex()];
-            geneBiotype = effectMetadata[InfoFieldKey.EFF_GENE_BIOTYPE.getFieldIndex()];
+            codonChange = effectMetadata[InfoFieldKey.CODON_CHANGE_KEY.getFieldIndex()];
+            aminoAcidChange = effectMetadata[InfoFieldKey.AMINO_ACID_CHANGE_KEY.getFieldIndex()];
+            geneName = effectMetadata[InfoFieldKey.GENE_NAME_KEY.getFieldIndex()];
+            geneBiotype = effectMetadata[InfoFieldKey.GENE_BIOTYPE_KEY.getFieldIndex()];
 
             if ( effectMetadata[SNPEFF_CODING_FIELD_INDEX].trim().length() > 0 ) {
                 try {
@@ -398,8 +406,8 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
                 coding = EffectCoding.UNKNOWN;
             }
 
-            transcriptID = effectMetadata[InfoFieldKey.EFF_TRANSCRIPT_ID.getFieldIndex()];
-            exonID = effectMetadata[InfoFieldKey.EFF_EXON_ID.getFieldIndex()];
+            transcriptID = effectMetadata[InfoFieldKey.TRANSCRIPT_ID_KEY.getFieldIndex()];
+            exonID = effectMetadata[InfoFieldKey.EXON_ID_KEY.getFieldIndex()];
         }
 
         private void parseError ( String message ) {
@@ -443,14 +451,14 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
         public Map<String, Object> getAnnotations() {
             Map<String, Object> annotations = new LinkedHashMap<String, Object>(Utils.optimumHashSize(InfoFieldKey.values().length));
 
-            addAnnotation(annotations, InfoFieldKey.EFF.toString(), effect.toString());
-            addAnnotation(annotations, InfoFieldKey.EFF_IMPACT.toString(), impact.toString());
-            addAnnotation(annotations, InfoFieldKey.EFF_CODON_CHANGE.toString(), codonChange);
-            addAnnotation(annotations, InfoFieldKey.EFF_AMINO_ACID_CHANGE.toString(), aminoAcidChange);
-            addAnnotation(annotations, InfoFieldKey.EFF_GENE_NAME.toString(), geneName);
-            addAnnotation(annotations, InfoFieldKey.EFF_GENE_BIOTYPE.toString(), geneBiotype);
-            addAnnotation(annotations, InfoFieldKey.EFF_TRANSCRIPT_ID.toString(), transcriptID);
-            addAnnotation(annotations, InfoFieldKey.EFF_EXON_ID.toString(), exonID);
+            addAnnotation(annotations, InfoFieldKey.EFFECT_KEY.getKeyName(), effect.toString());
+            addAnnotation(annotations, InfoFieldKey.IMPACT_KEY.getKeyName(), impact.toString());
+            addAnnotation(annotations, InfoFieldKey.CODON_CHANGE_KEY.getKeyName(), codonChange);
+            addAnnotation(annotations, InfoFieldKey.AMINO_ACID_CHANGE_KEY.getKeyName(), aminoAcidChange);
+            addAnnotation(annotations, InfoFieldKey.GENE_NAME_KEY.getKeyName(), geneName);
+            addAnnotation(annotations, InfoFieldKey.GENE_BIOTYPE_KEY.getKeyName(), geneBiotype);
+            addAnnotation(annotations, InfoFieldKey.TRANSCRIPT_ID_KEY.getKeyName(), transcriptID);
+            addAnnotation(annotations, InfoFieldKey.EXON_ID_KEY.getKeyName(), exonID);
 
             return annotations;
         }
