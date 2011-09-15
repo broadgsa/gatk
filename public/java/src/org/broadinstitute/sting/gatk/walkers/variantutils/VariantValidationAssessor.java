@@ -41,7 +41,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.util.*;
 
 /**
- * Annotates a validation (from e.g. Sequenom) VCF with QC metrics (HW-equilibrium, % failed probes)
+ * Annotates a validation (from Sequenom for example) VCF with QC metrics (HW-equilibrium, % failed probes)
  *
  * <p>
  * The Variant Validation Assessor is a tool for vetting/assessing validation data (containing genotypes).
