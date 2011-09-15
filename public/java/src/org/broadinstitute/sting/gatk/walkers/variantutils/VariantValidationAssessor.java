@@ -57,7 +57,16 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * An annotated VCF.
+ * An annotated VCF.  Additionally, a table like the following will be output:
+ * <pre>
+ *     Total number of samples assayed:                  185
+ *     Total number of records processed:                152
+ *     Number of Hardy-Weinberg violations:              34 (22%)
+ *     Number of no-call violations:                     12 (7%)
+ *     Number of homozygous variant violations:          0 (0%)
+ *     Number of records passing all filters:            106 (69%)
+ *     Number of passing records that are polymorphic:   98 (92%)
+ * </pre>
  * </p>
  *
  * <h2>Examples</h2>
