@@ -42,7 +42,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
                                         "--dbsnp " + b37dbSNP132,
-                                        "--eval " + variantEvalTestDataRoot + "CEU.trio.callsForVE.vcf",
+                                        "--eval " + variantEvalTestDataRoot + "/CEU.trio.callsForVE.vcf",
                                         "-noEV",
                                         "-EV TiTvVariantEvaluator",
                                         "-ST Sample",
