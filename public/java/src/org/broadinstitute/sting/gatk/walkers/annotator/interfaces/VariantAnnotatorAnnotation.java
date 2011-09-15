@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.util.List;
@@ -34,5 +35,5 @@ public abstract class VariantAnnotatorAnnotation {
     public abstract List<String> getKeyNames();
 
     // initialization method (optional for subclasses, and therefore non-abstract)
-    public void initialize ( AnnotatorCompatibleWalker walker ) { }
+    public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit ) { }
 }

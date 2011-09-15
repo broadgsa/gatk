@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -129,12 +130,24 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testSnpEffAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T VariantAnnotator -R " + b37KGReference + " -NO_HEADER -o %s -A SnpEff --variant " +
-            validationDataLocation + "1000G.exomes.vcf --snpEffFile  " + validationDataLocation +
-            "snpEff_1.9.6_1000G.exomes.vcf_hg37.61.out -L 1:26,000,000-26,500,000",
+            "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
+            validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
+            "snpEff.AFR.unfiltered.vcf -L 1:1-1,500,000",
             1,
-            Arrays.asList("03eae1dab19a9358250890594bf53607")
+            Arrays.asList("a1c3ba9efc28ee0606339604095076ea")
         );
         executeTest("Testing SnpEff annotations", spec);
+    }
+
+    @Test
+    public void testSnpEffAnnotationsUnsupportedVersion() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+            "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
+            validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
+            "snpEff.AFR.unfiltered.unsupported.version.vcf -L 1:1-1,500,000",
+            1,
+            UserException.class
+        );
+        executeTest("Testing SnpEff annotations (unsupported version)", spec);
     }
 }
