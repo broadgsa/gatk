@@ -45,7 +45,7 @@ import java.util.*;
  * (http://snpeff.sourceforge.net/).
  *
  * For each variant, chooses one of the effects of highest biological impact from the SnpEff
- * output file (which must be provided on the command line via --snpEffFile <filename>.vcf),
+ * output file (which must be provided on the command line via --snpEffFile filename.vcf),
  * and adds annotations on that effect.
  *
  * @author David Roazen
