@@ -42,6 +42,9 @@ import java.io.PrintStream;
  *
  * <p>
  * The output format can be partially controlled using the provided command-line arguments.
+ * Specify intervals with the usual -L argument to output only the reference bases within your intervals.
+ * Overlapping intervals are automatically merged; reference bases for each disjoint interval will be output as a
+ * separate fasta sequence (named numerically in order).
  *
  * <h2>Input</h2>
  * <p>

@@ -134,7 +134,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
             validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
             "snpEff.AFR.unfiltered.vcf -L 1:1-1,500,000",
             1,
-            Arrays.asList("a1c3ba9efc28ee0606339604095076ea")
+            Arrays.asList("486fc6a5ca1819f5ab180d5d72b1ebc9")
         );
         executeTest("Testing SnpEff annotations", spec);
     }
