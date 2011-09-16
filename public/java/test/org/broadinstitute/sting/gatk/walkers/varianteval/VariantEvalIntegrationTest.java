@@ -32,7 +32,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 1,
                                 Arrays.asList("f5f811ceb973d7fd6c1b2b734f1b2b12")
                               );
-        executeTest("testStratifySamplesAndExcludeMonomorphicSites", spec);
+        executeTest("testFunctionClassWithSnpeff", spec);
     }
 
     @Test
@@ -42,7 +42,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
                                         "--dbsnp " + b37dbSNP132,
-                                        "--eval " + variantEvalTestDataRoot + "CEU.trio.callsForVE.vcf",
+                                        "--eval " + variantEvalTestDataRoot + "/CEU.trio.callsForVE.vcf",
                                         "-noEV",
                                         "-EV TiTvVariantEvaluator",
                                         "-ST Sample",

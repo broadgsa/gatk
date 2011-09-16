@@ -62,8 +62,8 @@ public class FunctionalClass extends VariantStratifier {
                     annotationId++;
                 } while (eval.hasAttribute(key));
 
-            } else if ( eval.hasAttribute(SnpEff.InfoFieldKey.EFF.name() ) ) {
-                SnpEff.EffectType snpEffType = SnpEff.EffectType.valueOf(eval.getAttribute(SnpEff.InfoFieldKey.EFF.name()).toString());
+            } else if ( eval.hasAttribute(SnpEff.InfoFieldKey.EFFECT_KEY.getKeyName() ) ) {
+                SnpEff.EffectType snpEffType = SnpEff.EffectType.valueOf(eval.getAttribute(SnpEff.InfoFieldKey.EFFECT_KEY.getKeyName()).toString());
                 if ( snpEffType == SnpEff.EffectType.STOP_GAINED )
                     type = FunctionalType.nonsense;
                 else if ( snpEffType == SnpEff.EffectType.NON_SYNONYMOUS_CODING )
