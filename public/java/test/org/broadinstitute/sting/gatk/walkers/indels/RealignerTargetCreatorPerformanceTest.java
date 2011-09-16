@@ -12,7 +12,7 @@ public class RealignerTargetCreatorPerformanceTest extends WalkerTest {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 "-R " + hg18Reference +
                         " -T RealignerTargetCreator" +
-                        " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
+                        " --known " + GATKDataLocation + "dbsnp_132.hg18.vcf" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-50,000,000" +
                         " -o /dev/null",
@@ -23,7 +23,7 @@ public class RealignerTargetCreatorPerformanceTest extends WalkerTest {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 "-R " + hg18Reference +
                         " -T RealignerTargetCreator" +
-                        " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
+                        " --known " + GATKDataLocation + "dbsnp_132.hg18.vcf" +
                         " -I " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.bam" +
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +
                         " -o /dev/null",

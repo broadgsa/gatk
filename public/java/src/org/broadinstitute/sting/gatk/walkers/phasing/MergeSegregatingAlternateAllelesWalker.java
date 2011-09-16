@@ -24,13 +24,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
@@ -49,7 +46,7 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
  * Walks along all variant ROD loci, and merges consecutive sites if some sample has segregating alt alleles in the ROD.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@Requires(value = {DataSource.REFERENCE})
 @By(DataSource.REFERENCE_ORDERED_DATA)
 
 public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, Integer> {
@@ -81,12 +78,10 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     @Argument(fullName = "dontRequireSomeSampleHasDoubleAltAllele", shortName = "dontRequireSomeSampleHasDoubleAltAllele", doc = "Should the requirement, that SUCCESSIVE records to be merged have at least one sample with a double alternate allele, be relaxed?; [default:false]", required = false)
     protected boolean dontRequireSomeSampleHasDoubleAltAllele = false;
 
-    private LinkedList<String> rodNames = null;
+    @Input(fullName="variant", shortName = "V", doc="Select variants from this VCF file", required=true)
+    public RodBinding<VariantContext> variants;
 
     public void initialize() {
-        rodNames = new LinkedList<String>();
-        rodNames.add("variant");
-
         initializeVcfWriter();
     }
 
@@ -114,8 +109,8 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(variants.getName()));
+        vcMergerWriter.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(variants.getName()).getGenotypeSamples())));
     }
 
     public boolean generateExtendedEvents() {
@@ -138,9 +133,7 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
         if (tracker == null)
             return null;
 
-        boolean requireStartHere = true; // only see each VariantContext once
-        boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly))
+        for (VariantContext vc : tracker.getValues(variants, context.getLocation()))
             writeVCF(vc);
 
         return 0;

@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
@@ -22,13 +23,13 @@ import java.util.List;
 import java.util.Map;
 
 
-public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnotation {
+public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
 
     private static String REF_ALLELE = "REF";
 
     private static String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )
             return null;
 

@@ -9,15 +9,11 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.List;
 import java.util.Map;
 
-public interface InfoFieldAnnotation {
-
+public abstract class InfoFieldAnnotation extends VariantAnnotatorAnnotation {
     // return annotations for the given contexts split by sample
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc);
-
-    // return the INFO keys
-    public List<String> getKeyNames();
+    public abstract Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker,
+                                                 ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc);
 
     // return the descriptions used for the VCF INFO meta field
-    public List<VCFInfoHeaderLine> getDescriptions();
-
+    public abstract List<VCFInfoHeaderLine> getDescriptions();
 }

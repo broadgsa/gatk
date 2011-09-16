@@ -202,20 +202,18 @@ public class StandardVCFWriter implements VCFWriter {
      * add a record to the file
      *
      * @param vc      the Variant Context object
-     * @param refBase the ref base used for indels
      */
-    public void add(VariantContext vc, byte refBase) {
-        add(vc, refBase, false);
+    public void add(VariantContext vc) {
+        add(vc, false);
     }
 
     /**
      * add a record to the file
      *
      * @param vc      the Variant Context object
-     * @param refBase the ref base used for indels
      * @param refBaseShouldBeAppliedToEndOfAlleles *** THIS SHOULD BE FALSE EXCEPT FOR AN INDEL AT THE EXTREME BEGINNING OF A CONTIG (WHERE THERE IS NO PREVIOUS BASE, SO WE USE THE BASE AFTER THE EVENT INSTEAD)
      */
-    public void add(VariantContext vc, byte refBase, boolean refBaseShouldBeAppliedToEndOfAlleles) {
+    public void add(VariantContext vc, boolean refBaseShouldBeAppliedToEndOfAlleles) {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added: " + locationString());
 
@@ -223,7 +221,7 @@ public class StandardVCFWriter implements VCFWriter {
             vc = VariantContext.modifyGenotypes(vc, null);
 
         try {
-            vc = VariantContext.createVariantContextWithPaddedAlleles(vc, refBase, refBaseShouldBeAppliedToEndOfAlleles);
+            vc = VariantContext.createVariantContextWithPaddedAlleles(vc, refBaseShouldBeAppliedToEndOfAlleles);
 
             // if we are doing on the fly indexing, add the record ***before*** we write any bytes 
             if ( indexer != null ) indexer.addFeature(vc, positionalStream.getPosition());
@@ -285,7 +283,7 @@ public class StandardVCFWriter implements VCFWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
-                if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
+                if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
                     continue;
 
                 String outputValue = formatVCFField(field.getValue());

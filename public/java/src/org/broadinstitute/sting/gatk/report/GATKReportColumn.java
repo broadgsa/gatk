@@ -37,15 +37,25 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
      * tables, as the table gets written properly without having to waste storage for the unset elements (usually the zero
      * values) in the table.
      *
-     * @param primaryKey  the primary key position in the column that should be set
+     * @param primaryKey  the primary key position in the column that should be retrieved
      * @return  the value at the specified position in the column, or the default value if the element is not set
      */
-    public Object getWithoutSideEffects(Object primaryKey) {
+    private Object getWithoutSideEffects(Object primaryKey) {
         if (!this.containsKey(primaryKey)) {
             return defaultValue;
         }
 
         return this.get(primaryKey);
+    }
+
+    /**
+     * Return an object from the column, but if it doesn't exist, return the default value.
+     *
+     * @param primaryKey  the primary key position in the column that should be retrieved
+     * @return  the string value at the specified position in the column, or the default value if the element is not set
+     */
+    public String getStringValue(Object primaryKey) {
+        return toString(getWithoutSideEffects(primaryKey));
     }
 
     /**
@@ -67,7 +77,7 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
 
         for (Object obj : this.values()) {
             if (obj != null) {
-                int width = obj.toString().length();
+                int width = toString(obj).length();
 
                 if (width > maxWidth) {
                     maxWidth = width;
@@ -76,5 +86,28 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
         }
 
         return maxWidth;
+    }
+
+    /**
+     * Returns a string version of the values.
+     * @param obj The object to convert to a string
+     * @return The string representation of the column
+     */
+    private static String toString(Object obj) {
+        String value;
+        if (obj == null) {
+            value = "null";
+        } else if (obj instanceof Float) {
+            value = String.format("%.8f", (Float) obj);
+        } else if (obj instanceof Double) {
+            value = String.format("%.8f", (Double) obj);
+        } else {
+            value = obj.toString();
+        }
+        return value;
+    }
+
+    public String getColumnName() {
+        return columnName;
     }
 }

@@ -34,7 +34,7 @@ import java.util.Arrays;
 public class ValidateVariantsIntegrationTest extends WalkerTest {
 
     public static String baseTestString(String file, String type) {
-        return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 -B:variant,VCF " + validationDataLocation + file + " --validationType " + type;
+        return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 --variant:vcf " + validationDataLocation + file + " --validationType " + type;
     }
 
     @Test
@@ -95,7 +95,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testBadID() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString("validationExampleBad.vcf", "IDS") + " -D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                baseTestString("validationExampleBad.vcf", "IDS") + " --dbsnp " + b36dbSNP129,
                 0,
                 UserException.MalformedFile.class
         );
@@ -113,4 +113,16 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
 
         executeTest("test bad alt allele", spec);
     }
+
+    @Test
+    public void testBadAllele2() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+            baseTestString("validationExampleBad3.vcf", "REF"),
+            0,
+            UserException.MalformedFile.class
+        );
+
+        executeTest("test bad ref allele in deletion", spec);
+    }
+
 }

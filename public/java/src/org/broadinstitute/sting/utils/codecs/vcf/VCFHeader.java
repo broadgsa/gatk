@@ -24,6 +24,7 @@ public class VCFHeader {
     private final Set<VCFHeaderLine> mMetaData;
     private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new HashMap<String, VCFInfoHeaderLine>();
     private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new HashMap<String, VCFFormatHeaderLine>();
+    private final Map<String, VCFHeaderLine> mOtherMetaData = new HashMap<String, VCFHeaderLine>();
 
     // the list of auxillary tags
     private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
@@ -110,6 +111,9 @@ public class VCFHeader {
                 VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
                 mFormatMetaData.put(formatLine.getName(), formatLine);
             }
+            else {
+                mOtherMetaData.put(line.getKey(), line);
+            }
         }
     }
 
@@ -184,6 +188,14 @@ public class VCFHeader {
      */
     public VCFFormatHeaderLine getFormatHeaderLine(String key) {
         return mFormatMetaData.get(key);
+    }
+
+    /**
+     * @param key    the header key name
+     * @return the meta data line, or null if there is none
+     */
+    public VCFHeaderLine getOtherHeaderLine(String key) {
+        return mOtherMetaData.get(key);
     }
 }
 

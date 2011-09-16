@@ -1,0 +1,126 @@
+<#include "common.html"/>
+
+<#macro argumentlist name myargs>
+    <#if myargs?size != 0> 
+        <tr><th colspan="4" id="row-divider">${name}</th></tr>
+        <#list myargs as arg>
+            <tr>
+                <td><a href="#${arg.name}">${arg.name}</a></td>
+                <td>${arg.type}</td>
+                <td>${arg.defaultValue!"NA"}</td>
+                <td>${arg.summary}</td>
+            </tr>
+            <#--
+                <td>${arg.required}</td>
+            -->
+        </#list>
+    </#if>
+</#macro>    
+   
+<#macro argumentDetails arg>
+    <h3><a name="${arg.name}">${arg.name}<#if arg.synonyms??> / ${arg.synonyms}</#if></a>
+    (<#if arg.attributes??>${arg.attributes} </#if>${arg.type}<#if arg.defaultValue??> with default value ${arg.defaultValue}</#if>)</h3>
+    <p class="args">
+    ${arg.summary}. ${arg.fulltext}
+    <#if arg.rodTypes??>${arg.name} binds reference ordered data.  This argument supports ROD files of the
+    following types: ${arg.rodTypes}</#if>
+    <#if arg.options??>
+        <br>
+        The ${arg.name} argument is an enumerated type (${arg.type}), which can have one of the following values:
+        <dl class="enum">
+        <#list arg.options as option>
+            <dt class="enum">${option.name}</dt>
+            <dd class="enum">${option.summary}</dd>
+        </#list>
+        </dl>
+    </#if>
+    </p>
+</#macro>     
+   
+<#macro relatedByType name type>
+    <#list relatedDocs as relatedDoc>
+        <#if relatedDoc.relation == type>
+            <h3>${name}</h3>
+            <ul>
+            <#list relatedDocs as relatedDoc>
+                <#if relatedDoc.relation == type>
+                    <li><a href="${relatedDoc.filename}">${relatedDoc.name}</a> is a ${relatedDoc.relation}</li>
+                </#if>
+            </#list>
+            </ul>
+        <#break>        
+        </#if>
+    </#list>
+</#macro>
+
+<html>
+<@makeHeader title="${name} documentation"/>
+<body>
+  <h1>${name}</h1>
+  <@headerInfo />
+  <p class="summary">${summary}</p>
+  <#if author??>
+      <h2>Author</h2>
+      ${author}
+  </#if>
+  <h2>Introduction</h2>
+  ${description}
+  
+  <#-- Create the argument summary -->
+  <#if arguments.all?size != 0> 
+      <hr>
+      <h2>${name} specific arguments</h2>
+      <table id="hor-minimalist-b">
+      <thead>
+      <tr>
+         <th>Name</th>
+         <th>Type</th>
+         <th>Default value</th>
+         <th>Summary</th>
+      </tr>
+      </thead>
+      <tbody>
+         <@argumentlist name="Required" myargs=arguments.required/>
+         <@argumentlist name="Optional" myargs=arguments.optional/>
+         <@argumentlist name="Advanced" myargs=arguments.advanced/>
+         <@argumentlist name="Hidden" myargs=arguments.hidden/>
+         <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+      </tbody>
+      </table>
+  </#if>
+
+  <#-- Create references to additional capabilities if appropriate -->
+  <#if extradocs?size != 0> 
+      <hr>
+      <h2>Additional capabilities</h2>
+      The arguments described in the entries below can be supplied to this tool to modify
+      its behavior.  For example, the -L argument directs the GATK engine restricts processing 
+      to specific genomic intervals.  This capability is available to all GATK walkers.
+      <ul>
+      <#list extradocs as extradoc>
+          <li><a href="${extradoc.filename}">${extradoc.name}</a></li>
+      </#list>
+      </ul>
+  </#if>
+  
+  <#-- This class is related to other documented classes via sub/super relationships -->
+  <#if relatedDocs?? && relatedDocs?size != 0> 
+    <hr>
+    <h2>Related capabilities</h2>
+    <@relatedByType name="Superclasses" type="superclass"/>
+    <@relatedByType name="Subclasses" type="subclass"/>
+  </#if>
+    
+  <#-- List all of the -->
+  <#if arguments.all?size != 0> 
+      <hr>
+      <#-- Create the argument details -->
+      <h2>Argument details</h2>
+      <#list arguments.all as arg>
+        <@argumentDetails arg=arg/>
+      </#list>
+  </#if>
+  
+  <@footerInfo />
+</body>
+</html>

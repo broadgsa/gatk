@@ -39,8 +39,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nInsertions = 0;
     @DataPoint(description = "Number of deletions")
     public long nDeletions = 0;
-    @DataPoint(description = "Number of complex loci")
+    @DataPoint(description = "Number of complex indels")
     public long nComplex = 0;
+    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)")
+    public long nMixed = 0;
 
 
     @DataPoint(description = "Number of no calls loci")
@@ -93,28 +95,44 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nCalledLoci++;
 
-        if (vc1.isVariant()) nVariantLoci++;
-        switch (vc1.getType()) {
-            case NO_VARIATION:
-                nRefLoci++;
-                break;
-            case SNP:
-                nSNPs++;
-                if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
-                break;
-            case MNP:
-                nMNPs++;
-                if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
-                break;
-            case INDEL:
-                if (vc1.isInsertion()) nInsertions++;
-                else nDeletions++;
-                break;
-            case MIXED:
-                nComplex++;
-                break;
-            default:
-                throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
+        // Note from Eric:
+        // This is really not correct.  What we really want here is a polymorphic vs. monomorphic count (i.e. on the Genotypes).
+        // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
+        // added in a proxy check for monomorphic status here.
+        // Protect against case when vc only as no-calls too - can happen if we strafity by sample and sample as a single no-call.
+       if ( vc1.isMonomorphic() ) {
+            nRefLoci++;
+        } else {
+             switch (vc1.getType()) {
+                case NO_VARIATION:
+                    // shouldn't get here
+                    break;
+                case SNP:
+                    nVariantLoci++;
+                    nSNPs++;
+                    if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                    break;
+                case MNP:
+                    nVariantLoci++;
+                    nMNPs++;
+                    if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                    break;
+                case INDEL:
+                    nVariantLoci++;
+                    if (vc1.isSimpleInsertion())
+                        nInsertions++;
+                    else if (vc1.isSimpleDeletion())
+                        nDeletions++;
+                    else
+                        nComplex++;
+                    break;
+                case MIXED:
+                    nVariantLoci++;
+                    nMixed++;
+                    break;
+                default:
+                    throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
+            }
         }
 
         String refStr = vc1.getReference().getBaseString().toUpperCase();
@@ -173,8 +191,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         heterozygosity = perLocusRate(nHets);
         heterozygosityPerBp = perLocusRInverseRate(nHets);
         hetHomRatio = ratio(nHets, nHomVar);
-        indelRate = perLocusRate(nDeletions + nInsertions);
-        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions);
+        indelRate = perLocusRate(nDeletions + nInsertions + nComplex);
+        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions + nComplex);
         deletionInsertionRatio = ratio(nDeletions, nInsertions);
     }
 }

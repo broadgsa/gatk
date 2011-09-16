@@ -29,6 +29,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -43,6 +44,9 @@ import java.util.Arrays;
  * Date: Sep 3, 2010
  * Time: 2:24:09 PM
  */
+@DocumentedGATKFeature(
+        groupName = "User exceptions",
+        summary = "Exceptions caused by incorrect user behavior, such as bad files, bad arguments, etc." )
 public class UserException extends ReviewedStingException {
     public UserException(String msg) { super(msg); }
     public UserException(String msg, Throwable e) { super(msg, e); }
@@ -82,6 +86,13 @@ public class UserException extends ReviewedStingException {
             super(String.format("Argument %s has a bad value: %s", arg, message));
         }
     }
+
+    public static class UnknownTribbleType extends CommandLineException {
+        public UnknownTribbleType(String type, String message) {
+            super(String.format("Unknown tribble type %s: %s", type, message));
+        }
+    }
+
 
     public static class BadTmpDir extends UserException {
         public BadTmpDir(String message) {
@@ -159,7 +170,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedVCF(String message, int lineNo) {
-            super(String.format("The provided VCF file is malformed at line nmber %d: %s", lineNo, message));
+            super(String.format("The provided VCF file is malformed at line number %d: %s", lineNo, message));
         }
     }
 

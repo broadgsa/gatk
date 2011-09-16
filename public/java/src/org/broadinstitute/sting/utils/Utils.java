@@ -29,6 +29,7 @@ import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.Pair;
 
+import java.net.InetAddress;
 import java.util.*;
 
 /**
@@ -41,6 +42,21 @@ import java.util.*;
 public class Utils {
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(Utils.class);
+
+    public static final float JAVA_DEFAULT_HASH_LOAD_FACTOR = 0.75f;
+
+    /**
+     * Calculates the optimum initial size for a hash table given the maximum number
+     * of elements it will need to hold. The optimum size is the smallest size that
+     * is guaranteed not to result in any rehash/table-resize operations.
+     *
+     * @param maxElements  The maximum number of elements you expect the hash table
+     *                     will need to hold
+     * @return             The optimum initial size for the table, given maxElements
+     */
+    public static int optimumHashSize ( int maxElements ) {
+        return (int)(maxElements / JAVA_DEFAULT_HASH_LOAD_FACTOR) + 2;
+    }
 
     public static String getClassName(Class c) {
         String FQClassName = c.getName();
@@ -617,5 +633,21 @@ public class Utils {
 
     public static boolean isFlagSet(int value, int flag) {
         return ((value & flag) == flag);
+    }
+
+    /**
+     * Helper utility that calls into the InetAddress system to resolve the hostname.  If this fails,
+     * unresolvable gets returned instead.
+     *
+     * @return
+     */
+    public static final String resolveHostname() {
+        try {
+            return InetAddress.getLocalHost().getCanonicalHostName();
+        }
+        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
+            return "unresolvable";
+            // handle exception
+        }
     }
 }

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.report;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.PrintStream;
@@ -88,17 +89,22 @@ import java.util.regex.Pattern;
  * but at least the prototype contained herein works.
  *
  * @author Kiran Garimella
+ * @author Khalid Shakir
  */
 public class GATKReportTable {
+    /** REGEX that matches any table with an invalid name */
+    public final static String INVALID_TABLE_NAME_REGEX = "[^a-zA-Z0-9_\\-\\.]";
+    private static final GATKReportVersion LATEST_REPORT_VERSION = GATKReportVersion.V0_2;
     private String tableName;
     private String tableDescription;
+    private GATKReportVersion version = LATEST_REPORT_VERSION;
 
     private String primaryKeyName;
     private Collection<Object> primaryKeyColumn;
     private boolean primaryKeyDisplay;
-    boolean sortByPrimaryKey = true;
+    private boolean sortByPrimaryKey = true;
 
-    private LinkedHashMap<String, GATKReportColumn> columns;
+    private GATKReportColumns columns;
 
     /**
      * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
@@ -107,8 +113,21 @@ public class GATKReportTable {
      * @return  true if the name is valid, false if otherwise
      */
     private boolean isValidName(String name) {
-        Pattern p = Pattern.compile("[^a-zA-Z0-9_\\-\\.]");
+        Pattern p = Pattern.compile(INVALID_TABLE_NAME_REGEX);
         Matcher m = p.matcher(name);
+
+        return !m.find();
+    }
+
+    /**
+     * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
+     *
+     * @param description  the name of the table or column
+     * @return  true if the name is valid, false if otherwise
+     */
+    private boolean isValidDescription(String description) {
+        Pattern p = Pattern.compile("\\r|\\n");
+        Matcher m = p.matcher(description);
 
         return !m.find();
     }
@@ -128,11 +147,23 @@ public class GATKReportTable {
             throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
         }
 
+        if (!isValidDescription(tableDescription)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable description of '" + tableDescription + "'.  GATKReportTable descriptions must not contain newlines.");
+        }
+
         this.tableName = tableName;
         this.tableDescription = tableDescription;
         this.sortByPrimaryKey = sortByPrimaryKey;
 
-        columns = new LinkedHashMap<String, GATKReportColumn>();
+        columns = new GATKReportColumns();
+    }
+
+    public GATKReportVersion getVersion() {
+        return version;
+    }
+
+    protected void setVersion(GATKReportVersion version) {
+        this.version = version;
     }
 
     /**
@@ -159,6 +190,57 @@ public class GATKReportTable {
 
         primaryKeyColumn = sortByPrimaryKey ? new TreeSet<Object>() : new LinkedList<Object>();
         primaryKeyDisplay = display;
+    }
+
+    /**
+     * Returns the first primary key matching the dotted column values.
+     * Ex: dbsnp.eval.called.all.novel.all
+     * @param dottedColumnValues Period concatenated values.
+     * @return The first primary key matching the column values or throws an exception.
+     */
+    public Object getPrimaryKey(String dottedColumnValues) {
+        Object key = findPrimaryKey(dottedColumnValues);
+        if (key == null)
+            throw new ReviewedStingException("Attempted to get non-existent GATKReportTable key for values: " + dottedColumnValues);
+        return key;
+    }
+
+    /**
+     * Returns true if there is at least on row with the dotted column values.
+     * Ex: dbsnp.eval.called.all.novel.all
+     * @param dottedColumnValues Period concatenated values.
+     * @return true if there is at least one row matching the columns.
+     */
+    public boolean containsPrimaryKey(String dottedColumnValues) {
+        return findPrimaryKey(dottedColumnValues) != null;
+    }
+
+    /**
+     * Returns the first primary key matching the dotted column values.
+     * Ex: dbsnp.eval.called.all.novel.all
+     * @param dottedColumnValues Period concatenated values.
+     * @return The first primary key matching the column values or null.
+     */
+    private Object findPrimaryKey(String dottedColumnValues) {
+        return findPrimaryKey(dottedColumnValues.split("\\."));
+    }
+
+    /**
+     * Returns the first primary key matching the column values.
+     * Ex: new String[] { "dbsnp", "eval", "called", "all", "novel", "all" }
+     * @param columnValues column values.
+     * @return The first primary key matching the column values.
+     */
+    private Object findPrimaryKey(Object[] columnValues) {
+        for (Object primaryKey : primaryKeyColumn) {
+            boolean matching = true;
+            for (int i = 0; matching && i < columnValues.length; i++) {
+                matching = ObjectUtils.equals(columnValues[i], get(primaryKey, i+1));
+            }
+            if (matching)
+                return primaryKey;
+        }
+        return null;
     }
 
     /**
@@ -228,6 +310,17 @@ public class GATKReportTable {
         verifyEntry(primaryKey, columnName);
         
         return columns.get(columnName).get(primaryKey);
+    }
+
+    /**
+     * Get a value from the given position in the table
+     *
+     * @param primaryKey  the primary key value
+     * @param columnIndex the index of the column
+     * @return  the value stored at the specified position in the table
+     */
+    private Object get(Object primaryKey, int columnIndex) {
+        return columns.getByIndex(columnIndex).get(primaryKey);
     }
 
     /**
@@ -515,7 +608,7 @@ public class GATKReportTable {
         String primaryKeyFormat = "%-" + getPrimaryKeyColumnWidth() + "s";
 
         // Emit the table definition
-        out.printf("##:GATKReport.v0.1 %s : %s%n", tableName, tableDescription);
+        out.printf("##:GATKReport.%s %s : %s%n", LATEST_REPORT_VERSION.versionString, tableName, tableDescription);
 
         // Emit the table header, taking into account the padding requirement if the primary key is a hidden column
         boolean needsPadding = false;
@@ -545,22 +638,8 @@ public class GATKReportTable {
 
             for (String columnName : columns.keySet()) {
                 if (columns.get(columnName).isDisplayable()) {
-                    Object obj = columns.get(columnName).getWithoutSideEffects(primaryKey);
-
                     if (needsPadding) { out.printf("  "); }
-
-                    String value = "null";
-                    if (obj != null) {
-                        if (obj instanceof Float) {
-                            value = String.format("%.8f", (Float) obj);
-                        } else if (obj instanceof Double) {
-                            value = String.format("%.8f", (Double) obj);
-                        } else {
-                            value = obj.toString();
-                        }
-                    }
-
-                    //out.printf(columnWidths.get(columnName), obj == null ? "null" : obj.toString());
+                    String value = columns.get(columnName).getStringValue(primaryKey);
                     out.printf(columnWidths.get(columnName), value);
 
                     needsPadding = true;
@@ -576,5 +655,17 @@ public class GATKReportTable {
 
     public int getNumRows() {
         return primaryKeyColumn.size();
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public String getTableDescription() {
+        return tableDescription;
+    }
+
+    public GATKReportColumns getColumns() {
+        return columns;
     }
 }

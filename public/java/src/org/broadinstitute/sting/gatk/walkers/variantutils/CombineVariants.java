@@ -25,16 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.apache.poi.hpsf.Variant;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -47,49 +43,114 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.util.*;
 
 /**
- * Combines VCF records from different sources; supports both full merges and set unions.
+ * Combines VCF records from different sources.
+ *
+ * <p>
+ * CombineVariants combines VCF records from different sources. Any (unique) name can be used to bind your rod data
+ * and any number of sources can be input. This tool currently supports two different combination types for each of
+ * variants (the first 8 fields of the VCF) and genotypes (the rest).
  * Merge: combines multiple records into a single one; if sample names overlap then they are uniquified.
  * Union: assumes each rod represents the same set of samples (although this is not enforced); using the
- *   priority list (if provided), emits a single record instance at every position represented in the rods.
+ * priority list (if provided), it emits a single record instance at every position represented in the rods.
+ *
+ * CombineVariants will include a record at every site in all of your input VCF files, and annotate which input ROD
+ * bindings the record is present, pass, or filtered in in the set attribute in the INFO field. In effect,
+ * CombineVariants always produces a union of the input VCFs.  However, any part of the Venn of the N merged VCFs
+ * can be exacted using JEXL expressions on the set attribute using SelectVariants.  If you want to extract just
+ * the records in common between two VCFs, you would first run CombineVariants on the two files to generate a single
+ * VCF and then run SelectVariants to extract the common records with -select 'set == "Intersection"', as worked out
+ * in the detailed example on the wiki.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more variant sets to combine.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A combined VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CombineVariants \
+ *   --variant input1.vcf \
+ *   --variant input2.vcf \
+ *   -o output.vcf \
+ *   -genotypeMergeOptions UNIQUIFY
+ *
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T CombineVariants \
+ *   --variant:foo input1.vcf \
+ *   --variant:bar input2.vcf \
+ *   -o output.vcf \
+ *   -genotypeMergeOptions PRIORITIZE
+ *   -priority foo,bar
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=-50,stop=50))
-@Requires(value={})
 public class CombineVariants extends RodWalker<Integer, Integer> {
+    /**
+     * The VCF files to merge together
+     *
+     * variants can take any number of arguments on the command line.  Each -V argument
+     * will be included in the final merged output VCF.  If no explicit name is provided,
+     * the -V arguments will be named using the default algorithm: variants, variants2, variants3, etc.
+     * The user can override this by providing an explicit name -V:name,vcf for each -V argument,
+     * and each named argument will be labeled as such in the output (i.e., set=name rather than
+     * set=variants2).  The order of arguments does not matter unless except for the naming, so
+     * if you provide an rod priority list and no explicit names than variants, variants2, etc
+     * are techincally order dependent.  It is strongly recommended to provide explicit names when
+     * a rod priority list is provided.
+     */
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public List<RodBinding<VariantContext>> variants;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    // the types of combinations we currently allow
-    @Argument(shortName="genotypeMergeOptions", doc="How should we merge genotype records for samples shared across the ROD files?", required=false)
+    @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
     public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
 
-    @Argument(shortName="filteredRecordsMergeType", doc="How should we deal with records seen at the same site in the VCF, but with different FILTER fields?  KEEP_IF_ANY_UNFILTERED PASSes the record if any record is unfiltered, KEEP_IF_ALL_UNFILTERED requires all records to be unfiltered", required=false)
+    @Argument(shortName="filteredRecordsMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different FILTER fields", required=false)
     public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
 
-    @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=false)
+    /**
+     * Used when taking the union of variants that contain genotypes.  A complete priority list MUST be provided.
+     */
+    @Argument(fullName="rod_priority_list", shortName="priority", doc="A comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted", required=false)
     public String PRIORITY_STRING = null;
 
     @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
     public boolean printComplexMerges = false;
 
-    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotation don't appear in the combined VCF", required=false)
+    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotations don't appear in the combined VCF", required=false)
     public boolean filteredAreUncalled = false;
 
-    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype INFO field", required=false)
+    /**
+     * Used to generate a sites-only file.
+     */
+    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype FORMAT fields", required=false)
     public boolean minimalVCF = false;
 
-    @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
+    /**
+     * Set to 'null' if you don't want the set field emitted.
+     */
+    @Argument(fullName="setKey", shortName="setKey", doc="Key used in the INFO key=value tag emitted describing which set the combined VCF record came from", required=false)
     public String SET_KEY = "set";
 
-    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls so that one can simply perform a merge sort to combine the VCFs into one, drastically reducing the runtime.", required=false)
+    /**
+     * This option allows the user to perform a simple merge (concatenation) to combine the VCFs, drastically reducing the runtime..
+     */
+    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls", required=false)
     public boolean ASSUME_IDENTICAL_SAMPLES = false;
 
-    @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if variant is present in at least N input files.", required=false)
+    @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if the variant is present in at least N input files.", required=false)
     public int minimumN = 1;
-
-    @Hidden
-    @Argument(fullName="masterMerge", shortName="master", doc="Master merge mode -- experts only.  You need to look at the code to understand it", required=false)
-    public boolean master = false;
 
     @Hidden
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
@@ -150,7 +211,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);
@@ -158,7 +219,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
             for ( final VariantContext vc : vcs ) {
-                vcfWriter.add( vc, ref.getBase() );
+                vcfWriter.add(vc);
             }
             
             return vcs.isEmpty() ? 0 : 1;
@@ -174,17 +235,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             return 0;
         
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
-        if ( master ) {
-            mergedVCs.add(VariantContextUtils.masterMerge(vcs, "master"));
-        } else {
-            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
-            // iterate over the types so that it's deterministic
-            for ( VariantContext.Type type : VariantContext.Type.values() ) {
-                if ( VCsByType.containsKey(type) )
-                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                            ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
-            }
+        Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+        // iterate over the types so that it's deterministic
+        for ( VariantContext.Type type : VariantContext.Type.values() ) {
+            if ( VCsByType.containsKey(type) )
+                mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                        priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                        SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
 
         for ( VariantContext mergedVC : mergedVCs ) {
@@ -198,7 +255,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
             if ( minimalVCF )
                 annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, Arrays.asList(SET_KEY));
-            vcfWriter.add(annotatedMergedVC, ref.getBase());
+            vcfWriter.add(annotatedMergedVC);
         }
 
         return vcs.isEmpty() ? 0 : 1;

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -42,22 +41,66 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.util.*;
 
 /**
- * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
+ * Annotates a validation (from Sequenom for example) VCF with QC metrics (HW-equilibrium, % failed probes)
+ *
+ * <p>
+ * The Variant Validation Assessor is a tool for vetting/assessing validation data (containing genotypes).
+ * The tool produces a VCF that is annotated with information pertaining to plate quality control and by
+ * default is soft-filtered by high no-call rate or low Hardy-Weinberg probability.
+ * If you have .ped files, please first convert them to VCF format
+ * (see http://www.broadinstitute.org/gsa/wiki/index.php/Converting_ped_to_vcf).
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A validation VCF to annotate.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * An annotated VCF.  Additionally, a table like the following will be output:
+ * <pre>
+ *     Total number of samples assayed:                  185
+ *     Total number of records processed:                152
+ *     Number of Hardy-Weinberg violations:              34 (22%)
+ *     Number of no-call violations:                     12 (7%)
+ *     Number of homozygous variant violations:          0 (0%)
+ *     Number of records passing all filters:            106 (69%)
+ *     Number of passing records that are polymorphic:   98 (92%)
+ * </pre>
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantValidationAssessor \
+ *   --variant input.vcf \
+ *   -o output.vcf
+ * </pre>
+ *
  */
 @Reference(window=@Window(start=0,stop=40))
-@Requires(value={},referenceMetaData=@RMD(name=VariantValidationAssessor.INPUT_VARIANT_ROD_BINDING_NAME, type=VariantContext.class))
-public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, Byte>,Integer> {
+public class VariantValidationAssessor extends RodWalker<VariantContext,Integer> {
 
-    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfwriter = null;
 
-    @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
+    @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid", required=false)
     protected double maxHardy = 20.0;
-    @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a fraction) to consider an assay valid [default:0.05]", required=false)
+
+    /**
+     * To disable, set to a value greater than 1.
+     */
+    @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a fraction) to consider an assay valid", required=false)
     protected double maxNoCall = 0.05;
-    @Argument(fullName="maxHomVar", doc="Maximum homozygous variant rate (as a fraction) to consider an assay valid [default:1.1, disabled]", required=false)
+
+    /**
+     * To disable, set to a value greater than 1.
+     */
+    @Argument(fullName="maxHomVar", doc="Maximum homozygous variant rate (as a fraction) to consider an assay valid", required=false)
     protected double maxHomNonref = 1.1;
 
     //@Argument(fullName="populationFile", shortName="populations", doc="A tab-delimited file relating individuals to populations,"+
@@ -68,7 +111,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     private TreeSet<String> sampleNames = null;
 
     // variant context records
-    private ArrayList<Pair<VariantContext, Byte>> records = new ArrayList<Pair<VariantContext, Byte>>();
+    private ArrayList<VariantContext> records = new ArrayList<VariantContext>();
 
     // statistics
     private int numRecords = 0;
@@ -89,11 +132,11 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         return 0;
     }
 
-    public Pair<VariantContext, Byte> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return null;
 
-        VariantContext vc = tracker.getVariantContext(ref, INPUT_VARIANT_ROD_BINDING_NAME, ref.getLocus());
+        VariantContext vc = tracker.getFirstValue(variantCollection.variants, ref.getLocus());
         // ignore places where we don't have a variant
         if ( vc == null )
             return null;
@@ -101,10 +144,10 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>(vc.getSampleNames());        
 
-        return addVariantInformationToCall(ref, vc);
+        return addVariantInformationToCall(vc);
     }
 
-    public Integer reduce(Pair<VariantContext, Byte> call, Integer numVariants) {
+    public Integer reduce(VariantContext call, Integer numVariants) {
         if ( call != null ) {
             numVariants++;
             records.add(call);
@@ -113,8 +156,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
     }
 
     public void onTraversalDone(Integer finalReduce) {
-        final ArrayList<String> inputNames = new ArrayList<String>();
-        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+        final List<String> inputNames = Arrays.asList(variantCollection.variants.getName());
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -155,12 +197,12 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         
         vcfwriter.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
 
-        for ( Pair<VariantContext, Byte> record : records )
-            vcfwriter.add(record.first, record.second);
+        for ( VariantContext record : records )
+            vcfwriter.add(record);
     }
 
 
-    private Pair<VariantContext, Byte> addVariantInformationToCall(ReferenceContext ref, VariantContext vContext) {
+    private VariantContext addVariantInformationToCall(VariantContext vContext) {
 
         // check possible filters
         double hwPvalue = hardyWeinbergCalculation(vContext);
@@ -202,9 +244,7 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
 
-        vContext = VariantContext.modifyAttributes(vContext, infoMap);
-
-        return new Pair<VariantContext, Byte>(vContext, ref.getBase());
+        return VariantContext.modifyAttributes(vContext, infoMap);
     }
 
     private double hardyWeinbergCalculation(VariantContext vc) {

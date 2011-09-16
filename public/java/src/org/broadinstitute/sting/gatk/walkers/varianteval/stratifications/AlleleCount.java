@@ -1,23 +1,28 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Set;
+import java.util.List;
 
+/**
+ * Stratifies the eval RODs by the allele count of the alternate allele
+ *
+ * Looks at the AC value in the INFO field, and uses that value if present.  If absent,
+ * computes the AC from the genotypes themselves.  For no AC can be computed, 0 is used.
+ */
 public class AlleleCount extends VariantStratifier {
-    // needs to know the variant context
-    private ArrayList<String> states = new ArrayList<String>();
-
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
+    public void initialize() {
+        List<RodBinding<VariantContext>> evals = getVariantEvalWalker().getEvals();
+
         // we can only work with a single eval VCF, and it must have genotypes
-        if ( evalNames.size() != 1 )
+        if ( evals.size() != 1 )
             throw new UserException.BadArgumentValue("AlleleCount", "AlleleCount stratification only works with a single eval vcf");
 
         // There are 2 x n sample chromosomes for diploids
@@ -33,11 +38,7 @@ public class AlleleCount extends VariantStratifier {
         getVariantEvalWalker().getLogger().info("AlleleCount using " + nchrom + " chromosomes");
     }
 
-    public ArrayList<String> getAllStates() {
-        return states;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>(1);
 
         if (eval != null) {

@@ -92,45 +92,45 @@ public class VariantContextUnitTest {
 
         // test INDELs
         alleles = Arrays.asList(Aref, ATC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(Tref, TA, TC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, AC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, Allele.create("ATCTC"));
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         // test MIXED
         alleles = Arrays.asList(TAref, T, TC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(TAref, T, AC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(ACref, ATC, AT);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(Aref, T, symbolic);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         // test SYMBOLIC
         alleles = Arrays.asList(Tref, symbolic);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.SYMBOLIC);
     }
 
@@ -146,8 +146,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
         Assert.assertTrue(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
-        Assert.assertFalse(vc.isInsertion());
-        Assert.assertFalse(vc.isDeletion());
+        Assert.assertFalse(vc.isSimpleInsertion());
+        Assert.assertFalse(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -173,8 +173,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(VariantContext.Type.NO_VARIATION, vc.getType());
         Assert.assertFalse(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
-        Assert.assertFalse(vc.isInsertion());
-        Assert.assertFalse(vc.isDeletion());
+        Assert.assertFalse(vc.isSimpleInsertion());
+        Assert.assertFalse(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertFalse(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 1);
@@ -191,7 +191,7 @@ public class VariantContextUnitTest {
     @Test
     public void testCreatingDeletionVariantContext() {
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContext("test", delLoc, delLocStart, delLocStop, alleles);
+        VariantContext vc = new VariantContext("test", delLoc, delLocStart, delLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
 
         Assert.assertEquals(vc.getChr(), delLoc);
         Assert.assertEquals(vc.getStart(), delLocStart);
@@ -199,8 +199,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
         Assert.assertFalse(vc.isSNP());
         Assert.assertTrue(vc.isIndel());
-        Assert.assertFalse(vc.isInsertion());
-        Assert.assertTrue(vc.isDeletion());
+        Assert.assertFalse(vc.isSimpleInsertion());
+        Assert.assertTrue(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -218,7 +218,7 @@ public class VariantContextUnitTest {
     @Test
     public void testCreatingInsertionVariantContext() {
         List<Allele> alleles = Arrays.asList(delRef, ATC);
-        VariantContext vc = new VariantContext("test", insLoc, insLocStart, insLocStop, alleles);
+        VariantContext vc = new VariantContext("test", insLoc, insLocStart, insLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
 
         Assert.assertEquals(vc.getChr(), insLoc);
         Assert.assertEquals(vc.getStart(), insLocStart);
@@ -226,8 +226,8 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
         Assert.assertFalse(vc.isSNP());
         Assert.assertTrue(vc.isIndel());
-        Assert.assertTrue(vc.isInsertion());
-        Assert.assertFalse(vc.isDeletion());
+        Assert.assertTrue(vc.isSimpleInsertion());
+        Assert.assertFalse(vc.isSimpleDeletion());
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -251,7 +251,7 @@ public class VariantContextUnitTest {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, del));
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = IllegalStateException.class)
     public void testBadConstructorArgs3() {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(del));
     }
@@ -433,7 +433,7 @@ public class VariantContextUnitTest {
         Assert.assertFalse(vc14.isBiallelic());
 
         Assert.assertTrue(vc5.isIndel());
-        Assert.assertTrue(vc5.isDeletion());
+        Assert.assertTrue(vc5.isSimpleDeletion());
         Assert.assertTrue(vc5.isVariant());
         Assert.assertTrue(vc5.isBiallelic());
 

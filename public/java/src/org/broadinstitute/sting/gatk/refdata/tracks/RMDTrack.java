@@ -25,8 +25,12 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
+import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureSource;
+import org.broad.tribble.iterators.CloseableTribbleIterator;
+import org.broad.tribble.source.PerformanceLoggingFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -45,10 +49,10 @@ import java.io.IOException;
  *         the basics of what a reference metadata track must contain.
  */
 public class RMDTrack {
+    private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
 
     // the basics of a track:
     private final Class type;           // our type
-    private final Class recordType;     // the underlying records that are produced by this track
     private final String name;          // the name
     private final File file;            // the associated file we create the reader from
 
@@ -90,7 +94,6 @@ public class RMDTrack {
      */
     public RMDTrack(Class type, String name, File file, FeatureSource reader, SAMSequenceDictionary dict, GenomeLocParser genomeLocParser, FeatureCodec codec) {
         this.type = type;
-        this.recordType = codec.getFeatureType();
         this.name = name;
         this.file = file;
         this.reader = reader;
@@ -112,19 +115,10 @@ public class RMDTrack {
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
-        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),interval.getStart(),interval.getStop()),this.getName());
-    }
-
-    public CloseableIterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),interval.getStart(),interval.getStop()),this.getName());
-    }
-
-    public CloseableIterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
-        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(contig,start,stop),this.getName());
-    }
-
-    public CloseableIterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(contig,start,stop),this.getName());
+        CloseableTribbleIterator<Feature> iter = reader.query(interval.getContig(),interval.getStart(),interval.getStop());
+        if ( RMDTrackBuilder.MEASURE_TRIBBLE_QUERY_PERFORMANCE )
+            logger.warn("Query " + getName() + ":" + ((PerformanceLoggingFeatureSource)reader).getPerformanceLog());
+        return new FeatureToGATKFeatureIterator(genomeLocParser, iter, this.getName());
     }
 
     public void close() {

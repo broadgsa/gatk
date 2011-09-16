@@ -27,6 +27,9 @@ package org.broadinstitute.sting.queue.engine.shell
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.queue.util.ShellJob
 import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import java.util.Date
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
+import org.broadinstitute.sting.utils.Utils
 
 /**
  * Runs jobs one at a time locally
@@ -50,8 +53,11 @@ class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRu
     // Allow advanced users to update the job.
     updateJobRun(job)
 
+    getRunInfo.startTime = new Date()
+    getRunInfo.exechosts = Utils.resolveHostname()
     updateStatus(RunnerStatus.RUNNING)
     job.run()
+    getRunInfo.doneTime = new Date()
     updateStatus(RunnerStatus.DONE)
   }
 

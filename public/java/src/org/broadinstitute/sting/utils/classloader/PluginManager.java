@@ -172,7 +172,7 @@ public class PluginManager<PluginType> {
       }
     }
     
-    protected Map<String, Class<? extends PluginType>> getPluginsByName() {
+    public Map<String, Class<? extends PluginType>> getPluginsByName() {
         return Collections.unmodifiableMap(pluginsByName);
     }
 

@@ -29,7 +29,7 @@ import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -110,11 +110,11 @@ public class ReferenceOrderedDataSource {
     }
 
     public Class getType() {
-        return builder.getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
+        return builder.getFeatureManager().getByTriplet(fileDescriptor).getCodecClass();
     }
 
     public Class getRecordType() {
-        return builder.createCodec(getType(),getName()).getFeatureType();
+        return builder.getFeatureManager().getByTriplet(fileDescriptor).getFeatureClass();
     }
 
     public File getFile() {

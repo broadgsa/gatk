@@ -40,26 +40,72 @@ import java.util.TreeSet;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+
 /**
- * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear
- * in the input file.  It can dynamically merge the contents of multiple input BAM files, resulting
- * in merged output sorted in coordinate order.  Can also optionally filter reads based on the --read-filter
- * command line argument.
+ * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear in the input file.
+ *
+ * <p>
+ * PrintReads can dynamically merge the contents of multiple input BAM files, resulting
+ * in merged output sorted in coordinate order.  Can also optionally filter reads based on the
+ * --read_filter command line argument.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * One or more bam files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A single processed bam file.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T PrintReads \
+ *   -o output.bam \
+ *   -I input1.bam \
+ *   -I input2.bam \
+ *   --read_filter MappingQualityZero
+ *
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T PrintReads \
+ *   -o output.bam \
+ *   -I input.bam \
+ *   -n 2000
+ * </pre>
+ *
  */
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
-    /** an optional argument to dump the reads out to a BAM file */
+
     @Output(doc="Write output to this BAM filename instead of STDOUT")
     SAMFileWriter out;
+
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Exclude all reads with this read group from the output", required = false)
     String readGroup = null;
+
+    /**
+     * For example, --platform ILLUMINA or --platform 454.
+     */
     @Argument(fullName = "platform", shortName = "platform", doc="Exclude all reads with this platform from the output", required = false)
-    String platform = null; // E.g. ILLUMINA, 454
+    String platform = null;
+
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
+
+    /**
+     * Only reads from samples listed in the provided file(s) will be included in the output.
+     */
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
     public Set<File> sampleFile = new TreeSet<File>();
+
+    /**
+     * Only reads from the sample(s) will be included in the output.
+     */
     @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
     public Set<String> sampleNames = new TreeSet<String>();
 

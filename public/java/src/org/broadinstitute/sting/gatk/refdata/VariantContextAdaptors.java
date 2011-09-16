@@ -1,12 +1,13 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import net.sf.samtools.util.SequenceUtil;
 import org.broad.tribble.Feature;
-import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.annotation.Strand;
+import org.broad.tribble.dbsnp.OldDbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.hapmap.HapMapFeature;
+import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -92,28 +93,89 @@ public class VariantContextAdaptors {
     // --------------------------------------------------------------------------------------------------------------
 
     private static class DBSnpAdaptor implements VCAdaptor {
+        private static boolean isSNP(OldDbSNPFeature feature) {
+            return feature.getVariantType().contains("single") && feature.getLocationType().contains("exact");
+        }
+
+        private static boolean isMNP(OldDbSNPFeature feature) {
+            return feature.getVariantType().contains("mnp") && feature.getLocationType().contains("range");
+        }
+
+        private static boolean isInsertion(OldDbSNPFeature feature) {
+            return feature.getVariantType().contains("insertion");
+        }
+
+        private static boolean isDeletion(OldDbSNPFeature feature) {
+            return feature.getVariantType().contains("deletion");
+        }
+
+        private static boolean isIndel(OldDbSNPFeature feature) {
+            return isInsertion(feature) || isDeletion(feature) || isComplexIndel(feature);
+        }
+
+        public static boolean isComplexIndel(OldDbSNPFeature feature) {
+            return feature.getVariantType().contains("in-del");
+        }
+
+        /**
+         * gets the alternate alleles.  This method should return all the alleles present at the location,
+         * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+         * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+         * frequency).
+         *
+         * @return an alternate allele list
+         */
+        public static List<String> getAlternateAlleleList(OldDbSNPFeature feature) {
+            List<String> ret = new ArrayList<String>();
+            for (String allele : getAlleleList(feature))
+                if (!allele.equals(String.valueOf(feature.getNCBIRefBase()))) ret.add(allele);
+            return ret;
+        }
+
+        /**
+         * gets the alleles.  This method should return all the alleles present at the location,
+         * including the reference base.  The first allele should always be the reference allele, followed
+         * by an unordered list of alternate alleles.
+         *
+         * @return an alternate allele list
+         */
+        public static List<String> getAlleleList(OldDbSNPFeature feature) {
+            List<String> alleleList = new ArrayList<String>();
+            // add ref first
+            if ( feature.getStrand() == Strand.POSITIVE )
+                alleleList = Arrays.asList(feature.getObserved());
+            else
+                for (String str : feature.getObserved())
+                    alleleList.add(SequenceUtil.reverseComplement(str));
+            if ( alleleList.size() > 0 && alleleList.contains(feature.getNCBIRefBase())
+                    && !alleleList.get(0).equals(feature.getNCBIRefBase()) )
+                Collections.swap(alleleList, alleleList.indexOf(feature.getNCBIRefBase()), 0);
+
+            return alleleList;
+        }
+
         /**
          * Converts non-VCF formatted dbSNP records to VariantContext. 
-         * @return DbSNPFeature.
+         * @return OldDbSNPFeature.
          */
         @Override
-        public Class<? extends Feature> getAdaptableFeatureType() { return DbSNPFeature.class; }
+        public Class<? extends Feature> getAdaptableFeatureType() { return OldDbSNPFeature.class; }
 
         @Override        
         public VariantContext convert(String name, Object input, ReferenceContext ref) {
-            DbSNPFeature dbsnp = (DbSNPFeature)input;
-            if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp)) )
+            OldDbSNPFeature dbsnp = (OldDbSNPFeature)input;
+            if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
                 return null;
-            Allele refAllele = Allele.create(DbSNPHelper.getReference(dbsnp), true);
+            Allele refAllele = Allele.create(dbsnp.getNCBIRefBase(), true);
 
-            if ( DbSNPHelper.isSNP(dbsnp) || DbSNPHelper.isIndel(dbsnp) || DbSNPHelper.isMNP(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
+            if ( isSNP(dbsnp) || isIndel(dbsnp) || isMNP(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
                 // add the reference allele
                 List<Allele> alleles = new ArrayList<Allele>();
                 alleles.add(refAllele);
 
                 // add all of the alt alleles
-                boolean sawNullAllele = false;
-                for ( String alt : DbSNPHelper.getAlternateAlleleList(dbsnp) ) {
+                boolean sawNullAllele = refAllele.isNull();
+                for ( String alt : getAlternateAlleleList(dbsnp) ) {
                     if ( ! Allele.acceptableAlleleBases(alt) ) {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                         return null;
@@ -127,14 +189,13 @@ public class VariantContextAdaptors {
                 Map<String, Object> attributes = new HashMap<String, Object>();
                 attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
 
-                if ( sawNullAllele ) {
-                    int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
-                    if ( index < 0 )
-                        return null; // we weren't given enough reference context to create the VariantContext
-                    attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(ref.getBases()[index]));
-                }
-                Collection<Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
+                int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
+                if ( index < 0 )
+                    return null; // we weren't given enough reference context to create the VariantContext
+                Byte refBaseForIndel = new Byte(ref.getBases()[index]);
+
+                Map<String, Genotype> genotypes = null;
+                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -163,16 +224,6 @@ public class VariantContextAdaptors {
          */
         @Override
         public Class<? extends Feature> getAdaptableFeatureType() { return GeliTextFeature.class; }
-
-          /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @return a VariantContext object
-         */
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
 
         /**
          * convert to a Variant Context, given:
@@ -237,17 +288,7 @@ public class VariantContextAdaptors {
          * @return HapMapFeature.
          */
         @Override
-        public Class<? extends Feature> getAdaptableFeatureType() { return HapMapFeature.class; }
-
-          /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @return a VariantContext object
-         */
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
+        public Class<? extends Feature> getAdaptableFeatureType() { return RawHapMapFeature.class; }
 
         /**
          * convert to a Variant Context, given:
@@ -261,7 +302,12 @@ public class VariantContextAdaptors {
             if ( ref == null )
                 throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires a reference context");
 
-            HapMapFeature hapmap = (HapMapFeature)input;
+            RawHapMapFeature hapmap = (RawHapMapFeature)input;
+
+            int index = hapmap.getStart() - ref.getWindow().getStart();
+            if ( index < 0 )
+                return null; // we weren't given enough reference context to create the VariantContext
+            Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
             HashSet<Allele> alleles = new HashSet<Allele>();
             Allele refSNPAllele = Allele.create(ref.getBase(), true);
@@ -271,7 +317,7 @@ public class VariantContextAdaptors {
             // use the actual alleles, if available
             if ( alleleMap != null ) {
                 alleles.addAll(alleleMap.values());
-                Allele deletionAllele = alleleMap.get(HapMapFeature.INSERTION);  // yes, use insertion here (since we want the reference bases)
+                Allele deletionAllele = alleleMap.get(RawHapMapFeature.INSERTION);  // yes, use insertion here (since we want the reference bases)
                 if ( deletionAllele != null && deletionAllele.isReference() )
                     deletionLength = deletionAllele.length();
             } else {
@@ -321,7 +367,7 @@ public class VariantContextAdaptors {
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
                 end += deletionLength;
-            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
+            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs, refBaseForIndel);
             return vc;
        }
     }

@@ -33,17 +33,17 @@ import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.Transcript;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
@@ -68,21 +68,59 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.*;
 import java.util.*;
 
+
 /**
+ * Tool for calling indels in Tumor-Normal paired sample mode; this tool supports single-sample mode as well,
+ * but this latter functionality is now superceded by UnifiedGenotyper.
+ *
+ * <p>
  * This is a simple, counts-and-cutoffs based tool for calling indels from aligned (preferrably MSA cleaned) sequencing
- * data. Two output formats supported are: BED format (minimal output, required), and extended output that includes read
- * and mismtach statistics around the calls (tuned on with --verbose). The calls can be performed from a single/pooled sample,
- * or from a matched pair of samples (with --somatic option). In the latter case, two input bam files must be specified,
- * the order is important: indels are called from the second sample ("Tumor") and additionally annotated as germline
- * if even a weak evidence for the same indel, not necessarily a confident call, exists in the first sample ("Normal"), or as somatic
- * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
- * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
+ * data. Supported output formats are: BED format, extended verbose output (tab separated), and VCF. The latter two outputs
+ * include additional statistics such as mismtaches and base qualitites around the calls, read strandness (how many
+ * forward/reverse reads support ref and indel alleles) etc. It is highly recommended to use these additional
+ * statistics to perform post-filtering of the calls as the tool is tuned for sensitivity (in other words it will
+ * attempt to "call" anything remotely reasonable based only on read counts and will generate all the additional
+ * metrics for the post-processing tools to make the final decision). The calls are performed by default
+ * from a matched tumor-normal pair of samples. In this case, two (sets of) input bam files must be specified using tagged -I
+ * command line arguments: normal and tumor bam(s) must be passed with -I:normal and -I:tumor arguments,
+ * respectively. Indels are called from the tumor sample and annotated as germline
+ * if even a weak evidence for the same indel, not necessarily a confident call, exists in the normal sample, or as somatic
+ * if normal sample has coverage at the site but no indication for an indel. Note that strictly speaking the calling
+ * is not even attempted in normal sample: if there is an indel in normal that is not detected/does not pass a threshold
+ * in tumor sample, it will not be reported.
+ *
+ * To make indel calls and associated metrics for a single sample, this tool can be run with --unpaired flag (input
+ * bam tagging is not required in this case, and tags are completely ignored if still used: all input bams will be merged
+ * on the fly and assumed to represent a single sample - this tool does not check for sample id in the read groups).
+ *
+ * <h2>Input</h2>
+ * <p>
+ * Tumor and normal bam files (or single sample bam file(s) in --unpaired mode).
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Indel calls with associated metrics.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SomaticIndelDetector \
+ *   -o indels.vcf \
+ *   -verbose indels.txt
+ *   -I:normal normal.bam \
+ *   -I:tumor tumor.bam
+ * </pre>
+ *
  */
-@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, PlatformUnitFilter.class})
+
+@ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to write variants (indels) in VCF format",required=true)
     protected VCFWriter vcf_writer = null;
 
     @Argument(fullName="outputFile", shortName="O", doc="output file name (BED format). DEPRECATED> Use --bed", required=true)
@@ -97,67 +135,79 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
     @Hidden
     @Argument(fullName = "genotype_intervals", shortName = "genotype",
-            doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or it's the ref", required = false)
+        doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or not", required = false)
     public String genotypeIntervalsFile = null;
 
     @Hidden
     @Argument(fullName="genotypeIntervalsAreNotSorted", shortName="giNotSorted", required=false,
-            doc="This tool assumes that the genotyping interval list (--genotype_intervals) is sorted; "+
-                "if the list turns out to be unsorted, it will throw an exception.  "+
-                "Use this argument when your interval list is not sorted to instruct the IndelGenotyper "+
-                "to sort and keep it in memory (increases memory usage!).")
+        doc="This tool assumes that the genotyping interval list (--genotype_intervals) is sorted; "+
+            "if the list turns out to be unsorted, it will throw an exception.  "+
+            "Use this argument when your interval list is not sorted to instruct the IndelGenotyper "+
+            "to sort and keep it in memory (increases memory usage!).")
     protected boolean GENOTYPE_NOT_SORTED = false;
 
     @Hidden
-	@Argument(fullName="unpaired", shortName="unpaired",
-			doc="Perform unpaired calls (no somatic status detection)", required=false)
+    @Argument(fullName="unpaired", shortName="unpaired",
+                    doc="Perform unpaired calls (no somatic status detection)", required=false)
     boolean call_unpaired = false;
-	boolean call_somatic ;
+    boolean call_somatic ;
 
-	@Argument(fullName="verboseOutput", shortName="verbose",
-			doc="Verbose output file in text format", required=false)
-	java.io.File verboseOutput = null;
+    @Argument(fullName="verboseOutput", shortName="verbose",
+                    doc="Verbose output file in text format", required=false)
+    java.io.File verboseOutput = null;
 
     @Argument(fullName="bedOutput", shortName="bed",
-            doc="Lightweight bed output file (only positions and events, no stats/annotations)", required=false)
+        doc="Lightweight bed output file (only positions and events, no stats/annotations)", required=false)
     java.io.File bedOutput = null;
 
-	@Argument(fullName="minCoverage", shortName="minCoverage",
-			doc="indel calls will be made only at sites with coverage of minCoverage or more reads; with --somatic this value is applied to tumor sample", required=false)
-	int minCoverage = 6;
+    @Argument(fullName="minCoverage", shortName="minCoverage",
+                    doc="indel calls will be made only at sites with tumor coverage of minCoverage or more reads; "+
+            "with --unpaired (single sample) option, this value is used for minimum sample coverage", required=false)
+    int minCoverage = 6;
 
-	@Argument(fullName="minNormalCoverage", shortName="minNormalCoverage",
-			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads at the site to call germline/somatic indel, otherwise the indel (in tumor) is ignored", required=false)
-	int minNormalCoverage = 4;
+    @Argument(fullName="minNormalCoverage", shortName="minNormalCoverage",
+                    doc="used only in default (somatic) mode;  normal sample must have at least minNormalCoverage "+
+            "or more reads at the site to call germline/somatic indel, otherwise the indel (in tumor) is ignored", required=false)
+    int minNormalCoverage = 4;
 
-	@Argument(fullName="minFraction", shortName="minFraction",
-			doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for making a call"+
-			" (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction)", required=false)
-	double minFraction = 0.3;
+    @Argument(fullName="minFraction", shortName="minFraction",
+                    doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for making a call"+
+                    " (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction)", required=false)
+    double minFraction = 0.3;
 
-	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction",
-			doc="Indel call is made only if fraction of CONSENSUS indel observations at a site wrt all indel observations at the site exceeds this threshold", required=false)
-	double minConsensusFraction = 0.7;
+    @Argument(fullName="minConsensusFraction", shortName="minConsensusFraction",
+                    doc="Indel call is made only if fraction of CONSENSUS indel observations at a site wrt "+
+            "all indel observations at the site exceeds this threshold", required=false)
+    double minConsensusFraction = 0.7;
 
-	@Argument(fullName="minIndelCount", shortName="minCnt",
-			doc="Minimum count of reads supporting consensus indel required for making the call. "+
-			" This filter supercedes minFraction, i.e. indels with acceptable minFraction at low coverage "+
-			"(minIndelCount not met) will not pass.", required=false)
-	int minIndelCount = 0;
+    @Argument(fullName="minIndelCount", shortName="minCnt",
+                    doc="Minimum count of reads supporting consensus indel required for making the call. "+
+                    " This filter supercedes minFraction, i.e. indels with acceptable minFraction at low coverage "+
+                    "(minIndelCount not met) will not pass.", required=false)
+    int minIndelCount = 0;
 
-	@Argument(fullName="refseq", shortName="refseq",
-			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated with GENOMIC/UTR/INTRON/CODING and with the gene name", required=false)
-	String RefseqFileName = null;
+    @Argument(fullName="refseq", shortName="refseq",
+                    doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated with "+
+            "GENOMIC/UTR/INTRON/CODING and with the gene name", required=false)
+    String RefseqFileName = null;
 
-    @Argument(fullName="blacklistedLanes", shortName="BL",
-            doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
-                    "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
-    PlatformUnitFilterHelper dummy;
-     @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging, do not turn this on",required=false) Boolean DEBUG = false;
+//@Argument(fullName="blacklistedLanes", shortName="BL",
+//        doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
+//                "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
+//PlatformUnitFilterHelper dummy;
+
+    @Hidden
+    @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging, do not turn this on",
+            required=false) Boolean DEBUG = false;
     @Argument(fullName="window_size", shortName="ws", doc="Size (bp) of the sliding window used for accumulating the coverage. "+
-            "May need to be increased to accomodate longer reads or longer deletions.",required=false) int WINDOW_SIZE = 200;
+            "May need to be increased to accomodate longer reads or longer deletions. A read can be fit into the "+
+            "window if its length on the reference (i.e. read length + length of deletion gap(s) if any) is smaller "+
+            "than the window size. Reads that do not fit will be ignored, so long deletions can not be called "+
+            "if window is too small",required=false) int WINDOW_SIZE = 200;
     @Argument(fullName="maxNumberOfReads",shortName="mnr",doc="Maximum number of reads to cache in the window; if number of reads exceeds this number,"+
                 " the window will be skipped and no calls will be made from it",required=false) int MAX_READ_NUMBER = 10000;
+
+
 
 	private WindowContext tumor_context;
 	private WindowContext normal_context; 
@@ -469,10 +519,20 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                 // let's double check now that the read fits after the shift
                 if ( read.getAlignmentEnd() > normal_context.getStop()) {
                     // ooops, looks like the read does not fit into the window even after the latter was shifted!!
-                    throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
-                                             "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+                    // we used to die over such reads and require user to run with larger window size. Now we
+                    // just print a warning and discard the read (this means that our counts can be slightly off in
+                    // th epresence of such reads)
+                    //throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
+                    //                         "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+                    //                         read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
+                    //                         "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    System.out.println("WARNING: Read "+read.getReadName()+
+                             " is out of coverage window bounds. Probably window is too small and the window_size value must be increased.\n"+
+                             "  The read is ignored in this run (so all the counts/statistics reported will not include it).\n"+
+                                             "  Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
                                              read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
                                              "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
+                    return 1;
                 }
             }
 
@@ -1033,8 +1093,8 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             filters.add("NoCall");
         }
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */,  filters, null);
-        vcf.add(vc,refBases[(int)start-1]);
+            -1.0 /* log error */,  filters, null, refBases[(int)start-1]);
+        vcf.add(vc);
     }
 
     /** Fills l with appropriate alleles depending on whether call is insertion or deletion
@@ -1130,8 +1190,8 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
 
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */, filters, attrs);
-        vcf.add(vc,refBases[(int)start-1]);
+            -1.0 /* log error */, filters, attrs, refBases[(int)start-1]);
+        vcf.add(vc);
     }
 
     @Override

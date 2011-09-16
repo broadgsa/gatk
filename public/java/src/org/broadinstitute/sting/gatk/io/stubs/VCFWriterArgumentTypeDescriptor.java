@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -108,7 +109,12 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) {
+    public String typeDefaultDocString(ArgumentSource source) {
+        return "stdout";
+    }
+
+    @Override
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
         VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false, argumentSources, false, false);
@@ -124,7 +130,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @return Transform from the matches into the associated argument.
      */
     @Override
-    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         ArgumentDefinition defaultArgumentDefinition = createDefaultArgumentDefinition(source);
         // Get the filename for the genotype file, if it exists.  If not, we'll need to send output to out.
         String writerFileName = getArgumentValue(defaultArgumentDefinition,matches);

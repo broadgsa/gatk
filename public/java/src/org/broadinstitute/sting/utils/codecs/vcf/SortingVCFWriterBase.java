@@ -105,9 +105,8 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
      * add a record to the file
      *
      * @param vc      the Variant Context object
-     * @param refBase the ref base
      */
-    public void add(VariantContext vc, byte refBase) {
+    public void add(VariantContext vc) {
         /* Note that the code below does not prevent the successive add()-ing of: (chr1, 10), (chr20, 200), (chr15, 100)
            since there is no implicit ordering of chromosomes:
          */
@@ -122,7 +121,7 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
 
         noteCurrentRecord(vc); // possibly overwritten
 
-        queue.add(new VCFRecord(vc, refBase));
+        queue.add(new VCFRecord(vc));
         emitSafeRecords();
     }
 
@@ -133,7 +132,7 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
             // No need to wait, waiting for nothing, or before what we're waiting for:
             if (emitUnsafe || mostUpstreamWritableLoc == null || firstRec.vc.getStart() <= mostUpstreamWritableLoc) {
                 queue.poll();
-                innerWriter.add(firstRec.vc, firstRec.refBase);
+                innerWriter.add(firstRec.vc);
             }
             else {
                 break;
@@ -143,7 +142,7 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
 
     /**
      * Gets a string representation of this object.
-     * @return
+     * @return a string representation of this object
      */
     @Override
     public String toString() {
@@ -158,11 +157,9 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
 
     private static class VCFRecord {
         public VariantContext vc;
-        public byte refBase;
 
-        public VCFRecord(VariantContext vc, byte refBase) {
+        public VCFRecord(VariantContext vc) {
             this.vc = vc;
-            this.refBase = refBase;
         }
     }
 }

@@ -35,16 +35,46 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
+
 /**
- * Left aligns indels in reads.
+ * Left-aligns indels from reads in a bam file.
+ *
+ * <p>
+ * LeftAlignIndels is a tool that takes a bam file and left-aligns any indels inside it.  The same indel can often be
+ * placed at multiple positions and still represent the same haplotype.  While a standard convention is to place an
+ * indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A bam file to left-align.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A left-aligned bam.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx3g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T LeftAlignIndels \
+ *   -I input.bam \
+ *   -o output.vcf
+ * </pre>
+ *
  */
 public class LeftAlignIndels extends ReadWalker<Integer, Integer> {
 
     @Output(required=false, doc="Output bam")
     protected StingSAMFileWriter writer = null;
 
-    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
-                "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
+    /**
+     * If set too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool
+     * may run out of memory.  We recommend that you additionally tell Java to use a temp directory with plenty of available
+     * space (by setting java.io.tempdir on the command-line).
+     */
+    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the output writer", required=false)
     protected int MAX_RECORDS_IN_RAM = 500000;
 
     public void initialize() {

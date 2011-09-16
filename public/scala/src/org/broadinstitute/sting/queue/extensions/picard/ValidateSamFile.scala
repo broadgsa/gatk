@@ -17,7 +17,7 @@ class ValidateSamFile extends org.broadinstitute.sting.queue.function.JavaComman
   javaMainClass = "net.sf.picard.sam.ValidateSamFile"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
-  var input: List[File] = _
+  var input: List[File] = Nil
 
   @Output(doc="Send output to a file instead of stdout", shortName = "output", fullName = "output_file", required = false)
   var output: File = _
@@ -26,7 +26,7 @@ class ValidateSamFile extends org.broadinstitute.sting.queue.function.JavaComman
   var MODE: Mode = Mode.VERBOSE
 
   @Argument(doc="List of validation error types to ignore.", shortName = "ignore", fullName = "ignore_error_types", required = false)
-  var IGNORE: List[String] = _
+  var IGNORE: List[String] = Nil
 
   @Argument(doc = "The maximum number of lines output in verbose mode.", shortName = "max", fullName = "max_output", required = false)
   var MAX_OUTPUT: Int = 100

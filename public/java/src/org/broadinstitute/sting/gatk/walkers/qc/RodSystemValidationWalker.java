@@ -1,12 +1,39 @@
+/*
+ * Copyright (c) 2011, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
@@ -28,6 +55,9 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
 
     // the divider to use in some of the text output
     private static final String DIVIDER = ",";
+
+    @Input(fullName="eval", shortName = "eval", doc="Input VCF eval file", required=true)
+    public List<RodBinding<VariantContext>> eval;
 
     @Output
     public PrintStream out;
@@ -73,18 +103,17 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         int ret = 0;
-        if (tracker != null && tracker.getAllRods().size() > 0) {
+        if (tracker != null && tracker.getNTracksWithBoundFeatures() > 0) {
             out.print(context.getLocation() + DIVIDER);
-            Collection<GATKFeature> features = tracker.getAllRods();
-            for (GATKFeature feat : features)
-                out.print(feat.getName() + DIVIDER);
+            for (RODRecordList rod: tracker.getBoundRodTracks())
+                out.print(rod.getName() + DIVIDER);
             out.println(";");
             ret++;
         }
 
         // if the argument was set, check for equivalence
         if (allRecordsVariantContextEquivalent && tracker != null) {
-            Collection<VariantContext> col = tracker.getAllVariantContexts(ref);
+            Collection<VariantContext> col = tracker.getValues(eval);
             VariantContext con = null;
             for (VariantContext contextInList : col)
                 if (con == null) con = contextInList;

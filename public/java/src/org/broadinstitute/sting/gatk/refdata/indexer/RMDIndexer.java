@@ -12,14 +12,13 @@ import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Map;
 
 /**
  * a utility class that can create an index, written to a target location.  This is useful when you're unable to write to the directory
@@ -83,14 +82,14 @@ public class RMDIndexer extends CommandLineProgram {
         RMDTrackBuilder builder = new RMDTrackBuilder(ref.getSequenceDictionary(),genomeLocParser, ValidationExclusion.TYPE.ALL);
 
         // find the types available to the track builders
-        Map<String,Class> typeMapping = builder.getAvailableTrackNamesAndTypes();
+        FeatureManager.FeatureDescriptor descriptor = builder.getFeatureManager().getByName(inputFileType);
 
         // check that the type is valid
-        if (!typeMapping.containsKey(inputFileType))
-            throw new IllegalArgumentException("The type specified " + inputFileType + " is not a valid type.  Valid type list: " + Utils.join(",",typeMapping.keySet()));
+        if (descriptor == null)
+            throw new IllegalArgumentException("The type specified " + inputFileType + " is not a valid type.  Valid type list: " + builder.getFeatureManager().userFriendlyListOfAvailableFeatures());
 
         // create the codec
-        FeatureCodec codec = builder.createByType(typeMapping.get(inputFileType));
+        FeatureCodec codec = builder.getFeatureManager().createCodec(descriptor, "foo", genomeLocParser);
 
         // check if it's a reference dependent feature codec
         if (codec instanceof ReferenceDependentFeatureCodec)

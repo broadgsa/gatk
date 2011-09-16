@@ -25,7 +25,9 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -51,6 +53,9 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public List<RodBinding<VariantContext>> variants;
+
     // control the output
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
@@ -62,15 +67,9 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
     private Set<String> trackNames = new HashSet<String>();
 
     public void initialize() {
-        UAC.NO_SLOD = true;
 
-        for ( ReferenceOrderedDataSource d : getToolkit().getRodDataSources() ) {
-            if ( d.getName().startsWith("variant") )
-                trackNames.add(d.getName());
-        }
-        if ( trackNames.size() == 0 )
-            throw new UserException("At least one track bound to a name beginning with 'variant' must be provided.");
-
+        for ( RodBinding<VariantContext> rb : variants )
+            trackNames.add(rb.getName());
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), trackNames);
 
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples);
@@ -94,11 +93,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         if ( tracker == null )
             return null;
 
-        List<VariantContext> VCs = new ArrayList<VariantContext>();
-        for ( String name : trackNames ) {
-            Collection<VariantContext> vc = tracker.getVariantContexts(ref, name, null, context.getLocation(), true, true);
-            VCs.addAll(vc);
-        }
+        List<VariantContext> VCs = tracker.getValues(variants, context.getLocation());
 
         VariantContext mergedVC = mergeVCsWithGLs(VCs);
         if ( mergedVC == null )
@@ -116,7 +111,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         try {
             Map<String, Object> attrs = new HashMap<String, Object>(value.getAttributes());
             VariantContextUtils.calculateChromosomeCounts(value, attrs, true);
-            writer.add(VariantContext.modifyAttributes(value, attrs), value.refBase);
+            writer.add(VariantContext.modifyAttributes(value, attrs));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

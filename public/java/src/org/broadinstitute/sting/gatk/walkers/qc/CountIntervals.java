@@ -1,16 +1,19 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -21,6 +24,9 @@ import java.util.List;
 public class CountIntervals extends RefWalker<Long, Long> {
     @Output
     PrintStream out;
+
+    @Input(fullName="check", shortName = "check", doc="Any number of RODs", required=false)
+    public List<RodBinding<Feature>> features = Collections.emptyList();
 
     @Argument(fullName="numOverlaps",shortName="no",doc="Count all occurrences of X or more overlapping intervals; defaults to 2", required=false)
     int numOverlaps = 2;
@@ -36,7 +42,7 @@ public class CountIntervals extends RefWalker<Long, Long> {
             return null;
         }
 
-        List<GATKFeature> checkIntervals = tracker.getGATKFeatureMetaData("check",false);
+        List<Feature> checkIntervals = tracker.getValues(features);
         return (long) checkIntervals.size();
     }
 

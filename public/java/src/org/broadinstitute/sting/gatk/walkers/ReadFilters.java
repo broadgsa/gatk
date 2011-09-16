@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.picard.filter.SamRecordFilter;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.lang.annotation.*;
 

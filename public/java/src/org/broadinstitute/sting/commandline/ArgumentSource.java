@@ -152,6 +152,14 @@ public class ArgumentSource {
     }
 
     /**
+     * Is the given argument considered an advanced option when displaying on the command-line argument system.
+     * @return True if so.  False otherwise.
+     */
+    public boolean isAdvanced() {
+        return field.isAnnotationPresent(Advanced.class);
+    }
+
+    /**
      * Is this command-line argument dependent on some primitive argument types?
      * @return True if this command-line argument depends on other arguments; false otherwise.
      */
@@ -175,13 +183,17 @@ public class ArgumentSource {
         return typeDescriptor.createsTypeDefault(this);
     }
 
+    public String typeDefaultDocString() {
+        return typeDescriptor.typeDefaultDocString(this);
+    }
+
     /**
      * Generates a default for the given type.
      * @param parsingEngine the parsing engine used to validate this argument type descriptor.
      * @return A default value for the given type.
      */
     public Object createTypeDefault(ParsingEngine parsingEngine) {
-        return typeDescriptor.createTypeDefault(parsingEngine,this,field.getType());
+        return typeDescriptor.createTypeDefault(parsingEngine,this,field.getGenericType());
     }
 
     /**

@@ -26,8 +26,9 @@ package org.broadinstitute.sting.queue.engine
 
 import java.io.File
 import org.broadinstitute.sting.queue.QSettings
-import org.broadinstitute.sting.commandline.{ArgumentCollection, Argument}
 import org.broadinstitute.sting.queue.util.SystemUtils
+import org.broadinstitute.sting.commandline.{Advanced, ArgumentCollection, Argument}
+import org.broadinstitute.sting.utils.R.RScriptExecutor
 
 /**
  * Command line options for a QGraph.
@@ -68,6 +69,16 @@ class QGraphSettings {
 
   @Argument(fullName="expanded_dot_graph", shortName="expandedDot", doc="Outputs the queue graph of scatter gather to a .dot file.  Otherwise overwrites the dot_graph", required=false)
   var expandedDotFile: File = _
+
+  @Argument(fullName="jobReport", shortName="jobReport", doc="File where we will write the Queue job report", required=false)
+  var jobReportFile: String = _
+
+  @Advanced
+  @Argument(fullName="disableJobReport", shortName="disabpleJobReport", doc="If provided, we will not create a job report", required=false)
+  var disableJobReport: Boolean = false
+
+  @ArgumentCollection
+  var rScriptArgs = new RScriptExecutor.RScriptArgumentCollection
 
   @ArgumentCollection
   val qSettings = new QSettings

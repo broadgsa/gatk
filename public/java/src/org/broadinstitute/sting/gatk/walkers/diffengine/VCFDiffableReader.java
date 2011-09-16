@@ -129,14 +129,6 @@ public class VCFDiffableReader implements DiffableReader {
 
     @Override
     public boolean canRead(File file) {
-        try {
-            final String VCF4_HEADER = "##fileformat=VCFv4";
-            char[] buff = new char[VCF4_HEADER.length()];
-            new FileReader(file).read(buff, 0, VCF4_HEADER.length());
-            String firstLine = new String(buff);
-            return firstLine.startsWith(VCF4_HEADER);
-        } catch ( IOException e ) {
-            return false;
-        }
+        return AbstractVCFCodec.canDecodeFile(file, VCFCodec.VCF4_MAGIC_HEADER);
     }
 }

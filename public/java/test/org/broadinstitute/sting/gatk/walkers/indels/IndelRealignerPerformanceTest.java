@@ -30,7 +30,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -LOD 5" +
                         " -maxConsensuses 100" +
                         " -greedy 100" +
-                        " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
+                        " -known " + GATKDataLocation + "dbsnp_132.hg18.vcf" +
                         " -o /dev/null" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-5,650,000" +
@@ -45,7 +45,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -LOD 5" +
                         " -maxConsensuses 100" +
                         " -greedy 100" +
-                        " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
+                        " -known " + GATKDataLocation + "dbsnp_132.hg18.vcf" +
                         " -o /dev/null" +
                         " -I " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.bam" +
                         " -L chr1:1-150,000,000" +

@@ -10,15 +10,13 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.List;
 import java.util.Map;
 
-public interface GenotypeAnnotation {
+public abstract class GenotypeAnnotation extends VariantAnnotatorAnnotation {
 
     // return annotations for the given contexts/genotype split by sample
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g);
-
-    // return the FORMAT keys
-    public List<String> getKeyNames();
+    public abstract Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker,
+                                                 ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g);
 
     // return the descriptions used for the VCF FORMAT meta field
-    public List<VCFFormatHeaderLine> getDescriptions();
-   
+    public abstract List<VCFFormatHeaderLine> getDescriptions();
+
 }

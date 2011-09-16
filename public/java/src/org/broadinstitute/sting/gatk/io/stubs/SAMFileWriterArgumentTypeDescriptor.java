@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.File;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 
@@ -93,7 +94,12 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) {
+    public String typeDefaultDocString(ArgumentSource source) {
+        return "stdout";
+    }
+
+    @Override
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         SAMFileWriterStub stub = new SAMFileWriterStub(engine,defaultOutputStream);
@@ -102,7 +108,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     @Override
-    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         // Extract all possible parameters that could be passed to a BAM file writer?
         ArgumentDefinition bamArgumentDefinition = createBAMArgumentDefinition(source);
         String writerFileName = getArgumentValue( bamArgumentDefinition, matches );

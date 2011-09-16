@@ -25,26 +25,18 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broad.tribble.bed.BEDCodec;
-import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.commandline.Gather;
-import org.broadinstitute.sting.commandline.Output;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableReadFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -58,26 +50,90 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This walker is designed to work as the first pass in a two-pass processing step.
- * It does a by-locus traversal operating only at sites that are not in dbSNP.
- * We assume that all reference mismatches we see are therefore errors and indicative of poor base quality.
- * This walker generates tables based on various user-specified covariates (such as read group, reported quality score, cycle, and dinucleotide)
- * Since there is a large amount of data one can then calculate an empirical probability of error
- *   given the particular covariates seen at this site, where p(error) = num mismatches / num observations
- * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score)
- * The first non-comment line of the output file gives the name of the covariates that were used for this calculation.
+ * First pass of the base quality score recalibration -- Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
  *
- * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified
- * Note: This walker is designed to be used in conjunction with TableRecalibrationWalker.
+ * <p>
+ * This walker is designed to work as the first pass in a two-pass processing step. It does a by-locus traversal operating
+ * only at sites that are not in dbSNP. We assume that all reference mismatches we see are therefore errors and indicative
+ * of poor base quality. This walker generates tables based on various user-specified covariates (such as read group,
+ * reported quality score, cycle, and dinucleotide). Since there is a large amount of data one can then calculate an empirical
+ * probability of error given the particular covariates seen at this site, where p(error) = num mismatches / num observations.
+ * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score).
+ * <p>
+ * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified.
  *
- * @author rpoplin
- * @since Nov 3, 2009
- * @help.summary First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
+ * <p>
+ * See the GATK wiki for a tutorial and example recalibration accuracy plots.
+ * http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration
+ *
+ * <h2>Input</h2>
+ * <p>
+ * The input read data whose base quality scores need to be assessed.
+ * <p>
+ * A database of known polymorphic sites to skip over.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * A recalibration table file in CSV format that is used by the TableRecalibration walker.
+ * It is a comma-separated text file relating the desired covariates to the number of such bases and their rate of mismatch in the genome, and its implied empirical quality score.  
+ *
+ * The first 20 lines of such a file is shown below.  
+ * * The file begins with a series of comment lines describing:
+ * ** The number of counted loci
+ * ** The number of counted bases
+ * ** The number of skipped loci and the fraction skipped, due to presence in dbSNP or bad reference bases
+ * 
+ * * After the comments appears a header line indicating which covariates were used as well as the ordering of elements in the subsequent records.  
+ *
+ * * After the header, data records occur one per line until the end of the file. The first several items on a line are the values of the individual covariates and will change
+ * depending on which covariates were specified at runtime. The last three items are the data- that is, number of observations for this combination of covariates, number of 
+ * reference mismatches, and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+ * 
+ * <pre>
+ * # Counted Sites    19451059
+ * # Counted Bases    56582018
+ * # Skipped Sites    82666
+ * # Fraction Skipped 1 / 235 bp
+ * ReadGroup,QualityScore,Cycle,Dinuc,nObservations,nMismatches,Qempirical
+ * SRR006446,11,65,CA,9,1,10
+ * SRR006446,11,48,TA,10,0,40
+ * SRR006446,11,67,AA,27,0,40
+ * SRR006446,11,61,GA,11,1,10
+ * SRR006446,12,34,CA,47,1,17
+ * SRR006446,12,30,GA,52,1,17
+ * SRR006446,12,36,AA,352,1,25
+ * SRR006446,12,17,TA,182,11,12
+ * SRR006446,11,48,TG,2,0,40
+ * SRR006446,11,67,AG,1,0,40
+ * SRR006446,12,34,CG,9,0,40
+ * SRR006446,12,30,GG,43,0,40
+ * ERR001876,4,31,AG,1,0,40
+ * ERR001876,4,31,AT,2,2,1
+ * ERR001876,4,31,CA,1,0,40
+ * </pre>
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx4g -jar GenomeAnalysisTK.jar \
+ *   -R resources/Homo_sapiens_assembly18.fasta \
+ *   -knownSites bundle/hg18/dbsnp_132.hg18.vcf \
+ *   -knownSites another/optional/setOfSitesToMask.vcf \
+ *   -I my_reads.bam \
+ *   -T CountCovariates \
+ *   -cov ReadGroupCovariate \
+ *   -cov QualityScoreCovariate \
+ *   -cov CycleCovariate \
+ *   -cov DinucCovariate \
+ *   -recalFile my_reads.recal_data.csv
+ * </pre>
+ *
  */
 
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
-@ReadFilters( {MappingQualityZeroReadFilter.class, MappingQualityUnavailableReadFilter.class} ) // Filter out all reads with zero or unavailable mapping quality
+@ReadFilters( {MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class} ) // Filter out all reads with zero or unavailable mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 @PartitionBy(PartitionType.LOCUS)
 public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.CountedData, CountCovariatesWalker.CountedData> implements TreeReducible<CountCovariatesWalker.CountedData> {
@@ -94,18 +150,32 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     @ArgumentCollection private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
-    @Output
-    PrintStream out;
-
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the outputted covariates table recalibration file")
+    /**
+     * This algorithm treats every reference mismatch as an indication of error. However, real genetic variation is expected to mismatch the reference,
+     * so it is critical that a database of known polymorphic sites is given to the tool in order to skip over those sites.
+     */
+    @Input(fullName="knownSites", shortName = "knownSites", doc="A database of known polymorphic sites to skip over in the recalibration algorithm", required=false)
+    public List<RodBinding<Feature>> knownSites = Collections.emptyList();
+
+    /**
+     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
+     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
+     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
+     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     */
+    @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the output covariates table recalibration file")
     @Gather(CountCovariatesGatherer.class)
     public PrintStream RECAL_FILE;
 
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)
     private boolean LIST_ONLY = false;
+
+    /**
+     * See the -list argument to view available covariates.
+     */
     @Argument(fullName="covariate", shortName="cov", doc="Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required=false)
     private String[] COVARIATES = null;
     @Argument(fullName="standard_covs", shortName="standard", doc="Use the standard set of covariates in addition to the ones listed using the -cov argument", required=false)
@@ -116,6 +186,10 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     @Argument(fullName="dont_sort_output", shortName="unsorted", required=false, doc="If specified, the output table recalibration csv file will be in an unsorted, arbitrary order to save some run time.")
     private boolean DONT_SORT_OUTPUT = false;
+
+    /**
+     * This calculation is critically dependent on being able to skip over known polymorphic sites. Please be sure that you know what you are doing if you use this option.
+     */
     @Argument(fullName="run_without_dbsnp_potentially_ruining_quality", shortName="run_without_dbsnp_potentially_ruining_quality", required=false, doc="If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
     private boolean RUN_WITHOUT_DBSNP = false;
 
@@ -124,8 +198,8 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     private final RecalDataManager dataManager = new RecalDataManager(); // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // A list to hold the covariate objects that were requested
-    private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
-    private static int DBSNP_VALIDATION_CHECK_FREQUENCY = 1000000;                // how often to validate dbsnp mismatch rate (in terms of loci seen)
+    private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;      // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
+    private static int DBSNP_VALIDATION_CHECK_FREQUENCY = 1000000;       // how often to validate dbsnp mismatch rate (in terms of loci seen)
 
     public static class CountedData {
         private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
@@ -136,7 +210,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         private long dbSNPCountsMM = 0, dbSNPCountsBases = 0;  // mismatch/base counts for dbSNP loci
         private long novelCountsMM = 0, novelCountsBases = 0;  // mismatch/base counts for non-dbSNP loci
-        private int lociSinceLastDbsnpCheck = 0;                               // loci since last dbsnp validation
+        private int lociSinceLastDbsnpCheck = 0;               // loci since last dbsnp validation
 
         /**
          * Adds the values of other to this, returning this
@@ -180,30 +254,18 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         // Print and exit if that's what was requested
         if ( LIST_ONLY ) {
-            out.println( "Available covariates:" );
+            logger.info( "Available covariates:" );
             for( Class<?> covClass : covariateClasses ) {
-                out.println( covClass.getSimpleName() );
+                logger.info( covClass.getSimpleName() );
             }
-            out.println();
+            logger.info("");
 
             System.exit( 0 ); // Early exit here because user requested it
         }
 
         // Warn the user if no dbSNP file or other variant mask was specified
-        boolean foundDBSNP = false;
-        for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
-            if( rod != null ) {
-                if( rod.getType().equals(DbSNPCodec.class) ||
-                        rod.getType().equals(VCFCodec.class) ||
-                        rod.getType().equals(VCF3Codec.class) ||
-                        rod.getType().equals(BEDCodec.class) ) {
-                    foundDBSNP = true;
-                    break;
-                }
-            }
-        }
-        if( !foundDBSNP && !RUN_WITHOUT_DBSNP ) {
-            throw new UserException.CommandLineException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
+        if( knownSites.isEmpty() && !RUN_WITHOUT_DBSNP ) {
+            throw new UserException.CommandLineException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.");
         }
 
         // Initialize the requested covariates by parsing the -cov argument
@@ -266,12 +328,6 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
             logger.info( "\t" + cov.getClass().getSimpleName() );
             cov.initialize( RAC ); // Initialize any covariate member variables using the shared argument collection
         }
-
-//        try {
-//            stream = new PrintStream( RAC.RECAL_FILE );
-//        } catch ( FileNotFoundException e ) {
-//            throw new RuntimeException( "Couldn't open output file: ", e );
-//        }
     }
 
 
@@ -290,23 +346,13 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      * @return Returns 1, but this value isn't used in the reduce step
      */
     public CountedData map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-
-        // If any ROD covers this site then we assume it is a site of known genetic variation and we skip it
-        boolean isSNP = false;
-        for( final GATKFeature rod : tracker.getAllRods() ) {
-            if( rod != null ) {
-                isSNP = true;
-                break;
-            }
-        }
-        
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicative of poor quality
         CountedData counter = new CountedData();
-        if( !isSNP ) {
+        if( tracker.getValues(knownSites).size() == 0 ) { // If something here is in one of the knownSites tracks then skip over it, otherwise proceed
             // For each read at this locus
-            for( PileupElement p : context.getBasePileup() ) {
-                GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
+            for( final PileupElement p : context.getBasePileup() ) {
+                final GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
                 int offset = p.getOffset();
 
                 if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE  ) ) {
@@ -364,8 +410,6 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
         return counter;
     }
-
-
 
    /**
      * Update the mismatch / total_base counts for a given class of loci.

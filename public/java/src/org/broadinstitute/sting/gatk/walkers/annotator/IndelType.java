@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.IndelUtils;
@@ -19,9 +20,9 @@ import java.util.*;
  * Time: 11:47:33 AM
  * To change this template use File | Settings | File Templates.
  */
-public class IndelType implements InfoFieldAnnotation, ExperimentalAnnotation {
+public class IndelType extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
          int run;
         if (vc.isMixed()) {
@@ -35,9 +36,9 @@ public class IndelType implements InfoFieldAnnotation, ExperimentalAnnotation {
             if (!vc.isBiallelic())
                 type = "MULTIALLELIC_INDEL";
             else {
-                if (vc.isInsertion())
+                if (vc.isSimpleInsertion())
                     type = "INS.";
-                else if (vc.isDeletion())
+                else if (vc.isSimpleDeletion())
                     type = "DEL.";
                 else
                     type = "OTHER.";

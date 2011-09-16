@@ -33,9 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.help.DescriptionTaglet;
-import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
-import org.broadinstitute.sting.utils.help.SummaryTaglet;
+import org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
@@ -82,19 +80,10 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return A suitable display name for the package.
      */
     public String getPackageDisplayName(String packageName) {
-        // Try to find an override for the display name of this package.
-        String displayNameKey = String.format("%s.%s",packageName,DisplayNameTaglet.NAME);
-        String displayName;
-        if(helpText.containsKey(displayNameKey)) {
-            displayName = helpText.getString(displayNameKey);
-        }
-        else {
-            // If no override exists...
-            // ...try to compute the override from the text of the package name, while accounting for
-            // unpackaged walkers.
-            displayName = packageName.substring(packageName.lastIndexOf('.')+1);
-            if(displayName.trim().equals("")) displayName = "<unpackaged>";
-        }
+        // ...try to compute the override from the text of the package name, while accounting for
+        // unpackaged walkers.
+        String displayName = packageName.substring(packageName.lastIndexOf('.')+1);
+        if (displayName.trim().equals("")) displayName = "<unpackaged>";
         return displayName;
     }
 
@@ -104,7 +93,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Package help text, or "" if none exists.
      */
     public String getPackageSummaryText(String packageName) {
-        String key = String.format("%s.%s",packageName,SummaryTaglet.NAME);
+        String key = String.format("%s.%s",packageName, ResourceBundleExtractorDoclet.SUMMARY_TAGLET_NAME);
         if(!helpText.containsKey(key))
             return "";
         return helpText.getString(key);
@@ -116,7 +105,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Walker summary description, or "" if none exists.
      */
     public String getWalkerSummaryText(Class<? extends Walker> walkerType) {
-        String walkerSummary = String.format("%s.%s",walkerType.getName(), SummaryTaglet.NAME);
+        String walkerSummary = String.format("%s.%s",walkerType.getName(), ResourceBundleExtractorDoclet.SUMMARY_TAGLET_NAME);
         if(!helpText.containsKey(walkerSummary))
             return "";
         return helpText.getString(walkerSummary);
@@ -137,7 +126,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Walker full description, or "" if none exists.
      */
     public String getWalkerDescriptionText(Class<? extends Walker> walkerType) {
-        String walkerDescription = String.format("%s.%s",walkerType.getName(), DescriptionTaglet.NAME);
+        String walkerDescription = String.format("%s.%s",walkerType.getName(), ResourceBundleExtractorDoclet.DESCRIPTION_TAGLET_NAME);
         if(!helpText.containsKey(walkerDescription))
             return "";
         return helpText.getString(walkerDescription);
@@ -188,19 +177,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return The list of allowed reference meta data.
      */
     public static List<RMD> getAllowsMetaData(Class<? extends Walker> walkerClass) {
-        Allows allowsDataSource = getWalkerAllowed(walkerClass);
-        if (allowsDataSource == null)
-            return Collections.<RMD>emptyList();
-        return Arrays.asList(allowsDataSource.referenceMetaData());
-    }
-
-    /**
-     * Get a list of RODs allowed by the walker.
-     * @param walker Walker to query.
-     * @return The list of allowed reference meta data.
-     */
-    public static List<RMD> getAllowsMetaData(Walker walker) {
-        return getAllowsMetaData(walker.getClass());
+        return Collections.<RMD>emptyList();
     }
 
     /**
@@ -237,24 +214,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return True if the walker forbids this data type.  False otherwise.
      */
     public static boolean isAllowed(Class<? extends Walker> walkerClass, ReferenceOrderedDataSource rod) {
-        Allows allowsDataSource = getWalkerAllowed(walkerClass);
-
-        // Allows is less restrictive than requires.  If an allows
-        // clause is not specified, any kind of data is allowed.
-        if( allowsDataSource == null )
-            return true;
-
-        // The difference between unspecified RMD and the empty set of metadata can't be detected.
-        // Treat an empty 'allows' as 'allow everything'.  Maybe we can have a special RMD flag to account for this
-        // case in the future.
-        if( allowsDataSource.referenceMetaData().length == 0 )
-            return true;
-
-        for( RMD allowed: allowsDataSource.referenceMetaData() ) {
-            if( rod.matchesNameAndRecordType(allowed.name(),allowed.type()) )
-                return true;
-        }
-        return false;
+        return true;
     }
 
     /**
@@ -294,8 +254,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return The list of required reference meta data.
      */
     public static List<RMD> getRequiredMetaData(Class<? extends Walker> walkerClass) {
-        Requires requiresDataSource = getWalkerRequirements(walkerClass);
-        return Arrays.asList(requiresDataSource.referenceMetaData());
+        return Collections.emptyList();
     }
 
     /**

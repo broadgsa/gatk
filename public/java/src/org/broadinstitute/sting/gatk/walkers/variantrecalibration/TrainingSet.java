@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,7 +38,7 @@ import org.broadinstitute.sting.commandline.Tags;
 
 public class TrainingSet {
 
-    public String name;
+    public RodBinding<VariantContext> rodBinding;
     public boolean isKnown = false;
     public boolean isTraining = false;
     public boolean isAntiTraining = false;
@@ -46,8 +48,11 @@ public class TrainingSet {
 
     protected final static Logger logger = Logger.getLogger(TrainingSet.class);
 
-    public TrainingSet( final String name, final Tags tags ) {
-        this.name = name;
+    public TrainingSet( final RodBinding<VariantContext> rodBinding) {
+        this.rodBinding = rodBinding;
+
+        final Tags tags = rodBinding.getTags();
+        final String name = rodBinding.getName();
 
         // Parse the tags to decide which tracks have which properties
         if( tags != null ) {
@@ -61,11 +66,11 @@ public class TrainingSet {
 
         // Report back to the user which tracks were found and the properties that were detected
         if( !isConsensus && !isAntiTraining ) {
-            logger.info( String.format( "Found %s track: \tKnown = %s \tTraining = %s \tTruth = %s \tPrior = Q%.1f", this.name, isKnown, isTraining, isTruth, prior) );
+            logger.info( String.format( "Found %s track: \tKnown = %s \tTraining = %s \tTruth = %s \tPrior = Q%.1f", name, isKnown, isTraining, isTruth, prior) );
         } else if( isConsensus ) {
-            logger.info( String.format( "Found consensus track: %s", this.name) );
+            logger.info( String.format( "Found consensus track: %s", name) );
         } else {
-            logger.info( String.format( "Found bad sites training track: %s", this.name) );
+            logger.info( String.format( "Found bad sites training track: %s", name) );
         }
     }
 }

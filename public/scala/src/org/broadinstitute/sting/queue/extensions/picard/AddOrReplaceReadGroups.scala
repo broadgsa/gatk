@@ -15,13 +15,13 @@ class AddOrReplaceReadGroups extends org.broadinstitute.sting.queue.function.Jav
   javaMainClass = "net.sf.picard.sam.AddOrReplaceReadGroups"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
-  var input: List[File] = _
+  var input: List[File] = Nil
 
   @Output(doc="The output BAM file with the modified/added read groups", shortName = "output", fullName = "output_bam_file", required = true)
   var output: File = _
 
   @Output(doc="The output bam index", shortName = "out_index", fullName = "output_bam_index_file", required = false)
-  var outputIndex: File = new File(output + ".bai")
+  var outputIndex: File = _
 
   @Argument(doc="Read group ID", shortName = "id", fullName = "read_group_id", required = true)
   var RGID: String = _
@@ -43,6 +43,12 @@ class AddOrReplaceReadGroups extends org.broadinstitute.sting.queue.function.Jav
 
   @Argument(doc = "Read group description", shortName = "ds", fullName = "read_group_description", required = false)
   var RGDS: String = ""
+
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
+    if (outputIndex == null && output != null)
+      outputIndex = new File(output.getName.stripSuffix(".bam") + ".bai")
+  }
 
 
   override def inputBams = input

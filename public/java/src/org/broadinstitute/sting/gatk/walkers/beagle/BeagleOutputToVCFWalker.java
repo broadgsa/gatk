@@ -25,15 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.utils.codecs.beagle.BeagleFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -50,27 +48,76 @@ import static java.lang.Math.log10;
 
 /**
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
- */
-@Requires(value={},referenceMetaData=@RMD(name=BeagleOutputToVCFWalker.INPUT_ROD_NAME, type=VariantContext.class))
+ *
+ * <p>This walker is intended to be run after Beagle has successfully executed. The full calling sequence for using Beagle along with the GATK is:      </p>
+ *
+ * <p>1. Run ProduceBeagleInputWalker.  </p>
+ * <p>2. Run Beagle</p>
+ * <p>3. Uncompress output files</p>
+ * <p>4. Run BeagleOutputToVCFWalker.</p>
+ *
+ *
+ * Note that this walker requires all input files produced by Beagle.
+ *
+ *
+ * <h2>Example</h2>
+ * <pre>
+ *     java -Xmx4000m -jar dist/GenomeAnalysisTK.jar \
+ *      -R reffile.fasta -T BeagleOutputToVCF \
+ *      -V input_vcf.vcf \
+ *      -beagleR2:BEAGLE /myrun.beagle_output.r2 \
+ *      -beaglePhased:BEAGLE /myrun.beagle_output.phased \
+ *      -beagleProbs:BEAGLE /myrun.beagle_output.gprobs \
+ *      -o output_vcf.vcf
+ *      </pre>
 
+ <p> Note that Beagle produces some of these files compressed as .gz, so gunzip must be run on them before walker is run in order to decompress them </p>
+
+ */
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
-    public static final String INPUT_ROD_NAME = "variant";
-    public static final String COMP_ROD_NAME = "comp";
-    public static final String R2_ROD_NAME = "beagleR2";
-    public static final String PROBS_ROD_NAME = "beagleProbs";
-    public static final String PHASED_ROD_NAME = "beaglePhased";
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc="File to which variants should be written",required=true)
+    /**
+     * If this argument is present, the original allele frequencies and counts from this vcf are added as annotations ACH,AFH and ANH. at each record present in this vcf
+     */
+    @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
+    public RodBinding<VariantContext> comp;
+
+
+    /**
+     * This required argument is used to annotate each site in the vcf INFO field with R2 annotation. Will be NaN if Beagle determined there are no variant samples.
+     */
+    @Input(fullName="beagleR2", shortName = "beagleR2", doc="Beagle-produced .r2 file containing R^2 values for all markers", required=true)
+    public RodBinding<BeagleFeature> beagleR2;
+
+    /**
+     * These values will populate the GL field for each sample and contain the posterior probability of each genotype given the data after phasing and imputation.
+     */
+    @Input(fullName="beagleProbs", shortName = "beagleProbs", doc="Beagle-produced .probs file containing posterior genotype probabilities", required=true)
+    public RodBinding<BeagleFeature> beagleProbs;
+
+    /**
+     * By default, all genotypes will be marked in the VCF as "phased", using the "|" separator after Beagle.
+     */
+    @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="Beagle-produced .phased file containing phased genotypes", required=true)
+    public RodBinding<BeagleFeature> beaglePhased;
+
+    @Output(doc="VCF File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    @Argument(fullName="output_file", shortName="output", doc="Please use --out instead" ,required=false)
-    @Deprecated
-    protected String oldOutputArg;
-
+    /**
+     * If this argument is absent, and if Beagle determines that there is no sample in a site that has a variant genotype, the site will be marked as filtered (Default behavior).
+     * If the argument is present, the site won't be marked as filtered under this condition even if there are no variant genotypes.
+     */
     @Argument(fullName="dont_mark_monomorphic_sites_as_filtered", shortName="keep_monomorphic", doc="If provided, we won't filter sites that beagle tags as monomorphic.  Useful for imputing a sample's genotypes from a reference panel" ,required=false)
     public boolean DONT_FILTER_MONOMORPHIC_SITES = false;
 
+    /**
+     * Value between 0 and 1. If the probability of getting a genotype correctly (based on the posterior genotype probabilities and the actual genotype) is below this threshold,
+     * a genotype will be substitute by a no-call.
+     */
     @Argument(fullName="no" +
             "call_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
     private double noCallThreshold = 0.0;
@@ -97,17 +144,13 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         // Open output file specified by output VCF ROD
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            if (source.getName().equals(COMP_ROD_NAME)) {
-                hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
-                hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
-                hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
-                break;
-            }
-
+        if ( comp.isBound() ) {
+            hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
+            hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
+            hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
         }
 
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(INPUT_ROD_NAME));
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variantCollection.variants.getName()));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
@@ -119,40 +162,29 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
         GenomeLoc loc = context.getLocation();
-        VariantContext vc_input = tracker.getVariantContext(ref,INPUT_ROD_NAME, null, loc, true);
+        VariantContext vc_input = tracker.getFirstValue(variantCollection.variants, loc);
 
-        VariantContext vc_comp = tracker.getVariantContext(ref,COMP_ROD_NAME, null, loc, true);
+        VariantContext vc_comp = tracker.getFirstValue(comp, loc);
 
         if ( vc_input == null  )
             return 0;
 
         if (vc_input.isFiltered()) {
-            vcfWriter.add(vc_input, ref.getBase());
+            vcfWriter.add(vc_input);
             return 1;
         }
-        List<Object> r2rods = tracker.getReferenceMetaData(R2_ROD_NAME);
+
+        BeagleFeature beagleR2Feature = tracker.getFirstValue(beagleR2);
+        BeagleFeature beagleProbsFeature = tracker.getFirstValue(beagleProbs);
+        BeagleFeature beaglePhasedFeature = tracker.getFirstValue(beaglePhased);
 
         // ignore places where we don't have a variant
-        if ( r2rods.size() == 0 )
-            return 0;
+        if ( beagleR2Feature == null || beagleProbsFeature == null ||  beaglePhasedFeature == null)
+        {
+           vcfWriter.add(vc_input);
+           return 1;
+        }
 
-        BeagleFeature beagleR2Feature = (BeagleFeature)r2rods.get(0);
-
-        List<Object> gProbsrods = tracker.getReferenceMetaData(PROBS_ROD_NAME);
-
-        // ignore places where we don't have a variant
-        if ( gProbsrods.size() == 0 )
-            return 0;
-
-        BeagleFeature beagleProbsFeature = (BeagleFeature)gProbsrods.get(0);
-
-        List<Object> gPhasedrods = tracker.getReferenceMetaData(PHASED_ROD_NAME);
-
-        // ignore places where we don't have a variant
-        if ( gPhasedrods.size() == 0 )
-            return 0;
-
-        BeagleFeature beaglePhasedFeature = (BeagleFeature)gPhasedrods.get(0);
 
         // get reference base for current position
         byte refByte = ref.getBase();
@@ -333,7 +365,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
 
-        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes), ref.getBase());
+        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes));
 
 
         return 1;

@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -50,11 +51,10 @@ public class VariantDataManager {
     private ExpandingArrayList<VariantDatum> data;
     private final double[] meanVector;
     private final double[] varianceVector; // this is really the standard deviation
-    public final ArrayList<String> annotationKeys;
-    private final ExpandingArrayList<TrainingSet> trainingSets;
+    public final List<String> annotationKeys;
     private final VariantRecalibratorArgumentCollection VRAC;
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
-
+    protected final List<TrainingSet> trainingSets;
 
     public VariantDataManager( final List<String> annotationKeys, final VariantRecalibratorArgumentCollection VRAC ) {
         this.data = null;
@@ -62,7 +62,7 @@ public class VariantDataManager {
         this.VRAC = VRAC;
         meanVector = new double[this.annotationKeys.size()];
         varianceVector = new double[this.annotationKeys.size()];
-        trainingSets = new ExpandingArrayList<TrainingSet>();
+        trainingSets = new ArrayList<TrainingSet>();
     }
 
     public void setData( final ExpandingArrayList<VariantDatum> data ) {
@@ -105,30 +105,30 @@ public class VariantDataManager {
         }
     }
 
-    public void addTrainingSet( final TrainingSet trainingSet ) {
-        trainingSets.add( trainingSet );
-    }
+     public void addTrainingSet( final TrainingSet trainingSet ) {
+         trainingSets.add( trainingSet );
+     }
 
-    public boolean checkHasTrainingSet() {
-        for( final TrainingSet trainingSet : trainingSets ) {
-            if( trainingSet.isTraining ) { return true; }
-        }
-        return false;
-    }
+     public boolean checkHasTrainingSet() {
+         for( final TrainingSet trainingSet : trainingSets ) {
+             if( trainingSet.isTraining ) { return true; }
+         }
+         return false;
+     }
 
-    public boolean checkHasTruthSet() {
-        for( final TrainingSet trainingSet : trainingSets ) {
-            if( trainingSet.isTruth ) { return true; }
-        }
-        return false;
-    }
+     public boolean checkHasTruthSet() {
+         for( final TrainingSet trainingSet : trainingSets ) {
+             if( trainingSet.isTruth ) { return true; }
+         }
+         return false;
+     }
 
-    public boolean checkHasKnownSet() {
-        for( final TrainingSet trainingSet : trainingSets ) {
-            if( trainingSet.isKnown ) { return true; }
-        }
-        return false;
-    }
+     public boolean checkHasKnownSet() {
+         for( final TrainingSet trainingSet : trainingSets ) {
+             if( trainingSet.isKnown ) { return true; }
+         }
+         return false;
+     }
 
     public ExpandingArrayList<VariantDatum> getTrainingData() {
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
@@ -240,6 +240,15 @@ public class VariantDataManager {
             if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
                   value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             }
+
+            if (vc.isIndel() && annotationKey.equalsIgnoreCase("QD")) {
+            // normalize QD by event length for indel case
+                int eventLength = Math.abs(vc.getAlternateAllele(0).getBaseString().length() - vc.getReference().getBaseString().length()); // ignore multi-allelic complication here for now
+                if (eventLength > 0) { // sanity check
+                    value /= (double)eventLength;
+                }
+            }
+
             if( jitter && annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
             if( jitter && annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
         } catch( Exception e ) {
@@ -249,20 +258,16 @@ public class VariantDataManager {
         return value;
     }
 
-    public void parseTrainingSets( final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC ) {
+    public void parseTrainingSets( final RefMetaDataTracker tracker, final GenomeLoc genomeLoc, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC ) {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
         datum.atAntiTrainingSite = false;
         datum.prior = 2.0;
-        datum.consensusCount = 0;
 
         for( final TrainingSet trainingSet : trainingSets ) {
-            for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, false ) ) {
-                if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
-                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
-                        (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
-
+            for( final VariantContext trainVC : tracker.getValues(trainingSet.rodBinding, genomeLoc) ) {
+                if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
                     datum.isKnown = datum.isKnown || trainingSet.isKnown;
                     datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
                     datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;
@@ -272,9 +277,14 @@ public class VariantDataManager {
                 if( trainVC != null ) {
                     datum.atAntiTrainingSite = datum.atAntiTrainingSite || trainingSet.isAntiTraining;
                 }
-
             }
         }
+    }
+
+    private boolean isValidVariant( final VariantContext evalVC, final VariantContext trainVC, final boolean TRUST_ALL_POLYMORPHIC) {
+        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
+                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
+                        (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic());
     }
 
     public void writeOutRecalibrationTable( final PrintStream RECAL_FILE ) {

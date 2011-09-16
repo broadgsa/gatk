@@ -38,6 +38,8 @@ import org.apache.commons.lang.StringUtils
 import org.broadinstitute.sting.queue.util._
 import collection.immutable.{TreeSet, TreeMap}
 import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
+import java.util.Date
+import org.broadinstitute.sting.utils.Utils
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -319,7 +321,10 @@ class QGraph extends Logging {
       logger.debug("+++++++")
       foreachFunction(readyJobs.toList, edge => {
         if (running) {
+          edge.myRunInfo.startTime = new Date()
+          edge.getRunInfo.exechosts = Utils.resolveHostname()
           logEdge(edge)
+          edge.myRunInfo.doneTime = new Date()
           edge.markAsDone
         }
       })
@@ -360,6 +365,13 @@ class QGraph extends Logging {
       else if (settings.jobRunner == null)
         settings.jobRunner = "Shell"
       commandLineManager = commandLinePluginManager.createByName(settings.jobRunner)
+
+      for (mgr <- managers) {
+        if (mgr != null) {
+          val manager = mgr.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
+          manager.init()
+        }
+      }
 
       if (settings.startFromScratch)
         logger.info("Removing outputs from previous runs.")
@@ -933,6 +945,14 @@ class QGraph extends Logging {
   }
 
   /**
+   * Utility function for running a method over all function edges.
+   * @param edgeFunction Function to run for each FunctionEdge.
+   */
+  private def getFunctionEdges: List[FunctionEdge] = {
+    jobGraph.edgeSet.toList.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[List[FunctionEdge]]
+  }
+
+  /**
    * Utility function for running a method over all functions, but traversing the nodes in order of dependency.
    * @param edgeFunction Function to run for each FunctionEdge.
    */
@@ -1021,6 +1041,10 @@ class QGraph extends Logging {
    */
   def isShutdown = !running
 
+  def getFunctionsAndStatus(functions: List[QFunction]): Map[QFunction, JobRunInfo] = {
+    getFunctionEdges.map(edge => (edge.function, edge.getRunInfo)).toMap
+  }
+
   /**
    * Kills any forked jobs still running.
    */
@@ -1034,18 +1058,26 @@ class QGraph extends Logging {
       for (mgr <- managers) {
         if (mgr != null) {
           val manager = mgr.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
-          val managerRunners = runners
-            .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
-            .asInstanceOf[Set[JobRunner[QFunction]]]
-          if (managerRunners.size > 0)
-            try {
-              manager.tryStop(managerRunners)
-            } catch {
-              case e => /* ignore */
+          try {
+            val managerRunners = runners
+              .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
+              .asInstanceOf[Set[JobRunner[QFunction]]]
+            if (managerRunners.size > 0)
+              try {
+                manager.tryStop(managerRunners)
+              } catch {
+                case e => /* ignore */
+              }
+            for (runner <- managerRunners) {
+              try {
+                runner.cleanup()
+              } catch {
+                case e => /* ignore */
+              }
             }
-          for (runner <- managerRunners) {
+          } finally {
             try {
-              runner.cleanup()
+              manager.exit()
             } catch {
               case e => /* ignore */
             }

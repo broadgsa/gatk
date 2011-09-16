@@ -25,15 +25,16 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -47,26 +48,103 @@ import java.util.*;
 
 
 /**
- * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
+ * Annotates variant calls with context information.
+ *
+ * <p>
+ * VariantAnnotator is a GATK tool for annotating variant calls based on their context.
+ * The tool is modular; new annotations can be written easily without modifying VariantAnnotator itself.
+ *
+ * <h2>Input</h2>
+ * <p>
+ * A variant set to annotate and optionally one or more BAM files.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * An annotated VCF.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantAnnotator \
+ *   -I input.bam \
+ *   -o output.vcf \
+ *   -A DepthOfCoverage
+ *   --variant input.vcf \
+ *   --dbsnp dbsnp.vcf
+ * </pre>
+ *
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type=VariantContext.class))
+@Requires(value={})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class VariantAnnotator extends RodWalker<Integer, Integer> {
+public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatibleWalker {
+
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    public RodBinding<VariantContext> getVariantRodBinding() { return variantCollection.variants; }
+
+    /**
+     * The INFO field will be annotated with information on the most biologically-significant effect
+     * listed in the SnpEff output file for each variant.
+     */
+    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
+    public RodBinding<VariantContext> snpEffFile;
+    public RodBinding<VariantContext> getSnpEffRodBinding() { return snpEffFile; }
+
+    /**
+      * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
+      */
+    @ArgumentCollection
+    protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+    public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
+
+    /**
+      * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
+      *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
+      *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
+      */
+    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
+    public List<RodBinding<VariantContext>> comps = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getCompRodBindings() { return comps; }
+
+    /**
+      * An external resource VCF file or files from which to annotate.
+      *
+      * One can add annotations from one of the resource VCFs to the output.
+      * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
+      * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
+      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+      */
+    @Input(fullName="resource", shortName = "resource", doc="external resource VCF file", required=false)
+    public List<RodBinding<VariantContext>> resources = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
-    protected String sampleName = null;
-
+    /**
+     * See the -list argument to view available annotations.
+     */
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected List<String> annotationsToUse = new ArrayList<String>();
 
+    /**
+     * See the -list argument to view available groups.
+     */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected List<String> annotationGroupsToUse = new ArrayList<String>();
 
+    /**
+     * This option enables you to add annotations from one VCF to another.
+     *
+     * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
+     * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
+     * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+     */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
     protected List<String> expressionsToUse = new ArrayList<String>();
 
@@ -83,8 +161,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @Hidden
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
-
-    private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
 
     private VariantAnnotatorEngine engine;
 
@@ -118,15 +194,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             listAnnotationsAndExit();
 
         // get the list of all sample names from the variant VCF input rod, if applicable
-        Set<String> rodName = new HashSet<String>();
-        rodName.add("variant");
+        List<String> rodName = Arrays.asList(variantCollection.variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
-
-        // add the non-VCF sample from the command-line, if applicable
-        if ( sampleName != null  ) {
-            nonVCFsampleName.put(sampleName.toUpperCase(), "variant");
-            samples.add(sampleName.toUpperCase());
-        }
 
         // if there are no valid samples, warn the user
         if ( samples.size() == 0 ) {
@@ -134,16 +203,18 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         }
 
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(getToolkit());
+            engine = new VariantAnnotatorEngine(this, getToolkit());
         else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse);
+            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
+
+        engine.invokeAnnotationInitializationMethods();
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")) ) {
+        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
@@ -202,7 +273,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         if ( VCs.size() == 0 )
             return 0;
 
@@ -219,18 +290,18 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());
                 for ( VariantContext vc : VCs )
-                    annotatedVCs.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
+                    annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
             }
         }
 
         if ( ! indelsOnly ) {
             for ( VariantContext annotatedVC : annotatedVCs )
-                vcfWriter.add(annotatedVC, ref.getBase());
+                vcfWriter.add(annotatedVC);
         } else {
             // check to see if the buffered context is different (in location) this context
             if ( indelBufferContext != null && ! VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),indelBufferContext.iterator().next()).equals(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),annotatedVCs.iterator().next())) ) {
                 for ( VariantContext annotatedVC : indelBufferContext )
-                    vcfWriter.add(annotatedVC, ref.getBase());
+                    vcfWriter.add(annotatedVC);
                 indelBufferContext = annotatedVCs;
             } else {
                 indelBufferContext = annotatedVCs;

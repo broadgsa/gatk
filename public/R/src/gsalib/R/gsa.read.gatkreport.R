@@ -20,6 +20,20 @@
     assign(tableName, d, envir=tableEnv);
 }
 
+# Read a fixed width line of text into a list.
+.gsa.splitFixedWidth <- function(line, columnStarts) {
+    splitStartStop <- function(x) {
+        x = substring(x, starts, stops);
+        x = gsub("^[[:space:]]+|[[:space:]]+$", "", x);
+        x;
+    }
+    
+    starts = c(1, columnStarts);
+    stops = c(columnStarts - 1, nchar(line));
+
+    sapply(line, splitStartStop)[,1];
+}
+
 # Load all GATKReport tables from a file
 gsa.read.gatkreport <- function(filename) {
     con = file(filename, "r", blocking = TRUE);
@@ -31,9 +45,10 @@ gsa.read.gatkreport <- function(filename) {
     tableName = NA;
     tableHeader = c();
     tableRows = c();
+    version = NA;
 
     for (line in lines) {
-        if (length(grep("^##:GATKReport.v0.1[[:space:]]+", line, ignore.case=TRUE)) > 0) {
+        if (length(grep("^##:GATKReport.v", line, ignore.case=TRUE)) > 0) {
             headerFields = unlist(strsplit(line, "[[:space:]]+"));
 
             if (!is.na(tableName)) {
@@ -43,13 +58,37 @@ gsa.read.gatkreport <- function(filename) {
             tableName = headerFields[2];
             tableHeader = c();
             tableRows = c();
+
+            # For differences in versions see
+            #   $STING_HOME/public/java/src/org/broadinstitute/sting/gatk/report/GATKReportVersion.java
+            if (length(grep("^##:GATKReport.v0.1[[:space:]]+", line, ignore.case=TRUE)) > 0) {
+                version = "v0.1";
+
+            } else if (length(grep("^##:GATKReport.v0.2[[:space:]]+", line, ignore.case=TRUE)) > 0) {
+                version = "v0.2";
+                columnStarts = c();
+
+            }
+
         } else if (length(grep("^[[:space:]]*$", line)) > 0 | length(grep("^[[:space:]]*#", line)) > 0) {
             # do nothing
         } else if (!is.na(tableName)) {
-            row = unlist(strsplit(line, "[[:space:]]+"));
+
+            if (version == "v0.1") {
+                row = unlist(strsplit(line, "[[:space:]]+"));
+
+            } else if (version == "v0.2") {
+                if (length(tableHeader) == 0) {
+                    headerChars = unlist(strsplit(line, ""));
+                    # Find the first position of non space characters, excluding the first character
+                    columnStarts = intersect(grep("[[:space:]]", headerChars, invert=TRUE), grep("[[:space:]]", headerChars) + 1);
+                }
+
+                row = .gsa.splitFixedWidth(line, columnStarts);
+            }
 
             if (length(tableHeader) == 0) {
-                tableHeader = row;
+              tableHeader = row;
             } else {
                 tableRows = rbind(tableRows, row);
             }

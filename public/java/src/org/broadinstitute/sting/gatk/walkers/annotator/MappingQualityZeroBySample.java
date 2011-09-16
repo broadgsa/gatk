@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
@@ -49,9 +50,9 @@ import java.util.Map;
  * Time: 6:46:25 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MappingQualityZeroBySample implements GenotypeAnnotation {
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref,
-                                        AlignmentContext context, VariantContext vc, Genotype g) {
+public class MappingQualityZeroBySample extends GenotypeAnnotation {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker,
+                                        AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext context, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )
             return null;
 

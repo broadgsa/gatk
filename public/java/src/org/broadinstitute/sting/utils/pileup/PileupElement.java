@@ -82,7 +82,7 @@ public class PileupElement {
     // --------------------------------------------------------------------------
 
     private Integer getReducedReadQualityTagValue() {
-        return (Integer)getRead().getAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+        return getRead().getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
     }
 
     public boolean isReducedRead() {

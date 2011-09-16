@@ -56,7 +56,7 @@ public class DictionaryConsistencyIntegrationTest extends WalkerTest {
     }
 
     private WalkerTest.WalkerTestSpec testVCF(String ref, String vcf, Class c) {
-        return new WalkerTest.WalkerTestSpec("-T VariantsToTable -M 10 -B:two,vcf "
+        return new WalkerTest.WalkerTestSpec("-T VariantsToTable -M 10 --variant:vcf "
                 + vcf + " -F POS,CHROM -R "
                 + ref +  " -o %s",
                 1, c);

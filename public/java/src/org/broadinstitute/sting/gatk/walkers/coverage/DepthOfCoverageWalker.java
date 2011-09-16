@@ -32,10 +32,10 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
-import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
@@ -51,14 +51,57 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * A parallelizable walker designed to quickly aggregate relevant coverage statistics across samples in the input
- * file. Assesses the mean and median granular coverages of each sample, and generates part of a cumulative
- * distribution of % bases and % targets covered for certain depths. The granularity of DOC can be set by command
- * line arguments.
+ * Toolbox for assessing sequence coverage by a wide array of metrics, partitioned by sample, read group, or library
  *
+ * <p>
+ * DepthOfCoverage processes a set of bam files to determine coverage at different levels of partitioning and
+ * aggregation. Coverage can be analyzed per locus, per interval, per gene, or in total; can be partitioned by
+ * sample, by read group, by technology, by center, or by library; and can be summarized by mean, median, quartiles,
+ * and/or percentage of bases covered to or beyond a threshold.
+ * Additionally, reads and bases can be filtered by mapping or base quality score.
  *
- * @Author chartl
- * @Date Feb 22, 2010
+ * <h2>Input</h2>
+ * <p>
+ * One or more bam files (with proper headers) to be analyzed for coverage statistics
+ * (Optional) A REFSEQ Rod to aggregate coverage to the gene level
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
+ * </p><p>
+ *  - no suffix: per locus coverage
+ * </p><p>
+ *  - _summary: total, mean, median, quartiles, and threshold proportions, aggregated over all bases
+ * </p><p>
+ *  - _statistics: coverage histograms (# locus with X coverage), aggregated over all bases
+ * </p><p>
+ *  - _interval_summary: total, mean, median, quartiles, and threshold proportions, aggregated per interval
+ * </p><p>
+ *  - _interval_statistics: 2x2 table of # of intervals covered to >= X depth in >=Y samples
+ * </p><p>
+ *  - _gene_summary: total, mean, median, quartiles, and threshold proportions, aggregated per gene
+ * </p><p>
+ *  - _gene_statistics: 2x2 table of # of genes covered to >= X depth in >= Y samples
+ * </p><p>
+ *  - _cumulative_coverage_counts: coverage histograms (# locus with >= X coverage), aggregated over all bases
+ * </p><p>
+ *  - _cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T VariantEval \
+ *   -o file_name_base \
+ *   -I input_bams.list
+ *   [-geneList refSeq.sorted.txt] \
+ *   [-pt readgroup] \
+ *   [-ct 4 -ct 6 -ct 10] \
+ *   [-L my_capture_genes.interval_list]
+ * </pre>
+ *
  */
 // todo -- cache the map from sample names to means in the print functions, rather than regenerating each time
 // todo -- support for granular histograms for total depth; maybe n*[start,stop], bins*sqrt(n)
@@ -71,10 +114,19 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
     Map<DoCOutputType,PrintStream> out;
     
+    /**
+     * Sets the low-coverage cutoff for granular binning. All loci with depth < START are counted in the first bin.
+     */
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
+    /**
+     * Sets the high-coverage cutoff for granular binning. All loci with depth > END are counted in the last bin.
+     */
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
     int stop = 500;
+    /**
+     * Sets the number of bins for granular binning
+     */
     @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
     int nBins = 499;
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to -1.", required = false)
@@ -85,28 +137,59 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     byte minBaseQuality = -1;
     @Argument(fullName = "maxBaseQuality", doc = "Maximum quality of bases to count towards depth. Defaults to 127 (Byte.MAX_VALUE).", required = false)
     byte maxBaseQuality = Byte.MAX_VALUE;
+    /**
+     * Instead of reporting depth, report the base pileup at each locus
+     */
     @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
     boolean printBaseCounts = false;
+    /**
+     * Do not tabulate locus statistics (# loci covered by sample by coverage)
+     */
     @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
     boolean omitLocusTable = false;
+    /**
+     * Do not tabulate interval statistics (mean, median, quartiles AND # intervals by sample by coverage)
+     */
     @Argument(fullName = "omitIntervalStatistics", shortName = "omitIntervals", doc = "Will omit the per-interval statistics section, which should result in speedup", required = false)
     boolean omitIntervals = false;
+    /**
+     * Do not print the total coverage at every base
+     */
     @Argument(fullName = "omitDepthOutputAtEachBase", shortName = "omitBaseOutput", doc = "Will omit the output of the depth of coverage at each base, which should result in speedup", required = false)
     boolean omitDepthOutput = false;
     @Argument(fullName = "printBinEndpointsAndExit", doc = "Prints the bin values and exits immediately. Use to calibrate what bins you want before running on data.", required = false)
     boolean printBinEndpointsAndExit = false;
+    /**
+     * Do not tabulate the sample summary statistics (total, mean, median, quartile coverage per sample)
+     */
     @Argument(fullName = "omitPerSampleStats", shortName = "omitSampleSummary", doc = "Omits the summary files per-sample. These statistics are still calculated, so this argument will not improve runtime.", required = false)
     boolean omitSampleSummary = false;
+    /**
+     * A way of partitioning reads into groups. Can be sample, readgroup, or library.
+     */
     @Argument(fullName = "partitionType", shortName = "pt", doc = "Partition type for depth of coverage. Defaults to sample. Can be any combination of sample, readgroup, library.", required = false)
     Set<DoCOutputType.Partition> partitionTypes = EnumSet.of(DoCOutputType.Partition.sample);
+    /**
+     * Consider a spanning deletion as contributing to coverage. Also enables deletion counts in per-base output.
+     */
     @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
     boolean includeDeletions = false;
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
     boolean ignoreDeletionSites = false;
+    
+    /**
+     * Path to the RefSeq file for use in aggregating coverage statistics over genes
+     */
     @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate the coverage statistics over this list of genes. Currently accepts RefSeq.", required = false)
     File refSeqGeneList = null;
+    /**
+     * The format of the output file
+     */
     @Argument(fullName = "outputFormat", doc = "the format of the output file (e.g. csv, table, rtable); defaults to r-readable table", required = false)
     String outputFormat = "rtable";
+    /**
+     * A coverage threshold for summarizing (e.g. % bases >= CT for each sample)
+     */
     @Argument(fullName = "summaryCoverageThreshold", shortName = "ct", doc = "for summary file outputs, report the % of bases coverd to >= this number. Defaults to 15; can take multiple arguments.", required = false)
     int[] coverageThresholds = {15};
 

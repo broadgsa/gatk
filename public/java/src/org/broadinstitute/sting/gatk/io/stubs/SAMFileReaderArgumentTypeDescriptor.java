@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 
 import java.io.File;
+import java.lang.reflect.Type;
 
 /**
  * Describe how to parse SAMFileReaders.
@@ -52,14 +53,13 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         this.engine = engine;
     }
 
-
     @Override
     public boolean supports( Class type ) {
         return SAMFileReader.class.isAssignableFrom(type);
     }
 
     @Override
-    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches ) {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches ) {
         SAMFileReaderBuilder builder = new SAMFileReaderBuilder();
 
         String readerFileName = getArgumentValue( createDefaultArgumentDefinition(source), matches );

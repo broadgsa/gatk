@@ -64,10 +64,10 @@ public abstract class BaseTest {
     public static final String b37Refseq = refseqAnnotationLocation + "refGene-big-table-b37.txt";
 
     public static final String dbsnpDataLocation = GATKDataLocation;
-    public static final String hg18dbSNP129 = dbsnpDataLocation + "dbsnp_129_hg18.rod";
-    public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.rod";
-    public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.rod";
+    public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.vcf";
+    public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.vcf";
     public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
+    public static final String hg18dbSNP132 = dbsnpDataLocation + "dbsnp_132.hg18.vcf";
 
     public static final String hapmapDataLocation = comparisonDataLocation + "Validated/HapMap/3.3/";
     public static final String b37hapmapGenotypes = hapmapDataLocation + "genotypes_r27_nr.b37_fwd.vcf";

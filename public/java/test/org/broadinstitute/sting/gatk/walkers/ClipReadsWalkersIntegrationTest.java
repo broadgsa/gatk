@@ -37,8 +37,8 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                 "-R " + hg18Reference +
                         " -T ClipReads " +
                         "-I " + validationDataLocation + "clippingReadsTest.bam " +
-                        "-o %s " +
-                        "-ob %s " + args,
+                        "-os %s " +
+                        "-o %s " + args,
                 2, // just one output file
                 Arrays.asList("tmp", "bam"),
                 Arrays.asList(md51, md52));
@@ -72,9 +72,9 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                         " -I " + validationDataLocation + "originalQuals.chr1.1-1K.bam" +
                         " -L chr1:1-1,000" +
                         " -OQ -QT 4 -CR WRITE_Q0S" +
-                        " -o %s -ob %s",
+                        " -o %s -os %s",
                 2,
-                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "22db22749f811d30216215e047461621"));
+                Arrays.asList("22db22749f811d30216215e047461621", "55c01ccc2e84481b22d3632cdb06c8ba"));
         executeTest("clipOriginalQuals", spec);
     }
 }

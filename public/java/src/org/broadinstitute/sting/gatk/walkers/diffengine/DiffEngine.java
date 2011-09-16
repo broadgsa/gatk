@@ -42,6 +42,7 @@ import java.util.*;
  * Date: 7/4/11
  * Time: 12:51 PM
  * A generic engine for comparing tree-structured objects
+ *
  */
 public class DiffEngine {
     final protected static Logger logger = Logger.getLogger(DiffEngine.class);
@@ -233,8 +234,8 @@ public class DiffEngine {
 
         // now that we have a specific list of values we want to show, display them
         GATKReport report = new GATKReport();
-        final String tableName = "diffences";
-        report.addTable(tableName, "Summarized differences between the master and test files.\nSee http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", false);
+        final String tableName = "differences";
+        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", false);
         GATKReportTable table = report.getTable(tableName);
         table.addPrimaryKey("Difference", true);
         table.addColumn("NumberOfOccurrences", 0);
@@ -341,12 +342,12 @@ public class DiffEngine {
             return reader.readFromFile(file, maxElementsToRead);
     }
 
-    public static boolean simpleDiffFiles(File masterFile, File testFile, DiffEngine.SummaryReportParams params) {
+    public static boolean simpleDiffFiles(File masterFile, File testFile, int maxElementsToRead, DiffEngine.SummaryReportParams params) {
         DiffEngine diffEngine = new DiffEngine();
 
         if ( diffEngine.canRead(masterFile) && diffEngine.canRead(testFile) ) {
-            DiffElement master = diffEngine.createDiffableFromFile(masterFile);
-            DiffElement test = diffEngine.createDiffableFromFile(testFile);
+            DiffElement master = diffEngine.createDiffableFromFile(masterFile, maxElementsToRead);
+            DiffElement test = diffEngine.createDiffableFromFile(testFile, maxElementsToRead);
             List<Difference> diffs = diffEngine.diff(master, test);
             diffEngine.reportSummarizedDifferences(diffs, params);
             return true;

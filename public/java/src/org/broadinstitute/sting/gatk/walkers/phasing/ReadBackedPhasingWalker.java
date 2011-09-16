@@ -24,14 +24,15 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.DisjointSet;
@@ -51,30 +52,67 @@ import java.util.*;
 
 import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFromRods;
 
-
 /**
  * Walks along all variant ROD loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using upstream and downstream reads).
+ *
+ * <p>
+ * Performs physical phasing of SNP calls, based on sequencing reads.
+ * </p>
+ *
+ * <h2>Input</h2>
+ * <p>
+ * VCF file of SNP calls, BAM file of sequence reads.
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * Phased VCF file.
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ *    java
+ *      -jar GenomeAnalysisTK.jar
+ *      -T ReadBackedPhasing
+ *      -R reference.fasta
+ *      -I reads.bam
+ *      --variant:vcf SNPs.vcf
+ *      -BTI variant
+ *      -BTIMR INTERSECTION
+ *      -o phased_SNPs.vcf
+ *      --phaseQualityThresh 20.0
+ * </pre>
+ *
+ * @author Menachem Fromer
+ * @since July 2010
  */
 @Allows(value = {DataSource.READS, DataSource.REFERENCE})
-@Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@Requires(value = {DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.READS)
 
-@ReadFilters({MappingQualityZeroReadFilter.class})
 // Filter out all reads with zero mapping quality
+@ReadFilters({MappingQualityZeroFilter.class})
 
 public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, PhasingStats> {
     private static final boolean DEBUG = false;
+    /**
+     * The VCF file we are phasing variants from.
+     *
+     * All heterozygous variants found in this VCF file will be phased, where possible
+     */
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
 
-    @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads; [default:20000]", required = false)
+    @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads for the phasing procedure", required = false)
     protected Integer cacheWindow = 20000;
 
-    @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:10]", required = false)
+    @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm", required = false)
     protected Integer maxPhaseSites = 10; // 2^10 == 10^3 diploid haplotypes
 
-    @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:10.0]", required = false)
+    @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing", required = false)
     protected Double phaseQualityThresh = 10.0; // PQ = 10.0 <=> P(error) = 10^(-10/10) = 0.1, P(correct) = 0.9
 
     @Hidden
@@ -82,10 +120,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     protected String variantStatsFilePrefix = null;
     private PhasingQualityStatsWriter statsWriter = null;
 
-    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 17]", required = false)
+    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing", required = false)
     public int MIN_BASE_QUALITY_SCORE = 17;
 
-    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for phasing [default: 20]", required = false)
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for phasing", required = false)
     public int MIN_MAPPING_QUALITY_SCORE = 20;
 
     @Argument(fullName = "sampleToPhase", shortName = "sampleToPhase", doc = "Only include these samples when phasing", required = false)
@@ -98,8 +136,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
 
-    private LinkedList<String> rodNames = null;
-
     public static final String PQ_KEY = "PQ";
 
     // In order to detect phase inconsistencies:
@@ -108,10 +144,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     public static final String PHASING_INCONSISTENT_KEY = "PhasingInconsistent";
 
-    @Argument(fullName = "enableMergePhasedSegregatingPolymorphismsToMNP", shortName = "enableMergeToMNP", doc = "Merge consecutive phased sites into MNP records [default:false]", required = false)
+    @Argument(fullName = "enableMergePhasedSegregatingPolymorphismsToMNP", shortName = "enableMergeToMNP", doc = "Merge consecutive phased sites into MNP records", required = false)
     protected boolean enableMergePhasedSegregatingPolymorphismsToMNP = false;
 
-    @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
+    @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record", required = false)
     protected int maxGenomicDistanceForMNP = 1;
 
     @Hidden
@@ -122,9 +158,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public void initialize() {
         if (maxPhaseSites <= 2)
             maxPhaseSites = 2; // by definition, must phase a site relative to previous site [thus, 2 in total]
-
-        rodNames = new LinkedList<String>();
-        rodNames.add("variant");
 
         /*
          Since we cap each base quality (BQ) by its read's mapping quality (MQ) [in Read.updateBaseAndQuality()], then:
@@ -175,8 +208,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         hInfo.add(new VCFInfoHeaderLine(PHASING_INCONSISTENT_KEY, 0, VCFHeaderLineType.Flag, "Are the reads significantly haplotype-inconsistent?"));
 
         // todo -- fix samplesToPhase
-        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples() : samplesToPhase);
+        String trackName = variantCollection.variants.getName();
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
+        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(trackName).getGenotypeSamples() : samplesToPhase);
         writer.writeHeader(new VCFHeader(hInfo, samples));
     }
 
@@ -207,9 +241,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         PhasingStats phaseStats = new PhasingStats();
         List<VariantContext> unprocessedList = new LinkedList<VariantContext>();
 
-        boolean requireStartHere = true; // only see each VariantContext once
-        boolean takeFirstOnly = false; // take as many entries as the VCF file has
-        for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
+        for (VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
             if (samplesToPhase != null) vc = reduceVCToSamples(vc, samplesToPhase);
 
             if (ReadBackedPhasingWalker.processVariantInPhasing(vc)) {

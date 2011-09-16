@@ -56,7 +56,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T SelectVariants" +
                     " -R " + b36KGReference +
-                    " -B:variant,vcf3,storage=STREAM " + tmpFifo.getAbsolutePath() +
+                    " --variant:vcf3,storage=STREAM " + tmpFifo.getAbsolutePath() +
                     " --NO_HEADER" +
                     " -o %s",
             1,
@@ -80,7 +80,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         WalkerTestSpec selectTestSpec = new WalkerTestSpec(
             "-T SelectVariants" +
             " -R " + b36KGReference +
-            " -B:variant,vcf3,storage=STREAM " + testFile +
+            " --variant:vcf3,storage=STREAM " + testFile +
             " --NO_HEADER" +
             " -select 'QD > 2.0'" +
             " -o " + tmpFifo.getAbsolutePath(),
@@ -93,12 +93,12 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         selectTestSpec = new WalkerTestSpec(
             "-T VariantEval" +
             " -R " + b36KGReference +
-            " -B:eval,vcf3 " + testFile +
-            " -B:comp,vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
+            " --eval:vcf3 " + testFile +
+            " --comp:vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
             " -EV CompOverlap -noEV -noST" +
             " -o %s",
             1,
-            Arrays.asList("f60729c900bc8368717653b3fad80d1e")           //"f60729c900bc8368717653b3fad80d1e"
+            Arrays.asList("d46a735ffa898f4aa6b3758c5b03f06d")
         );
         executeTest("testVCFStreamingChain", selectTestSpec);
 

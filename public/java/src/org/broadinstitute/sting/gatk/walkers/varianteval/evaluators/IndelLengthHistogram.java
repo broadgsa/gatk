@@ -90,18 +90,19 @@ public class IndelLengthHistogram extends VariantEvaluator {
     public int getComparisonOrder() { return 1; } // need only the evals
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( ! vc1.isBiallelic() && vc1.isIndel() ) {
-            //veWalker.getLogger().warn("[IndelLengthHistogram] Non-biallelic indel at "+ref.getLocus()+" ignored.");
-            return vc1.toString(); // biallelic sites are output
-        }
 
-        if ( vc1.isIndel() ) {
-            if ( vc1.isInsertion() ) {
+        if ( vc1.isIndel() && vc1.isPolymorphic() ) {
+
+            if ( ! vc1.isBiallelic() ) {
+                //veWalker.getLogger().warn("[IndelLengthHistogram] Non-biallelic indel at "+ref.getLocus()+" ignored.");
+                return vc1.toString(); // biallelic sites are output
+            }
+
+            // only count simple insertions/deletions, not complex indels
+            if ( vc1.isSimpleInsertion() ) {
                 indelHistogram.update(vc1.getAlternateAllele(0).length());
-            } else if ( vc1.isDeletion() ) {
+            } else if ( vc1.isSimpleDeletion() ) {
                 indelHistogram.update(-vc1.getReference().length());
-            } else {
-                throw new ReviewedStingException("Indel type that is not insertion or deletion.");
             }
         }
 

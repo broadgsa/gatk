@@ -22,9 +22,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
-import org.broad.tribble.bed.FullBEDFeature;
+import org.broad.tribble.bed.BEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -43,11 +45,11 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
     @Output
     protected PrintStream out;
 
-    @Argument(shortName="comp1", doc="First comparison track name", required=false)
-    protected String COMP1 = "comp1";
+    @Input(fullName="comp1", shortName = "comp1", doc="First comparison track name", required=true)
+    public RodBinding<BEDFeature> compTrack1;
 
-    @Argument(shortName="comp2", doc="First comparison track name", required=false)
-    protected String COMP2 = "comp2";
+    @Input(fullName="comp2", shortName = "comp2", doc="Second comparison track name", required=true)
+    public RodBinding<BEDFeature> compTrack2;
 
     @Argument(shortName="printState", doc="If provided, prints sites satisfying this state pair", required=false)
     protected String printState = null;
@@ -77,8 +79,8 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
     // --------------------------------------------------------------------------------------------------------------
     public List<CallableLociWalker.CallableBaseState> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker != null ) {
-            CallableLociWalker.CallableBaseState comp1 = getCallableBaseState(tracker, COMP1);
-            CallableLociWalker.CallableBaseState comp2 = getCallableBaseState(tracker, COMP2);
+            CallableLociWalker.CallableBaseState comp1 = getCallableBaseState(tracker, compTrack1);
+            CallableLociWalker.CallableBaseState comp2 = getCallableBaseState(tracker, compTrack2);
 
             if ( printState != null && comp1.getState() == printState1 && comp2.getState() == printState2 ) {
                 out.printf("%s %s %s %s%n", comp1.getLocation(), comp1.getState(), comp2.getLocation(), comp2.getState());
@@ -90,14 +92,14 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
         }
     }
 
-    private CallableLociWalker.CallableBaseState getCallableBaseState(RefMetaDataTracker tracker, String track) {
+    private CallableLociWalker.CallableBaseState getCallableBaseState(RefMetaDataTracker tracker, RodBinding<BEDFeature> rodBinding) {
         //System.out.printf("tracker %s%n", tracker);
-        List<Object> bindings = tracker.getReferenceMetaData(track);
-        if ( bindings.size() != 1 || ! (bindings.get(0) instanceof FullBEDFeature)) {
-            throw new UserException.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", track));
+        List<BEDFeature> bindings = tracker.getValues(rodBinding);
+        if ( bindings.size() != 1 ) {
+            throw new UserException.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", rodBinding.getName()));
         }
 
-        FullBEDFeature bed = (FullBEDFeature)bindings.get(0);
+        BEDFeature bed = bindings.get(0);
         GenomeLoc loc = getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), bed.getStart(), bed.getEnd());
         CallableLociWalker.CalledState state = CallableLociWalker.CalledState.valueOf(bed.getName());
         return new CallableLociWalker.CallableBaseState(getToolkit().getGenomeLocParser(),loc, state);
@@ -127,7 +129,7 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
     public void onTraversalDone(long[][] result) {
         for ( CallableLociWalker.CalledState state1 : CallableLociWalker.CalledState.values() ) {
             for ( CallableLociWalker.CalledState state2 : CallableLociWalker.CalledState.values() ) {
-                out.printf("%s %s %s %s %d%n", COMP1, COMP2, state1, state2, result[state1.ordinal()][state2.ordinal()]);
+                out.printf("%s %s %s %s %d%n", compTrack1.getName(), compTrack2.getName(), state1, state2, result[state1.ordinal()][state2.ordinal()]);
             }
         }
     }

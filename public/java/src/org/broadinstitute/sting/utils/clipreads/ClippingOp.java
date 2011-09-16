@@ -1,11 +1,15 @@
 package org.broadinstitute.sting.utils.clipreads;
 
+import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.util.Iterator;
+import java.util.Stack;
 import java.util.Vector;
 
 /**
@@ -16,37 +20,28 @@ import java.util.Vector;
  * according to the wishes of the supplid ClippingAlgorithm enum.
  */
 public class ClippingOp {
-    public final ClippingType type;
     public final int start, stop; // inclusive
-    public final Object extraInfo;
 
     public ClippingOp(int start, int stop) {
-        this(null, start, stop, null);
-    }
-
-    public ClippingOp(ClippingType type, int start, int stop, Object extraInfo) {
-        // todo -- remove type and extra info
-        this.type = type;
         this.start = start;
         this.stop = stop;
-        this.extraInfo = extraInfo;
     }
+
 
     public int getLength() {
         return stop - start + 1;
     }
 
     /**
-     * Clips the bases in clippedRead according to this operation's start and stop.  Uses the clipping
+     * Clips the bases in read according to this operation's start and stop.  Uses the clipping
      * representation used is the one provided by algorithm argument.
      *
      * @param algorithm
-     * @param clippedRead
+     * @param read
      */
-    public SAMRecord apply(ClippingRepresentation algorithm, SAMRecord clippedRead) {
-        //clippedRead.setReferenceIndex(1);
-        byte[] quals = clippedRead.getBaseQualities();
-        byte[] bases = clippedRead.getReadBases();
+    public SAMRecord apply(ClippingRepresentation algorithm, SAMRecord read) {
+        byte[] quals = read.getBaseQualities();
+        byte[] bases = read.getReadBases();
 
         switch (algorithm) {
             // important note:
@@ -55,79 +50,65 @@ public class ClippingOp {
             case WRITE_NS:
                 for (int i = start; i <= stop; i++)
                     bases[i] = 'N';
-                clippedRead.setReadBases(bases);
+                read.setReadBases(bases);
                 break;
             case WRITE_Q0S:
                 for (int i = start; i <= stop; i++)
                     quals[i] = 0;
-                clippedRead.setBaseQualities(quals);
+                read.setBaseQualities(quals);
                 break;
             case WRITE_NS_Q0S:
                 for (int i = start; i <= stop; i++) {
                     bases[i] = 'N';
                     quals[i] = 0;
                 }
-                clippedRead.setReadBases(bases);
-                clippedRead.setBaseQualities(quals);
+                read.setReadBases(bases);
+                read.setBaseQualities(quals);
                 break;
             case HARDCLIP_BASES:
-            case SOFTCLIP_BASES:
-                if ( ! clippedRead.getReadUnmappedFlag() ) {
-                    // we can't process unmapped reads
-
-                    //System.out.printf("%d %d %d%n", stop, start, clippedRead.getReadLength());
-                    int myStop = stop;
-                    if ( (stop + 1 - start) == clippedRead.getReadLength() ) {
-                        // BAM representation issue -- we can't SOFTCLIP away all bases in a read, just leave it alone
-                        //Walker.logger.info(String.format("Warning, read %s has all bases clip but this can't be represented with SOFTCLIP_BASES, just leaving it alone", clippedRead.getReadName()));
-                        //break;
-                        myStop--; // just decrement stop
-                    }
-
-                    if ( start > 0 && myStop != clippedRead.getReadLength() - 1 )
-                        throw new RuntimeException(String.format("Cannot apply soft clipping operator to the middle of a read: %s to be clipped at %d-%d",
-                                clippedRead.getReadName(), start, myStop));
-
-                    Cigar oldCigar = clippedRead.getCigar();
-
-                    int scLeft = 0, scRight = clippedRead.getReadLength();
-                    if ( start == 0 )
-                        scLeft = myStop + 1;
-                    else
-                        scRight = start;
-
-                    Cigar newCigar = softClip(oldCigar, scLeft, scRight);
-                    clippedRead.setCigar(newCigar);
-
-                    int newClippedStart = getNewAlignmentStartOffset(newCigar, oldCigar);
-                    int newStart = clippedRead.getAlignmentStart() + newClippedStart;
-                    clippedRead.setAlignmentStart(newStart);
-
-                    if ( algorithm == ClippingRepresentation.HARDCLIP_BASES )
-                        clippedRead = ReadUtils.hardClipSoftClippedBases(clippedRead);
-                    //System.out.printf("%s clipping at %d %d / %d %d => %s and %d%n", oldCigar.toString(), start, stop, scLeft, scRight, newCigar.toString(), newStart);
-                } else if  ( algorithm == ClippingRepresentation.HARDCLIP_BASES ) {
-                    // we can hard clip unmapped reads
-                    if ( clippedRead.getReadNegativeStrandFlag() )
-                        clippedRead = ReadUtils.hardClipBases(clippedRead, 0, start, null);
-                    else
-                        clippedRead = ReadUtils.hardClipBases(clippedRead, start, start + getLength(), null);
-                }
+                read = hardClip(read, start, stop);
                 break;
+
+            case SOFTCLIP_BASES:
+                if ( read.getReadUnmappedFlag() ) {
+                    // we can't process unmapped reads
+                    throw new UserException("Read Clipper cannot soft clip unmapped reads");
+                }
+
+                //System.out.printf("%d %d %d%n", stop, start, read.getReadLength());
+                int myStop = stop;
+                if ( (stop + 1 - start) == read.getReadLength() ) {
+                    // BAM representation issue -- we can't SOFTCLIP away all bases in a read, just leave it alone
+                    //Walker.logger.info(String.format("Warning, read %s has all bases clip but this can't be represented with SOFTCLIP_BASES, just leaving it alone", read.getReadName()));
+                    //break;
+                    myStop--; // just decrement stop
+                }
+
+                if ( start > 0 && myStop != read.getReadLength() - 1 )
+                    throw new RuntimeException(String.format("Cannot apply soft clipping operator to the middle of a read: %s to be clipped at %d-%d", read.getReadName(), start, myStop));
+
+                Cigar oldCigar = read.getCigar();
+
+                int scLeft = 0, scRight = read.getReadLength();
+                if ( start == 0 )
+                    scLeft = myStop + 1;
+                else
+                    scRight = start;
+
+                Cigar newCigar = softClip(oldCigar, scLeft, scRight);
+                read.setCigar(newCigar);
+
+                int newClippedStart = getNewAlignmentStartOffset(newCigar, oldCigar);
+                int newStart = read.getAlignmentStart() + newClippedStart;
+                read.setAlignmentStart(newStart);
+
+                break;
+
             default:
                 throw new IllegalStateException("Unexpected Clipping operator type " + algorithm);
         }
 
-        return clippedRead;
-    }
-
-    /**
-     * What is the type of a ClippingOp?
-     */
-    public enum ClippingType {
-        LOW_Q_SCORES,
-        WITHIN_CLIP_RANGE,
-        MATCHES_CLIP_SEQ
+        return read;
     }
 
     /**
@@ -198,7 +179,7 @@ public class ClippingOp {
         Vector<CigarElement> newElements = new Vector<CigarElement>();
         for (CigarElement curElem : __cigar.getCigarElements()) {
             if (!curElem.getOperator().consumesReadBases()) {
-                if (curLength > __startClipEnd && curLength < __endClipBegin) {
+                if (curElem.getOperator() == CigarOperator.HARD_CLIP || curLength > __startClipEnd && curLength < __endClipBegin) {
                     newElements.add(new CigarElement(curElem.getLength(), curElem.getOperator()));
                 }
                 continue;
@@ -264,5 +245,234 @@ public class ClippingOp {
         Cigar newCigar = new Cigar(finalNewElements);
         assert newCigar.isValid(null, -1) == null;
         return newCigar;
+    }
+
+    @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1", "!read.getReadUnmappedFlag()"})
+    private SAMRecord hardClip (SAMRecord read, int start, int stop) {
+        if (start == 0 && stop == read.getReadLength() -1)
+            return new SAMRecord(read.getHeader());
+
+        // If the read is unmapped there is no Cigar string and neither should we create a new cigar string
+        CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);
+
+        // the cigar may force a shift left or right (or both) in case we are left with insertions
+        // starting or ending the read after applying the hard clip on start/stop.
+        int newLength = read.getReadLength() - (stop - start + 1) - cigarShift.shiftFromStart - cigarShift.shiftFromEnd;
+        byte [] newBases = new byte[newLength];
+        byte [] newQuals = new byte[newLength];
+        int copyStart = (start == 0) ? stop + 1 + cigarShift.shiftFromStart : cigarShift.shiftFromStart;
+
+        System.arraycopy(read.getReadBases(), copyStart, newBases, 0, newLength);
+        System.arraycopy(read.getBaseQualities(), copyStart, newQuals, 0, newLength);
+
+        SAMRecord hardClippedRead;
+        try {
+            hardClippedRead = (SAMRecord) read.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new ReviewedStingException("Where did the clone go?");
+        }
+
+        hardClippedRead.setBaseQualities(newQuals);
+        hardClippedRead.setReadBases(newBases);
+        hardClippedRead.setCigar(cigarShift.cigar);
+        if (start == 0)
+            hardClippedRead.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), cigarShift.cigar));
+
+        return hardClippedRead;
+
+    }
+
+    @Requires({"!cigar.isEmpty()"})
+    private CigarShift hardClipCigar (Cigar cigar, int start, int stop) {
+        Cigar newCigar = new Cigar();
+        int index = 0;
+        int totalHardClipCount = stop - start + 1;
+        int alignmentShift = 0; // caused by hard clipping insertions or deletions
+
+        // hard clip the beginning of the cigar string
+        if (start == 0) {
+            Iterator<CigarElement> cigarElementIterator = cigar.getCigarElements().iterator();
+            CigarElement cigarElement = cigarElementIterator.next();
+            // Skip all leading hard clips
+            while (cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+                totalHardClipCount += cigarElement.getLength();
+                if (cigarElementIterator.hasNext())
+                    cigarElement = cigarElementIterator.next();
+                else
+                    throw new ReviewedStingException("Read is entirely hardclipped, shouldn't be trying to clip it's cigar string");
+            }
+            // keep clipping until we hit stop
+            while (index <= stop) {
+                int shift = 0;
+                if (cigarElement.getOperator().consumesReadBases())
+                    shift = cigarElement.getLength();
+
+                // we're still clipping or just finished perfectly
+                if (index + shift == stop + 1) {
+                    alignmentShift += calculateHardClippingAlignmentShift(cigarElement, cigarElement.getLength());
+                    newCigar.add(new CigarElement(totalHardClipCount + alignmentShift, CigarOperator.HARD_CLIP));
+                }
+                // element goes beyond what we need to clip
+                else if (index + shift > stop + 1) {
+                    int elementLengthAfterChopping = cigarElement.getLength() - (stop - index + 1);
+                    alignmentShift += calculateHardClippingAlignmentShift(cigarElement, stop-index+1);
+                    newCigar.add(new CigarElement(totalHardClipCount + alignmentShift, CigarOperator.HARD_CLIP));
+                    newCigar.add(new CigarElement(elementLengthAfterChopping, cigarElement.getOperator()));
+                }
+                index += shift;
+                alignmentShift += calculateHardClippingAlignmentShift(cigarElement, shift);
+
+                if (index <= stop && cigarElementIterator.hasNext())
+                    cigarElement = cigarElementIterator.next();
+            }
+
+            // add the remaining cigar elements
+            while (cigarElementIterator.hasNext()) {
+                cigarElement = cigarElementIterator.next();
+                newCigar.add(new CigarElement(cigarElement.getLength(), cigarElement.getOperator()));
+            }
+        }
+
+        // hard clip the end of the cigar string
+        else {
+            Iterator<CigarElement> cigarElementIterator = cigar.getCigarElements().iterator();
+            CigarElement cigarElement = cigarElementIterator.next();
+
+            // Keep marching on until we find the start
+            while (index < start) {
+                int shift = 0;
+                if (cigarElement.getOperator().consumesReadBases())
+                    shift = cigarElement.getLength();
+
+                // we haven't gotten to the start yet, keep everything as is.
+                if (index + shift < start)
+                    newCigar.add(new CigarElement(cigarElement.getLength(), cigarElement.getOperator()));
+
+                // element goes beyond our clip starting position
+                else {
+                    int elementLengthAfterChopping = start - index;
+                    alignmentShift += calculateHardClippingAlignmentShift(cigarElement, cigarElement.getLength() - (start - index));
+
+                    // if this last element is a HARD CLIP operator, just merge it with our hard clip operator to be added later
+                    if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                        totalHardClipCount += elementLengthAfterChopping;
+                    // otherwise, maintain what's left of this last operator
+                    else
+                        newCigar.add(new CigarElement(elementLengthAfterChopping, cigarElement.getOperator()));
+                }
+                index += shift;
+                if (index < start && cigarElementIterator.hasNext())
+                    cigarElement = cigarElementIterator.next();
+            }
+
+            // check if we are hard clipping indels
+            while(cigarElementIterator.hasNext()) {
+                cigarElement = cigarElementIterator.next();
+                alignmentShift += calculateHardClippingAlignmentShift(cigarElement, cigarElement.getLength());
+            }
+            newCigar.add(new CigarElement(totalHardClipCount + alignmentShift, CigarOperator.HARD_CLIP));
+        }
+        return cleanHardClippedCigar(newCigar);
+    }
+
+    /**
+     * Checks if a hard clipped cigar left a read starting or ending with insertions/deletions
+     * and cleans it up accordingly.
+     *
+     * @param cigar
+     * @return
+     */
+    private CigarShift cleanHardClippedCigar(Cigar cigar) {
+        Cigar cleanCigar = new Cigar();
+        int shiftFromStart = 0;
+        int shiftFromEnd = 0;
+        Stack<CigarElement> cigarStack = new Stack<CigarElement>();
+        Stack<CigarElement> inverseCigarStack = new Stack<CigarElement>();
+
+        for (CigarElement cigarElement : cigar.getCigarElements())
+            cigarStack.push(cigarElement);
+
+        for (int i = 1; i <= 2; i++) {
+            int shift = 0;
+            boolean readHasStarted = false;
+
+            while(!cigarStack.empty()) {
+                CigarElement cigarElement = cigarStack.pop();
+
+                if ( !readHasStarted &&
+                        cigarElement.getOperator() != CigarOperator.INSERTION &&
+                        cigarElement.getOperator() != CigarOperator.DELETION &&
+                        cigarElement.getOperator() != CigarOperator.HARD_CLIP)
+                    readHasStarted = true;
+                else if ( !readHasStarted && cigarElement.getOperator() == CigarOperator.INSERTION)
+                    shift += cigarElement.getLength();
+
+                if (readHasStarted || cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
+                    if (i==1)
+                        inverseCigarStack.push(cigarElement);
+                    else
+                        cleanCigar.add(cigarElement);
+                }
+            }
+            // first pass  (i=1) is from end to start of the cigar elements
+            if (i == 1) {
+                shiftFromEnd = shift;
+                cigarStack = inverseCigarStack;
+            }
+            // second pass (i=2) is from start to end with the end already cleaned
+            else {
+                shiftFromStart = shift;
+            }
+        }
+        return new CigarShift(cleanCigar, shiftFromStart, shiftFromEnd);
+    }
+
+    private int calculateAlignmentStartShift(Cigar oldCigar, Cigar newCigar) {
+        int shift = 0;
+
+        // Rewind to previous start (by counting everything that was already clipped in this read)
+        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
+            if (!cigarElement.getOperator().consumesReferenceBases())
+                shift -= cigarElement.getLength();
+            else
+                break;
+        }
+
+        // Advance to new start (by counting everything new that has been clipped )
+        for (CigarElement cigarElement : newCigar.getCigarElements()) {
+            if (!cigarElement.getOperator().consumesReferenceBases())
+                shift += cigarElement.getLength();
+            else
+                break;
+        }
+
+        return shift;
+    }
+
+    private int calculateHardClippingAlignmentShift(CigarElement cigarElement, int clippedLength) {
+        if (cigarElement.getOperator() == CigarOperator.INSERTION) {
+            int cigarElementLength = cigarElement.getLength();
+            if (clippedLength >= cigarElementLength)
+                return -cigarElement.getLength();
+            else
+                return -clippedLength;
+        }
+
+        if (cigarElement.getOperator() == CigarOperator.DELETION)
+            return cigarElement.getLength();
+
+        return 0;
+    }
+
+    private class CigarShift {
+        private Cigar cigar;
+        private int shiftFromStart;
+        private int shiftFromEnd;
+
+        private CigarShift(Cigar cigar, int shiftFromStart, int shiftFromEnd) {
+            this.cigar = cigar;
+            this.shiftFromStart = shiftFromStart;
+            this.shiftFromEnd = shiftFromEnd;
+        }
     }
 }

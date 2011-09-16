@@ -2,30 +2,25 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.ArrayList;
-import java.util.Set;
+import java.util.Arrays;
+import java.util.List;
 
+/**
+ * Stratifies the eval RODs by each sample in the eval ROD.
+ *
+ * This allows the system to analyze each sample separately.  Since many evaluations
+ * only consider non-reference sites, stratifying by sample results in meaningful
+ * calculations for CompOverlap
+ */
 public class Sample extends VariantStratifier {
-    // needs the sample names
-    private ArrayList<String> samples;
-
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
-        samples = new ArrayList<String>();
-        samples.addAll(sampleNames);
+    public void initialize() {
+        states.addAll(getVariantEvalWalker().getSampleNamesForStratification());
     }
 
-    public ArrayList<String> getAllStates() {
-        return samples;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
-        relevantStates.add(sampleName);
-
-        return relevantStates;
+    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        return Arrays.asList(sampleName);
     }
 }

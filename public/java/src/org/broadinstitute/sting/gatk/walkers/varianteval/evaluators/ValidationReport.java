@@ -117,7 +117,8 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     public SiteStatus calcSiteStatus(VariantContext vc) {
         if ( vc == null ) return SiteStatus.NO_CALL;
         if ( vc.isFiltered() ) return SiteStatus.FILTERED;
-        if ( ! vc.isVariant() ) return SiteStatus.MONO;
+        if ( vc.isMonomorphic() ) return SiteStatus.MONO;
+        if ( vc.hasGenotypes() ) return SiteStatus.POLY;  // must be polymorphic if isMonomorphic was false and there are genotypes
 
         if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
             int ac = 0;
@@ -132,8 +133,6 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
             else
                 ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY);
             return ac > 0 ? SiteStatus.POLY : SiteStatus.MONO;
-        } else if ( vc.hasGenotypes() ) {
-            return vc.isPolymorphic() ? SiteStatus.POLY : SiteStatus.MONO;
         } else {
             return TREAT_ALL_SITES_IN_EVAL_VCF_AS_CALLED ? SiteStatus.POLY : SiteStatus.NO_CALL; // we can't figure out what to do
             //return SiteStatus.NO_CALL; // we can't figure out what to do

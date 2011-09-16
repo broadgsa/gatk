@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.List;
@@ -43,6 +44,7 @@ public class VariantRecalibratorEngine {
     /////////////////////////////
 
     protected final static Logger logger = Logger.getLogger(VariantRecalibratorEngine.class);
+    public final static double MIN_ACCEPTABLE_LOD_SCORE = -20000.0;
 
     // the unified argument collection
     final private VariantRecalibratorArgumentCollection VRAC;
@@ -72,13 +74,14 @@ public class VariantRecalibratorEngine {
         for( final VariantDatum datum : data ) {
             final double thisLod = evaluateDatum( datum, model );
             if( Double.isNaN(thisLod) ) {
-                if( evaluateContrastively ) {
-                    throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
-                } else {
-                    throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe.");
-                }
+                throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
             }
-            datum.lod = ( evaluateContrastively ? (datum.prior + datum.lod - thisLod) : thisLod );
+
+            datum.lod = ( evaluateContrastively ?
+                            ( Double.isInfinite(datum.lod) ? // positive model said negative infinity
+                                    ( MIN_ACCEPTABLE_LOD_SCORE + GenomeAnalysisEngine.getRandomGenerator().nextDouble() * MIN_ACCEPTABLE_LOD_SCORE ) // Negative infinity lod values are possible when covariates are extremely far away from their tight Gaussians
+                                    : datum.prior + datum.lod - thisLod) // contrastive evaluation: (prior + positive model - negative model)
+                            : thisLod ); // positive model only so set the lod and return
         }
     }
 

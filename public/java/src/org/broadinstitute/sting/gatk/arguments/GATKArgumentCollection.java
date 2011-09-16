@@ -101,6 +101,8 @@ public class GATKArgumentCollection {
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
+    @Deprecated
+    @Hidden
     @ElementList(required = false)
     @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form :<name>,<type> <file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
@@ -116,11 +118,6 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
-
-
-    @Element(required = false)
-    @Input(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
-    public String DBSNPFile = null;
 
     /**
      * The override mechanism in the GATK, by default, populates the command-line arguments, then
@@ -345,14 +342,6 @@ public class GATKArgumentCollection {
                 return false;
             }
         }
-        if (other.RODBindings.size() != RODBindings.size()) {
-            return false;
-        }
-        for (int x = 0; x < RODBindings.size(); x++) {
-            if (!RODBindings.get(x).equals(other.RODBindings.get(x))) {
-                return false;
-            }
-        }
         if (!other.samFiles.equals(this.samFiles)) {
             return false;
         }
@@ -378,9 +367,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.excludeIntervals.equals(this.excludeIntervals)) {
-            return false;
-        }
-        if (!other.DBSNPFile.equals(this.DBSNPFile)) {
             return false;
         }
         if (!other.unsafe.equals(this.unsafe)) {

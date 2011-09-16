@@ -24,13 +24,9 @@
 
 package org.broadinstitute.sting.queue.engine.gridengine
 
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
 import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.engine.drmaa.DrmaaJobManager
 
-class GridEngineJobManager extends CommandLineJobManager[GridEngineJobRunner] {
-  def runnerType = classOf[GridEngineJobRunner]
-  def create(function: CommandLineFunction) = new GridEngineJobRunner(function)
-
-  override def updateStatus(runners: Set[GridEngineJobRunner]) = { GridEngineJobRunner.updateStatus(runners) }
-  override def tryStop(runners: Set[GridEngineJobRunner]) { GridEngineJobRunner.tryStop(runners) }
+class GridEngineJobManager extends DrmaaJobManager {
+  override def create(function: CommandLineFunction) = new GridEngineJobRunner(session, function)
 }

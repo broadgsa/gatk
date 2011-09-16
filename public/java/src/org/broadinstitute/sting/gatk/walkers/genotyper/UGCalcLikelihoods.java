@@ -49,7 +49,6 @@ import java.util.TreeSet;
  * the name 'allele' so we know which alternate allele to use at each site.
  */
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
-@Requires(value={},referenceMetaData=@RMD(name="alleles", type= VariantContext.class))
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.READS)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
@@ -93,7 +92,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
 
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         VariantContext call = UG_engine.calculateLikelihoods(tracker, refContext, rawContext);
-        return call == null ? null : new VariantCallContext(call, refContext.getBase(), true);
+        return call == null ? null : new VariantCallContext(call, true);
     }
 
     public Integer reduceInit() { return 0; }
@@ -107,7 +106,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
             return sum;
 
         try {
-            writer.add(value, value.refBase);
+            writer.add(value);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

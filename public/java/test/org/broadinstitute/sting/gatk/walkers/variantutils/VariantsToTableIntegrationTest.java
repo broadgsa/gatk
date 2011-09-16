@@ -35,7 +35,7 @@ import java.io.File;
 public class VariantsToTableIntegrationTest extends WalkerTest {
     private String variantsToTableCmd(String moreArgs) {
         return "-R " + hg18Reference +
-                " -B:eval,vcf " + validationDataLocation + "/soap_gatk_annotated.vcf" +
+                " --variant:vcf " + validationDataLocation + "/soap_gatk_annotated.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F TRANSITION -F DP -F SB -F set -F RankSumP -F refseq.functionalClass*" +
                 " -L chr1 -KMA -o %s" + moreArgs;
