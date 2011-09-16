@@ -69,14 +69,23 @@ import java.util.*;
  * <h2>Output</h2>
  * <p>
  * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
+ * </p><p>
  *  - no suffix: per locus coverage
+ * </p><p>
  *  - _summary: total, mean, median, quartiles, and threshold proportions, aggregated over all bases
+ * </p><p>
  *  - _statistics: coverage histograms (# locus with X coverage), aggregated over all bases
+ * </p><p>
  *  - _interval_summary: total, mean, median, quartiles, and threshold proportions, aggregated per interval
+ * </p><p>
  *  - _interval_statistics: 2x2 table of # of intervals covered to >= X depth in >=Y samples
+ * </p><p>
  *  - _gene_summary: total, mean, median, quartiles, and threshold proportions, aggregated per gene
+ * </p><p>
  *  - _gene_statistics: 2x2 table of # of genes covered to >= X depth in >= Y samples
+ * </p><p>
  *  - _cumulative_coverage_counts: coverage histograms (# locus with >= X coverage), aggregated over all bases
+ * </p><p>
  *  - _cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases
  * </p>
  *
