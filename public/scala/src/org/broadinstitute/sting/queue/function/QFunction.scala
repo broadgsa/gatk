@@ -387,24 +387,10 @@ trait QFunction extends Logging with QJobReport {
    */
   protected def canon(value: Any) = {
     value match {
-      case fileExtension: FileExtension =>
-        val newFile = absolute(fileExtension);
-        val newFileExtension = fileExtension.withPath(newFile.getPath)
-        newFileExtension
-      case file: File =>
-        if (file.getClass != classOf[File])
-          throw new QException("Extensions of file must also extend with FileExtension so that the path can be modified.");
-        absolute(file)
+      case file: File => IOUtils.absolute(commandDirectory, file)
       case x => x
     }
   }
-
-  /**
-   * Returns the absolute path to the file relative to the run directory and the job command directory.
-   * @param file File to root relative to the command directory if it is not already absolute.
-   * @return The absolute path to file.
-   */
-  private def absolute(file: File) = IOUtils.absolute(commandDirectory, file)
 
   /**
    * Scala sugar type for checking annotation required and exclusiveOf.
