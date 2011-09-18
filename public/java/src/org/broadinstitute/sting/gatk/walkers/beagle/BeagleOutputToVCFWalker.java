@@ -175,21 +175,16 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
         BeagleFeature beagleR2Feature = tracker.getFirstValue(beagleR2);
-        // ignore places where we don't have a variant
-        if ( beagleR2Feature == null )
-            return 0;
-
-
         BeagleFeature beagleProbsFeature = tracker.getFirstValue(beagleProbs);
-
-        // ignore places where we don't have a variant
-        if ( beagleProbsFeature == null )
-            return 0;
-
         BeagleFeature beaglePhasedFeature = tracker.getFirstValue(beaglePhased);
+
         // ignore places where we don't have a variant
-        if ( beaglePhasedFeature == null )
-            return 0;
+        if ( beagleR2Feature == null || beagleProbsFeature == null ||  beaglePhasedFeature == null)
+        {
+           vcfWriter.add(vc_input);
+           return 1;
+        }
+
 
         // get reference base for current position
         byte refByte = ref.getBase();

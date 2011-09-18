@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.queue.function
+package org.broadinstitute.sting.queue.util
 
 import java.io.File
 

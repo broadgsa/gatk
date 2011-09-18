@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.GATKBAMFileSpan;
+import net.sf.samtools.GATKChunk;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
@@ -84,7 +85,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             if(currentLocus == GenomeLoc.UNMAPPED) {
                 nextFilePointer = new FilePointer(GenomeLoc.UNMAPPED);
                 for(SAMReaderID id: dataSource.getReaderIDs())
-                    nextFilePointer.addFileSpans(id,new GATKBAMFileSpan());
+                    nextFilePointer.addFileSpans(id,new GATKBAMFileSpan(new GATKChunk(indexFiles.get(id).getStartOfLastLinearBin(),Long.MAX_VALUE)));
                 currentLocus = null;
                 continue;
             }

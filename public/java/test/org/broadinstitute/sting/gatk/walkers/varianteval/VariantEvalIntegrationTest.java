@@ -6,13 +6,34 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 
 public class VariantEvalIntegrationTest extends WalkerTest {
-    private static String variantEvalTestDataRoot = validationDataLocation + "/VariantEval";
+    private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
     private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
     private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.HG00625.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
+
+    @Test
+    public void testFunctionClassWithSnpeff() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                                buildCommandLine(
+                                        "-T VariantEval",
+                                        "-R " + b37KGReference,
+                                        "--dbsnp " + b37dbSNP132,
+                                        "--eval " + validationDataLocation + "snpEff.AFR.unfiltered.VariantAnnotator.output.vcf",
+                                        "-noEV",
+                                        "-EV TiTvVariantEvaluator",
+                                        "-noST",
+                                        "-ST FunctionalClass",
+                                        "-BTI eval",
+                                        "-o %s"
+                                ),
+                                1,
+                                Arrays.asList("f5f811ceb973d7fd6c1b2b734f1b2b12")
+                              );
+        executeTest("testFunctionClassWithSnpeff", spec);
+    }
 
     @Test
     public void testStratifySamplesAndExcludeMonomorphicSites() {

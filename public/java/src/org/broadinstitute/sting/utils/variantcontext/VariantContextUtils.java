@@ -663,6 +663,18 @@ public class VariantContextUtils {
         return merged;
     }
 
+    public static boolean allelesAreSubset(VariantContext vc1, VariantContext vc2) {
+        // if all alleles of vc1 are a contained in alleles of vc2, return true
+        if (!vc1.getReference().equals(vc2.getReference()))
+            return false;
+
+        for (Allele a :vc1.getAlternateAlleles()) {
+            if (!vc2.getAlternateAlleles().contains(a))
+                return false;
+        }
+
+        return true;
+    }
     public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
         // see if we need to trim common reference base from all alleles
         boolean trimVC;
