@@ -118,31 +118,40 @@ public class ReadUtils {
     /**
      * This enum represents all the different ways in which a read can overlap an interval.
      *
-     * NO_OVERLAP:
+     * NO_OVERLAP_CONTIG:
+     * read and interval are in different contigs.
+     *
+     * NO_OVERLAP_LEFT:
+     * the read does not overlap the interval.
+     *
+     *                        |----------------| (interval)
+     *   <---------------->                      (read)
+     *
+     * NO_OVERLAP_RIGHT:
      * the read does not overlap the interval.
      *
      *   |----------------|                      (interval)
      *                        <----------------> (read)
      *
-     * LEFT_OVERLAP:
+     * OVERLAP_LEFT:
      * the read starts before the beginning of the interval but ends inside of it
      *
      *          |----------------| (interval)
      *   <---------------->        (read)
      *
-     * RIGHT_OVERLAP:
+     * OVERLAP_RIGHT:
      * the read starts inside the interval but ends outside of it
      *
      *   |----------------|     (interval)
      *       <----------------> (read)
      *
-     * FULL_OVERLAP:
+     * OVERLAP_LEFT_AND_RIGHT:
      * the read starts before the interval and ends after the interval
      *
      *      |-----------|     (interval)
      *  <-------------------> (read)
      *
-     * CONTAINED:
+     * OVERLAP_CONTAINED:
      * the read starts and ends inside the interval
      *
      *  |----------------|     (interval)
