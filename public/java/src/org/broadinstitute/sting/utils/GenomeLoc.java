@@ -306,7 +306,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     
     @Override
     public int hashCode() {
-        return (int)( start << 16 + stop << 4 + contigIndex );
+        return start << 16 | stop << 4 | contigIndex;
     }
 
 

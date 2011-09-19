@@ -12,14 +12,14 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  #inputFileName = "~/Desktop/broadLocal/GATK/unstable/report.txt"
-  inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
+  inputFileName = "~/Desktop/Q-30033@gsa1.jobreport.txt"
+  #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
 }
 
-RUNTIME_UNITS = "(sec)"
-ORIGINAL_UNITS_TO_SECONDS = 1/1000
+RUNTIME_UNITS = "(hours)"
+ORIGINAL_UNITS_TO_SECONDS = 1/1000/60/60
 
 # 
 # Helper function to aggregate all of the jobs in the report across all tables
@@ -33,7 +33,7 @@ allJobsFromReport <- function(report) {
 #
 # Creates segmentation plots of time (x) vs. job (y) with segments for the duration of the job
 #
-plotJobsGantt <- function(gatkReport, sortOverall) {
+plotJobsGantt <- function(gatkReport, sortOverall, includeText) {
   allJobs = allJobsFromReport(gatkReport)
   if ( sortOverall ) {
     title = "All jobs, by analysis, by start time"
@@ -44,16 +44,18 @@ plotJobsGantt <- function(gatkReport, sortOverall) {
   }
   allJobs$index = 1:nrow(allJobs)
   minTime = min(allJobs$startTime)
-  allJobs$relStartTime = allJobs$startTime - minTime
-  allJobs$relDoneTime = allJobs$doneTime - minTime
+  allJobs$relStartTime = (allJobs$startTime - minTime) * ORIGINAL_UNITS_TO_SECONDS
+  allJobs$relDoneTime = (allJobs$doneTime - minTime) * ORIGINAL_UNITS_TO_SECONDS
   allJobs$ganttName = paste(allJobs$jobName, "@", allJobs$exechosts)
   maxRelTime = max(allJobs$relDoneTime)
   p <- ggplot(data=allJobs, aes(x=relStartTime, y=index, color=analysisName))
-  p <- p + geom_segment(aes(xend=relDoneTime, yend=index), size=2, arrow=arrow(length = unit(0.1, "cm")))
-  p <- p + geom_text(aes(x=relDoneTime, label=ganttName, hjust=-0.2), size=2)
+  p <- p + theme_bw()
+  p <- p + geom_segment(aes(xend=relDoneTime, yend=index), size=1, arrow=arrow(length = unit(0.1, "cm")))
+  if ( includeText )
+    p <- p + geom_text(aes(x=relDoneTime, label=ganttName, hjust=-0.2), size=2)
   p <- p + xlim(0, maxRelTime * 1.1)
   p <- p + xlab(paste("Start time (relative to first job)", RUNTIME_UNITS))
-  p <- p + ylab("Job")
+  p <- p + ylab("Job number")
   p <- p + opts(title=title)
   print(p)
 }
@@ -157,8 +159,8 @@ if ( ! is.na(outputPDF) ) {
   pdf(outputPDF, height=8.5, width=11)
 } 
 
-plotJobsGantt(gatkReportData, T)
-plotJobsGantt(gatkReportData, F)
+plotJobsGantt(gatkReportData, T, F)
+plotJobsGantt(gatkReportData, F, F)
 plotProgressByTime(gatkReportData)
 for ( group in gatkReportData ) {
  plotGroup(group)
