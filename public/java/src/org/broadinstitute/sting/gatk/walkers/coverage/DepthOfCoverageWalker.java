@@ -63,9 +63,12 @@ import java.util.*;
  * <h2>Input</h2>
  * <p>
  * One or more bam files (with proper headers) to be analyzed for coverage statistics
- * (Optional) A REFSEQ Rod to aggregate coverage to the gene level
  * </p>
- *
+ * <p>
+ *(Optional) A REFSEQ Rod to aggregate coverage to the gene level
+ * <p>
+ * (for information about creating the REFSEQ Rod, please consult the RefSeqCodec documentation)
+ *</p></p>
  * <h2>Output</h2>
  * <p>
  * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
@@ -93,7 +96,7 @@ import java.util.*;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T VariantEval \
+ *   -T DepthOfCoverage \
  *   -o file_name_base \
  *   -I input_bams.list
  *   [-geneList refSeq.sorted.txt] \
