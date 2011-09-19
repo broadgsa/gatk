@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.interval;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.util.IntervalUtil;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
@@ -101,25 +100,18 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @DataProvider(name = "intervalslicingdata")
     public Object[][] createTrees() {
         new IntervalSlicingTest(1, 0);
-        new IntervalSlicingTest(2, 0.1);
-        new IntervalSlicingTest(3, 0.1);
-        new IntervalSlicingTest(7, 0.1);
-        new IntervalSlicingTest(10, 0.1);
-        new IntervalSlicingTest(31, 0.1);
-        new IntervalSlicingTest(67, 0.1);
-        new IntervalSlicingTest(100, 0.1);
-        new IntervalSlicingTest(127, 0.1);
-        // starts to become a bit less efficiency with larger cuts
-        new IntervalSlicingTest(500, 0.5);
+        new IntervalSlicingTest(2, 1);
+        new IntervalSlicingTest(5, 1);
+        new IntervalSlicingTest(10, 1);
+        new IntervalSlicingTest(67, 1);
+        new IntervalSlicingTest(100, 1);
+        new IntervalSlicingTest(500, 1);
         new IntervalSlicingTest(1000, 1);
-        new IntervalSlicingTest(10000, 10);
         return IntervalSlicingTest.getTests(IntervalSlicingTest.class);
     }
 
-    @Test(dataProvider = "intervalslicingdata")
+    @Test(enabled = true, dataProvider = "intervalslicingdata")
     public void testFixedScatterIntervalsAlgorithm(IntervalSlicingTest test) {
-        Set<GenomeLoc> locsSet = new HashSet<GenomeLoc>(hg19exomeIntervals);
-        Set<GenomeLoc> notFoundSet = new HashSet<GenomeLoc>(hg19exomeIntervals);
         List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(hg19exomeIntervals, test.parts);
 
         long totalSize = IntervalUtils.intervalSize(hg19exomeIntervals);
@@ -134,15 +126,9 @@ public class IntervalUtilsUnitTest extends BaseTest {
             counter++;
             sumOfSplitSizes += splitSize;
             Assert.assertTrue(Math.abs(sigma) <= test.maxAllowableVariance, String.format("Interval %d (size %d ideal %d) has a variance %.2f outside of the tolerated range %.2f", counter, splitSize, idealSplitSize, sigma, test.maxAllowableVariance));
-
-            for ( final GenomeLoc loc : split ) {
-                Assert.assertTrue(locsSet.contains(loc), "Split location " + loc + " not found in set of input locs");
-                notFoundSet.remove(loc);
-            }
         }
 
-        Assert.assertEquals(sumOfSplitSizes, totalSize, "Split intervals don't contain the exact number of bases in the original intervals");
-        Assert.assertTrue(notFoundSet.isEmpty(), "Not all intervals were present in the split set");
+        Assert.assertEquals(totalSize, sumOfSplitSizes, "Split intervals don't contain the exact number of bases in the origianl intervals");
     }
 
     @Test(expectedExceptions=UserException.class)
@@ -246,7 +232,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<File> files = testFiles("basic.", 3, ".intervals");
 
         List<GenomeLoc> locs = getLocs("chr1", "chr2", "chr3");
-        IntervalUtils.scatterFixedIntervals(hg18Header, IntervalUtils.splitFixedIntervals(locs, files.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(locs, files.size());
+        IntervalUtils.scatterFixedIntervals(hg18Header, splits, files);
 
         List<GenomeLoc> locs1 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(0).toString()), false);
         List<GenomeLoc> locs2 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(1).toString()), false);
@@ -271,20 +258,21 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<File> files = testFiles("less.", 3, ".intervals");
 
         List<GenomeLoc> locs = getLocs("chr1", "chr2", "chr3", "chr4");
-        IntervalUtils.scatterFixedIntervals(hg18Header, IntervalUtils.splitFixedIntervals(locs, files.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(locs, files.size());
+        IntervalUtils.scatterFixedIntervals(hg18Header, splits, files);
 
         List<GenomeLoc> locs1 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(0).toString()), false);
         List<GenomeLoc> locs2 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(1).toString()), false);
         List<GenomeLoc> locs3 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(2).toString()), false);
 
-        Assert.assertEquals(locs1.size(), 2);
+        Assert.assertEquals(locs1.size(), 1);
         Assert.assertEquals(locs2.size(), 1);
-        Assert.assertEquals(locs3.size(), 1);
+        Assert.assertEquals(locs3.size(), 2);
 
         Assert.assertEquals(locs1.get(0), chr1);
-        Assert.assertEquals(locs1.get(1), chr2);
-        Assert.assertEquals(locs2.get(0), chr3);
-        Assert.assertEquals(locs3.get(0), chr4);
+        Assert.assertEquals(locs2.get(0), chr2);
+        Assert.assertEquals(locs3.get(0), chr3);
+        Assert.assertEquals(locs3.get(1), chr4);
     }
 
     @Test(expectedExceptions=UserException.BadArgumentValue.class)
@@ -298,7 +286,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
     public void testScatterFixedIntervalsMoreFiles() {
         List<File> files = testFiles("more.", 3, ".intervals");
         List<GenomeLoc> locs = getLocs("chr1", "chr2");
-        IntervalUtils.scatterFixedIntervals(hg18Header, IntervalUtils.splitFixedIntervals(locs, locs.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(locs, locs.size()); // locs.size() instead of files.size()
+        IntervalUtils.scatterFixedIntervals(hg18Header, splits, files);
     }
     @Test
     public void testScatterFixedIntervalsStart() {
@@ -311,7 +300,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<File> files = testFiles("split.", 3, ".intervals");
 
         List<GenomeLoc> locs = getLocs(intervals);
-        IntervalUtils.scatterFixedIntervals(hg18Header, IntervalUtils.splitFixedIntervals(locs, files.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(locs, files.size());
+        IntervalUtils.scatterFixedIntervals(hg18Header, splits, files);
 
         List<GenomeLoc> locs1 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(0).toString()), false);
         List<GenomeLoc> locs2 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(1).toString()), false);
@@ -338,7 +328,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<File> files = testFiles("split.", 3, ".intervals");
 
         List<GenomeLoc> locs = getLocs(intervals);
-        IntervalUtils.scatterFixedIntervals(hg18Header, IntervalUtils.splitFixedIntervals(locs, files.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(locs, files.size());
+        IntervalUtils.scatterFixedIntervals(hg18Header, splits, files);
 
         List<GenomeLoc> locs1 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(0).toString()), false);
         List<GenomeLoc> locs2 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(1).toString()), false);
@@ -365,7 +356,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<File> files = testFiles("split.", 3, ".intervals");
 
         List<GenomeLoc> locs = getLocs(intervals);
-        IntervalUtils.scatterFixedIntervals(hg18Header, IntervalUtils.splitFixedIntervals(locs, files.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(locs, files.size());
+        IntervalUtils.scatterFixedIntervals(hg18Header, splits, files);
 
         List<GenomeLoc> locs1 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(0).toString()), false);
         List<GenomeLoc> locs2 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(1).toString()), false);
@@ -399,7 +391,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
         //String splitCounts = "";
         for (int i = 0; i < splits.size(); i++) {
-            long splitCount = splits.get(i).size();
+            int splitCount = splits.get(i).size();
             Assert.assertEquals(splitCount, counts[i], "Num intervals in split " + i);
         }
         //System.out.println(splitCounts.substring(2));
@@ -420,7 +412,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterFixedIntervalsMax() {
         List<File> files = testFiles("sg.", 85, ".intervals");
-        IntervalUtils.scatterFixedIntervals(hg19Header, IntervalUtils.splitFixedIntervals(hg19ReferenceLocs, files.size()), files);
+        List<List<GenomeLoc>> splits = IntervalUtils.splitFixedIntervals(hg19ReferenceLocs, files.size());
+        IntervalUtils.scatterFixedIntervals(hg19Header, splits, files);
 
         for (int i = 0; i < files.size(); i++) {
             String file = files.get(i).toString();
