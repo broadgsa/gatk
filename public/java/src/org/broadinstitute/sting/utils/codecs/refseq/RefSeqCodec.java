@@ -12,19 +12,35 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import java.util.ArrayList;
 
 /**
- * TODO FOR CHRIS HARTL
+ * Allows for reading in RefSeq information
  *
  * <p>
- * Codec Description
+ * Parses a sorted UCSC RefSeq file (see below) into relevant features: the gene name, the unique gene name (if multiple transcrips get separate entries), exons, gene start/stop, coding start/stop,
+ * strandedness of transcription. 
  * </p>
  *
  * <p>
- * See also: link to file specification
+ * Instructions for generating a RefSeq file for use with the RefSeq codec can be found on the Wiki here
+ * <a href="http://www.broadinstitute.org/gsa/wiki/index.php/RefSeq">http://www.broadinstitute.org/gsa/wiki/index.php/RefSeq</a>
  * </p>
+ * <h2> Usage </h2>
+ * The RefSeq Rod can be bound as any other rod, and is specified by REFSEQ, for example
+ * <pre>
+ * -refSeqBinding:REFSEQ /path/to/refSeq.txt
+ * </pre>
+ *
+ * You will need to consult individual walkers for the binding name ("refSeqBinding", above)
  *
  * <h2>File format example</h2>
+ * If you want to define your own file for use, the format is (tab delimited):
+ * bin, name, chrom, strand, transcription start, transcription end, coding start, coding end, num exons, exon starts, exon ends, id, alt. name, coding start status (complete/incomplete), coding end status (complete,incomplete)
+ * and exon frames, for example:
+ * <pre>
+ * 76 NM_001011874 1 - 3204562 3661579 3206102 3661429 3 3204562,3411782,3660632, 3207049,3411982,3661579, 0 Xkr4 cmpl cmpl 1,2,0,
+ * </pre>
+ * for more information see <a href="http://skip.ucsc.edu/cgi-bin/hgTables?hgsid=5651&hgta_doSchemaDb=mm8&hgta_doSchemaTable=refGene">here</a>
  * <p>
- *     A BAM file containing <b>exactly one sample</b>.
+ *     
  * </p>
  *
  * @author Mark DePristo
