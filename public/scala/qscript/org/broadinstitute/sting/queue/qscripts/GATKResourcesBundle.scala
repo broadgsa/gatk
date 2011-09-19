@@ -300,9 +300,9 @@ class GATKResourcesBundle extends QScript {
     bamFile = bamIn
   }
 
-  class IndexVCF(@Input vcf: File, @Input ref: File) extends CountRod with UNIVERSAL_GATK_ARGS {
+  class IndexVCF(@Input vcf: File, @Input ref: File) extends CountRODs with UNIVERSAL_GATK_ARGS {
     //@Output val vcfIndex: File = swapExt(vcf.getParent, vcf, ".vcf", ".vcf.idx")
-    this.rodBind :+= RodBind(vcf.getName, "VCF", vcf)
+    this.rod :+= vcf
     this.reference_sequence = ref
   }
 
@@ -313,7 +313,7 @@ class GATKResourcesBundle extends QScript {
   }
 
   class MakeDBSNP129(@Input dbsnp: File, @Input ref: File, @Output dbsnp129: File) extends SelectVariants with UNIVERSAL_GATK_ARGS {
-    this.rodBind :+= RodBind("variant", "VCF", dbsnp)
+    this.variant = dbsnp
     this.select ++= List("\"dbSNPBuildID <= 129\"")
     this.reference_sequence = ref
     this.out = dbsnp129
