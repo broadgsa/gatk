@@ -43,8 +43,10 @@ import java.util.List;
  * Generates an alternative reference sequence over the specified interval.
  *
  * <p>
- * Given variant ROD tracks, it replaces the reference bases at variation sites with the bases supplied by the ROD(s).
- * Additionally, allows for a "snpmask" ROD to set overlapping bases to 'N'.
+ * Given variant tracks, it replaces the reference bases at variation sites with the bases supplied by the ROD(s).
+ * Additionally, allows for one or more "snpmask" VCFs to set overlapping bases to 'N'.
+ * Note that if there are multiple variants at a site, it takes the first one seen.
+ * Reference bases for each interval will be output as a separate fasta sequence (named numerically in order).
  *
  * <h2>Input</h2>
  * <p>

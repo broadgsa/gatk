@@ -22,9 +22,6 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "number of eval SNP sites")
     long nEvalVariants = 0;
 
-    @DataPoint(description = "number of comp SNP sites")
-    long nCompVariants = 0;
-
     @DataPoint(description = "number of eval sites outside of comp sites")
     long novelSites = 0;
 
@@ -76,9 +73,8 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         boolean evalIsGood = eval != null && eval.isPolymorphic();
-        boolean compIsGood = comp != null && comp.isNotFiltered() && (eval == null || comp.getType() == eval.getType());
+        boolean compIsGood = comp != null && comp.isNotFiltered();
 
-        if (compIsGood) nCompVariants++;           // count the number of comp events
         if (evalIsGood) nEvalVariants++;           // count the number of eval events
 
         if (compIsGood && evalIsGood) {

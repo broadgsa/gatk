@@ -6,13 +6,34 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 
 public class VariantEvalIntegrationTest extends WalkerTest {
-    private static String variantEvalTestDataRoot = validationDataLocation + "/VariantEval";
+    private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
     private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
     private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.HG00625.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
+
+    @Test
+    public void testFunctionClassWithSnpeff() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                                buildCommandLine(
+                                        "-T VariantEval",
+                                        "-R " + b37KGReference,
+                                        "--dbsnp " + b37dbSNP132,
+                                        "--eval " + validationDataLocation + "snpEff.AFR.unfiltered.VariantAnnotator.output.vcf",
+                                        "-noEV",
+                                        "-EV TiTvVariantEvaluator",
+                                        "-noST",
+                                        "-ST FunctionalClass",
+                                        "-BTI eval",
+                                        "-o %s"
+                                ),
+                                1,
+                                Arrays.asList("f5f811ceb973d7fd6c1b2b734f1b2b12")
+                              );
+        executeTest("testFunctionClassWithSnpeff", spec);
+    }
 
     @Test
     public void testStratifySamplesAndExcludeMonomorphicSites() {
@@ -256,7 +277,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
                 " --comp:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                1, Arrays.asList("2df4f8911ffc3c8d042298723ed465f8"));
+                1, Arrays.asList("f70997b6a3e7fdc89d11e1d61a2463d4"));
         executeTestParallel("testSelect1", spec);
     }
 
@@ -273,7 +294,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("ed54aa127b173d8ad8b6482f2a929a42"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("407682de41dcf139ea635e9cda21b912"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
 
@@ -291,7 +312,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompOverlap() {
         String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals --comp:comphapmap " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf --eval " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("462d4784dd55294ef9d5118217b157a5"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("009ecc8376a20dce81ff5299ef6bfecb"));
         executeTestParallel("testCompOverlap",spec);
     }
 
@@ -303,7 +324,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " --dbsnp " + b37dbSNP132 +
                            " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("18c44636e36d6657110bf984f8eac181"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("424c9d438b1faa59b2c29413ba32f37b"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -315,7 +336,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " --eval:evalBC " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("1b8ae4fd10de0888bd843f833859d990"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("18fa0b89ebfff51141975d7e4ce7a159"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
@@ -332,13 +353,13 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("a3c2177849cb00fdff99574cff7f0e4f"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("0b81d97f843ec4a1a4222d1f9949bfca"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults() {
-        String md5 = "dab415cc76846e18fcf8c78f2b2ee033";
+        String md5 = "b0565ac61b2860248e4abd478a177b5e";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
