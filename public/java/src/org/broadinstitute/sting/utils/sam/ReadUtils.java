@@ -667,7 +667,7 @@ public class ReadUtils {
             return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
 
-    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd()"})
+    @Ensures({"(result >= read.getUnclippedStart() && result <= read.getUnclippedEnd()) || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedStart(SAMRecord read) {
         int start = read.getUnclippedStart();
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
@@ -679,7 +679,7 @@ public class ReadUtils {
         return start;
     }
 
-    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd()"})
+    @Ensures({"(result >= read.getUnclippedStart() && result <= read.getUnclippedEnd()) || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
         int stop = read.getUnclippedStart();
         int shift = 0;
@@ -693,6 +693,14 @@ public class ReadUtils {
                 shift = 0;
         }
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    }
+
+    private static boolean readIsEntirelyInsertion(SAMRecord read) {
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() != CigarOperator.INSERTION)
+                return false;
+        }
+        return true;
     }
 
     /**
