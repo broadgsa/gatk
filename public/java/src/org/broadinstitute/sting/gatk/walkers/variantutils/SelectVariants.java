@@ -145,10 +145,9 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   -o output.vcf \
- *   -SM family.yaml \
  *   -family NA12891+NA12892=NA12878 \
- *   -mvq 50
+ *   -mvq 50 \
+ *   -o violations.vcf
  *
  * Creating a sample of exactly 1000 variants randomly chosen with equal probability from the variant VCF:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
@@ -265,17 +264,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private File AF_FILE = new File("");
 
     @Hidden
-    @Argument(fullName="family_structure_file", shortName="familyFile", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    @Argument(fullName="family_structure_file", shortName="familyFile", doc="use -family unless you know what you're doing", required=false)
     private File FAMILY_STRUCTURE_FILE = null;
 
     /**
      * String formatted as dad+mom=child where these parameters determine which sample names are examined.
      */
-    @Argument(fullName="family_structure", shortName="family", doc="Deprecated; use the -SM argument instead", required=false)
+    @Argument(fullName="family_structure", shortName="family", doc="string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
 
     /**
-     * Sample metadata information will be taken from a YAML file (see the -SM argument).
+     * This activates the mendelian violation module that will select all variants that correspond to a mendelian violation following the rules given by the family structure.
      */
     @Argument(fullName="mendelianViolation", shortName="mv", doc="output mendelian violation sites only", required=false)
     private Boolean MENDELIAN_VIOLATIONS = false;
@@ -306,7 +305,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
 
     @Hidden
-    @Argument(fullName="outMVFile", shortName="outMVFile", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    @Argument(fullName="outMVFile", shortName="outMVFile", doc="", required=false)
     private String outMVFile = null;
 
     /* Private class used to store the intermediate variants in the integer random selection process */

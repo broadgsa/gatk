@@ -379,7 +379,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     }
 
                     if ( tribbleType == null )
-                        if ( ! file.canRead() | !! file.isFile() ) {
+                        if ( ! file.canRead() | ! file.isFile() ) {
                             throw new UserException.BadArgumentValue(name, "Couldn't read file to determine type: " + file);
                         } else {
                             throw new UserException.CommandLineException(

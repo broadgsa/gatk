@@ -68,6 +68,13 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
  *   -I input1.bam \
  *   -I input2.bam \
  *   --read_filter MappingQualityZero
+ *
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T PrintReads \
+ *   -o output.bam \
+ *   -I input.bam \
+ *   -n 2000
  * </pre>
  *
  */

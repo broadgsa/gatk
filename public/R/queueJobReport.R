@@ -142,6 +142,8 @@ print(paste("Project          :", inputFileName))
 convertUnits <- function(gatkReportData) {
   convertGroup <- function(g) {
     g$runtime = g$runtime * ORIGINAL_UNITS_TO_SECONDS
+    g$startTime = g$startTime * ORIGINAL_UNITS_TO_SECONDS
+    g$doneTime = g$doneTime * ORIGINAL_UNITS_TO_SECONDS
     g
   }
   lapply(gatkReportData, convertGroup)

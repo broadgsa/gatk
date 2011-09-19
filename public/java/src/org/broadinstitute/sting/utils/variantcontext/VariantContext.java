@@ -817,6 +817,28 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         throw new IllegalArgumentException("Requested " + i + " alternative allele but there are only " + n + " alternative alleles " + this);
     }
 
+    /**
+     * @param  other  VariantContext whose alternate alleles to compare against
+     * @return true if this VariantContext has the same alternate alleles as other,
+     *         regardless of ordering. Otherwise returns false.
+     */
+    public boolean hasSameAlternateAllelesAs ( VariantContext other ) {
+        Set<Allele> thisAlternateAlleles = getAlternateAlleles();
+        Set<Allele> otherAlternateAlleles = other.getAlternateAlleles();
+
+        if ( thisAlternateAlleles.size() != otherAlternateAlleles.size() ) {
+            return false;
+        }
+
+        for ( Allele allele : thisAlternateAlleles ) {
+            if ( ! otherAlternateAlleles.contains(allele) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // Working with genotypes
@@ -1085,14 +1107,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public void validateReferenceBases(Allele reference, Byte paddedRefBase) {
-        // don't validate if we're an insertion or complex event
-        if ( !reference.isNull() && getReference().length() == 1 && !reference.basesMatch(getReference()) ) {
-            throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
+        // don't validate if we're a complex event
+        if ( !isComplexIndel() && !reference.isNull() && !reference.basesMatch(getReference()) ) {
+            throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, fasta says %s vs. VCF says %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
         }
 
         // we also need to validate the padding base for simple indels
-        if ( hasReferenceBaseForIndel() && !getReferenceBaseForIndel().equals(paddedRefBase) )
-            throw new TribbleException.InternalCodecException(String.format("the padded REF base is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), (char)getReferenceBaseForIndel().byteValue(), (char)paddedRefBase.byteValue()));
+        if ( hasReferenceBaseForIndel() && !getReferenceBaseForIndel().equals(paddedRefBase) ) {
+            throw new TribbleException.InternalCodecException(String.format("the padded REF base is incorrect for the record at position %s:%d, fasta says %s vs. VCF says %s", getChr(), getStart(), (char)paddedRefBase.byteValue(), (char)getReferenceBaseForIndel().byteValue()));
+        }
     }
 
     public void validateRSIDs(Set<String> rsIDs) {

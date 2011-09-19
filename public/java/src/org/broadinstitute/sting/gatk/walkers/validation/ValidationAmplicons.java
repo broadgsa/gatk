@@ -61,7 +61,7 @@ import java.util.List;
  * CACGTTCGGcttgtgcagagcctcaaggtcatccagaggtgatAGTTTAGGGCCCTCTCAAGTCTTTCCNGTGCGCATGG[GT/AC*]CAGCCCTGGGCACCTGTNNNNNNNNNNNNNTGCTCATGGCCTTCTAGATTCCCAGGAAATGTCAGAGCTTTTCAAAGCCC
  *</pre>
  * are amplicon sequences resulting from running the tool. The flags (preceding the sequence itself) can be:
- *
+ *<pre>
  * Valid                     // amplicon is valid
  * SITE_IS_FILTERED=1        // validation site is not marked 'PASS' or '.' in its filter field ("you are trying to validate a filtered variant")
  * VARIANT_TOO_NEAR_PROBE=1  // there is a variant too near to the variant to be validated, potentially shifting the mass-spec peak
@@ -72,10 +72,10 @@ import java.util.List;
  * END_TOO_CLOSE,            // variant is too close to the end of the amplicon region to give sequenom a good chance to find a suitable primer
  * NO_VARIANTS_FOUND,        // no variants found within the amplicon region
  * INDEL_OVERLAPS_VALIDATION_SITE, // an insertion or deletion interferes directly with the site to be validated (i.e. insertion directly preceding or postceding, or a deletion that spans the site itself)
- * </p>
+ * </pre></p>
  *
  * <h2>Examples</h2>
- * <pre></pre>
+ * <pre>
  *    java
  *      -jar GenomeAnalysisTK.jar
  *      -T ValidationAmplicons

@@ -1056,42 +1056,30 @@ public class MathUtils {
     }
 
     static public double softMax(final double x, final double y) {
-         if (Double.isInfinite(x))
-             return y;
+        // we need to compute log10(10^x + 10^y)
+        // By Jacobian logarithm identity, this is equal to
+        // max(x,y) + log10(1+10^-abs(x-y))
+        // we compute the second term as a table lookup
+        // with integer quantization
 
-         if (Double.isInfinite(y))
-             return x;
+        // slow exact version:
+        // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
 
-         if (y >= x + MAX_JACOBIAN_TOLERANCE)
-             return y;
-         if (x >= y + MAX_JACOBIAN_TOLERANCE)
-             return x;
+        double diff = x-y;
 
-         // OK, so |y-x| < tol: we use the following identity then:
-         // we need to compute log10(10^x + 10^y)
-         // By Jacobian logarithm identity, this is equal to
-         // max(x,y) + log10(1+10^-abs(x-y))
-         // we compute the second term as a table lookup
-         // with integer quantization
-
-         //double diff = Math.abs(x-y);
-         double diff = x-y;
-         double t1 =x;
-         if (diff<0) { //
-             t1 = y;
-             diff= -diff;
-         }
-         // t has max(x,y), diff has abs(x-y)
-         // we have pre-stored correction for 0,0.1,0.2,... 10.0
-         //int ind = (int)Math.round(diff*INV_JACOBIAN_LOG_TABLE_STEP);
-         int ind = (int)(diff*INV_JACOBIAN_LOG_TABLE_STEP+0.5);
-         // gdebug+
-         //double z =Math.log10(1+Math.pow(10.0,-diff));
-         //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
-         //gdebug-
-         return t1+jacobianLogTable[ind];
-         // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
-     }
+        if (diff > MAX_JACOBIAN_TOLERANCE)
+            return x;
+        else if (diff < -MAX_JACOBIAN_TOLERANCE)
+            return y;
+        else if (diff >= 0) {
+            int ind = (int)(diff*INV_JACOBIAN_LOG_TABLE_STEP+0.5);
+            return x + jacobianLogTable[ind];
+        }
+        else {
+            int ind = (int)(-diff*INV_JACOBIAN_LOG_TABLE_STEP+0.5);
+            return y + jacobianLogTable[ind];
+        }
+    }
 
     public static double phredScaleToProbability (byte q) {
         return Math.pow(10,(-q)/10.0);

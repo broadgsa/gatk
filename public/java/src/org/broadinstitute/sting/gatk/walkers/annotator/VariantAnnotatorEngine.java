@@ -26,13 +26,11 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationInterfaceManager;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -49,6 +47,7 @@ public class VariantAnnotatorEngine {
 
     private HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
     private AnnotatorCompatibleWalker walker;
+    private GenomeAnalysisEngine toolkit;
 
     private static class VAExpression {
 
@@ -74,16 +73,18 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want all possible annotations
-    public VariantAnnotatorEngine(AnnotatorCompatibleWalker walker) {
+    public VariantAnnotatorEngine(AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
+        this.toolkit = toolkit;
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
         requestedGenotypeAnnotations = AnnotationInterfaceManager.createAllGenotypeAnnotations();
         initializeDBs();
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, AnnotatorCompatibleWalker walker) {
+    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
+        this.toolkit = toolkit;
         initializeAnnotations(annotationGroupsToUse, annotationsToUse);
         initializeDBs();
     }
@@ -111,6 +112,16 @@ public class VariantAnnotatorEngine {
         final List<RodBinding<VariantContext>> comps = walker.getCompRodBindings();
         for ( RodBinding<VariantContext> rod : comps )
             dbAnnotations.put(rod, rod.getName());
+    }
+
+    public void invokeAnnotationInitializationMethods() {
+        for ( VariantAnnotatorAnnotation annotation : requestedInfoAnnotations ) {
+            annotation.initialize(walker, toolkit);
+        }
+
+        for ( VariantAnnotatorAnnotation annotation : requestedGenotypeAnnotations ) {
+            annotation.initialize(walker, toolkit);
+        }
     }
 
     public Set<VCFHeaderLine> getVCFAnnotationDescriptions() {
