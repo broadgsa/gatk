@@ -666,20 +666,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return commonInfo.getAttribute(key, defaultValue);
     }
 
-    public String getAttributeAsString(String key)                        { return commonInfo.getAttributeAsString(key); }
     public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
-    public int getAttributeAsInt(String key)                              { return commonInfo.getAttributeAsInt(key); }
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
-    public double getAttributeAsDouble(String key)                        { return commonInfo.getAttributeAsDouble(key); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
-    public boolean getAttributeAsBoolean(String key)                        { return commonInfo.getAttributeAsBoolean(key); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
-
-    public Integer getAttributeAsIntegerNoException(String key)  { return commonInfo.getAttributeAsIntegerNoException(key); }
-    public Double getAttributeAsDoubleNoException(String key)    { return commonInfo.getAttributeAsDoubleNoException(key); }
-    public String getAttributeAsStringNoException(String key)    { return commonInfo.getAttributeAsStringNoException(key); }
-    public Boolean getAttributeAsBooleanNoException(String key)  { return commonInfo.getAttributeAsBooleanNoException(key); }
-
 
     // ---------------------------------------------------------------------------------------------------------
     //

@@ -90,8 +90,8 @@ public class Degeneracy extends VariantStratifier {
             Integer frame = null;
 
             if (eval.hasAttribute("refseq.functionalClass")) {
-                aa = eval.getAttributeAsString("refseq.variantAA");
-                frame = eval.getAttributeAsInt("refseq.frame");
+                aa = eval.getAttributeAsString("refseq.variantAA", null);
+                frame = eval.getAttributeAsInt("refseq.frame", 0);
             } else if (eval.hasAttribute("refseq.functionalClass_1")) {
                 int annotationId = 1;
                 String key;
@@ -99,7 +99,7 @@ public class Degeneracy extends VariantStratifier {
                 do {
                     key = String.format("refseq.functionalClass_%d", annotationId);
 
-                    String newtype = eval.getAttributeAsString(key);
+                    String newtype = eval.getAttributeAsString(key, null);
 
                     if ( newtype != null &&
                             ( type == null ||
@@ -109,13 +109,13 @@ public class Degeneracy extends VariantStratifier {
                         type = newtype;
 
                         String aakey = String.format("refseq.variantAA_%d", annotationId);
-                        aa = eval.getAttributeAsString(aakey);
+                        aa = eval.getAttributeAsString(aakey, null);
 
                         if (aa != null) {
                             String framekey = String.format("refseq.frame_%d", annotationId);
 
                             if (eval.hasAttribute(framekey)) {
-                                frame = eval.getAttributeAsInt(framekey);
+                                frame = eval.getAttributeAsInt(framekey, 0);
                             }
                         }
                     }

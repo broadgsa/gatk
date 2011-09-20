@@ -44,12 +44,12 @@ public class RefSeqDataParser {
         String nameKeyToUseMultiplePrefix = nameKeyToUse + "_";
 
         Map<String, String> entriesToNames = new HashMap<String, String>();
-        Integer numRecords = vc.getAttributeAsIntegerNoException(NUM_RECORDS_KEY);
-        if (numRecords != null) {
+        int numRecords = vc.getAttributeAsInt(NUM_RECORDS_KEY, -1);
+        if (numRecords != -1) {
             boolean done = false;
 
             if (numRecords == 1) { // Check if perhaps the single record doesn't end with "_1":
-                String name = vc.getAttributeAsStringNoException(nameKeyToUse);
+                String name = vc.getAttributeAsString(nameKeyToUse, null);
                 if (name != null) {
                     entriesToNames.put(nameKeyToUse, name);
                     done = true;
@@ -59,14 +59,14 @@ public class RefSeqDataParser {
             if (!done) {
                 for (int i = 1; i <= numRecords; i++) {
                     String key = nameKeyToUseMultiplePrefix + i;
-                    String name = vc.getAttributeAsStringNoException(key);
+                    String name = vc.getAttributeAsString(key, null);
                     if (name != null)
                         entriesToNames.put(key, name);
                 }
             }
         }
         else { // no entry with the # of records:
-            String name = vc.getAttributeAsStringNoException(nameKeyToUse);
+            String name = vc.getAttributeAsString(nameKeyToUse, null);
             if (name != null) {
                 entriesToNames.put(nameKeyToUse, name);
             }

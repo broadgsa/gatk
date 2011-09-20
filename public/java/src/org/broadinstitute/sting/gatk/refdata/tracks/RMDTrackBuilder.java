@@ -419,9 +419,10 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         if (dict == null) return;
 
         SAMSequenceDictionary currentDict = createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());
-        validateTrackSequenceDictionary(inputFile.getAbsolutePath(),currentDict,dict);
 
         // check that every contig in the RMD contig list is at least in the sequence dictionary we're being asked to set
+        validateTrackSequenceDictionary(inputFile.getAbsolutePath(),currentDict,dict);
+
         for (SAMSequenceRecord seq : currentDict.getSequences()) {
             if (dict.getSequence(seq.getSequenceName()) == null)
                 continue;
@@ -435,6 +436,13 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         }
     }
 
+    public void setIndexSequenceDictionary(Index index, SAMSequenceDictionary dict) {
+        for ( SAMSequenceRecord seq : dict.getSequences() ) {
+            final String contig = SequenceDictionaryPropertyPredicate + seq.getSequenceName();
+            final String length = String.valueOf(seq.getSequenceLength());
+            index.addProperty(contig,length);
+        }
+    }
 
     public void validateTrackSequenceDictionary(String trackName, SAMSequenceDictionary trackDict, SAMSequenceDictionary referenceDict) {
         // if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation

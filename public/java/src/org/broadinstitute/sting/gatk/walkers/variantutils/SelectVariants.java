@@ -574,7 +574,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                         // ok we have a comp VC and we need to match the AF spectrum of inputAFRodName.
                         // We then pick a variant with probablity AF*desiredFraction
                         if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
-                            String afo = sub.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
+                            String afo = sub.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY, null);
 
                             double af;
                             double afBoost = 1.0;

@@ -34,7 +34,7 @@ import org.broadinstitute.sting.utils.{GenomeLoc, GenomeLocSortedSet, GenomeLocP
 
 case class GATKIntervals(reference: File, intervals: List[String]) {
   private lazy val referenceDataSource = new ReferenceDataSource(reference)
-  private var splitsBySize = Map.empty[Int, java.util.List[java.lang.Integer]]
+//  private var splitsBySize = Map.empty[Int, java.util.List[java.lang.Integer]]
 
   lazy val samFileHeader = {
     val header = new SAMFileHeader
@@ -55,11 +55,11 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
 
   lazy val contigs = locs.map(_.getContig).distinct.toList
 
-  def getSplits(size: Int) = {
-    splitsBySize.getOrElse(size, {
-      val splits: java.util.List[java.lang.Integer] = IntervalUtils.splitFixedIntervals(locs, size)
-      splitsBySize += size -> splits
-      splits
-    })
-  }
+//  def getSplits(size: Int) = {
+//    splitsBySize.getOrElse(size, {
+//      val splits: java.util.List[java.lang.Integer] = IntervalUtils.splitFixedIntervals(locs, size)
+//      splitsBySize += size -> splits
+//      splits
+//    })
+//  }
 }

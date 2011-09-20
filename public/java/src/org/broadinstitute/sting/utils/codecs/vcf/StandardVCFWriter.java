@@ -44,25 +44,18 @@ import java.util.*;
 /**
  * this class writes VCF files
  */
-public class StandardVCFWriter implements VCFWriter {
+public class StandardVCFWriter extends IndexingVCFWriter {
+    // the print stream we're writing to
+    final protected BufferedWriter mWriter;
+
+    // should we write genotypes or just sites?
+    final protected boolean doNotWriteGenotypes;
 
     // the VCF header we're storing
     protected VCFHeader mHeader = null;
 
-    // the print stream we're writing to
-    protected BufferedWriter mWriter;
-    protected PositionalStream positionalStream = null;
-
     // were filters applied?
     protected boolean filtersWereAppliedToContext = false;
-
-    // should we write genotypes or just sites?
-    protected boolean doNotWriteGenotypes = false;
-
-    protected DynamicIndexCreator indexer = null;
-    protected File indexFile = null;
-    LittleEndianOutputStream idxStream = null;
-    File location = null;
 
     /**         
      * create a VCF writer, given a file to write to
@@ -93,32 +86,22 @@ public class StandardVCFWriter implements VCFWriter {
      * @param doNotWriteGenotypes   do not write genotypes
      */
     public StandardVCFWriter(OutputStream output, boolean doNotWriteGenotypes) {
-        mWriter = new BufferedWriter(new OutputStreamWriter(output));
-        this.doNotWriteGenotypes = doNotWriteGenotypes;
+        this(null, output, false, doNotWriteGenotypes);
     }
 
     public StandardVCFWriter(File location, OutputStream output, boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
-        this.location = location;
-
-        if ( enableOnTheFlyIndexing ) {
-            indexFile = Tribble.indexFile(location);
-            try {
-                idxStream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
-                //System.out.println("Creating index on the fly for " + location);
-                indexer = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
-                indexer.initialize(location, indexer.defaultBinSize());
-                positionalStream = new PositionalStream(output);
-                output = positionalStream;
-            } catch ( IOException ex ) {
-                // No matter what we keep going, since we don't care if we can't create the index file
-            }
-        }
-
-        //mWriter = new BufferedWriter(new OutputStreamWriter(new PositionalStream(output)));
-        mWriter = new BufferedWriter(new OutputStreamWriter(output));
+        super(writerName(location, output), location, output, enableOnTheFlyIndexing);
+        mWriter = new BufferedWriter(new OutputStreamWriter(getOutputStream())); // todo -- fix buffer size
         this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
+    // --------------------------------------------------------------------------------
+    //
+    // VCFWriter interface functions
+    //
+    // --------------------------------------------------------------------------------
+
+    @Override
     public void writeHeader(VCFHeader header) {
         mHeader = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
         
@@ -158,44 +141,24 @@ public class StandardVCFWriter implements VCFWriter {
             mWriter.flush();  // necessary so that writing to an output stream will work
         }
         catch (IOException e) {
-            throw new TribbleException("IOException writing the VCF header to " + locationString(), e);
+            throw new ReviewedStingException("IOException writing the VCF header to " + getStreamName(), e);
         }
-    }
-
-    private String locationString() {
-        return location == null ? mWriter.toString() : location.getAbsolutePath();
     }
 
     /**
      * attempt to close the VCF file
      */
+    @Override
     public void close() {
         // try to close the vcf stream
         try {
             mWriter.flush();
             mWriter.close();
         } catch (IOException e) {
-            throw new TribbleException("Unable to close " + locationString() + " because of " + e.getMessage());
+            throw new ReviewedStingException("Unable to close " + getStreamName(), e);
         }
 
-        // try to close the index stream (keep it separate to help debugging efforts)
-        if ( indexer != null ) {
-            try {
-                Index index = indexer.finalizeIndex(positionalStream.getPosition());
-                index.write(idxStream);
-                idxStream.close();
-            } catch (IOException e) {
-                throw new TribbleException("Unable to close index for " + locationString() + " because of " + e.getMessage());
-            }
-        }
-    }
-
-    protected static OutputStream openOutputStream(File location) {
-        try {
-            return new FileOutputStream(location);
-        } catch (FileNotFoundException e) {
-            throw new TribbleException("Unable to create VCF file at location: " + location);
-        }
+        super.close();
     }
 
     /**
@@ -203,28 +166,17 @@ public class StandardVCFWriter implements VCFWriter {
      *
      * @param vc      the Variant Context object
      */
+    @Override
     public void add(VariantContext vc) {
-        add(vc, false);
-    }
-
-    /**
-     * add a record to the file
-     *
-     * @param vc      the Variant Context object
-     * @param refBaseShouldBeAppliedToEndOfAlleles *** THIS SHOULD BE FALSE EXCEPT FOR AN INDEL AT THE EXTREME BEGINNING OF A CONTIG (WHERE THERE IS NO PREVIOUS BASE, SO WE USE THE BASE AFTER THE EVENT INSTEAD)
-     */
-    public void add(VariantContext vc, boolean refBaseShouldBeAppliedToEndOfAlleles) {
         if ( mHeader == null )
-            throw new IllegalStateException("The VCF Header must be written before records can be added: " + locationString());
+            throw new IllegalStateException("The VCF Header must be written before records can be added: " + getStreamName());
 
         if ( doNotWriteGenotypes )
             vc = VariantContext.modifyGenotypes(vc, null);
 
         try {
-            vc = VariantContext.createVariantContextWithPaddedAlleles(vc, refBaseShouldBeAppliedToEndOfAlleles);
-
-            // if we are doing on the fly indexing, add the record ***before*** we write any bytes 
-            if ( indexer != null ) indexer.addFeature(vc, positionalStream.getPosition());
+            vc = VariantContext.createVariantContextWithPaddedAlleles(vc, false);
+            super.add(vc);
 
             Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());
             alleleMap.put(Allele.NO_CALL, VCFConstants.EMPTY_ALLELE); // convenience for lookup
@@ -275,7 +227,7 @@ public class StandardVCFWriter implements VCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // FILTER
-            String filters = vc.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters())) : (filtersWereAppliedToContext || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
+            String filters = getFilterString(vc, filtersWereAppliedToContext);
             mWriter.write(filters);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -317,9 +269,22 @@ public class StandardVCFWriter implements VCFWriter {
             mWriter.write("\n");
             mWriter.flush();  // necessary so that writing to an output stream will work
         } catch (IOException e) {
-            throw new RuntimeException("Unable to write the VCF object to " + locationString());
+            throw new RuntimeException("Unable to write the VCF object to " + getStreamName());
         }
+    }
 
+    // --------------------------------------------------------------------------------
+    //
+    // implementation functions
+    //
+    // --------------------------------------------------------------------------------
+
+    public static final String getFilterString(final VariantContext vc) {
+        return getFilterString(vc, false);
+    }
+
+    public static final String getFilterString(final VariantContext vc, boolean forcePASS) {
+        return vc.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters())) : (forcePASS || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
     }
 
     private String getQualValue(double qual) {
@@ -462,7 +427,7 @@ public class StandardVCFWriter implements VCFWriter {
         mWriter.write(encoding);
     }
 
-    private static String formatVCFField(Object val) {
+    public static String formatVCFField(Object val) {
         String result;
         if ( val == null )
             result = VCFConstants.MISSING_VALUE_v4;
@@ -524,12 +489,11 @@ public class StandardVCFWriter implements VCFWriter {
     }
 
 
-    public static int countOccurrences(char c, String s) {
+    private static int countOccurrences(char c, String s) {
            int count = 0;
            for (int i = 0; i < s.length(); i++) {
                count += s.charAt(i) == c ? 1 : 0;
            }
            return count;
     }
-
 }
