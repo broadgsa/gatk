@@ -38,12 +38,13 @@ public class VCFWriterUnitTest extends BaseTest {
     private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
     private GenomeLocParser genomeLocParser;
+    private IndexedFastaSequenceFile seq;
 
     @BeforeClass
     public void beforeTests() {
         File referenceFile = new File(hg18Reference);
         try {
-            IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(referenceFile);
+            seq = new CachingIndexedFastaSequenceFile(referenceFile);
             genomeLocParser = new GenomeLocParser(seq);
         }
         catch(FileNotFoundException ex) {
@@ -55,7 +56,7 @@ public class VCFWriterUnitTest extends BaseTest {
     @Test
     public void testBasicWriteAndRead() {
         VCFHeader header = createFakeHeader(metaData,additionalColumns);
-        VCFWriter writer = new StandardVCFWriter(fakeVCFFile);
+        VCFWriter writer = new StandardVCFWriter(fakeVCFFile, seq.getSequenceDictionary());
         writer.writeHeader(header);
         writer.add(createVC(header));
         writer.add(createVC(header));

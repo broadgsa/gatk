@@ -24,6 +24,9 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.index.DynamicIndexCreator;
@@ -31,7 +34,9 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broad.tribble.util.PositionalStream;
+import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
@@ -41,21 +46,24 @@ import java.io.*;
  */
 public abstract class IndexingVCFWriter implements VCFWriter {
     final private String name;
+    private final SAMSequenceDictionary refDict;
 
-    private File indexFile = null;
     private OutputStream outputStream;
     private PositionalStream positionalStream = null;
     private DynamicIndexCreator indexer = null;
     private LittleEndianOutputStream idxStream = null;
 
-    protected IndexingVCFWriter(String name, File location, OutputStream output, boolean enableOnTheFlyIndexing) {
+    @Requires({"name != null",
+            "! ( location == null && output == null )",
+            "! ( enableOnTheFlyIndexing && location == null )"})
+    protected IndexingVCFWriter(final String name, final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing) {
         outputStream = output;
         this.name = name;
+        this.refDict = refDict;
 
         if ( enableOnTheFlyIndexing ) {
-            indexFile = Tribble.indexFile(location);
             try {
-                idxStream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
+                idxStream = new LittleEndianOutputStream(new FileOutputStream(Tribble.indexFile(location)));
                 //System.out.println("Creating index on the fly for " + location);
                 indexer = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
                 indexer.initialize(location, indexer.defaultBinSize());
@@ -66,15 +74,16 @@ public abstract class IndexingVCFWriter implements VCFWriter {
                 idxStream = null;
                 indexer = null;
                 positionalStream = null;
-                indexFile = null;
             }
         }
     }
 
+    @Ensures("result != null")
     public OutputStream getOutputStream() {
         return outputStream;
     }
 
+    @Ensures("result != null")
     public String getStreamName() {
         return name;
     }
@@ -89,6 +98,7 @@ public abstract class IndexingVCFWriter implements VCFWriter {
         if ( indexer != null ) {
             try {
                 Index index = indexer.finalizeIndex(positionalStream.getPosition());
+                IndexDictionaryUtils.setIndexSequenceDictionary(index, refDict);
                 index.write(idxStream);
                 idxStream.close();
             } catch (IOException e) {
@@ -108,15 +118,27 @@ public abstract class IndexingVCFWriter implements VCFWriter {
             indexer.addFeature(vc, positionalStream.getPosition());
     }
 
-    protected static final String writerName(File location, OutputStream stream) {
+    /**
+     * Returns a reasonable "name" for this writer, to display to the user if something goes wrong
+     *
+     * @param location
+     * @param stream
+     * @return
+     */
+    protected static final String writerName(final File location, final OutputStream stream) {
         return location == null ? stream.toString() : location.getAbsolutePath();
     }
 
-    protected static OutputStream openOutputStream(File location) {
+    /**
+     * Returns a output stream writing to location, or throws a UserException if this fails
+     * @param location
+     * @return
+     */
+    protected static OutputStream openOutputStream(final File location) {
         try {
             return new FileOutputStream(location);
         } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("Unable to create VCF file at location: " + location, e);
+            throw new UserException.CouldNotCreateOutputFile(location, "Unable to create VCF writer", e);
         }
     }
 }

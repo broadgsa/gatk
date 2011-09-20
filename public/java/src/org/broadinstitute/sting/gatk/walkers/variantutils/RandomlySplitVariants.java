@@ -75,7 +75,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
 
         vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
-        vcfWriter2 = new StandardVCFWriter(file2, true);
+        vcfWriter2 = new StandardVCFWriter(file2, getMasterSequenceDictionary(), true);
         vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
     }
 

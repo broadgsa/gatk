@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.gcf;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.codecs.vcf.IndexingVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -52,8 +53,8 @@ public class GCFWriter extends IndexingVCFWriter {
     //
     // --------------------------------------------------------------------------------
 
-    public GCFWriter(File location, boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
-        super(writerName(location, null), location, null, enableOnTheFlyIndexing);
+    public GCFWriter(final File location, final SAMSequenceDictionary refDict, boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
+        super(writerName(location, null), location, null, refDict, enableOnTheFlyIndexing);
         this.location = location;
         this.skipGenotypes = doNotWriteGenotypes;
 
