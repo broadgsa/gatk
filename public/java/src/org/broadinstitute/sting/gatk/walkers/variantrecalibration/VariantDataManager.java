@@ -51,10 +51,10 @@ public class VariantDataManager {
     private ExpandingArrayList<VariantDatum> data;
     private final double[] meanVector;
     private final double[] varianceVector; // this is really the standard deviation
-    public final ArrayList<String> annotationKeys;
+    public final List<String> annotationKeys;
     private final VariantRecalibratorArgumentCollection VRAC;
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
-
+    protected final List<TrainingSet> trainingSets;
 
     public VariantDataManager( final List<String> annotationKeys, final VariantRecalibratorArgumentCollection VRAC ) {
         this.data = null;
@@ -62,6 +62,7 @@ public class VariantDataManager {
         this.VRAC = VRAC;
         meanVector = new double[this.annotationKeys.size()];
         varianceVector = new double[this.annotationKeys.size()];
+        trainingSets = new ArrayList<TrainingSet>();
     }
 
     public void setData( final ExpandingArrayList<VariantDatum> data ) {
@@ -103,6 +104,31 @@ public class VariantDataManager {
             datum.failingSTDThreshold = remove;
         }
     }
+
+     public void addTrainingSet( final TrainingSet trainingSet ) {
+         trainingSets.add( trainingSet );
+     }
+
+     public boolean checkHasTrainingSet() {
+         for( final TrainingSet trainingSet : trainingSets ) {
+             if( trainingSet.isTraining ) { return true; }
+         }
+         return false;
+     }
+
+     public boolean checkHasTruthSet() {
+         for( final TrainingSet trainingSet : trainingSets ) {
+             if( trainingSet.isTruth ) { return true; }
+         }
+         return false;
+     }
+
+     public boolean checkHasKnownSet() {
+         for( final TrainingSet trainingSet : trainingSets ) {
+             if( trainingSet.isKnown ) { return true; }
+         }
+         return false;
+     }
 
     public ExpandingArrayList<VariantDatum> getTrainingData() {
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
@@ -232,55 +258,33 @@ public class VariantDataManager {
         return value;
     }
 
-    public void parseTrainingSets( final RefMetaDataTracker tracker, final GenomeLoc genomeLoc, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC, final HashMap<String, Double> rodToPriorMap,
-                                   final List<RodBinding<VariantContext>> training, final List<RodBinding<VariantContext>> truth, final List<RodBinding<VariantContext>> known, final List<RodBinding<VariantContext>> badSites, final List<RodBinding<VariantContext>> resource) {
+    public void parseTrainingSets( final RefMetaDataTracker tracker, final GenomeLoc genomeLoc, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC ) {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
         datum.atAntiTrainingSite = false;
         datum.prior = 2.0;
 
-        //BUGBUG: need to clean this up
-
-        for( final RodBinding<VariantContext> rod : training ) {
-            for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
+        for( final TrainingSet trainingSet : trainingSets ) {
+            for( final VariantContext trainVC : tracker.getValues(trainingSet.rodBinding, genomeLoc) ) {
                 if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
-                    datum.atTrainingSite = true;
-                    datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
+                    datum.isKnown = datum.isKnown || trainingSet.isKnown;
+                    datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
+                    datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;
+                    datum.prior = Math.max( datum.prior, trainingSet.prior );
+                    datum.consensusCount += ( trainingSet.isConsensus ? 1 : 0 );
                 }
-            }
-        }
-        for( final RodBinding<VariantContext> rod : truth ) {
-            for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
-                if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
-                    datum.atTruthSite = true;
-                    datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
-                }
-            }
-        }
-        for( final RodBinding<VariantContext> rod : known ) {
-            for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
-                if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
-                    datum.isKnown = true;
-                    datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
-                }
-            }
-        }
-        for( final RodBinding<VariantContext> rod : resource ) {
-            for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
-                if( isValidVariant( evalVC, trainVC, TRUST_ALL_POLYMORPHIC ) ) {
-                    datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
-                }
-            }
-        }
-        for( final RodBinding<VariantContext> rod : badSites ) {
-            for( final VariantContext trainVC : tracker.getValues(rod, genomeLoc) ) {
                 if( trainVC != null ) {
-                    datum.atAntiTrainingSite = true;
-                    datum.prior = Math.max( datum.prior, (rodToPriorMap.containsKey(rod.getName()) ? rodToPriorMap.get(rod.getName()) : 0.0) );
+                    datum.atAntiTrainingSite = datum.atAntiTrainingSite || trainingSet.isAntiTraining;
                 }
             }
         }
+    }
+
+    private boolean isValidVariant( final VariantContext evalVC, final VariantContext trainVC, final boolean TRUST_ALL_POLYMORPHIC) {
+        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
+                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
+                        (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic());
     }
 
     public void writeOutRecalibrationTable( final PrintStream RECAL_FILE ) {
@@ -289,11 +293,5 @@ public class VariantDataManager {
                     datum.contig, datum.start, datum.stop, datum.lod,
                     (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL")));
         }
-    }
-
-    private boolean isValidVariant( final VariantContext evalVC, final VariantContext trainVC, final boolean TRUST_ALL_POLYMORPHIC) {
-        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
-                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
-                        (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic());
     }
 }

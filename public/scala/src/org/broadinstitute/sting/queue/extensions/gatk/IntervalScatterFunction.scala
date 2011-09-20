@@ -37,7 +37,7 @@ class IntervalScatterFunction extends GATKScatterFunction with InProcessFunction
 
   def run() {
     val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
-    IntervalUtils.scatterFixedIntervals(gi.samFileHeader, gi.locs,
-      gi.getSplits(this.scatterOutputFiles.size), this.scatterOutputFiles)
+    val splits = IntervalUtils.splitFixedIntervals(gi.locs, this.scatterOutputFiles.size)
+    IntervalUtils.scatterFixedIntervals(gi.samFileHeader, splits, this.scatterOutputFiles)
   }
 }

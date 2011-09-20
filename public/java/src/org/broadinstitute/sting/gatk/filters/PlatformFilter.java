@@ -36,7 +36,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  * @version 0.1
  */
 public class PlatformFilter extends ReadFilter {
-    @Argument(fullName = "PLFilterName", shortName = "PLFilterName", doc="Discard reads with RG:PL attribute containing this strign", required=false)
+    @Argument(fullName = "PLFilterName", shortName = "PLFilterName", doc="Discard reads with RG:PL attribute containing this string", required=false)
     protected String[] PLFilterNames;
 
     public boolean filterOut(SAMRecord rec) {

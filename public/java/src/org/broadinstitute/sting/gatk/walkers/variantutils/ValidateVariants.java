@@ -56,11 +56,6 @@ import java.util.Set;
  * A variant set to filter.
  * </p>
  *
- * <h2>Output</h2>
- * <p>
- * A filtered VCF.
- * </p>
- *
  * <h2>Examples</h2>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \

@@ -22,34 +22,6 @@ public class IndexFactoryUnitTest {
     File outputFile = new File("public/testdata/onTheFlyOutputTest.vcf");
     File outputFileIndex = Tribble.indexFile(outputFile);
 
-    /**
-     * test out scoring the indexes
-     */
-    @Test
-    public void testScoreIndexes() {
-        /*// make a list of indexes to score
-        Map<Class,IndexCreator> creators = new HashMap<Class,IndexCreator>();
-        // add a linear index with the default bin size
-        LinearIndexCreator linearNormal = new LinearIndexCreator();
-        linearNormal.initialize(inputFile, linearNormal.defaultBinSize());
-        creators.add(LInearIndexlinearNormal);
-
-        // create a tree index with a small index size
-        IntervalIndexCreator treeSmallBin = new IntervalIndexCreator();
-        treeSmallBin.initialize(inputFile, Math.max(200,treeSmallBin.defaultBinSize()/10));
-        creators.add(treeSmallBin);
-
-        List<Index> indexes = new ArrayList<Index>();
-        for (IndexCreator creator : creators)
-            indexes.add(creator.finalizeIndex(0));
-
-        ArrayList<Double> scores = IndexFactory.scoreIndexes(0.5,indexes,100, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
-        System.err.println("scores are : ");
-        for (Double score : scores) {
-            System.err.println(score);
-*/
-    }
-
     //
     // test out scoring the indexes
     //

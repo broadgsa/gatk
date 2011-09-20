@@ -40,14 +40,16 @@ import java.io.*;
  * this class writes VCF files
  */
 public abstract class IndexingVCFWriter implements VCFWriter {
-    final private File indexFile;
     final private String name;
 
-    private PositionalStream positionalStream;
-    private DynamicIndexCreator indexer;
-    private LittleEndianOutputStream idxStream;
+    private File indexFile = null;
+    private OutputStream outputStream;
+    private PositionalStream positionalStream = null;
+    private DynamicIndexCreator indexer = null;
+    private LittleEndianOutputStream idxStream = null;
 
     protected IndexingVCFWriter(String name, File location, OutputStream output, boolean enableOnTheFlyIndexing) {
+        outputStream = output;
         this.name = name;
 
         if ( enableOnTheFlyIndexing ) {
@@ -58,15 +60,19 @@ public abstract class IndexingVCFWriter implements VCFWriter {
                 indexer = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
                 indexer.initialize(location, indexer.defaultBinSize());
                 positionalStream = new PositionalStream(output);
+                outputStream = positionalStream;
             } catch ( IOException ex ) {
                 // No matter what we keep going, since we don't care if we can't create the index file
+                idxStream = null;
+                indexer = null;
+                positionalStream = null;
+                indexFile = null;
             }
-        } else {
-            idxStream = null;
-            indexer = null;
-            positionalStream = null;
-            indexFile = null;
         }
+    }
+
+    public OutputStream getOutputStream() {
+        return outputStream;
     }
 
     public String getStreamName() {

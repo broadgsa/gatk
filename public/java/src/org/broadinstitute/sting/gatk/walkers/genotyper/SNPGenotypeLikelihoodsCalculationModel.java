@@ -26,14 +26,12 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -58,25 +56,6 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
     }
 
-    public static VariantContext getSNPVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {
-        if ( tracker == null || ref == null || logger == null )
-            throw new ReviewedStingException("Bad arguments: tracker=" + tracker + " ref=" + ref + " logger=" + logger);
-        VariantContext vc = null;
-
-        // search for usable record
-        for( final VariantContext vc_input : tracker.getValues(allelesBinding) ) {
-            if ( vc_input != null && ! vc_input.isFiltered() && (! requireSNP || vc_input.isSNP() )) {
-                if ( vc == null ) {
-                    vc = vc_input;
-                } else {
-                    logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record");
-                }
-            }
-        }
-
-        return vc;
-    }
-
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
                                  Map<String, AlignmentContext> contexts,
@@ -96,7 +75,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         if ( alternateAlleleToUse != null ) {
             bestAlternateAllele = alternateAlleleToUse.getBases()[0];
         } else if ( useAlleleFromVCF ) {
-            VariantContext vc = getSNPVCFromAllelesRod(tracker, ref, true, logger, UAC.alleles);
+            VariantContext vc = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, ref.getLocus(), true, logger, UAC.alleles);
 
             // ignore places where we don't have a variant
             if ( vc == null )

@@ -91,7 +91,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
 
     public StandardVCFWriter(File location, OutputStream output, boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
         super(writerName(location, output), location, output, enableOnTheFlyIndexing);
-        mWriter = new BufferedWriter(new OutputStreamWriter(output)); // todo -- fix buffer size
+        mWriter = new BufferedWriter(new OutputStreamWriter(getOutputStream())); // todo -- fix buffer size
         this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
