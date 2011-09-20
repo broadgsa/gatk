@@ -163,6 +163,14 @@
       <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
       <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
       <delete file="${ivy.jar.dir}/ivy-2.2.0-rc1.jar"/>
+      <!--
+         An old versions of the ivy-1.4.1.xml does not contain /ivy-module/configuration/conf/@name="compile".
+         Easier to upgrade to 1.4.4 than try to deal with xmlproperty and conditional deletion in ant.
+         Just in case we remove explicit 1.4.4 and go back to 1.4.1, try to clean out the file for now.
+        -->
+      <delete file="${ivy.home}/cache/javax.mail/mail/ivy-1.4.1.xml"/>
+      <delete file="${ivy.home}/cache/javax.mail/mail/ivydata-1.4.1.properties"/>
+      <delete file="${ivy.home}/cache/javax.mail/mail/jars/mail-1.4.1.jar"/>
     </target>
 
     <target name="init.buildall">
