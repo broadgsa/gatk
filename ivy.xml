@@ -15,10 +15,8 @@
     <!-- Tribble -->
     <dependency org="org.broad" name="tribble" rev="latest.integration"/>
 
-    <dependency org="log4j" name="log4j" rev="1.2.15">
-      <!-- Don't include javax.mail here in default, only used in scala->default by commons-email -->
-      <exclude org="javax.mail" />
-    </dependency>
+    <dependency org="log4j" name="log4j" rev="1.2.15"/>
+    <dependency org="javax.mail" name="mail" rev="1.4.4"/>
     <dependency org="colt" name="colt" rev="1.2.0"/>
     <dependency org="jboss" name="javassist" rev="3.7.ga"/>
     <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4"/>
