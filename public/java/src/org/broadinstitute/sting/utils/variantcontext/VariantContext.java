@@ -666,20 +666,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return commonInfo.getAttribute(key, defaultValue);
     }
 
-    public String getAttributeAsString(String key)                        { return commonInfo.getAttributeAsString(key); }
     public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
-    public int getAttributeAsInt(String key)                              { return commonInfo.getAttributeAsInt(key); }
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
-    public double getAttributeAsDouble(String key)                        { return commonInfo.getAttributeAsDouble(key); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
-    public boolean getAttributeAsBoolean(String key)                        { return commonInfo.getAttributeAsBoolean(key); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
-
-    public Integer getAttributeAsIntegerNoException(String key)  { return commonInfo.getAttributeAsIntegerNoException(key); }
-    public Double getAttributeAsDoubleNoException(String key)    { return commonInfo.getAttributeAsDoubleNoException(key); }
-    public String getAttributeAsStringNoException(String key)    { return commonInfo.getAttributeAsStringNoException(key); }
-    public Boolean getAttributeAsBooleanNoException(String key)  { return commonInfo.getAttributeAsBooleanNoException(key); }
-
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -815,6 +805,28 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         }
 
         throw new IllegalArgumentException("Requested " + i + " alternative allele but there are only " + n + " alternative alleles " + this);
+    }
+
+    /**
+     * @param  other  VariantContext whose alternate alleles to compare against
+     * @return true if this VariantContext has the same alternate alleles as other,
+     *         regardless of ordering. Otherwise returns false.
+     */
+    public boolean hasSameAlternateAllelesAs ( VariantContext other ) {
+        Set<Allele> thisAlternateAlleles = getAlternateAlleles();
+        Set<Allele> otherAlternateAlleles = other.getAlternateAlleles();
+
+        if ( thisAlternateAlleles.size() != otherAlternateAlleles.size() ) {
+            return false;
+        }
+
+        for ( Allele allele : thisAlternateAlleles ) {
+            if ( ! otherAlternateAlleles.contains(allele) ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -983,7 +995,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return true if it's monomorphic
      */
     public boolean isMonomorphic() {
-        return ! isVariant() || getChromosomeCount(getReference()) == getChromosomeCount();
+        return ! isVariant() || (hasGenotypes() && getHomRefCount() + getNoCallCount() == getNSamples());
     }
 
     /**
@@ -1085,14 +1097,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public void validateReferenceBases(Allele reference, Byte paddedRefBase) {
-        // don't validate if we're an insertion or complex event
-        if ( !reference.isNull() && getReference().length() == 1 && !reference.basesMatch(getReference()) ) {
-            throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
+        // don't validate if we're a complex event
+        if ( !isComplexIndel() && !reference.isNull() && !reference.basesMatch(getReference()) ) {
+            throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, fasta says %s vs. VCF says %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
         }
 
         // we also need to validate the padding base for simple indels
-        if ( hasReferenceBaseForIndel() && !getReferenceBaseForIndel().equals(paddedRefBase) )
-            throw new TribbleException.InternalCodecException(String.format("the padded REF base is incorrect for the record at position %s:%d, %s vs. %s", getChr(), getStart(), (char)getReferenceBaseForIndel().byteValue(), (char)paddedRefBase.byteValue()));
+        if ( hasReferenceBaseForIndel() && !getReferenceBaseForIndel().equals(paddedRefBase) ) {
+            throw new TribbleException.InternalCodecException(String.format("the padded REF base is incorrect for the record at position %s:%d, fasta says %s vs. VCF says %s", getChr(), getStart(), (char)paddedRefBase.byteValue(), (char)getReferenceBaseForIndel().byteValue()));
+        }
     }
 
     public void validateRSIDs(Set<String> rsIDs) {

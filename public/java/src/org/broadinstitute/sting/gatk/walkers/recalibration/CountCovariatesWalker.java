@@ -76,6 +76,42 @@ import java.util.Map;
  * <h2>Output</h2>
  * <p>
  * A recalibration table file in CSV format that is used by the TableRecalibration walker.
+ * It is a comma-separated text file relating the desired covariates to the number of such bases and their rate of mismatch in the genome, and its implied empirical quality score.  
+ *
+ * The first 20 lines of such a file is shown below.  
+ * * The file begins with a series of comment lines describing:
+ * ** The number of counted loci
+ * ** The number of counted bases
+ * ** The number of skipped loci and the fraction skipped, due to presence in dbSNP or bad reference bases
+ * 
+ * * After the comments appears a header line indicating which covariates were used as well as the ordering of elements in the subsequent records.  
+ *
+ * * After the header, data records occur one per line until the end of the file. The first several items on a line are the values of the individual covariates and will change
+ * depending on which covariates were specified at runtime. The last three items are the data- that is, number of observations for this combination of covariates, number of 
+ * reference mismatches, and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+ * 
+ * <pre>
+ * # Counted Sites    19451059
+ * # Counted Bases    56582018
+ * # Skipped Sites    82666
+ * # Fraction Skipped 1 / 235 bp
+ * ReadGroup,QualityScore,Cycle,Dinuc,nObservations,nMismatches,Qempirical
+ * SRR006446,11,65,CA,9,1,10
+ * SRR006446,11,48,TA,10,0,40
+ * SRR006446,11,67,AA,27,0,40
+ * SRR006446,11,61,GA,11,1,10
+ * SRR006446,12,34,CA,47,1,17
+ * SRR006446,12,30,GA,52,1,17
+ * SRR006446,12,36,AA,352,1,25
+ * SRR006446,12,17,TA,182,11,12
+ * SRR006446,11,48,TG,2,0,40
+ * SRR006446,11,67,AG,1,0,40
+ * SRR006446,12,34,CG,9,0,40
+ * SRR006446,12,30,GG,43,0,40
+ * ERR001876,4,31,AG,1,0,40
+ * ERR001876,4,31,AT,2,2,1
+ * ERR001876,4,31,CA,1,0,40
+ * </pre>
  * </p>
  *
  * <h2>Examples</h2>

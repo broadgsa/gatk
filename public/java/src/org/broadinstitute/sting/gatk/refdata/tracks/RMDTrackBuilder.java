@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureSource;
@@ -41,7 +40,6 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -52,16 +50,11 @@ import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
 
 
 /**
- * 
- * @author aaron 
+ *
+ * @author aaron
  *                                           `
  * Class RMDTrackBuilder
  *
@@ -75,9 +68,6 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      */
     private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
     public final static boolean MEASURE_TRIBBLE_QUERY_PERFORMANCE = false;
-
-    // a constant we use for marking sequence dictionary entries in the Tribble index property list
-    public static final String SequenceDictionaryPropertyPredicate = "DICT:";
 
     // private sequence dictionary we use to set our tracks with
     private SAMSequenceDictionary dict = null;
@@ -210,13 +200,19 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                 try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
                 catch (ReviewedStingException e) { }
 
-                sequenceDictionary = getSequenceDictionaryFromProperties(index);
+                sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
 
                 // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
                 if (sequenceDictionary.size() == 0 && dict != null) {
                     File indexFile = Tribble.indexFile(inputFile);
-                    setIndexSequenceDictionary(inputFile,index,dict,indexFile,true);
-                    sequenceDictionary = getSequenceDictionaryFromProperties(index);
+                    validateAndUpdateIndexSequenceDictionary(inputFile, index, dict);
+                    try { // re-write the index
+                        writeIndexToDisk(index,indexFile,new FSLockWithShared(indexFile));
+                    } catch (IOException e) {
+                        logger.warn("Unable to update index with the sequence dictionary for file " + indexFile + "; this will not effect your run of the GATK");
+                    }
+
+                    sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
                 }
 
                 if ( MEASURE_TRIBBLE_QUERY_PERFORMANCE )
@@ -363,46 +359,8 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
         Index idx = IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
-        setIndexSequenceDictionary(inputFile, idx, dict, null, false);
+        validateAndUpdateIndexSequenceDictionary(inputFile, idx, dict);
         return idx;
-    }
-
-
-    // ---------------------------------------------------------------------------------------------------------
-    // static functions to work with the sequence dictionaries of indexes
-    // ---------------------------------------------------------------------------------------------------------
-    
-    /**
-     * get the sequence dictionary from the track, if available.  If not, make it from the contig list that is always in the index
-     * @param index the index file to use
-     * @return a SAMSequenceDictionary if available, null if unavailable
-     */
-    public static SAMSequenceDictionary getSequenceDictionaryFromProperties(Index index) {
-        SAMSequenceDictionary dict = new SAMSequenceDictionary();
-        for (Map.Entry<String,String> entry : index.getProperties().entrySet()) {
-            if (entry.getKey().startsWith(SequenceDictionaryPropertyPredicate))
-                dict.addSequence(new SAMSequenceRecord(entry.getKey().substring(SequenceDictionaryPropertyPredicate.length() , entry.getKey().length()),
-                                 Integer.valueOf(entry.getValue())));
-        }
-        return dict;
-    }
-
-    /**
-     * create the sequence dictionary with the contig list; a backup approach
-     * @param index the index file to use
-     * @param dict the sequence dictionary to add contigs to
-     * @return the filled-in sequence dictionary
-     */
-    private static SAMSequenceDictionary createSequenceDictionaryFromContigList(Index index, SAMSequenceDictionary dict) {
-        LinkedHashSet<String> seqNames = index.getSequenceNames();
-        if (seqNames == null) {
-            return dict;
-        }
-        for (String name : seqNames) {
-            SAMSequenceRecord seq = new SAMSequenceRecord(name, 0);
-            dict.addSequence(seq);
-        }
-        return dict;
     }
 
     /**
@@ -411,40 +369,21 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param inputFile for proper error message formatting.
      * @param dict the sequence dictionary
      * @param index the index file
-     * @param indexFile the index file
-     * @param rewriteIndex should we rewrite the index when we're done?
-     *
      */
-    public void setIndexSequenceDictionary(File inputFile, Index index, SAMSequenceDictionary dict, File indexFile, boolean rewriteIndex) {
-        if (dict == null) return;
-
-        SAMSequenceDictionary currentDict = createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());
-        validateTrackSequenceDictionary(inputFile.getAbsolutePath(),currentDict,dict);
+    public void validateAndUpdateIndexSequenceDictionary(final File inputFile, final Index index, final SAMSequenceDictionary dict) {
+        if (dict == null) throw new ReviewedStingException("BUG: dict cannot be null");
 
         // check that every contig in the RMD contig list is at least in the sequence dictionary we're being asked to set
-        for (SAMSequenceRecord seq : currentDict.getSequences()) {
-            if (dict.getSequence(seq.getSequenceName()) == null)
-                continue;
-            index.addProperty(SequenceDictionaryPropertyPredicate + dict.getSequence(seq.getSequenceName()).getSequenceName(), String.valueOf(dict.getSequence(seq.getSequenceName()).getSequenceLength()));
-        }
-        // re-write the index
-        if (rewriteIndex) try {
-            writeIndexToDisk(index,indexFile,new FSLockWithShared(indexFile));
-        } catch (IOException e) {
-            logger.warn("Unable to update index with the sequence dictionary for file " + indexFile + "; this will not effect your run of the GATK");
-        }
+        final SAMSequenceDictionary currentDict = IndexDictionaryUtils.createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());
+        validateTrackSequenceDictionary(inputFile.getAbsolutePath(), currentDict, dict);
+
+        // actually update the dictionary in the index
+        IndexDictionaryUtils.setIndexSequenceDictionary(index, dict);
     }
 
-
-    public void validateTrackSequenceDictionary(String trackName, SAMSequenceDictionary trackDict, SAMSequenceDictionary referenceDict) {
-        // if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation
-        if (trackDict == null || trackDict.size() == 0)
-            logger.info("Track " + trackName + " doesn't have a sequence dictionary built in, skipping dictionary validation");
-        else {
-            Set<String> trackSequences = new TreeSet<String>();
-            for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
-                trackSequences.add(dictionaryEntry.getSequenceName());
-            SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, trackName, trackDict, "reference", referenceDict);
-        }
+    public void validateTrackSequenceDictionary(final String trackName,
+                                                final SAMSequenceDictionary trackDict,
+                                                final SAMSequenceDictionary referenceDict ) {
+        IndexDictionaryUtils.validateTrackSequenceDictionary(trackName, trackDict, referenceDict, validationExclusionType);
     }
 }

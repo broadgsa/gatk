@@ -29,7 +29,6 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -45,7 +44,6 @@ import org.testng.annotations.Test;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
-import java.util.Map;
 
 
 /**
@@ -164,7 +162,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         try {
             Index idx = builder.loadIndex(vcfFile, new VCFCodec());
             // catch any exception; this call should pass correctly
-            SAMSequenceDictionary dict =  RMDTrackBuilder.getSequenceDictionaryFromProperties(idx);
+            SAMSequenceDictionary dict =  IndexDictionaryUtils.getSequenceDictionaryFromProperties(idx);
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());

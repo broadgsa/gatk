@@ -73,7 +73,7 @@ public class HaplotypeIndelErrorModel {
         baseMatchArray = new double[MAX_CACHED_QUAL+1];
         baseMismatchArray = new double[MAX_CACHED_QUAL+1];
         for (int k=1; k <= MAX_CACHED_QUAL; k++) {
-            double baseProb = QualityUtils.qualToProb(k);
+            double baseProb = QualityUtils.qualToProb((byte)k);
 
 
             baseMatchArray[k] =  probToQual(baseProb);

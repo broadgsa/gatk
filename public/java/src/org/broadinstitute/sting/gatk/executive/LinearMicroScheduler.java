@@ -44,7 +44,6 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param shardStrategy A strategy for sharding the data.
      */
     public Object execute(Walker walker, ShardStrategy shardStrategy) {
-        traversalEngine.startTimers();
         walker.initialize();
         Accumulator accumulator = Accumulator.create(engine,walker);
 
@@ -54,6 +53,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             if ( done || shard == null ) // we ran out of shards that aren't owned
                 break;
 
+            traversalEngine.startTimersIfNecessary();
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 LocusWalker lWalker = (LocusWalker)walker;
                 WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(), getReadIterator(shard), shard.getGenomeLocs(), engine.getSampleMetadata());

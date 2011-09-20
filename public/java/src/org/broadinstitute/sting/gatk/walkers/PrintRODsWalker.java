@@ -26,21 +26,23 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 
 import java.io.PrintStream;
-import java.util.Iterator;
 
 /**
  * Prints out all of the RODs in the input data set. Data is rendered using the toString() method
  * of the given ROD.
  */
 public class PrintRODsWalker extends RodWalker<Integer, Integer> {
+    @Input(fullName="input", shortName = "input", doc="The input ROD which should be printed out.", required=true)
+    public RodBinding<Feature> input;
+
     @Output
     PrintStream out;
 
@@ -62,7 +64,7 @@ public class PrintRODsWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        for ( Feature feature : tracker.getValues(Feature.class) ) {
+        for ( Feature feature : tracker.getValues(Feature.class, context.getLocation()) ) {
             out.println(feature.toString());
         }
 

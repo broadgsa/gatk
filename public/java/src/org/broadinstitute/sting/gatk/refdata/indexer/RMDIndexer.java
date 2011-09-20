@@ -101,7 +101,7 @@ public class RMDIndexer extends CommandLineProgram {
         Index index = IndexFactory.createIndex(inputFileSource, codec, approach);
 
         // add writing of the sequence dictionary, if supplied
-        builder.setIndexSequenceDictionary(inputFileSource, index, ref.getSequenceDictionary(), indexFile, false);
+        builder.validateAndUpdateIndexSequenceDictionary(inputFileSource, index, ref.getSequenceDictionary());
 
         // create the output stream, and write the index
         LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));

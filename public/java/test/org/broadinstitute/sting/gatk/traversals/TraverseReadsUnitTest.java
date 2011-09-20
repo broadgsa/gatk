@@ -127,6 +127,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         Object accumulator = countReadWalker.reduceInit();
 
         while (shardStrategy.hasNext()) {
+            traversalEngine.startTimersIfNecessary();
             Shard shard = shardStrategy.next();
 
             if (shard == null) {

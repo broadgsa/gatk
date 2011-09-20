@@ -565,11 +565,11 @@ public class VariantContextUtils {
             // special case DP (add it up) and ID (just preserve it)
             //
             if (vc.hasAttribute(VCFConstants.DEPTH_KEY))
-                depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
+                depth += vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0);
             if (rsID == null && vc.hasID())
                 rsID = vc.getID();
             if (mergeInfoWithMaxAC && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) {
-                String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY);
+                String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY, null);
                 // lets see if the string contains a , separator
                 if (rawAlleleCounts.contains(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)) {
                     List<String> alleleCountArray = Arrays.asList(rawAlleleCounts.substring(1, rawAlleleCounts.length() - 1).split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR));
@@ -663,6 +663,18 @@ public class VariantContextUtils {
         return merged;
     }
 
+    public static boolean allelesAreSubset(VariantContext vc1, VariantContext vc2) {
+        // if all alleles of vc1 are a contained in alleles of vc2, return true
+        if (!vc1.getReference().equals(vc2.getReference()))
+            return false;
+
+        for (Allele a :vc1.getAlternateAlleles()) {
+            if (!vc2.getAlternateAlleles().contains(a))
+                return false;
+        }
+
+        return true;
+    }
     public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
         // see if we need to trim common reference base from all alleles
         boolean trimVC;
@@ -1147,9 +1159,7 @@ public class VariantContextUtils {
         for (String orAttrib : MERGE_OR_ATTRIBS) {
             boolean attribVal = false;
             for (VariantContext vc : vcList) {
-                Boolean val = vc.getAttributeAsBooleanNoException(orAttrib);
-                if (val != null)
-                    attribVal = (attribVal || val);
+                attribVal = vc.getAttributeAsBoolean(orAttrib, false);
                 if (attribVal) // already true, so no reason to continue:
                     break;
             }
@@ -1159,7 +1169,7 @@ public class VariantContextUtils {
         // Merge ID fields:
         String iDVal = null;
         for (VariantContext vc : vcList) {
-            String val = vc.getAttributeAsStringNoException(VariantContext.ID_KEY);
+            String val = vc.getAttributeAsString(VariantContext.ID_KEY, null);
             if (val != null && !val.equals(VCFConstants.EMPTY_ID_FIELD)) {
                 if (iDVal == null)
                     iDVal = val;
@@ -1239,8 +1249,10 @@ public class VariantContextUtils {
 
         public PhaseAndQuality(Genotype gt) {
             this.isPhased = gt.isPhased();
-            if (this.isPhased)
-                this.PQ = gt.getAttributeAsDoubleNoException(ReadBackedPhasingWalker.PQ_KEY);
+            if (this.isPhased) {
+                this.PQ = gt.getAttributeAsDouble(ReadBackedPhasingWalker.PQ_KEY, -1);
+                if ( this.PQ == -1 ) this.PQ = null;
+            }
         }
     }
 

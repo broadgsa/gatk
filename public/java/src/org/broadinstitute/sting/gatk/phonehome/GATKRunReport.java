@@ -293,15 +293,16 @@ public class GATKRunReport {
      * That is, postReport() is guarenteed not to fail for any reason.
      */
     private File postReportToLocalDisk(File rootDir) {
+        String filename = getID() + ".report.xml.gz";
+        File file = new File(rootDir, filename);
         try {
-            String filename = getID() + ".report.xml.gz";
-            File file = new File(rootDir, filename);
             postReportToFile(file);
             logger.debug("Wrote report to " + file);
             return file;
         } catch ( Exception e ) {
             // we catch everything, and no matter what eat the error
             exceptDuringRunReport("Couldn't read report file", e);
+            file.delete();
             return null;
         }
     }
@@ -312,6 +313,7 @@ public class GATKRunReport {
         File localFile = postReportToLocalDisk(new File("./"));
         logger.debug("Generating GATK report to AWS S3 based on local file " + localFile);
         if ( localFile != null ) { // we succeeded in creating the local file
+            localFile.deleteOnExit();
             try {
                 // stop us from printing the annoying, and meaningless, mime types warning
                 Logger mimeTypeLogger = Logger.getLogger(org.jets3t.service.utils.Mimetypes.class);
@@ -336,14 +338,13 @@ public class GATKRunReport {
                 //logger.info("Uploading " + localFile + " to AWS bucket");
                 S3Object s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
                 logger.debug("Uploaded to AWS: " + s3Object);
+                logger.info("Uploaded run statistics report to AWS S3");
             } catch ( S3ServiceException e ) {
                 exceptDuringRunReport("S3 exception occurred", e);
             } catch ( NoSuchAlgorithmException e ) {
                 exceptDuringRunReport("Couldn't calculate MD5", e);
             } catch ( IOException e ) {
                 exceptDuringRunReport("Couldn't read report file", e);
-            } finally {
-                localFile.delete();
             }
         }
     }

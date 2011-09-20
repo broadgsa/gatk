@@ -120,7 +120,7 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
             if ( eval.hasGenotypes() )
                 ac = eval.getChromosomeCount(eval.getAlternateAllele(0));
             else if ( eval.hasAttribute("AC") ) {
-                ac = Integer.valueOf(eval.getAttributeAsString("AC"));
+                ac = eval.getAttributeAsInt("AC", -1);
             }
 
             if ( ac != -1 ) {
@@ -166,7 +166,7 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
                 }
             }
 
-            if ( eval.isSNP() && eval.isBiallelic() && metrics != null ) {
+            if ( eval.isSNP() && eval.isBiallelic() && eval.isPolymorphic() && metrics != null ) {
                 metrics.incrValue(eval);
             }
         }

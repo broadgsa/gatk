@@ -334,24 +334,44 @@ public class IntervalUtils {
     }
 
     /**
-     * Splits an interval list into multiple files.
-     * @param fileHeader The sam file header.
+     * Splits an interval list into multiple sublists.
      * @param locs The genome locs to split.
      * @param splits The stop points for the genome locs returned by splitFixedIntervals.
-     * @param scatterParts The output interval lists to write to.
+     * @return A list of lists of genome locs, split according to splits
      */
-    public static void scatterFixedIntervals(SAMFileHeader fileHeader, List<GenomeLoc> locs, List<Integer> splits, List<File> scatterParts) {
-        if (splits.size() != scatterParts.size())
-            throw new UserException.BadArgumentValue("splits", String.format("Split points %d does not equal the number of scatter parts %d.", splits.size(), scatterParts.size()));
-        int fileIndex = 0;
+    public static List<List<GenomeLoc>> splitIntervalsToSubLists(List<GenomeLoc> locs, List<Integer> splits) {
         int locIndex = 1;
         int start = 0;
+        List<List<GenomeLoc>> sublists = new ArrayList<List<GenomeLoc>>(splits.size());
         for (Integer stop: splits) {
-            IntervalList intervalList = new IntervalList(fileHeader);
+            List<GenomeLoc> curList = new ArrayList<GenomeLoc>();
             for (int i = start; i < stop; i++)
-                intervalList.add(toInterval(locs.get(i), locIndex++));
-            intervalList.write(scatterParts.get(fileIndex++));
+                curList.add(locs.get(i));
             start = stop;
+            sublists.add(curList);
+        }
+
+        return sublists;
+    }
+
+
+    /**
+     * Splits an interval list into multiple files.
+     * @param fileHeader The sam file header.
+     * @param splits Pre-divided genome locs returned by splitFixedIntervals.
+     * @param scatterParts The output interval lists to write to.
+     */
+    public static void scatterFixedIntervals(SAMFileHeader fileHeader, List<List<GenomeLoc>> splits, List<File> scatterParts) {
+        if (splits.size() != scatterParts.size())
+            throw new UserException.BadArgumentValue("splits", String.format("Split points %d does not equal the number of scatter parts %d.", splits.size(), scatterParts.size()));
+
+        int fileIndex = 0;
+        int locIndex = 1;
+        for (final List<GenomeLoc> split : splits) {
+            IntervalList intervalList = new IntervalList(fileHeader);
+            for (final GenomeLoc loc : split)
+                intervalList.add(toInterval(loc, locIndex++));
+            intervalList.write(scatterParts.get(fileIndex++));
         }
     }
 
@@ -361,17 +381,15 @@ public class IntervalUtils {
      * @param numParts Number of parts to split the locs into.
      * @return The stop points to split the genome locs.
      */
-    public static List<Integer> splitFixedIntervals(List<GenomeLoc> locs, int numParts) {
+    public static List<List<GenomeLoc>> splitFixedIntervals(List<GenomeLoc> locs, int numParts) {
         if (locs.size() < numParts)
             throw new UserException.BadArgumentValue("scatterParts", String.format("Cannot scatter %d locs into %d parts.", locs.size(), numParts));
-        long locsSize = 0;
-        for (GenomeLoc loc: locs)
-            locsSize += loc.size();
-        List<Integer> splitPoints = new ArrayList<Integer>();
+        final long locsSize = intervalSize(locs);
+        final List<Integer> splitPoints = new ArrayList<Integer>();
         addFixedSplit(splitPoints, locs, locsSize, 0, locs.size(), numParts);
         Collections.sort(splitPoints);
         splitPoints.add(locs.size());
-        return splitPoints;
+        return splitIntervalsToSubLists(locs, splitPoints);
     }
 
     private static void addFixedSplit(List<Integer> splitPoints, List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int numParts) {
@@ -440,5 +458,12 @@ public class IntervalUtils {
             merged.add(prev);
             return merged;
         }
+    }
+
+    public static final long intervalSize(final List<GenomeLoc> locs) {
+        long size = 0;
+        for ( final GenomeLoc loc : locs )
+            size += loc.size();
+        return size;
     }
 }

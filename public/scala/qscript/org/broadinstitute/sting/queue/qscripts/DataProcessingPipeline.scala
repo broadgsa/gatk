@@ -37,11 +37,6 @@ class DataProcessingPipeline extends QScript {
   * Optional Parameters
   ****************************************************************************/
 
-
-//  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
-//  var sortSamJar: File = _
-//
-
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
   var indels: List[File] = List()
 
@@ -132,24 +127,6 @@ class DataProcessingPipeline extends QScript {
       }
     }
     return sampleTable.toMap
-
-//    println("\n\n*** INPUT FILES ***\n")
-//    // Creating one file for each sample in the dataset
-//    val sampleBamFiles = scala.collection.mutable.Map.empty[String, File]
-//    for ((sample, flist) <- sampleTable) {
-//
-//      println(sample + ":")
-//      for (f <- flist)
-//        println (f)
-//      println()
-//
-//      val sampleFileName = new File(qscript.outputDir + qscript.projectName + "." + sample + ".list")
-//      sampleBamFiles(sample) = sampleFileName
-//      //add(writeList(flist, sampleFileName))
-//    }
-//    println("*** INPUT FILES ***\n\n")
-//
-//    return sampleBamFiles.toMap
   }
 
   // Rebuilds the Read Group string to give BWA

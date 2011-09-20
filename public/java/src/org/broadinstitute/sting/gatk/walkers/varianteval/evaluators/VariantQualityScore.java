@@ -232,7 +232,7 @@ public class VariantQualityScore extends VariantEvaluator {
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         final String interesting = null;
 
-        if( eval != null && eval.isSNP() && eval.isBiallelic() ) { //BUGBUG: only counting biallelic sites (revisit what to do with triallelic sites)
+        if( eval != null && eval.isSNP() && eval.isBiallelic() && eval.isPolymorphic() ) { //BUGBUG: only counting biallelic sites (revisit what to do with triallelic sites)
             if( titvStats == null ) { titvStats = new TiTvStats(); }
             titvStats.incrValue(eval.getPhredScaledQual(), VariantContextUtils.isTransition(eval));
 

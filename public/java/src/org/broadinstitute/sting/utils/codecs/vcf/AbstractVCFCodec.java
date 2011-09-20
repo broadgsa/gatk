@@ -227,7 +227,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         throw new UserException.MalformedVCF(message, lineNo);
     }
 
-    private static void generateException(String message, int lineNo) {
+    protected static void generateException(String message, int lineNo) {
         throw new UserException.MalformedVCF(message, lineNo);
     }
 
