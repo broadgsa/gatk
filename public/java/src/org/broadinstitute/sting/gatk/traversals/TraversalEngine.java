@@ -358,7 +358,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     public void printOnTraversalDone() {
         printProgress(null, null, true);
 
-        final double elapsed = timer.getElapsedTime();
+        final double elapsed = timer == null ? 0 : timer.getElapsedTime();
 
         ReadMetrics cumulativeMetrics = engine.getCumulativeMetrics();        
 
