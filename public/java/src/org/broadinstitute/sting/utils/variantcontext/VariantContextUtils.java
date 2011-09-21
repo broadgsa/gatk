@@ -550,8 +550,7 @@ public class VariantContextUtils {
             if (vc.hasAttribute(VCFConstants.DEPTH_KEY))
                 depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
 
-            // TODO -- REVERT CHANGE
-            if (rsIDs.isEmpty() && vc.hasID()) rsIDs.add(vc.getID());
+            if ( vc.hasID() && ! vc.getID().equals(VCFConstants.EMPTY_ID_FIELD) ) rsIDs.add(vc.getID());
 
             if (mergeInfoWithMaxAC && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) {
                 String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY);
