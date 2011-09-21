@@ -162,6 +162,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
 
+    @Argument(fullName="family_string",shortName="family",required=false,doc="A family string of the form mom+dad=child for use with the mendelian violation ratio annotation")
+    public String familyStr = null;
+
+    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality treshold in order to annotate mendelian violation ratio")
+    public double minGenotypeQualityP = 0.0;
+
     private VariantAnnotatorEngine engine;
 
     private Collection<VariantContext> indelBufferContext;

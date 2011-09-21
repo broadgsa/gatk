@@ -96,8 +96,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "89f55abea8f59e39d1effb908440548c"); }
 
-    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "4836086891f6cbdd40eebef3076d215a"); }
-    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "6a34b5d743efda8b2f3b639f3a2f5de8"); }
+    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "c6adeda751cb2a08690dd9202356629f"); }
+    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "3a08fd5ee18993dfc8882156ccf5d2e9"); }
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
@@ -131,4 +131,13 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "df96cb3beb2dbb5e02f80abec7d3571e"); }
     @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f704caeaaaed6711943014b847fe381a"); }
     @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "f704caeaaaed6711943014b847fe381a"); }
+
+    @Test
+    public void combineDBSNPDuplicateSites() {
+         WalkerTestSpec spec = new WalkerTestSpec(
+                 "-T CombineVariants -NO_HEADER -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
+                 1,
+                 Arrays.asList(""));
+         executeTest("combineDBSNPDuplicateSites:", spec);
+    }
 }

@@ -452,7 +452,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                         throw new UserException.CouldNotCreateOutputFile(outMVFile, "Can't open output file", e);   }
             }
             else
-                mvSet.add(new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD));
+                mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));
         }
         else if (!FAMILY_STRUCTURE.isEmpty()) {
             mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));

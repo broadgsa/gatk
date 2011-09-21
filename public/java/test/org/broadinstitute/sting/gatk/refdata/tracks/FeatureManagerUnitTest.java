@@ -56,6 +56,7 @@ public class FeatureManagerUnitTest extends BaseTest {
     private static final File VCF3_FILE = new File(validationDataLocation + "vcfexample3.vcf");
     private static final File VCF4_FILE = new File(testDir + "HiSeq.10000.vcf");
     private static final File VCF4_FILE_GZ = new File(testDir + "HiSeq.10000.vcf.gz");
+    private static final File VCF4_FILE_BGZIP = new File(testDir + "HiSeq.10000.bgzip.vcf.gz");
 
     private FeatureManager manager;
     private GenomeLocParser genomeLocParser;
@@ -109,6 +110,7 @@ public class FeatureManagerUnitTest extends BaseTest {
         new FMTest(VariantContext.class, VCF3Codec.class, "VCF3", VCF3_FILE);
         new FMTest(VariantContext.class, VCFCodec.class, "VCF", VCF4_FILE);
         new FMTest(VariantContext.class, VCFCodec.class, "VCF", VCF4_FILE_GZ);
+        new FMTest(VariantContext.class, VCFCodec.class, "VCF", VCF4_FILE_BGZIP);
         new FMTest(TableFeature.class, BedTableCodec.class, "bedtable", null);
         return FMTest.getTests(FMTest.class);
     }
