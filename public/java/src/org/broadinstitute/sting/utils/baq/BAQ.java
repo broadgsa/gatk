@@ -5,6 +5,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -131,19 +132,18 @@ public class BAQ {
     private final static double EM = 0.33333333333;
     private final static double EI = 0.25;
 
-    private double[][][] EPSILONS = new double[256][256][64];
+    private double[][][] EPSILONS = new double[256][256][SAMUtils.MAX_PHRED_SCORE+1];
 
     private void initializeCachedData() {
         for ( int i = 0; i < 256; i++ )
             for ( int j = 0; j < 256; j++ )
-                for ( int q = 0; q < 64; q++ ) {
-                    double qual = qual2prob[q < minBaseQual ? minBaseQual : q];
+                for ( int q = 0; q <= SAMUtils.MAX_PHRED_SCORE; q++ ) {
                     EPSILONS[i][j][q] = 1.0;
                 }
 
         for ( char b1 : "ACGTacgt".toCharArray() ) {
             for ( char b2 : "ACGTacgt".toCharArray() ) {
-                for ( int q = 0; q < 64; q++ ) {
+                for ( int q = 0; q <= SAMUtils.MAX_PHRED_SCORE; q++ ) {
                     double qual = qual2prob[q < minBaseQual ? minBaseQual : q];
                     double e = Character.toLowerCase(b1) == Character.toLowerCase(b2) ? 1 - qual : qual * EM;
                     EPSILONS[(byte)b1][(byte)b2][q] = e;
