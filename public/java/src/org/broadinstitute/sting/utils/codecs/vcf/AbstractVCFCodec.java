@@ -601,12 +601,15 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     private final static boolean isVCFStream(final InputStream stream, final String MAGIC_HEADER_LINE) {
         try {
             byte[] buff = new byte[MAGIC_HEADER_LINE.length()];
-            stream.read(buff, 0, MAGIC_HEADER_LINE.length());
-            String firstLine = new String(buff);
-            stream.close();
-            return firstLine.startsWith(MAGIC_HEADER_LINE);
+            int nread = stream.read(buff, 0, MAGIC_HEADER_LINE.length());
+            boolean eq = Arrays.equals(buff, MAGIC_HEADER_LINE.getBytes());
+            return eq;
+//            String firstLine = new String(buff);
+//            return firstLine.startsWith(MAGIC_HEADER_LINE);
         } catch ( IOException e ) {
             return false;
+        } finally {
+            try { stream.close(); } catch ( IOException e ) {}
         }
     }
 }
