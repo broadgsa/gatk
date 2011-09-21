@@ -240,22 +240,34 @@ public class Utils {
         return ret.toString();
     }
 
-    //public static String join(String separator, Collection<String> strings) {
-    //    return join( separator, strings.toArray(new String[0]) );
-    //}
-
-    public static <T> String join(String separator, Collection<T> objects) {
-        if(objects.isEmpty()) {
+    /**
+     * Returns a string of the form elt1.toString() [sep elt2.toString() ... sep elt.toString()] for a collection of
+     * elti objects (note there's no actual space between sep and the elti elements).  Returns
+     * "" if collection is empty.  If collection contains just elt, then returns elt.toString()
+     *
+     * @param separator the string to use to separate objects
+     * @param objects a collection of objects.  the element order is defined by the iterator over objects
+     * @param <T> the type of the objects
+     * @return a non-null string
+     */
+    public static <T> String join(final String separator, final Collection<T> objects) {
+        if (objects.isEmpty()) { // fast path for empty collection
             return "";
-        }
-        Iterator<T> iter = objects.iterator();
-        final StringBuilder ret = new StringBuilder(iter.next().toString());
-        while(iter.hasNext()) {
-            ret.append(separator);
-            ret.append(iter.next().toString());
-        }
+        } else {
+            final Iterator<T> iter = objects.iterator();
+            final T first = iter.next();
 
-        return ret.toString();
+            if ( ! iter.hasNext() ) // fast path for singleton collections
+                return first.toString();
+            else { // full path for 2+ collection that actually need a join
+                final StringBuilder ret = new StringBuilder(first.toString());
+                while(iter.hasNext()) {
+                    ret.append(separator);
+                    ret.append(iter.next().toString());
+                }
+                return ret.toString();
+            }
+        }
     }
 
     public static String dupString(char c, int nCopies) {
