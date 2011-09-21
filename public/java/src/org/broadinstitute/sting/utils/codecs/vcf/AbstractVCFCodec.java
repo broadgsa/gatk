@@ -215,7 +215,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
             // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
-            if (( (header == null || (header != null && !header.hasGenotypingData())) && nParts != NUM_STANDARD_FIELDS) ||
+            if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
                  (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
                 throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
                         " tokens, and saw " + nParts + " )", lineNo);
@@ -345,6 +345,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             generateException("The VCF specification requires a valid info field");
 
         if ( !infoField.equals(VCFConstants.EMPTY_INFO_FIELD) ) {
+            if ( infoField.indexOf("\t") != -1 || infoField.indexOf(" ") != -1 )
+                generateException("The VCF specification does not allow for whitespace in the INFO field");
+
             int infoValueSplitSize = ParsingUtils.split(infoField, infoValueArray, VCFConstants.INFO_FIELD_SEPARATOR_CHAR);
             for (int i = 0; i < infoValueSplitSize; i++) {
                 String key;
