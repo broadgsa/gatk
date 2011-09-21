@@ -114,7 +114,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName = "output_dir", shortName = "outputDir", doc = "The directory in which to output all the plots and intermediate data files", required = false)
     private String OUTPUT_DIR = "analyzeCovariates/";
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.12.0/bin/Rscript", required = false)
     private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "public/R/";

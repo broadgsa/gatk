@@ -53,7 +53,7 @@ public class RScriptExecutor {
 
     public static class RScriptArgumentCollection {
         @Advanced
-        @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+        @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.12.0/bin/Rscript", required = false)
         public String PATH_TO_RSCRIPT = "Rscript";
 
         @Advanced
