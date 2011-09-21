@@ -930,6 +930,14 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Gets the master sequence dictionary for this GATK engine instance
+     * @return a never-null dictionary listing all of the contigs known to this engine instance
+     */
+    public SAMSequenceDictionary getMasterSequenceDictionary() {
+        return getReferenceDataSource().getReference().getSequenceDictionary();
+    }
+
+    /**
      * Returns data source object encapsulating all essential info and handlers used to traverse
      * reads; header merger, individual file readers etc can be accessed through the returned data source object.
      *

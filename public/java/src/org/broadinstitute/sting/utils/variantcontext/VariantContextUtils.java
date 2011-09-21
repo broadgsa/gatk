@@ -316,18 +316,21 @@ public class VariantContextUtils {
         return pruneVariantContext(vc, null);
     }
 
-    public static VariantContext pruneVariantContext(VariantContext vc, Collection<String> keysToPreserve ) {
-        MutableVariantContext mvc = new MutableVariantContext(vc);
+    public static VariantContext pruneVariantContext(final VariantContext vc, final Collection<String> keysToPreserve ) {
+        final MutableVariantContext mvc = new MutableVariantContext(vc);
 
         if ( keysToPreserve == null || keysToPreserve.size() == 0 )
             mvc.clearAttributes();
         else {
-            Map<String, Object> d = mvc.getAttributes();
+            final Map<String, Object> d = mvc.getAttributes();
             mvc.clearAttributes();
             for ( String key : keysToPreserve )
                 if ( d.containsKey(key) )
                     mvc.putAttribute(key, d.get(key));
         }
+
+        // this must be done as the ID is stored in the attributes field
+        if ( vc.hasID() ) mvc.setID(vc.getID());
 
         Collection<Genotype> gs = mvc.getGenotypes().values();
         mvc.clearGenotypes();
@@ -443,34 +446,6 @@ public class VariantContextUtils {
         throw new ReviewedStingException(String.format("Couldn't find master VCF %s at %s", masterName, unsortedVCs.iterator().next()));
     }
 
-
-    public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, byte refBase) {
-        return simpleMerge(genomeLocParser, unsortedVCs, null, FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, GenotypeMergeType.UNSORTED, false, false, refBase);
-    }
-
-
-    /**
-     * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
-     * If uniqifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
-     * the sample name
-     *
-     * @param genomeLocParser           loc parser
-     * @param unsortedVCs               collection of unsorted VCs
-     * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
-     * @param filteredRecordMergeType   merge type for filtered records
-     * @param genotypeMergeOptions      merge option for genotypes
-     * @param annotateOrigin            should we annotate the set it came from?
-     * @param printMessages             should we print messages?
-     * @param inputRefBase              the ref base
-     * @return new VariantContext
-     */
-    public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
-                                             FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
-                                             boolean annotateOrigin, boolean printMessages, byte inputRefBase ) {
-
-        return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, filteredRecordMergeType, genotypeMergeOptions, annotateOrigin, printMessages, "set", false, false);
-    }
-
     /**
      * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
      * If uniqifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
@@ -486,12 +461,18 @@ public class VariantContextUtils {
      * @param setKey                    the key name of the set
      * @param filteredAreUncalled       are filtered records uncalled?
      * @param mergeInfoWithMaxAC        should we merge in info from the VC with maximum allele count?
-     * @return new VariantContext
+     * @return new VariantContext       representing the merge of unsortedVCs
      */
-    public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
-                                             FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
-                                             boolean annotateOrigin, boolean printMessages, String setKey,
-                                             boolean filteredAreUncalled, boolean mergeInfoWithMaxAC ) {
+    public static VariantContext simpleMerge(final GenomeLocParser genomeLocParser,
+                                             final Collection<VariantContext> unsortedVCs,
+                                             final List<String> priorityListOfVCs,
+                                             final FilteredRecordMergeType filteredRecordMergeType,
+                                             final GenotypeMergeType genotypeMergeOptions,
+                                             final boolean annotateOrigin,
+                                             final boolean printMessages,
+                                             final String setKey,
+                                             final boolean filteredAreUncalled,
+                                             final boolean mergeInfoWithMaxAC ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
@@ -514,26 +495,28 @@ public class VariantContextUtils {
             return null;
 
         // establish the baseline info from the first VC
-        VariantContext first = VCs.get(0);
-        String name = first.getSource();
-        GenomeLoc loc = getLocation(genomeLocParser,first);
+        final VariantContext first = VCs.get(0);
+        final String name = first.getSource();
+        final Allele refAllele = determineReferenceAllele(VCs);
 
-        Set<Allele> alleles = new TreeSet<Allele>();
-        Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
-        double negLog10PError = -1;
-        Set<String> filters = new TreeSet<String>();
-        Map<String, Object> attributes = new TreeMap<String, Object>();
-        Set<String> inconsistentAttributes = new HashSet<String>();
-        String rsID = null;
+        final Set<Allele> alleles = new TreeSet<Allele>();
+        final Set<String> filters = new TreeSet<String>();
+        final Map<String, Object> attributes = new TreeMap<String, Object>();
+        final Set<String> inconsistentAttributes = new HashSet<String>();
+        final Set<String> variantSources = new HashSet<String>(); // contains the set of sources we found in our set of VCs that are variant
+        final Set<String> rsIDs = new LinkedHashSet<String>(1); // most of the time there's one id
+
+        GenomeLoc loc = getLocation(genomeLocParser,first);
         int depth = 0;
         int maxAC = -1;
-        Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
+        final Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
+        double negLog10PError = -1;
         VariantContext vcWithMaxAC = null;
+        Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
 
         // counting the number of filtered and variant VCs
-        int nFiltered = 0, nVariant = 0;
+        int nFiltered = 0;
 
-        Allele refAllele = determineReferenceAllele(VCs);
         boolean remapped = false;
 
         // cycle through and add info from the other VCs, making sure the loc/reference matches
@@ -546,7 +529,7 @@ public class VariantContextUtils {
                 loc = getLocation(genomeLocParser,vc); // get the longest location
 
             nFiltered += vc.isFiltered() ? 1 : 0;
-            nVariant += vc.isVariant() ? 1 : 0;
+            if ( vc.isVariant() ) variantSources.add(vc.getSource());
 
             AlleleMapper alleleMapping = resolveIncompatibleAlleles(refAllele, vc, alleles);
             remapped = remapped || alleleMapping.needsRemapping();
@@ -565,11 +548,10 @@ public class VariantContextUtils {
             // special case DP (add it up) and ID (just preserve it)
             //
             if (vc.hasAttribute(VCFConstants.DEPTH_KEY))
-                depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
-            if (rsID == null && vc.hasID())
-                rsID = vc.getID();
+                depth += vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0);
+            if ( vc.hasID() && ! vc.getID().equals(VCFConstants.EMPTY_ID_FIELD) ) rsIDs.add(vc.getID());
             if (mergeInfoWithMaxAC && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) {
-                String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY);
+                String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY, null);
                 // lets see if the string contains a , separator
                 if (rawAlleleCounts.contains(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)) {
                     List<String> alleleCountArray = Arrays.asList(rawAlleleCounts.substring(1, rawAlleleCounts.length() - 1).split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR));
@@ -627,17 +609,16 @@ public class VariantContextUtils {
         if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
             filters.clear();
 
-        // we care about where the call came from
-        if ( annotateOrigin ) {
+        if ( annotateOrigin ) { // we care about where the call came from
             String setValue;
-            if ( nFiltered == 0 && nVariant == priorityListOfVCs.size() )                   // nothing was unfiltered
+            if ( nFiltered == 0 && variantSources.size() == priorityListOfVCs.size() ) // nothing was unfiltered
                 setValue = "Intersection";
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = "FilteredInAll";
-            else if ( nVariant == 0 )               // everyone was reference
+            else if ( variantSources.isEmpty() )               // everyone was reference
                 setValue = "ReferenceInAll";
-            else {                                  // we are filtered in some subset
-                List<String> s = new ArrayList<String>();
+            else {
+                LinkedHashSet<String> s = new LinkedHashSet<String>();
                 for ( VariantContext vc : VCs )
                     if ( vc.isVariant() )
                         s.add( vc.isFiltered() ? "filterIn" + vc.getSource() : vc.getSource() );
@@ -652,8 +633,10 @@ public class VariantContextUtils {
 
         if ( depth > 0 )
             attributes.put(VCFConstants.DEPTH_KEY, String.valueOf(depth));
-        if ( rsID != null )
-            attributes.put(VariantContext.ID_KEY, rsID);
+
+        if ( ! rsIDs.isEmpty() ) {
+            attributes.put(VariantContext.ID_KEY, Utils.join(",", rsIDs));
+        }
 
         VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
         // Trim the padded bases of all alleles if necessary
@@ -1159,9 +1142,7 @@ public class VariantContextUtils {
         for (String orAttrib : MERGE_OR_ATTRIBS) {
             boolean attribVal = false;
             for (VariantContext vc : vcList) {
-                Boolean val = vc.getAttributeAsBooleanNoException(orAttrib);
-                if (val != null)
-                    attribVal = (attribVal || val);
+                attribVal = vc.getAttributeAsBoolean(orAttrib, false);
                 if (attribVal) // already true, so no reason to continue:
                     break;
             }
@@ -1171,7 +1152,7 @@ public class VariantContextUtils {
         // Merge ID fields:
         String iDVal = null;
         for (VariantContext vc : vcList) {
-            String val = vc.getAttributeAsStringNoException(VariantContext.ID_KEY);
+            String val = vc.getAttributeAsString(VariantContext.ID_KEY, null);
             if (val != null && !val.equals(VCFConstants.EMPTY_ID_FIELD)) {
                 if (iDVal == null)
                     iDVal = val;
@@ -1251,8 +1232,10 @@ public class VariantContextUtils {
 
         public PhaseAndQuality(Genotype gt) {
             this.isPhased = gt.isPhased();
-            if (this.isPhased)
-                this.PQ = gt.getAttributeAsDoubleNoException(ReadBackedPhasingWalker.PQ_KEY);
+            if (this.isPhased) {
+                this.PQ = gt.getAttributeAsDouble(ReadBackedPhasingWalker.PQ_KEY, -1);
+                if ( this.PQ == -1 ) this.PQ = null;
+            }
         }
     }
 

@@ -324,6 +324,8 @@ public class ClippingOp {
 
                 if (index <= stop && cigarElementIterator.hasNext())
                     cigarElement = cigarElementIterator.next();
+                else
+                    break;
             }
 
             // add the remaining cigar elements
@@ -363,6 +365,8 @@ public class ClippingOp {
                 index += shift;
                 if (index < start && cigarElementIterator.hasNext())
                     cigarElement = cigarElementIterator.next();
+                else
+                    break;
             }
 
             // check if we are hard clipping indels

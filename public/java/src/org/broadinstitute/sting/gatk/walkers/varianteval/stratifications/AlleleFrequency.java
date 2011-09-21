@@ -28,7 +28,7 @@ public class AlleleFrequency extends VariantStratifier {
 
         if (eval != null) {
             try {
-                relevantStates.add(String.format("%.3f", (5.0 * MathUtils.round(eval.getAttributeAsDouble("AF") / 5.0, 3))));
+                relevantStates.add(String.format("%.3f", (5.0 * MathUtils.round(eval.getAttributeAsDouble("AF", 0.0) / 5.0, 3))));
             } catch (Exception e) {
                 return relevantStates;
             }

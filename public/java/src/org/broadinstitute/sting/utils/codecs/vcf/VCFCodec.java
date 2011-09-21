@@ -105,34 +105,37 @@ public class VCFCodec extends AbstractVCFCodec {
      * @return a set of the filters applied or null if filters were not applied to the record (e.g. as per the missing value in a VCF)
      */
     protected Set<String> parseFilters(String filterString) {
+        return parseFilters(filterHash, lineNo, filterString);
+    }
 
+    public static Set<String> parseFilters(final Map<String, LinkedHashSet<String>> cache, final int lineNo, final String filterString) {
         // null for unfiltered
         if ( filterString.equals(VCFConstants.UNFILTERED) )
             return null;
 
-        // empty set for passes filters
-        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
-
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v4) )
-            return fFields;
+            return Collections.emptySet();
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) )
-            generateException(VCFConstants.PASSES_FILTERS_v3 + " is an invalid filter name in vcf4");
+            generateException(VCFConstants.PASSES_FILTERS_v3 + " is an invalid filter name in vcf4", lineNo);
         if ( filterString.length() == 0 )
-            generateException("The VCF specification requires a valid filter status");
+            generateException("The VCF specification requires a valid filter status: filter was " + filterString, lineNo);
 
         // do we have the filter string cached?
-        if ( filterHash.containsKey(filterString) )
-            return filterHash.get(filterString);
+        if ( cache != null && cache.containsKey(filterString) )
+            return Collections.unmodifiableSet(cache.get(filterString));
 
+        // empty set for passes filters
+        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
         // otherwise we have to parse and cache the value
         if ( filterString.indexOf(VCFConstants.FILTER_CODE_SEPARATOR) == -1 )
             fFields.add(filterString);
         else
             fFields.addAll(Arrays.asList(filterString.split(VCFConstants.FILTER_CODE_SEPARATOR)));
 
-        filterHash.put(filterString, fFields);
+        fFields = fFields;
+        if ( cache != null ) cache.put(filterString, fFields);
 
-        return fFields;
+        return Collections.unmodifiableSet(fFields);
     }
 
 

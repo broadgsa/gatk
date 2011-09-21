@@ -1,53 +1,43 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.*;
 import org.broad.tribble.iterators.CloseableTribbleIterator;
 import org.broad.tribble.source.BasicFeatureSource;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.testng.Assert;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
 /**
  * tests out the various functions in the index factory class
  */
-public class IndexFactoryUnitTest {
+public class IndexFactoryUnitTest extends BaseTest {
 
     File inputFile = new File("public/testdata/HiSeq.10000.vcf");
     File outputFile = new File("public/testdata/onTheFlyOutputTest.vcf");
     File outputFileIndex = Tribble.indexFile(outputFile);
 
-    /**
-     * test out scoring the indexes
-     */
-    @Test
-    public void testScoreIndexes() {
-        /*// make a list of indexes to score
-        Map<Class,IndexCreator> creators = new HashMap<Class,IndexCreator>();
-        // add a linear index with the default bin size
-        LinearIndexCreator linearNormal = new LinearIndexCreator();
-        linearNormal.initialize(inputFile, linearNormal.defaultBinSize());
-        creators.add(LInearIndexlinearNormal);
+    private SAMSequenceDictionary dict;
 
-        // create a tree index with a small index size
-        IntervalIndexCreator treeSmallBin = new IntervalIndexCreator();
-        treeSmallBin.initialize(inputFile, Math.max(200,treeSmallBin.defaultBinSize()/10));
-        creators.add(treeSmallBin);
-
-        List<Index> indexes = new ArrayList<Index>();
-        for (IndexCreator creator : creators)
-            indexes.add(creator.finalizeIndex(0));
-
-        ArrayList<Double> scores = IndexFactory.scoreIndexes(0.5,indexes,100, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
-        System.err.println("scores are : ");
-        for (Double score : scores) {
-            System.err.println(score);
-*/
+    @BeforeTest
+    public void setup() {
+        try {
+            dict = new CachingIndexedFastaSequenceFile(new File(b37KGReference)).getSequenceDictionary();
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(b37KGReference,ex);
+        }
     }
 
     //
@@ -65,7 +55,7 @@ public class IndexFactoryUnitTest {
             BasicFeatureSource<VariantContext> source = new BasicFeatureSource<VariantContext>(inputFile.getAbsolutePath(), indexFromInputFile, new VCFCodec());
 
             int counter = 0;
-            VCFWriter writer = new StandardVCFWriter(outputFile);
+            VCFWriter writer = new StandardVCFWriter(outputFile, dict);
             writer.writeHeader((VCFHeader)source.getHeader());
             CloseableTribbleIterator<VariantContext> it = source.iterator();
             while (it.hasNext() && (counter++ < maxRecords || maxRecords == -1) ) {

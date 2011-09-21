@@ -114,13 +114,13 @@ public class VariantAnnotatorEngine {
             dbAnnotations.put(rod, rod.getName());
     }
 
-    public void invokeAnnotationInitializationMethods() {
+    public void invokeAnnotationInitializationMethods( Set<VCFHeaderLine> headerLines ) {
         for ( VariantAnnotatorAnnotation annotation : requestedInfoAnnotations ) {
-            annotation.initialize(walker, toolkit);
+            annotation.initialize(walker, toolkit, headerLines);
         }
 
         for ( VariantAnnotatorAnnotation annotation : requestedGenotypeAnnotations ) {
-            annotation.initialize(walker, toolkit);
+            annotation.initialize(walker, toolkit, headerLines);
         }
     }
 

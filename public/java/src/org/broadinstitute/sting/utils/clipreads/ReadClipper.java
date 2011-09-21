@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.clipreads;
 
 import com.google.java.contract.Requires;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -56,16 +58,33 @@ public class ReadClipper {
         return hardClipByReferenceCoordinates(refStart, -1);
     }
 
+    private int numDeletions(SAMRecord read) {
+        int result = 0;
+        for (CigarElement e: read.getCigar().getCigarElements()) {
+            if ( e.getOperator() == CigarOperator.DELETION || e.getOperator() == CigarOperator.D )
+                result =+ e.getLength();
+        }
+        return result;
+    }
+
     private SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
-        int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+        int stop =  (refStop  < 0) ? read.getReadLength() - 1: ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
 
-        if (start < 0 || stop > read.getReadLength() - 1)
+        if (start < 0 || stop > read.getReadLength() - 1 + numDeletions(read))
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
-        // TODO add requires statement/check in the Hardclip function
+        // TODO add check in the Hardclip function
         if ( start > stop )
             stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
+
+
+        //This tries to fix the bug where the deletion is counted a read base and as a result, the hardCLipper runs into
+        //an endless loop when hard clipping the cigar string because the read coordinates are not covered by the read
+        stop -= numDeletions(read);
+        if ( start > stop )
+            start -= numDeletions(read);
+
 
         //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));

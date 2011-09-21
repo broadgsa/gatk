@@ -214,8 +214,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
 
-        engine.invokeAnnotationInitializationMethods();
-
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -224,6 +222,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
+
+        engine.invokeAnnotationInitializationMethods(hInfo);
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);

@@ -26,7 +26,7 @@ public class SBByDepth extends AnnotationByDepth {
         if (!vc.hasAttribute(VCFConstants.STRAND_BIAS_KEY))
             return null;
 
-        double sBias = Double.valueOf(vc.getAttributeAsString(VCFConstants.STRAND_BIAS_KEY));
+        double sBias = vc.getAttributeAsDouble(VCFConstants.STRAND_BIAS_KEY, -1);
 
         final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )

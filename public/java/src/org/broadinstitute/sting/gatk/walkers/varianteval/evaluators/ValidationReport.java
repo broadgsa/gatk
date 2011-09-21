@@ -131,7 +131,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
 ////                System.out.printf("  ac = %d%n", ac);
             }
             else
-                ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY);
+                ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
             return ac > 0 ? SiteStatus.POLY : SiteStatus.MONO;
         } else {
             return TREAT_ALL_SITES_IN_EVAL_VCF_AS_CALLED ? SiteStatus.POLY : SiteStatus.NO_CALL; // we can't figure out what to do
