@@ -172,6 +172,17 @@ public class BAQUnitTest extends BaseTest {
         }
     }
 
+    @Test(enabled = true)
+    public void testBAQQualRange() {
+        BAQ baq = new BAQ(1e-3, 0.1, 7, (byte)4, false);         // matches current samtools parameters
+        final byte ref = (byte)'A';
+        final byte alt = (byte)'A';
+
+        for ( int i = 0; i <= SAMUtils.MAX_PHRED_SCORE; i++ )
+            Assert.assertTrue(baq.calcEpsilon( ref, alt, (byte)i) >= 0.0, "Failed to get baq epsilon range");
+    }
+
+
     public void testBAQ(BAQTest test, boolean lookupWithFasta) {
         BAQ baqHMM = new BAQ(1e-3, 0.1, 7, (byte)4, false);         // matches current samtools parameters
 

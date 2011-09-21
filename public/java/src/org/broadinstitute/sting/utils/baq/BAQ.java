@@ -152,7 +152,7 @@ public class BAQ {
         }
     }
 
-    private double calcEpsilon( byte ref, byte read, byte qualB ) {
+    protected double calcEpsilon( byte ref, byte read, byte qualB ) {
         return EPSILONS[ref][read][qualB];
     }
 
