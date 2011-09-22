@@ -458,7 +458,7 @@ public class ClippingOp {
             else if (cigarElement.getOperator() == CigarOperator.DELETION)      // if this is a deletion, we have to adjust the starting shift
                 deletionShift += cigarElement.getLength();
 
-            else if (cigarElement.getOperator() != CigarOperator.INSERTION)     // if it's not an insertion or deletion, than it counts as hard clipped base.
+            else
                 basesClipped += cigarElement.getLength();
         }
 
@@ -474,8 +474,8 @@ public class ClippingOp {
                 return -clippedLength;
         }
 
-        if (cigarElement.getOperator() == CigarOperator.DELETION)
-            return cigarElement.getLength();
+//        if (cigarElement.getOperator() == CigarOperator.DELETION)
+//            return cigarElement.getLength();
 
         return 0;
     }
