@@ -266,13 +266,18 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.resource :+= new TaggedFile( t.dbsnpFile, "known=true,prior=2.0" )
     this.resource :+= new TaggedFile( projectConsensus_1000G, "prior=8.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "MQ", "FS")
-    if(t.nSamples >= 10) {
+    if(t.nSamples >= 10) { // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
         this.use_annotation ++= List("InbreedingCoeff")
     }
     if(!t.isExome) {
         this.use_annotation ++= List("DP")
-    } else {
+    } else { // exome specific parameters
+        this.resource :+= new TaggedFile( badSites_1000G, "bad=true,prior=2.0" )
         this.mG = 6
+        if(t.nSamples <= 3) { // very few exome samples means very few variants
+            this.mG = 4
+            this.percentBad = 0.04
+        }
     }
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
