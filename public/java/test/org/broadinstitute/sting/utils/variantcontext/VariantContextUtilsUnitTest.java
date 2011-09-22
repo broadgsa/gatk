@@ -41,6 +41,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -73,6 +74,14 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     private VariantContext makeVC(String source, List<Allele> alleles) {
         return makeVC(source, alleles, null, null);
+    }
+
+    private VariantContext makeVC(String source, List<Allele> alleles, String filter) {
+        return makeVC(source, alleles, filter.equals(".") ? null : new HashSet<String>(Arrays.asList(filter)));
+    }
+
+    private VariantContext makeVC(String source, List<Allele> alleles, Set<String> filters) {
+        return makeVC(source, alleles, null, filters);
     }
 
     private VariantContext makeVC(String source, List<Allele> alleles, Collection<Genotype> genotypes) {
@@ -179,22 +188,6 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         Assert.assertEquals(merged.getAlleles(), cfg.expected);
     }
 
-//    VariantContext refVC, snpVC1, snpVC2, snpVC3, snpVC4, indelVC1, indelVC2, indelVC3;
-//    ref1 = new Genotype("ref1", Arrays.asList(Aref, Aref), 5, new double[]{0, 5, 10});
-//    snp1 = new Genotype("snp1", Arrays.asList(Aref,T), 10, new double[]{10, 0, 20});
-//    snp2 = new Genotype("snp2", Arrays.asList(T,T), 15, new double[]{25, 15, 0});
-//    indelref = new Genotype("indelref", Arrays.asList(delRef,delRef), 25, new double[]{0, 25, 30});
-//    indel1 = new Genotype("indel1", Arrays.asList(delRef,ATC), 20, new double[]{20, 0, 30});
-//
-//    refVC = makeVC("refvc", Arrays.asList(Aref), Arrays.asList(ref1));
-//    snpVC1 = makeVC("snpvc1", Arrays.asList(Aref, T), Arrays.asList(snp1));
-//    snpVC2 = makeVC("snpvc2", Arrays.asList(Aref, T), Arrays.asList(snp1, snp2));
-//    snpVC3 = makeVC("snpvc3", Arrays.asList(Aref, T), Arrays.asList(ref1, snp1));
-//    snpVC4 = makeVC("snpvc4", Arrays.asList(Aref, T), Arrays.asList(ref1, snp1, snp2));
-//    indelVC1 = makeVC("indelvc1", Arrays.asList(delRef), Arrays.asList(indelref));
-//    indelVC2 = makeVC("indelvc2", Arrays.asList(delRef, ATC), Arrays.asList(indel1));
-//    indelVC3 = makeVC("indelvc3", Arrays.asList(delRef, ATC), Arrays.asList(indelref, indel1));
-
     // --------------------------------------------------------------------------------
     //
     // Test rsID merging
@@ -253,6 +246,122 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 VariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false);
         Assert.assertEquals(merged.getID(), cfg.expected.equals(".") ? null : cfg.expected);
     }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test filtered merging
+    //
+    // --------------------------------------------------------------------------------
+
+    private class MergeFilteredTest extends TestDataProvider {
+        List<VariantContext> inputs;
+        VariantContext expected;
+        String setExpected;
+        VariantContextUtils.FilteredRecordMergeType type;
+
+
+        private MergeFilteredTest(String name, VariantContext input1, VariantContext input2, VariantContext expected, String setExpected) {
+            this(name, input1, input2, expected, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, setExpected);
+        }
+
+        private MergeFilteredTest(String name, VariantContext input1, VariantContext input2, VariantContext expected, VariantContextUtils.FilteredRecordMergeType type, String setExpected) {
+            super(MergeFilteredTest.class, name);
+            LinkedList<VariantContext> all = new LinkedList<VariantContext>(Arrays.asList(input1, input2));
+            this.expected = expected;
+            this.type = type;
+            inputs = all;
+            this.setExpected = setExpected;
+        }
+
+        public String toString() {
+            return String.format("%s input=%s expected=%s", super.toString(), inputs, expected);
+        }
+    }
+
+    @DataProvider(name = "mergeFiltered")
+    public Object[][] mergeFilteredData() {
+        new MergeFilteredTest("AllPass",
+                              makeVC("1", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              VariantContextUtils.MERGE_INTERSECTION);
+
+        new MergeFilteredTest("noFilters",
+                              makeVC("1", Arrays.asList(Aref, T), "."),
+                              makeVC("2", Arrays.asList(Aref, T), "."),
+                              makeVC("3", Arrays.asList(Aref, T), "."),
+                              VariantContextUtils.MERGE_INTERSECTION);
+
+        new MergeFilteredTest("oneFiltered",
+                              makeVC("1", Arrays.asList(Aref, T), "."),
+                              makeVC("2", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("3", Arrays.asList(Aref, T), "."),
+                              String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
+
+        new MergeFilteredTest("onePassOneFail",
+                              makeVC("1", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              makeVC("2", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
+
+        new MergeFilteredTest("FailOneUnfiltered",
+                              makeVC("1", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("2", Arrays.asList(Aref, T), "."),
+                              makeVC("3", Arrays.asList(Aref, T), "."),
+                              String.format("%s1-2", VariantContextUtils.MERGE_FILTER_PREFIX));
+
+        new MergeFilteredTest("AllFiltered",
+                              makeVC("1", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("2", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("3", Arrays.asList(Aref, T), "FAIL"),
+                              VariantContextUtils.MERGE_FILTER_IN_ALL);
+
+        // test ALL vs. ANY
+        new MergeFilteredTest("OneFailAllUnfilteredArg",
+                              makeVC("1", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("2", Arrays.asList(Aref, T), "."),
+                              makeVC("3", Arrays.asList(Aref, T), "FAIL"),
+                              VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ALL_UNFILTERED,
+                              String.format("%s1-2", VariantContextUtils.MERGE_FILTER_PREFIX));
+
+        // test excluding allele in filtered record
+        new MergeFilteredTest("DontIncludeAlleleOfFilteredRecords",
+                              makeVC("1", Arrays.asList(Aref, T), "."),
+                              makeVC("2", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("3", Arrays.asList(Aref, T), "."),
+                              String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
+
+        // promotion of site from unfiltered to PASSES
+        new MergeFilteredTest("UnfilteredPlusPassIsPass",
+                              makeVC("1", Arrays.asList(Aref, T), "."),
+                              makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              VariantContextUtils.MERGE_INTERSECTION);
+
+        return MergeFilteredTest.getTests(MergeFilteredTest.class);
+    }
+
+    @Test(dataProvider = "mergeFiltered")
+    public void testMergeFiltered(MergeFilteredTest cfg) {
+        final List<String> priority = new ArrayList<String>();
+
+        for ( final VariantContext vc : cfg.inputs ) {
+            priority.add(vc.getSource());
+        }
+
+        final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,
+                cfg.inputs, priority, cfg.type, VariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+
+        // test alleles are equal
+        Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
+
+        // test set field
+        Assert.assertEquals(merged.getAttribute("set"), cfg.setExpected);
+
+        // test filter field
+        Assert.assertEquals(merged.getFilters(), cfg.expected.getFilters());
+    }
+
 
     // todo -- add tests for subset merging, especially with correct PLs
     // todo -- test priority list: intersection, filtered in all, reference in all, X-filteredInX, X
