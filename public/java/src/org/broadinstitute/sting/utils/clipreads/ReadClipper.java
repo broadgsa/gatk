@@ -145,7 +145,7 @@ public class ReadClipper {
                     cutLeft = readIndex + cigarElement.getLength() - 1;
                 }
             }
-            else
+            else if (cigarElement.getOperator() != CigarOperator.HARD_CLIP)
                 rightTail = true;
 
             if (cigarElement.getOperator().consumesReadBases())
