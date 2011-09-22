@@ -90,7 +90,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "1d5a021387a8a86554db45a29f66140f"); } // official project VCF files in tabix format
     @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "96941ee177b0614a9879af0ac3218963"); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "a8a6e7589f22e0b6c5d222066b9a2093"); }
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "f1c8720fde62687c2e861217670d8b3c"); }
 
     @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "e144b6283765494bfe8189ac59965083"); }
 
@@ -137,7 +137,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T CombineVariants -NO_HEADER -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
                  1,
-                 Arrays.asList(""));
+                 Arrays.asList("5969446769cb8377daa2db29304ae6b5"));
          executeTest("combineDBSNPDuplicateSites:", spec);
     }
 }
