@@ -25,16 +25,16 @@ public class Genotype {
     protected boolean isPhased = false;
     protected boolean filtersWereAppliedToContext;
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ? super Object> attributes, boolean isPhased) {
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
         this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
     }
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ? super Object> attributes, boolean isPhased, double[] log10Likelihoods) {
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
-        if ( log10Likelihoods != null )
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        if ( log10Likelihoods != null )
+            commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
         validate();
