@@ -174,6 +174,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class MalformedVCFHeader extends UserException {
+        public MalformedVCFHeader(String message) {
+            super(String.format("The provided VCF file has a malformed header: %s", message));
+        }
+    }
+
     public static class ReadMissingReadGroup extends MalformedBAM {
         public ReadMissingReadGroup(SAMRecord read) {
             super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use http://www.broadinstitute.org/gsa/wiki/index.php/ReplaceReadGroups to fix this problem", read.getReadName()));

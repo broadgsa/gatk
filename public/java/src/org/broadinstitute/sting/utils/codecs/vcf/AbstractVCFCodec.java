@@ -115,14 +115,20 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                     }
                     arrayIndex++;
                 }
+
+                boolean sawFormatTag = false;
                 if ( arrayIndex < strings.length ) {
                     if ( !strings[arrayIndex].equals("FORMAT") )
                         throw new TribbleException.InvalidHeader("we were expecting column name 'FORMAT' but we saw '" + strings[arrayIndex] + "'");
+                    sawFormatTag = true;
                     arrayIndex++;
                 }
 
-                while (arrayIndex < strings.length)
+                while ( arrayIndex < strings.length )
                     auxTags.add(strings[arrayIndex++]);
+
+                if ( sawFormatTag && auxTags.size() == 0 )
+                    throw new UserException.MalformedVCFHeader("The FORMAT field was provided but there is no genotype/sample data");
 
             } else {
                 if ( str.startsWith("##INFO=") ) {
@@ -200,28 +206,24 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @return a VariantContext
      */
     public Feature decode(String line) {
-        return reallyDecode(line);
-    }
+        // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
+        if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
 
-    private Feature reallyDecode(String line) {
-            // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
-            if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
+        // our header cannot be null, we need the genotype sample names and counts
+        if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
 
-            // our header cannot be null, we need the genotype sample names and counts
-            if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
+        if (parts == null)
+            parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
 
-            if (parts == null)
-                parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
+        int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
-            int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+        // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
+        if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
+             (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
+            throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
+                    " tokens, and saw " + nParts + " )", lineNo);
 
-            // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
-            if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
-                 (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
-                throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
-                        " tokens, and saw " + nParts + " )", lineNo);
-
-            return parseVCFLine(parts);
+        return parseVCFLine(parts);
     }
 
     protected void generateException(String message) {
