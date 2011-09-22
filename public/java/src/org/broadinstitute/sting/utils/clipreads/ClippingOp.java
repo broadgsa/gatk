@@ -432,25 +432,37 @@ public class ClippingOp {
     }
 
     private int calculateAlignmentStartShift(Cigar oldCigar, Cigar newCigar) {
-        int shift = 0;
+        int newShift = 0;
+        int oldShift = 0;
+        int deletionShift = 0;
 
-        // Rewind to previous start (by counting everything that was already clipped in this read)
-        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
-            if (!cigarElement.getOperator().consumesReferenceBases())
-                shift -= cigarElement.getLength();
-            else
-                break;
-        }
-
-        // Advance to new start (by counting everything new that has been clipped )
         for (CigarElement cigarElement : newCigar.getCigarElements()) {
-            if (!cigarElement.getOperator().consumesReferenceBases())
-                shift += cigarElement.getLength();
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
+                newShift += cigarElement.getLength();
             else
                 break;
         }
 
-        return shift;
+        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP )
+                oldShift += Math.min(cigarElement.getLength(), newShift - oldShift);
+            else
+                break;
+        }
+
+        int basesClipped = 0;
+        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
+            if (basesClipped > newShift)                                        // are we beyond the clipped region?
+                break;
+
+            else if (cigarElement.getOperator() == CigarOperator.DELETION)      // if this is a deletion, we have to adjust the starting shift
+                deletionShift += cigarElement.getLength();
+
+            else if (cigarElement.getOperator() != CigarOperator.INSERTION)     // if it's not an insertion or deletion, than it counts as hard clipped base.
+                basesClipped += cigarElement.getLength();
+        }
+
+        return newShift - oldShift + deletionShift;
     }
 
     private int calculateHardClippingAlignmentShift(CigarElement cigarElement, int clippedLength) {
