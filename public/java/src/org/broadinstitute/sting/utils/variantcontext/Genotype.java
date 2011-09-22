@@ -26,12 +26,29 @@ public class Genotype {
     protected boolean filtersWereAppliedToContext;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
+        this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
+    }
+
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        if ( log10Likelihoods != null )
+            commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
         validate();
+    }
+
+    /**
+     * Creates a new Genotype for sampleName with genotype according to alleles.
+     * @param sampleName
+     * @param alleles
+     * @param negLog10PError the confidence in these alleles
+     * @param log10Likelihoods a log10 likelihoods for each of the genotype combinations possible for alleles, in the standard VCF ordering, or null if not known
+     */
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, double[] log10Likelihoods) {
+        this(sampleName, alleles, negLog10PError, null, null, false, log10Likelihoods);
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError) {
