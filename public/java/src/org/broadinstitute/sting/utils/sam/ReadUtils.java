@@ -681,9 +681,6 @@ public class ReadUtils {
 
     @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
-        if ( read.getCigar().numCigarElements() == 1 && read.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.INSERTION)) {
-            return read.getUnclippedEnd();
-        }
         int stop = read.getUnclippedStart();
 
         if (readIsEntirelyInsertion(read))
