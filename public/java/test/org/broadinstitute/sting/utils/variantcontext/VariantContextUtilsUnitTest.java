@@ -304,12 +304,6 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                               makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                               String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
 
-        new MergeFilteredTest("FailOneUnfiltered",
-                              makeVC("1", Arrays.asList(Aref, T), "FAIL"),
-                              makeVC("2", Arrays.asList(Aref, T), "."),
-                              makeVC("3", Arrays.asList(Aref, T), "."),
-                              String.format("%s1-2", VariantContextUtils.MERGE_FILTER_PREFIX));
-
         new MergeFilteredTest("AllFiltered",
                               makeVC("1", Arrays.asList(Aref, T), "FAIL"),
                               makeVC("2", Arrays.asList(Aref, T), "FAIL"),
@@ -317,6 +311,13 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                               VariantContextUtils.MERGE_FILTER_IN_ALL);
 
         // test ALL vs. ANY
+        new MergeFilteredTest("FailOneUnfiltered",
+                              makeVC("1", Arrays.asList(Aref, T), "FAIL"),
+                              makeVC("2", Arrays.asList(Aref, T), "."),
+                              makeVC("3", Arrays.asList(Aref, T), "."),
+                              VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                              String.format("%s1-2", VariantContextUtils.MERGE_FILTER_PREFIX));
+
         new MergeFilteredTest("OneFailAllUnfilteredArg",
                               makeVC("1", Arrays.asList(Aref, T), "FAIL"),
                               makeVC("2", Arrays.asList(Aref, T), "."),
@@ -337,6 +338,18 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                               makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                               makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                               VariantContextUtils.MERGE_INTERSECTION);
+
+        new MergeFilteredTest("RefInAll",
+                              makeVC("1", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
+                              makeVC("2", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
+                              makeVC("3", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
+                              VariantContextUtils.MERGE_REF_IN_ALL);
+
+        new MergeFilteredTest("RefInOne",
+                              makeVC("1", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
+                              makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
+                              "2");
 
         return MergeFilteredTest.getTests(MergeFilteredTest.class);
     }
