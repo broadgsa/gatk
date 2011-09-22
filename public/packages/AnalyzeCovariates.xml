@@ -6,7 +6,7 @@
     <dependencies>
       <!-- Recalibration analysis script -->
       <class name="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
-      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.*" />
+      <package name="org.broadinstitute.sting.gatk.walkers.recalibration" />
     </dependencies>
   </executable>
   <resources>
