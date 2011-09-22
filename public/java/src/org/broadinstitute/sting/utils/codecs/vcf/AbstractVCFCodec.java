@@ -6,6 +6,7 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.gatk.refdata.SelfScopingFeatureCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -590,7 +591,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     public final static boolean canDecodeFile(final File potentialInput, final String MAGIC_HEADER_LINE) {
         try {
             return isVCFStream(new FileInputStream(potentialInput), MAGIC_HEADER_LINE) ||
-                    isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE);
+                    isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE) ||
+                    isVCFStream(new BlockCompressedInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE);
         } catch ( FileNotFoundException e ) {
             return false;
         } catch ( IOException e ) {
@@ -601,12 +603,17 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     private final static boolean isVCFStream(final InputStream stream, final String MAGIC_HEADER_LINE) {
         try {
             byte[] buff = new byte[MAGIC_HEADER_LINE.length()];
-            stream.read(buff, 0, MAGIC_HEADER_LINE.length());
-            String firstLine = new String(buff);
-            stream.close();
-            return firstLine.startsWith(MAGIC_HEADER_LINE);
+            int nread = stream.read(buff, 0, MAGIC_HEADER_LINE.length());
+            boolean eq = Arrays.equals(buff, MAGIC_HEADER_LINE.getBytes());
+            return eq;
+//            String firstLine = new String(buff);
+//            return firstLine.startsWith(MAGIC_HEADER_LINE);
         } catch ( IOException e ) {
             return false;
+        } catch ( RuntimeException e ) {
+            return false;
+        } finally {
+            try { stream.close(); } catch ( IOException e ) {}
         }
     }
 }

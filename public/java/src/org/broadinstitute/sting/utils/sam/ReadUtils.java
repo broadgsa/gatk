@@ -681,6 +681,9 @@ public class ReadUtils {
 
     @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
+        if ( read.getCigar().numCigarElements() == 1 && read.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.INSERTION)) {
+            return read.getUnclippedEnd();
+        }
         int stop = read.getUnclippedStart();
 
         if (readIsEntirelyInsertion(read))
@@ -787,5 +790,47 @@ public class ReadUtils {
         return readBases;
     }
 
+    public static SAMRecord unclipSoftClippedBases(SAMRecord rec) {
+        int newReadStart = rec.getAlignmentStart();
+        int newReadEnd = rec.getAlignmentEnd();
+        List<CigarElement> newCigarElements = new ArrayList<CigarElement>(rec.getCigar().getCigarElements().size());
+        int heldOver = -1;
+        boolean sSeen = false;
+        for ( CigarElement e : rec.getCigar().getCigarElements() ) {
+            if ( e.getOperator().equals(CigarOperator.S) ) {
+                newCigarElements.add(new CigarElement(e.getLength(),CigarOperator.M));
+                if ( sSeen ) {
+                    newReadEnd += e.getLength();
+                    sSeen = true;
+                } else {
+                    newReadStart -= e.getLength();
+                }
+            } else {
+                newCigarElements.add(e);
+            }
+        }
+        // merge duplicate operators together
+        int idx = 0;
+        List<CigarElement> finalCigarElements = new ArrayList<CigarElement>(rec.getCigar().getCigarElements().size());
+        while ( idx < newCigarElements.size() -1 ) {
+            if ( newCigarElements.get(idx).getOperator().equals(newCigarElements.get(idx+1).getOperator()) ) {
+                int combSize = newCigarElements.get(idx).getLength();
+                int offset = 0;
+                while (  idx + offset < newCigarElements.size()-1 && newCigarElements.get(idx+offset).getOperator().equals(newCigarElements.get(idx+1+offset).getOperator()) ) {
+                    combSize += newCigarElements.get(idx+offset+1).getLength();
+                    offset++;
+                }
+                finalCigarElements.add(new CigarElement(combSize,newCigarElements.get(idx).getOperator()));
+                idx = idx + offset -1;
+            } else {
+                finalCigarElements.add(newCigarElements.get(idx));
+            }
+            idx++;
+        }
 
+        rec.setCigar(new Cigar(finalCigarElements));
+        rec.setAlignmentStart(newReadStart);
+
+        return rec;
+    }
 }

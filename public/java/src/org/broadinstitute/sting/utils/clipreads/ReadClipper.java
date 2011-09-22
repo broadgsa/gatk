@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.clipreads;
 
 import com.google.java.contract.Requires;
+import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
@@ -8,6 +9,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -127,6 +129,39 @@ public class ReadClipper {
         }
         return this.clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
+
+    public SAMRecord hardClipSoftClippedBases () {
+        int readIndex = 0;
+        int cutLeft = -1;            // first position to hard clip (inclusive)
+        int cutRight = -1;           // first position to hard clip (inclusive)
+        boolean rightTail = false;   // trigger to stop clipping the left tail and start cutting the right tail
+
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.SOFT_CLIP) {
+                if (rightTail) {
+                    cutRight = readIndex;
+                }
+                else {
+                    cutLeft = readIndex + cigarElement.getLength() - 1;
+                }
+            }
+            else
+                rightTail = true;
+
+            if (cigarElement.getOperator().consumesReadBases())
+                readIndex += cigarElement.getLength();
+        }
+
+        // It is extremely important that we cut the end first otherwise the read coordinates change.
+        if (cutRight >= 0)
+            this.addOp(new ClippingOp(cutRight, read.getReadLength() - 1));
+        if (cutLeft >= 0)
+            this.addOp(new ClippingOp(0, cutLeft));
+
+        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
+    }
+
+
 
     /**
      * Return a new read corresponding to this.read that's been clipped according to ops, if any are present.
