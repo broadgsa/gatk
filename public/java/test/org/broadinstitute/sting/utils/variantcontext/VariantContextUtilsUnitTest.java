@@ -375,10 +375,26 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         Assert.assertEquals(merged.getFilters(), cfg.expected.getFilters());
     }
 
+    @Test
+    public void testAnnotationSet() {
+        for ( final boolean annotate : Arrays.asList(true, false)) {
+            for ( final String set : Arrays.asList("set", "combine", "x")) {
+                final List<String> priority = Arrays.asList("1", "2");
+                VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS);
+                VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS);
+
+                final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,
+                        Arrays.asList(vc1, vc2), priority, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                        VariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false);
+
+                if ( annotate )
+                    Assert.assertEquals(merged.getAttribute(set), VariantContextUtils.MERGE_INTERSECTION);
+                else
+                    Assert.assertFalse(merged.hasAttribute(set));
+            }
+        }
+    }
 
     // todo -- add tests for subset merging, especially with correct PLs
-    // todo -- test priority list: intersection, filtered in all, reference in all, X-filteredInX, X
-    // todo -- test FilteredRecordMergeType
-    // todo -- no annotate origin
-    // todo -- test set key
+    // todo -- test priority list
 }
