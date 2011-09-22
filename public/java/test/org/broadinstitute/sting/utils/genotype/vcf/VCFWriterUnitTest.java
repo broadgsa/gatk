@@ -105,7 +105,6 @@ public class VCFWriterUnitTest extends BaseTest {
     public static VCFHeader createFakeHeader(Set<VCFHeaderLine> metaData, Set<String> additionalColumns) {
         metaData.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_0.getFormatString(), VCFHeaderVersion.VCF4_0.getVersionString()));
         metaData.add(new VCFHeaderLine("two", "2"));
-        additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
         return new VCFHeader(metaData, additionalColumns);
@@ -159,6 +158,6 @@ public class VCFWriterUnitTest extends BaseTest {
             Assert.assertTrue(additionalColumns.contains(key));
             index++;
         }
-        Assert.assertEquals(index+1, additionalColumns.size()  /* for the header field we don't see */);
+        Assert.assertEquals(index, additionalColumns.size());
     }
 }
