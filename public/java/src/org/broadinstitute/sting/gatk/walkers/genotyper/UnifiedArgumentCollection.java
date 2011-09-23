@@ -169,10 +169,6 @@ public class UnifiedArgumentCollection {
     public boolean GSA_PRODUCTION_ONLY = false;
 
     @Hidden
-    @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
-    public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
-
-    @Hidden
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
 
@@ -191,7 +187,6 @@ public class UnifiedArgumentCollection {
 
         uac.GLmodel = GLmodel;
         uac.AFmodel = AFmodel;
-        uac.EXACT_CALCULATION_TYPE = EXACT_CALCULATION_TYPE;
         uac.heterozygosity = heterozygosity;
         uac.PCR_error = PCR_error;
         uac.GenotypingMode = GenotypingMode;
