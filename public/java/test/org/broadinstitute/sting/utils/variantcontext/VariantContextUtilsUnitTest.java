@@ -24,18 +24,14 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.apache.log4j.Priority;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
-import org.yaml.snakeyaml.Yaml;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -445,8 +441,6 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         return MergeGenotypesTest.getTests(MergeGenotypesTest.class);
     }
-
-    // todo -- add test for GenotypeMergeType UNIQUIFY, REQUIRE_UNIQUE
 
     @Test(dataProvider = "mergeGenotypes")
     public void testMergeGenotypes(MergeGenotypesTest cfg) {
