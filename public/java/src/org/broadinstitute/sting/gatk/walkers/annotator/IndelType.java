@@ -14,11 +14,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: delangel
- * Date: Mar 11, 2011
- * Time: 11:47:33 AM
- * To change this template use File | Settings | File Templates.
+ * Rough category of indel type (insertion, deletion, multi-allelic, other)
  */
 public class IndelType extends InfoFieldAnnotation implements ExperimentalAnnotation {
 

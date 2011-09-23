@@ -16,7 +16,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
+/**
+ * Total (unfiltered) depth over all samples.
+ *
+ * Affected by downsampling (-dcov) though, so the max value one can obtain for N samples with -dcov D
+ * is N * D
+ */
 public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

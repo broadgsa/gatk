@@ -16,7 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
+/**
+ * Largest contiguous homopolymer run of the variant allele in either direction on the reference.
+ */
 public class HomopolymerRun extends InfoFieldAnnotation implements StandardAnnotation {
 
     private boolean ANNOTATE_INDELS = true;

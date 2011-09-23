@@ -47,6 +47,9 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Count of A, C, G, T bases across all samples
+ */
 public class BaseCounts extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
