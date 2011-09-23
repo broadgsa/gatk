@@ -82,7 +82,8 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
         GENE_NAME_KEY         ("SNPEFF_GENE_NAME",         3),
         GENE_BIOTYPE_KEY      ("SNPEFF_GENE_BIOTYPE",      4),
         TRANSCRIPT_ID_KEY     ("SNPEFF_TRANSCRIPT_ID",     6),
-        EXON_ID_KEY           ("SNPEFF_EXON_ID",           7);
+        EXON_ID_KEY           ("SNPEFF_EXON_ID",           7),
+        FUNCTIONAL_CLASS_KEY  ("SNPEFF_FUNCTIONAL_CLASS", -1);
 
         // Actual text of the key
         private final String keyName;
@@ -108,48 +109,73 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
     // Possible SnpEff biological effects. All effect names found in the SnpEff input file
     // are validated against this list.
     public enum EffectType {
-        NONE,
-        CHROMOSOME,
-        INTERGENIC,
-        UPSTREAM,
-        UTR_5_PRIME,
-        UTR_5_DELETED,
-        START_GAINED,
-        SPLICE_SITE_ACCEPTOR,
-        SPLICE_SITE_DONOR,
-        START_LOST,
-        SYNONYMOUS_START,
-        NON_SYNONYMOUS_START,
-        CDS,
-        GENE,
-        TRANSCRIPT,
-        EXON,
-        EXON_DELETED,
-        NON_SYNONYMOUS_CODING,
-        SYNONYMOUS_CODING,
-        FRAME_SHIFT,
-        CODON_CHANGE,
-        CODON_INSERTION,
-        CODON_CHANGE_PLUS_CODON_INSERTION,
-        CODON_DELETION,
-        CODON_CHANGE_PLUS_CODON_DELETION,
-        STOP_GAINED,
-        SYNONYMOUS_STOP,
-        NON_SYNONYMOUS_STOP,
-        STOP_LOST,
-        INTRON,
-        UTR_3_PRIME,
-        UTR_3_DELETED,
-        DOWNSTREAM,
-        INTRON_CONSERVED,
-        INTERGENIC_CONSERVED,
-        REGULATION,
-        CUSTOM,
-        WITHIN_NON_CODING_GENE
+        // High-impact effects:
+        FRAME_SHIFT                           (EffectFunctionalClass.NONE,     false),
+        STOP_GAINED                           (EffectFunctionalClass.NONSENSE, false),
+        START_LOST                            (EffectFunctionalClass.NONE,     false),
+        SPLICE_SITE_ACCEPTOR                  (EffectFunctionalClass.NONE,     false),
+        SPLICE_SITE_DONOR                     (EffectFunctionalClass.NONE,     false),
+        EXON_DELETED                          (EffectFunctionalClass.NONE,     false),
+        STOP_LOST                             (EffectFunctionalClass.NONE,     false),
+
+        // Moderate-impact effects:
+        NON_SYNONYMOUS_CODING                 (EffectFunctionalClass.MISSENSE, false),
+        CODON_CHANGE                          (EffectFunctionalClass.NONE,     false),
+        CODON_INSERTION                       (EffectFunctionalClass.NONE,     false),
+        CODON_CHANGE_PLUS_CODON_INSERTION     (EffectFunctionalClass.NONE,     false),
+        CODON_DELETION                        (EffectFunctionalClass.NONE,     false),
+        CODON_CHANGE_PLUS_CODON_DELETION      (EffectFunctionalClass.NONE,     false),
+        UTR_5_DELETED                         (EffectFunctionalClass.NONE,     false),
+        UTR_3_DELETED                         (EffectFunctionalClass.NONE,     false),
+
+        // Low-impact effects:
+        SYNONYMOUS_CODING                     (EffectFunctionalClass.SILENT,   false),
+        SYNONYMOUS_START                      (EffectFunctionalClass.SILENT,   false),
+        NON_SYNONYMOUS_START                  (EffectFunctionalClass.SILENT,   false),
+        SYNONYMOUS_STOP                       (EffectFunctionalClass.SILENT,   false),
+        NON_SYNONYMOUS_STOP                   (EffectFunctionalClass.SILENT,   false),
+        START_GAINED                          (EffectFunctionalClass.NONE,     false),
+
+        // Modifiers:
+        NONE                                  (EffectFunctionalClass.NONE,     true),
+        CHROMOSOME                            (EffectFunctionalClass.NONE,     true),
+        INTERGENIC                            (EffectFunctionalClass.NONE,     true),
+        UPSTREAM                              (EffectFunctionalClass.NONE,     true),
+        UTR_5_PRIME                           (EffectFunctionalClass.NONE,     true),
+        CDS                                   (EffectFunctionalClass.NONE,     true),
+        GENE                                  (EffectFunctionalClass.NONE,     true),
+        TRANSCRIPT                            (EffectFunctionalClass.NONE,     true),
+        EXON                                  (EffectFunctionalClass.NONE,     true),
+        INTRON                                (EffectFunctionalClass.NONE,     true),
+        UTR_3_PRIME                           (EffectFunctionalClass.NONE,     true),
+        DOWNSTREAM                            (EffectFunctionalClass.NONE,     true),
+        INTRON_CONSERVED                      (EffectFunctionalClass.NONE,     true),
+        INTERGENIC_CONSERVED                  (EffectFunctionalClass.NONE,     true),
+        REGULATION                            (EffectFunctionalClass.NONE,     true),
+        CUSTOM                                (EffectFunctionalClass.NONE,     true),
+        WITHIN_NON_CODING_GENE                (EffectFunctionalClass.NONE,     true);
+
+        private final EffectFunctionalClass functionalClass;
+        private final boolean isModifier;
+
+        EffectType ( EffectFunctionalClass functionalClass, boolean isModifier ) {
+            this.functionalClass = functionalClass;
+            this.isModifier = isModifier;
+        }
+
+        public EffectFunctionalClass getFunctionalClass() {
+            return functionalClass;
+        }
+
+        public boolean isModifier() {
+            return isModifier;
+        }
     }
 
-    // SnpEff labels each effect as either LOW, MODERATE, or HIGH impact.
+    // SnpEff labels each effect as either LOW, MODERATE, or HIGH impact. We take the additional step of
+    // classifying some of the LOW impact effects as MODIFIERs.
     public enum EffectImpact {
+        MODIFIER  (0),
         LOW       (1),
         MODERATE  (2),
         HIGH      (3);
@@ -163,6 +189,10 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
         public boolean isHigherImpactThan ( EffectImpact other ) {
             return this.severityRating > other.severityRating;
         }
+
+        public boolean isSameImpactAs ( EffectImpact other ) {
+            return this.severityRating == other.severityRating;
+        }
     }
 
     // SnpEff labels most effects as either CODING or NON_CODING, but sometimes omits this information.
@@ -170,6 +200,24 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
         CODING,
         NON_CODING,
         UNKNOWN
+    }
+
+    // We assign a functional class to each SnpEff effect.
+    public enum EffectFunctionalClass {
+        NONE     (0),
+        SILENT   (1),
+        MISSENSE (2),
+        NONSENSE (3);
+
+        private final int priority;
+
+        EffectFunctionalClass ( int priority ) {
+            this.priority = priority;
+        }
+
+        public boolean isHigherPriorityThan ( EffectFunctionalClass other ) {
+            return this.priority > other.priority;
+        }
     }
 
     public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) {
@@ -336,7 +384,8 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
                               InfoFieldKey.GENE_NAME_KEY.getKeyName(),
                               InfoFieldKey.GENE_BIOTYPE_KEY.getKeyName(),
                               InfoFieldKey.TRANSCRIPT_ID_KEY.getKeyName(),
-                              InfoFieldKey.EXON_ID_KEY.getKeyName()
+                              InfoFieldKey.EXON_ID_KEY.getKeyName(),
+                              InfoFieldKey.FUNCTIONAL_CLASS_KEY.getKeyName()
                             );
     }
 
@@ -349,7 +398,8 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
             new VCFInfoHeaderLine(InfoFieldKey.GENE_NAME_KEY.getKeyName(),         1, VCFHeaderLineType.String,  "Gene name for the highest-impact effect resulting from the current variant"),
             new VCFInfoHeaderLine(InfoFieldKey.GENE_BIOTYPE_KEY.getKeyName(),      1, VCFHeaderLineType.String,  "Gene biotype for the highest-impact effect resulting from the current variant"),
             new VCFInfoHeaderLine(InfoFieldKey.TRANSCRIPT_ID_KEY.getKeyName(),     1, VCFHeaderLineType.String,  "Transcript ID for the highest-impact effect resulting from the current variant"),
-            new VCFInfoHeaderLine(InfoFieldKey.EXON_ID_KEY.getKeyName(),           1, VCFHeaderLineType.String,  "Exon ID for the highest-impact effect resulting from the current variant")
+            new VCFInfoHeaderLine(InfoFieldKey.EXON_ID_KEY.getKeyName(),           1, VCFHeaderLineType.String,  "Exon ID for the highest-impact effect resulting from the current variant"),
+            new VCFInfoHeaderLine(InfoFieldKey.FUNCTIONAL_CLASS_KEY.getKeyName(),  1, VCFHeaderLineType.String,  "Functional class of the highest-impact effect resulting from the current variant: " + Arrays.toString(EffectFunctionalClass.values()))
         );
     }
 
@@ -411,11 +461,16 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
                 return;
             }
 
-            try {
-                impact = EffectImpact.valueOf(effectMetadata[InfoFieldKey.IMPACT_KEY.getFieldIndex()]);
+            if ( effect != null && effect.isModifier() ) {
+                impact = EffectImpact.MODIFIER;
             }
-            catch ( IllegalArgumentException e ) {
-                parseError(String.format("Unrecognized value for effect impact: %s", effectMetadata[InfoFieldKey.IMPACT_KEY.getFieldIndex()]));
+            else {
+                try {
+                    impact = EffectImpact.valueOf(effectMetadata[InfoFieldKey.IMPACT_KEY.getFieldIndex()]);
+                }
+                catch ( IllegalArgumentException e ) {
+                    parseError(String.format("Unrecognized value for effect impact: %s", effectMetadata[InfoFieldKey.IMPACT_KEY.getFieldIndex()]));
+                }
             }
 
             codonChange = effectMetadata[InfoFieldKey.CODON_CHANGE_KEY.getFieldIndex()];
@@ -472,9 +527,17 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
             }
 
             // Otherwise, both effects are either in or not in a coding gene, so we compare the impacts
-            // of the effects themselves:
+            // of the effects themselves. Effects with the same impact are tie-broken using the
+            // functional class of the effect:
 
-            return impact.isHigherImpactThan(other.impact);
+            if ( impact.isHigherImpactThan(other.impact) ) {
+                return true;
+            }
+            else if ( impact.isSameImpactAs(other.impact) ) {
+                return effect.getFunctionalClass().isHigherPriorityThan(other.effect.getFunctionalClass());
+            }
+
+            return false;
         }
 
         public Map<String, Object> getAnnotations() {
@@ -488,6 +551,7 @@ public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotatio
             addAnnotation(annotations, InfoFieldKey.GENE_BIOTYPE_KEY.getKeyName(), geneBiotype);
             addAnnotation(annotations, InfoFieldKey.TRANSCRIPT_ID_KEY.getKeyName(), transcriptID);
             addAnnotation(annotations, InfoFieldKey.EXON_ID_KEY.getKeyName(), exonID);
+            addAnnotation(annotations, InfoFieldKey.FUNCTIONAL_CLASS_KEY.getKeyName(), effect.getFunctionalClass().toString());
 
             return annotations;
         }
