@@ -62,14 +62,17 @@ public class FunctionalClass extends VariantStratifier {
                     annotationId++;
                 } while (eval.hasAttribute(key));
 
-            } else if ( eval.hasAttribute(SnpEff.InfoFieldKey.EFFECT_KEY.getKeyName() ) ) {
-                SnpEff.EffectType snpEffType = SnpEff.EffectType.valueOf(eval.getAttribute(SnpEff.InfoFieldKey.EFFECT_KEY.getKeyName()).toString());
-                if ( snpEffType == SnpEff.EffectType.STOP_GAINED )
-                    type = FunctionalType.nonsense;
-                else if ( snpEffType == SnpEff.EffectType.NON_SYNONYMOUS_CODING )
-                    type = FunctionalType.missense;
-                else if ( snpEffType == SnpEff.EffectType.SYNONYMOUS_CODING )
-                    type = FunctionalType.silent;
+            } else if ( eval.hasAttribute(SnpEff.InfoFieldKey.FUNCTIONAL_CLASS_KEY.getKeyName()) ) {
+                try {
+                    SnpEff.EffectFunctionalClass snpEffFunctionalClass = SnpEff.EffectFunctionalClass.valueOf(eval.getAttribute(SnpEff.InfoFieldKey.FUNCTIONAL_CLASS_KEY.getKeyName()).toString());
+                    if ( snpEffFunctionalClass == SnpEff.EffectFunctionalClass.NONSENSE )
+                        type = FunctionalType.nonsense;
+                    else if ( snpEffFunctionalClass == SnpEff.EffectFunctionalClass.MISSENSE )
+                        type = FunctionalType.missense;
+                    else if ( snpEffFunctionalClass == SnpEff.EffectFunctionalClass.SILENT )
+                        type = FunctionalType.silent;
+                    }
+                catch ( Exception e ) {} // don't error out if the type isn't supported
             }
 
             if ( type != null ) {
