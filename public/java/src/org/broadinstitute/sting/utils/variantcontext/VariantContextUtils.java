@@ -159,6 +159,13 @@ public class VariantContextUtils {
         return "%." + precision + "f";
     }
 
+    public static Genotype removePLs(Genotype g) {
+        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
+    }
+
     /**
      * A simple but common wrapper for matching VariantContext objects using JEXL expressions
      */
@@ -740,7 +747,7 @@ public class VariantContextUtils {
         Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
 
         for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? Genotype.removePLs(g.getValue()) : g.getValue());
+            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? removePLs(g.getValue()) : g.getValue());
         }
 
         return newGs;
