@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -19,12 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- * User: delangel
- * Date: 6/29/11
- * Time: 3:14 PM
- * To change this template use File | Settings | File Templates.
+ * Counts of bases from SLX, 454, and SOLiD at this site
  */
+@Hidden
 public class TechnologyComposition extends InfoFieldAnnotation implements ExperimentalAnnotation {
     private String nSLX = "NumSLX";
     private String n454 ="Num454";

@@ -49,6 +49,10 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
+/**
+ * Consistency of the site with two (and only two) segregating haplotypes. Higher scores
+ * are indicative of regions with bad alignments, often leading to artifactual SNP and indel calls.
+ */
 public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;

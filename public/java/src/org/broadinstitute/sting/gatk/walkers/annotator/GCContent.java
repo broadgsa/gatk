@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * The GC content (# GC bases / # all bases) of the reference within 50 bp +/- this site
+ */
 public class GCContent extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
