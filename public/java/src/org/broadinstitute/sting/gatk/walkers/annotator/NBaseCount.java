@@ -17,11 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: 5/16/11
+ * The number of N bases, counting only SOLiD data
  */
-
 public class NBaseCount extends InfoFieldAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if( stratifiedContexts.size() == 0 )
