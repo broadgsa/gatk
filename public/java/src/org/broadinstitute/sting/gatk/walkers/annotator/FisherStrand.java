@@ -43,6 +43,11 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.*;
 
 
+/**
+ * Phred-scaled p-value using Fisher's Exact Test to detect strand bias (the variation
+ * being seen on only the forward or only the reverse strand) in the reads? More bias is
+ * indicative of false positive calls.
+ */
 public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation {
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;

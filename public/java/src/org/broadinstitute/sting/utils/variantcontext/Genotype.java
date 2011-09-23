@@ -74,13 +74,6 @@ public class Genotype {
         return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.isPhased());
     }
 
-    public static Genotype removePLs(Genotype g) {
-        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
-        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
-        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
-    }
-
     public static Genotype modifyAlleles(Genotype g, List<Allele> alleles) {
         return new Genotype(g.getSampleName(), alleles, g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
     }

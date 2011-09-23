@@ -42,6 +42,7 @@ import java.util.*;
  *
  * <p>Body test</p>
  */
+@Hidden
 public class DocumentationTest extends RodWalker<Integer, Integer> {
     // the docs for the arguments are in the collection
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();

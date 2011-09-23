@@ -71,21 +71,21 @@ public class ReadClipper {
 
     private SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
-        int stop =  (refStop  < 0) ? read.getReadLength() - 1: ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+        int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
 
-        if (start < 0 || stop > read.getReadLength() - 1 + numDeletions(read))
+        if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
-        // TODO add check in the Hardclip function
-        if ( start > stop )
-            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
-
+        if ( start > stop ) {
+//            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
+            throw new ReviewedStingException("START > STOP -- this should never happen -- call Mauricio!");
+        }
 
         //This tries to fix the bug where the deletion is counted a read base and as a result, the hardCLipper runs into
         //an endless loop when hard clipping the cigar string because the read coordinates are not covered by the read
-        stop -= numDeletions(read);
-        if ( start > stop )
-            start -= numDeletions(read);
+//        stop -= numDeletions(read);
+//        if ( start > stop )
+//            start -= numDeletions(read);
 
 
         //System.out.println("Clipping start/stop: " + start + "/" + stop);
@@ -145,7 +145,7 @@ public class ReadClipper {
                     cutLeft = readIndex + cigarElement.getLength() - 1;
                 }
             }
-            else
+            else if (cigarElement.getOperator() != CigarOperator.HARD_CLIP)
                 rightTail = true;
 
             if (cigarElement.getOperator().consumesReadBases())

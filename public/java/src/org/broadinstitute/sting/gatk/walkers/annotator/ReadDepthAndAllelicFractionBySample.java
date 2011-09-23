@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -47,12 +48,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- * User: asivache
- * Date: Feb 4, 2011
- * Time: 3:59:27 PM
- * To change this template use File | Settings | File Templates.
+ * Unsupported
  */
+@Hidden
 public class ReadDepthAndAllelicFractionBySample extends GenotypeAnnotation {
 
         private static String REF_ALLELE = "REF";
