@@ -274,11 +274,11 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         else {
             mergedVCs = preMergedVCs;
         }
-
         for ( VariantContext mergedVC : mergedVCs ) {
             // only operate at the start of events
             if ( mergedVC == null )
                 continue;
+            System.out.println(mergedVC.toString());
 
             HashMap<String, Object> attributes = new HashMap<String, Object>(mergedVC.getAttributes());
             // re-compute chromosome counts

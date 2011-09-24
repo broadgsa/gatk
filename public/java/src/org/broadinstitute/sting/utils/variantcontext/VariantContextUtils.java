@@ -594,7 +594,9 @@ public class VariantContextUtils {
 
         // if we have more alternate alleles in the merged VC than in one or more of the original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
         for ( VariantContext vc : VCs ) {
-            if ( vc.alleles.size() != alleles.size() ) {
+            if (vc.alleles.size() == 1)
+                continue;
+            if ( vc.alleles.size() != alleles.size()) {
                 genotypes = stripPLs(genotypes);
                 break;
             }

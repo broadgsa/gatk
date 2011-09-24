@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -122,6 +123,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             aList.add(refAllele);
             aList.add(altAllele);
             double[] dlike = new double[]{likelihoods[refGenotype.ordinal()],likelihoods[hetGenotype.ordinal()],likelihoods[homGenotype.ordinal()]} ;
+            double maxElement = MathUtils.max(dlike[AlleleFrequencyCalculationModel.GenotypeType.AA.ordinal()],
+                    dlike[AlleleFrequencyCalculationModel.GenotypeType.AB.ordinal()],dlike[AlleleFrequencyCalculationModel.GenotypeType.BB.ordinal()]);
+            for (int i=0; i < dlike.length; i++)
+                 dlike[i] -= maxElement;
+
             GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
                     aList,  dlike, getFilteredDepth(pileup)));
         }
