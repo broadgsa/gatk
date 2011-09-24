@@ -789,6 +789,7 @@ public class VariantContextUtils {
                         // vc has a type different than otherVC and its alleles are a subset of VC: add vc to otherVC's type list and don't add to its own
                         mappedVCs.get(type).add(vc);
                         addtoOwnList = false;
+                        break;
                     }
                 }
             }

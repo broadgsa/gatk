@@ -38,7 +38,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class VariantContextUtilsUnitTest extends BaseTest {
-    Allele Aref, T, C, delRef, ATC, ATCATC;
+    Allele Aref, T, C, delRef, Cref, ATC, ATCATC;
     private GenomeLocParser genomeLocParser;
 
     @BeforeSuite
@@ -54,6 +54,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         // alleles
         Aref = Allele.create("A", true);
+        Cref = Allele.create("C", true);
         delRef = Allele.create("-", true);
         T = Allele.create("T");
         C = Allele.create("C");
@@ -94,7 +95,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
         return new VariantContext(source, "1", start, stop, alleles,
                 genotypes == null ? null : VariantContext.genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes),
-                1.0, filters, null, (byte)'C');
+                1.0, filters, null, Cref.getBases()[0]);
     }
 
     // --------------------------------------------------------------------------------
@@ -148,8 +149,10 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 Arrays.asList(Aref, C),
                 Arrays.asList(Aref, C, T)); // sorted by allele
 
+        // The following is actually a pathological case - there's no way on a vcf to represent a null allele that's non-variant.
+        // The code converts this (correctly) to a single-base non-variant vc with whatever base was there as a reference.
         new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(delRef)); // todo -- FIXME me GdA
+                Arrays.asList(Cref));
 
         new MergeAllelesTest(Arrays.asList(delRef),
                 Arrays.asList(delRef, ATC),
@@ -186,6 +189,14 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 inputs, priority,
                 VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
                 VariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false);
+        System.out.println("expected:");
+        System.out.println(cfg.expected.toString());
+        System.out.println("inputs");
+        for (VariantContext vc:inputs)
+            System.out.println(vc.toString());
+        System.out.println("merged:");
+        System.out.println(merged.toString());
+
         Assert.assertEquals(merged.getAlleles(), cfg.expected);
     }
 
