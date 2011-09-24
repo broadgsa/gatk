@@ -19,11 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: 3/30/11
+ * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
  */
-
 public class ReadPosRankSumTest extends RankSumTest {
 
     public List<String> getKeyNames() { return Arrays.asList("ReadPosRankSum"); }

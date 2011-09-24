@@ -44,6 +44,11 @@ import java.io.Serializable;
 import java.util.*;
 
 public class VariantContextUtils {
+    public final static String MERGE_INTERSECTION = "Intersection";
+    public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
+    public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
+    public final static String MERGE_FILTER_PREFIX = "filterIn";
+
     final public static JexlEngine engine = new JexlEngine();
     static {
         engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
@@ -152,6 +157,13 @@ public class VariantContextUtils {
         }
 
         return "%." + precision + "f";
+    }
+
+    public static Genotype removePLs(Genotype g) {
+        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
     /**
@@ -611,19 +623,20 @@ public class VariantContextUtils {
         if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
             filters.clear();
 
+
         if ( annotateOrigin ) { // we care about where the call came from
             String setValue;
             if ( nFiltered == 0 && variantSources.size() == priorityListOfVCs.size() ) // nothing was unfiltered
-                setValue = "Intersection";
+                setValue = MERGE_INTERSECTION;
             else if ( nFiltered == VCs.size() )     // everything was filtered out
-                setValue = "FilteredInAll";
+                setValue = MERGE_FILTER_IN_ALL;
             else if ( variantSources.isEmpty() )               // everyone was reference
-                setValue = "ReferenceInAll";
+                setValue = MERGE_REF_IN_ALL;
             else {
                 LinkedHashSet<String> s = new LinkedHashSet<String>();
                 for ( VariantContext vc : VCs )
                     if ( vc.isVariant() )
-                        s.add( vc.isFiltered() ? "filterIn" + vc.getSource() : vc.getSource() );
+                        s.add( vc.isFiltered() ? MERGE_FILTER_PREFIX + vc.getSource() : vc.getSource() );
                 setValue = Utils.join("-", s);
             }
 
@@ -736,7 +749,7 @@ public class VariantContextUtils {
         Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
 
         for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? Genotype.removePLs(g.getValue()) : g.getValue());
+            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? removePLs(g.getValue()) : g.getValue());
         }
 
         return newGs;

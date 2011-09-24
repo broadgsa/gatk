@@ -17,14 +17,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: 5/16/11
- */
 
-// A set of annotations calculated directly from the GLs
-public class GLstats extends InfoFieldAnnotation implements StandardAnnotation {
+/**
+ * Likelihood-based (using PL field) test for the inbreeding among samples.
+ *
+ * A continuous generalization of the Hardy-Weinberg test for disequilibrium that works
+ * well with limited coverage per sample.  See the 1000 Genomes Phase I release for
+ * more information.
+ */
+public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnnotation {
 
     private static final int MIN_SAMPLES = 10;
 

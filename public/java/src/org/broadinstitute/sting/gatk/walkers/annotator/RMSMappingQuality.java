@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Root Mean Square of the mapping quality of the reads across all samples.
+ */
 public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

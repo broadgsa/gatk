@@ -44,11 +44,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- * User: asivache
- * Date: Feb 4, 2011
- * Time: 6:46:25 PM
- * To change this template use File | Settings | File Templates.
+ * Count for each sample of mapping quality zero reads
  */
 public class MappingQualityZeroBySample extends GenotypeAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker,

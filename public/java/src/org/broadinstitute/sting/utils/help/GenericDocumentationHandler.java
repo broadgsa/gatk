@@ -66,7 +66,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     public boolean includeInDocs(ClassDoc doc) {
         try {
             Class type = HelpUtils.getClassForDoc(doc);
-            return JVMUtils.isConcrete(type);
+            boolean hidden = ! getDoclet().showHiddenFeatures() && type.isAnnotationPresent(Hidden.class);
+            return ! hidden && JVMUtils.isConcrete(type);
         } catch ( ClassNotFoundException e ) {
             return false;
         }

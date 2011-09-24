@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.examples;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -59,6 +60,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
  * @author Your Name
  * @since Date created
  */
+@Hidden
 public class GATKDocsExample extends RodWalker<Integer, Integer> {
     /**
      * Put detailed documentation about the argument here.  No need to duplicate the summary information
