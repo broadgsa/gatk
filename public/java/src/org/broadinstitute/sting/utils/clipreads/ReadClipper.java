@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.clipreads;
 
 import com.google.java.contract.Requires;
-import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
@@ -9,7 +8,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -184,5 +182,22 @@ public class ReadClipper {
                 throw new RuntimeException(e); // this should never happen
             }
         }
+    }
+
+    public SAMRecord hardClipLeadingInsertions() {
+        for(CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP &&
+                cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.DELETION)
+                break;
+
+            else if (cigarElement.getOperator() == CigarOperator.INSERTION) {
+                this.addOp(new ClippingOp(0, cigarElement.getLength() - 1));
+            }
+
+            else if (cigarElement.getOperator() == CigarOperator.DELETION) {
+                throw new ReviewedStingException("No read should start with a deletion. Aligner bug?");
+            }
+        }
+        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 }
