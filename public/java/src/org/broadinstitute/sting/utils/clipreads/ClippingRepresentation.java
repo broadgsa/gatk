@@ -21,6 +21,8 @@ public enum ClippingRepresentation {
     SOFTCLIP_BASES,
 
     /**
+     * WARNING: THIS OPTION IS STILL UNDER DEVELOPMENT AND IS NOT SUPPORTED.
+     *
      * Change the read's cigar string to hard clip (H, see sam-spec) away the bases.
      * Hard clipping, unlike soft clipping, actually removes bases from the read,
      * reducing the resulting file's size but introducing an irrevesible (i.e.,

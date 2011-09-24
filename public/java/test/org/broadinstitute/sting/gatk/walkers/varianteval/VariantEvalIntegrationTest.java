@@ -30,7 +30,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("f5f811ceb973d7fd6c1b2b734f1b2b12")
+                                Arrays.asList("d9dcb352c53106f54fcc981f15d35a90")
                               );
         executeTest("testFunctionClassWithSnpeff", spec);
     }
