@@ -22,10 +22,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
