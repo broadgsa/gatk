@@ -758,9 +758,45 @@ public class VariantContextUtils {
     public static Map<VariantContext.Type, List<VariantContext>> separateVariantContextsByType(Collection<VariantContext> VCs) {
         HashMap<VariantContext.Type, List<VariantContext>> mappedVCs = new HashMap<VariantContext.Type, List<VariantContext>>();
         for ( VariantContext vc : VCs ) {
-            if ( !mappedVCs.containsKey(vc.getType()) )
-                mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
-            mappedVCs.get(vc.getType()).add(vc);
+
+            // look at previous variant contexts of different type. If:
+            // a) otherVC has alleles which are subset of vc, remove otherVC from its list and add otherVC to  vc's list
+            // b) vc has alleles which are subset of otherVC. Then, add vc to otherVC's type list (rather, do nothing since vc will be added automatically to its list)
+            // c) neither: do nothing, just add vc to its own list
+            boolean addtoOwnList = true;
+            for (VariantContext.Type type : VariantContext.Type.values()) {
+                if (type.equals(vc.getType()))
+                    continue;
+
+                if (!mappedVCs.containsKey(type))
+                    continue;
+
+                List<VariantContext> vcList = mappedVCs.get(type);
+                for (int k=0; k <  vcList.size(); k++) {
+                    VariantContext otherVC = vcList.get(k);
+                    if (allelesAreSubset(otherVC,vc)) {
+                        // otherVC has a type different than vc and its alleles are a subset of vc: remove otherVC from its list and add it to vc's type list
+                        vcList.remove(k);
+                        // avoid having empty lists
+                        if (vcList.size() == 0)
+                            mappedVCs.remove(vcList);
+                        if ( !mappedVCs.containsKey(vc.getType()) )
+                            mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+                        mappedVCs.get(vc.getType()).add(otherVC);
+                        break;
+                    }
+                    else if (allelesAreSubset(vc,otherVC)) {
+                        // vc has a type different than otherVC and its alleles are a subset of VC: add vc to otherVC's type list and don't add to its own
+                        mappedVCs.get(type).add(vc);
+                        addtoOwnList = false;
+                    }
+                }
+            }
+            if (addtoOwnList) {
+                if ( !mappedVCs.containsKey(vc.getType()) )
+                    mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+                mappedVCs.get(vc.getType()).add(vc);
+                }
         }
 
         return mappedVCs;

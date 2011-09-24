@@ -42,7 +42,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "allelesForUG.vcf -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,025,000", 1,
-                Arrays.asList("ec43daadfb15b00b41aeb0017a45df0b"));
+                Arrays.asList("6458f3b8fe4954e2ffc2af972aaab19e"));
         executeTest("test MultiSample Pilot2 with alleles passed in and emitting all sites", spec2);
     }
 
