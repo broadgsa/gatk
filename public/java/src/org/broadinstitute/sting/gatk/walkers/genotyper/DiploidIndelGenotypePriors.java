@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
 /**
  * Created by IntelliJ IDEA.
