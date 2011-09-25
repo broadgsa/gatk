@@ -66,6 +66,11 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         return new Genotype(sample, Arrays.asList(a1, a2));
     }
 
+    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double l1, double l2, double l3) {
+        return new Genotype(sample, Arrays.asList(a1, a2), log10pError, new double[]{l1,l2,l3});
+    }
+
+
     private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError) {
         return new Genotype(sample, Arrays.asList(a1, a2), log10pError);
     }
@@ -189,13 +194,6 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 inputs, priority,
                 VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
                 VariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false);
-        System.out.println("expected:");
-        System.out.println(cfg.expected.toString());
-        System.out.println("inputs");
-        for (VariantContext vc:inputs)
-            System.out.println(vc.toString());
-        System.out.println("merged:");
-        System.out.println(merged.toString());
 
         Assert.assertEquals(merged.getAlleles(), cfg.expected);
     }
@@ -448,7 +446,17 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)),
                 makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)));
 
-        // todo -- GDA -- add tests for merging correct PLs
+        // merging genothpes with PLs
+        new MergeGenotypesTest("TakeGenotypePartialOverlapWithPLs-2,1", "2,1",
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1,5,0,3)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)));
+
+        new MergeGenotypesTest("TakeGenotypePartialOverlapWithPLs-1,2", "1,2",
+                makeVC("1", Arrays.asList(Aref,ATC), makeG("s1", Aref, ATC, 1,5,0,3)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)),
+                // no likelihoods on result since type changes to mixed multiallelic
+                makeVC("3", Arrays.asList(Aref, ATC, T), makeG("s1", Aref, ATC, 1), makeG("s3", Aref, T, 3)));
 
         return MergeGenotypesTest.getTests(MergeGenotypesTest.class);
     }
@@ -489,7 +497,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
             Assert.assertEquals(value.getNegLog10PError(), expectedValue.getNegLog10PError());
             Assert.assertEquals(value.hasLikelihoods(), expectedValue.hasLikelihoods());
             if ( value.hasLikelihoods() )
-                Assert.assertEquals(value.getLikelihoods(), expectedValue.getLikelihoods());
+                Assert.assertEquals(value.getLikelihoods().getAsVector(), expectedValue.getLikelihoods().getAsVector());
         }
     }
 
