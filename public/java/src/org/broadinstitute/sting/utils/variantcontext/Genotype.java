@@ -268,7 +268,8 @@ public class Genotype {
      * @param <V> the value type
      * @return a sting, enclosed in {}, with comma seperated key value pairs in order of the keys
      */
-    public static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+    private static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+        // NOTE -- THIS IS COPIED FROM GATK UTILS TO ALLOW US TO KEEP A SEPARATION BETWEEN THE GATK AND VCF CODECS
         List<T> t = new ArrayList<T>(c.keySet());
         Collections.sort(t);
 

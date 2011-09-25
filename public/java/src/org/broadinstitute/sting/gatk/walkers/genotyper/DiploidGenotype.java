@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
 
@@ -34,7 +34,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
  * Time: 6:46:09 PM
  * To change this template use File | Settings | File Templates.
  */
-public enum DiploidGenotype {
+enum DiploidGenotype {
     AA ('A', 'A'),
     AC ('A', 'C'),
     AG ('A', 'G'),
