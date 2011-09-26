@@ -24,9 +24,9 @@ import java.util.Map;
 
 
 /**
- * The depth of coverage of each VCF allele in this sample
+ * The depth of coverage of each VCF allele in this sample.
  *
- * Complementary fields that two important ways of thinking about the depth of the data for this sample
+ * This and DP are complementary fields that are two important ways of thinking about the depth of the data for this sample
  * at this site. The DP field describe the total depth of reads that passed the Unified Genotypers internal
  * quality control metrics (like MAPQ > 17, for example), whatever base was present in the read at this site.
  * The AD values (one for each of REF and ALT fields) is the count of all reads that carried with them the
@@ -38,8 +38,8 @@ import java.util.Map;
  * normally be excluded from the statistical calculations going into GQ and QUAL. Please note, however, that
  * the AD isn't necessarily calculated exactly for indels (it counts as non-reference only those indels that
  * are actually present and correctly left-aligned in the alignments themselves). Because of this fact and
- * because the AD includes reads and bases that were filtered by the Unified Genotyper, one should not base
- * assumptions about the underlying genotype based on it; instead, the genotype likelihoods (PLs) are what
+ * because the AD includes reads and bases that were filtered by the Unified Genotyper, <b>one should not base
+ * assumptions about the underlying genotype based on it</b>; instead, the genotype likelihoods (PLs) are what
  * determine the genotype calls (see below).
  */
 public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
