@@ -157,7 +157,7 @@ public class ReadUtils {
      *  |----------------|     (interval)
      *     <-------->          (read)
      */
-    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
+    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -640,27 +640,35 @@ public class ReadUtils {
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
 
-        int start = getRefCoordSoftUnclippedStart(read);
-        int stop = getRefCoordSoftUnclippedEnd(read);
+        int sStart = getRefCoordSoftUnclippedStart(read);
+        int sStop = getRefCoordSoftUnclippedEnd(read);
+        int uStart = read.getUnclippedStart();
+        int uStop = read.getUnclippedEnd();
 
         if ( !read.getReferenceName().equals(interval.getContig()) )
             return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
 
-        else if  ( stop < interval.getStart() )
+        else if ( uStop < interval.getStart() )
             return ReadAndIntervalOverlap.NO_OVERLAP_LEFT;
 
-        else if ( start > interval.getStop() )
+        else if ( uStart > interval.getStop() )
             return ReadAndIntervalOverlap.NO_OVERLAP_RIGHT;
 
-        else if ( (start >= interval.getStart()) &&
-                  (stop <= interval.getStop()) )
+        else if ( sStop < interval.getStart() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_LEFT;
+
+        else if ( sStart > interval.getStop() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_RIGHT;
+
+        else if ( (sStart >= interval.getStart()) &&
+                  (sStop <= interval.getStop()) )
             return ReadAndIntervalOverlap.OVERLAP_CONTAINED;
 
-        else if ( (start < interval.getStart()) &&
-                  (stop > interval.getStop()) )
+        else if ( (sStart < interval.getStart()) &&
+                  (sStop > interval.getStop()) )
             return ReadAndIntervalOverlap.OVERLAP_LEFT_AND_RIGHT;
 
-        else if ( (start < interval.getStart()) )
+        else if ( (sStart < interval.getStart()) )
             return ReadAndIntervalOverlap.OVERLAP_LEFT;
 
         else
