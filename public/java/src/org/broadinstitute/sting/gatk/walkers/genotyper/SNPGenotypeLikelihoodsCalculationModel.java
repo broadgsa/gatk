@@ -122,13 +122,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             aList.add(refAllele);
             aList.add(altAllele);
             double[] dlike = new double[]{likelihoods[refGenotype.ordinal()],likelihoods[hetGenotype.ordinal()],likelihoods[homGenotype.ordinal()]} ;
-            double maxElement = MathUtils.max(dlike[AlleleFrequencyCalculationModel.GenotypeType.AA.ordinal()],
-                    dlike[AlleleFrequencyCalculationModel.GenotypeType.AB.ordinal()],dlike[AlleleFrequencyCalculationModel.GenotypeType.BB.ordinal()]);
-            for (int i=0; i < dlike.length; i++)
-                 dlike[i] -= maxElement;
 
+            // normalize in log space so that max element is zero.
             GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
-                    aList,  dlike, getFilteredDepth(pileup)));
+                    aList,  MathUtils.normalizeFromLog10(dlike, false, true), getFilteredDepth(pileup)));
         }
 
         return refAllele;
