@@ -43,10 +43,43 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
-    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
-
     private ReadUtils() { }
 
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // Reduced read utilities
+    //
+    // ----------------------------------------------------------------------------------------------------
+
+    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
+
+    public final static Integer getReducedReadQualityTagValue(final SAMRecord read) {
+        return read.getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+    }
+
+    public final static boolean isReducedRead(final SAMRecord read) {
+        return getReducedReadQualityTagValue(read) != null;
+    }
+
+    public final static SAMRecord reducedReadWithReducedQuals(final SAMRecord read) {
+        if ( ! isReducedRead(read) ) throw new IllegalArgumentException("read must be a reduced read");
+        try {
+            SAMRecord newRead = (SAMRecord)read.clone();
+            byte reducedQual = (byte)(int)getReducedReadQualityTagValue(read);
+            byte[] newQuals = new byte[read.getBaseQualities().length];
+            Arrays.fill(newQuals, reducedQual);
+            newRead.setBaseQualities(newQuals);
+            return newRead;
+        } catch ( CloneNotSupportedException e ) {
+            throw new ReviewedStingException("SAMRecord no longer supports clone", e);
+        }
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // General utilities
+    //
+    // ----------------------------------------------------------------------------------------------------
     public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
         SAMFileHeader copy = new SAMFileHeader();
 

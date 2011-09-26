@@ -81,20 +81,17 @@ public class PileupElement {
     //
     // --------------------------------------------------------------------------
 
-    private Integer getReducedReadQualityTagValue() {
-        return getRead().getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
-    }
-
     public boolean isReducedRead() {
-        return getReducedReadQualityTagValue() != null;
+        return ReadUtils.isReducedRead(getRead());
     }
 
     public int getReducedCount() {
+        if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced count for non-reduced read " + getRead().getReadName());
         return (int)getQual();
     }
 
     public byte getReducedQual() {
-        return (byte)(int)getReducedReadQualityTagValue();
+        return (byte)(int)ReadUtils.getReducedReadQualityTagValue(getRead());
     }
 
 }
