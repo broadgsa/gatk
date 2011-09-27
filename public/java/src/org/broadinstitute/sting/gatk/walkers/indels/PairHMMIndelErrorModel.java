@@ -31,6 +31,7 @@ import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -38,6 +39,8 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -478,6 +481,8 @@ public class PairHMMIndelErrorModel {
         final int X_METRIC_LENGTH = readBases.length+1;
         final int Y_METRIC_LENGTH = haplotypeBases.length+1;
 
+        final int BWIDTH = 10;
+
         // initialize path metric and traceback memories for likelihood computation
         double[][] matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
         double[][] XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
@@ -507,6 +512,96 @@ public class PairHMMIndelErrorModel {
             bestActionArrayY[0][j] = bestActionArrayM[0][j] = bestActionArrayX[0][j] = LEFT_GOTO_Y;
         }
 
+        final int numDiags = X_METRIC_LENGTH +  Y_METRIC_LENGTH -1;
+        final int elemsInDiag = Math.min(X_METRIC_LENGTH, Y_METRIC_LENGTH);
+
+        int idxWithMaxElement = 0;
+
+        for (int  diag=0; diag <  numDiags; diag++) {
+
+            int indI = 0;
+            int indJ = diag;
+            if (diag >= Y_METRIC_LENGTH ) {
+                indI = diag-(Y_METRIC_LENGTH-1);
+                indJ = Y_METRIC_LENGTH-1;
+            }
+
+
+            double maxElementInDiag = Double.NEGATIVE_INFINITY;
+
+            int idxLow = idxWithMaxElement - BWIDTH;
+            int idxHigh =  idxWithMaxElement + BWIDTH;
+
+            if (idxLow < 0)
+                idxLow = 0;
+
+            if (idxHigh > elemsInDiag )
+                idxHigh = elemsInDiag;
+
+
+            // for each diagonal, compute max element, and center band around it for next diagonal.
+            //
+            // start point is idxOfMax-BWIDTH, end pt is idxMax+BWIDTH
+
+            for (int el = idxLow; el < idxHigh; el++) {
+                // first row and first column of all matrices had been pre-filled before
+                int im1 = indI -1;
+                int jm1 = indJ - 1;
+                if (indI > 0 && indJ > 0) {
+                    // update current point
+                    byte x = readBases[im1];
+                    byte y = haplotypeBases[jm1];
+                    byte qual = readQuals[im1];
+
+                    double bestMetric = 0.0;
+
+                    // compute metric for match/mismatch
+                    // workaround for reads whose bases quality = 0,
+                    if (qual < 1)
+                        qual = 1;
+
+                    if (qual > MAX_CACHED_QUAL)
+                        qual = MAX_CACHED_QUAL;
+
+                    double pBaseRead =  (x == y)? baseMatchArray[(int)qual]:baseMismatchArray[(int)qual];
+
+                     matchMetricArray[indI][indJ] = MathUtils.softMax(matchMetricArray[im1][jm1] + pBaseRead, XMetricArray[im1][jm1] + pBaseRead,
+                                YMetricArray[im1][jm1] + pBaseRead);
+
+                    c = currentGOP[jm1];
+                    d = currentGCP[jm1];
+                    if (indJ == Y_METRIC_LENGTH-1)
+                        c = d = END_GAP_COST;
+
+
+                    XMetricArray[indI][indJ] = MathUtils.softMax(matchMetricArray[im1][indJ] + c, XMetricArray[im1][indJ] + d);
+
+                    // update Y array
+                    //c = (indI==X_METRIC_LENGTH-1? END_GAP_COST: currentGOP[jm1]);
+                    //d = (indI==X_METRIC_LENGTH-1? END_GAP_COST: currentGCP[jm1]);
+                    c = currentGOP[jm1];
+                    d = currentGCP[jm1];
+                    if (indI == X_METRIC_LENGTH-1)
+                        c = d = END_GAP_COST;
+
+                    YMetricArray[indI][indJ] = MathUtils.softMax(matchMetricArray[indI][jm1] + c, YMetricArray[indI][jm1] + d);
+                    bestMetric = MathUtils.softMax(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
+
+                    if (bestMetric > maxElementInDiag) {
+                        maxElementInDiag = bestMetric;
+                        idxWithMaxElement = el ;
+                    }
+
+                }
+                indI++;
+                if (indI >=X_METRIC_LENGTH )
+                    break;
+                indJ--;
+                if (indJ < 0)
+                    break;
+            }
+        }
+/*
         for (int indI=1; indI < X_METRIC_LENGTH; indI++) {
             int im1 = indI-1;
             for (int indJ=1; indJ < Y_METRIC_LENGTH; indJ++) {
@@ -525,6 +620,8 @@ public class PairHMMIndelErrorModel {
 
                 if (qual > MAX_CACHED_QUAL)
                     qual = MAX_CACHED_QUAL;
+
+                //qual = 30;
 
                 double pBaseRead =  (x == y)? baseMatchArray[(int)qual]:baseMismatchArray[(int)qual];
 
@@ -613,78 +710,39 @@ public class PairHMMIndelErrorModel {
 
             }
         }
-
+       */
         double bestMetric;
         double metrics[] = new double[3];
-        int bestTable=0, bestI=X_METRIC_LENGTH - 1, bestJ=Y_METRIC_LENGTH - 1;
+        final int bestI=X_METRIC_LENGTH - 1, bestJ=Y_METRIC_LENGTH - 1;
         metrics[MATCH_OFFSET] = matchMetricArray[bestI][bestJ];
         metrics[X_OFFSET] = XMetricArray[bestI][bestJ];
         metrics[Y_OFFSET] = YMetricArray[bestI][bestJ];
-        if (doViterbi) {
-            bestTable = MathUtils.maxElementIndex(metrics);
-            bestMetric = metrics[bestTable];
-        }
-        else
-            bestMetric = MathUtils.softMax(metrics);
+        bestMetric = MathUtils.softMax(metrics);
 
-        // Do traceback (needed only for debugging!)
-        if (DEBUG && doViterbi) {
+     if (DEBUG) {
+            PrintStream outx, outy, outm;
+            double[][] sumMetrics = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+            try {
+                outx = new PrintStream("../../UGOptim/datax.txt");
+                outy = new PrintStream("../../UGOptim/datay.txt");
+                outm = new PrintStream("../../UGOptim/datam.txt");
 
-            int bestAction;
-            int i = bestI;
-            int j = bestJ;
-
-
-            System.out.println("Affine gap NW");
-
-
-            String haplotypeString = new String (haplotypeBases);
-            String readString = new String(readBases);
-
-
-            while (i >0 || j >0) {
-                if (bestTable == X_OFFSET) {
-                    // insert gap in Y
-                    haplotypeString = haplotypeString.substring(0,j)+"-"+haplotypeString.substring(j);
-                    bestAction = bestActionArrayX[i][j];
+                for (int indI=0; indI < X_METRIC_LENGTH; indI++) {
+                    for (int indJ=0; indJ < Y_METRIC_LENGTH; indJ++) {
+                        metrics[MATCH_OFFSET] = matchMetricArray[indI][indJ];
+                        metrics[X_OFFSET] = XMetricArray[indI][indJ];
+                        metrics[Y_OFFSET] = YMetricArray[indI][indJ];
+                        sumMetrics[indI][indJ] = MathUtils.softMax(metrics);
+                        outx.format("%4.1f ", metrics[X_OFFSET]);
+                        outy.format("%4.1f ", metrics[Y_OFFSET]);
+                        outm.format("%4.1f ", metrics[MATCH_OFFSET]);
+                    }
+                    outx.println();  outm.println();outy.println();
                 }
-                else if (bestTable == Y_OFFSET) {
-                    readString = readString.substring(0,i)+"-"+readString.substring(i);
-                    bestAction = bestActionArrayY[i][j];
+                outm.close(); outx.close(); outy.close();
+            } catch (java.io.IOException e) { throw new UserException("bla");}
+     }
 
-                }
-                else {
-                    bestAction = bestActionArrayM[i][j];
-                }
-                System.out.print(bestAction);
-
-
-                // bestAction contains action to take at next step
-                // encoding of bestAction: upper 2 bits = direction, lower 2 bits = next table
-
-                // bestTable and nextDirection for next step
-                bestTable = bestAction & 0x3;
-                int nextDirection = bestAction >> 2;
-                if (nextDirection == UP) {
-                    i--;
-                } else if (nextDirection == LEFT) {
-                    j--;
-                } else { //  if (nextDirection == DIAG)
-                    i--; j--;
-                }
-
-            }
-
-
-
-
-            System.out.println("\nAlignment: ");
-            System.out.println("R:"+readString);
-            System.out.println("H:"+haplotypeString);
-            System.out.println();
-
-
-        }
         if (DEBUG)
             System.out.format("Likelihood: %5.4f\n", bestMetric);
 
