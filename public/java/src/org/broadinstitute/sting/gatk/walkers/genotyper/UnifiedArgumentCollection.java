@@ -143,30 +143,20 @@ public class UnifiedArgumentCollection {
     @Hidden
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
-    @Hidden
-    @Argument(fullName = "doContextDependentGapPenalties", shortName = "doCDP", doc = "Vary gap penalties by context", required = false)
-     public boolean DO_CONTEXT_DEPENDENT_PENALTIES = true;
+
     //gdebug+
     // experimental arguments, NOT TO BE USED BY ANYONE WHOSE INITIALS AREN'T GDA!!!
-    @Hidden
-    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
-    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
-
-    @Hidden
-    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
-    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
+//    @Hidden
+//    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
+//    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
+//
+//    @Hidden
+//    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
+//    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
 
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
-
-    @Hidden
-    @Argument(fullName = "dovit", shortName = "dovit", doc = "Perform full Viterbi calculation when evaluating the HMM", required = false)
-    public boolean dovit = false;
-
-    @Hidden
-    @Argument(fullName = "GSA_PRODUCTION_ONLY", shortName = "GSA_PRODUCTION_ONLY", doc = "don't ever use me", required = false)
-    public boolean GSA_PRODUCTION_ONLY = false;
 
     @Hidden
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
@@ -204,15 +194,10 @@ public class UnifiedArgumentCollection {
         uac.INDEL_GAP_CONTINUATION_PENALTY = INDEL_GAP_CONTINUATION_PENALTY;
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
-        uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
         uac.alleles = alleles;
 
-        uac.GET_GAP_PENALTIES_FROM_DATA = GET_GAP_PENALTIES_FROM_DATA;
-        uac.INDEL_RECAL_FILE = INDEL_RECAL_FILE;
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
-        uac.dovit = dovit;
-        uac.GSA_PRODUCTION_ONLY = GSA_PRODUCTION_ONLY;
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
         
         return uac;
