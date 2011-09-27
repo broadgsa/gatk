@@ -59,7 +59,12 @@
             <dir name="com/sun/jna" />
 
             <!-- Contracts for Java -->
-            <package name="class com.google.java.contract.**" />
+            <package name="com.google.java.contract.**" />
+
+            <!-- snpEff -->
+            <package name="ca.mcgill.mcb.pcingola.**" />
+            <file path="snpEff_genes.ftl" />
+            <file path="snpEff_summary.ftl" />
         </dependencies>
         <modules>
             <module file="GATKEngine.xml"/>

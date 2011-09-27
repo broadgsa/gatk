@@ -35,8 +35,10 @@ import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -57,8 +59,25 @@ public class PluginManager<PluginType> {
         Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Reflections.class);
         logger.setLevel(Level.OFF);
 
+        Set<URL> classPathUrls = new LinkedHashSet<URL>();
+
+        URL cwd;
+        try {
+            cwd = new File(".").getAbsoluteFile().toURI().toURL();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // NOTE: Reflections also scans directories for classes.
+        // Meanwhile some of the jar MANIFEST.MF Bundle-ClassPath properties contain "."
+        // Do NOT let reflections scan the CWD where it often picks up test classes when
+        // they weren't explicitly in the classpath, for example the UninstantiableWalker
+        for (URL url: JVMUtils.getClasspathURLs())
+            if (!url.equals(cwd))
+                classPathUrls.add(url);
+
         defaultReflections = new Reflections( new ConfigurationBuilder()
-            .setUrls(JVMUtils.getClasspathURLs())
+            .setUrls(classPathUrls)
             .setScanners(new SubTypesScanner()));
     }
 

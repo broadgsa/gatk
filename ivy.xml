@@ -46,7 +46,7 @@
     <!-- Lucene core utilities -->
     <dependency org="org.apache.lucene" name="lucene-core" rev="3.0.3"/>
 
-    <!-- Dependencies for LSF library -->
+    <!-- Dependencies for LSF, DRMAA, and other C libraries -->
     <dependency org="net.java.dev.jna" name="jna" rev="3.2.7"/>
 
     <!-- Dependencies for amazon.com S3 support -->
@@ -74,6 +74,9 @@
     <!-- POI, for reading pipeline files -->
     <dependency org="org.apache.poi" name="poi" rev="3.8-beta3" />
     <dependency org="org.apache.poi" name="poi-ooxml" rev="3.8-beta3" />
+
+    <!-- snpEff annotator for pipelines -->
+    <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.2" />
 
     <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
     <exclude org="javax.servlet" />
