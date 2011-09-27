@@ -77,16 +77,15 @@ import java.util.*;
  * <p>
  * A tranches file which shows various metrics of the recalibration callset as a function of making several slices through the data.  
  *
- * <h2>Examples</h2>
+ * <h2>Example</h2>
  * <pre>
  * java -Xmx4g -jar GenomeAnalysisTK.jar \
  *   -T VariantRecalibrator \
  *   -R reference/human_g1k_v37.fasta \
  *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.hg19.subset.vcf \
- *   -truth:prior=15.0 hapmap_3.3.b37.sites.vcf \
- *   -training:prior=15.0 hapmap_3.3.b37.sites.vcf \
- *   -training:prior=12.0 1000G_omni2.5.b37.sites.vcf \
- *   -known:prior=8.0 dbsnp_132.b37.vcf \
+ *   -resource:hapmap,known=false,training=true,truth=true,prior=15.0 hapmap_3.3.b37.sites.vcf \
+ *   -resource:omni,known=false,training=true,truth=false,prior=12.0 1000G_omni2.5.b37.sites.vcf \
+ *   -resource:dbsnp,known=true,training=false,truth=false,prior=8.0 dbsnp_132.b37.vcf \
  *   -an QD -an HaplotypeScore -an MQRankSum -an ReadPosRankSum -an FS -an MQ \
  *   -recalFile path/to/output.recal \
  *   -tranchesFile path/to/output.tranches \
@@ -112,34 +111,11 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     public List<RodBinding<VariantContext>> input;
 
     /**
-     * Input variants which are found to overlap with these training sites are used to build the Gaussian mixture model.
-     */
-    @Input(fullName="training", shortName = "training", doc="A list of training variants used to train the Gaussian mixture model", required=true)
-    public List<RodBinding<VariantContext>> training;
-
-    /**
-     * When deciding where to set the cutoff in VQSLOD sensitivity to these truth sites is used.
-     * Typically one might want to say I dropped my threshold until I got back 99% of HapMap sites, for example.
-     */
-    @Input(fullName="truth", shortName = "truth", doc="A list of true variants to be used when deciding the truth sensitivity cut of the final callset", required=true)
-    public List<RodBinding<VariantContext>> truth;
-
-    /**
-     * The known / novel status of a variant isn't used by the algorithm itself and is only used for reporting / display purposes.
-     * The output metrics are stratified by known status in order to aid in comparisons with other call sets.
-     */
-    @Input(fullName="known", shortName = "known", doc="A list of known variants to be used for metric comparison purposes", required=false)
-    public List<RodBinding<VariantContext>> known = Collections.emptyList();
-
-    /**
-     * In addition to using the worst 3% of variants as compared to the Gaussian mixture model, we can also supplement the list
-     * with a database of known bad variants. Maybe these are loci which are frequently filtered out in many projects (centromere, for example).
-     */
-    @Input(fullName="badSites", shortName = "badSites", doc="A list of known bad variants used to supplement training the negative model", required=false)
-    public List<RodBinding<VariantContext>> badSites = Collections.emptyList();
-
-    /**
-     * Any set of sites for which you would like to apply a prior probability but for which you don't want to use as training, truth, or known sites.
+     * Any set of VCF files to use as lists of training, truth, or known sites.
+     * Training - Input variants which are found to overlap with these training sites are used to build the Gaussian mixture model.
+     * Truth - When deciding where to set the cutoff in VQSLOD sensitivity to these truth sites is used.
+     * Known - The known / novel status of a variant isn't used by the algorithm itself and is only used for reporting / display purposes.
+     * Bad - In addition to using the worst 3% of variants as compared to the Gaussian mixture model, we can also supplement the list with a database of known bad variants.
      */
     @Input(fullName="resource", shortName = "resource", doc="A list of sites for which to apply a prior probability of being correct but which aren't used by the algorithm", required=false)
     public List<RodBinding<VariantContext>> resource = Collections.emptyList();
@@ -179,7 +155,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double[] TS_TRANCHES = new double[] {100.0, 99.9, 99.0, 90.0};
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the variant recalibrator will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-    @Argument(fullName="path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required=false)
+    @Argument(fullName="path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.12.0/bin/Rscript", required=false)
     private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName="rscript_file", shortName="rscriptFile", doc="The output rscript file generated by the VQSR to aid in visualization of the input data and learned model", required=false)
     private String RSCRIPT_FILE = null;
@@ -205,7 +181,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private PrintStream tranchesStream;
     private final Set<String> ignoreInputFilterSet = new TreeSet<String>();
     private final VariantRecalibratorEngine engine = new VariantRecalibratorEngine( VRAC );
-    private final HashMap<String, Double> rodToPriorMap = new HashMap<String, Double>();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -227,18 +202,15 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             throw new UserException.CouldNotCreateOutputFile(TRANCHES_FILE, e);
         }
 
-        final ArrayList<RodBinding<VariantContext>> allInputBindings = new ArrayList<RodBinding<VariantContext>>();
-        allInputBindings.addAll(truth);
-        allInputBindings.addAll(training);
-        allInputBindings.addAll(known);
-        allInputBindings.addAll(badSites);
-        allInputBindings.addAll(resource);
-        for( final RodBinding<VariantContext> rod : allInputBindings ) {
-            try {
-                rodToPriorMap.put(rod.getName(), (rod.getTags().containsKey("prior") ? Double.parseDouble(rod.getTags().getValue("prior")) : 0.0) );
-            } catch( NumberFormatException e ) {
-                throw new UserException.BadInput("Bad rod binding syntax. Prior key-value tag detected but isn't parsable. Expecting something like -training:prior=12.0 my.set.vcf");
-            }
+        for( RodBinding<VariantContext> rod : resource ) {
+            dataManager.addTrainingSet( new TrainingSet( rod ) );
+        }
+
+        if( !dataManager.checkHasTrainingSet() ) {
+            throw new UserException.CommandLineException( "No training set found! Please provide sets of known polymorphic loci marked with the training=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
+        }
+        if( !dataManager.checkHasTruthSet() ) {
+            throw new UserException.CommandLineException( "No truth set found! Please provide sets of known polymorphic loci marked with the truth=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
         }
     }
 
@@ -270,7 +242,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
 
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
-                    dataManager.parseTrainingSets( tracker, context.getLocation(), vc, datum, TRUST_ALL_POLYMORPHIC, rodToPriorMap, training, truth, known, badSites, resource ); // BUGBUG: need to clean this up to be a class, not a list of all the rod bindings
+                    dataManager.parseTrainingSets( tracker, context.getLocation(), vc, datum, TRUST_ALL_POLYMORPHIC );
                     double priorFactor = QualityUtils.qualToProb( datum.prior );
                     //if( PERFORM_PROJECT_CONSENSUS ) { // BUGBUG: need to resurrect this functionality?
                     //    final double consensusPrior = QualityUtils.qualToProb( 1.0 + 5.0 * datum.consensusCount );

@@ -15,8 +15,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
-
+/**
+ * SB annotation value by depth of alt containing samples
+ */
 public class SBByDepth extends AnnotationByDepth {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
@@ -26,7 +27,7 @@ public class SBByDepth extends AnnotationByDepth {
         if (!vc.hasAttribute(VCFConstants.STRAND_BIAS_KEY))
             return null;
 
-        double sBias = Double.valueOf(vc.getAttributeAsString(VCFConstants.STRAND_BIAS_KEY));
+        double sBias = vc.getAttributeAsDouble(VCFConstants.STRAND_BIAS_KEY, -1);
 
         final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )

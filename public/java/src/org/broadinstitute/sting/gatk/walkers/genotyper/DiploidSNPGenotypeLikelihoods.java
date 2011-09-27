@@ -30,7 +30,6 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.FragmentPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -276,8 +275,11 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         if ( elt.isReducedRead() ) {
             // reduced read representation
             byte qual = elt.getReducedQual();
-            add(obsBase, qual, (byte)0, (byte)0, elt.getReducedCount()); // fast calculation of n identical likelihoods
-            return elt.getReducedCount(); // we added nObs bases here
+            if ( BaseUtils.isRegularBase( elt.getBase() )) {
+                add(obsBase, qual, (byte)0, (byte)0, elt.getReducedCount()); // fast calculation of n identical likelihoods
+                return elt.getReducedCount(); // we added nObs bases here
+            } else // odd bases or deletions => don't use them
+                return 0;
         } else {
             byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
             return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0, 1) : 0;

@@ -233,7 +233,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if (minimumN > 1 && (vcs.size() - numFilteredRecords < minimumN))
             return 0;
-        
+
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
         Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
         // iterate over the types so that it's deterministic
@@ -244,7 +244,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                         SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
 
-        for ( VariantContext mergedVC : mergedVCs ) {
+         for ( VariantContext mergedVC : mergedVCs ) {
             // only operate at the start of events
             if ( mergedVC == null )
                 continue;

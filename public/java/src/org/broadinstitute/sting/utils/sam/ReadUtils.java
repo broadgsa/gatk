@@ -43,10 +43,43 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
-    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
-
     private ReadUtils() { }
 
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // Reduced read utilities
+    //
+    // ----------------------------------------------------------------------------------------------------
+
+    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
+
+    public final static Integer getReducedReadQualityTagValue(final SAMRecord read) {
+        return read.getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+    }
+
+    public final static boolean isReducedRead(final SAMRecord read) {
+        return getReducedReadQualityTagValue(read) != null;
+    }
+
+    public final static SAMRecord reducedReadWithReducedQuals(final SAMRecord read) {
+        if ( ! isReducedRead(read) ) throw new IllegalArgumentException("read must be a reduced read");
+        try {
+            SAMRecord newRead = (SAMRecord)read.clone();
+            byte reducedQual = (byte)(int)getReducedReadQualityTagValue(read);
+            byte[] newQuals = new byte[read.getBaseQualities().length];
+            Arrays.fill(newQuals, reducedQual);
+            newRead.setBaseQualities(newQuals);
+            return newRead;
+        } catch ( CloneNotSupportedException e ) {
+            throw new ReviewedStingException("SAMRecord no longer supports clone", e);
+        }
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // General utilities
+    //
+    // ----------------------------------------------------------------------------------------------------
     public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
         SAMFileHeader copy = new SAMFileHeader();
 
@@ -118,37 +151,46 @@ public class ReadUtils {
     /**
      * This enum represents all the different ways in which a read can overlap an interval.
      *
-     * NO_OVERLAP:
+     * NO_OVERLAP_CONTIG:
+     * read and interval are in different contigs.
+     *
+     * NO_OVERLAP_LEFT:
+     * the read does not overlap the interval.
+     *
+     *                        |----------------| (interval)
+     *   <---------------->                      (read)
+     *
+     * NO_OVERLAP_RIGHT:
      * the read does not overlap the interval.
      *
      *   |----------------|                      (interval)
      *                        <----------------> (read)
      *
-     * LEFT_OVERLAP:
+     * OVERLAP_LEFT:
      * the read starts before the beginning of the interval but ends inside of it
      *
      *          |----------------| (interval)
      *   <---------------->        (read)
      *
-     * RIGHT_OVERLAP:
+     * OVERLAP_RIGHT:
      * the read starts inside the interval but ends outside of it
      *
      *   |----------------|     (interval)
      *       <----------------> (read)
      *
-     * FULL_OVERLAP:
+     * OVERLAP_LEFT_AND_RIGHT:
      * the read starts before the interval and ends after the interval
      *
      *      |-----------|     (interval)
      *  <-------------------> (read)
      *
-     * CONTAINED:
+     * OVERLAP_CONTAINED:
      * the read starts and ends inside the interval
      *
      *  |----------------|     (interval)
      *     <-------->          (read)
      */
-    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
+    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -631,34 +673,42 @@ public class ReadUtils {
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
 
-        int start = getRefCoordSoftUnclippedStart(read);
-        int stop = getRefCoordSoftUnclippedEnd(read);
+        int sStart = getRefCoordSoftUnclippedStart(read);
+        int sStop = getRefCoordSoftUnclippedEnd(read);
+        int uStart = read.getUnclippedStart();
+        int uStop = read.getUnclippedEnd();
 
         if ( !read.getReferenceName().equals(interval.getContig()) )
             return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
 
-        else if  ( stop < interval.getStart() )
+        else if ( uStop < interval.getStart() )
             return ReadAndIntervalOverlap.NO_OVERLAP_LEFT;
 
-        else if ( start > interval.getStop() )
+        else if ( uStart > interval.getStop() )
             return ReadAndIntervalOverlap.NO_OVERLAP_RIGHT;
 
-        else if ( (start >= interval.getStart()) &&
-                  (stop <= interval.getStop()) )
+        else if ( sStop < interval.getStart() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_LEFT;
+
+        else if ( sStart > interval.getStop() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_RIGHT;
+
+        else if ( (sStart >= interval.getStart()) &&
+                  (sStop <= interval.getStop()) )
             return ReadAndIntervalOverlap.OVERLAP_CONTAINED;
 
-        else if ( (start < interval.getStart()) &&
-                  (stop > interval.getStop()) )
+        else if ( (sStart < interval.getStart()) &&
+                  (sStop > interval.getStop()) )
             return ReadAndIntervalOverlap.OVERLAP_LEFT_AND_RIGHT;
 
-        else if ( (start < interval.getStart()) )
+        else if ( (sStart < interval.getStart()) )
             return ReadAndIntervalOverlap.OVERLAP_LEFT;
 
         else
             return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
 
-    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd()"})
+    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedStart(SAMRecord read) {
         int start = read.getUnclippedStart();
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
@@ -670,9 +720,13 @@ public class ReadUtils {
         return start;
     }
 
-    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd()"})
+    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
         int stop = read.getUnclippedStart();
+
+        if (readIsEntirelyInsertion(read))
+            return stop;
+
         int shift = 0;
         CigarOperator lastOperator = null;
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
@@ -684,6 +738,14 @@ public class ReadUtils {
                 shift = 0;
         }
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    }
+
+    private static boolean readIsEntirelyInsertion(SAMRecord read) {
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() != CigarOperator.INSERTION)
+                return false;
+        }
+        return true;
     }
 
     /**
@@ -766,5 +828,47 @@ public class ReadUtils {
         return readBases;
     }
 
+    public static SAMRecord unclipSoftClippedBases(SAMRecord rec) {
+        int newReadStart = rec.getAlignmentStart();
+        int newReadEnd = rec.getAlignmentEnd();
+        List<CigarElement> newCigarElements = new ArrayList<CigarElement>(rec.getCigar().getCigarElements().size());
+        int heldOver = -1;
+        boolean sSeen = false;
+        for ( CigarElement e : rec.getCigar().getCigarElements() ) {
+            if ( e.getOperator().equals(CigarOperator.S) ) {
+                newCigarElements.add(new CigarElement(e.getLength(),CigarOperator.M));
+                if ( sSeen ) {
+                    newReadEnd += e.getLength();
+                    sSeen = true;
+                } else {
+                    newReadStart -= e.getLength();
+                }
+            } else {
+                newCigarElements.add(e);
+            }
+        }
+        // merge duplicate operators together
+        int idx = 0;
+        List<CigarElement> finalCigarElements = new ArrayList<CigarElement>(rec.getCigar().getCigarElements().size());
+        while ( idx < newCigarElements.size() -1 ) {
+            if ( newCigarElements.get(idx).getOperator().equals(newCigarElements.get(idx+1).getOperator()) ) {
+                int combSize = newCigarElements.get(idx).getLength();
+                int offset = 0;
+                while (  idx + offset < newCigarElements.size()-1 && newCigarElements.get(idx+offset).getOperator().equals(newCigarElements.get(idx+1+offset).getOperator()) ) {
+                    combSize += newCigarElements.get(idx+offset+1).getLength();
+                    offset++;
+                }
+                finalCigarElements.add(new CigarElement(combSize,newCigarElements.get(idx).getOperator()));
+                idx = idx + offset -1;
+            } else {
+                finalCigarElements.add(newCigarElements.get(idx));
+            }
+            idx++;
+        }
 
+        rec.setCigar(new Cigar(finalCigarElements));
+        rec.setAlignmentStart(newReadStart);
+
+        return rec;
+    }
 }

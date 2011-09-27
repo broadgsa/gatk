@@ -34,6 +34,7 @@ import java.io.File;
 import java.util.*;
 
 public class JnaSessionIntegrationTest extends BaseTest {
+    private String implementation = null;
     private static final SessionFactory factory = new JnaSessionFactory();
 
     @Test
@@ -44,10 +45,23 @@ public class JnaSessionIntegrationTest extends BaseTest {
         System.out.println(String.format("DRMAA contact(s): %s", session.getContact()));
         System.out.println(String.format("DRM system(s): %s", session.getDrmSystem()));
         System.out.println(String.format("DRMAA implementation(s): %s", session.getDrmaaImplementation()));
+        this.implementation = session.getDrmaaImplementation();
     }
 
-    @Test
+    @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
+        if (implementation.contains("LSF")) {
+            System.err.println("    ***********************************************************");
+            System.err.println("   *************************************************************");
+            System.err.println("   ****                                                     ****");
+            System.err.println("  ****  Skipping JnaSessionIntegrationTest.testSubmitEcho()  ****");
+            System.err.println("  ****      Are you using the dotkit .combined_LSF_SGE?      ****");
+            System.err.println("   ****                                                     ****");
+            System.err.println("   *************************************************************");
+            System.err.println("    ***********************************************************");
+            return;
+        }
+
         File outFile = createNetworkTempFile("JnaSessionIntegrationTest-", ".out");
         Session session = factory.getSession();
         session.init(null);

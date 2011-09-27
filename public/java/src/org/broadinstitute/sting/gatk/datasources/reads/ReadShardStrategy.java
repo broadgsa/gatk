@@ -134,24 +134,11 @@ public class ReadShardStrategy implements ShardStrategy {
             Map<SAMReaderID,SAMFileSpan> selectedReaders = new HashMap<SAMReaderID,SAMFileSpan>();
             while(selectedReaders.size() == 0 && currentFilePointer != null) {
                 shardPosition = currentFilePointer.fileSpans;
+
                 for(SAMReaderID id: shardPosition.keySet()) {
-                    // If the region contains location information (in other words, it is not at
-                    // the start of the unmapped region), add the region.
-                    if(currentFilePointer.isRegionUnmapped) {
-                        // If the region is unmapped and no location data exists, add a null as an indicator to
-                        // start at the next unmapped region.
-                        if(!isIntoUnmappedRegion) {
-                            selectedReaders.put(id,null);
-                            isIntoUnmappedRegion = true;
-                        }
-                        else
-                            selectedReaders.put(id,position.get(id));
-                    }
-                    else {
-                        SAMFileSpan fileSpan = shardPosition.get(id).removeContentsBefore(position.get(id));
-                        if(!fileSpan.isEmpty())
-                            selectedReaders.put(id,fileSpan);
-                    }
+                    SAMFileSpan fileSpan = shardPosition.get(id).removeContentsBefore(position.get(id));
+                    if(!fileSpan.isEmpty())
+                        selectedReaders.put(id,fileSpan);
                 }
 
                 if(selectedReaders.size() > 0) {

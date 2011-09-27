@@ -24,12 +24,14 @@
 
 package org.broadinstitute.sting.gatk.report;
 
+import org.broadinstitute.sting.utils.collections.Pair;
+
 import java.util.*;
 
 /**
  * Tracks a linked list of GATKReportColumn in order by name.
  */
-public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> {
+public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> implements Iterable<GATKReportColumn> {
     private List<String> columnNames = new ArrayList<String>();
 
     /**
@@ -51,5 +53,15 @@ public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> {
     public GATKReportColumn put(String key, GATKReportColumn value) {
         columnNames.add(key);
         return super.put(key, value);
+    }
+
+    @Override
+    public Iterator<GATKReportColumn> iterator() {
+        return new Iterator<GATKReportColumn>() {
+            int offset = 0;
+            public boolean hasNext() { return offset < columnNames.size() ; }
+            public GATKReportColumn next() { return getByIndex(offset++); }
+            public void remove() { throw new UnsupportedOperationException("Cannot remove from a GATKReportColumn iterator"); }
+        };
     }
 }

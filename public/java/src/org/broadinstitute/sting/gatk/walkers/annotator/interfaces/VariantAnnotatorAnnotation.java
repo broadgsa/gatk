@@ -24,18 +24,18 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 @DocumentedGATKFeature(enable = true, groupName = "VariantAnnotator annotations", summary = "VariantAnnotator annotations")
 public abstract class VariantAnnotatorAnnotation {
     // return the INFO keys
     public abstract List<String> getKeyNames();
+
+    // initialization method (optional for subclasses, and therefore non-abstract)
+    public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) { }
 }

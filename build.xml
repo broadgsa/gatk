@@ -163,6 +163,14 @@
       <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
       <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
       <delete file="${ivy.jar.dir}/ivy-2.2.0-rc1.jar"/>
+      <!--
+         An old versions of the ivy-1.4.1.xml does not contain /ivy-module/configuration/conf/@name="compile".
+         Easier to upgrade to 1.4.4 than try to deal with xmlproperty and conditional deletion in ant.
+         Just in case we remove explicit 1.4.4 and go back to 1.4.1, try to clean out the file for now.
+        -->
+      <delete file="${ivy.home}/cache/javax.mail/mail/ivy-1.4.1.xml"/>
+      <delete file="${ivy.home}/cache/javax.mail/mail/ivydata-1.4.1.properties"/>
+      <delete file="${ivy.home}/cache/javax.mail/mail/jars/mail-1.4.1.jar"/>
     </target>
 
     <target name="init.buildall">
@@ -709,53 +717,6 @@
         </antcall>
     </target>
 
-    <target name="test.init.compile">
-        <mkdir dir="${java.test.classes}"/>
-        <mkdir dir="${scala.test.classes}"/>
-        <antcall target="resolve">
-          <param name="ivy.conf" value="test"/>
-        </antcall>            
-    </target>
-
-    <target name="test.java.compile" depends="init.buildall,dist,test.init.compile">
-        <echo message="Sting: Compiling test cases!"/>
-        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
-            <src path="${java.public.test.sources}"/>
-            <src path="${java.private.test.sources}"/>
-            <classpath>
-                <path refid="external.dependencies" />
-                <pathelement location="${java.classes}"/>
-                <pathelement location="${java.contracts}"/>
-                <pathelement location="${lib.dir}/testng-5.14.1.jar"/>
-            </classpath>
-            <compilerarg value="-proc:none"/>
-<!-- 
-            <compilerarg value="-Acom.google.java.contract.debug"/>
-            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
- -->
-        </javac>
-    </target>
-
-    <target name="test.scala.compile" depends="test.java.compile,scala.compile" if="scala.include">
-        <echo message="Scala: Compiling test cases!"/>
-        <antcall target="resolve">
-          <param name="ivy.conf" value="test"/>
-        </antcall>          
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
-	        <src path="${scala.public.test.sources}" />
-	        <src path="${scala.private.test.sources}" />
-            <include name="**/*.scala"/>
-            <classpath>
-                <path refid="scala.dependencies"/>
-                <pathelement location="${scala.test.classes}"/>
-                <pathelement location="${java.test.classes}"/>
-                <pathelement location="${lib.dir}/testng-5.14.1.jar"/>
-            </classpath>
-        </scalac>
-    </target>
-
-    <target name="test.compile" depends="init.usecontracts,test.java.compile,test.scala.compile" />
-
     <!-- new scala target -->
     
     <target name="scala" description="build the scala directory">
@@ -769,20 +730,113 @@
     <!-- ***************************************************************************** -->
     <!-- where to put reports and tests-->
     <property name="report" value="${build.dir}/report"/>
-    <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
-    <property name="java.public.test.sources" value="public/java/test"/>
-    <property name="java.private.test.sources" value="private/java/test"/>
+    <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
+    <property name="java.public.test.classes" value="${java.test.classes}/public"/>
+    <property name="java.private.test.classes" value="${java.test.classes}/private"/>
+    <property name="java.public.test.sources" value="${public.dir}/java/test"/>
+    <property name="java.private.test.sources" value="${private.dir}/java/test"/>
     <property name="scala.test.classes" value="${build.dir}/scala/testclasses"/>
-    <property name="scala.public.test.sources" value="public/scala/test"/>
-    <property name="scala.private.test.sources" value="private/scala/test"/>
+    <property name="scala.public.test.classes" value="${scala.test.classes}/public"/>
+    <property name="scala.private.test.classes" value="${scala.test.classes}/private"/>
+    <property name="scala.public.test.sources" value="${public.dir}/scala/test"/>
+    <property name="scala.private.test.sources" value="${private.dir}/scala/test"/>
+    <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
     <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
     <property name="test.maxmemory" value="4g"/>
+
+    <target name="test.init.compile">
+        <mkdir dir="${java.test.classes}"/>
+        <mkdir dir="${scala.test.classes}"/>
+        <antcall target="resolve">
+          <param name="ivy.conf" value="test"/>
+        </antcall>
+    </target>
+
+   <target name="test.java.public.compile" depends="dist,test.init.compile">
+        <mkdir dir="${java.public.test.classes}"/>
+        <echo message="Sting: Compiling public test cases!"/>
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.public.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
+            <src path="${java.public.test.sources}"/>
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement location="${java.classes}"/>
+                <pathelement location="${java.contracts}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+            <compilerarg value="-proc:none"/>
+<!--
+            <compilerarg value="-Acom.google.java.contract.debug"/>
+            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+ -->
+        </javac>
+    </target>
+
+    <target name="test.java.private.compile" depends="dist,test.init.compile,test.java.public.compile" if="include.private">
+        <mkdir dir="${java.private.test.classes}"/>
+        <echo message="Sting: Compiling private test cases!"/>
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.private.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
+            <src path="${java.private.test.sources}"/>
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement location="${java.public.test.classes}"/>
+                <pathelement location="${java.classes}"/>
+                <pathelement location="${java.contracts}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+            <compilerarg value="-proc:none"/>
+<!--
+            <compilerarg value="-Acom.google.java.contract.debug"/>
+            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+ -->
+        </javac>
+    </target>
+
+    <target name="test.java.compile" depends="test.java.public.compile, test.java.private.compile"/>
+
+    <target name="test.scala.public.compile" depends="test.java.compile,scala.compile" if="scala.include">
+        <mkdir dir="${scala.public.test.classes}"/>
+        <echo message="Scala: Compiling public test cases!"/>
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.public.test.classes}" deprecation="yes" unchecked="yes">
+	        <src path="${scala.public.test.sources}" />
+            <classpath>
+                <path refid="scala.dependencies"/>
+                <pathelement location="${java.public.test.classes}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+        </scalac>
+    </target>
+
+    <target name="test.scala.private.compile" depends="test.java.compile,scala.compile,test.scala.public.compile" if="include.scala.private">
+        <mkdir dir="${scala.private.test.classes}"/>
+        <echo message="Scala: Compiling private test cases!"/>
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.private.test.classes}" deprecation="yes" unchecked="yes">
+	        <src path="${scala.private.test.sources}" />
+            <classpath>
+                <path refid="scala.dependencies"/>
+                <pathelement location="${scala.public.test.classes}"/>
+                <pathelement location="${java.public.test.classes}"/>
+                <pathelement location="${java.private.test.classes}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+        </scalac>
+    </target>
+
+    <target name="test.scala.compile" depends="test.scala.public.compile,test.scala.private.compile"/>
+
+    <target name="test.compile" depends="init.usecontracts,test.java.compile,test.scala.compile" />
 
     <!-- TEST -->
     <macrodef name="run-test">
         <attribute name="testtype"/>
+        <attribute name="outputdir"/>
+        <attribute name="runfailed"/>
+
         <sequential>
+            <condition property="run.failed.tests">
+                <equals arg1="@{runfailed}" arg2="true"/>
+            </condition>
+
             <!-- Get the pipeline run type.  Default to dry.  -->
             <condition property="pipeline.run" value="dry" else="${pipeline.run}">
                 <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
@@ -792,10 +846,10 @@
                 <isset property="include.contracts" />
             </condition>
 
-            <mkdir dir="${report}/@{testtype}"/>
+            <mkdir dir="@{outputdir}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
-            <taskdef resource="testngtasks" classpath="${lib.dir}/testng-5.14.1.jar"/>
-            <testng outputDir="${report}/@{testtype}"
+            <taskdef resource="testngtasks" classpath="${testng.jar}"/>
+            <testng outputDir="@{outputdir}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
                     workingDir="${basedir}"
@@ -813,117 +867,108 @@
                     <pathelement location="${java.classes}" />
                     <pathelement location="${scala.classes}" />
                     <pathelement location="${java.contracts}" />
-                    <pathelement location="${java.test.classes}" />
-                    <pathelement location="${scala.test.classes}" />
+                    <pathelement location="${java.public.test.classes}" />
+                    <pathelement location="${java.private.test.classes}" />
+                    <pathelement location="${scala.public.test.classes}" />
+                    <pathelement location="${scala.private.test.classes}" />
                 </classpath>
 
-                <classfileset dir="${java.test.classes}" includes="**/@{testtype}.class"/>
-                <classfileset dir="${scala.test.classes}" includes="**/@{testtype}*.class" />
+                <classfileset dir="${java.public.test.classes}" includes="**/@{testtype}.class"/>
+                <classfileset dir="${java.private.test.classes}" erroronmissingdir="false">
+                    <include name="**/@{testtype}.class" if="include.private"/>
+                </classfileset>
+                <classfileset dir="${scala.public.test.classes}" erroronmissingdir="false">
+                    <include name="**/@{testtype}*.class" if="scala.include"/>
+                </classfileset>
+                <classfileset dir="${scala.private.test.classes}" erroronmissingdir="false">
+                    <include name="**/@{testtype}*.class" if="include.scala.private"/>
+                </classfileset>
+
+                <xmlfileset dir="${basedir}">
+                    <include name="@{testtype}" if="run.failed.tests"/>
+                </xmlfileset>
             </testng>
 
             <!-- generate a report for Bamboo or Hudson to read in -->
-            <junitreport todir="${report}/@{testtype}">
-                <fileset dir="${report}/@{testtype}">
+            <junitreport todir="@{outputdir}">
+                <fileset dir="@{outputdir}">
                     <include name="*/*.xml"/>
                 </fileset>
-                <report format="noframes" todir="${report}/@{testtype}"/>
+                <report format="noframes" todir="@{outputdir}"/>
             </junitreport>
-            <fail message="test failed" if="test.failure" />
-        </sequential>
-    </macrodef>
-
-    <!-- FAILED-TEST -->
-    <macrodef name="run-failed-test">
-        <attribute name="xmlfailedtestfile" />
-        <sequential>
-            <!-- Get the pipeline run type.  Default to dry.  -->
-            <condition property="pipeline.run" value="dry" else="${pipeline.run}">
-                <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
-            </condition>
-
-            <condition property="cofoja.jvm.args" value="-javaagent:${cofoja.jar} -Dcom.google.java.contract.log.contract=false" else="">
-                <isset property="include.contracts" />
-            </condition>
-
-            <mkdir dir="${report}/failed_rerun" />
-            <echo message="Sting: Running @{xmlfailedtestfile} test cases!"/>
-            <taskdef resource="testngtasks" classpath="${lib.dir}/testng-5.14.1.jar"/>
-            <testng outputDir="${report}/failed_rerun"
-                    haltOnFailure="false" failureProperty="test.failure"
-                    verbose="2"
-                    workingDir="${basedir}"
-                    useDefaultListeners="false"
-                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter">
-                <jvmarg value="-Xmx${test.maxmemory}" />
-                <jvmarg value="-Djava.awt.headless=true" />
-                <jvmarg value="-Dpipeline.run=${pipeline.run}" />
-                <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-                <jvmarg line="${cofoja.jvm.args}"/>
-<!--                 <jvmarg value="-Xdebug"/> -->
-<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
-                <classpath>
-                    <path refid="external.dependencies" />
-                    <pathelement location="${java.classes}" />
-                    <pathelement location="${scala.classes}" />
-                    <pathelement location="${java.contracts}" />
-                    <pathelement location="${java.test.classes}" />
-                    <pathelement location="${scala.test.classes}" />
-                </classpath>
-
-                <xmlfileset dir="${basedir}" includes="@{xmlfailedtestfile}" />
-            </testng>
 
             <fail message="test failed" if="test.failure" />
         </sequential>
     </macrodef>
 
-    <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
-    <target name="test" depends="test.compile" description="Run unit tests">
+    <target name="alltests">
+        <antcall target="test" inheritAll="false"/>
+        <antcall target="integrationtest" inheritAll="false"/>
+        <antcall target="pipelinetest" inheritAll="false"/>
+    </target>
+
+    <target name="alltests.public">
+        <antcall target="test.public" inheritAll="false"/>
+        <antcall target="integrationtest.public" inheritAll="false"/>
+        <antcall target="pipelinetest.public" inheritAll="false"/>
+    </target>
+
+    <!-- Our four different test conditions: Test, IntegrationTest, PerformanceTest, PipelineTest -->
+    <target name="test" depends="init.buildall,test.compile" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${ttype}"/>
+        <run-test testtype="${ttype}" outputdir="${report}/${ttype}" runfailed="false"/>
     </target>
-    <target name="integrationtest" depends="test.compile" description="Run integration tests">
+    <target name="test.public" depends="init.buildpublic,test"/>
+
+    <target name="integrationtest" depends="init.buildall,test.compile" description="Run integration tests">
         <condition property="itype" value="*IntegrationTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${itype}"/>
+        <run-test testtype="${itype}" outputdir="${report}/${itype}" runfailed="false"/>
     </target>
-    <target name="performancetest" depends="test.compile" description="Run performance tests">
+    <target name="integrationtest.public" depends="init.buildpublic,integrationtest"/>
+
+    <target name="performancetest" depends="init.buildall,test.compile" description="Run performance tests">
        <condition property="ptype" value="*PerformanceTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${ptype}"/>
+        <run-test testtype="${ptype}" outputdir="${report}/${ptype}" runfailed="false"/>
     </target>
-    <target name="pipelinetest" depends="test.compile" description="Run pipeline tests">
+    <target name="performancetest.public" depends="init.buildpublic,performancetest" />
+
+    <target name="pipelinetest" depends="init.buildall,test.compile" description="Run pipeline tests">
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${pipetype}"/>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
     </target>
-    <target name="pipelinetestrun" depends="test.compile" description="Run pipeline tests">
+    <target name="pipelinetest.public" depends="init.buildpublic,pipelinetest" />
+
+    <target name="pipelinetestrun" depends="init.buildall,test.compile" description="Run pipeline tests">
         <property name="pipeline.run" value="run"/>
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${pipetype}"/>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
+    </target>
+    <target name="pipelinetestrun.public" depends="init.buildpublic,pipelinetestrun" />
+
+    <target name="failed-test" depends="init.buildall,test.compile">
+        <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
-    <target name="failed-test" depends="test.compile">
-        <run-failed-test xmlfailedtestfile="${report}/*UnitTest/testng-failed.xml" />
+    <target name="failed-integration" depends="init.buildall,test.compile">
+        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
-    <target name="failed-integration" depends="test.compile">
-        <run-failed-test xmlfailedtestfile="${report}/*IntegrationTest/testng-failed.xml" />
+    <target name="failed-performance" depends="init.buildall,test.compile">
+        <run-test testtype="${report}/*PerformanceTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
-    <target name="failed-performance" depends="test.compile">
-        <run-failed-test xmlfailedtestfile="${report}/*PerformanceTest/testng-failed.xml" />
-    </target>
-
-    <target name="failed-pipeline" depends="test.compile">
-        <run-failed-test xmlfailedtestfile="${report}/*PipelineTest/testng-failed.xml" />
+    <target name="failed-pipeline" depends="init.buildall,test.compile">
+        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
     <!-- ******************************************************************************** -->

@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Fraction of reads containing spanning deletions at this site.
+ */
 public class SpanningDeletions extends InfoFieldAnnotation implements StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

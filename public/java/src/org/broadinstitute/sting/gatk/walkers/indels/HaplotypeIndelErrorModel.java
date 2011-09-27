@@ -26,9 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -73,7 +73,7 @@ public class HaplotypeIndelErrorModel {
         baseMatchArray = new double[MAX_CACHED_QUAL+1];
         baseMismatchArray = new double[MAX_CACHED_QUAL+1];
         for (int k=1; k <= MAX_CACHED_QUAL; k++) {
-            double baseProb = QualityUtils.qualToProb(k);
+            double baseProb = QualityUtils.qualToProb((byte)k);
 
 
             baseMatchArray[k] =  probToQual(baseProb);

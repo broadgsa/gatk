@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -148,6 +149,15 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      */
     public boolean isCompressed() {
         return isCompressed;
+    }
+
+    /**
+     * Gets the master sequence dictionary from the engine associated with this stub
+     * @link GenomeAnalysisEngine.getMasterSequenceDictionary
+     * @return
+     */
+    public SAMSequenceDictionary getMasterSequenceDictionary() {
+        return engine.getMasterSequenceDictionary();
     }
 
     /**

@@ -32,10 +32,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -70,9 +71,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     // gdebug removeme
     // todo -cleanup
-    private HaplotypeIndelErrorModel model;
-    private boolean useOldWrongHorribleHackedUpLikelihoodModel = false;
-//
     private GenomeLoc lastSiteVisited;
     private ArrayList<Allele> alleleList;
 
@@ -83,26 +81,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
-        if (UAC.GSA_PRODUCTION_ONLY == false) {
-            pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                    UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.DO_CONTEXT_DEPENDENT_PENALTIES, UAC.dovit, UAC.GET_GAP_PENALTIES_FROM_DATA, UAC.INDEL_RECAL_FILE);
-            useOldWrongHorribleHackedUpLikelihoodModel = false;
-        }
-        else {
-            useOldWrongHorribleHackedUpLikelihoodModel = true;
-            double INSERTION_START_PROBABILITY = 1e-3;
-
-            double INSERTION_END_PROBABILITY = 0.5;
-
-            double ALPHA_DELETION_PROBABILITY = 1e-3;
-
-
-            model = new HaplotypeIndelErrorModel(3, INSERTION_START_PROBABILITY,
-                    INSERTION_END_PROBABILITY,ALPHA_DELETION_PROBABILITY,UAC.INDEL_HAPLOTYPE_SIZE, false, UAC.OUTPUT_DEBUG_INDEL_INFO);
-        }
-
-        pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                    UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.DO_CONTEXT_DEPENDENT_PENALTIES, UAC.dovit, UAC.GET_GAP_PENALTIES_FROM_DATA, UAC.INDEL_RECAL_FILE);
+        pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,UAC.OUTPUT_DEBUG_INDEL_INFO);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
@@ -321,7 +300,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             haplotypeMap.clear();
 
             if (getAlleleListFromVCF) {
-                 for( final VariantContext vc_input : tracker.getValues(UAC.alleles) ) {
+                 for( final VariantContext vc_input : tracker.getValues(UAC.alleles, loc) ) {
                       if( vc_input != null &&
                               allowableTypes.contains(vc_input.getType()) &&
                               ref.getLocus().getStart() == vc_input.getStart()) {
@@ -382,20 +361,17 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 }
             }
         }
-        int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
-        int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
-        int numPrefBases= ref.getLocus().getStart()-ref.getWindow().getStart()+1;
 
-        if (useOldWrongHorribleHackedUpLikelihoodModel) {
-            numPrefBases = 20;
-            hsize=80;
-        }
+        final int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
+        final int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
+        final int numPrefBases= ref.getLocus().getStart()-ref.getWindow().getStart()+1;
+
         if (DEBUG)
             System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
                     (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
         //System.out.println(eventLength);
-        haplotypeMap = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
-            ref, hsize, numPrefBases);
+        haplotypeMap = Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
+                ref, hsize, numPrefBases);
 
         // For each sample, get genotype likelihoods based on pileup
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
@@ -412,17 +388,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 pileup = context.getBasePileup();
 
             if (pileup != null ) {
-                double[] genotypeLikelihoods;
-                if (useOldWrongHorribleHackedUpLikelihoodModel)
-                   genotypeLikelihoods = model.computeReadHaplotypeLikelihoods( pileup, haplotypeMap);
-                else
-                    genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+                final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
 
-
-
-                // which genotype likelihoods correspond to two most likely alleles? By convention, likelihood vector is ordered as for example
-                // for 3 alleles it's 00 01 11 02 12 22
-                 GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
+                GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
                         alleleList,
                         genotypeLikelihoods,
                         getFilteredDepth(pileup)));
@@ -442,6 +410,18 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     public static HashMap<PileupElement,LinkedHashMap<Allele,Double>> getIndelLikelihoodMap() {
         return indelLikelihoodMap.get();
+    }
+
+    // Overload function in GenotypeLikelihoodsCalculationModel so that, for an indel case, we consider a deletion as part of the pileup,
+    // so that per-sample DP will include deletions covering the event.
+    protected int getFilteredDepth(ReadBackedPileup pileup) {
+        int count = 0;
+        for ( PileupElement p : pileup ) {
+            if (p.isDeletion() || BaseUtils.isRegularBase(p.getBase()) )
+                count++;
+        }
+
+        return count;
     }
 
 }

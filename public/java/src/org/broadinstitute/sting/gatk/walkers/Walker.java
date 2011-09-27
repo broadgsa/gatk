@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -75,6 +76,15 @@ public abstract class Walker<MapType, ReduceType> {
      */
     protected GenomeAnalysisEngine getToolkit() {
         return toolkit;
+    }
+
+    /**
+     * Gets the master sequence dictionary for this walker
+     * @link GenomeAnalysisEngine.getMasterSequenceDictionary
+     * @return
+     */
+    protected SAMSequenceDictionary getMasterSequenceDictionary() {
+        return getToolkit().getMasterSequenceDictionary();
     }
 
     /**

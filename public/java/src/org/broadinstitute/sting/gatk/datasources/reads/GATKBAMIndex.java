@@ -216,6 +216,45 @@ public class GATKBAMIndex {
     }
 
     /**
+     * Use to get close to the unmapped reads at the end of a BAM file.
+     * @return The file offset of the first record in the last linear bin, or -1
+     * if there are no elements in linear bins (i.e. no mapped reads).
+     */
+    public long getStartOfLastLinearBin() {
+        openIndexFile();
+
+        seek(4);
+
+        final int sequenceCount = readInteger();
+        // Because no reads may align to the last sequence in the sequence dictionary,
+        // grab the last element of the linear index for each sequence, and return
+        // the last one from the last sequence that has one.
+        long lastLinearIndexPointer = -1;
+        for (int i = 0; i < sequenceCount; i++) {
+            // System.out.println("# Sequence TID: " + i);
+            final int nBins = readInteger();
+            // System.out.println("# nBins: " + nBins);
+            for (int j1 = 0; j1 < nBins; j1++) {
+                // Skip bin #
+                skipBytes(4);
+                final int nChunks = readInteger();
+                // Skip chunks
+                skipBytes(16 * nChunks);
+            }
+            final int nLinearBins = readInteger();
+            if (nLinearBins > 0) {
+                // Skip to last element of list of linear bins
+                skipBytes(8 * (nLinearBins - 1));
+                lastLinearIndexPointer = readLongs(1)[0];
+            }
+        }
+
+        closeIndexFile();
+
+        return lastLinearIndexPointer;
+    }
+
+    /**
      * Gets the possible number of bins for a given reference sequence.
      * @return How many bins could possibly be used according to this indexing scheme to index a single contig.
      */

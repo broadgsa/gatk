@@ -26,12 +26,29 @@ public class Genotype {
     protected boolean filtersWereAppliedToContext;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
+        this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
+    }
+
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        if ( log10Likelihoods != null )
+            commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
         validate();
+    }
+
+    /**
+     * Creates a new Genotype for sampleName with genotype according to alleles.
+     * @param sampleName
+     * @param alleles
+     * @param negLog10PError the confidence in these alleles
+     * @param log10Likelihoods a log10 likelihoods for each of the genotype combinations possible for alleles, in the standard VCF ordering, or null if not known
+     */
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, double[] log10Likelihoods) {
+        this(sampleName, alleles, negLog10PError, null, null, false, log10Likelihoods);
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError) {
@@ -55,13 +72,6 @@ public class Genotype {
 
     public static Genotype modifyAttributes(Genotype g, Map<String, Object> attributes) {
         return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.isPhased());
-    }
-
-    public static Genotype removePLs(Genotype g) {
-        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
-        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
-        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
     public static Genotype modifyAlleles(Genotype g, List<Allele> alleles) {
@@ -258,7 +268,8 @@ public class Genotype {
      * @param <V> the value type
      * @return a sting, enclosed in {}, with comma seperated key value pairs in order of the keys
      */
-    public static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+    private static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+        // NOTE -- THIS IS COPIED FROM GATK UTILS TO ALLOW US TO KEEP A SEPARATION BETWEEN THE GATK AND VCF CODECS
         List<T> t = new ArrayList<T>(c.keySet());
         Collections.sort(t);
 
@@ -293,17 +304,8 @@ public class Genotype {
         return commonInfo.getAttribute(key, defaultValue); 
     }
 
-    public String getAttributeAsString(String key)                        { return commonInfo.getAttributeAsString(key); }
     public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
-    public int getAttributeAsInt(String key)                              { return commonInfo.getAttributeAsInt(key); }
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
-    public double getAttributeAsDouble(String key)                        { return commonInfo.getAttributeAsDouble(key); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
-    public boolean getAttributeAsBoolean(String key)                        { return commonInfo.getAttributeAsBoolean(key); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
-
-    public Integer getAttributeAsIntegerNoException(String key)  { return commonInfo.getAttributeAsIntegerNoException(key); }
-    public Double getAttributeAsDoubleNoException(String key)    { return commonInfo.getAttributeAsDoubleNoException(key); }
-    public String getAttributeAsStringNoException(String key)    { return commonInfo.getAttributeAsStringNoException(key); }
-    public Boolean getAttributeAsBooleanNoException(String key)  { return commonInfo.getAttributeAsBooleanNoException(key); }
 }

@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.clipreads;
 
 import com.google.java.contract.Requires;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -56,6 +58,15 @@ public class ReadClipper {
         return hardClipByReferenceCoordinates(refStart, -1);
     }
 
+    private int numDeletions(SAMRecord read) {
+        int result = 0;
+        for (CigarElement e: read.getCigar().getCigarElements()) {
+            if ( e.getOperator() == CigarOperator.DELETION || e.getOperator() == CigarOperator.D )
+                result =+ e.getLength();
+        }
+        return result;
+    }
+
     private SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
@@ -63,9 +74,17 @@ public class ReadClipper {
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
-        // TODO add requires statement/check in the Hardclip function
-        if ( start > stop )
-            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
+        if ( start > stop ) {
+//            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
+            throw new ReviewedStingException("START > STOP -- this should never happen -- call Mauricio!");
+        }
+
+        //This tries to fix the bug where the deletion is counted a read base and as a result, the hardCLipper runs into
+        //an endless loop when hard clipping the cigar string because the read coordinates are not covered by the read
+//        stop -= numDeletions(read);
+//        if ( start > stop )
+//            start -= numDeletions(read);
+
 
         //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
@@ -109,6 +128,39 @@ public class ReadClipper {
         return this.clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 
+    public SAMRecord hardClipSoftClippedBases () {
+        int readIndex = 0;
+        int cutLeft = -1;            // first position to hard clip (inclusive)
+        int cutRight = -1;           // first position to hard clip (inclusive)
+        boolean rightTail = false;   // trigger to stop clipping the left tail and start cutting the right tail
+
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.SOFT_CLIP) {
+                if (rightTail) {
+                    cutRight = readIndex;
+                }
+                else {
+                    cutLeft = readIndex + cigarElement.getLength() - 1;
+                }
+            }
+            else if (cigarElement.getOperator() != CigarOperator.HARD_CLIP)
+                rightTail = true;
+
+            if (cigarElement.getOperator().consumesReadBases())
+                readIndex += cigarElement.getLength();
+        }
+
+        // It is extremely important that we cut the end first otherwise the read coordinates change.
+        if (cutRight >= 0)
+            this.addOp(new ClippingOp(cutRight, read.getReadLength() - 1));
+        if (cutLeft >= 0)
+            this.addOp(new ClippingOp(0, cutLeft));
+
+        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
+    }
+
+
+
     /**
      * Return a new read corresponding to this.read that's been clipped according to ops, if any are present.
      *
@@ -130,5 +182,22 @@ public class ReadClipper {
                 throw new RuntimeException(e); // this should never happen
             }
         }
+    }
+
+    public SAMRecord hardClipLeadingInsertions() {
+        for(CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP &&
+                cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.DELETION)
+                break;
+
+            else if (cigarElement.getOperator() == CigarOperator.INSERTION) {
+                this.addOp(new ClippingOp(0, cigarElement.getLength() - 1));
+            }
+
+            else if (cigarElement.getOperator() == CigarOperator.DELETION) {
+                throw new ReviewedStingException("No read should start with a deletion. Aligner bug?");
+            }
+        }
+        return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 }

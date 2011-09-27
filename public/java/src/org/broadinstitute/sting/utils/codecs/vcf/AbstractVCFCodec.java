@@ -6,6 +6,7 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.gatk.refdata.SelfScopingFeatureCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -114,14 +115,20 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                     }
                     arrayIndex++;
                 }
+
+                boolean sawFormatTag = false;
                 if ( arrayIndex < strings.length ) {
                     if ( !strings[arrayIndex].equals("FORMAT") )
                         throw new TribbleException.InvalidHeader("we were expecting column name 'FORMAT' but we saw '" + strings[arrayIndex] + "'");
+                    sawFormatTag = true;
                     arrayIndex++;
                 }
 
-                while (arrayIndex < strings.length)
+                while ( arrayIndex < strings.length )
                     auxTags.add(strings[arrayIndex++]);
+
+                if ( sawFormatTag && auxTags.size() == 0 )
+                    throw new UserException.MalformedVCFHeader("The FORMAT field was provided but there is no genotype/sample data");
 
             } else {
                 if ( str.startsWith("##INFO=") ) {
@@ -199,35 +206,31 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @return a VariantContext
      */
     public Feature decode(String line) {
-        return reallyDecode(line);
-    }
+        // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
+        if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
 
-    private Feature reallyDecode(String line) {
-            // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
-            if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
+        // our header cannot be null, we need the genotype sample names and counts
+        if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
 
-            // our header cannot be null, we need the genotype sample names and counts
-            if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
+        if (parts == null)
+            parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
 
-            if (parts == null)
-                parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
+        int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
-            int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+        // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
+        if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
+             (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
+            throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
+                    " tokens, and saw " + nParts + " )", lineNo);
 
-            // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
-            if (( (header == null || (header != null && !header.hasGenotypingData())) && nParts != NUM_STANDARD_FIELDS) ||
-                 (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
-                throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
-                        " tokens, and saw " + nParts + " )", lineNo);
-
-            return parseVCFLine(parts);
+        return parseVCFLine(parts);
     }
 
     protected void generateException(String message) {
         throw new UserException.MalformedVCF(message, lineNo);
     }
 
-    private static void generateException(String message, int lineNo) {
+    protected static void generateException(String message, int lineNo) {
         throw new UserException.MalformedVCF(message, lineNo);
     }
 
@@ -345,6 +348,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             generateException("The VCF specification requires a valid info field");
 
         if ( !infoField.equals(VCFConstants.EMPTY_INFO_FIELD) ) {
+            if ( infoField.indexOf("\t") != -1 || infoField.indexOf(" ") != -1 )
+                generateException("The VCF specification does not allow for whitespace in the INFO field");
+
             int infoValueSplitSize = ParsingUtils.split(infoField, infoValueArray, VCFConstants.INFO_FIELD_SEPARATOR_CHAR);
             for (int i = 0; i < infoValueSplitSize; i++) {
                 String key;
@@ -587,7 +593,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     public final static boolean canDecodeFile(final File potentialInput, final String MAGIC_HEADER_LINE) {
         try {
             return isVCFStream(new FileInputStream(potentialInput), MAGIC_HEADER_LINE) ||
-                    isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE);
+                    isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE) ||
+                    isVCFStream(new BlockCompressedInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE);
         } catch ( FileNotFoundException e ) {
             return false;
         } catch ( IOException e ) {
@@ -598,12 +605,17 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     private final static boolean isVCFStream(final InputStream stream, final String MAGIC_HEADER_LINE) {
         try {
             byte[] buff = new byte[MAGIC_HEADER_LINE.length()];
-            stream.read(buff, 0, MAGIC_HEADER_LINE.length());
-            String firstLine = new String(buff);
-            stream.close();
-            return firstLine.startsWith(MAGIC_HEADER_LINE);
+            int nread = stream.read(buff, 0, MAGIC_HEADER_LINE.length());
+            boolean eq = Arrays.equals(buff, MAGIC_HEADER_LINE.getBytes());
+            return eq;
+//            String firstLine = new String(buff);
+//            return firstLine.startsWith(MAGIC_HEADER_LINE);
         } catch ( IOException e ) {
             return false;
+        } catch ( RuntimeException e ) {
+            return false;
+        } finally {
+            try { stream.close(); } catch ( IOException e ) {}
         }
     }
 }

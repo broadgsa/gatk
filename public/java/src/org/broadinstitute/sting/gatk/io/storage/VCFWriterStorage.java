@@ -46,7 +46,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
             this.stream = stub.getOutputStream();
-            writer = new StandardVCFWriter(stream, stub.doNotWriteGenotypes());
+            writer = new StandardVCFWriter(stream, stub.getMasterSequenceDictionary(), stub.doNotWriteGenotypes());
         }
         else
             throw new ReviewedStingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
@@ -71,7 +71,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         }
 
         // The GATK/Tribble can't currently index block-compressed files on the fly.  Disable OTF indexing even if the user explicitly asked for it.
-        return new StandardVCFWriter(file, this.stream, indexOnTheFly && !stub.isCompressed(), stub.doNotWriteGenotypes());
+        return new StandardVCFWriter(file, this.stream, stub.getMasterSequenceDictionary(), indexOnTheFly && !stub.isCompressed(), stub.doNotWriteGenotypes());
     }
 
 

@@ -324,6 +324,8 @@ public class ClippingOp {
 
                 if (index <= stop && cigarElementIterator.hasNext())
                     cigarElement = cigarElementIterator.next();
+                else
+                    break;
             }
 
             // add the remaining cigar elements
@@ -363,6 +365,8 @@ public class ClippingOp {
                 index += shift;
                 if (index < start && cigarElementIterator.hasNext())
                     cigarElement = cigarElementIterator.next();
+                else
+                    break;
             }
 
             // check if we are hard clipping indels
@@ -394,7 +398,9 @@ public class ClippingOp {
 
         for (int i = 1; i <= 2; i++) {
             int shift = 0;
+            int totalHardClip = 0;
             boolean readHasStarted = false;
+            boolean addedHardClips = false;
 
             while(!cigarStack.empty()) {
                 CigarElement cigarElement = cigarStack.pop();
@@ -404,14 +410,33 @@ public class ClippingOp {
                         cigarElement.getOperator() != CigarOperator.DELETION &&
                         cigarElement.getOperator() != CigarOperator.HARD_CLIP)
                     readHasStarted = true;
+
+                else if ( !readHasStarted && cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                    totalHardClip += cigarElement.getLength();
+
                 else if ( !readHasStarted && cigarElement.getOperator() == CigarOperator.INSERTION)
                     shift += cigarElement.getLength();
 
-                if (readHasStarted || cigarElement.getOperator() == CigarOperator.HARD_CLIP) {
-                    if (i==1)
+                else if ( !readHasStarted && cigarElement.getOperator() == CigarOperator.DELETION)
+                    totalHardClip += cigarElement.getLength();
+
+                if (readHasStarted) {
+                    if (i==1) {
+                        if (!addedHardClips) {
+                            if (totalHardClip > 0)
+                                inverseCigarStack.push(new CigarElement(totalHardClip, CigarOperator.HARD_CLIP));
+                            addedHardClips = true;
+                        }
                         inverseCigarStack.push(cigarElement);
-                    else
+                    }
+                    else {
+                        if (!addedHardClips) {
+                            if (totalHardClip > 0)
+                                cleanCigar.add(new CigarElement(totalHardClip, CigarOperator.HARD_CLIP));
+                            addedHardClips = true;
+                        }
                         cleanCigar.add(cigarElement);
+                    }
                 }
             }
             // first pass  (i=1) is from end to start of the cigar elements
@@ -428,39 +453,35 @@ public class ClippingOp {
     }
 
     private int calculateAlignmentStartShift(Cigar oldCigar, Cigar newCigar) {
-        int shift = 0;
+        int newShift = 0;
+        int oldShift = 0;
 
-        // Rewind to previous start (by counting everything that was already clipped in this read)
-        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
-            if (!cigarElement.getOperator().consumesReferenceBases())
-                shift -= cigarElement.getLength();
-            else
-                break;
-        }
-
-        // Advance to new start (by counting everything new that has been clipped )
         for (CigarElement cigarElement : newCigar.getCigarElements()) {
-            if (!cigarElement.getOperator().consumesReferenceBases())
-                shift += cigarElement.getLength();
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
+                newShift += cigarElement.getLength();
             else
                 break;
         }
 
-        return shift;
+        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP )
+                oldShift += Math.min(cigarElement.getLength(), newShift - oldShift);
+            else
+                break;
+        }
+        return newShift - oldShift;
     }
 
     private int calculateHardClippingAlignmentShift(CigarElement cigarElement, int clippedLength) {
-        if (cigarElement.getOperator() == CigarOperator.INSERTION) {
-            int cigarElementLength = cigarElement.getLength();
-            if (clippedLength >= cigarElementLength)
-                return -cigarElement.getLength();
-            else
-                return -clippedLength;
-        }
+        // Insertions should be discounted from the total hard clip count
+        if (cigarElement.getOperator() == CigarOperator.INSERTION)
+            return -clippedLength;
 
-        if (cigarElement.getOperator() == CigarOperator.DELETION)
+        // Deletions should be added to the total hard clip count
+        else if (cigarElement.getOperator() == CigarOperator.DELETION)
             return cigarElement.getLength();
 
+        // There is no shift if we are not clipping an indel
         return 0;
     }
 

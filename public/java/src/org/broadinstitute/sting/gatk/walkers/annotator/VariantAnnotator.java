@@ -40,7 +40,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.snpEff.SnpEffFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -86,14 +85,15 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    public RodBinding<VariantContext> getVariantRodBinding() { return variantCollection.variants; }
 
     /**
      * The INFO field will be annotated with information on the most biologically-significant effect
      * listed in the SnpEff output file for each variant.
      */
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
-    public RodBinding<SnpEffFeature> snpEffFile;
-    public RodBinding<SnpEffFeature> getSnpEffRodBinding() { return snpEffFile; }
+    public RodBinding<VariantContext> snpEffFile;
+    public RodBinding<VariantContext> getSnpEffRodBinding() { return snpEffFile; }
 
     /**
       * rsIDs from this file are used to populate the ID column of the output.  Also, the DB INFO flag will be set when appropriate.
@@ -162,6 +162,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
 
+    @Argument(fullName="family_string",shortName="family",required=false,doc="A family string of the form mom+dad=child for use with the mendelian violation ratio annotation")
+    public String familyStr = null;
+
+    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality treshold in order to annotate mendelian violation ratio")
+    public double minGenotypeQualityP = 0.0;
+
     private VariantAnnotatorEngine engine;
 
     private Collection<VariantContext> indelBufferContext;
@@ -203,9 +209,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         }
 
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(this);
+            engine = new VariantAnnotatorEngine(this, getToolkit());
         else
-            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this);
+            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
 
         // setup the header fields
@@ -216,6 +222,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
+
+        engine.invokeAnnotationInitializationMethods(hInfo);
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);

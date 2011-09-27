@@ -5,6 +5,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 // the imports for unit testing.
 
 
+import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
@@ -14,10 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 
 
-/**
- * Basic unit test for RecalData
- */
-public class VariantContextUnitTest {
+public class VariantContextUnitTest extends BaseTest {
     Allele A, Aref, T, Tref;
     Allele del, delRef, ATC, ATCref;
 

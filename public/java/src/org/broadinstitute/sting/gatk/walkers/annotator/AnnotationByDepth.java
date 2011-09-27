@@ -6,8 +6,9 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 
 import java.util.Map;
 
-
-
+/**
+ * Abstract base class for all annotations that are normalized by depth
+ */
 public abstract class AnnotationByDepth extends InfoFieldAnnotation {
 
 

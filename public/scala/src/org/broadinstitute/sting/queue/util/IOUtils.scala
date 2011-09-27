@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.util
 import org.apache.commons.io.FileUtils
 import java.io.{FileReader, File}
 import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.sting.queue.QException
 
 /**
  * A collection of utilities for modifying java.io.
@@ -12,7 +13,7 @@ object IOUtils extends Logging {
    * Checks if the temp directory has been setup and throws an exception if they user hasn't set it correctly.
    * @param tempDir Temporary directory.
    */
-  def checkTempDir(tempDir: File) = {
+  def checkTempDir(tempDir: File) {
     val tempDirPath = tempDir.getAbsolutePath
     // Keeps the user from leaving the temp directory as the default, and on Macs from having pluses
     // in the path which can cause problems with the Google Reflections library.
@@ -20,7 +21,7 @@ object IOUtils extends Logging {
     if (tempDirPath.startsWith("/var/folders/") || (tempDirPath == "/tmp") || (tempDirPath == "/tmp/"))
       throw new UserException.BadTmpDir("java.io.tmpdir must be explicitly set")
     if (!tempDir.exists && !tempDir.mkdirs)
-      throw new UserException.BadTmpDir("Could not create directory: " + tempDir.getAbsolutePath())
+      throw new UserException.BadTmpDir("Could not create directory: " + tempDir.getAbsolutePath)
   }
 
   /**
@@ -35,9 +36,9 @@ object IOUtils extends Logging {
        throw new UserException.BadTmpDir("Could not create temp directory: " + tempDirParent)
     val temp = File.createTempFile(prefix + "-", suffix, tempDirParent)
     if (!temp.delete)
-      throw new UserException.BadTmpDir("Could not delete sub file: " + temp.getAbsolutePath())
+      throw new UserException.BadTmpDir("Could not delete sub file: " + temp.getAbsolutePath)
     if (!temp.mkdir)
-      throw new UserException.BadTmpDir("Could not create sub directory: " + temp.getAbsolutePath())
+      throw new UserException.BadTmpDir("Could not create sub directory: " + temp.getAbsolutePath)
     absolute(temp)
   }
 
@@ -46,7 +47,7 @@ object IOUtils extends Logging {
    * @param file File to write to.
    * @param content Content to write.
    */
-  def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
+  def writeContents(file: File, content: String) { FileUtils.writeStringToFile(file, content) }
 
   /**
    * Reads content of a file into a string.
@@ -146,10 +147,12 @@ object IOUtils extends Logging {
    * @return The absolute path to the file in the parent dir if the path was not absolute, otherwise the original path.
    */
   def absolute(parent: File, file: File): File = {
-    if (file.isAbsolute)
-      absolute(file)
-    else
-      absolute(new File(parent, file.getPath))
+    val newPath =
+      if (file.isAbsolute)
+        absolutePath(file)
+      else
+        absolutePath(new File(parent, file.getPath))
+    replacePath(file, newPath)
   }
 
   /**
@@ -159,12 +162,16 @@ object IOUtils extends Logging {
    * @return the absolute path to the file.
    */
   def absolute(file: File) = {
+    replacePath(file, absolutePath(file))
+  }
+
+  private def absolutePath(file: File) = {
     var fileAbs = file.getAbsoluteFile
     var names = List.empty[String]
     while (fileAbs != null) {
       val name = fileAbs.getName
       fileAbs = fileAbs.getParentFile
-      
+
       if (name == ".") {
         /* skip */
 
@@ -190,7 +197,18 @@ object IOUtils extends Logging {
       }
     }
 
-    new File(names.mkString("/", "/", ""))
+    names.mkString("/", "/", "")
+  }
+
+  private def replacePath(file: File, path: String) = {
+    file match {
+      case fileExtension: FileExtension =>
+        fileExtension.withPath(path)
+      case file: File =>
+        if (file.getClass != classOf[File])
+          throw new QException("Sub classes of java.io.File must also implement FileExtension so that the path can be modified.")
+        new File(path)
+    }
   }
 
   /**

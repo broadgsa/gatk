@@ -55,7 +55,23 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * Evaluation tables.
+ * Evaluation tables detailing the results of the eval modules which were applied.
+ * For example:
+ * <pre>
+ * output.eval.gatkreport:
+ * ##:GATKReport.v0.1 CountVariants : Counts different classes of variants in the sample
+ * CountVariants  CompRod   CpG      EvalRod  JexlExpression  Novelty  nProcessedLoci  nCalledLoci  nRefLoci  nVariantLoci  variantRate ...
+ * CountVariants  dbsnp     CpG      eval     none            all      65900028        135770       0         135770        0.00206024  ...
+ * CountVariants  dbsnp     CpG      eval     none            known    65900028        47068        0         47068         0.00071423  ...
+ * CountVariants  dbsnp     CpG      eval     none            novel    65900028        88702        0         88702         0.00134601  ...
+ * CountVariants  dbsnp     all      eval     none            all      65900028        330818       0         330818        0.00502000  ...
+ * CountVariants  dbsnp     all      eval     none            known    65900028        120685       0         120685        0.00183133  ...
+ * CountVariants  dbsnp     all      eval     none            novel    65900028        210133       0         210133        0.00318866  ...
+ * CountVariants  dbsnp     non_CpG  eval     none            all      65900028        195048       0         195048        0.00295976  ...
+ * CountVariants  dbsnp     non_CpG  eval     none            known    65900028        73617        0         73617         0.00111710  ...
+ * CountVariants  dbsnp     non_CpG  eval     none            novel    65900028        121431       0         121431        0.00184265  ...
+ * ...
+ * </pre>
  * </p>
  *
  * <h2>Examples</h2>
@@ -149,11 +165,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
-    @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
-    private String TRANCHE_FILENAME = null;
-
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
     private File ancestralAlignmentsFile = null;
+
+    @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp and eval tracks with exactly matching reference and alternate alleles will be counted as overlapping", required=false)
+    private boolean requireStrictAlleleMatch = false;
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
@@ -226,16 +242,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
         sampleNamesForStratification.add(ALL_SAMPLE_NAME);
 
-        // Add select expressions for anything in the tranches file
-        if ( TRANCHE_FILENAME != null ) {
-            // we are going to build a few select names automatically from the tranches file
-            for ( Tranche t : Tranche.readTranches(new File(TRANCHE_FILENAME)) ) {
-                logger.info("Adding select for all variant above the pCut of : " + t);
-                SELECT_EXPS.add(String.format(VariantRecalibrator.VQS_LOD_KEY + " >= %.2f", t.minVQSLod));
-                SELECT_NAMES.add(String.format("TS-%.2f", t.ts));
-            }
-        }
-
         // Initialize select expressions
         for (VariantContextUtils.JexlVCMatchExp jexl : VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS)) {
             SortableJexlVCMatchExp sjexl = new SortableJexlVCMatchExp(jexl.name, jexl.exp);
@@ -245,17 +251,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
-        boolean usingJEXL = false;
         for ( VariantStratifier vs : getStratificationObjects() ) {
             if ( vs.getClass().getSimpleName().equals("Filter") )
                 byFilterIsEnabled = true;
             else if ( vs.getClass().getSimpleName().equals("Sample") )
                 perSampleIsEnabled = true;
-            usingJEXL = usingJEXL || vs.getClass().equals(JexlExpression.class);
         }
-
-        if ( TRANCHE_FILENAME != null && ! usingJEXL )
-            throw new UserException.BadArgumentValue("tf", "Requires the JexlExpression ST to enabled");
 
         // Initialize the evaluation contexts
         evaluationContexts = variantEvalUtils.initializeEvaluationContexts(stratificationObjects, evaluationObjects, null, null);
@@ -378,16 +379,16 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         if ( matchingComps.size() == 0 )
             return null;
 
-        // find the comp which matches the alternate allele from eval
+        // find the comp which matches both the reference allele and alternate allele from eval
         Allele altEval = eval.getAlternateAlleles().size() == 0 ? null : eval.getAlternateAllele(0);
         for ( VariantContext comp : matchingComps ) {
             Allele altComp = comp.getAlternateAlleles().size() == 0 ? null : comp.getAlternateAllele(0);
-            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp)) )
+            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp) && eval.getReference().equals(comp.getReference())) )
                 return comp;
         }
 
-        // if none match, just return the first one
-        return matchingComps.get(0);
+        // if none match, just return the first one unless we require a strict match
+        return (requireStrictAlleleMatch ? null : matchingComps.get(0));
     }
 
     public Integer treeReduce(Integer lhs, Integer rhs) { return null; }

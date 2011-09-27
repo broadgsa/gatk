@@ -75,7 +75,7 @@ public class WalkerTest extends BaseTest {
         Index indexFromOutputFile = IndexFactory.createIndex(resultFile, new VCFCodec());
         Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
-        if ( ! indexFromOutputFile.equalsIgnoreTimestamp(dynamicIndex) ) {
+        if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {
             Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
                     indexFromOutputFile.getProperties(),
                     dynamicIndex.getProperties()));

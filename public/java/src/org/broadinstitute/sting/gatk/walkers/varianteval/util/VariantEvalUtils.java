@@ -277,7 +277,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values());
+        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values(), vc.getAlleles());
 
         HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());
 
@@ -354,7 +354,7 @@ public class VariantEvalUtils {
 
     private void addMapping(HashMap<String, Set<VariantContext>> mappings, String sample, VariantContext vc) {
         if ( !mappings.containsKey(sample) )
-            mappings.put(sample, new HashSet<VariantContext>());
+            mappings.put(sample, new LinkedHashSet<VariantContext>());
         mappings.get(sample).add(vc);
     }
 
