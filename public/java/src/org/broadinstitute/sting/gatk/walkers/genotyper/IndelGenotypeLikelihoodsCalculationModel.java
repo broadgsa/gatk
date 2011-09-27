@@ -34,10 +34,9 @@ import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -396,8 +395,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
                     (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
         //System.out.println(eventLength);
-        haplotypeMap = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
-            ref, hsize, numPrefBases);
+        haplotypeMap = Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
+                ref, hsize, numPrefBases);
 
         // For each sample, get genotype likelihoods based on pileup
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.

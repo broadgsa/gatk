@@ -286,6 +286,10 @@ public class GATKReportTable {
         }
     }
 
+    public boolean containsKey(Object primaryKey) {
+        return primaryKeyColumn.contains(primaryKey);
+    }
+
     /**
      * Set the value for a given position in the table
      *

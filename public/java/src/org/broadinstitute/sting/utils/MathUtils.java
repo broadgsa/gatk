@@ -444,11 +444,25 @@ public class MathUtils {
      * @return a newly allocated array corresponding the normalized values in array, maybe log10 transformed
     */
     public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput) {
-        double[] normalized = new double[array.length];
+        return normalizeFromLog10(array, takeLog10OfOutput, false);
+    }
+
+    public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput, boolean keepInLogSpace) {
 
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = Utils.findMaxEntry(array);
+
+        // we may decide to just normalize in log space with converting to linear space
+        if (keepInLogSpace) {
+            for (int i = 0; i < array.length; i++)
+                array[i] -= maxValue;
+            return array;
+        }
+
+        // default case: go to linear space
+        double[] normalized = new double[array.length];
+
         for (int i = 0; i < array.length; i++)
             normalized[i] = Math.pow(10, array[i] - maxValue);
 

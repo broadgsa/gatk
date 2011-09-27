@@ -16,6 +16,9 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.*;
 
 
+/**
+ * The allele balance (fraction of ref bases over ref + alt bases) separately for each bialleleic het-called sample
+ */
 public class AlleleBalanceBySample extends GenotypeAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {

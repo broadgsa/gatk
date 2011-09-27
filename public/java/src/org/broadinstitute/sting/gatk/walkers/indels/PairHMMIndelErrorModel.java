@@ -29,8 +29,8 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -1041,20 +1041,14 @@ public class PairHMMIndelErrorModel {
         double[] genotypeLikelihoods = new double[hSize*(hSize+1)/2];
 
         int k=0;
-        double maxElement = Double.NEGATIVE_INFINITY;
         for (int j=0; j < hSize; j++) {
             for (int i=0; i <= j; i++){
                 genotypeLikelihoods[k++] = haplotypeLikehoodMatrix[i][j];
-                if (haplotypeLikehoodMatrix[i][j] > maxElement)
-                    maxElement = haplotypeLikehoodMatrix[i][j];
             }
         }
 
-        // renormalize
-        for (int i=0; i < genotypeLikelihoods.length; i++)
-            genotypeLikelihoods[i] -= maxElement;
-
-        return genotypeLikelihoods;
+        // renormalize   so that max element is zero.
+        return MathUtils.normalizeFromLog10(genotypeLikelihoods, false, true);
     }
 
     /**

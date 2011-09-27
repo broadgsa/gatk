@@ -233,49 +233,18 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if (minimumN > 1 && (vcs.size() - numFilteredRecords < minimumN))
             return 0;
-        
-        List<VariantContext> preMergedVCs = new ArrayList<VariantContext>();
+
+        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
         Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
         // iterate over the types so that it's deterministic
         for ( VariantContext.Type type : VariantContext.Type.values() ) {
             if ( VCsByType.containsKey(type) )
-                preMergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
                         priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                         SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
 
-        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
-        // se have records merged but separated by type. If a particular record is for example a snp but all alleles are a subset of an existing mixed record,
-        // we will still merge those records.
-        if (preMergedVCs.size() > 1) {
-            for (VariantContext vc1 : preMergedVCs) {
-                VariantContext newvc = vc1;
-                boolean merged = false;
-                for (int k=0; k < mergedVCs.size(); k++) {
-                    VariantContext vc2 = mergedVCs.get(k);
-
-                    if (VariantContextUtils.allelesAreSubset(vc1,vc2) || VariantContextUtils.allelesAreSubset(vc2,vc1)) {
-                        // all alleles of vc1 are contained in vc2 but they are of different type (say, vc1 is snp, vc2 is complex): try to merget v1 into v2
-                        List<VariantContext> vcpair = new ArrayList<VariantContext>();
-                        vcpair.add(vc1);
-                        vcpair.add(vc2);
-                        newvc = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcpair,
-                                               priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                                               SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC);
-                        mergedVCs.set(k,newvc);
-                        merged = true;
-                        break;
-                    }
-                }
-                if (!merged)
-                    mergedVCs.add(vc1);
-            }
-        }
-        else {
-            mergedVCs = preMergedVCs;
-        }
-
-        for ( VariantContext mergedVC : mergedVCs ) {
+         for ( VariantContext mergedVC : mergedVCs ) {
             // only operate at the start of events
             if ( mergedVC == null )
                 continue;

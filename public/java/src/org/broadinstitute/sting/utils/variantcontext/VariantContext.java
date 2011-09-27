@@ -1495,7 +1495,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
             // Do not change the filter state if filters were not applied to this context
             Set<String> inputVCFilters = inputVC.filtersWereAppliedToContext ? inputVC.getFilters() : null;
-            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVCFilters, inputVC.getAttributes());
+            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVCFilters, inputVC.getAttributes(),refByte);
         }
         else
             return inputVC;

@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Triplet annotation: fraction of MAQP == 0, MAPQ < 10, and count of all mapped reads
+ */
 public class LowMQ extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

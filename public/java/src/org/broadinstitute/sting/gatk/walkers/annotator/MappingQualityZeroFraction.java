@@ -17,8 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
-
+/**
+ * Fraction of all reads across samples that have mapping quality zero
+ */
 public class MappingQualityZeroFraction extends InfoFieldAnnotation implements ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

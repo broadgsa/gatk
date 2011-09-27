@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Phred-scaled P value of genotype-based (using GT field) test for Hardy-Weinberg test for disequilibrium
+ */
 public class HardyWeinberg extends InfoFieldAnnotation implements WorkInProgressAnnotation {
 
     private static final int MIN_SAMPLES = 10;

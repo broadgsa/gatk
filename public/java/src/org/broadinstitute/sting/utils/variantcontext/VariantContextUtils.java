@@ -44,6 +44,11 @@ import java.io.Serializable;
 import java.util.*;
 
 public class VariantContextUtils {
+    public final static String MERGE_INTERSECTION = "Intersection";
+    public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
+    public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
+    public final static String MERGE_FILTER_PREFIX = "filterIn";
+
     final public static JexlEngine engine = new JexlEngine();
     static {
         engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
@@ -152,6 +157,13 @@ public class VariantContextUtils {
         }
 
         return "%." + precision + "f";
+    }
+
+    public static Genotype removePLs(Genotype g) {
+        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
     /**
@@ -594,7 +606,9 @@ public class VariantContextUtils {
 
         // if we have more alternate alleles in the merged VC than in one or more of the original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
         for ( VariantContext vc : VCs ) {
-            if ( vc.alleles.size() != alleles.size() ) {
+            if (vc.alleles.size() == 1)
+                continue;
+            if ( vc.alleles.size() != alleles.size()) {
                 genotypes = stripPLs(genotypes);
                 break;
             }
@@ -609,19 +623,20 @@ public class VariantContextUtils {
         if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
             filters.clear();
 
+
         if ( annotateOrigin ) { // we care about where the call came from
             String setValue;
             if ( nFiltered == 0 && variantSources.size() == priorityListOfVCs.size() ) // nothing was unfiltered
-                setValue = "Intersection";
+                setValue = MERGE_INTERSECTION;
             else if ( nFiltered == VCs.size() )     // everything was filtered out
-                setValue = "FilteredInAll";
+                setValue = MERGE_FILTER_IN_ALL;
             else if ( variantSources.isEmpty() )               // everyone was reference
-                setValue = "ReferenceInAll";
+                setValue = MERGE_REF_IN_ALL;
             else {
                 LinkedHashSet<String> s = new LinkedHashSet<String>();
                 for ( VariantContext vc : VCs )
                     if ( vc.isVariant() )
-                        s.add( vc.isFiltered() ? "filterIn" + vc.getSource() : vc.getSource() );
+                        s.add( vc.isFiltered() ? MERGE_FILTER_PREFIX + vc.getSource() : vc.getSource() );
                 setValue = Utils.join("-", s);
             }
 
@@ -734,7 +749,7 @@ public class VariantContextUtils {
         Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
 
         for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? Genotype.removePLs(g.getValue()) : g.getValue());
+            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? removePLs(g.getValue()) : g.getValue());
         }
 
         return newGs;
@@ -743,9 +758,46 @@ public class VariantContextUtils {
     public static Map<VariantContext.Type, List<VariantContext>> separateVariantContextsByType(Collection<VariantContext> VCs) {
         HashMap<VariantContext.Type, List<VariantContext>> mappedVCs = new HashMap<VariantContext.Type, List<VariantContext>>();
         for ( VariantContext vc : VCs ) {
-            if ( !mappedVCs.containsKey(vc.getType()) )
-                mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
-            mappedVCs.get(vc.getType()).add(vc);
+
+            // look at previous variant contexts of different type. If:
+            // a) otherVC has alleles which are subset of vc, remove otherVC from its list and add otherVC to  vc's list
+            // b) vc has alleles which are subset of otherVC. Then, add vc to otherVC's type list (rather, do nothing since vc will be added automatically to its list)
+            // c) neither: do nothing, just add vc to its own list
+            boolean addtoOwnList = true;
+            for (VariantContext.Type type : VariantContext.Type.values()) {
+                if (type.equals(vc.getType()))
+                    continue;
+
+                if (!mappedVCs.containsKey(type))
+                    continue;
+
+                List<VariantContext> vcList = mappedVCs.get(type);
+                for (int k=0; k <  vcList.size(); k++) {
+                    VariantContext otherVC = vcList.get(k);
+                    if (allelesAreSubset(otherVC,vc)) {
+                        // otherVC has a type different than vc and its alleles are a subset of vc: remove otherVC from its list and add it to vc's type list
+                        vcList.remove(k);
+                        // avoid having empty lists
+                        if (vcList.size() == 0)
+                            mappedVCs.remove(vcList);
+                        if ( !mappedVCs.containsKey(vc.getType()) )
+                            mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+                        mappedVCs.get(vc.getType()).add(otherVC);
+                        break;
+                    }
+                    else if (allelesAreSubset(vc,otherVC)) {
+                        // vc has a type different than otherVC and its alleles are a subset of VC: add vc to otherVC's type list and don't add to its own
+                        mappedVCs.get(type).add(vc);
+                        addtoOwnList = false;
+                        break;
+                    }
+                }
+            }
+            if (addtoOwnList) {
+                if ( !mappedVCs.containsKey(vc.getType()) )
+                    mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+                mappedVCs.get(vc.getType()).add(vc);
+                }
         }
 
         return mappedVCs;

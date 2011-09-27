@@ -35,9 +35,6 @@ public class VCFHeader {
     // the header string indicator
     public static final String HEADER_INDICATOR = "#";
 
-    /** do we have genotying data? */
-    private boolean hasGenotypingData = false;
-
     // were the input samples sorted originally (or are we sorting them)?
     private boolean samplesWereAlreadySorted = true;
 
@@ -57,17 +54,15 @@ public class VCFHeader {
      * create a VCF header, given a list of meta data and auxillary tags
      *
      * @param metaData            the meta data associated with this header
-     * @param genotypeSampleNames the genotype format field, and the sample names
+     * @param genotypeSampleNames the sample names
      */
     public VCFHeader(Set<VCFHeaderLine> metaData, Set<String> genotypeSampleNames) {
         mMetaData = new TreeSet<VCFHeaderLine>();
         if ( metaData != null )
             mMetaData.addAll(metaData);
-        for (String col : genotypeSampleNames) {
-            if (!col.equals("FORMAT"))
-                mGenotypeSampleNames.add(col);
-        }
-        if (genotypeSampleNames.size() > 0) hasGenotypingData = true;
+
+        mGenotypeSampleNames.addAll(genotypeSampleNames);
+
         loadVCFVersion();
         loadMetaDataMaps();
 
@@ -157,7 +152,7 @@ public class VCFHeader {
      * @return true if we have genotyping columns, false otherwise
      */
     public boolean hasGenotypingData() {
-        return hasGenotypingData;
+        return mGenotypeSampleNames.size() > 0;
     }
 
     /**
@@ -171,7 +166,7 @@ public class VCFHeader {
 
     /** @return the column count */
     public int getColumnCount() {
-        return HEADER_FIELDS.values().length + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
+        return HEADER_FIELDS.values().length + (hasGenotypingData() ? mGenotypeSampleNames.size() + 1 : 0);
     }
 
     /**

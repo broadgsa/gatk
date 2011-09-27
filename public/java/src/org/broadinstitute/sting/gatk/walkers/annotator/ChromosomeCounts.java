@@ -44,6 +44,11 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Allele count in genotypes, for each ALT allele, in the same order as listed;
+ * allele Frequency, for each ALT allele, in the same order as listed; total number
+ * of alleles in called genotypes.
+ */
 public class ChromosomeCounts extends InfoFieldAnnotation implements StandardAnnotation {
 
     private String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };

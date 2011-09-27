@@ -544,6 +544,21 @@ public class UnifiedGenotyperEngine {
             AFs[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
     }
 
+    private final static double[] binomialProbabilityDepthCache = new double[10000];
+    static {
+        for ( int i = 1; i < binomialProbabilityDepthCache.length; i++ ) {
+            binomialProbabilityDepthCache[i] = MathUtils.binomialProbability(0, i, 0.5);
+        }
+    }
+
+    private final double getRefBinomialProb(final int depth) {
+        if ( depth < binomialProbabilityDepthCache.length )
+            return binomialProbabilityDepthCache[depth];
+        else
+            return MathUtils.binomialProbability(0, depth, 0.5);
+    }
+
+
     private VariantCallContext estimateReferenceConfidence(VariantContext vc, Map<String, AlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
         if ( contexts == null )
             return null;
@@ -567,7 +582,7 @@ public class UnifiedGenotyperEngine {
                     depth = context.getExtendedEventPileup().size();
             }
 
-            P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
+            P_of_ref *= 1.0 - (theta / 2.0) * getRefBinomialProb(depth);
         }
 
         return new VariantCallContext(vc, QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING, false);
