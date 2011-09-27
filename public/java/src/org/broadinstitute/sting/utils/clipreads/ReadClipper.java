@@ -4,6 +4,7 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -68,25 +69,15 @@ public class ReadClipper {
     }
 
     private SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
-        int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart);
-        int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop);
+        int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
+        int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
 
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
-        if ( start > stop ) {
-//            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, ReadUtils.getRefCoordSoftUnclippedEnd(read));
+        if ( start > stop )
             throw new ReviewedStingException("START > STOP -- this should never happen -- call Mauricio!");
-        }
 
-        //This tries to fix the bug where the deletion is counted a read base and as a result, the hardCLipper runs into
-        //an endless loop when hard clipping the cigar string because the read coordinates are not covered by the read
-//        stop -= numDeletions(read);
-//        if ( start > stop )
-//            start -= numDeletions(read);
-
-
-        //System.out.println("Clipping start/stop: " + start + "/" + stop);
         this.addOp(new ClippingOp(start, stop));
         SAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);
         this.ops = null;

@@ -780,11 +780,56 @@ public class ReadUtils {
     }
 
 
+    public enum ClippingTail {
+        LEFT_TAIL,
+        RIGHT_TAIL
+    }
+
+    /**
+     * Pre-processes the results of getReadCoordinateForReferenceCoordinate(SAMRecord, int) in case it falls in
+     * a deletion following the typical clipping needs. If clipping the left tail (beginning of the read) returns
+     * the base prior to the deletion. If clipping the right tail (end of the read) returns the base after the
+     * deletion.
+     *
+     * @param read
+     * @param refCoord
+     * @param tail
+     * @return the read coordinate corresponding to the requested reference coordinate for clipping.
+     */
     @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
-    public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
+    public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord, ClippingTail tail) {
+        Pair<Integer, Boolean> result = getReadCoordinateForReferenceCoordinate(read, refCoord);
+        int readCoord = result.getFirst();
+
+        if (result.getSecond() && tail == ClippingTail.RIGHT_TAIL)
+            readCoord++;
+
+        return readCoord;
+    }
+
+    /**
+     * Returns the read coordinate corresponding to the requested reference coordinate.
+     *
+     * WARNING: if the requested reference coordinate happens to fall inside a deletion in the read, this function
+     * will return the last read base before the deletion. This function returns a
+     * Pair(int readCoord, boolean fallsInsideDeletion) so you can choose which readCoordinate to use when faced with
+     * a deletion.
+     *
+     * SUGGESTION: Use getReadCoordinateForReferenceCoordinate(SAMRecord, int, ClippingTail) instead to get a
+     * pre-processed result according to normal clipping needs. Or you can use this function and tailor the
+     * behavior to your needs.
+     *
+     * @param read
+     * @param refCoord
+     * @return the read coordinate corresponding to the requested reference coordinate. (see warning!)
+     */
+    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
+    @Ensures({"result >= 0", "result < read.getReadLength()"})
+    public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
+        boolean fallsInsideDeletion = false;
 
         if (refCoord < read.getAlignmentStart()) {
             readBases = getReadCoordinateForReferenceCoordinateBeforeAlignmentStart(read, refCoord);
@@ -806,26 +851,56 @@ public class ReadUtils {
                 int shift = 0;
 
                 if (cigarElement.getOperator().consumesReferenceBases()) {
-                    if (refBases + cigarElement.getLength() < goal) {
+                    if (refBases + cigarElement.getLength() < goal)
                         shift = cigarElement.getLength();
-                    }
-                    else {
+                    else
                         shift = goal - refBases;
-                    }
+
                     refBases += shift;
                 }
                 goalReached = refBases == goal;
 
-                if (cigarElement.getOperator().consumesReadBases()) {
-                    readBases += goalReached ? shift : cigarElement.getLength();
-                }
+                if (!goalReached && cigarElement.getOperator().consumesReadBases())
+                    readBases += cigarElement.getLength();
+
+                if (goalReached) {
+                    // Is this base's reference position within this cigar element? Or did we use it all?
+                    boolean endsWithinCigar = shift <  cigarElement.getLength();
+
+                    // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
+                    // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
+                    if (!endsWithinCigar && !cigarElementIterator.hasNext())
+                        throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+
+                    CigarElement nextCigarElement;
+
+                    // if we end inside the current cigar element, we just have to check if it is a deletion
+                    if (endsWithinCigar)
+                        fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
+
+                    // if we end outside the current cigar element, we need to check if the next element is a deletion.
+                    else {
+                        nextCigarElement = cigarElementIterator.next();
+                        fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
+                    }
+
+                    // If we reached our goal outside a deletion, add the shift
+                    if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
+                        readBases += shift;
+
+                    // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
+                    // to add the shift of the current cigar element but go back to it's last element to return the last
+                    // base before the deletion (see warning in function contracts)
+                    else if (fallsInsideDeletion && !endsWithinCigar)
+                        readBases += shift - 1;
+                    }
             }
 
             if (!goalReached)
                 throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
         }
 
-        return readBases;
+        return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
 
     public static SAMRecord unclipSoftClippedBases(SAMRecord rec) {
@@ -870,5 +945,20 @@ public class ReadUtils {
         rec.setAlignmentStart(newReadStart);
 
         return rec;
+    }
+
+    /**
+     * Compares two SAMRecords only the basis on alignment start.  Note that
+     * comparisons are performed ONLY on the basis of alignment start; any
+     * two SAM records with the same alignment start will be considered equal.
+     *
+     * Unmapped alignments will all be considered equal.
+     */
+
+    @Requires({"read1 != null", "read2 != null"})
+    @Ensures("result == 0 || result == 1 || result == -1")
+    public static int compareSAMRecords(SAMRecord read1, SAMRecord read2) {
+        AlignmentStartComparator comp = new AlignmentStartComparator();
+        return comp.compare(read1, read2);
     }
 }
