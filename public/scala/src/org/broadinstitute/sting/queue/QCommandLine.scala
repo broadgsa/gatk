@@ -37,7 +37,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
  */
-object QCommandLine {
+object QCommandLine extends Logging {
   /**
    * Main.
    * @param argv Arguments.
@@ -45,22 +45,23 @@ object QCommandLine {
   def main(argv: Array[String]) {
     val qCommandLine = new QCommandLine
 
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      /** Cleanup as the JVM shuts down. */
+    val shutdownHook = new Thread {
       override def run() {
+        logger.info("Shutting down jobs. Please wait...")
         ProcessController.shutdown()
         qCommandLine.shutdown()
       }
-    })
+    }
+
+    Runtime.getRuntime.addShutdownHook(shutdownHook)
 
     try {
       CommandLineProgram.start(qCommandLine, argv);
+      Runtime.getRuntime.removeShutdownHook(shutdownHook)
       if (CommandLineProgram.result != 0)
         System.exit(CommandLineProgram.result);
     } catch {
       case e: Exception => CommandLineProgram.exitSystemWithError(e)
-    } finally {
-
     }
   }
 }
