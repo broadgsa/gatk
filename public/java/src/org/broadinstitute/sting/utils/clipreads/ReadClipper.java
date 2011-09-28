@@ -93,8 +93,9 @@ public class ReadClipper {
     public SAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
         if (left == right)
             return new SAMRecord(read.getHeader());
-        this.read = hardClipByReferenceCoordinates(right, -1);
-        return hardClipByReferenceCoordinates(-1, left);
+        SAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
+        ReadClipper clipper = new ReadClipper(leftTailRead);
+        return clipper.hardClipByReferenceCoordinatesLeftTail(left);
     }
 
     public SAMRecord hardClipLowQualEnds(byte lowQual) {
