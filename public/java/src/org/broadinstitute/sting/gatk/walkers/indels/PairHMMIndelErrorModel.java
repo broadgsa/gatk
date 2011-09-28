@@ -260,7 +260,7 @@ public class PairHMMIndelErrorModel {
                             currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
                 // update max in diagonal
                 if (bandedLikelihoods) {
-                    final double bestMetric = MathUtils.softMax(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
+                    final double bestMetric = MathUtils.max(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
 
                     // check if we've fallen off diagonal value by threshold
                     if (bestMetric > maxElementInDiag) {
@@ -294,7 +294,7 @@ public class PairHMMIndelErrorModel {
                     updateCell(indI, indJ, X_METRIC_LENGTH, Y_METRIC_LENGTH, readBases, readQuals, haplotypeBases,
                                 currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
                     // update max in diagonal
-                    final double bestMetric = MathUtils.softMax(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
+                    final double bestMetric = MathUtils.max(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
 
                     // check if we've fallen off diagonal value by threshold
                     if (bestMetric > maxElementInDiag) {
