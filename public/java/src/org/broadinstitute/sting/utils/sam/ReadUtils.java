@@ -893,6 +893,10 @@ public class ReadUtils {
                     // base before the deletion (see warning in function contracts)
                     else if (fallsInsideDeletion && !endsWithinCigar)
                         readBases += shift - 1;
+
+                    // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
+                    else if (fallsInsideDeletion && endsWithinCigar)
+                        readBases--;
                     }
             }
 

@@ -159,10 +159,11 @@ public class CycleCovariate implements StandardCovariate {
     */
 
     // todo -- this should be put into a common place in the code base
-    private static List<String> PACBIO_NAMES = Arrays.asList("PACBIO");
     private static List<String> ILLUMINA_NAMES = Arrays.asList("ILLUMINA", "SLX", "SOLEXA");
     private static List<String> SOLID_NAMES = Arrays.asList("SOLID");
     private static List<String> LS454_NAMES = Arrays.asList("454");
+    private static List<String> COMPLETE_GENOMICS_NAMES = Arrays.asList("COMPLETE");
+    private static List<String> PACBIO_NAMES = Arrays.asList("PACBIO");
 
     private static boolean isPlatform(SAMRecord read, List<String> names) {
         String pl = read.getReadGroup().getPlatform().toUpperCase();
@@ -176,11 +177,10 @@ public class CycleCovariate implements StandardCovariate {
     public void getValues(SAMRecord read, Comparable[] comparable) {
 
         //-----------------------------
-        // ILLUMINA and SOLID
+        // Illumina, Solid, PacBio, and Complete Genomics
         //-----------------------------
 
-
-        if( isPlatform(read, ILLUMINA_NAMES) || isPlatform(read, SOLID_NAMES) || isPlatform(read, PACBIO_NAMES)) {
+        if( isPlatform(read, ILLUMINA_NAMES) || isPlatform(read, SOLID_NAMES) || isPlatform(read, PACBIO_NAMES) || isPlatform(read, COMPLETE_GENOMICS_NAMES) ) {
             final int init;
             final int increment;
             if( !read.getReadNegativeStrandFlag() ) {
@@ -222,6 +222,11 @@ public class CycleCovariate implements StandardCovariate {
                 cycle += increment;
             }
         }
+
+        //-----------------------------
+        // 454
+        //-----------------------------
+
         else if ( isPlatform(read, LS454_NAMES) ) { // Some bams have "LS454" and others have just "454"
 
             final int readLength = read.getReadLength();
