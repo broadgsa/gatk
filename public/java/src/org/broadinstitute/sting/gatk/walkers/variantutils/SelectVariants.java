@@ -92,7 +92,7 @@ import java.util.*;
  *   -o output.vcf \
  *   -sn SAMPLE_1_PARC \
  *   -sn SAMPLE_1_ACTG \
- *   -sn 'SAMPLE.+PARC'
+ *   -se 'SAMPLE.+PARC'
  *
  * Select any sample that matches a regular expression and sites where the QD annotation is more than 10:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
@@ -100,7 +100,7 @@ import java.util.*;
  *   -T SelectVariants \
  *   --variant input.vcf \
  *   -o output.vcf \
- *   -sn 'SAMPLE.+PARC'
+ *   -se 'SAMPLE.+PARC'
  *   -select "QD > 10.0"
  *
  * Select a sample and exclude non-variant loci and filtered loci:
