@@ -325,11 +325,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 return Arrays.toString((Object[])value);
             else
                 throw new RuntimeException("Unexpected array type in prettyPrintValue.  Value was " + value + " type is " + type);
-        } else if ( RodBinding.class.isAssignableFrom(value.getClass() ) )
+        } else if ( RodBinding.class.isAssignableFrom(value.getClass() ) ) {
             // annoying special case to handle the UnBound() constructor
             return "none";
-
-        return value.toString();
+        } else if ( value instanceof String ) {
+            return value.equals("") ? "\"\"" : value;
+        } else {
+            return value.toString();
+        }
     }
 
     /**
