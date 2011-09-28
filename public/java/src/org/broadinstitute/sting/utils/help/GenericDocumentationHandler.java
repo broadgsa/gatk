@@ -325,11 +325,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 return Arrays.toString((Object[])value);
             else
                 throw new RuntimeException("Unexpected array type in prettyPrintValue.  Value was " + value + " type is " + type);
-        } else if ( RodBinding.class.isAssignableFrom(value.getClass() ) )
+        } else if ( RodBinding.class.isAssignableFrom(value.getClass() ) ) {
             // annoying special case to handle the UnBound() constructor
             return "none";
-
-        return value.toString();
+        } else if ( value instanceof String ) {
+            return value.equals("") ? "\"\"" : value;
+        } else {
+            return value.toString();
+        }
     }
 
     /**
@@ -432,11 +435,17 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
      * Returns a Pair of (main, synonym) names for argument with fullName s1 and
      * shortName s2.  The main is selected to be the longest of the two, provided
      * it doesn't exceed MAX_DISPLAY_NAME, in which case the shorter is taken.
-     * @param s1
-     * @param s2
-     * @return
+     *
+     * @param s1 the short argument name without -, or null if not provided
+     * @param s2 the long argument name without --, or null if not provided
+     * @return A pair of fully qualified names (with - or --) for the argument.  The first
+     *  element is the primary display name while the second (potentially null) is a
+     *  synonymous name.
      */
     Pair<String, String> displayNames(String s1, String s2) {
+        s1 = s1 == null ? null : "-" + s1;
+        s2 = s2 == null ? null : "--" + s2;
+
         if ( s1 == null ) return new Pair<String, String>(s2, null);
         if ( s2 == null ) return new Pair<String, String>(s1, null);
 
@@ -510,7 +519,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
      */
     protected Map<String, Object> docForArgument(FieldDoc fieldDoc, ArgumentSource source, ArgumentDefinition def) {
         Map<String, Object> root = new HashMap<String, Object>();
-        Pair<String, String> names = displayNames("-" + def.shortName, "--" + def.fullName);
+        Pair<String, String> names = displayNames(def.shortName, def.fullName);
 
         root.put("name", names.getFirst() );
 
