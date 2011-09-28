@@ -43,10 +43,43 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
-    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
-
     private ReadUtils() { }
 
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // Reduced read utilities
+    //
+    // ----------------------------------------------------------------------------------------------------
+
+    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
+
+    public final static Integer getReducedReadQualityTagValue(final SAMRecord read) {
+        return read.getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+    }
+
+    public final static boolean isReducedRead(final SAMRecord read) {
+        return getReducedReadQualityTagValue(read) != null;
+    }
+
+    public final static SAMRecord reducedReadWithReducedQuals(final SAMRecord read) {
+        if ( ! isReducedRead(read) ) throw new IllegalArgumentException("read must be a reduced read");
+        try {
+            SAMRecord newRead = (SAMRecord)read.clone();
+            byte reducedQual = (byte)(int)getReducedReadQualityTagValue(read);
+            byte[] newQuals = new byte[read.getBaseQualities().length];
+            Arrays.fill(newQuals, reducedQual);
+            newRead.setBaseQualities(newQuals);
+            return newRead;
+        } catch ( CloneNotSupportedException e ) {
+            throw new ReviewedStingException("SAMRecord no longer supports clone", e);
+        }
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // General utilities
+    //
+    // ----------------------------------------------------------------------------------------------------
     public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
         SAMFileHeader copy = new SAMFileHeader();
 
@@ -157,7 +190,7 @@ public class ReadUtils {
      *  |----------------|     (interval)
      *     <-------->          (read)
      */
-    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
+    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
     /**
      * God, there's a huge information asymmetry in SAM format:
@@ -640,27 +673,35 @@ public class ReadUtils {
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
 
-        int start = getRefCoordSoftUnclippedStart(read);
-        int stop = getRefCoordSoftUnclippedEnd(read);
+        int sStart = getRefCoordSoftUnclippedStart(read);
+        int sStop = getRefCoordSoftUnclippedEnd(read);
+        int uStart = read.getUnclippedStart();
+        int uStop = read.getUnclippedEnd();
 
         if ( !read.getReferenceName().equals(interval.getContig()) )
             return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
 
-        else if  ( stop < interval.getStart() )
+        else if ( uStop < interval.getStart() )
             return ReadAndIntervalOverlap.NO_OVERLAP_LEFT;
 
-        else if ( start > interval.getStop() )
+        else if ( uStart > interval.getStop() )
             return ReadAndIntervalOverlap.NO_OVERLAP_RIGHT;
 
-        else if ( (start >= interval.getStart()) &&
-                  (stop <= interval.getStop()) )
+        else if ( sStop < interval.getStart() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_LEFT;
+
+        else if ( sStart > interval.getStop() )
+            return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_RIGHT;
+
+        else if ( (sStart >= interval.getStart()) &&
+                  (sStop <= interval.getStop()) )
             return ReadAndIntervalOverlap.OVERLAP_CONTAINED;
 
-        else if ( (start < interval.getStart()) &&
-                  (stop > interval.getStop()) )
+        else if ( (sStart < interval.getStart()) &&
+                  (sStop > interval.getStop()) )
             return ReadAndIntervalOverlap.OVERLAP_LEFT_AND_RIGHT;
 
-        else if ( (start < interval.getStart()) )
+        else if ( (sStart < interval.getStart()) )
             return ReadAndIntervalOverlap.OVERLAP_LEFT;
 
         else
