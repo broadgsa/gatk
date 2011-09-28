@@ -249,7 +249,7 @@ public class ClippingOp {
 
     @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1", "!read.getReadUnmappedFlag()"})
     private SAMRecord hardClip (SAMRecord read, int start, int stop) {
-        if (start == 0 && stop == read.getReadLength() -1)
+        if (start == 0 && stop == read.getReadLength() - 1)
             return new SAMRecord(read.getHeader());
 
         // If the read is unmapped there is no Cigar string and neither should we create a new cigar string

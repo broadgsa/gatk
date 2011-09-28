@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="net.sf.snpeff" module="snpeff" revision="2.0.2" status="release" />
+</ivy-module>
