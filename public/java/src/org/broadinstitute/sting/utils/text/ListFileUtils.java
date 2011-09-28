@@ -80,7 +80,7 @@ public class ListFileUtils {
                 unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
             }
             else {
-                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I, --input_file) supports only BAM files with the .bam extension and lists of BAM files " +
+                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
                         "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
                         "of BAM files is in the correct format, update the extension, and try again.",inputFileName));
             }
