@@ -182,11 +182,14 @@ public class SampleDataSource {
         return children;
     }
 
-    public Set<Sample> getSamples() {
-        HashSet<Sample> set = new HashSet<Sample>();
-        set.addAll(samples.values());
-        return set;
+    public Collection<Sample> getSamples() {
+        return Collections.unmodifiableCollection(samples.values());
     }
+
+    public Collection<String> getSampleNames() {
+        return Collections.unmodifiableCollection(samples.keySet());
+    }
+
 
     /**
      * Takes a collection of sample names and returns their corresponding sample objects

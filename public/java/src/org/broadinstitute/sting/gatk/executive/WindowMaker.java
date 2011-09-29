@@ -70,7 +70,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = iterator;
 
-        this.sourceIterator = new PeekableIterator<AlignmentContext>(new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleData));
+        this.sourceIterator = new PeekableIterator<AlignmentContext>(new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleData.getSampleNames()));
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 
