@@ -570,16 +570,6 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         }
     }
 
-    @Override
-    public Collection<Sample> getSamples() {
-        if(!(pileupElementTracker instanceof PerSamplePileupElementTracker)) {
-            throw new StingException("Must be an instance of PerSampleElementTracker");
-        }
-        PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
-        return tracker.getSamples();
-    }
-
-
     /**
      * Returns a pileup randomly downsampled to the desiredCoverage.
      *
@@ -677,30 +667,6 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
                 SAMRecord read = p.getRead();
                 if(sampleName != null) {
                     if(read.getReadGroup() != null && sampleName.equals(read.getReadGroup().getSample()))
-                        filteredTracker.add(p);
-                }
-                else {
-                    if(read.getReadGroup() == null || read.getReadGroup().getSample() == null)
-                        filteredTracker.add(p);
-                }
-            }
-            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
-        }
-    }
-
-    @Override
-    public RBP getPileupForSample(Sample sample) {
-        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
-            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
-            PileupElementTracker<PE> filteredElements = tracker.getElements(sample);
-            return filteredElements != null ? (RBP)createNewPileup(loc,filteredElements) : null;
-        }
-        else {
-            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
-            for(PE p: pileupElementTracker) {
-                SAMRecord read = p.getRead();
-                if(sample != null) {
-                    if(read.getReadGroup() != null && sample.getID().equals(read.getReadGroup().getSample()))
                         filteredTracker.add(p);
                 }
                 else {

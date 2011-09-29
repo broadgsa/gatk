@@ -46,10 +46,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -1048,7 +1045,7 @@ public class GenomeAnalysisEngine {
      * Returns all samples that were referenced in the SAM file
      */
     public Set<Sample> getSAMFileSamples() {
-        return sampleDataSource.getSAMFileSamples();
+        return sampleDataSource.getSamples(SampleUtils.getSAMFileSamples(getSAMFileHeader()));
     }
 
     public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {

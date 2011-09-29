@@ -1095,14 +1095,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     // filter the read-base pileup based on min base and mapping qualities:
                     pileup = pileup.getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE);
                     if (pileup != null) {
-                        for (Sample sample : pileup.getSamples()) {
-                            ReadBackedPileup samplePileup = pileup.getPileupForSample(sample);
+                        for (final String sample : pileup.getSampleNames()) {
+                            ReadBackedPileup samplePileup = pileup.getPileupForSampleName(sample);
                             ReadBasesAtPosition readBases = new ReadBasesAtPosition();
                             for (PileupElement p : samplePileup) {
                                 if (!p.isDeletion()) // IGNORE deletions for now
                                     readBases.putReadBase(p);
                             }
-                            sampleReadBases.put(sample.getID(), readBases);
+                            sampleReadBases.put(sample, readBases);
                         }
                     }
                 }

@@ -13,41 +13,26 @@ import org.testng.annotations.Test;
  * Time: 8:21:00 AM
  */
 public class SampleUnitTest extends BaseTest {
-
-    static Sample sampleA;
-    static Sample sampleA1;
-    static Sample sampleB;
-    static Sample sampleC;
+    SampleDataSource db;
+    static Sample fam1A, fam1B, fam1C;
+    static Sample s1, s2;
+    static Sample trait1, trait2, trait3, trait4;
 
     @BeforeClass
     public void init() {
-        sampleA = new Sample("sampleA");
-        sampleA.setProperty("uniqueProperty", "uniqueValue");
-        sampleA1 = new Sample("sampleA");
-        sampleA1.setProperty("uniqueProperty", "uniqueValue");
-        sampleB = new Sample("sampleB");
-        sampleC = new Sample("sampleC");
-        sampleC.setProperty("population", "pop1");
-        sampleC.setProperty("gender", Sample.Gender.MALE);
-    }
+        db = new SampleDataSource();
 
-    /**
-     * Testing equality
-     */
-    @Test()
-    public void equalsTest() {
-        Assert.assertTrue(sampleA.equals(sampleA1));
-        Assert.assertFalse(sampleA == sampleA1);
-        Assert.assertFalse(sampleA.equals(sampleB));
-    }
+        fam1A = new Sample("1A", db, "fam1", "1B", "1C", Sample.Gender.UNKNOWN);
+        fam1B = new Sample("1B", db, "fam1", null, null, Sample.Gender.MALE);
+        fam1C = new Sample("1C", db, "fam1", null, null, Sample.Gender.FEMALE);
 
-    /**
-     * And hash
-     */
-    @Test()
-    public void basicHashTest() {
-        Assert.assertFalse(sampleA.hashCode() == sampleB.hashCode());
-        Assert.assertTrue(sampleA.hashCode() == sampleA1.hashCode());
+        s1 = new Sample("s1", db);
+        s2 = new Sample("s2", db);
+
+        trait1 = new Sample("t1", db, Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE, Sample.Affection.AFFECTED);
+        trait2 = new Sample("t2", db, Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE, Sample.Affection.UNAFFECTED);
+        trait3 = new Sample("t3", db, Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE, Sample.Affection.UNKNOWN);
+        trait4 = new Sample("t4", db, 1.0, Sample.Affection.QUANTITATIVE);
     }
 
     /**
@@ -55,10 +40,15 @@ public class SampleUnitTest extends BaseTest {
      */
     @Test()
     public void specialGettersTest() {
-        Assert.assertTrue(sampleC.getID().equals("sampleC"));
-        Assert.assertTrue(sampleC.getPopulation().equals("pop1"));
-        Assert.assertTrue(sampleC.isMale());
-        Assert.assertFalse(sampleA.isMale());   // sample A doesn't have a gender, so this should be false
+        // todo -- test for sample with extra properties, like population
+//        Assert.assertTrue(sampleC.getID().equals("sampleC"));
+//        Assert.assertTrue(sampleC.getPopulation().equals("pop1"));
     }
 
-}                     
+    @Test()
+    public void testGenders() {
+        Assert.assertTrue(fam1A.getGender() == Sample.Gender.UNKNOWN);
+        Assert.assertTrue(fam1B.getGender() == Sample.Gender.MALE);
+        Assert.assertTrue(fam1C.getGender() == Sample.Gender.FEMALE);
+    }
+}

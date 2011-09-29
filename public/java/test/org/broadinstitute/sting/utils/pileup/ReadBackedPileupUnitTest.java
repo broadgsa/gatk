@@ -142,8 +142,8 @@ public class ReadBackedPileupUnitTest {
                                                                       Arrays.asList(read2,read4),
                                                                       Arrays.asList(1,1));
         Map<Sample,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<Sample,ReadBackedPileupImpl>();
-        sampleToPileupMap.put(new Sample(readGroupOne.getSample()),sample1Pileup);
-        sampleToPileupMap.put(new Sample(readGroupTwo.getSample()),sample2Pileup);
+        sampleToPileupMap.put(new Sample(readGroupOne.getSample(), null),sample1Pileup);
+        sampleToPileupMap.put(new Sample(readGroupTwo.getSample(), null),sample2Pileup);
 
         ReadBackedPileup compositePileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 
@@ -164,8 +164,8 @@ public class ReadBackedPileupUnitTest {
 
     @Test
     public void testGetPileupForSample() {
-        Sample sample1 = new Sample("sample1");
-        Sample sample2 = new Sample("sample2");
+        Sample sample1 = new Sample("sample1", null);
+        Sample sample2 = new Sample("sample2", null);
 
         SAMReadGroupRecord readGroupOne = new SAMReadGroupRecord("rg1");
         readGroupOne.setSample(sample1.getID());
@@ -187,15 +187,11 @@ public class ReadBackedPileupUnitTest {
 
         ReadBackedPileup pileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 
-        ReadBackedPileup sample1Pileup = pileup.getPileupForSample(sample1);
-        Assert.assertEquals(sample1Pileup.size(),1,"Sample 1 pileup has wrong number of elements");
-        Assert.assertEquals(sample1Pileup.getReads().get(0),read1,"Sample 1 pileup has incorrect read");
-
         ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2.getID());
         Assert.assertEquals(sample2Pileup.size(),1,"Sample 2 pileup has wrong number of elements");
         Assert.assertEquals(sample2Pileup.getReads().get(0),read2,"Sample 2 pileup has incorrect read");
 
-        ReadBackedPileup missingSamplePileup = pileup.getPileupForSample(new Sample("missing"));
+        ReadBackedPileup missingSamplePileup = pileup.getPileupForSampleName("missing");
         Assert.assertNull(missingSamplePileup,"Pileup for sample 'missing' should be null but isn't");
 
         missingSamplePileup = pileup.getPileupForSampleName("not here");

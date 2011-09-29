@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -247,7 +248,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         Map<String,Genotype> preferredGenotypes = preferredVC.getGenotypes();
         Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
         for ( String sample : samples ) {
-            boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getSampleByID(sample).isMale();
+            boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getSample(sample).getGender() == Sample.Gender.MALE;
 
             Genotype genotype;
             boolean isValidation;

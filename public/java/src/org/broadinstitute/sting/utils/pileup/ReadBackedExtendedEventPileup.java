@@ -123,19 +123,6 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      */
     public Collection<String> getSampleNames();
 
-        /**
-     * Gets a list of all the samples stored in this pileup.
-     * @return List of samples in this pileup.
-     */
-    public Collection<Sample> getSamples();
-
-    /**
-     * Gets the particular subset of this pileup with the given sample name.
-     * @param sample Name of the sample to use.
-     * @return A subset of this pileup containing only reads with the given sample.
-     */
-    public ReadBackedExtendedEventPileup getPileupForSample(Sample sample);
-
     public Iterable<ExtendedEventPileupElement> toExtendedIterable();
 
     /**

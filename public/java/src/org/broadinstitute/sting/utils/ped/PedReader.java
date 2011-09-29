@@ -228,7 +228,6 @@ public class PedReader {
 
     public void fillSampleDB(SampleDataSource db) {
         for ( final PedRecord rec : getRecords() ) {
-            Sample s = db.getOrCreateSample(rec.individualID);
         }
     }
 }

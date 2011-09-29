@@ -85,8 +85,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                (byte)0);
 
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
-            SampleDataSource sampleDataSource = new SampleDataSource();
-            sampleDataSource.addSamplesFromSAMHeader(reader.getFileHeader());
+            SampleDataSource sampleDataSource = new SampleDataSource().addSamples(reader.getFileHeader());
 
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
             Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());

@@ -36,7 +36,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.GenericDocumentationHandler;
 
 import java.util.List;
 
@@ -93,8 +92,8 @@ public abstract class Walker<MapType, ReduceType> {
         return getToolkit().getSampleDB();
     }
 
-    protected Sample getSampleByID(final String id) {
-        return getToolkit().getSampleDB().getSampleById(id);
+    protected Sample getSample(final String id) {
+        return getToolkit().getSampleDB().getSample(id);
     }
 
     /**
