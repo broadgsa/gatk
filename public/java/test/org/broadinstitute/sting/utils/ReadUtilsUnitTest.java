@@ -16,7 +16,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     SAMRecord read, reducedRead;
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?";
-    final private static int REDUCED_READ_QUAL = 20;
+    final private static byte[] REDUCED_READ_COUNTS = new byte[]{10, 20, 30, 40};
 
     @BeforeTest
     public void init() {
@@ -29,7 +29,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead = ArtificialSAMUtils.createArtificialRead(header, "reducedRead", 0, 1, BASES.length());
         reducedRead.setReadBases(BASES.getBytes());
         reducedRead.setBaseQualityString(QUALS);
-        reducedRead.setAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG, REDUCED_READ_QUAL);
+        reducedRead.setAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG, REDUCED_READ_COUNTS);
     }
 
     private void testReadBasesAndQuals(SAMRecord read, int expectedStart, int expectedStop) {
@@ -52,21 +52,10 @@ public class ReadUtilsUnitTest extends BaseTest {
         Assert.assertEquals(ReadUtils.getReducedReadQualityTagValue(read), null, "No reduced read tag in normal read");
 
         Assert.assertTrue(ReadUtils.isReducedRead(reducedRead), "isReducedRead is true for reduced read");
-        Assert.assertEquals((int) ReadUtils.getReducedReadQualityTagValue(reducedRead), REDUCED_READ_QUAL, "Reduced read tag is set to expected value");
-    }
-
-    @Test
-    public void testreducedReadWithReducedQualsWithReducedRead() {
-        SAMRecord replacedRead = ReadUtils.reducedReadWithReducedQuals(reducedRead);
-        Assert.assertEquals(replacedRead.getReadBases(), reducedRead.getReadBases());
-        Assert.assertEquals(replacedRead.getBaseQualities().length, reducedRead.getBaseQualities().length);
-        for ( int i = 0; i < replacedRead.getBaseQualities().length; i++)
-            Assert.assertEquals(replacedRead.getBaseQualities()[i], REDUCED_READ_QUAL);
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class)
-    public void testreducedReadWithReducedQualsWithNormalRead() {
-        ReadUtils.reducedReadWithReducedQuals(read);
+        for ( int i = 0; i < reducedRead.getReadLength(); i++) {
+            Assert.assertEquals(ReadUtils.getReducedQual(reducedRead, i), read.getBaseQualities()[i], "Reduced read quality not set to the expected value at " + i);
+            Assert.assertEquals(ReadUtils.getReducedCount(reducedRead, i), REDUCED_READ_COUNTS[i], "Reduced read count not set to the expected value at " + i);
+        }
     }
 
     @Test
@@ -77,8 +66,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         Assert.assertFalse(readp.isReducedRead());
 
         Assert.assertTrue(reducedreadp.isReducedRead());
-        Assert.assertEquals(reducedreadp.getReducedCount(), 0);
-        Assert.assertEquals(reducedreadp.getReducedQual(), REDUCED_READ_QUAL);
-
+        Assert.assertEquals(reducedreadp.getReducedCount(), REDUCED_READ_COUNTS[0]);
+        Assert.assertEquals(reducedreadp.getReducedQual(), readp.getQual());
     }
 }

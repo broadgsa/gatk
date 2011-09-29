@@ -415,10 +415,6 @@ public class PairHMMIndelErrorModel {
                 if (read == null)
                     continue;
 
-                if ( isReduced ) {
-                    read = ReadUtils.reducedReadWithReducedQuals(read);
-                }
-
                 if(ReadUtils.is454Read(read)) {
                     continue;
                 }
