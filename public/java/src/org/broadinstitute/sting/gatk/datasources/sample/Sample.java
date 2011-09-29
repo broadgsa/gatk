@@ -14,6 +14,13 @@ import java.util.Map;
  * Time: 3:31:38 PM
  */
 public class Sample implements java.io.Serializable {
+    private final static String MOTHER = "mother";
+    private final static String FATHER = "father";
+    private final static String GENDER = "gender";
+    private final static String POPULATION = "population";
+    private final static String FAMILY = "familyId";
+    private final static String AFFECTION = "affection";
+    private final static String QUANT_TRAIT = "quantTrait";
 
     private final String id;
 
@@ -31,6 +38,18 @@ public class Sample implements java.io.Serializable {
         UNKNOWN
     }
 
+    public enum Affection {
+        /** Status is unknown */
+        UNKNOWN,
+        /** Suffers from the disease */
+        AFFECTED,
+        /** Unaffected by the disease */
+        UNAFFECTED,
+        /** A quantitative trait: value of the trait is stored elsewhere */
+        QUANTITATIVE
+    }
+    public final static double UNSET_QUANTITIATIVE_TRAIT_VALUE = Double.NaN;
+
     public Sample(String id) {
 /*        if (id == null) {
             throw new StingException("Error creating sample: sample ID cannot be null");
@@ -46,28 +65,19 @@ public class Sample implements java.io.Serializable {
         return properties;
     }
 
-    public void setProperties(Map<String, Object> properties) {
-        this.properties = (HashMap) properties;
-    }
-
-    public Map<String,Sample> getRelationships() {
-        return Collections.unmodifiableMap(this.relationships);
-    }
-
+    @Deprecated
     public void setSampleFileEntry(boolean value) {
         this.hasSampleFileEntry = value;
     }
 
+    @Deprecated
     public boolean hasSAMFileEntry() {
         return this.hasSAMFileEntry;
     }
 
+    @Deprecated
     public void setSAMFileEntry(boolean value) {
         this.hasSAMFileEntry = value;
-    }
-
-    public boolean hasSampleFileEntry() {
-        return this.hasSampleFileEntry;
     }
 
     /**
@@ -91,11 +101,11 @@ public class Sample implements java.io.Serializable {
             throw new StingException("The same key cannot exist as a property and a relationship");
         }
 
-        if (key.equals("gender") && value.getClass() != Gender.class) {
+        if (key.equals(GENDER) && value.getClass() != Gender.class) {
             throw new StingException("'gender' property must be of type Sample.Gender");
         }
 
-        if (key.equals("population") && value.getClass() != String.class) {
+        if (key.equals(POPULATION) && value.getClass() != String.class) {
             throw new StingException("'population' property must be of type String");
         }
 
@@ -129,7 +139,7 @@ public class Sample implements java.io.Serializable {
      * @return sample object with relationship mother, if exists, or null
      */
     public Sample getMother() {
-        return getRelationship("mother");
+        return getRelationship(MOTHER);
     }
 
     /**
@@ -137,7 +147,7 @@ public class Sample implements java.io.Serializable {
      * @return sample object with relationship father, if exists, or null
      */
     public Sample getFather() {
-        return getRelationship("father");
+        return getRelationship(FATHER);
     }
 
     /**
@@ -145,29 +155,29 @@ public class Sample implements java.io.Serializable {
      * @return property of key "gender" - must be of type Gender
      */
     public Gender getGender() {
-        return (Gender) properties.get("gender");
+        return (Gender) properties.get(GENDER);
     }
 
     public String getPopulation() {
-        return (String) properties.get("population");
+        return (String) properties.get(POPULATION);
     }
 
     public String getFamilyId() {
-        return (String) properties.get("familyId");
+        return (String) properties.get(FAMILY);
     }
 
     /**
      * @return True if sample is male, false if female, unknown, or null
      */
     public boolean isMale() {
-        return properties.get("gender") == Gender.MALE;
+        return properties.get(GENDER) == Gender.MALE;
     }
 
     /**
      * @return True if sample is female, false if male, unknown or null
      */
     public boolean isFemale() {
-        return properties.get("gender") == Gender.MALE;
+        return properties.get(GENDER) == Gender.MALE;
     }
 
     /**

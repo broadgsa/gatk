@@ -104,266 +104,265 @@ public class SampleDataSource {
      * Parse one sample file and integrate it with samples that are already there
      * Fail quickly if we find any errors in the file
      */
-    public void addFile(File sampleFile) {
-
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader(sampleFile));
-        }
-        catch (IOException e) {
-            throw new StingException("Could not open sample file " + sampleFile.getAbsolutePath(), e);
-        }
-
-        // set up YAML reader - a "Constructor" creates java object from YAML and "Loader" loads the file
-        Constructor con = new Constructor(SampleFileParser.class);
-        TypeDescription desc = new TypeDescription(SampleFileParser.class);
-        desc.putListPropertyType("propertyDefinitions", PropertyDefinition.class);
-        desc.putListPropertyType("sampleAliases", SampleAlias.class);
-        con.addTypeDescription(desc);
-        Yaml yaml = new Yaml(con);
-
-        // SampleFileParser stores an object representation of a sample file - this is what we'll parse
-        SampleFileParser parser;
-        try {
-            parser = (SampleFileParser) yaml.load(reader);
-        }
-        catch (Exception e) {
-            throw new StingException("There was a syntactic error with the YAML in sample file " + sampleFile.getAbsolutePath(), e);
-        }
-
-        // check to see which validation options were built into the file
-        boolean restrictProperties = parser.getAllowedProperties() != null;
-        boolean restrictRelationships = parser.getAllowedRelationships() != null;
-        boolean restrictPropertyValues = parser.getPropertyDefinitions() != null;
-
-        // propertyValues stores the values that are allowed for a given property
-        HashMap<String, HashSet> propertyValues = null;
-        if (restrictPropertyValues) {
-            propertyValues = new HashMap<String, HashSet>();
-            for (PropertyDefinition def : parser.getPropertyDefinitions()) {
-                HashSet<String> set = new HashSet<String>();
-                for (String value : def.getValues()) {
-                    set.add(value);
-                }
-                propertyValues.put(def.getProperty(), set);
-            }
-        }
-
-        // make sure the aliases are valid
-        validateAliases(parser);
-
-        // loop through each sample in the file - a SampleParser stores an object that will become a Sample
-        for (SampleParser sampleParser : parser.getSamples()) {
-
-            try {
-            // step 1: add the sample if it doesn't already exist
-            Sample sample = getSampleById(sampleParser.getId());
-            if (sample == null) {
-                sample = new Sample(sampleParser.getId());
-            }
-            addSample(sample);
-            sample.setSampleFileEntry(true);
-
-            // step 2: add the properties
-            if (sampleParser.getProperties() != null) {
-                for (String property : sampleParser.getProperties().keySet()) {
-
-                    // check that property is allowed
-                    if (restrictProperties) {
-                        if (!isPropertyValid(property, parser.getAllowedProperties())) {
-                            throw new StingException(property + " is an invalid property. It is not included in the list " +
-                                    "of allowed properties.");
-                        }
-                    }
-
-                    // next check that the value is allowed
-                    if (restrictPropertyValues) {
-                        if (!isValueAllowed(property, sampleParser.getProperties().get(property), propertyValues)) {
-                            throw new StingException("The value of property '" + property + "' is invalid. " +
-                                    "It is not included in the list of allowed values for this property.");
-                        }
-                    }
-
-                    // next check that there isn't already a conflicting property there
-                    if (sample.getProperty(property) != null &&
-                            sample.getProperty(property) != sampleParser.getProperties().get(property))
-                    {
-                        throw new StingException(property + " is a conflicting property!");
-                    }
-
-                    // checks are passed - now add the property!
-                    saveProperty(sample, property, sampleParser.getProperties().get(property));
-                }
-            }
-
-            // step 3: add the relationships
-            if (sampleParser.getRelationships() != null) {
-                for (String relationship : sampleParser.getRelationships().keySet()) {
-                    String relativeId = sampleParser.getRelationships().get(relationship);
-                    if (relativeId == null) {
-                        throw new StingException("The relationship cannot be null");
-                    }
-
-                    // first check that it's not invalid
-                    if (restrictRelationships) {
-                        if (!isRelationshipValid(relationship, parser.getAllowedRelationships())) {
-                            throw new StingException(relationship + " is an invalid relationship");
-                        }
-                    }
-
-                    // next check that there isn't already a conflicting property there
-                    if (sample.getRelationship(relationship) != null) {
-                        if (sample.getRelationship(relationship).getId() != sampleParser.getProperties().get(relationship)) {
-                            throw new StingException(relationship + " is a conflicting relationship!");
-                        }
-                        // if the relationship is already set - and consistent with what we're reading now - no need to continue
-                        else {
-                            continue;
-                        }
-                    }
-
-                    // checks are passed - now save the relationship
-                    saveRelationship(sample, relationship, relativeId);
-                }
-            }
-        } catch (Exception e) {
-              throw new StingException("An error occurred while loading this sample from the sample file: " +
-                      sampleParser.getId(), e);
-        }
-        }
-
-    }
-
-    private boolean isValueAllowed(String key, Object value, HashMap<String, HashSet> valuesList) {
-
-        // if the property values weren't specified for this property, then any value is okay
-        if (!valuesList.containsKey(key)) {
-            return true;
-        }
-
-        // if this property has enumerated values, it must be a string
-        else if (value.getClass() != String.class)
-            return false;
-
-        // is the value specified or not?
-        else if (!valuesList.get(key).contains(value))
-            return false;
-
-        return true;
-    }
-
-    /**
-     * Makes sure that the aliases are valid
-     * Checks that 1) no string is used as both a main ID and an alias;
-     * 2) no alias is used more than once
-     * @param parser
-     */
-    private void validateAliases(SampleFileParser parser) {
-
-        // no aliases sure validate
-        if (parser.getSampleAliases() == null)
-            return;
-
-        HashSet<String> mainIds = new HashSet<String>();
-        HashSet<String> otherIds = new HashSet<String>();
-
-        for (SampleAlias sampleAlias : parser.getSampleAliases()) {
-            mainIds.add(sampleAlias.getMainId());
-            for (String otherId : sampleAlias.getOtherIds()) {
-                if (mainIds.contains(otherId))
-                    throw new StingException(String.format("The aliases in your sample file are invalid - the alias %s cannot " +
-                            "be both a main ID and an other ID", otherId));
-
-                if (!otherIds.add(otherId))
-                    throw new StingException(String.format("The aliases in your sample file are invalid - %s is listed as an " +
-                            "alias more than once.", otherId));
-            }
-        }
-    }
-
-    private boolean isPropertyValid(String property, String[] allowedProperties) {
-
-        // is it a special property that is always allowed?
-        for (String allowedProperty : specialProperties) {
-            if (property.equals(allowedProperty))
-                return true;
-        }
-
-        // is it in the allowed properties list?
-        for (String allowedProperty : allowedProperties) {
-            if (property.equals(allowedProperty))
-                return true;
-        }
-
-        return false;
-    }
-
-    private boolean isRelationshipValid(String relationship, String[] allowedRelationships) {
-
-        // is it a special relationship that is always allowed?
-        for (String allowedRelationship : specialRelationships) {
-            if (relationship.equals(allowedRelationship))
-                return true;
-        }
-
-        // is it in the allowed properties list?
-        for (String allowedRelationship : allowedRelationships) {
-            if (relationship.equals(allowedRelationship))
-                return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Saves a property as the correct type
-     * @param key property key
-     * @param value property value, as read from YAML parser
-     * @return property value to be stored
-     */
-    private void saveProperty(Sample sample, String key, Object value) {
-
-        // convert gender to the right type, if it was stored as a String
-        if (key.equals("gender")) {
-            if (((String) value).toLowerCase().equals("male")) {
-                value = Sample.Gender.MALE;
-            }
-            else if (((String) value).toLowerCase().equals("female")) {
-                value = Sample.Gender.FEMALE;
-            }
-            else  if (((String) value).toLowerCase().equals("unknown")) {
-                value = Sample.Gender.UNKNOWN;
-            }
-            else if (value != null) {
-                throw new StingException("'gender' property must be male, female, or unknown.");
-            }
-        }
-        try {
-            sample.setProperty(key, value);
-        }
-        catch (Exception e) {
-            throw new StingException("Could not save property " + key, e);
-        }
-    }
-
-    /**
-     * Saves a relationship as the correct type
-     * @param key relationship key
-     * @param relativeId sample ID string of the relative
-     * @return relationship value to be stored
-     */
-    private void saveRelationship(Sample sample, String key, String relativeId) {
-
-        // get the reference that we'll store as the value
-        Sample relative = getSampleById(relativeId);
-
-        // create sample object for the relative, if necessary
-        if (relative == null) {
-            relative = new Sample(relativeId);
-            addSample(relative);
-        }
-        sample.setRelationship(key, relative);
-    }
+    public void addFile(File sampleFile) {}
+//
+//        BufferedReader reader;
+//        try {
+//            reader = new BufferedReader(new FileReader(sampleFile));
+//        }
+//        catch (IOException e) {
+//            throw new StingException("Could not open sample file " + sampleFile.getAbsolutePath(), e);
+//        }
+//
+//        // set up YAML reader - a "Constructor" creates java object from YAML and "Loader" loads the file
+//        Constructor con = new Constructor(SampleFileParser.class);
+//        TypeDescription desc = new TypeDescription(SampleFileParser.class);
+//        desc.putListPropertyType("propertyDefinitions", PropertyDefinition.class);
+//        desc.putListPropertyType("sampleAliases", SampleAlias.class);
+//        con.addTypeDescription(desc);
+//        Yaml yaml = new Yaml(con);
+//
+//        // SampleFileParser stores an object representation of a sample file - this is what we'll parse
+//        SampleFileParser parser;
+//        try {
+//            parser = (SampleFileParser) yaml.load(reader);
+//        }
+//        catch (Exception e) {
+//            throw new StingException("There was a syntactic error with the YAML in sample file " + sampleFile.getAbsolutePath(), e);
+//        }
+//
+//        // check to see which validation options were built into the file
+//        boolean restrictProperties = parser.getAllowedProperties() != null;
+//        boolean restrictRelationships = parser.getAllowedRelationships() != null;
+//        boolean restrictPropertyValues = parser.getPropertyDefinitions() != null;
+//
+//        // propertyValues stores the values that are allowed for a given property
+//        HashMap<String, HashSet> propertyValues = null;
+//        if (restrictPropertyValues) {
+//            propertyValues = new HashMap<String, HashSet>();
+//            for (PropertyDefinition def : parser.getPropertyDefinitions()) {
+//                HashSet<String> set = new HashSet<String>();
+//                for (String value : def.getValues()) {
+//                    set.add(value);
+//                }
+//                propertyValues.put(def.getProperty(), set);
+//            }
+//        }
+//
+//        // make sure the aliases are valid
+//        validateAliases(parser);
+//
+//        // loop through each sample in the file - a SampleParser stores an object that will become a Sample
+//        for (SampleParser sampleParser : parser.getSamples()) {
+//
+//            try {
+//            // step 1: add the sample if it doesn't already exist
+//            Sample sample = getSampleById(sampleParser.getId());
+//            if (sample == null) {
+//                sample = new Sample(sampleParser.getId());
+//            }
+//            addSample(sample);
+//            sample.setSampleFileEntry(true);
+//
+//            // step 2: add the properties
+//            if (sampleParser.getProperties() != null) {
+//                for (String property : sampleParser.getProperties().keySet()) {
+//
+//                    // check that property is allowed
+//                    if (restrictProperties) {
+//                        if (!isPropertyValid(property, parser.getAllowedProperties())) {
+//                            throw new StingException(property + " is an invalid property. It is not included in the list " +
+//                                    "of allowed properties.");
+//                        }
+//                    }
+//
+//                    // next check that the value is allowed
+//                    if (restrictPropertyValues) {
+//                        if (!isValueAllowed(property, sampleParser.getProperties().get(property), propertyValues)) {
+//                            throw new StingException("The value of property '" + property + "' is invalid. " +
+//                                    "It is not included in the list of allowed values for this property.");
+//                        }
+//                    }
+//
+//                    // next check that there isn't already a conflicting property there
+//                    if (sample.getProperty(property) != null &&
+//                            sample.getProperty(property) != sampleParser.getProperties().get(property))
+//                    {
+//                        throw new StingException(property + " is a conflicting property!");
+//                    }
+//
+//                    // checks are passed - now add the property!
+//                    saveProperty(sample, property, sampleParser.getProperties().get(property));
+//                }
+//            }
+//
+//            // step 3: add the relationships
+//            if (sampleParser.getRelationships() != null) {
+//                for (String relationship : sampleParser.getRelationships().keySet()) {
+//                    String relativeId = sampleParser.getRelationships().get(relationship);
+//                    if (relativeId == null) {
+//                        throw new StingException("The relationship cannot be null");
+//                    }
+//
+//                    // first check that it's not invalid
+//                    if (restrictRelationships) {
+//                        if (!isRelationshipValid(relationship, parser.getAllowedRelationships())) {
+//                            throw new StingException(relationship + " is an invalid relationship");
+//                        }
+//                    }
+//
+//                    // next check that there isn't already a conflicting property there
+//                    if (sample.getRelationship(relationship) != null) {
+//                        if (sample.getRelationship(relationship).getId() != sampleParser.getProperties().get(relationship)) {
+//                            throw new StingException(relationship + " is a conflicting relationship!");
+//                        }
+//                        // if the relationship is already set - and consistent with what we're reading now - no need to continue
+//                        else {
+//                            continue;
+//                        }
+//                    }
+//
+//                    // checks are passed - now save the relationship
+//                    saveRelationship(sample, relationship, relativeId);
+//                }
+//            }
+//        } catch (Exception e) {
+//              throw new StingException("An error occurred while loading this sample from the sample file: " +
+//                      sampleParser.getId(), e);
+//        }
+//        }
+//    }
+//
+//    private boolean isValueAllowed(String key, Object value, HashMap<String, HashSet> valuesList) {
+//
+//        // if the property values weren't specified for this property, then any value is okay
+//        if (!valuesList.containsKey(key)) {
+//            return true;
+//        }
+//
+//        // if this property has enumerated values, it must be a string
+//        else if (value.getClass() != String.class)
+//            return false;
+//
+//        // is the value specified or not?
+//        else if (!valuesList.get(key).contains(value))
+//            return false;
+//
+//        return true;
+//    }
+//
+//    /**
+//     * Makes sure that the aliases are valid
+//     * Checks that 1) no string is used as both a main ID and an alias;
+//     * 2) no alias is used more than once
+//     * @param parser
+//     */
+//    private void validateAliases(SampleFileParser parser) {
+//
+//        // no aliases sure validate
+//        if (parser.getSampleAliases() == null)
+//            return;
+//
+//        HashSet<String> mainIds = new HashSet<String>();
+//        HashSet<String> otherIds = new HashSet<String>();
+//
+//        for (SampleAlias sampleAlias : parser.getSampleAliases()) {
+//            mainIds.add(sampleAlias.getMainId());
+//            for (String otherId : sampleAlias.getOtherIds()) {
+//                if (mainIds.contains(otherId))
+//                    throw new StingException(String.format("The aliases in your sample file are invalid - the alias %s cannot " +
+//                            "be both a main ID and an other ID", otherId));
+//
+//                if (!otherIds.add(otherId))
+//                    throw new StingException(String.format("The aliases in your sample file are invalid - %s is listed as an " +
+//                            "alias more than once.", otherId));
+//            }
+//        }
+//    }
+//
+//    private boolean isPropertyValid(String property, String[] allowedProperties) {
+//
+//        // is it a special property that is always allowed?
+//        for (String allowedProperty : specialProperties) {
+//            if (property.equals(allowedProperty))
+//                return true;
+//        }
+//
+//        // is it in the allowed properties list?
+//        for (String allowedProperty : allowedProperties) {
+//            if (property.equals(allowedProperty))
+//                return true;
+//        }
+//
+//        return false;
+//    }
+//
+//    private boolean isRelationshipValid(String relationship, String[] allowedRelationships) {
+//
+//        // is it a special relationship that is always allowed?
+//        for (String allowedRelationship : specialRelationships) {
+//            if (relationship.equals(allowedRelationship))
+//                return true;
+//        }
+//
+//        // is it in the allowed properties list?
+//        for (String allowedRelationship : allowedRelationships) {
+//            if (relationship.equals(allowedRelationship))
+//                return true;
+//        }
+//
+//        return false;
+//    }
+//
+//    /**
+//     * Saves a property as the correct type
+//     * @param key property key
+//     * @param value property value, as read from YAML parser
+//     * @return property value to be stored
+//     */
+//    private void saveProperty(Sample sample, String key, Object value) {
+//
+//        // convert gender to the right type, if it was stored as a String
+//        if (key.equals("gender")) {
+//            if (((String) value).toLowerCase().equals("male")) {
+//                value = Sample.Gender.MALE;
+//            }
+//            else if (((String) value).toLowerCase().equals("female")) {
+//                value = Sample.Gender.FEMALE;
+//            }
+//            else  if (((String) value).toLowerCase().equals("unknown")) {
+//                value = Sample.Gender.UNKNOWN;
+//            }
+//            else if (value != null) {
+//                throw new StingException("'gender' property must be male, female, or unknown.");
+//            }
+//        }
+//        try {
+//            sample.setProperty(key, value);
+//        }
+//        catch (Exception e) {
+//            throw new StingException("Could not save property " + key, e);
+//        }
+//    }
+//
+//    /**
+//     * Saves a relationship as the correct type
+//     * @param key relationship key
+//     * @param relativeId sample ID string of the relative
+//     * @return relationship value to be stored
+//     */
+//    private void saveRelationship(Sample sample, String key, String relativeId) {
+//
+//        // get the reference that we'll store as the value
+//        Sample relative = getSampleById(relativeId);
+//
+//        // create sample object for the relative, if necessary
+//        if (relative == null) {
+//            relative = new Sample(relativeId);
+//            addSample(relative);
+//        }
+//        sample.setRelationship(key, relative);
+//    }
 
 
 
