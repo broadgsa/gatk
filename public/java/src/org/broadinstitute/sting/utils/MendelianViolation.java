@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -93,31 +92,6 @@ public class MendelianViolation {
         sampleChild = sample.getID();
         minGenotypeQuality = minGenotypeQualityP;
     }
-
-
-    /**
-     * The most common constructor to be used when give a YAML file with the relationships to the engine with the -SM option.
-     * @param engine - The GATK engine, use getToolkit(). That's where the sample information is stored.
-     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
-     */
-    public MendelianViolation(GenomeAnalysisEngine engine, double minGenotypeQualityP) {
-        boolean gotSampleInformation = false;
-        Collection<Sample> samples = engine.getSampleDB().getSamples();
-        // Iterate through all samples in the sample_metadata file but we really can only take one.
-        for (Sample sample : samples) {
-            if (sample.getMother() != null && sample.getFather() != null) {
-                sampleMom = sample.getMother().getID();
-                sampleDad = sample.getFather().getID();
-                sampleChild = sample.getID();
-                minGenotypeQuality = minGenotypeQualityP;
-                gotSampleInformation = true;
-                break; // we can only deal with one trio information
-            }
-        }
-        if (!gotSampleInformation)
-            throw new UserException("YAML file has no sample with relationship information (mother/father)");
-    }
-
 
     /**
      * This method prepares the object to evaluate for violation. Typically you won't call it directly, a call to

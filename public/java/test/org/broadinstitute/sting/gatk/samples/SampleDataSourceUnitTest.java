@@ -29,6 +29,6 @@ public class SampleDataSourceUnitTest extends BaseTest {
     // make sure samples are created from the SAM file correctly
     @Test()
     public void loadSAMSamplesTest() {
-        SampleDataSource s = new SampleDataSource(header, null);
+        SampleDataSource s = new SampleDataSource(header, Collections.<File>emptyList());
     }
 }
