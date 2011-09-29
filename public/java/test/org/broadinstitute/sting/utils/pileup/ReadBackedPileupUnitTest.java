@@ -141,9 +141,9 @@ public class ReadBackedPileupUnitTest {
         ReadBackedPileupImpl sample2Pileup = new ReadBackedPileupImpl(null,
                                                                       Arrays.asList(read2,read4),
                                                                       Arrays.asList(1,1));
-        Map<Sample,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<Sample,ReadBackedPileupImpl>();
-        sampleToPileupMap.put(new Sample(readGroupOne.getSample(), null),sample1Pileup);
-        sampleToPileupMap.put(new Sample(readGroupTwo.getSample(), null),sample2Pileup);
+        Map<String,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<String,ReadBackedPileupImpl>();
+        sampleToPileupMap.put(readGroupOne.getSample(),sample1Pileup);
+        sampleToPileupMap.put(readGroupTwo.getSample(),sample2Pileup);
 
         ReadBackedPileup compositePileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 
@@ -164,13 +164,13 @@ public class ReadBackedPileupUnitTest {
 
     @Test
     public void testGetPileupForSample() {
-        Sample sample1 = new Sample("sample1", null);
-        Sample sample2 = new Sample("sample2", null);
+        String sample1 = "sample1";
+        String sample2 = "sample2";
 
         SAMReadGroupRecord readGroupOne = new SAMReadGroupRecord("rg1");
-        readGroupOne.setSample(sample1.getID());
+        readGroupOne.setSample(sample1);
         SAMReadGroupRecord readGroupTwo = new SAMReadGroupRecord("rg2");
-        readGroupTwo.setSample(sample2.getID());
+        readGroupTwo.setSample(sample2);
 
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1,1,1000);
         header.addReadGroup(readGroupOne);
@@ -181,13 +181,13 @@ public class ReadBackedPileupUnitTest {
         SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,1,10);
         read2.setAttribute("RG",readGroupTwo.getId());
 
-        Map<Sample,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<Sample,ReadBackedPileupImpl>();
+        Map<String,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<String,ReadBackedPileupImpl>();
         sampleToPileupMap.put(sample1,new ReadBackedPileupImpl(null,Collections.singletonList(read1),0));
         sampleToPileupMap.put(sample2,new ReadBackedPileupImpl(null,Collections.singletonList(read2),0));
 
         ReadBackedPileup pileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 
-        ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2.getID());
+        ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2);
         Assert.assertEquals(sample2Pileup.size(),1,"Sample 2 pileup has wrong number of elements");
         Assert.assertEquals(sample2Pileup.getReads().get(0),read2,"Sample 2 pileup has incorrect read");
 
