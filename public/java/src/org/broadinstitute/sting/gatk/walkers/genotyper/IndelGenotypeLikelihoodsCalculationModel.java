@@ -81,7 +81,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
-        pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,UAC.OUTPUT_DEBUG_INDEL_INFO);
+        pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
+                UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.BANDED_INDEL_COMPUTATION);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
@@ -100,10 +101,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         GenomeLoc loc = ref.getLocus();
         ArrayList<Allele> aList = new ArrayList<Allele>();
 
-        if (DEBUG) {
-            System.out.println("'''''''''''''''''''''");
-            System.out.println("Loc:"+loc.toString());
-        }
         HashMap<String,Integer> consensusIndelStrings = new HashMap<String,Integer>();
 
         int insCount = 0, delCount = 0;
@@ -137,12 +134,12 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     continue;
                 }
 
-                if (DEBUG && p.isIndel()) {
+/*                if (DEBUG && p.isIndel()) {
                     System.out.format("Read: %s, cigar: %s, aln start: %d, aln end: %d, p.len:%d, Type:%s, EventBases:%s\n",
                             read.getReadName(),read.getCigar().toString(),read.getAlignmentStart(),read.getAlignmentEnd(),
                             p.getEventLength(),p.getType().toString(), p.getEventBases());
                 }
-
+   */
 
                 String indelString = p.getEventBases();
                 if (p.isInsertion()) {
@@ -212,7 +209,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 }
             }
 
-            if (DEBUG) {
+/*            if (DEBUG) {
                 int icount = indelPileup.getNumberOfInsertions();
                 int dcount = indelPileup.getNumberOfDeletions();
                 if (icount + dcount > 0)
@@ -226,7 +223,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     }
                     System.out.println();
                 }
-            }
+            }             */
         }
 
         int maxAlleleCnt = 0;
@@ -237,8 +234,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 maxAlleleCnt = curCnt;
                 bestAltAllele = s;
             }
-            if (DEBUG)
-                System.out.format("Key:%s, number: %d\n",s,consensusIndelStrings.get(s)  );
+//            if (DEBUG)
+//                System.out.format("Key:%s, number: %d\n",s,consensusIndelStrings.get(s)  );
         }         //gdebug-
 
         if (maxAlleleCnt <  minIndelCountForGenotyping)
@@ -366,10 +363,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         final int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
         final int numPrefBases= ref.getLocus().getStart()-ref.getWindow().getStart()+1;
 
-        if (DEBUG)
-            System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
-                    (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
-        //System.out.println(eventLength);
         haplotypeMap = Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
                 ref, hsize, numPrefBases);
 

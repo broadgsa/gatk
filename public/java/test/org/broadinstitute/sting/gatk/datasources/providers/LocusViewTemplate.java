@@ -119,6 +119,20 @@ public abstract class LocusViewTemplate extends BaseTest {
     }
 
     @Test
+    public void readAndLocusOverlapAtLastBase() {
+        SAMRecord read = buildSAMRecord("chr1", 1, 5);
+        SAMRecordIterator iterator = new SAMRecordIterator(read);
+
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 5, 5)));
+        WindowMaker windowMaker = new WindowMaker(shard,genomeLocParser,iterator,shard.getGenomeLocs(),new SampleDataSource());
+        WindowMaker.WindowMakerIterator window = windowMaker.next();
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), genomeLocParser, window.getLocus(), window, null, null);
+        LocusView view = createView(dataProvider);
+
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
+    }
+
+    @Test
     public void readOverlappingStartTest() {
         SAMRecord read = buildSAMRecord("chr1", 1, 10);
         SAMRecordIterator iterator = new SAMRecordIterator(read);

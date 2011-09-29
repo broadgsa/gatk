@@ -153,6 +153,9 @@ public class UnifiedArgumentCollection {
 //    @Hidden
 //    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
 //    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
+    @Hidden
+    @Argument(fullName = "bandedIndel", shortName = "bandedIndel", doc = "Banded Indel likelihood computation", required = false)
+    public boolean BANDED_INDEL_COMPUTATION = false;
 
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
@@ -199,7 +202,7 @@ public class UnifiedArgumentCollection {
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
-        
+        uac.BANDED_INDEL_COMPUTATION = BANDED_INDEL_COMPUTATION;
         return uac;
     }
 

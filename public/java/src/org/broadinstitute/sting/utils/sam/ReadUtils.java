@@ -825,7 +825,7 @@ public class ReadUtils {
      * @return the read coordinate corresponding to the requested reference coordinate. (see warning!)
      */
     @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
-    @Ensures({"result >= 0", "result < read.getReadLength()"})
+    @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
@@ -893,6 +893,10 @@ public class ReadUtils {
                     // base before the deletion (see warning in function contracts)
                     else if (fallsInsideDeletion && !endsWithinCigar)
                         readBases += shift - 1;
+
+                    // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
+                    else if (fallsInsideDeletion && endsWithinCigar)
+                        readBases--;
                     }
             }
 
