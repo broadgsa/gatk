@@ -245,8 +245,7 @@ public class RecalDataManager {
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
                 ((GATKSAMRecord)read).setReadGroup( readGroup );
             } else {
-                throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() +
-                                         " Users must set both the default read group using the --default_read_group <String> argument and the default platform using the --default_platform <String> argument." );
+                throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() );
             }
         }
 
@@ -271,8 +270,7 @@ public class RecalDataManager {
                 }
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
             } else {
-                throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() +
-                                         " Users must set the default platform using the --default_platform <String> argument." );
+                throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() );
             }
         }
     }
