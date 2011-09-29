@@ -74,7 +74,7 @@ class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElem
             Sample sample = entry.getKey();
             AbstractReadBackedPileup<?,PE> pileupBySample = entry.getValue();
             pileup.put(sample,pileupBySample.pileupElementTracker);
-            sampleNames.put(sample.getId(), sample);
+            sampleNames.put(sample.getID(), sample);
         }
     }
 
@@ -105,7 +105,7 @@ class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElem
 
     public void addElements(final Sample sample, PileupElementTracker<PE> elements) {
         pileup.put(sample,elements);
-        sampleNames.put(sample.getId(), sample);
+        sampleNames.put(sample.getID(), sample);
         size += elements.size();
     }
 

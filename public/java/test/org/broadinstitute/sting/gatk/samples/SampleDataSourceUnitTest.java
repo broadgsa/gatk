@@ -149,8 +149,8 @@ public class SampleDataSourceUnitTest extends BaseTest {
 
         Iterator<Sample> i = ceuSamples.iterator();
         ArrayList<String> sampleNames = new ArrayList<String>();
-        sampleNames.add(i.next().getId());
-        sampleNames.add(i.next().getId());
+        sampleNames.add(i.next().getID());
+        sampleNames.add(i.next().getID());
         Assert.assertTrue(sampleNames.contains("sampleA"));
         Assert.assertTrue(sampleNames.contains("sampleB"));
     }
@@ -191,8 +191,8 @@ public class SampleDataSourceUnitTest extends BaseTest {
         // make sure both samples are included
         Iterator<Sample> i = set.iterator();
         ArrayList<String> sampleNames = new ArrayList<String>();
-        sampleNames.add(i.next().getId());
-        sampleNames.add(i.next().getId());
+        sampleNames.add(i.next().getID());
+        sampleNames.add(i.next().getID());
         Assert.assertTrue(sampleNames.contains("NA123"));
         Assert.assertTrue(sampleNames.contains("NA456"));
     }

@@ -16,7 +16,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountMalesWalker extends ReadWalker<Integer, Integer> {
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
-        Sample sample = getToolkit().getSampleByRead(read);
+        Sample sample = getSampleDB().getSampleByRead(read);
         return sample.isMale() ? 1 : 0;
     }
 

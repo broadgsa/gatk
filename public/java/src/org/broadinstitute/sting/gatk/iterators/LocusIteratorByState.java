@@ -542,7 +542,7 @@ public class LocusIteratorByState extends LocusIterator {
             Map<String,ReadSelector> readSelectors = new HashMap<String,ReadSelector>();
             for(Sample sample: samples) {
                 readStatesBySample.put(sample,new PerSampleReadStateManager());
-                readSelectors.put(sample.getId(),downsamplingMethod.type == DownsampleType.BY_SAMPLE ? new NRandomReadSelector(null,targetCoverage) : new AllReadsSelector());
+                readSelectors.put(sample.getID(),downsamplingMethod.type == DownsampleType.BY_SAMPLE ? new NRandomReadSelector(null,targetCoverage) : new AllReadsSelector());
             }
 
             samplePartitioner = new SamplePartitioner(readSelectors);
@@ -640,7 +640,7 @@ public class LocusIteratorByState extends LocusIterator {
             samplePartitioner.complete();
 
             for(Sample sample: samples) {
-                ReadSelector aggregator = samplePartitioner.getSelectedReads(sample.getId());
+                ReadSelector aggregator = samplePartitioner.getSelectedReads(sample.getID());
 
                 Collection<SAMRecord> newReads = new ArrayList<SAMRecord>(aggregator.getSelectedReads());
 

@@ -555,7 +555,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
             Collection<String> sampleNames = new HashSet<String>();
             for (Sample sample : tracker.getSamples()) {
-                sampleNames.add(sample.getId());
+                sampleNames.add(sample.getID());
             }
             return sampleNames;
         }
@@ -700,7 +700,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             for(PE p: pileupElementTracker) {
                 SAMRecord read = p.getRead();
                 if(sample != null) {
-                    if(read.getReadGroup() != null && sample.getId().equals(read.getReadGroup().getSample()))
+                    if(read.getReadGroup() != null && sample.getID().equals(read.getReadGroup().getSample()))
                         filteredTracker.add(p);
                 }
                 else {

@@ -1034,121 +1034,14 @@ public class GenomeAnalysisEngine {
         return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
     }
 
-    public SampleDataSource getSampleMetadata() {
+    // -------------------------------------------------------------------------------------
+    //
+    // code for working with Samples database
+    //
+    // -------------------------------------------------------------------------------------
+
+    public SampleDataSource getSampleDB() {
         return this.sampleDataSource;
-    }
-
-    /**
-     * Get a sample by its ID
-     * If an alias is passed in, return the main sample object
-     * @param id sample id
-     * @return sample Object with this ID
-     */
-    public Sample getSampleById(String id) {
-        return sampleDataSource.getSampleById(id);
-    }
-
-    /**
-     * Get the sample for a given read group
-     * Must first look up ID for read group
-     * @param readGroup of sample
-     * @return sample object with ID from the read group
-     */
-    public Sample getSampleByReadGroup(SAMReadGroupRecord readGroup) {
-        return sampleDataSource.getSampleByReadGroup(readGroup);
-    }
-
-    /**
-     * Get a sample for a given read
-     * Must first look up read group, and then sample ID for that read group
-     * @param read of sample
-     * @return sample object of this read
-     */
-    public Sample getSampleByRead(SAMRecord read) {
-        return getSampleByReadGroup(read.getReadGroup());
-    }
-
-    /**
-     * Get number of sample objects
-     * @return size of samples map
-     */
-    public int sampleCount() {
-        return sampleDataSource.sampleCount();
-    }
-
-    /**
-     * Return all samples with a given family ID
-     * Note that this isn't terribly efficient (linear) - it may be worth adding a new family ID data structure for this
-     * @param familyId family ID
-     * @return Samples with the given family ID
-     */
-    public Set<Sample> getFamily(String familyId) {
-        return sampleDataSource.getFamily(familyId);
-    }
-
-    /**
-     * Returns all children of a given sample
-     * See note on the efficiency of getFamily() - since this depends on getFamily() it's also not efficient
-     * @param sample parent sample
-     * @return children of the given sample
-     */
-    public Set<Sample> getChildren(Sample sample) {
-        return sampleDataSource.getChildren(sample);
-    }
-
-    /**
-     * Gets all the samples
-     * @return
-     */
-    public Collection<Sample> getSamples() {
-        return sampleDataSource.getSamples();
-    }
-
-    /**
-     * Takes a list of sample names and returns their corresponding sample objects
-     *
-     * @param sampleNameList List of sample names
-     * @return Corresponding set of samples
-     */
-    public Set<Sample> getSamples(Collection<String> sampleNameList) {
-	return sampleDataSource.getSamples(sampleNameList);
-    }
-
-
-    /**
-     * Returns a set of samples that have any value (which could be null) for a given property
-     * @param key Property key
-     * @return Set of samples with the property
-     */
-    public Set<Sample> getSamplesWithProperty(String key) {
-        return sampleDataSource.getSamplesWithProperty(key);
-    }
-
-    /**
-     * Returns a set of samples that have a property with a certain value
-     * Value must be a string for now - could add a similar method for matching any objects in the future
-     *
-     * @param key Property key
-     * @param value String property value
-     * @return Set of samples that match key and value
-     */
-    public Set<Sample> getSamplesWithProperty(String key, String value) {
-        return sampleDataSource.getSamplesWithProperty(key, value);
-
-    }
-
-    /**
-     * Returns a set of sample objects for the sample names in a variant context
-     *
-     * @param context Any variant context
-     * @return a set of the sample objects
-     */
-    public Set<Sample> getSamplesByVariantContext(VariantContext context) {
-        Set<Sample> samples = new HashSet<Sample>();
-        for (String sampleName : context.getSampleNames()) {
-            samples.add(sampleDataSource.getOrCreateSample(sampleName));
-        }
-        return samples;
     }
 
     /**
@@ -1156,18 +1049,6 @@ public class GenomeAnalysisEngine {
      */
     public Set<Sample> getSAMFileSamples() {
         return sampleDataSource.getSAMFileSamples();
-    }
-
-    /**
-     * Return a subcontext restricted to samples with a given property key/value
-     * Gets the sample names from key/value and relies on VariantContext.subContextFromGenotypes for the filtering
-     * @param context VariantContext to filter
-     * @param key property key
-     * @param value property value (must be string)
-     * @return subcontext
-     */
-    public VariantContext subContextFromSampleProperty(VariantContext context, String key, String value) {
-        return sampleDataSource.subContextFromSampleProperty(context, key, value);
     }
 
     public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {

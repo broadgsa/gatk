@@ -168,9 +168,9 @@ public class ReadBackedPileupUnitTest {
         Sample sample2 = new Sample("sample2");
 
         SAMReadGroupRecord readGroupOne = new SAMReadGroupRecord("rg1");
-        readGroupOne.setSample(sample1.getId());
+        readGroupOne.setSample(sample1.getID());
         SAMReadGroupRecord readGroupTwo = new SAMReadGroupRecord("rg2");
-        readGroupTwo.setSample(sample2.getId());        
+        readGroupTwo.setSample(sample2.getID());
 
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1,1,1000);
         header.addReadGroup(readGroupOne);
@@ -191,7 +191,7 @@ public class ReadBackedPileupUnitTest {
         Assert.assertEquals(sample1Pileup.size(),1,"Sample 1 pileup has wrong number of elements");
         Assert.assertEquals(sample1Pileup.getReads().get(0),read1,"Sample 1 pileup has incorrect read");
 
-        ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2.getId());
+        ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2.getID());
         Assert.assertEquals(sample2Pileup.size(),1,"Sample 2 pileup has wrong number of elements");
         Assert.assertEquals(sample2Pileup.getReads().get(0),read2,"Sample 2 pileup has incorrect read");
 

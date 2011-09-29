@@ -47,12 +47,6 @@ public class SampleDataSource {
     private HashMap<String, String> sampleAliases = new HashMap<String, String>();
 
     /**
-     * While loading sample files, we must be aware of "special" properties and relationships that are always allowed
-     */
-    public static final String[] specialProperties = new String[] {"familyId", "population", "gender"};
-    public static final String[] specialRelationships = new String[] {"mother", "father"};
-
-    /**
      * Constructor takes both a SAM header and sample files because the two must be integrated.
      * @param header SAMFileHeader that has been created for this analysis
      * @param sampleFiles Sample files that were included on the command line
@@ -63,8 +57,7 @@ public class SampleDataSource {
         // create empty sample object for each sample referenced in the SAM header
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (!hasSample(sampleName)) {
-                Sample newSample = new Sample(sampleName);
-                newSample.setSAMFileEntry(true);
+                Sample newSample = new Sample(sampleName, this);
                 samples.put(sampleName, newSample);
             }
         }
@@ -78,7 +71,7 @@ public class SampleDataSource {
     }
 
     public SampleDataSource() {
-        samples.put(null, new Sample(null));
+        samples.put(null, new Sample(null, this));
     }
 
     /**
@@ -87,7 +80,7 @@ public class SampleDataSource {
     public void addSamplesFromSAMHeader(SAMFileHeader header) {
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (!hasSample(sampleName)) {
-                Sample newSample = new Sample(sampleName);
+                Sample newSample = new Sample(sampleName, this);
                 newSample.setSAMFileEntry(true);
                 samples.put(sampleName, newSample);
             }
@@ -151,9 +144,9 @@ public class SampleDataSource {
 //
 //            try {
 //            // step 1: add the sample if it doesn't already exist
-//            Sample sample = getSampleById(sampleParser.getId());
+//            Sample sample = getSampleById(sampleParser.getID());
 //            if (sample == null) {
-//                sample = new Sample(sampleParser.getId());
+//                sample = new Sample(sampleParser.getID());
 //            }
 //            addSample(sample);
 //            sample.setSampleFileEntry(true);
@@ -207,7 +200,7 @@ public class SampleDataSource {
 //
 //                    // next check that there isn't already a conflicting property there
 //                    if (sample.getRelationship(relationship) != null) {
-//                        if (sample.getRelationship(relationship).getId() != sampleParser.getProperties().get(relationship)) {
+//                        if (sample.getRelationship(relationship).getID() != sampleParser.getProperties().get(relationship)) {
 //                            throw new StingException(relationship + " is a conflicting relationship!");
 //                        }
 //                        // if the relationship is already set - and consistent with what we're reading now - no need to continue
@@ -222,7 +215,7 @@ public class SampleDataSource {
 //            }
 //        } catch (Exception e) {
 //              throw new StingException("An error occurred while loading this sample from the sample file: " +
-//                      sampleParser.getId(), e);
+//                      sampleParser.getID(), e);
 //        }
 //        }
 //    }
@@ -377,7 +370,7 @@ public class SampleDataSource {
      * @param sample to be added
      */
     private void addSample(Sample sample) {
-        samples.put(sample.getId(), sample);
+        samples.put(sample.getID(), sample);
     }
 
     /**
@@ -496,7 +489,7 @@ public class SampleDataSource {
     public Set<Sample> getSamplesWithProperty(String key) {
         HashSet<Sample> toReturn = new HashSet<Sample>();
         for (Sample s : samples.values()) {
-            if (s.hasProperty(key))
+            if (s.hasExtraProperty(key))
                 toReturn.add(s);
         }
         return toReturn;
@@ -513,7 +506,7 @@ public class SampleDataSource {
     public Set<Sample> getSamplesWithProperty(String key, String value) {
         Set<Sample> toReturn = getSamplesWithProperty(key);
         for (Sample s : toReturn) {
-            if (!s.getProperty(key).equals(value))
+            if (!s.getExtraPropertyValue(key).equals(value))
                 toReturn.remove(s);
         }
         return toReturn;
@@ -522,7 +515,7 @@ public class SampleDataSource {
     public Sample getOrCreateSample(String id) {
         Sample sample = getSampleById(id);
         if (sample == null) {
-            sample = new Sample(id);
+            sample = new Sample(id, this);
             addSample(sample);
         }
         return sample;
@@ -568,16 +561,10 @@ public class SampleDataSource {
         Set<String> samplesWithProperty = new HashSet<String>();
         for (String sampleName : context.getSampleNames()) {
             Sample s = samples.get(sampleName);
-            if (s != null && s.hasProperty(key) && s.getProperty(key).equals(value))
+            if (s != null && s.hasExtraProperty(key) && s.getExtraPropertyValue(key).equals(value))
                 samplesWithProperty.add(sampleName);
         }
         Map<String, Genotype> genotypes = context.getGenotypes(samplesWithProperty);
         return context.subContextFromGenotypes(genotypes.values());
     }
-
-    public static SampleDataSource createEmptyDataSource() {
-        SAMFileHeader header = new SAMFileHeader();
-        return new SampleDataSource(header, null);
-    }
-
 }

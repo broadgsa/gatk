@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -74,14 +73,6 @@ public class AlignmentContextUtils {
 
     public static Map<String, AlignmentContext> splitContextBySampleName(AlignmentContext context) {
         return splitContextBySampleName(context, null);
-    }
-
-    public static Map<Sample, AlignmentContext> splitContextBySample(AlignmentContext context) {
-        Map<Sample, AlignmentContext> m = new HashMap<Sample, AlignmentContext>();
-        for ( Map.Entry<String, AlignmentContext> entry : splitContextBySampleName(context, null).entrySet() ) {
-            m.put(new Sample(entry.getKey()), entry.getValue());
-        }
-        return m;
     }
 
     /**

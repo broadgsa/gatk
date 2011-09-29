@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.samples;
 
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,23 +14,16 @@ import java.util.Map;
  * Time: 3:31:38 PM
  */
 public class Sample implements java.io.Serializable {
-    private final static String MOTHER = "mother";
-    private final static String FATHER = "father";
-    private final static String GENDER = "gender";
-    private final static String POPULATION = "population";
-    private final static String FAMILY = "familyId";
-    private final static String AFFECTION = "affection";
-    private final static String QUANT_TRAIT = "quantTrait";
-
-    private final String id;
-
-    private boolean hasSampleFileEntry = false; // true if this sample has an entry in a sample file
+    final private String familyID, paternalID, maternalID;
+    final private Sample.Gender gender;
+    final private double quantitativePhenotype;
+    final private Sample.Affection affection;
+    final private String population;
+    final private String ID;
+    final private SampleDataSource dataSource;
 
     private boolean hasSAMFileEntry = false; // true if this sample has an entry in the SAM file
-
-    private HashMap<String, Object> properties = new HashMap<String, Object>();
-
-    private HashMap<String, Sample> relationships = new HashMap<String, Sample>();
+    private Map<String, Object> properties = new HashMap<String, Object>();
 
     public enum Gender {
         MALE,
@@ -47,26 +41,28 @@ public class Sample implements java.io.Serializable {
         /** A quantitative trait: value of the trait is stored elsewhere */
         QUANTITATIVE
     }
+
     public final static double UNSET_QUANTITIATIVE_TRAIT_VALUE = Double.NaN;
 
-    public Sample(String id) {
-/*        if (id == null) {
-            throw new StingException("Error creating sample: sample ID cannot be null");
-        }*/
-        this.id = id;
+    public Sample(final String ID, final SampleDataSource dataSource,
+                  final String familyID, final String paternalID, final String maternalID,
+                  final Gender gender, final double quantitativePhenotype, final Affection affection,
+                  final String population) {
+        this.familyID = familyID;
+        this.paternalID = paternalID;
+        this.maternalID = maternalID;
+        this.gender = gender;
+        this.quantitativePhenotype = quantitativePhenotype;
+        this.affection = affection;
+        this.population = population;
+        this.ID = ID;
+        this.dataSource = dataSource;
     }
 
-    public String getId() {
-        return this.id;
-    }
-
-    public Map<String, Object> getProperties() {
-        return properties;
-    }
-
-    @Deprecated
-    public void setSampleFileEntry(boolean value) {
-        this.hasSampleFileEntry = value;
+    public Sample(String id, SampleDataSource dataSource) {
+        this(id, dataSource,
+                null, null, null,
+                Gender.UNKNOWN, UNSET_QUANTITIATIVE_TRAIT_VALUE, Affection.UNKNOWN, null);
     }
 
     @Deprecated
@@ -79,58 +75,39 @@ public class Sample implements java.io.Serializable {
         this.hasSAMFileEntry = value;
     }
 
-    /**
-     * Get one property
-     * @param key key of property
-     * @return value of property as generic object
-     */
-    public Object getProperty(String key) {
-        return properties.get(key);
+    // -------------------------------------------------------------------------------------
+    //
+    // standard property getters
+    //
+    // -------------------------------------------------------------------------------------
+
+    public String getID() {
+        return ID;
     }
 
-    /**
-     * Set a property
-     * If property already exists, it is overwritten
-     * @param key key of property
-     * @param value object to be stored in properties array
-     */
-    public void setProperty(String key, Object value) {
 
-        if (relationships.containsKey(key)) {
-            throw new StingException("The same key cannot exist as a property and a relationship");
-        }
-
-        if (key.equals(GENDER) && value.getClass() != Gender.class) {
-            throw new StingException("'gender' property must be of type Sample.Gender");
-        }
-
-        if (key.equals(POPULATION) && value.getClass() != String.class) {
-            throw new StingException("'population' property must be of type String");
-        }
-
-        properties.put(key, value);
+    public String getFamilyID() {
+        return familyID;
     }
 
-    /**
-     * Get one relationship
-     * @param key of relationship
-     * @return Sample object that this relationship points to
-     */
-    public Sample getRelationship(String key) {
-        return relationships.get(key);
+    public String getPaternalID() {
+        return paternalID;
     }
 
-    /**
-     * Set one relationship
-     * If already set, it is overwritten
-     * @param key key of the relationship
-     * @param value Sample object this relationship points to
-     */
-    public void setRelationship(String key, Sample value) {
-        if (properties.containsKey(key)) {
-            throw new StingException("The same key cannot exist as a property and a relationship");
-        }
-        relationships.put(key, value);
+    public String getMaternalID() {
+        return maternalID;
+    }
+
+    public Affection getAffection() {
+        return affection;
+    }
+
+    public boolean hasQuantitativeTrait() {
+        return affection == Affection.QUANTITATIVE;
+    }
+
+    public double getQuantitativePhenotype() {
+        return quantitativePhenotype;
     }
 
     /**
@@ -138,7 +115,7 @@ public class Sample implements java.io.Serializable {
      * @return sample object with relationship mother, if exists, or null
      */
     public Sample getMother() {
-        return getRelationship(MOTHER);
+        return dataSource.getSampleById(maternalID);
     }
 
     /**
@@ -146,7 +123,7 @@ public class Sample implements java.io.Serializable {
      * @return sample object with relationship father, if exists, or null
      */
     public Sample getFather() {
-        return getRelationship(FATHER);
+        return dataSource.getSampleById(paternalID);
     }
 
     /**
@@ -154,29 +131,48 @@ public class Sample implements java.io.Serializable {
      * @return property of key "gender" - must be of type Gender
      */
     public Gender getGender() {
-        return (Gender) properties.get(GENDER);
+        return gender;
     }
 
     public String getPopulation() {
-        return (String) properties.get(POPULATION);
+        return population;
     }
 
     public String getFamilyId() {
-        return (String) properties.get(FAMILY);
+        return familyID;
     }
 
     /**
      * @return True if sample is male, false if female, unknown, or null
      */
     public boolean isMale() {
-        return properties.get(GENDER) == Gender.MALE;
+        return getGender() == Gender.MALE;
     }
 
     /**
      * @return True if sample is female, false if male, unknown or null
      */
     public boolean isFemale() {
-        return properties.get(GENDER) == Gender.MALE;
+        return getGender() == Gender.MALE;
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // code for working with additional -- none standard -- properites
+    //
+    // -------------------------------------------------------------------------------------
+
+    public Map<String, Object> getExtraProperties() {
+        return Collections.unmodifiableMap(properties);
+    }
+
+    /**
+     * Get one property
+     * @param key key of property
+     * @return value of property as generic object
+     */
+    public Object getExtraPropertyValue(final String key) {
+        return properties.get(key);
     }
 
     /**
@@ -184,7 +180,7 @@ public class Sample implements java.io.Serializable {
      * @param key property key
      * @return true if sample has this property (even if its value is null)
      */
-    public boolean hasProperty(String key) {
+    public boolean hasExtraProperty(String key) {
         return properties.containsKey(key);
     }
 
@@ -196,17 +192,14 @@ public class Sample implements java.io.Serializable {
         Sample sample = (Sample) o;
 
         if (hasSAMFileEntry != sample.hasSAMFileEntry) return false;
-        if (hasSampleFileEntry != sample.hasSampleFileEntry) return false;
-        if (id != null ? !id.equals(sample.id) : sample.id != null) return false;
+        if (ID != null ? !ID.equals(sample.ID) : sample.ID != null) return false;
         if (properties != null ? !properties.equals(sample.properties) : sample.properties != null) return false;
-        if (relationships != null ? !relationships.equals(sample.relationships) : sample.relationships != null)
-            return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return id != null ? id.hashCode() : "".hashCode();
+        return ID != null ? ID.hashCode() : "".hashCode();
     }
 }

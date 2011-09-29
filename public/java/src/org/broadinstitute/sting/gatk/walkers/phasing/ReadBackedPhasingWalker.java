@@ -1102,7 +1102,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                                 if (!p.isDeletion()) // IGNORE deletions for now
                                     readBases.putReadBase(p);
                             }
-                            sampleReadBases.put(sample.getId(), readBases);
+                            sampleReadBases.put(sample.getID(), readBases);
                         }
                     }
                 }

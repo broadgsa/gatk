@@ -25,7 +25,7 @@ public class CountLociByPopulationWalker extends LocusWalker<Integer, Long> impl
         for (SAMRecord read : reads) {
 
             // get the sample
-            Sample sample = getToolkit().getSampleByRead(read);
+            Sample sample = getSampleDB().getSampleByRead(read);
             if (sample == null)
                 return 1;
 

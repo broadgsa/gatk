@@ -30,6 +30,8 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
+import org.broadinstitute.sting.gatk.samples.Sample;
+import org.broadinstitute.sting.gatk.samples.SampleDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -85,6 +87,14 @@ public abstract class Walker<MapType, ReduceType> {
      */
     protected SAMSequenceDictionary getMasterSequenceDictionary() {
         return getToolkit().getMasterSequenceDictionary();
+    }
+
+    protected SampleDataSource getSampleDB() {
+        return getToolkit().getSampleDB();
+    }
+
+    protected Sample getSampleByID(final String id) {
+        return getToolkit().getSampleDB().getSampleById(id);
     }
 
     /**

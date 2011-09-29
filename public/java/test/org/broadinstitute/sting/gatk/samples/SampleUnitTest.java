@@ -55,7 +55,7 @@ public class SampleUnitTest extends BaseTest {
      */
     @Test()
     public void specialGettersTest() {
-        Assert.assertTrue(sampleC.getId().equals("sampleC"));
+        Assert.assertTrue(sampleC.getID().equals("sampleC"));
         Assert.assertTrue(sampleC.getPopulation().equals("pop1"));
         Assert.assertTrue(sampleC.isMale());
         Assert.assertFalse(sampleA.isMale());   // sample A doesn't have a gender, so this should be false

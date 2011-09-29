@@ -247,7 +247,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         Map<String,Genotype> preferredGenotypes = preferredVC.getGenotypes();
         Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
         for ( String sample : samples ) {
-            boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getToolkit().getSampleById(sample).isMale();
+            boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getSampleByID(sample).isMale();
 
             Genotype genotype;
             boolean isValidation;

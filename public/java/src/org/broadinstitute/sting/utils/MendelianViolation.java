@@ -88,9 +88,9 @@ public class MendelianViolation {
      * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
      */
     public MendelianViolation(Sample sample, double minGenotypeQualityP) {
-        sampleMom = sample.getMother().getId();
-        sampleDad = sample.getFather().getId();
-        sampleChild = sample.getId();
+        sampleMom = sample.getMother().getID();
+        sampleDad = sample.getFather().getID();
+        sampleChild = sample.getID();
         minGenotypeQuality = minGenotypeQualityP;
     }
 
@@ -102,13 +102,13 @@ public class MendelianViolation {
      */
     public MendelianViolation(GenomeAnalysisEngine engine, double minGenotypeQualityP) {
         boolean gotSampleInformation = false;
-        Collection<Sample> samples = engine.getSamples();
+        Collection<Sample> samples = engine.getSampleDB().getSamples();
         // Iterate through all samples in the sample_metadata file but we really can only take one.
         for (Sample sample : samples) {
             if (sample.getMother() != null && sample.getFather() != null) {
-                sampleMom = sample.getMother().getId();
-                sampleDad = sample.getFather().getId();
-                sampleChild = sample.getId();
+                sampleMom = sample.getMother().getID();
+                sampleDad = sample.getFather().getID();
+                sampleChild = sample.getID();
                 minGenotypeQuality = minGenotypeQualityP;
                 gotSampleInformation = true;
                 break; // we can only deal with one trio information
