@@ -966,4 +966,5 @@ public class ReadUtils {
         AlignmentStartComparator comp = new AlignmentStartComparator();
         return comp.compare(read1, read2);
     }
+
 }
