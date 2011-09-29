@@ -24,7 +24,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

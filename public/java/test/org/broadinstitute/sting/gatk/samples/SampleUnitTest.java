@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.datasources.sample;
+package org.broadinstitute.sting.gatk.samples;
 
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;

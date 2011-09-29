@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.picard.util.PeekableIterator;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.gatk.samples.Sample;
 
 import java.util.Comparator;
 import java.util.Iterator;

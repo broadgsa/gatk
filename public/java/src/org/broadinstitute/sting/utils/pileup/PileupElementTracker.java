@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.gatk.samples.Sample;
 
 import java.util.*;
 

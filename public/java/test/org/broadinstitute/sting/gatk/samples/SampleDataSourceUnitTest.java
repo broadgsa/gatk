@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.datasources.sample;
+package org.broadinstitute.sting.gatk.samples;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
