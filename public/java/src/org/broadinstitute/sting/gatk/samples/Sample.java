@@ -117,8 +117,11 @@ public class Sample implements java.io.Serializable {
         return gender;
     }
 
-    public String getFamilyId() {
-        return familyID;
+    @Override
+    public String toString() {
+        return String.format("Sample %s fam=%s dad=%s mom=%s gender=%s affection=%s qt=%s props=%s",
+                getID(), getFamilyID(), getPaternalID(), getMaternalID(), getGender(), getAffection(),
+                getQuantitativePhenotype(), getExtraProperties());
     }
 
     // -------------------------------------------------------------------------------------
@@ -147,5 +150,35 @@ public class Sample implements java.io.Serializable {
      */
     public boolean hasExtraProperty(String key) {
         return properties.containsKey(key);
+    }
+
+    @Override
+    public int hashCode() {
+        return ID.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if(o == null)
+            return false;
+        if(o instanceof Sample) {
+            Sample otherSample = (Sample)o;
+            return ID.equals(otherSample.ID) &&
+                    equalOrNull(familyID, otherSample.familyID) &&
+                    equalOrNull(paternalID, otherSample.paternalID) &&
+                    equalOrNull(maternalID, otherSample.maternalID) &&
+                    equalOrNull(gender, otherSample.gender) &&
+                    equalOrNull(quantitativePhenotype, otherSample.quantitativePhenotype) &&
+                    equalOrNull(affection, otherSample.affection) &&
+                    equalOrNull(properties, otherSample.properties);
+        }
+        return false;
+    }
+
+    private final static boolean equalOrNull(final Object o1, final Object o2) {
+        if ( o1 == null )
+            return o2 == null;
+        else
+            return o2 == null ? false : o1.equals(o2);
     }
 }

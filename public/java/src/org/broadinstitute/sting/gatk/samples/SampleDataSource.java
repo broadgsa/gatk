@@ -156,8 +156,8 @@ public class SampleDataSource {
         HashSet<Sample> familyMembers = new HashSet<Sample>();
 
         for (Sample sample : samples.values()) {
-            if (sample.getFamilyId() != null) {
-                if (sample.getFamilyId().equals(familyId))
+            if (sample.getFamilyID() != null) {
+                if (sample.getFamilyID().equals(familyId))
                     familyMembers.add(sample);
             }
         }
@@ -172,7 +172,7 @@ public class SampleDataSource {
      */
     public Set<Sample> getChildren(Sample sample) {
         HashSet<Sample> children = new HashSet<Sample>();
-        for (Sample familyMember : getFamily(sample.getFamilyId())) {
+        for (Sample familyMember : getFamily(sample.getFamilyID())) {
             if (familyMember.getMother() == sample || familyMember.getFather() == sample) {
                 children.add(familyMember);
             }

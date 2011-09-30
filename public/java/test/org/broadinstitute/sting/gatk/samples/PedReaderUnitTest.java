@@ -33,6 +33,7 @@ import org.testng.annotations.Test;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -47,11 +48,25 @@ public class PedReaderUnitTest extends BaseTest {
     private class PedReaderTest extends TestDataProvider {
         public String fileContents;
         public List<Sample> expectedSamples;
+        EnumSet<PedReader.MissingPedFields> missing;
 
         private PedReaderTest(final String name, final List<Sample> expectedSamples, final String fileContents) {
             super(PedReaderTest.class, name);
             this.fileContents = fileContents;
             this.expectedSamples = expectedSamples;
+        }
+    }
+
+    private class PedReaderTestMissing extends TestDataProvider {
+        public String fileContents;
+        public List<Sample> expectedSamples;
+        EnumSet<PedReader.MissingPedFields> missing;
+
+        private PedReaderTestMissing(final String name, EnumSet<PedReader.MissingPedFields> missing, final List<Sample> expectedSamples, final String fileContents) {
+            super(PedReaderTest.class, name);
+            this.fileContents = fileContents;
+            this.expectedSamples = expectedSamples;
+            this.missing = missing;
         }
     }
 
@@ -100,9 +115,9 @@ public class PedReaderUnitTest extends BaseTest {
 
         new PedReaderTest("multipleUnrelated",
                 Arrays.asList(
-                    new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.AFFECTED),
-                    new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.UNAFFECTED)),
-                String.format("%s\n%s",
+                    new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.UNAFFECTED),
+                    new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.AFFECTED)),
+                String.format("%s%n%s",
                         "fam1 s1 0 0 1 1",
                         "fam2 s2 0 0 2 2"));
 
@@ -111,7 +126,7 @@ public class PedReaderUnitTest extends BaseTest {
                     new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED),
                     new Sample("dad", "fam1", null, null,   Gender.MALE,   Affection.UNAFFECTED),
                     new Sample("mom", "fam1", null, null,   Gender.FEMALE, Affection.AFFECTED)),
-                String.format("%s\n%s\n%s",
+                String.format("%s%n%s%n%s",
                         "fam1 kid dad mom 1 2",
                         "fam1 dad 0   0   1 1",
                         "fam1 mom 0   0   2 2"));
@@ -121,14 +136,14 @@ public class PedReaderUnitTest extends BaseTest {
                     new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED),
                     new Sample("dad", "fam1", null, null,   Gender.MALE,   Affection.UNKNOWN),
                     new Sample("mom", "fam1", null, null,   Gender.FEMALE, Affection.UNKNOWN)),
-                "fam1 kid dad mom 1 1");
+                "fam1 kid dad mom 1 2");
 
         new PedReaderTest("partialTrio",
                 Arrays.asList(
                     new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED),
                     new Sample("dad", "fam1", null, null,   Gender.MALE,   Affection.UNAFFECTED),
                     new Sample("mom", "fam1", null, null,   Gender.FEMALE, Affection.UNKNOWN)),
-                String.format("%s\n%s",
+                String.format("%s%n%s",
                         "fam1 kid dad mom 1 2",
                         "fam1 dad 0   0   1 1"));
 
@@ -141,7 +156,7 @@ public class PedReaderUnitTest extends BaseTest {
                     new Sample("mom", "fam1", "granddad2", "grandma2", Gender.FEMALE, Affection.AFFECTED),
                     new Sample("granddad2", "fam1", null, null,        Gender.MALE,   Affection.UNKNOWN),
                     new Sample("grandma2",  "fam1", null, null,        Gender.FEMALE,   Affection.UNKNOWN)),
-                String.format("%s\n%s\n%s",
+                String.format("%s%n%s%n%s",
                         "fam1 kid dad       mom      1 2",
                         "fam1 dad granddad1 grandma1 1 1",
                         "fam1 mom granddad2 grandma2 2 2"));
@@ -151,7 +166,7 @@ public class PedReaderUnitTest extends BaseTest {
                 Arrays.asList(
                     new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.QUANTITATIVE, 1.0),
                     new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.QUANTITATIVE, 10.0)),
-                String.format("%s\n%s",
+                String.format("%s%n%s",
                         "fam1 s1 0 0 1 1",
                         "fam2 s2 0 0 2 10.0"));
 
@@ -159,7 +174,7 @@ public class PedReaderUnitTest extends BaseTest {
                 Arrays.asList(
                     new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.UNKNOWN, Sample.UNSET_QT),
                     new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.QUANTITATIVE, 10.0)),
-                String.format("%s\n%s",
+                String.format("%s%n%s",
                         "fam1 s1 0 0 1 -9",
                         "fam2 s2 0 0 2 10.0"));
 
@@ -167,7 +182,7 @@ public class PedReaderUnitTest extends BaseTest {
                 Arrays.asList(
                     new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.QUANTITATIVE, 1.0),
                     new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.QUANTITATIVE, 10.0)),
-                String.format("%s\n%s",
+                String.format("%s%n%s",
                         "fam1 s1 0 0 1 1",
                         "fam2 s2 0 0 2 10"));
 
@@ -179,7 +194,7 @@ public class PedReaderUnitTest extends BaseTest {
         PedReader reader = new PedReader();
         SampleDataSource sampleDB = new SampleDataSource();
         List<Sample> readSamples = reader.parse(new StringReader(myFileContents), missing, sampleDB);
-        Assert.assertEquals(test.expectedSamples, readSamples, "Parsed incorrect number of samples");
+        Assert.assertEquals(new HashSet<Sample>(test.expectedSamples), new HashSet<Sample>(readSamples), "Parsed incorrect number of samples");
     }
 
     @Test(enabled = true, dataProvider = "readerTest")
@@ -189,13 +204,32 @@ public class PedReaderUnitTest extends BaseTest {
 
     @Test(enabled = true, dataProvider = "readerTest", dependsOnMethods = "testPedReader")
     public void testPedReaderWithComments(PedReaderTest test) {
-        runTest(test, "#comment\n" + test.fileContents, EnumSet.noneOf(PedReader.MissingPedFields.class));
+        runTest(test, String.format("#comment%n%s", test.fileContents), EnumSet.noneOf(PedReader.MissingPedFields.class));
     }
 
-    @Test(enabled = true, dataProvider = "readerTest", dependsOnMethods = "testPedReader")
+    @DataProvider(name = "readerTestMissing")
+    public Object[][] createPEDFilesWithMissing() {
+        new PedReaderTestMissing("trioMissingFam", EnumSet.of(PedReader.MissingPedFields.NO_FAMILY_ID),
+                Arrays.asList(
+                    new Sample("kid", null, "dad", "mom", Gender.MALE,   Affection.AFFECTED),
+                    new Sample("dad", null, null, null,   Gender.MALE,   Affection.UNAFFECTED),
+                    new Sample("mom", null, null, null,   Gender.FEMALE, Affection.AFFECTED)),
+                String.format("%s%n%s%n%s",
+                        "kid dad mom 1 2",
+                        "dad 0   0   1 1",
+                        "mom 0   0   2 2"));
+
+        return PedReaderTestMissing.getTests(PedReaderTestMissing.class);
+    }
+
+    @Test(enabled = true, dataProvider = "readerTestMissing", dependsOnMethods = "testPedReader")
     public void testPedReaderWithMissing(PedReaderTest test) {
-        // todo -- test MISSING by splicing strings
-        //runTest(test, "#comment\n" + test.fileContents, EnumSet.noneOf(PedReader.MissingPedFields.class));
+//        public enum MissingPedFields {
+//            NO_FAMILY_ID,
+//            NO_PARENTS,
+//            NO_SEX,
+//            NO_PHENOTYPE
+//        }
+//        runTest(test, sliceContents(0, test.fileContents), EnumSet.of(PedReader.MissingPedFields.NO_FAMILY_ID));
     }
-
 }

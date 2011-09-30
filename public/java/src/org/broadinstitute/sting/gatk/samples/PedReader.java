@@ -160,13 +160,13 @@ public class PedReader {
         final List<String[]> splits = new ArrayList<String[]>(lines.size());
         for ( final String line : lines ) {
             if ( line.startsWith(commentMarker)) continue;
-            String[] parts = line.split("\\W+");
+            String[] parts = line.split("\\s+");
 
             if ( parts.length != nExpectedFields )
                 throw new UserException.MalformedFile(reader.toString(), "Bad PED line " + lineNo + ": wrong number of fields");
 
             if ( phenotypePos != -1 ) {
-                isQT = isQT || CATAGORICAL_TRAIT_VALUES.contains(parts[phenotypePos]);
+                isQT = isQT || ! CATAGORICAL_TRAIT_VALUES.contains(parts[phenotypePos]);
             }
 
             splits.add(parts);
@@ -211,11 +211,20 @@ public class PedReader {
                 }
             }
 
-            final Sample s = new Sample(familyID, sampleDB, individualID, paternalID, maternalID, sex, affection, quantitativePhenotype);
+            final Sample s = new Sample(individualID, sampleDB, familyID, paternalID, maternalID, sex, affection, quantitativePhenotype);
             samples.add(s);
             sampleDB.addSample(s);
             lineNo++;
         }
+
+        for ( final Sample sample : new ArrayList<Sample>(samples) ) {
+            Sample dad = maybeAddImplicitSample(sampleDB, sample.getPaternalID(), sample.getFamilyID(), Gender.MALE);
+            if ( dad != null ) samples.add(dad);
+
+            Sample mom = maybeAddImplicitSample(sampleDB, sample.getMaternalID(), sample.getFamilyID(), Gender.FEMALE);
+            if ( mom != null ) samples.add(mom);
+        }
+
 
         sampleDB.validate(samples);
         return samples;
@@ -226,5 +235,14 @@ public class PedReader {
             return null;
         else
             return string;
+    }
+
+    private final Sample maybeAddImplicitSample(SampleDataSource sampleDB, final String id, final String familyID, final Gender gender) {
+        if ( id != null && sampleDB.getSample(id) == null ) {
+            Sample s = new Sample(id, sampleDB, familyID, null, null, gender, Affection.UNKNOWN, Sample.UNSET_QT);
+            sampleDB.addSample(s);
+            return s;
+        } else
+            return null;
     }
 }
