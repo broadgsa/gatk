@@ -1041,13 +1041,6 @@ public class GenomeAnalysisEngine {
         return this.sampleDataSource;
     }
 
-    /**
-     * Returns all samples that were referenced in the SAM file
-     */
-    public Set<Sample> getSAMFileSamples() {
-        return sampleDataSource.getSamples(SampleUtils.getSAMFileSamples(getSAMFileHeader()));
-    }
-
     public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {
         return CommandLineUtils.getApproximateCommandLineArguments(parsingEngine,argumentProviders);
     }
