@@ -22,11 +22,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.ped;
+package org.broadinstitute.sting.gatk.samples;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.sting.gatk.samples.SampleDataSource;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;

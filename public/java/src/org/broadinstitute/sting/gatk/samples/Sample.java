@@ -6,10 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- * User: brett
- * Date: Jul 26, 2010
- * Time: 3:31:38 PM
+ *
  */
 public class Sample implements java.io.Serializable {
     final private String familyID, paternalID, maternalID;
