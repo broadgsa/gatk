@@ -52,6 +52,7 @@ public class ReadUtils {
     // ----------------------------------------------------------------------------------------------------
 
     public static final String REDUCED_READ_QUALITY_TAG = "RQ";
+    public static final String REDUCED_READ_CONSENSUS_COUNTS_TAG = "CC";
 
     public final static Integer getReducedReadQualityTagValue(final SAMRecord read) {
         return read.getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
@@ -965,4 +966,5 @@ public class ReadUtils {
         AlignmentStartComparator comp = new AlignmentStartComparator();
         return comp.compare(read1, read2);
     }
+
 }
