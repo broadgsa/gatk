@@ -132,7 +132,7 @@ import java.util.*;
  * vc.hasGenotypes()
  * vc.isMonomorphic()
  * vc.isPolymorphic()
- * vc.getSampleNames().size()
+ * vc.getSamples().size()
  *
  * vc.getGenotypes()
  * vc.getGenotypes().get("g1")

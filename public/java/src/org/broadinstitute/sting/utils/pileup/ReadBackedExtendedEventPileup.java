@@ -120,7 +120,7 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * Gets a list of all the samples stored in this pileup.
      * @return List of samples in this pileup.
      */
-    public Collection<String> getSampleNames();
+    public Collection<String> getSamples();
 
     public Iterable<ExtendedEventPileupElement> toExtendedIterable();
 

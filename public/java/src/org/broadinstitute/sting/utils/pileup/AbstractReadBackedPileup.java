@@ -548,7 +548,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         }
     }
 
-    public Collection<String> getSampleNames() {
+    public Collection<String> getSamples() {
         if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
             return new HashSet<String>(tracker.getSamples());
@@ -623,7 +623,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     }
 
     @Override
-    public RBP getPileupForSampleNames(Collection<String> sampleNames) {
+    public RBP getPileupForSamples(Collection<String> sampleNames) {
         if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
             PileupElementTracker<PE> filteredElements = tracker.getElements(sampleNames);
@@ -649,7 +649,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
 
     @Override
-    public RBP getPileupForSampleName(String sampleName) {
+    public RBP getPileupForSample(String sampleName) {
         if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
             PileupElementTracker<PE> filteredElements = tracker.getElements(sampleName);

@@ -140,7 +140,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * Gets a collection of *names* of all the samples stored in this pileup.
      * @return Collection of names
      */
-    public Collection<String> getSampleNames();
+    public Collection<String> getSamples();
 
 
     /**
@@ -148,7 +148,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @param sampleNames Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSampleNames(Collection<String> sampleNames);
+    public ReadBackedPileup getPileupForSamples(Collection<String> sampleNames);
 
 
     /**
@@ -156,7 +156,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @param sampleName Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSampleName(String sampleName);
+    public ReadBackedPileup getPileupForSample(String sampleName);
     
     /**
      * Simple useful routine to count the number of deletion bases in this pileup

@@ -88,8 +88,8 @@ public class AlignmentContextUtils {
         GenomeLoc loc = context.getLocation();
         HashMap<String, AlignmentContext> contexts = new HashMap<String, AlignmentContext>();
 
-        for(String sample: context.getPileup().getSampleNames()) {
-            ReadBackedPileup pileupBySample = context.getPileup().getPileupForSampleName(sample);
+        for(String sample: context.getPileup().getSamples()) {
+            ReadBackedPileup pileupBySample = context.getPileup().getPileupForSample(sample);
 
             // Don't add empty pileups to the split context.
             if(pileupBySample.size() == 0)

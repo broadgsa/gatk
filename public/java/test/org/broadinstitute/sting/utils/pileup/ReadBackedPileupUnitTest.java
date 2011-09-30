@@ -28,7 +28,6 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.testng.Assert;
-import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import org.testng.annotations.Test;
@@ -187,14 +186,14 @@ public class ReadBackedPileupUnitTest {
 
         ReadBackedPileup pileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 
-        ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2);
+        ReadBackedPileup sample2Pileup = pileup.getPileupForSample(sample2);
         Assert.assertEquals(sample2Pileup.size(),1,"Sample 2 pileup has wrong number of elements");
         Assert.assertEquals(sample2Pileup.getReads().get(0),read2,"Sample 2 pileup has incorrect read");
 
-        ReadBackedPileup missingSamplePileup = pileup.getPileupForSampleName("missing");
+        ReadBackedPileup missingSamplePileup = pileup.getPileupForSample("missing");
         Assert.assertNull(missingSamplePileup,"Pileup for sample 'missing' should be null but isn't");
 
-        missingSamplePileup = pileup.getPileupForSampleName("not here");
+        missingSamplePileup = pileup.getPileupForSample("not here");
         Assert.assertNull(missingSamplePileup,"Pileup for sample 'not here' should be null but isn't");
     }
 }

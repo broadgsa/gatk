@@ -30,7 +30,6 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -1095,8 +1094,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     // filter the read-base pileup based on min base and mapping qualities:
                     pileup = pileup.getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE);
                     if (pileup != null) {
-                        for (final String sample : pileup.getSampleNames()) {
-                            ReadBackedPileup samplePileup = pileup.getPileupForSampleName(sample);
+                        for (final String sample : pileup.getSamples()) {
+                            ReadBackedPileup samplePileup = pileup.getPileupForSample(sample);
                             ReadBasesAtPosition readBases = new ReadBasesAtPosition();
                             for (PileupElement p : samplePileup) {
                                 if (!p.isDeletion()) // IGNORE deletions for now
