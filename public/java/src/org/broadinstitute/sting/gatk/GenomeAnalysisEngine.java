@@ -713,100 +713,6 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
-     * found in the corresponding bam file.
-     *
-     * @return Sets of samples in the merged input SAM stream, grouped by readers
-     */
-    public List<Set<String>> getSamplesByReaders() {
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> samples = new HashSet<String>(1);
-            sample_sets.add(samples);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                samples.add(g.getSample());
-            }
-        }
-
-        return sample_sets;
-
-    }
-
-    /**
-     * Returns sets of libraries present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of library names
-     * found in the corresponding bam file.
-     *
-     * @return Sets of libraries present in the (merged) input SAM stream, grouped by readers
-     */
-    public List<Set<String>> getLibrariesByReaders() {
-
-
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> libs = new HashSet<String>(2);
-            lib_sets.add(libs);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                libs.add(g.getLibrary());
-            }
-        }
-
-        return lib_sets;
-
-    }
-
-    /**
-     * **** UNLESS YOU HAVE GOOD REASON TO, DO NOT USE THIS METHOD; USE getFileToReadGroupIdMapping() INSTEAD ****
-     *
-     * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
-     * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
-     *
-     * @return sets of (merged) read group ids in order of input bams
-     */
-    public List<Set<String>> getMergedReadGroupsByReaders() {
-
-
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> groups = new HashSet<String>(5);
-            rg_sets.add(groups);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                if (getReadsDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
-                    // use HeaderMerger to translate original read group id from the reader into the read group id in the
-                    // merged stream, and save that remapped read group id to associate it with specific reader
-                    groups.add(getReadsDataSource().getReadGroupId(r, g.getReadGroupId()));
-                } else {
-                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
-                    groups.add(g.getReadGroupId());
-                }
-            }
-        }
-
-        return rg_sets;
-
-    }
-
-    /**
      * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference vrs the reference ordered data (if available).
      *
      * @param reads     Reads data source.
@@ -926,6 +832,18 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Returns an ordered list of the unmerged SAM file headers known to this engine.
+     * @return list of header for each input SAM file, in command line order
+     */
+    public List<SAMFileHeader> getSAMFileHeaders() {
+        final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
+        for ( final SAMReaderID id : getReadsDataSource().getReaderIDs() ) {
+            headers.add(getReadsDataSource().getHeader(id));
+        }
+        return headers;
+    }
+
+    /**
      * Gets the master sequence dictionary for this GATK engine instance
      * @return a never-null dictionary listing all of the contigs known to this engine instance
      */
@@ -942,8 +860,6 @@ public class GenomeAnalysisEngine {
     public SAMDataSource getReadsDataSource() {
         return this.readsDataSource;
     }
-
-
 
     /**
      * Sets the collection of GATK main application arguments.

@@ -392,7 +392,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 		location = getToolkit().getGenomeLocParser().createGenomeLoc(getToolkit().getSAMFileHeader().getSequence(0).getSequenceName(),1);
 
-        normalSamples = getToolkit().getSamplesByReaders().get(0);
+        normalSamples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeaders().get(0));
 
         try {
             // we already checked that bedOutput and output_file are not set simultaneously
