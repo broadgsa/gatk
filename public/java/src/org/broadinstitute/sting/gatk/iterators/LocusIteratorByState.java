@@ -284,6 +284,16 @@ public class LocusIteratorByState extends LocusIterator {
             throw new IllegalArgumentException("samples list must not be empty");
     }
 
+    /**
+     * For testing only.  Assumes that the incoming SAMRecords have no read groups, so creates a dummy sample list
+     * for the system.
+     */
+    public final static Collection<String> sampleListForSAMWithoutReadGroups() {
+        List<String> samples = new ArrayList<String>();
+        samples.add(null);
+        return samples;
+    }
+
     public Iterator<AlignmentContext> iterator() {
         return this;
     }

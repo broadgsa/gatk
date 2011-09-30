@@ -11,7 +11,6 @@ import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.samples.SampleDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -39,11 +38,8 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
     }
 
     private final LocusIteratorByState makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
-        List<String> samples = new ArrayList<String>();
-        samples.add(null);
-
         return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),
-                readAttributes,genomeLocParser, samples);
+                readAttributes, genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     @Test

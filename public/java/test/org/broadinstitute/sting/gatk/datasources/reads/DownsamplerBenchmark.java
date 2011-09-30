@@ -89,7 +89,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
 
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
             Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
-            LocusIteratorByState locusIteratorByState = new LocusIteratorByState(readIterator,readProperties,genomeLocParser,sampleDataSource.getSampleNames());
+            LocusIteratorByState locusIteratorByState = new LocusIteratorByState(readIterator,readProperties,genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
             while(locusIteratorByState.hasNext()) {
                 locusIteratorByState.next().getLocation();
             }

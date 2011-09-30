@@ -62,7 +62,10 @@ public class ShardTraverser implements Callable {
 
             Object accumulator = walker.reduceInit();
             LocusWalker lWalker = (LocusWalker)walker;
-            WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),microScheduler.getReadIterator(shard),shard.getGenomeLocs(), microScheduler.engine.getSampleDB()); // todo: microScheduler.engine is protected - is it okay to user it here?
+            WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),
+                    microScheduler.getReadIterator(shard),
+                    shard.getGenomeLocs(),
+                    microScheduler.engine.getSampleDB().getSampleNames()); // todo: microScheduler.engine is protected - is it okay to user it here?
             ShardDataProvider dataProvider = null;
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
