@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.samples.Gender;
 import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -41,7 +42,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 public class CountMalesWalker extends ReadWalker<Integer, Integer> {
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
         Sample sample = getSampleDB().getSample(read);
-        return sample.getGender() == Sample.Gender.MALE ? 1 : 0;
+        return sample.getGender() == Gender.MALE ? 1 : 0;
     }
 
     public Integer reduceInit() { return 0; }

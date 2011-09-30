@@ -22,17 +22,17 @@ public class SampleUnitTest extends BaseTest {
     public void init() {
         db = new SampleDataSource();
 
-        fam1A = new Sample("1A", db, "fam1", "1B", "1C", Sample.Gender.UNKNOWN);
-        fam1B = new Sample("1B", db, "fam1", null, null, Sample.Gender.MALE);
-        fam1C = new Sample("1C", db, "fam1", null, null, Sample.Gender.FEMALE);
+        fam1A = new Sample("1A", db, "fam1", "1B", "1C", Gender.UNKNOWN);
+        fam1B = new Sample("1B", db, "fam1", null, null, Gender.MALE);
+        fam1C = new Sample("1C", db, "fam1", null, null, Gender.FEMALE);
 
         s1 = new Sample("s1", db);
         s2 = new Sample("s2", db);
 
-        trait1 = new Sample("t1", db, Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE, Sample.Affection.AFFECTED);
-        trait2 = new Sample("t2", db, Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE, Sample.Affection.UNAFFECTED);
-        trait3 = new Sample("t3", db, Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE, Sample.Affection.UNKNOWN);
-        trait4 = new Sample("t4", db, 1.0, Sample.Affection.QUANTITATIVE);
+        trait1 = new Sample("t1", db, Affection.AFFECTED, Sample.UNSET_QT);
+        trait2 = new Sample("t2", db, Affection.UNAFFECTED, Sample.UNSET_QT);
+        trait3 = new Sample("t3", db, Affection.UNKNOWN, Sample.UNSET_QT);
+        trait4 = new Sample("t4", db, Affection.QUANTITATIVE, 1.0);
     }
 
     /**
@@ -47,8 +47,8 @@ public class SampleUnitTest extends BaseTest {
 
     @Test()
     public void testGenders() {
-        Assert.assertTrue(fam1A.getGender() == Sample.Gender.UNKNOWN);
-        Assert.assertTrue(fam1B.getGender() == Sample.Gender.MALE);
-        Assert.assertTrue(fam1C.getGender() == Sample.Gender.FEMALE);
+        Assert.assertTrue(fam1A.getGender() == Gender.UNKNOWN);
+        Assert.assertTrue(fam1B.getGender() == Gender.MALE);
+        Assert.assertTrue(fam1C.getGender() == Gender.FEMALE);
     }
 }

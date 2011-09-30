@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -85,8 +86,6 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                (byte)0);
 
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
-            SampleDataSource sampleDataSource = new SampleDataSource().addSamples(reader.getFileHeader());
-
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
             Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
             LocusIteratorByState locusIteratorByState = new LocusIteratorByState(readIterator,readProperties,genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());

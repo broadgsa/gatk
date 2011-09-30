@@ -55,7 +55,7 @@ public class SampleDataSource {
     /**
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
-    public SampleDataSource addSamples(SAMFileHeader header) {
+    protected SampleDataSource addSamples(SAMFileHeader header) {
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (getSample(sampleName) == null) {
                 Sample newSample = new Sample(sampleName, this);
@@ -65,7 +65,7 @@ public class SampleDataSource {
         return this;
     }
 
-    public SampleDataSource addSamples(final List<File> sampleFiles) {
+    protected SampleDataSource addSamples(final List<File> sampleFiles) {
         // add files consecutively
         for (File file : sampleFiles) {
             addSamples(file);
@@ -77,7 +77,7 @@ public class SampleDataSource {
      * Parse one sample file and integrate it with samples that are already there
      * Fail quickly if we find any errors in the file
      */
-    public SampleDataSource addSamples(File sampleFile) {
+    protected SampleDataSource addSamples(File sampleFile) {
         return this;
     }
 
@@ -85,7 +85,7 @@ public class SampleDataSource {
      * Add a sample to the collection
      * @param sample to be added
      */
-    private SampleDataSource addSample(Sample sample) {
+    protected SampleDataSource addSample(Sample sample) {
         samples.put(sample.getID(), sample);
         return this;
     }
@@ -137,8 +137,6 @@ public class SampleDataSource {
     // Functions for accessing samples in the DB
     //
     // --------------------------------------------------------------------------------
-
-
 
     /**
      * Get number of sample objects
@@ -208,5 +206,19 @@ public class SampleDataSource {
             }
         }
         return samples;
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Validation
+    //
+    // --------------------------------------------------------------------------------
+
+    public final void validate() {
+        validate(getSamples());
+    }
+
+    public final void validate(Collection<Sample> samplesToCheck) {
+
     }
 }

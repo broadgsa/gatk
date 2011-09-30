@@ -10,37 +10,18 @@ import java.util.Map;
  */
 public class Sample implements java.io.Serializable {
     final private String familyID, paternalID, maternalID;
-    final private Sample.Gender gender;
+    final private Gender gender;
     final private double quantitativePhenotype;
-    final private Sample.Affection affection;
+    final private Affection affection;
     final private String ID;
     final private SampleDataSource dataSource;
+    final private Map<String, Object> properties = new HashMap<String, Object>();
 
-    // todo -- conditionally add the property map -- should be empty by default
-    private final Map<String, Object> properties = new HashMap<String, Object>();
-
-    public enum Gender {
-        MALE,
-        FEMALE,
-        UNKNOWN
-    }
-
-    public enum Affection {
-        /** Status is unknown */
-        UNKNOWN,
-        /** Suffers from the disease */
-        AFFECTED,
-        /** Unaffected by the disease */
-        UNAFFECTED,
-        /** A quantitative trait: value of the trait is stored elsewhere */
-        QUANTITATIVE
-    }
-
-    public final static double UNSET_QUANTITIATIVE_TRAIT_VALUE = Double.NaN;
+    public final static double UNSET_QT = Double.NaN;
 
     public Sample(final String ID, final SampleDataSource dataSource,
                   final String familyID, final String paternalID, final String maternalID,
-                  final Gender gender, final double quantitativePhenotype, final Affection affection) {
+                  final Gender gender, final Affection affection, final double quantitativePhenotype) {
         this.familyID = familyID;
         this.paternalID = paternalID;
         this.maternalID = maternalID;
@@ -51,20 +32,31 @@ public class Sample implements java.io.Serializable {
         this.dataSource = dataSource;
     }
 
-    public Sample(final String ID, final SampleDataSource dataSource,
-                  final String familyID, final String paternalID, final String maternalID, final Gender gender) {
-        this(ID, dataSource, familyID, paternalID, maternalID, gender,
-                UNSET_QUANTITIATIVE_TRAIT_VALUE, Affection.UNKNOWN);
+    protected Sample(final String ID,
+                     final String familyID, final String paternalID, final String maternalID,
+                     final Gender gender, final Affection affection, final double quantitativePhenotype) {
+        this(ID, null, familyID, paternalID, maternalID, gender, affection, quantitativePhenotype);
     }
 
-    public Sample(final String ID, final SampleDataSource dataSource, final double quantitativePhenotype, final Affection affection) {
-        this(ID, dataSource, null, null, null, Gender.UNKNOWN, quantitativePhenotype, affection);
+    protected Sample(final String ID,
+                     final String familyID, final String paternalID, final String maternalID,
+                     final Gender gender, final Affection affection) {
+        this(ID, null, familyID, paternalID, maternalID, gender, affection, UNSET_QT);
+    }
+
+
+    public Sample(final String ID, final SampleDataSource dataSource,
+                  final String familyID, final String paternalID, final String maternalID, final Gender gender) {
+        this(ID, dataSource, familyID, paternalID, maternalID, gender, Affection.UNKNOWN, UNSET_QT);
+    }
+
+    public Sample(final String ID, final SampleDataSource dataSource, final Affection affection, final double quantitativePhenotype) {
+        this(ID, dataSource, null, null, null, Gender.UNKNOWN, affection, quantitativePhenotype);
     }
 
     public Sample(String id, SampleDataSource dataSource) {
-        this(id, dataSource,
-                null, null, null,
-                Gender.UNKNOWN, UNSET_QUANTITIATIVE_TRAIT_VALUE, Affection.UNKNOWN);
+        this(id, dataSource, null, null, null,
+                Gender.UNKNOWN, Affection.UNKNOWN, UNSET_QT);
     }
 
     // -------------------------------------------------------------------------------------
@@ -76,7 +68,6 @@ public class Sample implements java.io.Serializable {
     public String getID() {
         return ID;
     }
-
 
     public String getFamilyID() {
         return familyID;
@@ -157,21 +148,4 @@ public class Sample implements java.io.Serializable {
     public boolean hasExtraProperty(String key) {
         return properties.containsKey(key);
     }
-
-//    @Override
-//    public boolean equals(Object o) {
-//        if (this == o) return true;
-//        if (o == null || getClass() != o.getClass()) return false;
-//
-//        Sample sample = (Sample) o;
-//        if (ID != null ? !ID.equals(sample.ID) : sample.ID != null) return false;
-//        if (properties != null ? !properties.equals(sample.properties) : sample.properties != null) return false;
-//
-//        return true;
-//    }
-//
-//    @Override
-//    public int hashCode() {
-//        return ID != null ? ID.hashCode() : "".hashCode();
-//    }
 }

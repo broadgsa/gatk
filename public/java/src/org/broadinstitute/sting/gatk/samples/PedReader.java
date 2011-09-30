@@ -32,6 +32,8 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.Reader;
 import java.util.*;
 
 /**
@@ -115,10 +117,6 @@ public class PedReader {
     final static private Set<String> CATAGORICAL_TRAIT_VALUES = new HashSet<String>(Arrays.asList("-9", "0", "1", "2"));
     final static private String commentMarker = "#";
 
-    private final File source;
-    private final List<PedRecord> records;
-
-
     public enum MissingPedFields {
         NO_FAMILY_ID,
         NO_PARENTS,
@@ -127,8 +125,8 @@ public class PedReader {
     }
 
     // phenotype
-    private final static String PHENOTYPE_MISSING_VALUE = "-9";
-    private final static String PHENOTYPE_MISSING_VALUE_SECONDARY = "0";
+    private final static String MISSING_VALUE1 = "-9";
+    private final static String MISSING_VALUE2 = "0";
     private final static String PHENOTYPE_UNAFFECTED = "1";
     private final static String PHENOTYPE_AFFECTED = "2";
 
@@ -137,14 +135,15 @@ public class PedReader {
     private final static String SEX_FEMALE = "2";
     // other=unknown
 
-    public PedReader(File source, EnumSet<MissingPedFields> missingFields) throws FileNotFoundException {
-        this.source = source;
-        List<String> lines = new XReadLines(source).readLines();
-        this.records = parsePedLines(lines, missingFields);
+    public PedReader() { }
+
+    public final List<Sample> parse(File source, EnumSet<MissingPedFields> missingFields, SampleDataSource sampleDB) throws FileNotFoundException  {
+        logger.info("Reading PED file " + source + " with missing fields: " + missingFields);
+        return parse(new FileReader(source), missingFields, sampleDB);
     }
 
-    private final List<PedRecord> parsePedLines(final List<String> lines, EnumSet<MissingPedFields> missingFields) {
-        logger.info("Reading PED file " + source + " with missing fields: " + missingFields);
+    public final List<Sample> parse(Reader reader, EnumSet<MissingPedFields> missingFields, SampleDataSource sampleDB) {
+        final List<String> lines = new XReadLines(reader).readLines();
 
         // What are the record offsets?
         final int familyPos = missingFields.contains(MissingPedFields.NO_FAMILY_ID) ? -1 : 0;
@@ -153,7 +152,7 @@ public class PedReader {
         final int maternalPos = missingFields.contains(MissingPedFields.NO_PARENTS) ? -1 : paternalPos + 1;
         final int sexPos = missingFields.contains(MissingPedFields.NO_SEX) ? -1 : Math.max(maternalPos, samplePos) + 1;
         final int phenotypePos = missingFields.contains(MissingPedFields.NO_PHENOTYPE) ? -1 : Math.max(sexPos, Math.max(maternalPos, samplePos)) + 1;
-        final int nExpectedFields = MathUtils.arrayMaxInt(Arrays.asList(samplePos, paternalPos, maternalPos, sexPos, phenotypePos));
+        final int nExpectedFields = MathUtils.arrayMaxInt(Arrays.asList(samplePos, paternalPos, maternalPos, sexPos, phenotypePos)) + 1;
 
         // go through once and determine properties
         int lineNo = 1;
@@ -164,7 +163,7 @@ public class PedReader {
             String[] parts = line.split("\\W+");
 
             if ( parts.length != nExpectedFields )
-                throw new UserException.MalformedFile(source, "Bad PED line " + lineNo + ": wrong number of fields");
+                throw new UserException.MalformedFile(reader.toString(), "Bad PED line " + lineNo + ": wrong number of fields");
 
             if ( phenotypePos != -1 ) {
                 isQT = isQT || CATAGORICAL_TRAIT_VALUES.contains(parts[phenotypePos]);
@@ -177,75 +176,55 @@ public class PedReader {
 
         // now go through and parse each record
         lineNo = 1;
-        final List<PedRecord> recs = new ArrayList<PedRecord>(splits.size());
+        final List<Sample> samples = new ArrayList<Sample>(splits.size());
         for ( final String[] parts : splits ) {
             String familyID = null, individualID, paternalID = null, maternalID = null;
-            Sample.Gender sex = Sample.Gender.UNKNOWN;
-            double quantitativePhenotype = Sample.UNSET_QUANTITIATIVE_TRAIT_VALUE;
-            Sample.Affection affection = Sample.Affection.UNKNOWN;
+            Gender sex = Gender.UNKNOWN;
+            double quantitativePhenotype = Sample.UNSET_QT;
+            Affection affection = Affection.UNKNOWN;
 
-            if ( familyPos != -1 ) familyID = parts[familyPos];
+            if ( familyPos != -1 ) familyID = maybeMissing(parts[familyPos]);
             individualID = parts[samplePos];
-            if ( paternalPos != -1 ) paternalID = parts[paternalPos];
-            if ( maternalPos != -1 ) maternalID = parts[maternalPos];
+            if ( paternalPos != -1 ) paternalID = maybeMissing(parts[paternalPos]);
+            if ( maternalPos != -1 ) maternalID = maybeMissing(parts[maternalPos]);
 
             if ( sexPos != -1 ) {
-                if ( parts[sexPos].equals(SEX_MALE) ) sex = Sample.Gender.MALE;
-                else if ( parts[sexPos].equals(SEX_FEMALE) ) sex = Sample.Gender.FEMALE;
-                else sex = Sample.Gender.UNKNOWN;
+                if ( parts[sexPos].equals(SEX_MALE) ) sex = Gender.MALE;
+                else if ( parts[sexPos].equals(SEX_FEMALE) ) sex = Gender.FEMALE;
+                else sex = Gender.UNKNOWN;
             }
 
             if ( phenotypePos != -1 ) {
                 if ( isQT ) {
-                    if ( parts[phenotypePos].equals(PHENOTYPE_MISSING_VALUE) )
-                        affection = Sample.Affection.UNKNOWN;
+                    if ( parts[phenotypePos].equals(MISSING_VALUE1) )
+                        affection = Affection.UNKNOWN;
                     else {
-                        affection = Sample.Affection.QUANTITATIVE;
+                        affection = Affection.QUANTITATIVE;
                         quantitativePhenotype = Double.valueOf(parts[phenotypePos]);
                     }
                 } else {
-                    if ( parts[phenotypePos].equals(PHENOTYPE_MISSING_VALUE) ) affection = Sample.Affection.UNKNOWN;
-                    else if ( parts[phenotypePos].equals(PHENOTYPE_MISSING_VALUE_SECONDARY) ) affection = Sample.Affection.UNKNOWN;
-                    else if ( parts[phenotypePos].equals(PHENOTYPE_UNAFFECTED) ) affection = Sample.Affection.UNAFFECTED;
-                    else if ( parts[phenotypePos].equals(PHENOTYPE_AFFECTED) ) affection = Sample.Affection.AFFECTED;
+                    if ( parts[phenotypePos].equals(MISSING_VALUE1) ) affection = Affection.UNKNOWN;
+                    else if ( parts[phenotypePos].equals(MISSING_VALUE2) ) affection = Affection.UNKNOWN;
+                    else if ( parts[phenotypePos].equals(PHENOTYPE_UNAFFECTED) ) affection = Affection.UNAFFECTED;
+                    else if ( parts[phenotypePos].equals(PHENOTYPE_AFFECTED) ) affection = Affection.AFFECTED;
                     else throw new ReviewedStingException("Unexpected phenotype type " + parts[phenotypePos] + " at line " + lineNo);
                 }
             }
 
-            recs.add(new PedRecord(familyID, individualID, paternalID, maternalID, sex, quantitativePhenotype, affection));
-
+            final Sample s = new Sample(familyID, sampleDB, individualID, paternalID, maternalID, sex, affection, quantitativePhenotype);
+            samples.add(s);
+            sampleDB.addSample(s);
             lineNo++;
         }
 
-        return Collections.unmodifiableList(recs);
+        sampleDB.validate(samples);
+        return samples;
     }
 
-    public List<PedRecord> getRecords() {
-        return records;
-    }
-
-    public void fillSampleDB(SampleDataSource db) {
-        for ( final PedRecord rec : getRecords() ) {
-        }
-    }
-}
-
-class PedRecord {
-    final String familyID, individualID, paternalID, maternalID;
-    final Sample.Gender sex;
-    final double quantitativePhenotype;
-    final Sample.Affection affection;
-
-    PedRecord(final String familyID, final String individualID,
-              final String paternalID, final String maternalID,
-              final Sample.Gender sex,
-              final double quantitativePhenotype, final Sample.Affection affection) {
-        this.familyID = familyID;
-        this.individualID = individualID;
-        this.paternalID = paternalID;
-        this.maternalID = maternalID;
-        this.sex = sex;
-        this.quantitativePhenotype = quantitativePhenotype;
-        this.affection = affection;
+    private final static String maybeMissing(final String string) {
+        if ( string.equals(MISSING_VALUE1) || string.equals(MISSING_VALUE2) )
+            return null;
+        else
+            return string;
     }
 }
