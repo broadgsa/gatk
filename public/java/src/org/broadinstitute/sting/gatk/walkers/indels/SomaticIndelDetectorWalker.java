@@ -265,7 +265,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // first, the basic info
-        headerInfo.add(new VCFHeaderLine("source", "IndelGenotyperV2"));
+        headerInfo.add(new VCFHeaderLine("source", "SomaticIndelDetector"));
         headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
         // FORMAT and INFO fields
@@ -283,10 +283,10 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         args.addAll(getToolkit().getFilters());
         Map<String,String> commandLineArgs = getToolkit().getApproximateCommandLineArguments(args);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
-            headerInfo.add(new VCFHeaderLine(String.format("IGv2_%s", commandLineArg.getKey()), commandLineArg.getValue()));
+            headerInfo.add(new VCFHeaderLine(String.format("SID_%s", commandLineArg.getKey()), commandLineArg.getValue()));
         // also, the list of input bams
         for ( String fileName : getToolkit().getArguments().samFiles )
-            headerInfo.add(new VCFHeaderLine("IGv2_bam_file_used", fileName));
+            headerInfo.add(new VCFHeaderLine("SID_bam_file_used", fileName));
 
         return headerInfo;
     }
