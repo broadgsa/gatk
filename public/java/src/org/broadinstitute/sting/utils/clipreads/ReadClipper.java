@@ -94,6 +94,12 @@ public class ReadClipper {
         if (left == right)
             return new SAMRecord(read.getHeader());
         SAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
+
+        // after clipping one tail, it is possible that the consequent hard clipping of adjacent deletions
+        // make the left cut index no longer part of the read. In that case, clip the read entirely.
+        if (left > leftTailRead.getAlignmentEnd())
+            return new SAMRecord(read.getHeader());
+
         ReadClipper clipper = new ReadClipper(leftTailRead);
         return clipper.hardClipByReferenceCoordinatesLeftTail(left);
     }
