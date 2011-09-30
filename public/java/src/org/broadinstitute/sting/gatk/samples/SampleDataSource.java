@@ -35,7 +35,7 @@ public class SampleDataSource {
      * Constructor takes both a SAM header and sample files because the two must be integrated.
      */
     public SampleDataSource() {
-        samples.put(null, new Sample(null, this));
+
     }
 
     public SampleDataSource(final SAMFileHeader header, final List<File> sampleFiles) {

@@ -227,8 +227,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
 
     @Override
     public void initialize() {
-        if ( getSampleDB().getSamples().size() != 2 ) {
-            // unbelievably there are actually two samples even when there's just one in the header.  God I hate this Samples system
+        if ( getSampleDB().getSamples().size() != 1 ) {
             throw new UserException.BadArgumentValue("-I", "CallableLoci only works for a single sample, but multiple samples were found in the provided BAM files: " + getSampleDB().getSamples());
         }
 
