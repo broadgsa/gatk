@@ -28,10 +28,8 @@ import java.util.*;
  * testing of the LocusIteratorByState
  */
 public class LocusIteratorByStateUnitTest extends BaseTest {
-    private final int MAX_READS = 10;
     private static SAMFileHeader header;
     private LocusIteratorByState li;
-
     private GenomeLocParser genomeLocParser;
 
     @BeforeClass
@@ -41,8 +39,11 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
     }
 
     private final LocusIteratorByState makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
+        List<String> samples = new ArrayList<String>();
+        samples.add(null);
+
         return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),
-                readAttributes,genomeLocParser, new SampleDataSource().getSampleNames());
+                readAttributes,genomeLocParser, samples);
     }
 
     @Test

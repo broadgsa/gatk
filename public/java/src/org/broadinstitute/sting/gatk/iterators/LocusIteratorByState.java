@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReservoirDownsampler;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -50,9 +51,6 @@ import java.util.*;
 
 /** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class LocusIteratorByState extends LocusIterator {
-//    private static long discarded_bases = 0L;
-//    private static long observed_bases = 0L;
-
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
 
@@ -281,10 +279,9 @@ public class LocusIteratorByState extends LocusIterator {
         this.genomeLocParser = genomeLocParser;
         this.samples = new ArrayList<String>(samples);
         this.readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod());
-    }
 
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser ) {
-        this(samIterator, readInformation, genomeLocParser, Collections.<String>emptySet());
+        if ( this.samples.isEmpty() )
+            throw new IllegalArgumentException("samples list must not be empty");
     }
 
     public Iterator<AlignmentContext> iterator() {
