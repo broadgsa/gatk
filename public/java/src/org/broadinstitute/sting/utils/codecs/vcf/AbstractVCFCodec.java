@@ -36,6 +36,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     // for ParsingUtils.split
     protected String[] GTValueArray = new String[100];
     protected String[] genotypeKeyArray = new String[100];
+    protected String[] infoFieldArray = new String[1000];
     protected String[] infoValueArray = new String[1000];
 
     // for performance testing purposes
@@ -351,23 +352,28 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             if ( infoField.indexOf("\t") != -1 || infoField.indexOf(" ") != -1 )
                 generateException("The VCF specification does not allow for whitespace in the INFO field");
 
-            int infoValueSplitSize = ParsingUtils.split(infoField, infoValueArray, VCFConstants.INFO_FIELD_SEPARATOR_CHAR);
-            for (int i = 0; i < infoValueSplitSize; i++) {
+            int infoFieldSplitSize = ParsingUtils.split(infoField, infoFieldArray, VCFConstants.INFO_FIELD_SEPARATOR_CHAR, false);
+            for (int i = 0; i < infoFieldSplitSize; i++) {
                 String key;
                 Object value;
 
-                int eqI = infoValueArray[i].indexOf("=");
+                int eqI = infoFieldArray[i].indexOf("=");
                 if ( eqI != -1 ) {
-                    key = infoValueArray[i].substring(0, eqI);
-                    String str = infoValueArray[i].substring(eqI+1, infoValueArray[i].length());
+                    key = infoFieldArray[i].substring(0, eqI);
+                    String str = infoFieldArray[i].substring(eqI+1);
 
-                    // lets see if the string contains a , separator
-                    if ( str.contains(",") )
-                        value = Arrays.asList(str.split(","));
-                    else
-                        value = str;
+                    // split on the INFO field separator
+                    int infoValueSplitSize = ParsingUtils.split(str, infoValueArray, VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR, false);
+                    if ( infoValueSplitSize == 1 ) {
+                        value = infoValueArray[0];
+                    } else {
+                        ArrayList<String> valueList = new ArrayList<String>(infoValueSplitSize);
+                        for ( int j = 0; j < infoValueSplitSize; j++ )
+                            valueList.add(infoValueArray[j]);
+                        value = valueList;
+                    }
                 } else {
-                    key = infoValueArray[i];
+                    key = infoFieldArray[i];
                     value = true;
                 }
 

@@ -71,6 +71,7 @@ public final class VCFConstants {
     public static final char   FIELD_SEPARATOR_CHAR = '\t';
     public static final String FILTER_CODE_SEPARATOR = ";";
     public static final String INFO_FIELD_ARRAY_SEPARATOR = ",";
+    public static final char INFO_FIELD_ARRAY_SEPARATOR_CHAR = ',';
     public static final String ID_FIELD_SEPARATOR = ";";
     public static final String INFO_FIELD_SEPARATOR = ";";
     public static final char INFO_FIELD_SEPARATOR_CHAR = ';';
