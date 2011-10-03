@@ -117,11 +117,15 @@ public class PedReader {
     final static private Set<String> CATAGORICAL_TRAIT_VALUES = new HashSet<String>(Arrays.asList("-9", "0", "1", "2"));
     final static private String commentMarker = "#";
 
-    public enum MissingPedFields {
+    public enum MissingPedField {
         NO_FAMILY_ID,
         NO_PARENTS,
         NO_SEX,
         NO_PHENOTYPE
+    }
+
+    protected enum Field {
+        FAMILY_ID, INDIVIDUAL_ID, PATERNAL_ID, MATERNAL_ID, GENDER, PHENOTYPE
     }
 
     // phenotype
@@ -137,21 +141,21 @@ public class PedReader {
 
     public PedReader() { }
 
-    public final List<Sample> parse(File source, EnumSet<MissingPedFields> missingFields, SampleDataSource sampleDB) throws FileNotFoundException  {
+    public final List<Sample> parse(File source, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) throws FileNotFoundException  {
         logger.info("Reading PED file " + source + " with missing fields: " + missingFields);
         return parse(new FileReader(source), missingFields, sampleDB);
     }
 
-    public final List<Sample> parse(Reader reader, EnumSet<MissingPedFields> missingFields, SampleDataSource sampleDB) {
+    public final List<Sample> parse(Reader reader, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) {
         final List<String> lines = new XReadLines(reader).readLines();
 
         // What are the record offsets?
-        final int familyPos = missingFields.contains(MissingPedFields.NO_FAMILY_ID) ? -1 : 0;
+        final int familyPos = missingFields.contains(MissingPedField.NO_FAMILY_ID) ? -1 : 0;
         final int samplePos = familyPos + 1;
-        final int paternalPos = missingFields.contains(MissingPedFields.NO_PARENTS) ? -1 : samplePos + 1;
-        final int maternalPos = missingFields.contains(MissingPedFields.NO_PARENTS) ? -1 : paternalPos + 1;
-        final int sexPos = missingFields.contains(MissingPedFields.NO_SEX) ? -1 : Math.max(maternalPos, samplePos) + 1;
-        final int phenotypePos = missingFields.contains(MissingPedFields.NO_PHENOTYPE) ? -1 : Math.max(sexPos, Math.max(maternalPos, samplePos)) + 1;
+        final int paternalPos = missingFields.contains(MissingPedField.NO_PARENTS) ? -1 : samplePos + 1;
+        final int maternalPos = missingFields.contains(MissingPedField.NO_PARENTS) ? -1 : paternalPos + 1;
+        final int sexPos = missingFields.contains(MissingPedField.NO_SEX) ? -1 : Math.max(maternalPos, samplePos) + 1;
+        final int phenotypePos = missingFields.contains(MissingPedField.NO_PHENOTYPE) ? -1 : Math.max(sexPos, Math.max(maternalPos, samplePos)) + 1;
         final int nExpectedFields = MathUtils.arrayMaxInt(Arrays.asList(samplePos, paternalPos, maternalPos, sexPos, phenotypePos)) + 1;
 
         // go through once and determine properties
