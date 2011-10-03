@@ -32,6 +32,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
@@ -44,10 +45,7 @@ import org.simpleframework.xml.stream.HyphenStyle;
 import java.io.File;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author aaron
@@ -71,11 +69,6 @@ public class GATKArgumentCollection {
     @ElementList(required = false)
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<String> samFiles = new ArrayList<String>();
-
-    // parameters and their defaults
-    @ElementList(required = false)
-    @Argument(fullName = "sample_metadata", shortName = "SM", doc = "Sample file(s) in JSON format", required = false)
-    public List<File> sampleFiles = new ArrayList<File>();
 
     @Element(required = false)
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
@@ -215,9 +208,25 @@ public class GATKArgumentCollection {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // distributed GATK arguments
+    // PED (pedigree) support
     //
     // --------------------------------------------------------------------------------------------------------------
+
+    /**
+     * MARK: add documentation details
+     */
+    @Argument(fullName="pedigree", shortName = "ped", doc="Pedigree file / string for samples",required=false)
+    public List<String> pedigreeData = Collections.emptyList();
+
+    @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="How strict should we be in validating the pedigree information?",required=false)
+    public PedigreeValidationType pedigreeValidationType = PedigreeValidationType.STRICT;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // BAM indexing and sharding arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     @Element(required = false)
     @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
     @Hidden

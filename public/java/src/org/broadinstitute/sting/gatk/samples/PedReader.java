@@ -114,10 +114,42 @@ public class PedReader {
     final static private Set<String> CATAGORICAL_TRAIT_VALUES = new HashSet<String>(Arrays.asList("-9", "0", "1", "2"));
     final static private String commentMarker = "#";
 
+    /**
+     * An enum that specifies which, if any, of the standard PED fields are
+     * missing from the input records.  For example, suppose we have the full record:
+     *
+     * "fam1 kid dad mom 1 2"
+     *
+     * indicating a male affected child.  This can be parsed with the -ped x.ped argument
+     * to the GATK.  Suppose we only have:
+     *
+     * "fam1 kid 1"
+     *
+     * we can parse the reduced version of this record with -ped:NO_PARENTS,NO_PHENOTYPE x.ped
+     */
     public enum MissingPedField {
+        /**
+         * The PED records do not have the first (FAMILY_ID) argument.  The family id
+         * will be set to null / empty.
+         */
         NO_FAMILY_ID,
+
+        /**
+         * The PED records do not have either the paternal or maternal IDs, so
+         * the corresponding IDs are set to null.
+         */
         NO_PARENTS,
+
+        /**
+         * The PED records do not have the GENDER field, so the sex of each
+         * sample will be set to UNKNOWN.
+         */
         NO_SEX,
+
+        /**
+         * The PED records do not have the PHENOTYPE field, so the phenotype
+         * of each sample will be set to UNKNOWN.
+         */
         NO_PHENOTYPE
     }
 
@@ -233,8 +265,6 @@ public class PedReader {
             if ( mom != null ) samples.add(mom);
         }
 
-
-        sampleDB.validate(samples);
         return samples;
     }
 
@@ -252,5 +282,27 @@ public class PedReader {
             return s;
         } else
             return null;
+    }
+
+    /**
+     * Parses a list of tags from the command line, assuming it comes from the GATK Engine
+     * tags, and returns the corresponding EnumSet.
+     *
+     * @param arg the actual engine arg, used for the UserException if there's an error
+     * @param tags a list of string tags that should be converted to the MissingPedField value
+     * @return
+     */
+    public static final EnumSet<MissingPedField> parseMissingFieldTags(final Object arg, final List<String> tags) {
+        final EnumSet<MissingPedField> missingFields = EnumSet.noneOf(MissingPedField.class);
+
+        for ( final String tag : tags ) {
+            try {
+                missingFields.add(MissingPedField.valueOf(tag));
+            } catch ( IllegalArgumentException e ) {
+                throw new UserException.BadArgumentValue(arg.toString(), "Unknown tag " + tag + " allowed values are " + MissingPedField.values());
+            }
+        }
+
+        return missingFields;
     }
 }

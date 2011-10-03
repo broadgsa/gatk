@@ -14,7 +14,7 @@ import java.util.*;
  * Date: Sep 9, 2010
  * Time: 8:21:00 AM
  */
-public class SampleDataSourceUnitTest extends BaseTest {
+public class SampleDBUnitTest extends BaseTest {
     // this empty header used to instantiate sampledatasource objects
     private static SAMFileHeader header = new SAMFileHeader();
 
@@ -24,6 +24,6 @@ public class SampleDataSourceUnitTest extends BaseTest {
     // make sure samples are created from the SAM file correctly
     @Test()
     public void loadSAMSamplesTest() {
-        SampleDB s = new SampleDB(header, Collections.<File>emptyList());
+        //SampleDB s = new SampleDB(header);
     }
 }

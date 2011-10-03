@@ -38,51 +38,9 @@ public class SampleDB {
 
     }
 
-    public SampleDB(final SAMFileHeader header, final List<File> sampleFiles) {
-        this();
-        addSamples(header);
-        addSamples(sampleFiles);
-    }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Functions for adding samples to the DB
-    //
-    // TODO: these should be protected, really
-    //
-    // --------------------------------------------------------------------------------
-
     /**
-     * Hallucinates sample objects for all the samples in the SAM file and stores them
-     */
-    protected SampleDB addSamples(SAMFileHeader header) {
-        for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
-            if (getSample(sampleName) == null) {
-                Sample newSample = new Sample(sampleName, this);
-                samples.put(sampleName, newSample);
-            }
-        }
-        return this;
-    }
-
-    protected SampleDB addSamples(final List<File> sampleFiles) {
-        // add files consecutively
-        for (File file : sampleFiles) {
-            addSamples(file);
-        }
-        return this;
-    }
-
-    /**
-     * Parse one sample file and integrate it with samples that are already there
-     * Fail quickly if we find any errors in the file
-     */
-    protected SampleDB addSamples(File sampleFile) {
-        return this;
-    }
-
-    /**
-     * Add a sample to the collection
+     * Protected function to add a single sample to the database
+     *
      * @param sample to be added
      */
     protected SampleDB addSample(Sample sample) {
@@ -215,10 +173,14 @@ public class SampleDB {
     // --------------------------------------------------------------------------------
 
     public final void validate() {
-        validate(getSamples());
+        validate(getSamples(), PedigreeValidationType.STRICT);
     }
 
-    public final void validate(Collection<Sample> samplesToCheck) {
+    public final void validate(PedigreeValidationType validationType) {
+        validate(getSamples(), validationType);
+    }
 
+    public final void validate(Collection<Sample> samplesToCheck, PedigreeValidationType validationType) {
+        // todo -- actually do an implementation
     }
 }

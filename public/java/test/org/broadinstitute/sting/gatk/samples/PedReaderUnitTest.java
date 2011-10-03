@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.samples;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -284,5 +285,70 @@ public class PedReaderUnitTest extends BaseTest {
         for ( PedReader.Field field : missingFields )
             parts.remove(field.ordinal());
         return Utils.join("\t", parts);
+    }
+
+    // -----------------------------------------------------------------
+    // parsing tags
+    // -----------------------------------------------------------------
+
+    private class PedReaderTestTagParsing extends TestDataProvider {
+        public EnumSet<PedReader.MissingPedField> expected;
+        public final List<String> tags;
+
+        private PedReaderTestTagParsing(final List<String> tags, EnumSet<PedReader.MissingPedField> missingDesc) {
+            super(PedReaderTestTagParsing.class);
+            this.tags = tags;
+            this.expected = missingDesc;
+
+        }
+    }
+
+    @DataProvider(name = "readerTestTagParsing")
+    public Object[][] createReaderTestTagParsing() {
+        new PedReaderTestTagParsing(
+                Collections.<String>emptyList(),
+                EnumSet.noneOf(PedReader.MissingPedField.class));
+
+        new PedReaderTestTagParsing(
+                Arrays.asList("NO_FAMILY_ID"),
+                EnumSet.of(PedReader.MissingPedField.NO_FAMILY_ID));
+
+        new PedReaderTestTagParsing(
+                Arrays.asList("NO_PARENTS"),
+                EnumSet.of(PedReader.MissingPedField.NO_PARENTS));
+
+        new PedReaderTestTagParsing(
+                Arrays.asList("NO_PHENOTYPE"),
+                EnumSet.of(PedReader.MissingPedField.NO_PHENOTYPE));
+
+        new PedReaderTestTagParsing(
+                Arrays.asList("NO_SEX"),
+                EnumSet.of(PedReader.MissingPedField.NO_SEX));
+
+        new PedReaderTestTagParsing(
+                Arrays.asList("NO_SEX", "NO_PHENOTYPE"),
+                EnumSet.of(PedReader.MissingPedField.NO_SEX, PedReader.MissingPedField.NO_PHENOTYPE));
+
+        new PedReaderTestTagParsing(
+                Arrays.asList("NO_SEX", "NO_PHENOTYPE", "NO_PARENTS"),
+                EnumSet.of(PedReader.MissingPedField.NO_SEX, PedReader.MissingPedField.NO_PHENOTYPE, PedReader.MissingPedField.NO_PARENTS));
+
+        return PedReaderTestTagParsing.getTests(PedReaderTestTagParsing.class);
+    }
+
+    @Test(enabled = true, dataProvider = "readerTestTagParsing")
+    public void testPedReaderTagParsing(PedReaderTestTagParsing test) {
+        EnumSet<PedReader.MissingPedField> parsed = PedReader.parseMissingFieldTags("test", test.tags);
+        Assert.assertEquals(test.expected, parsed, "Failed to properly parse tags " + test.tags);
+    }
+
+    @Test(enabled = true, expectedExceptions = UserException.class)
+    public void testPedReaderTagParsing1() {
+        EnumSet<PedReader.MissingPedField> parsed = PedReader.parseMissingFieldTags("test", Arrays.asList("XXX"));
+    }
+
+    @Test(enabled = true, expectedExceptions = UserException.class)
+    public void testPedReaderTagParsing2() {
+        EnumSet<PedReader.MissingPedField> parsed = PedReader.parseMissingFieldTags("test", Arrays.asList("NO_SEX", "XXX"));
     }
 }
