@@ -62,6 +62,20 @@ public class ReadClipperUnitTest extends BaseTest {
         readClipper = new ReadClipper(read);
     }
 
+    private void testHardClipCigarByReadCoordinate( SAMRecord read, String inputCigar, String expectedCigar, int expectedStart, int expectedStop) {
+        read.setCigar(TextCigarCodec.getSingleton().decode(inputCigar) );
+        SAMRecord clipped = readClipper.hardClipByReadCoordinates(expectedStart,expectedStop);
+        Assert.assertEquals(clipped.getCigarString(), expectedCigar, "Clipped Cigar string is different than expected");
+    }
+/*
+    private void testReadBasesAndQuals(SAMRecord read, int expectedStart, int expectedStop) {
+        SAMRecord clipped = ReadUtils.hardClipBases(read, expectedStart, expectedStop - 1, null);
+        String expectedBases = BASES.substring(expectedStart, expectedStop);
+        String expectedQuals = QUALS.substring(expectedStart, expectedStop);
+        Assert.assertEquals(clipped.getReadBases(), expectedBases.getBytes(), "Clipped bases not those expected");
+        Assert.assertEquals(clipped.getBaseQualityString(), expectedQuals, "Clipped quals not those expected");
+    }
+*/
     @Test
     public void testHardClipBothEndsByReferenceCoordinates() {
         logger.warn("Executing testHardClipBothEndsByReferenceCoordinates");
