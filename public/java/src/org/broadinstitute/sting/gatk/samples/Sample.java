@@ -14,12 +14,12 @@ public class Sample implements java.io.Serializable {
     final private double quantitativePhenotype;
     final private Affection affection;
     final private String ID;
-    final private SampleDataSource dataSource;
+    final private SampleDB infoDB;
     final private Map<String, Object> properties = new HashMap<String, Object>();
 
     public final static double UNSET_QT = Double.NaN;
 
-    public Sample(final String ID, final SampleDataSource dataSource,
+    public Sample(final String ID, final SampleDB infoDB,
                   final String familyID, final String paternalID, final String maternalID,
                   final Gender gender, final Affection affection, final double quantitativePhenotype) {
         this.familyID = familyID;
@@ -29,7 +29,7 @@ public class Sample implements java.io.Serializable {
         this.quantitativePhenotype = quantitativePhenotype;
         this.affection = affection;
         this.ID = ID;
-        this.dataSource = dataSource;
+        this.infoDB = infoDB;
     }
 
     protected Sample(final String ID,
@@ -45,17 +45,17 @@ public class Sample implements java.io.Serializable {
     }
 
 
-    public Sample(final String ID, final SampleDataSource dataSource,
+    public Sample(final String ID, final SampleDB infoDB,
                   final String familyID, final String paternalID, final String maternalID, final Gender gender) {
-        this(ID, dataSource, familyID, paternalID, maternalID, gender, Affection.UNKNOWN, UNSET_QT);
+        this(ID, infoDB, familyID, paternalID, maternalID, gender, Affection.UNKNOWN, UNSET_QT);
     }
 
-    public Sample(final String ID, final SampleDataSource dataSource, final Affection affection, final double quantitativePhenotype) {
-        this(ID, dataSource, null, null, null, Gender.UNKNOWN, affection, quantitativePhenotype);
+    public Sample(final String ID, final SampleDB infoDB, final Affection affection, final double quantitativePhenotype) {
+        this(ID, infoDB, null, null, null, Gender.UNKNOWN, affection, quantitativePhenotype);
     }
 
-    public Sample(String id, SampleDataSource dataSource) {
-        this(id, dataSource, null, null, null,
+    public Sample(String id, SampleDB infoDB) {
+        this(id, infoDB, null, null, null,
                 Gender.UNKNOWN, Affection.UNKNOWN, UNSET_QT);
     }
 
@@ -98,7 +98,7 @@ public class Sample implements java.io.Serializable {
      * @return sample object with relationship mother, if exists, or null
      */
     public Sample getMother() {
-        return dataSource.getSample(maternalID);
+        return infoDB.getSample(maternalID);
     }
 
     /**
@@ -106,7 +106,7 @@ public class Sample implements java.io.Serializable {
      * @return sample object with relationship father, if exists, or null
      */
     public Sample getFather() {
-        return dataSource.getSample(paternalID);
+        return infoDB.getSample(paternalID);
     }
 
     /**

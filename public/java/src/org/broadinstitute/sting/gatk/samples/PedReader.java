@@ -138,17 +138,17 @@ public class PedReader {
 
     public PedReader() { }
 
-    public final List<Sample> parse(File source, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) throws FileNotFoundException  {
+    public final List<Sample> parse(File source, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) throws FileNotFoundException  {
         logger.info("Reading PED file " + source + " with missing fields: " + missingFields);
         return parse(new FileReader(source), missingFields, sampleDB);
     }
 
-    public final List<Sample> parse(final String source, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) {
+    public final List<Sample> parse(final String source, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) {
         logger.warn("Reading PED string: \"" + source + "\" with missing fields: " + missingFields);
         return parse(new StringReader(source.replace(";", String.format("%n"))), missingFields, sampleDB);
     }
 
-    public final List<Sample> parse(Reader reader, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) {
+    public final List<Sample> parse(Reader reader, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) {
         final List<String> lines = new XReadLines(reader).readLines();
 
         // What are the record offsets?
@@ -245,7 +245,7 @@ public class PedReader {
             return string;
     }
 
-    private final Sample maybeAddImplicitSample(SampleDataSource sampleDB, final String id, final String familyID, final Gender gender) {
+    private final Sample maybeAddImplicitSample(SampleDB sampleDB, final String id, final String familyID, final Gender gender) {
         if ( id != null && sampleDB.getSample(id) == null ) {
             Sample s = new Sample(id, sampleDB, familyID, null, null, gender, Affection.UNKNOWN, Sample.UNSET_QT);
             sampleDB.addSample(s);

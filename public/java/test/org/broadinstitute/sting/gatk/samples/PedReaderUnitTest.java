@@ -32,7 +32,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.StringReader;
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -186,7 +185,7 @@ public class PedReaderUnitTest extends BaseTest {
     private static final void runTest(PedReaderTest test, String myFileContents, EnumSet<PedReader.MissingPedField> missing) {
         logger.warn("Test " + test);
         PedReader reader = new PedReader();
-        SampleDataSource sampleDB = new SampleDataSource();
+        SampleDB sampleDB = new SampleDB();
         List<Sample> readSamples = reader.parse(myFileContents, missing, sampleDB);
         Assert.assertEquals(new HashSet<Sample>(test.expectedSamples), new HashSet<Sample>(readSamples), "Parsed incorrect number of samples");
     }
@@ -272,7 +271,7 @@ public class PedReaderUnitTest extends BaseTest {
         final String contents = sliceContents(test.missingFields, test.fileContents);
         logger.warn("Test " + test);
         PedReader reader = new PedReader();
-        SampleDataSource sampleDB = new SampleDataSource();
+        SampleDB sampleDB = new SampleDB();
         reader.parse(new StringReader(contents), test.missingDesc, sampleDB);
         final Sample missingSample = sampleDB.getSample("kid");
         Assert.assertEquals(test.expected, missingSample, "Missing field value not expected value for " + test);

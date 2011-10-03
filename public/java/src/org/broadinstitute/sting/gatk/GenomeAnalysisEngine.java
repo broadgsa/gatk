@@ -34,8 +34,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.sting.gatk.samples.SampleDataSource;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
@@ -51,7 +50,6 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.util.*;
@@ -88,7 +86,7 @@ public class GenomeAnalysisEngine {
     /**
      * Accessor for sample metadata
      */
-    private SampleDataSource sampleDataSource = null;
+    private SampleDB sampleDB = null;
 
     /**
      * Accessor for sharded reference-ordered data.
@@ -688,7 +686,7 @@ public class GenomeAnalysisEngine {
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
-        sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
+        sampleDB = new SampleDB(getSAMFileHeader(), argCollection.sampleFiles);
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
         rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
@@ -953,8 +951,8 @@ public class GenomeAnalysisEngine {
     //
     // -------------------------------------------------------------------------------------
 
-    public SampleDataSource getSampleDB() {
-        return this.sampleDataSource;
+    public SampleDB getSampleDB() {
+        return this.sampleDB;
     }
 
     public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {

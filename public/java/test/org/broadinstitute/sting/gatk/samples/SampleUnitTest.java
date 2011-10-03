@@ -13,14 +13,14 @@ import org.testng.annotations.Test;
  * Time: 8:21:00 AM
  */
 public class SampleUnitTest extends BaseTest {
-    SampleDataSource db;
+    SampleDB db;
     static Sample fam1A, fam1B, fam1C;
     static Sample s1, s2;
     static Sample trait1, trait2, trait3, trait4;
 
     @BeforeClass
     public void init() {
-        db = new SampleDataSource();
+        db = new SampleDB();
 
         fam1A = new Sample("1A", db, "fam1", "1B", "1C", Gender.UNKNOWN);
         fam1B = new Sample("1B", db, "fam1", null, null, Gender.MALE);

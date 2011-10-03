@@ -24,7 +24,7 @@ import java.util.*;
  * wants to access sample data, it asks GenomeAnalysis to fetch this data from its SampleDataSource.
  *
  */
-public class SampleDataSource {
+public class SampleDB {
     /**
      * This is where Sample objects are stored. Samples are usually accessed by their ID, which is unique, so
      * this is stored as a HashMap.
@@ -34,11 +34,11 @@ public class SampleDataSource {
     /**
      * Constructor takes both a SAM header and sample files because the two must be integrated.
      */
-    public SampleDataSource() {
+    public SampleDB() {
 
     }
 
-    public SampleDataSource(final SAMFileHeader header, final List<File> sampleFiles) {
+    public SampleDB(final SAMFileHeader header, final List<File> sampleFiles) {
         this();
         addSamples(header);
         addSamples(sampleFiles);
@@ -55,7 +55,7 @@ public class SampleDataSource {
     /**
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
-    protected SampleDataSource addSamples(SAMFileHeader header) {
+    protected SampleDB addSamples(SAMFileHeader header) {
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (getSample(sampleName) == null) {
                 Sample newSample = new Sample(sampleName, this);
@@ -65,7 +65,7 @@ public class SampleDataSource {
         return this;
     }
 
-    protected SampleDataSource addSamples(final List<File> sampleFiles) {
+    protected SampleDB addSamples(final List<File> sampleFiles) {
         // add files consecutively
         for (File file : sampleFiles) {
             addSamples(file);
@@ -77,7 +77,7 @@ public class SampleDataSource {
      * Parse one sample file and integrate it with samples that are already there
      * Fail quickly if we find any errors in the file
      */
-    protected SampleDataSource addSamples(File sampleFile) {
+    protected SampleDB addSamples(File sampleFile) {
         return this;
     }
 
@@ -85,7 +85,7 @@ public class SampleDataSource {
      * Add a sample to the collection
      * @param sample to be added
      */
-    protected SampleDataSource addSample(Sample sample) {
+    protected SampleDB addSample(Sample sample) {
         samples.put(sample.getID(), sample);
         return this;
     }

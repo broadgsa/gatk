@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.executive.WindowMaker;
-import org.broadinstitute.sting.gatk.samples.SampleDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;

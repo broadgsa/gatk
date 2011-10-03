@@ -1,12 +1,7 @@
 package org.broadinstitute.sting.gatk.samples;
 
 import net.sf.samtools.SAMFileHeader;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import org.testng.annotations.Test;
 
@@ -29,6 +24,6 @@ public class SampleDataSourceUnitTest extends BaseTest {
     // make sure samples are created from the SAM file correctly
     @Test()
     public void loadSAMSamplesTest() {
-        SampleDataSource s = new SampleDataSource(header, Collections.<File>emptyList());
+        SampleDB s = new SampleDB(header, Collections.<File>emptyList());
     }
 }
