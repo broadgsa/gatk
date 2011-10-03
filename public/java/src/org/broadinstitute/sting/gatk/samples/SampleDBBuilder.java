@@ -56,8 +56,12 @@ public class SampleDBBuilder {
     /**
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
-    public SampleDBBuilder addSamples(SAMFileHeader header) {
-        for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
+    public SampleDBBuilder addSamplesFromSAMHeader(final SAMFileHeader header) {
+        return addSamplesFromSampleNames(SampleUtils.getSAMFileSamples(header));
+    }
+
+    public SampleDBBuilder addSamplesFromSampleNames(final Collection<String> sampleNames) {
+        for (final String sampleName : sampleNames) {
             if (sampleDB.getSample(sampleName) == null) {
                 final Sample newSample = new Sample(sampleName, sampleDB);
                 addSample(newSample);
@@ -66,7 +70,7 @@ public class SampleDBBuilder {
         return this;
     }
 
-    public SampleDBBuilder addSamples(final List<String> pedigreeArguments) {
+    public SampleDBBuilder addSamplesFromPedigreeArgument(final List<String> pedigreeArguments) {
         for (final String ped : pedigreeArguments) {
             final File pedFile = new File(ped);
             if ( pedFile.exists() )
@@ -105,6 +109,7 @@ public class SampleDBBuilder {
      * @param sample to be added
      */
     protected SampleDBBuilder addSample(Sample sample) {
+        // todo -- merge with existing record if we have one
         sampleDB.addSample(sample);
         return this;
     }

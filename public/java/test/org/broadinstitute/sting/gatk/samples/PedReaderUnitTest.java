@@ -299,7 +299,6 @@ public class PedReaderUnitTest extends BaseTest {
             super(PedReaderTestTagParsing.class);
             this.tags = tags;
             this.expected = missingDesc;
-
         }
     }
 

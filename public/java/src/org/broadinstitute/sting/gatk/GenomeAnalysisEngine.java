@@ -44,6 +44,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -686,10 +687,22 @@ public class GenomeAnalysisEngine {
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
-        sampleDB = new SampleDB(getSAMFileHeader(), argCollection.sampleFiles);
-
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
         rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
+
+        // set up sample db
+        initializeSampleDB();
+    }
+
+    /**
+     * Entry-point function to initialize the samples database from input data and pedigree arguments
+     */
+    private void initializeSampleDB() {
+        SampleDBBuilder sampleDBBuilder = new SampleDBBuilder(this, argCollection.pedigreeValidationType);
+        sampleDBBuilder.addSamplesFromSAMHeader(getSAMFileHeader());
+        sampleDBBuilder.addSamplesFromSampleNames(SampleUtils.getUniqueSamplesFromRods(this));
+        sampleDBBuilder.addSamplesFromPedigreeArgument(argCollection.pedigreeData);
+        sampleDB = sampleDBBuilder.getFinalSampleDB();
     }
 
     /**
