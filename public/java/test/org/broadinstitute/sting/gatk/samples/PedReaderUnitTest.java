@@ -107,6 +107,14 @@ public class PedReaderUnitTest extends BaseTest {
                         "fam1 s1 0 0 1 1",
                         "fam2 s2 0 0 2 2"));
 
+        new PedReaderTest("multipleUnrelatedExtraLine",
+                Arrays.asList(
+                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.UNAFFECTED),
+                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.AFFECTED)),
+                String.format("%s%n%s%n  %n", // note extra newlines and whitespace
+                        "fam1 s1 0 0 1 1",
+                        "fam2 s2 0 0 2 2"));
+
         new PedReaderTest("explicitTrio",
                 Arrays.asList(
                         new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED),

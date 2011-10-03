@@ -166,7 +166,9 @@ public class PedReader {
         final List<String[]> splits = new ArrayList<String[]>(lines.size());
         for ( final String line : lines ) {
             if ( line.startsWith(commentMarker)) continue;
-            String[] parts = line.split("\\s+");
+            if ( line.trim().equals("") ) continue;
+
+            final String[] parts = line.split("\\s+");
 
             if ( parts.length != nExpectedFields )
                 throw new UserException.MalformedFile(reader.toString(), "Bad PED line " + lineNo + ": wrong number of fields");
