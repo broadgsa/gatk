@@ -179,7 +179,7 @@ public class PedReaderUnitTest extends BaseTest {
         logger.warn("Test " + test);
         PedReader reader = new PedReader();
         SampleDataSource sampleDB = new SampleDataSource();
-        List<Sample> readSamples = reader.parse(new StringReader(myFileContents), missing, sampleDB);
+        List<Sample> readSamples = reader.parse(myFileContents, missing, sampleDB);
         Assert.assertEquals(new HashSet<Sample>(test.expectedSamples), new HashSet<Sample>(readSamples), "Parsed incorrect number of samples");
     }
 
@@ -188,9 +188,16 @@ public class PedReaderUnitTest extends BaseTest {
         runTest(test, test.fileContents, EnumSet.noneOf(PedReader.MissingPedField.class));
     }
 
-    @Test(enabled = true, dataProvider = "readerTest", dependsOnMethods = "testPedReader")
+    @Test(enabled = true, dataProvider = "readerTest")
     public void testPedReaderWithComments(PedReaderTest test) {
         runTest(test, String.format("#comment%n%s", test.fileContents), EnumSet.noneOf(PedReader.MissingPedField.class));
+    }
+
+    @Test(enabled = true, dataProvider = "readerTest")
+    public void testPedReaderWithSemicolons(PedReaderTest test) {
+        runTest(test,
+                test.fileContents.replace(String.format("%n"), ";"),
+                EnumSet.noneOf(PedReader.MissingPedField.class));
     }
 
     // -----------------------------------------------------------------
@@ -218,7 +225,6 @@ public class PedReaderUnitTest extends BaseTest {
 
     @DataProvider(name = "readerTestMissing")
     public Object[][] createPEDFilesWithMissing() {
-
         new PedReaderTestMissing("missingFam",
                 "fam1 kid dad mom 1 2",
                 EnumSet.of(PedReader.MissingPedField.NO_FAMILY_ID),
@@ -253,7 +259,7 @@ public class PedReaderUnitTest extends BaseTest {
         return PedReaderTestMissing.getTests(PedReaderTestMissing.class);
     }
 
-    @Test(enabled = true, dataProvider = "readerTestMissing", dependsOnMethods = "testPedReader")
+    @Test(enabled = true, dataProvider = "readerTestMissing")
     public void testPedReaderWithMissing(PedReaderTestMissing test) {
         final String contents = sliceContents(test.missingFields, test.fileContents);
         logger.warn("Test " + test);

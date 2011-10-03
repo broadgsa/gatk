@@ -30,10 +30,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.Reader;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -144,6 +141,11 @@ public class PedReader {
     public final List<Sample> parse(File source, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) throws FileNotFoundException  {
         logger.info("Reading PED file " + source + " with missing fields: " + missingFields);
         return parse(new FileReader(source), missingFields, sampleDB);
+    }
+
+    public final List<Sample> parse(final String source, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) {
+        logger.warn("Reading PED string: \"" + source + "\" with missing fields: " + missingFields);
+        return parse(new StringReader(source.replace(";", String.format("%n"))), missingFields, sampleDB);
     }
 
     public final List<Sample> parse(Reader reader, EnumSet<MissingPedField> missingFields, SampleDataSource sampleDB) {
