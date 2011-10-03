@@ -218,26 +218,6 @@ public class GATKArgumentCollection {
     // distributed GATK arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Element(required=false)
-    @Argument(fullName="processingTracker",shortName="C",doc="A lockable, shared file for coordinating distributed GATK runs",required=false)
-    @Hidden
-    public File processingTrackerFile = null;
-
-    @Element(required=false)
-    @Argument(fullName="restartProcessingTracker",shortName="RPT",doc="Should we delete the processing tracker file at startup?",required=false)
-    @Hidden
-    public boolean restartProcessingTracker = false;
-
-    @Element(required=false)
-    @Argument(fullName="processingTrackerStatusFile",shortName="CSF",doc="If provided, a detailed accounting of the state of the process tracker is written to this file.  For debugging, only",required=false)
-    @Hidden
-    public File processingTrackerStatusFile = null;
-
-    @Element(required=false)
-    @Argument(fullName="processingTrackerID",shortName="CID",doc="If provided, an integer ID (starting at 1) indicating a unique id for this process within the distributed GATK group",required=false)
-    @Hidden
-    public int processTrackerID = -1;
-
     @Element(required = false)
     @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
     @Hidden
@@ -403,20 +383,6 @@ public class GATKArgumentCollection {
 
         if ((other.performanceLog == null && this.performanceLog != null) ||
                 (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog)))
-            return false;
-
-        if ((other.processingTrackerFile == null && this.processingTrackerFile != null) ||
-                (other.processingTrackerFile != null && !other.processingTrackerFile.equals(this.processingTrackerFile)))
-            return false;
-
-        if ((other.processingTrackerStatusFile == null && this.processingTrackerStatusFile != null) ||
-                (other.processingTrackerStatusFile != null && !other.processingTrackerStatusFile.equals(this.processingTrackerStatusFile)))
-            return false;
-
-        if ( restartProcessingTracker != other.restartProcessingTracker )
-            return false;
-
-        if ( processTrackerID != other.processTrackerID )
             return false;
 
         if (allowIntervalsWithUnindexedBAM != other.allowIntervalsWithUnindexedBAM)
