@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.SampleUtils;
 
 import java.util.Collection;
 
@@ -57,7 +58,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 LocusWalker lWalker = (LocusWalker)walker;
                 WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(),
-                        getReadIterator(shard), shard.getGenomeLocs(), engine.getSampleDB().getSampleNames());
+                        getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
