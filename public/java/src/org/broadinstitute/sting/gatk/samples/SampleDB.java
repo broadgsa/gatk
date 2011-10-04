@@ -44,6 +44,9 @@ public class SampleDB {
      * @param sample to be added
      */
     protected SampleDB addSample(Sample sample) {
+        Sample prev = samples.get(sample.getID());
+        if ( prev != null )
+            sample = Sample.mergeSamples(prev, sample);
         samples.put(sample.getID(), sample);
         return this;
     }
@@ -138,8 +141,8 @@ public class SampleDB {
         return children;
     }
 
-    public Collection<Sample> getSamples() {
-        return Collections.unmodifiableCollection(samples.values());
+    public Set<Sample> getSamples() {
+        return new HashSet<Sample>(samples.values());
     }
 
     public Collection<String> getSampleNames() {
@@ -164,23 +167,5 @@ public class SampleDB {
             }
         }
         return samples;
-    }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Validation
-    //
-    // --------------------------------------------------------------------------------
-
-    public final void validate() {
-        validate(getSamples(), PedigreeValidationType.STRICT);
-    }
-
-    public final void validate(PedigreeValidationType validationType) {
-        validate(getSamples(), validationType);
-    }
-
-    public final void validate(Collection<Sample> samplesToCheck, PedigreeValidationType validationType) {
-        // todo -- actually do an implementation
     }
 }

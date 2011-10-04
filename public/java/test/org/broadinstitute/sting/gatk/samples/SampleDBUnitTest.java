@@ -3,6 +3,11 @@ package org.broadinstitute.sting.gatk.samples;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -15,15 +20,101 @@ import java.util.*;
  * Time: 8:21:00 AM
  */
 public class SampleDBUnitTest extends BaseTest {
-    // this empty header used to instantiate sampledatasource objects
-    private static SAMFileHeader header = new SAMFileHeader();
-
+    private static SampleDBBuilder builder;
     // all the test sample files are located here
-    private String sampleFilesDir = validationDataLocation +  "samples/";
+    private File testPED = new File(testDir +  "ceutrio.ped");
 
-    // make sure samples are created from the SAM file correctly
+    private static final Set<Sample> testPEDSamples = new HashSet<Sample>(Arrays.asList(
+            new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED),
+            new Sample("dad", "fam1", null, null,   Gender.MALE,   Affection.UNAFFECTED),
+            new Sample("mom", "fam1", null, null,   Gender.FEMALE, Affection.AFFECTED)));
+
+    private static final Set<Sample> testSAMSamples = new HashSet<Sample>(Arrays.asList(
+            new Sample("kid", null, null, null, Gender.UNKNOWN,   Affection.UNKNOWN),
+            new Sample("mom", null, null, null, Gender.UNKNOWN,   Affection.UNKNOWN),
+            new Sample("dad", null, null, null, Gender.UNKNOWN,   Affection.UNKNOWN)));
+
+    private static final String testPEDString =
+            String.format("%s%n%s%n%s",
+                        "fam1 kid dad mom 1 2",
+                        "fam1 dad 0   0   1 1",
+                        "fam1 mom 0   0   2 2");
+
+    private static final String testPEDStringInconsistentGender =
+            "fam1 kid 0   0   2 2";
+
+    private static final Set<Sample> testPEDSamplesAsSet =
+            new HashSet<Sample>(testPEDSamples);
+
+
+    @BeforeMethod
+    public void before() {
+        builder = new SampleDBBuilder(PedigreeValidationType.STRICT);
+    }
+
     @Test()
-    public void loadSAMSamplesTest() {
-        //SampleDB s = new SampleDB(header);
+    public void loadPEDFile() {
+        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(testPEDSamplesAsSet, db.getSamples());
+    }
+
+    @Test()
+    public void loadPEDString() {
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDString));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(testPEDSamplesAsSet, db.getSamples());
+    }
+
+    private static final void addSAMHeader() {
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
+        ArtificialSAMUtils.createEnumeratedReadGroups(header, Arrays.asList("1", "2", "3"),
+                Arrays.asList("kid", "mom", "dad"));
+        builder.addSamplesFromSAMHeader(header);
+    }
+
+    @Test()
+    public void loadSAMHeader() {
+        addSAMHeader();
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(testSAMSamples, db.getSamples());
+    }
+
+    @Test()
+    public void loadSAMHeaderPlusPED() {
+        addSAMHeader();
+        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(testPEDSamples, db.getSamples());
+    }
+
+    @Test()
+    public void loadDuplicateData() {
+        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
+        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(testPEDSamples, db.getSamples());
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void loadNonExistentFile() {
+        builder.addSamplesFromPedigreeFiles(Arrays.asList(new File("non-existence-file.txt")));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(testSAMSamples, db.getSamples());
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void loadInconsistentData() {
+        builder = new SampleDBBuilder(PedigreeValidationType.STRICT);
+        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender));
+        builder.getFinalSampleDB();
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void sampleInSAMHeaderNotInSamplesDB() {
+        addSAMHeader();
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender));
+        builder.getFinalSampleDB();
     }
 }

@@ -701,7 +701,8 @@ public class GenomeAnalysisEngine {
         SampleDBBuilder sampleDBBuilder = new SampleDBBuilder(this, argCollection.pedigreeValidationType);
         sampleDBBuilder.addSamplesFromSAMHeader(getSAMFileHeader());
         sampleDBBuilder.addSamplesFromSampleNames(SampleUtils.getUniqueSamplesFromRods(this));
-        sampleDBBuilder.addSamplesFromPedigreeArgument(argCollection.pedigreeData);
+        sampleDBBuilder.addSamplesFromPedigreeFiles(argCollection.pedigreeFiles);
+        sampleDBBuilder.addSamplesFromPedigreeStrings(argCollection.pedigreeStrings);
         sampleDB = sampleDBBuilder.getFinalSampleDB();
     }
 

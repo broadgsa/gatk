@@ -45,6 +45,15 @@ public class SampleDBBuilder {
     final SampleDB sampleDB = new SampleDB();
     final GenomeAnalysisEngine engine;
 
+    Set<Sample> samplesFromDataSources = new HashSet<Sample>();
+    Set<Sample> samplesFromPedigrees = new HashSet<Sample>();
+
+    /** for testing only */
+    protected SampleDBBuilder(PedigreeValidationType validationStrictness) {
+        engine = null;
+        this.validationStrictness = validationStrictness;
+    }
+
     /**
      * Constructor takes both a SAM header and sample files because the two must be integrated.
      */
@@ -57,26 +66,34 @@ public class SampleDBBuilder {
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
     public SampleDBBuilder addSamplesFromSAMHeader(final SAMFileHeader header) {
-        return addSamplesFromSampleNames(SampleUtils.getSAMFileSamples(header));
+        addSamplesFromSampleNames(SampleUtils.getSAMFileSamples(header));
+        return this;
     }
 
     public SampleDBBuilder addSamplesFromSampleNames(final Collection<String> sampleNames) {
         for (final String sampleName : sampleNames) {
             if (sampleDB.getSample(sampleName) == null) {
                 final Sample newSample = new Sample(sampleName, sampleDB);
-                addSample(newSample);
+                sampleDB.addSample(newSample);
+                samplesFromDataSources.add(newSample); // keep track of data source samples
             }
         }
         return this;
     }
 
-    public SampleDBBuilder addSamplesFromPedigreeArgument(final List<String> pedigreeArguments) {
-        for (final String ped : pedigreeArguments) {
-            final File pedFile = new File(ped);
-            if ( pedFile.exists() )
-                addSamples(pedFile);
-            else
-                addSamples(ped);
+    public SampleDBBuilder addSamplesFromPedigreeFiles(final List<File> pedigreeFiles) {
+        for (final File pedFile : pedigreeFiles) {
+            Collection<Sample> samples = addSamplesFromPedigreeArgument(pedFile);
+            samplesFromPedigrees.addAll(samples);
+        }
+
+        return this;
+    }
+
+    public SampleDBBuilder addSamplesFromPedigreeStrings(final List<String> pedigreeStrings) {
+        for (final String pedString : pedigreeStrings) {
+            Collection<Sample> samples = addSamplesFromPedigreeArgument(pedString);
+            samplesFromPedigrees.addAll(samples);
         }
 
         return this;
@@ -86,41 +103,55 @@ public class SampleDBBuilder {
      * Parse one sample file and integrate it with samples that are already there
      * Fail quickly if we find any errors in the file
      */
-    protected SampleDBBuilder addSamples(File sampleFile) {
+    private Collection<Sample> addSamplesFromPedigreeArgument(File sampleFile) {
         final PedReader reader = new PedReader();
 
         try {
-            reader.parse(sampleFile, getMissingFields(sampleFile), sampleDB);
+            return reader.parse(sampleFile, getMissingFields(sampleFile), sampleDB);
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(sampleFile, e);
         }
-
-        return this;
     }
 
-    protected SampleDBBuilder addSamples(final String string) {
+    private Collection<Sample> addSamplesFromPedigreeArgument(final String string) {
         final PedReader reader = new PedReader();
-        reader.parse(string, getMissingFields(string), sampleDB);
-        return this;
-    }
-
-    /**
-     * Add a sample to the collection
-     * @param sample to be added
-     */
-    protected SampleDBBuilder addSample(Sample sample) {
-        // todo -- merge with existing record if we have one
-        sampleDB.addSample(sample);
-        return this;
+        return reader.parse(string, getMissingFields(string), sampleDB);
     }
 
     public SampleDB getFinalSampleDB() {
-        sampleDB.validate(validationStrictness);
+        validate();
         return sampleDB;
     }
 
     public EnumSet<PedReader.MissingPedField> getMissingFields(final Object engineArg) {
-        final List<String> posTags = engine.getTags(engineArg).getPositionalTags();
-        return PedReader.parseMissingFieldTags(engineArg, posTags);
+        if ( engine == null )
+            return EnumSet.noneOf(PedReader.MissingPedField.class);
+        else {
+            final List<String> posTags = engine.getTags(engineArg).getPositionalTags();
+            return PedReader.parseMissingFieldTags(engineArg, posTags);
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Validation
+    //
+    // --------------------------------------------------------------------------------
+
+    protected final void validate() {
+        if ( validationStrictness == PedigreeValidationType.SILENT )
+            return;
+        else {
+            // check that samples in data sources are all annotated, if anything is annotated
+            if ( ! samplesFromPedigrees.isEmpty() && ! samplesFromDataSources.isEmpty() ) {
+                final Set<String> sampleNamesFromPedigrees = new HashSet<String>();
+                for ( final Sample pSample : samplesFromPedigrees )
+                    sampleNamesFromPedigrees.add(pSample.getID());
+
+                for ( final Sample dsSample : samplesFromDataSources )
+                    if ( ! sampleNamesFromPedigrees.contains(dsSample.getID()) )
+                        throw new UserException("Sample " + dsSample.getID() + " found in data sources but not in pedigree files");
+            }
+        }
     }
 }

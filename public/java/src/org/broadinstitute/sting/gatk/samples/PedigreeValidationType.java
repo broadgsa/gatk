@@ -29,6 +29,5 @@ package org.broadinstitute.sting.gatk.samples;
 */
 public enum PedigreeValidationType {
     STRICT,
-    LINIENT,
-    SILENT,
+    SILENT
 }

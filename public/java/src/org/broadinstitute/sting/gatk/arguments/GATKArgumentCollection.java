@@ -215,8 +215,11 @@ public class GATKArgumentCollection {
     /**
      * MARK: add documentation details
      */
-    @Argument(fullName="pedigree", shortName = "ped", doc="Pedigree file / string for samples",required=false)
-    public List<String> pedigreeData = Collections.emptyList();
+    @Argument(fullName="pedigree", shortName = "ped", doc="Pedigree files for samples",required=false)
+    public List<File> pedigreeFiles = Collections.emptyList();
+
+    @Argument(fullName="pedigreeString", shortName = "pedString", doc="Pedigree string for samples",required=false)
+    public List<String> pedigreeStrings = Collections.emptyList();
 
     @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="How strict should we be in validating the pedigree information?",required=false)
     public PedigreeValidationType pedigreeValidationType = PedigreeValidationType.STRICT;

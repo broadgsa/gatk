@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.samples;
 
 
+import org.broadinstitute.sting.utils.exceptions.UserException;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -121,36 +123,36 @@ public class Sample implements java.io.Serializable {
     public String toString() {
         return String.format("Sample %s fam=%s dad=%s mom=%s gender=%s affection=%s qt=%s props=%s",
                 getID(), getFamilyID(), getPaternalID(), getMaternalID(), getGender(), getAffection(),
-                getQuantitativePhenotype(), getExtraProperties());
+                getQuantitativePhenotype(), properties);
     }
 
-    // -------------------------------------------------------------------------------------
-    //
-    // code for working with additional -- none standard -- properites
-    //
-    // -------------------------------------------------------------------------------------
-
-    public Map<String, Object> getExtraProperties() {
-        return Collections.unmodifiableMap(properties);
-    }
-
-    /**
-     * Get one property
-     * @param key key of property
-     * @return value of property as generic object
-     */
-    public Object getExtraPropertyValue(final String key) {
-        return properties.get(key);
-    }
-
-    /**
-     *
-     * @param key property key
-     * @return true if sample has this property (even if its value is null)
-     */
-    public boolean hasExtraProperty(String key) {
-        return properties.containsKey(key);
-    }
+//    // -------------------------------------------------------------------------------------
+//    //
+//    // code for working with additional -- none standard -- properites
+//    //
+//    // -------------------------------------------------------------------------------------
+//
+//    public Map<String, Object> getExtraProperties() {
+//        return Collections.unmodifiableMap(properties);
+//    }
+//
+//    /**
+//     * Get one property
+//     * @param key key of property
+//     * @return value of property as generic object
+//     */
+//    public Object getExtraPropertyValue(final String key) {
+//        return properties.get(key);
+//    }
+//
+//    /**
+//     *
+//     * @param key property key
+//     * @return true if sample has this property (even if its value is null)
+//     */
+//    public boolean hasExtraProperty(String key) {
+//        return properties.containsKey(key);
+//    }
 
     @Override
     public int hashCode() {
@@ -180,5 +182,37 @@ public class Sample implements java.io.Serializable {
             return o2 == null;
         else
             return o2 == null ? false : o1.equals(o2);
+    }
+
+    private final static <T> T mergeValues(final String name, final String field, final T o1, final T o2, final T emptyValue) {
+        if ( o1 == null || o1.equals(emptyValue) ) {
+            // take o2 if both are null, otherwise keep o2
+            return o2 == null ? null : o2;
+        } else {
+            if ( o2 == null || o2.equals(emptyValue) )
+                return o1; // keep o1, since it's a real value
+            else {
+                // both o1 and o2 have a value
+                if ( o1 == o2 )
+                    return o1;
+                else
+                    throw new UserException("Inconsistent values detected for " + name + " for field " + field + " value1 " + o1 + " value2 " + o2);
+            }
+        }
+    }
+
+    public final static Sample mergeSamples(final Sample prev, final Sample next) {
+        if ( prev.equals(next) )
+            return next;
+        else {
+            return new Sample(prev.getID(), prev.infoDB,
+                    mergeValues(prev.getID(), "Family_ID", prev.getFamilyID(), next.getFamilyID(), null),
+                    mergeValues(prev.getID(), "Paternal_ID", prev.getPaternalID(), next.getPaternalID(), null),
+                    mergeValues(prev.getID(), "Material_ID", prev.getMaternalID(), next.getMaternalID(), null),
+                    mergeValues(prev.getID(), "Gender", prev.getGender(), next.getGender(), Gender.UNKNOWN),
+                    mergeValues(prev.getID(), "Affection", prev.getAffection(), next.getAffection(), Affection.UNKNOWN),
+                    mergeValues(prev.getID(), "QuantitativeTrait", prev.getQuantitativePhenotype(), next.getQuantitativePhenotype(), UNSET_QT));
+                    //mergeValues(prev.getID(), "ExtraProperties", prev.getExtraProperties(), next.getExtraProperties(), Collections.emptyMap()));
+        }
     }
 }
