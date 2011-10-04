@@ -73,7 +73,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         spec.addAuxFile("df0ba76e0e6082c0d29fcfd68efc6b77", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
         spec.addAuxFile("7dcac2e8962c778081486332a4576dc3", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
         spec.addAuxFile("a50011571334f17e950ad3ed1149e350", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
-        spec.addAuxFile("6f3260504295695d765af639539585c9", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+        spec.addAuxFile("c95a7a6840334cadd0e520939615c77b", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
         
         execute("testBaseOutputNoFiltering",spec);
     }
@@ -90,7 +90,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         spec.setOutputFileLocation(baseOutputFile);
 
         spec.addAuxFile("6ccd7d8970ba98cb95fe41636a070c1c",baseOutputFile);
-        spec.addAuxFile("0ee40f3e5091536c14e077b77557083a",createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
+        spec.addAuxFile("7d87783b3d98b928cac16d383ceca807",createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
 
         execute("testNoCoverageDueToFiltering",spec);
     }
