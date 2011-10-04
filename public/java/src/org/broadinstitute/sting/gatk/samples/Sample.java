@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.samples;
 
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 

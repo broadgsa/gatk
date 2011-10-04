@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.gatk.samples;
 
-import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 

@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.gatk.samples;
 
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 
-import java.io.File;
 import java.util.*;
 
 /**
