@@ -4,6 +4,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.*;
 
@@ -104,6 +105,48 @@ public class SampleDB {
         return samples.size();
     }
 
+    public Set<Sample> getSamples() {
+        return new HashSet<Sample>(samples.values());
+    }
+
+    public Collection<String> getSampleNames() {
+        return Collections.unmodifiableCollection(samples.keySet());
+    }
+
+
+    /**
+     * Takes a collection of sample names and returns their corresponding sample objects
+     * Note that, since a set is returned, if you pass in a list with duplicates names there will not be any duplicates in the returned set
+     * @param sampleNameList Set of sample names
+     * @return Corresponding set of samples
+     */
+    public Set<Sample> getSamples(Collection<String> sampleNameList) {
+        HashSet<Sample> samples = new HashSet<Sample>();
+        for (String name : sampleNameList) {
+            try {
+                samples.add(getSample(name));
+            }
+            catch (Exception e) {
+                throw new StingException("Could not get sample with the following ID: " + name, e);
+            }
+        }
+        return samples;
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Higher level pedigree functions
+    //
+    // --------------------------------------------------------------------------------
+
+    public Set<String> getFamilyIDs() {
+        throw new NotImplementedException();
+    }
+
+    public Map<String, Set<Sample>> getFamilies() {
+        throw new NotImplementedException();
+    }
+
     /**
      * Return all samples with a given family ID
      * Note that this isn't terribly efficient (linear) - it may be worth adding a new family ID data structure for this
@@ -136,33 +179,5 @@ public class SampleDB {
             }
         }
         return children;
-    }
-
-    public Set<Sample> getSamples() {
-        return new HashSet<Sample>(samples.values());
-    }
-
-    public Collection<String> getSampleNames() {
-        return Collections.unmodifiableCollection(samples.keySet());
-    }
-
-
-    /**
-     * Takes a collection of sample names and returns their corresponding sample objects
-     * Note that, since a set is returned, if you pass in a list with duplicates names there will not be any duplicates in the returned set
-     * @param sampleNameList Set of sample names
-     * @return Corresponding set of samples
-     */
-    public Set<Sample> getSamples(Collection<String> sampleNameList) {
-        HashSet<Sample> samples = new HashSet<Sample>();
-        for (String name : sampleNameList) {
-            try {
-                samples.add(getSample(name));
-            }
-            catch (Exception e) {
-                throw new StingException("Could not get sample with the following ID: " + name, e);
-            }
-        }
-        return samples;
     }
 }
