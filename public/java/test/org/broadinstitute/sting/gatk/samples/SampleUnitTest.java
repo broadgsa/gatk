@@ -36,13 +36,25 @@ public class SampleUnitTest extends BaseTest {
     }
 
     /**
-     * Now test the special getter methods
+     * Now basic getters
      */
     @Test()
-    public void specialGettersTest() {
-        // todo -- test for sample with extra properties, like population
-//        Assert.assertTrue(sampleC.getID().equals("sampleC"));
-//        Assert.assertTrue(sampleC.getPopulation().equals("pop1"));
+    public void normalGettersTest() {
+        Assert.assertEquals("1A", fam1A.getID());
+        Assert.assertEquals("fam1", fam1A.getFamilyID());
+        Assert.assertEquals("1B", fam1A.getPaternalID());
+        Assert.assertEquals("1C", fam1A.getMaternalID());
+        Assert.assertEquals(null, fam1B.getPaternalID());
+        Assert.assertEquals(null, fam1B.getMaternalID());
+
+        Assert.assertEquals(Affection.AFFECTED, trait1.getAffection());
+        Assert.assertEquals(Sample.UNSET_QT, trait1.getQuantitativePhenotype());
+        Assert.assertEquals(Affection.UNAFFECTED, trait2.getAffection());
+        Assert.assertEquals(Sample.UNSET_QT, trait2.getQuantitativePhenotype());
+        Assert.assertEquals(Affection.UNKNOWN, trait3.getAffection());
+        Assert.assertEquals(Sample.UNSET_QT, trait3.getQuantitativePhenotype());
+        Assert.assertEquals(Affection.QUANTITATIVE, trait4.getAffection());
+        Assert.assertEquals(1.0, trait4.getQuantitativePhenotype());
     }
 
     @Test()
