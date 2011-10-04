@@ -4,7 +4,6 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -94,6 +93,12 @@ public class ReadClipper {
         if (left == right)
             return new SAMRecord(read.getHeader());
         SAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
+
+        // after clipping one tail, it is possible that the consequent hard clipping of adjacent deletions
+        // make the left cut index no longer part of the read. In that case, clip the read entirely.
+        if (left > leftTailRead.getAlignmentEnd())
+            return new SAMRecord(read.getHeader());
+
         ReadClipper clipper = new ReadClipper(leftTailRead);
         return clipper.hardClipByReferenceCoordinatesLeftTail(left);
     }

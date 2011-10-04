@@ -36,12 +36,8 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -51,6 +47,9 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
@@ -265,7 +264,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // first, the basic info
-        headerInfo.add(new VCFHeaderLine("source", "IndelGenotyperV2"));
+        headerInfo.add(new VCFHeaderLine("source", "SomaticIndelDetector"));
         headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
         // FORMAT and INFO fields
@@ -283,10 +282,10 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         args.addAll(getToolkit().getFilters());
         Map<String,String> commandLineArgs = getToolkit().getApproximateCommandLineArguments(args);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
-            headerInfo.add(new VCFHeaderLine(String.format("IGv2_%s", commandLineArg.getKey()), commandLineArg.getValue()));
+            headerInfo.add(new VCFHeaderLine(String.format("SID_%s", commandLineArg.getKey()), commandLineArg.getValue()));
         // also, the list of input bams
         for ( String fileName : getToolkit().getArguments().samFiles )
-            headerInfo.add(new VCFHeaderLine("IGv2_bam_file_used", fileName));
+            headerInfo.add(new VCFHeaderLine("SID_bam_file_used", fileName));
 
         return headerInfo;
     }

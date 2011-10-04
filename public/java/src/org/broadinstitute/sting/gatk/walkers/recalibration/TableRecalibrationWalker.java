@@ -170,9 +170,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     /////////////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // List of covariates to be used in this calculation
-    private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
-    private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
-    private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
+    public static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
+    public static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
+    public static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
     public static final String EOF_MARKER = "EOF";
     private long numReadsWithMalformedColorSpace = 0;
 

@@ -87,11 +87,11 @@ public class PileupElement {
 
     public int getReducedCount() {
         if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced count for non-reduced read " + getRead().getReadName());
-        return (int)getQual();
+        return ReadUtils.getReducedCount(getRead(), offset);
     }
 
     public byte getReducedQual() {
-        return (byte)(int)ReadUtils.getReducedReadQualityTagValue(getRead());
+        if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced qual for non-reduced read " + getRead().getReadName());
+        return ReadUtils.getReducedQual(getRead(), offset);
     }
-
 }
