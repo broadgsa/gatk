@@ -28,8 +28,8 @@ package org.broadinstitute.sting.gatk.samples;
  * Categorical sample trait for association and analysis
  *
  * Samples can have unknown status, be affected or unaffected by the
- * categorical trait, or they can be marked as actually having a
- * quantitative trait value (stored in an associated value in the Sample class)
+ * categorical trait, or they can be marked as actually having an
+ * other trait value (stored in an associated value in the Sample class)
  *
  * @author Mark DePristo
  * @since Sept. 2011
@@ -41,6 +41,6 @@ public enum Affection {
     AFFECTED,
     /** Unaffected by the disease */
     UNAFFECTED,
-    /** A quantitative trait: value of the trait is stored elsewhere */
-    QUANTITATIVE
+    /** An "other" trait: value of the trait is stored elsewhere and is an arbitrary string */
+    OTHER
 }

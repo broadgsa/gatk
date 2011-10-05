@@ -156,26 +156,26 @@ public class PedReaderUnitTest extends BaseTest {
                         "fam1 mom granddad2 grandma2 2 2"));
 
         // Quantitative trait
-        new PedReaderTest("QuantitativeTrait",
+        new PedReaderTest("OtherPhenotype",
                 Arrays.asList(
-                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.QUANTITATIVE, 1.0),
-                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.QUANTITATIVE, 10.0)),
+                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.OTHER, "1.0"),
+                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.OTHER, "10.0")),
                 String.format("%s%n%s",
                         "fam1 s1 0 0 1 1",
                         "fam2 s2 0 0 2 10.0"));
 
-        new PedReaderTest("QuantitativeTraitWithMissing",
+        new PedReaderTest("OtherPhenotypeWithMissing",
                 Arrays.asList(
                         new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.UNKNOWN, Sample.UNSET_QT),
-                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.QUANTITATIVE, 10.0)),
+                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.OTHER, "10.0")),
                 String.format("%s%n%s",
                         "fam1 s1 0 0 1 -9",
                         "fam2 s2 0 0 2 10.0"));
 
-        new PedReaderTest("QuantitativeTraitOnlyInts",
+        new PedReaderTest("OtherPhenotypeOnlyInts",
                 Arrays.asList(
-                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.QUANTITATIVE, 1.0),
-                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.QUANTITATIVE, 10.0)),
+                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.OTHER, "1"),
+                        new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.OTHER, "10")),
                 String.format("%s%n%s",
                         "fam1 s1 0 0 1 1",
                         "fam2 s2 0 0 2 10"));

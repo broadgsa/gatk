@@ -6,16 +6,13 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * Created by IntelliJ IDEA.
- * User: brett
- * Date: Sep 9, 2010
- * Time: 8:21:00 AM
+ *
  */
 public class SampleUnitTest extends BaseTest {
     SampleDB db;
     static Sample fam1A, fam1B, fam1C;
     static Sample s1, s2;
-    static Sample trait1, trait2, trait3, trait4;
+    static Sample trait1, trait2, trait3, trait4, trait5;
 
     @BeforeClass
     public void init() {
@@ -31,7 +28,8 @@ public class SampleUnitTest extends BaseTest {
         trait1 = new Sample("t1", db, Affection.AFFECTED, Sample.UNSET_QT);
         trait2 = new Sample("t2", db, Affection.UNAFFECTED, Sample.UNSET_QT);
         trait3 = new Sample("t3", db, Affection.UNKNOWN, Sample.UNSET_QT);
-        trait4 = new Sample("t4", db, Affection.QUANTITATIVE, 1.0);
+        trait4 = new Sample("t4", db, Affection.OTHER, "1.0");
+        trait5 = new Sample("t4", db, Affection.OTHER, "CEU");
     }
 
     /**
@@ -47,13 +45,14 @@ public class SampleUnitTest extends BaseTest {
         Assert.assertEquals(null, fam1B.getMaternalID());
 
         Assert.assertEquals(Affection.AFFECTED, trait1.getAffection());
-        Assert.assertEquals(Sample.UNSET_QT, trait1.getQuantitativePhenotype());
+        Assert.assertEquals(Sample.UNSET_QT, trait1.getOtherPhenotype());
         Assert.assertEquals(Affection.UNAFFECTED, trait2.getAffection());
-        Assert.assertEquals(Sample.UNSET_QT, trait2.getQuantitativePhenotype());
+        Assert.assertEquals(Sample.UNSET_QT, trait2.getOtherPhenotype());
         Assert.assertEquals(Affection.UNKNOWN, trait3.getAffection());
-        Assert.assertEquals(Sample.UNSET_QT, trait3.getQuantitativePhenotype());
-        Assert.assertEquals(Affection.QUANTITATIVE, trait4.getAffection());
-        Assert.assertEquals(1.0, trait4.getQuantitativePhenotype());
+        Assert.assertEquals(Sample.UNSET_QT, trait3.getOtherPhenotype());
+        Assert.assertEquals(Affection.OTHER, trait4.getAffection());
+        Assert.assertEquals("1.0", trait4.getOtherPhenotype());
+        Assert.assertEquals("CEU", trait5.getOtherPhenotype());
     }
 
     @Test()

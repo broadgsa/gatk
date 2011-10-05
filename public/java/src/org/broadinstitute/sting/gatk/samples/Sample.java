@@ -12,22 +12,22 @@ import java.util.Map;
 public class Sample implements Comparable<Sample> { // implements java.io.Serializable {
     final private String familyID, paternalID, maternalID;
     final private Gender gender;
-    final private double quantitativePhenotype;
+    final private String otherPhenotype;
     final private Affection affection;
     final private String ID;
     final private SampleDB infoDB;
     final private Map<String, Object> properties = new HashMap<String, Object>();
 
-    public final static double UNSET_QT = Double.NaN;
+    public final static String UNSET_QT = null;
 
     public Sample(final String ID, final SampleDB infoDB,
                   final String familyID, final String paternalID, final String maternalID,
-                  final Gender gender, final Affection affection, final double quantitativePhenotype) {
+                  final Gender gender, final Affection affection, final String otherPhenotype) {
         this.familyID = familyID;
         this.paternalID = paternalID;
         this.maternalID = maternalID;
         this.gender = gender;
-        this.quantitativePhenotype = quantitativePhenotype;
+        this.otherPhenotype = otherPhenotype;
         this.affection = affection;
         this.ID = ID;
         this.infoDB = infoDB;
@@ -35,8 +35,8 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
 
     protected Sample(final String ID,
                      final String familyID, final String paternalID, final String maternalID,
-                     final Gender gender, final Affection affection, final double quantitativePhenotype) {
-        this(ID, null, familyID, paternalID, maternalID, gender, affection, quantitativePhenotype);
+                     final Gender gender, final Affection affection, final String otherPhenotype) {
+        this(ID, null, familyID, paternalID, maternalID, gender, affection, otherPhenotype);
     }
 
     protected Sample(final String ID,
@@ -51,8 +51,8 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
         this(ID, infoDB, familyID, paternalID, maternalID, gender, Affection.UNKNOWN, UNSET_QT);
     }
 
-    public Sample(final String ID, final SampleDB infoDB, final Affection affection, final double quantitativePhenotype) {
-        this(ID, infoDB, null, null, null, Gender.UNKNOWN, affection, quantitativePhenotype);
+    public Sample(final String ID, final SampleDB infoDB, final Affection affection, final String otherPhenotype) {
+        this(ID, infoDB, null, null, null, Gender.UNKNOWN, affection, otherPhenotype);
     }
 
     public Sample(String id, SampleDB infoDB) {
@@ -86,12 +86,12 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
         return affection;
     }
 
-    public boolean hasQuantitativeTrait() {
-        return affection == Affection.QUANTITATIVE;
+    public boolean hasOtherPhenotype() {
+        return affection == Affection.OTHER;
     }
 
-    public double getQuantitativePhenotype() {
-        return quantitativePhenotype;
+    public String getOtherPhenotype() {
+        return otherPhenotype;
     }
 
     /**
@@ -127,7 +127,7 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
     public String toString() {
         return String.format("Sample %s fam=%s dad=%s mom=%s gender=%s affection=%s qt=%s props=%s",
                 getID(), getFamilyID(), getPaternalID(), getMaternalID(), getGender(), getAffection(),
-                getQuantitativePhenotype(), properties);
+                getOtherPhenotype(), properties);
     }
 
 //    // -------------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
                     equalOrNull(paternalID, otherSample.paternalID) &&
                     equalOrNull(maternalID, otherSample.maternalID) &&
                     equalOrNull(gender, otherSample.gender) &&
-                    equalOrNull(quantitativePhenotype, otherSample.quantitativePhenotype) &&
+                    equalOrNull(otherPhenotype, otherSample.otherPhenotype) &&
                     equalOrNull(affection, otherSample.affection) &&
                     equalOrNull(properties, otherSample.properties);
         }
@@ -215,7 +215,7 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
                     mergeValues(prev.getID(), "Material_ID", prev.getMaternalID(), next.getMaternalID(), null),
                     mergeValues(prev.getID(), "Gender", prev.getGender(), next.getGender(), Gender.UNKNOWN),
                     mergeValues(prev.getID(), "Affection", prev.getAffection(), next.getAffection(), Affection.UNKNOWN),
-                    mergeValues(prev.getID(), "QuantitativeTrait", prev.getQuantitativePhenotype(), next.getQuantitativePhenotype(), UNSET_QT));
+                    mergeValues(prev.getID(), "OtherPhenotype", prev.getOtherPhenotype(), next.getOtherPhenotype(), UNSET_QT));
                     //mergeValues(prev.getID(), "ExtraProperties", prev.getExtraProperties(), next.getExtraProperties(), Collections.emptyMap()));
         }
     }

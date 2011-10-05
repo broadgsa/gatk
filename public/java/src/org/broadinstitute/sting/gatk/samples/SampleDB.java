@@ -8,17 +8,6 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: brett
- * Date: Jul 26, 2010
- * Time: 3:30:09 PM
- *
- * This class stores and manages sample metadata. This data is encoded in a sample file, which can be included
- * in the GATK by the "--samples" argument. This class reads and parses those files.
- *
- * Although there are a set of public methods for accessing sample data, they aren't used by walkers - they are really
- * only used by GenomeAnalysisEngine. An instance of GenomeAnalysisEngine has one SampleDataSource. When a walker
- * wants to access sample data, it asks GenomeAnalysis to fetch this data from its SampleDataSource.
  *
  */
 public class SampleDB {

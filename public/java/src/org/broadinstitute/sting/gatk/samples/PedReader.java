@@ -63,6 +63,8 @@ import java.util.*;
  *  A PED file must have 1 and only 1 phenotype in the sixth column. The phenotype can be either a
  *  quantitative trait or an affection status column: PLINK will automatically detect which type
  *  (i.e. based on whether a value other than 0, 1, 2 or the missing genotype code is observed).
+ *  Note that the GATK actually supports arbitrary values for quantitative trait -- not just doubles --
+ *  and are actually representing these values as strings instead of doubles
  *
  *  NOTE Quantitative traits with decimal points must be coded with a period/full-stop character and
  *  not a comma, i.e. 2.394 not 2,394
@@ -212,7 +214,7 @@ public class PedReader {
             splits.add(parts);
             lineNo++;
         }
-        logger.info("Trait is quantitative? " + isQT);
+        logger.info("Phenotype is other? " + isQT);
 
         // now go through and parse each record
         lineNo = 1;
@@ -220,7 +222,7 @@ public class PedReader {
         for ( final String[] parts : splits ) {
             String familyID = null, individualID, paternalID = null, maternalID = null;
             Gender sex = Gender.UNKNOWN;
-            double quantitativePhenotype = Sample.UNSET_QT;
+            String quantitativePhenotype = Sample.UNSET_QT;
             Affection affection = Affection.UNKNOWN;
 
             if ( familyPos != -1 ) familyID = maybeMissing(parts[familyPos]);
@@ -239,8 +241,8 @@ public class PedReader {
                     if ( parts[phenotypePos].equals(MISSING_VALUE1) )
                         affection = Affection.UNKNOWN;
                     else {
-                        affection = Affection.QUANTITATIVE;
-                        quantitativePhenotype = Double.valueOf(parts[phenotypePos]);
+                        affection = Affection.OTHER;
+                        quantitativePhenotype = parts[phenotypePos];
                     }
                 } else {
                     if ( parts[phenotypePos].equals(MISSING_VALUE1) ) affection = Affection.UNKNOWN;
