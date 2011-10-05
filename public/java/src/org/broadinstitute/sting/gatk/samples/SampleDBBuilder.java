@@ -146,7 +146,7 @@ public class SampleDBBuilder {
 
                 for ( final Sample dsSample : samplesFromDataSources )
                     if ( ! sampleNamesFromPedigrees.contains(dsSample.getID()) )
-                        throw new UserException("Sample " + dsSample.getID() + " found in data sources but not in pedigree files");
+                        throw new UserException("Sample " + dsSample.getID() + " found in data sources but not in pedigree files with STRICT pedigree validation");
             }
         }
     }

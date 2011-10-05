@@ -213,14 +213,70 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * MARK: add documentation details
+     * Reads PED file-formatted tabular text files describing meta-data about the samples being
+     * processed in the GATK.
+     *
+     * See http://www.broadinstitute.org/mpg/tagger/faq.html
+     * See http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped
+     *
+     * The PED file is a white-space (space or tab) delimited file: the first six columns are mandatory:
+     *
+     *  Family ID
+     *  Individual ID
+     *  Paternal ID
+     *  Maternal ID
+     *  Sex (1=male; 2=female; other=unknown)
+     *  Phenotype
+     *
+     *  The IDs are alphanumeric: the combination of family and individual ID should uniquely identify a person.
+     *  A PED file must have 1 and only 1 phenotype in the sixth column. The phenotype can be either a
+     *  quantitative trait or an affection status column: GATK will automatically detect which type
+     *  (i.e. based on whether a value other than 0, 1, 2 or the missing genotype code is observed).
+     *
+     *  If an individual's sex is unknown, then any character other than 1 or 2 can be used.
+     *
+     *  You can add a comment to a PED or MAP file by starting the line with a # character. The rest of that
+     *  line will be ignored. Do not start any family IDs with this character therefore.
+     *
+     *  Affection status should be coded:
+     *
+     *  -9 missing
+     *   0 missing
+     *   1 unaffected
+     *   2 affected
+     *
+     * If any value outside of -9,0,1,2 is detected than the samples are assumed
+     * to phenotype values are interpreted as string phenotype values.  In this case -9 uniquely
+     * represents the missing value.
+     *
+     * Genotypes (column 7 onwards) cannot be specified to the GATK.
+     *
+     * For example, here are two individuals (one row = one person):
+     *
+     *   FAM001  1  0 0  1  2
+     *   FAM001  2  0 0  1  2
+     *
+     * Each -ped argument can be tagged with NO_FAMILY_ID, NO_PARENTS, NO_SEX, NO_PHENOTYPE to
+     * tell the GATK PED parser that the corresponding fields are missing from the ped file.
+     *
+     * Note that most GATK walkers do not use pedigree information.  Walkers that require pedigree
+     * data should clearly indicate so in their arguments and will throw errors if required pedigree
+     * information is missing.
      */
     @Argument(fullName="pedigree", shortName = "ped", doc="Pedigree files for samples",required=false)
     public List<File> pedigreeFiles = Collections.emptyList();
 
+    /**
+     * Inline PED records (see -ped argument).  Each -pedString STRING can contain one or more
+     * valid PED records (see -ped) separated by semi-colons.  Supports all tags for each pedString
+     * as -ped supports
+     */
     @Argument(fullName="pedigreeString", shortName = "pedString", doc="Pedigree string for samples",required=false)
     public List<String> pedigreeStrings = Collections.emptyList();
 
+    /**
+     * How strict should we be in parsing the PED files?
+     */
     @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="How strict should we be in validating the pedigree information?",required=false)
     public PedigreeValidationType pedigreeValidationType = PedigreeValidationType.STRICT;
 
@@ -379,7 +435,7 @@ public class GATKArgumentCollection {
             return false;
         }
         if ((other.RODToInterval == null && RODToInterval != null) ||
-            (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
+                (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
             return false;
         }
 

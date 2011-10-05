@@ -201,6 +201,9 @@ public class GenomeAnalysisEngine {
         // Prepare the data for traversal.
         initializeDataSources();
 
+        // initialize sampleDB
+        initializeSampleDB();
+
         // initialize and validate the interval list
         initializeIntervals();
         validateSuppliedIntervals();
@@ -689,9 +692,6 @@ public class GenomeAnalysisEngine {
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
         rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
-
-        // set up sample db
-        initializeSampleDB();
     }
 
     /**
