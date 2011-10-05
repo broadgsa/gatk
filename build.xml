@@ -545,11 +545,12 @@
 
     <target name="vcf.jar" depends="gatk.compile,init.jar">
         <jar jarfile="${dist.dir}/vcf.jar">
-	    <classfileset dir="${java.classes}">
-	      <root classname="org.broadinstitute.sting.utils.variantcontext.VariantContext" />
-	      <root classname="org.broadinstitute.sting.utils.codecs.vcf.VCFCodec" />
-	      <root classname="org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec" />
-	    </classfileset>
+            <fileset dir="${java.classes}">
+              <include name="**/utils/codecs/**/*.class"/>
+              <include name="**/utils/variantcontext/**/*.class"/>
+              <include name="org/broadinstitute/sting/utils/exceptions/**"/>
+	      <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
+            </fileset>
         </jar>
     </target>
 
