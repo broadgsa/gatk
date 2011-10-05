@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  *
  */
-public class Sample implements java.io.Serializable {
+public class Sample implements Comparable<Sample> { // implements java.io.Serializable {
     final private String familyID, paternalID, maternalID;
     final private Gender gender;
     final private double quantitativePhenotype;
@@ -116,6 +116,11 @@ public class Sample implements java.io.Serializable {
      */
     public Gender getGender() {
         return gender;
+    }
+
+    @Override
+    public int compareTo(final Sample sample) {
+        return ID.compareTo(sample.getID());
     }
 
     @Override

@@ -9,9 +9,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,9 +34,17 @@ public class SampleDBUnitTest extends BaseTest {
 
     private static final String testPEDString =
             String.format("%s%n%s%n%s",
-                        "fam1 kid dad mom 1 2",
-                        "fam1 dad 0   0   1 1",
-                        "fam1 mom 0   0   2 2");
+                    "fam1 kid dad mom 1 2",
+                    "fam1 dad 0   0   1 1",
+                    "fam1 mom 0   0   2 2");
+
+    private static final String testPEDMultipleFamilies =
+            String.format("%s%n%s%n%s%n%s%n%s",
+                    "fam1 kid dad mom 1 2",
+                    "fam1 dad 0   0   1 1",
+                    "fam1 mom 0   0   2 2",
+                    "fam3 s1  d1  m1  2 2",
+                    "fam2 s2  d2  m2  2 2");
 
     private static final String testPEDStringInconsistentGender =
             "fam1 kid 0   0   2 2";
@@ -116,5 +122,36 @@ public class SampleDBUnitTest extends BaseTest {
         addSAMHeader();
         builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender));
         builder.getFinalSampleDB();
+    }
+
+    @Test()
+    public void getFamilyIDs() {
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(db.getFamilyIDs(), new TreeSet<String>(Arrays.asList("fam1", "fam2", "fam3")));
+    }
+
+    @Test()
+    public void getFamily() {
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(db.getFamily("fam1"), testPEDSamplesAsSet);
+    }
+
+    @Test()
+    public void loadFamilyIDs() {
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
+        SampleDB db = builder.getFinalSampleDB();
+        Map<String, Set<Sample>> families = db.getFamilies();
+        Assert.assertEquals(families.size(), 3);
+        Assert.assertEquals(families.keySet(), new TreeSet<String>(Arrays.asList("fam1", "fam2", "fam3")));
+
+        for ( final String famID : families.keySet() ) {
+            final Set<Sample> fam = families.get(famID);
+            Assert.assertEquals(fam.size(), 3);
+            for ( final Sample sample : fam ) {
+                Assert.assertEquals(sample.getFamilyID(), famID);
+            }
+        }
     }
 }

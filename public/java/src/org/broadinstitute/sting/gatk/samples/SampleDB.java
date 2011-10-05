@@ -4,7 +4,6 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.*;
 
@@ -139,30 +138,42 @@ public class SampleDB {
     //
     // --------------------------------------------------------------------------------
 
-    public Set<String> getFamilyIDs() {
-        throw new NotImplementedException();
+    /**
+     * Returns a sorted set of the family IDs in all samples (excluding null ids)
+     * @return
+     */
+    public final Set<String> getFamilyIDs() {
+        return getFamilies().keySet();
     }
 
-    public Map<String, Set<Sample>> getFamilies() {
-        throw new NotImplementedException();
+    /**
+     * Returns a map from family ID -> set of family members for all samples with
+     * non-null family ids
+     *
+     * @return
+     */
+    public final Map<String, Set<Sample>> getFamilies() {
+        final Map<String, Set<Sample>> families = new TreeMap<String, Set<Sample>>();
+
+        for ( final Sample sample : samples.values() ) {
+            final String famID = sample.getFamilyID();
+            if ( famID != null ) {
+                if ( ! families.containsKey(famID) )
+                    families.put(famID, new TreeSet<Sample>());
+                families.get(famID).add(sample);
+            }
+        }
+
+        return families;
     }
 
     /**
      * Return all samples with a given family ID
-     * Note that this isn't terribly efficient (linear) - it may be worth adding a new family ID data structure for this
      * @param familyId
      * @return
      */
     public Set<Sample> getFamily(String familyId) {
-        HashSet<Sample> familyMembers = new HashSet<Sample>();
-
-        for (Sample sample : samples.values()) {
-            if (sample.getFamilyID() != null) {
-                if (sample.getFamilyID().equals(familyId))
-                    familyMembers.add(sample);
-            }
-        }
-        return familyMembers;
+        return getFamilies().get(familyId);
     }
 
     /**
@@ -172,9 +183,9 @@ public class SampleDB {
      * @return
      */
     public Set<Sample> getChildren(Sample sample) {
-        HashSet<Sample> children = new HashSet<Sample>();
-        for (Sample familyMember : getFamily(sample.getFamilyID())) {
-            if (familyMember.getMother() == sample || familyMember.getFather() == sample) {
+        final HashSet<Sample> children = new HashSet<Sample>();
+        for ( final Sample familyMember : getFamily(sample.getFamilyID())) {
+            if ( familyMember.getMother() == sample || familyMember.getFather() == sample ) {
                 children.add(familyMember);
             }
         }
