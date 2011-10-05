@@ -888,9 +888,20 @@ public class ReadUtils {
                     if (endsWithinCigar)
                         fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
 
-                    // if we end outside the current cigar element, we need to check if the next element is a deletion.
+                    // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
                     else {
                         nextCigarElement = cigarElementIterator.next();
+
+                        // if it's an insertion, we need to clip the whole insertion before looking at the next element
+                        if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
+                            readBases += nextCigarElement.getLength();
+                            if (!cigarElementIterator.hasNext())
+                                throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+
+                            nextCigarElement = cigarElementIterator.next();
+                        }
+
+                        // if it's a deletion, we will pass the information on to be handled downstream.
                         fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
                     }
 

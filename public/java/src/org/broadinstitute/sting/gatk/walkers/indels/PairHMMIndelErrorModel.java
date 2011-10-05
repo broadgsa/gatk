@@ -32,16 +32,11 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
