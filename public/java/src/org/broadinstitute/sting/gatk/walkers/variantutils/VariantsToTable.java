@@ -133,7 +133,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * By default, this tool throws a UserException when it encounters a field without a value in some record.  This
-     * is generally useful when you mistype -F CHRMO, so that you get a friendly warning about CHRMO not being
+     * is generally useful when you mistype -F CHROM, so that you get a friendly warning about CHRMO not being
      * found before the tool runs through 40M 1000G records.  However, in some cases you genuinely want to allow such
      * fields (e.g., AC not being calculated for filtered records, if included).  When provided, this argument
      * will cause VariantsToTable to write out NA values for missing fields instead of throwing an error.
