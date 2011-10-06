@@ -282,8 +282,12 @@ public class LocusIteratorByState extends LocusIterator {
 
         // currently the GATK expects this LocusIteratorByState to accept empty sample lists, when
         // there's no read data.  So we need to throw this error only when samIterator.hasNext() is true
-        if ( this.samples.isEmpty() && samIterator.hasNext() )
-            throw new IllegalArgumentException("samples list must not be empty");
+        if ( this.samples.isEmpty() && samIterator.hasNext() ) {
+            // actually we cannot process BAMs without read groups unless we tolerate empty
+            // sample lists.  In the empty case we need to add the null element to the samples
+            this.samples.add(null);
+            //throw new IllegalArgumentException("samples list must not be empty");
+        }
     }
 
     /**
