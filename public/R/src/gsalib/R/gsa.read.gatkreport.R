@@ -99,5 +99,5 @@ gsa.read.gatkreport <- function(filename) {
         .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
     }
 
-    gatkreport = as.list(tableEnv);
+    gatkreport = as.list(tableEnv, all.names=TRUE);
 }
