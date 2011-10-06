@@ -50,6 +50,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Emits intervals for the Local Indel Realigner to target for realignment.
@@ -253,9 +254,12 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
     public void onTraversalDone(EventPair sum) {
         if ( sum.left != null && sum.left.isReportableEvent() )
-            out.println(sum.left.toString());
+            sum.intervals.add(sum.left.getLoc());
         if ( sum.right != null && sum.right.isReportableEvent() )
-            out.println(sum.right.toString());
+            sum.intervals.add(sum.right.getLoc());
+
+        for ( GenomeLoc loc : sum.intervals )
+            out.println(loc);
     }
 
     public EventPair reduceInit() {
@@ -272,39 +276,39 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         } else if ( lhs.right == null ) {
             if ( rhs.right == null ) {
                 if ( canBeMerged(lhs.left, rhs.left) )
-                    result = new EventPair(mergeEvents(lhs.left, rhs.left), null);
+                    result = new EventPair(mergeEvents(lhs.left, rhs.left), null, lhs.intervals, rhs.intervals);
                 else
-                    result = new EventPair(lhs.left, rhs.left);
+                    result = new EventPair(lhs.left, rhs.left, lhs.intervals, rhs.intervals);
             } else {
                 if ( canBeMerged(lhs.left, rhs.left) )
-                    result = new EventPair(mergeEvents(lhs.left, rhs.left), rhs.right);
+                    result = new EventPair(mergeEvents(lhs.left, rhs.left), rhs.right, lhs.intervals, rhs.intervals);
                 else {
                     if ( rhs.left.isReportableEvent() )
-                        out.println(rhs.left.toString());
-                    result = new EventPair(lhs.left, rhs.right);
+                        rhs.intervals.add(rhs.left.getLoc());
+                    result = new EventPair(lhs.left, rhs.right, lhs.intervals, rhs.intervals);
                 }
             }
         } else if ( rhs.right == null ) {
             if ( canBeMerged(lhs.right, rhs.left) )
-                result = new EventPair(lhs.left, mergeEvents(lhs.right, rhs.left));
+                result = new EventPair(lhs.left, mergeEvents(lhs.right, rhs.left), lhs.intervals, rhs.intervals);
             else {
                 if ( lhs.right.isReportableEvent() )
-                    out.println(lhs.right.toString());
-                result = new EventPair(lhs.left, rhs.left);
+                    lhs.intervals.add(lhs.right.getLoc());
+                result = new EventPair(lhs.left, rhs.left, lhs.intervals, rhs.intervals);
             }
         } else {
             if ( canBeMerged(lhs.right, rhs.left) ) {
                 Event merge = mergeEvents(lhs.right, rhs.left);
                 if ( merge.isReportableEvent() )
-                    out.println(merge.toString());
+                    lhs.intervals.add(merge.getLoc());
             } else {
                 if ( lhs.right.isReportableEvent() )
-                    out.println(lhs.right.toString());
+                    lhs.intervals.add(lhs.right.getLoc());
                 if ( rhs.left.isReportableEvent() )
-                    out.println(rhs.left.toString());
+                    rhs.intervals.add(rhs.left.getLoc());
             }
 
-            result = new EventPair(lhs.left, rhs.right);
+            result = new EventPair(lhs.left, rhs.right, lhs.intervals, rhs.intervals);
         }
 
         return result;
@@ -318,22 +322,14 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         } else if ( sum.right == null ) {
             if ( canBeMerged(sum.left, value) )
                 sum.left = mergeEvents(sum.left, value);
-            // While ideally we shouldn't do anything differently depending on the number of threads, there is a practical reason for doing so:
-            // if we know that we are single-threaded then we can ensure that the intervals are emitted in order, which leads to a large
-            // performance improvement (esp. memory) in the IndelRealigner (because we don't have to store all of the intervals in memory to sort them).
-            else if ( getToolkit().getArguments().numberOfThreads > 1 )
+            else
                 sum.right = value;
-            else {
-                if ( sum.left.isReportableEvent() )
-                    out.println(sum.left.toString());
-                sum.left = value;
-            }
         } else {
             if ( canBeMerged(sum.right, value) )
                 sum.right = mergeEvents(sum.right, value);
             else {
                 if ( sum.right.isReportableEvent() )
-                    out.println(sum.right.toString());
+                    sum.intervals.add(sum.right.getLoc());
                 sum.right = value;
             }
         }
@@ -355,18 +351,26 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
     class EventPair {
         public Event left, right;
+        public TreeSet<GenomeLoc> intervals = new TreeSet<GenomeLoc>();
 
         public EventPair(Event left, Event right) {
             this.left = left;
             this.right = right;
+        }
+
+        public EventPair(Event left, Event right, TreeSet<GenomeLoc> set1, TreeSet<GenomeLoc> set2) {
+            this.left = left;
+            this.right = right;
+            intervals.addAll(set1);
+            intervals.addAll(set2);
         }
     }
 
     class Event {
         public int furthestStopPos;
 
-        public GenomeLoc loc;
-        public int eventStartPos;
+        private GenomeLoc loc;
+        private int eventStartPos;
         private int eventStopPos;
         private EVENT_TYPE type;
         private ArrayList<Integer> pointEvents = new ArrayList<Integer>();
@@ -421,8 +425,8 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             return getToolkit().getGenomeLocParser().isValidGenomeLoc(loc.getContig(), eventStartPos, eventStopPos, true) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
         }
 
-        public String toString() {
-            return String.format("%s:%d-%d", loc.getContig(), eventStartPos, eventStopPos);
+        public GenomeLoc getLoc() {
+            return getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), eventStartPos, eventStopPos);
         }
     }
 }
