@@ -35,12 +35,11 @@ import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReservoirDownsampler;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -52,9 +51,6 @@ import java.util.*;
 
 /** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class LocusIteratorByState extends LocusIterator {
-//    private static long discarded_bases = 0L;
-//    private static long observed_bases = 0L;
-
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
 
@@ -69,7 +65,7 @@ public class LocusIteratorByState extends LocusIterator {
      * Used to create new GenomeLocs.
      */
     private final GenomeLocParser genomeLocParser;
-    private final ArrayList<Sample> samples;
+    private final ArrayList<String> samples;
     private final ReadStateManager readStates;
 
     static private class SAMRecordState {
@@ -278,15 +274,30 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, SampleDataSource sampleData ) {
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, Collection<String> samples ) {
         this.readInfo = readInformation;
         this.genomeLocParser = genomeLocParser;
+        this.samples = new ArrayList<String>(samples);
+        this.readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod());
 
-        // get the list of samples
-        this.samples = new ArrayList<Sample>(sampleData.getSamples());
-        
-        readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod());
-    
+        // currently the GATK expects this LocusIteratorByState to accept empty sample lists, when
+        // there's no read data.  So we need to throw this error only when samIterator.hasNext() is true
+        if ( this.samples.isEmpty() && samIterator.hasNext() ) {
+            // actually we cannot process BAMs without read groups unless we tolerate empty
+            // sample lists.  In the empty case we need to add the null element to the samples
+            this.samples.add(null);
+            //throw new IllegalArgumentException("samples list must not be empty");
+        }
+    }
+
+    /**
+     * For testing only.  Assumes that the incoming SAMRecords have no read groups, so creates a dummy sample list
+     * for the system.
+     */
+    public final static Collection<String> sampleListForSAMWithoutReadGroups() {
+        List<String> samples = new ArrayList<String>();
+        samples.add(null);
+        return samples;
     }
 
     public Iterator<AlignmentContext> iterator() {
@@ -301,19 +312,6 @@ public class LocusIteratorByState extends LocusIterator {
         lazyLoadNextAlignmentContext();
         return (nextAlignmentContext != null);
         //if ( DEBUG ) System.out.printf("hasNext() = %b%n", r);
-    }
-
-    public void printState() {
-        for(Sample sample: samples) {
-            Iterator<SAMRecordState> iterator = readStates.iterator(sample);
-            while(iterator.hasNext()) {
-                SAMRecordState state = iterator.next();
-                logger.debug(String.format("printState():"));
-                SAMRecord read = state.getRead();
-                int offset = state.getReadOffset();
-                logger.debug(String.format("  read: %s(%d)=%s, cigar=%s", read.getReadName(), offset, (char)read.getReadBases()[offset], read.getCigarString()));
-            }
-        }
     }
 
     private GenomeLoc getLocation() {
@@ -355,14 +353,14 @@ public class LocusIteratorByState extends LocusIterator {
             // In this case, the subsequent call to next() will emit the normal pileup at the current base
             // and shift the position.
             if (readInfo.generateExtendedEvents() && hasExtendedEvents) {
-                Map<Sample,ReadBackedExtendedEventPileupImpl> fullExtendedEventPileup = new HashMap<Sample,ReadBackedExtendedEventPileupImpl>();
+                Map<String,ReadBackedExtendedEventPileupImpl> fullExtendedEventPileup = new HashMap<String,ReadBackedExtendedEventPileupImpl>();
 
                 // get current location on the reference and decrement it by 1: the indels we just stepped over
                 // are associated with the *previous* reference base
                 GenomeLoc loc = genomeLocParser.incPos(getLocation(),-1);
 
                 boolean hasBeenSampled = false;
-                for(Sample sample: samples) {
+                for(final String sample: samples) {
                     Iterator<SAMRecordState> iterator = readStates.iterator(sample);
                     List<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size(sample));
                     hasBeenSampled |= loc.getStart() <= readStates.getDownsamplingExtent(sample);
@@ -426,10 +424,10 @@ public class LocusIteratorByState extends LocusIterator {
                 nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup), hasBeenSampled);
             }  else {
                 GenomeLoc location = getLocation();
-                Map<Sample,ReadBackedPileupImpl> fullPileup = new HashMap<Sample,ReadBackedPileupImpl>();
+                Map<String,ReadBackedPileupImpl> fullPileup = new HashMap<String,ReadBackedPileupImpl>();
 
                 boolean hasBeenSampled = false;
-                for(Sample sample: samples) {
+                for(final String sample: samples) {
                     Iterator<SAMRecordState> iterator = readStates.iterator(sample);
                     List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
                     hasBeenSampled |= location.getStart() <= readStates.getDownsamplingExtent(sample);
@@ -495,7 +493,7 @@ public class LocusIteratorByState extends LocusIterator {
     }
 
     private void updateReadStates() {
-        for(Sample sample: samples) {
+        for(final String sample: samples) {
             Iterator<SAMRecordState> it = readStates.iterator(sample);
             while ( it.hasNext() ) {
                 SAMRecordState state = it.next();
@@ -522,7 +520,7 @@ public class LocusIteratorByState extends LocusIterator {
         private final PeekableIterator<SAMRecord> iterator;
         private final DownsamplingMethod downsamplingMethod;
         private final SamplePartitioner samplePartitioner;
-        private final Map<Sample,PerSampleReadStateManager> readStatesBySample = new HashMap<Sample,PerSampleReadStateManager>();
+        private final Map<String,PerSampleReadStateManager> readStatesBySample = new HashMap<String,PerSampleReadStateManager>();
         private final int targetCoverage;
         private int totalReadStates = 0;
 
@@ -540,9 +538,9 @@ public class LocusIteratorByState extends LocusIterator {
             }
 
             Map<String,ReadSelector> readSelectors = new HashMap<String,ReadSelector>();
-            for(Sample sample: samples) {
+            for(final String sample: samples) {
                 readStatesBySample.put(sample,new PerSampleReadStateManager());
-                readSelectors.put(sample.getId(),downsamplingMethod.type == DownsampleType.BY_SAMPLE ? new NRandomReadSelector(null,targetCoverage) : new AllReadsSelector());
+                readSelectors.put(sample,downsamplingMethod.type == DownsampleType.BY_SAMPLE ? new NRandomReadSelector(null,targetCoverage) : new AllReadsSelector());
             }
 
             samplePartitioner = new SamplePartitioner(readSelectors);
@@ -554,7 +552,7 @@ public class LocusIteratorByState extends LocusIterator {
          * @param sample The sample.
          * @return Iterator over the reads associated with that sample.
          */
-        public Iterator<SAMRecordState> iterator(final Sample sample) {
+        public Iterator<SAMRecordState> iterator(final String sample) {
             return new Iterator<SAMRecordState>() {
                 private Iterator<SAMRecordState> wrappedIterator = readStatesBySample.get(sample).iterator();
 
@@ -590,7 +588,7 @@ public class LocusIteratorByState extends LocusIterator {
          * @param sample The sample.
          * @return Total number of reads in the given sample.
          */
-        public int size(final Sample sample) {
+        public int size(final String sample) {
             return readStatesBySample.get(sample).size();
         }
 
@@ -600,12 +598,12 @@ public class LocusIteratorByState extends LocusIterator {
          * @param sample Sample, downsampled independently.
          * @return Integer stop of the furthest undownsampled region.
          */
-        public int getDownsamplingExtent(final Sample sample) {
+        public int getDownsamplingExtent(final String sample) {
             return readStatesBySample.get(sample).getDownsamplingExtent();
         }
 
         public SAMRecordState getFirst() {
-            for(Sample sample: samples) {
+            for(final String sample: samples) {
                 PerSampleReadStateManager reads = readStatesBySample.get(sample);
                 if(!reads.isEmpty())
                     return reads.peek();
@@ -639,8 +637,8 @@ public class LocusIteratorByState extends LocusIterator {
             }
             samplePartitioner.complete();
 
-            for(Sample sample: samples) {
-                ReadSelector aggregator = samplePartitioner.getSelectedReads(sample.getId());
+            for(final String sample: samples) {
+                ReadSelector aggregator = samplePartitioner.getSelectedReads(sample);
 
                 Collection<SAMRecord> newReads = new ArrayList<SAMRecord>(aggregator.getSelectedReads());
 
@@ -1072,6 +1070,3 @@ class SamplePartitioner implements ReadSelector {
     }
 
 }
-
-
-

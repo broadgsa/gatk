@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 
@@ -137,18 +136,11 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public ReadBackedPileup getPileupForLane(String laneID);
 
-
-     /**
-     * Gets a collection of all the samples stored in this pileup.
-     * @return Collection of samples in this pileup.
-     */
-    public Collection<Sample> getSamples();
-
     /**
      * Gets a collection of *names* of all the samples stored in this pileup.
      * @return Collection of names
      */
-    public Collection<String> getSampleNames();
+    public Collection<String> getSamples();
 
 
     /**
@@ -156,7 +148,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @param sampleNames Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSampleNames(Collection<String> sampleNames);
+    public ReadBackedPileup getPileupForSamples(Collection<String> sampleNames);
 
 
     /**
@@ -164,14 +156,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @param sampleName Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSampleName(String sampleName);
-
-    /**
-     * Gets the particular subset of this pileup with the given sample.
-     * @param sample Sample to use.
-     * @return A subset of this pileup containing only reads with the given sample.
-     */
-    public ReadBackedPileup getPileupForSample(Sample sample);
+    public ReadBackedPileup getPileupForSample(String sampleName);
     
     /**
      * Simple useful routine to count the number of deletion bases in this pileup

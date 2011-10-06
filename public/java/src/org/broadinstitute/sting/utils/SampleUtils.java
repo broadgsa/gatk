@@ -69,6 +69,18 @@ public class SampleUtils {
         return samples;
     }
 
+
+    /**
+     * Same as @link getSAMFileSamples but gets all of the samples
+     * in the SAM files loaded by the engine
+     *
+     * @param engine
+     * @return
+     */
+    public final static Set<String> getSAMFileSamples(GenomeAnalysisEngine engine) {
+        return SampleUtils.getSAMFileSamples(engine.getSAMFileHeader());
+    }
+
     /**
      * Gets all of the unique sample names from all VCF rods input by the user
      *

@@ -52,7 +52,7 @@ public class WalkerTest extends BaseTest {
         GenomeAnalysisEngine.resetRandomGenerator();
     }
 
-    public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
+    public MD5DB.MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
         return MD5DB.assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
     }
 
@@ -84,10 +84,23 @@ public class WalkerTest extends BaseTest {
 
     public List<String> assertMatchingMD5s(final String name, List<File> resultFiles, List<String> expectedMD5s) {
         List<String> md5s = new ArrayList<String>();
+        List<MD5DB.MD5Match> fails = new ArrayList<MD5DB.MD5Match>();
+
         for (int i = 0; i < resultFiles.size(); i++) {
-            String md5 = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
-            maybeValidateSupplementaryFile(name, resultFiles.get(i));
-            md5s.add(i, md5);
+            MD5DB.MD5Match result = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
+            if ( ! result.failed ) {
+                maybeValidateSupplementaryFile(name, resultFiles.get(i));
+                md5s.add(result.md5);
+            } else {
+                fails.add(result);
+            }
+        }
+
+        if ( ! fails.isEmpty() ) {
+            for ( final MD5DB.MD5Match fail : fails ) {
+                logger.warn("Fail: " + fail.failMessage);
+            }
+            Assert.fail("Test failed: " + name);
         }
 
         return md5s;

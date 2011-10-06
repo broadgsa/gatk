@@ -34,28 +34,23 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.util.*;
@@ -92,7 +87,7 @@ public class GenomeAnalysisEngine {
     /**
      * Accessor for sample metadata
      */
-    private SampleDataSource sampleDataSource = null;
+    private SampleDB sampleDB = null;
 
     /**
      * Accessor for sharded reference-ordered data.
@@ -205,6 +200,9 @@ public class GenomeAnalysisEngine {
 
         // Prepare the data for traversal.
         initializeDataSources();
+
+        // initialize sampleDB
+        initializeSampleDB();
 
         // initialize and validate the interval list
         initializeIntervals();
@@ -692,10 +690,20 @@ public class GenomeAnalysisEngine {
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
-        sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
-
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
         rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
+    }
+
+    /**
+     * Entry-point function to initialize the samples database from input data and pedigree arguments
+     */
+    private void initializeSampleDB() {
+        SampleDBBuilder sampleDBBuilder = new SampleDBBuilder(this, argCollection.pedigreeValidationType);
+        sampleDBBuilder.addSamplesFromSAMHeader(getSAMFileHeader());
+        sampleDBBuilder.addSamplesFromSampleNames(SampleUtils.getUniqueSamplesFromRods(this));
+        sampleDBBuilder.addSamplesFromPedigreeFiles(argCollection.pedigreeFiles);
+        sampleDBBuilder.addSamplesFromPedigreeStrings(argCollection.pedigreeStrings);
+        sampleDB = sampleDBBuilder.getFinalSampleDB();
     }
 
     /**
@@ -714,100 +722,6 @@ public class GenomeAnalysisEngine {
      */
     public File getSourceFileForReaderID(final SAMReaderID id) {
         return getReadsDataSource().getSAMFile(id);
-    }
-
-    /**
-     * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
-     * found in the corresponding bam file.
-     *
-     * @return Sets of samples in the merged input SAM stream, grouped by readers
-     */
-    public List<Set<String>> getSamplesByReaders() {
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> samples = new HashSet<String>(1);
-            sample_sets.add(samples);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                samples.add(g.getSample());
-            }
-        }
-
-        return sample_sets;
-
-    }
-
-    /**
-     * Returns sets of libraries present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of library names
-     * found in the corresponding bam file.
-     *
-     * @return Sets of libraries present in the (merged) input SAM stream, grouped by readers
-     */
-    public List<Set<String>> getLibrariesByReaders() {
-
-
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> libs = new HashSet<String>(2);
-            lib_sets.add(libs);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                libs.add(g.getLibrary());
-            }
-        }
-
-        return lib_sets;
-
-    }
-
-    /**
-     * **** UNLESS YOU HAVE GOOD REASON TO, DO NOT USE THIS METHOD; USE getFileToReadGroupIdMapping() INSTEAD ****
-     *
-     * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
-     * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
-     *
-     * @return sets of (merged) read group ids in order of input bams
-     */
-    public List<Set<String>> getMergedReadGroupsByReaders() {
-
-
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> groups = new HashSet<String>(5);
-            rg_sets.add(groups);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                if (getReadsDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
-                    // use HeaderMerger to translate original read group id from the reader into the read group id in the
-                    // merged stream, and save that remapped read group id to associate it with specific reader
-                    groups.add(getReadsDataSource().getReadGroupId(r, g.getReadGroupId()));
-                } else {
-                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
-                    groups.add(g.getReadGroupId());
-                }
-            }
-        }
-
-        return rg_sets;
-
     }
 
     /**
@@ -930,6 +844,18 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Returns an ordered list of the unmerged SAM file headers known to this engine.
+     * @return list of header for each input SAM file, in command line order
+     */
+    public List<SAMFileHeader> getSAMFileHeaders() {
+        final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
+        for ( final SAMReaderID id : getReadsDataSource().getReaderIDs() ) {
+            headers.add(getReadsDataSource().getHeader(id));
+        }
+        return headers;
+    }
+
+    /**
      * Gets the master sequence dictionary for this GATK engine instance
      * @return a never-null dictionary listing all of the contigs known to this engine instance
      */
@@ -946,8 +872,6 @@ public class GenomeAnalysisEngine {
     public SAMDataSource getReadsDataSource() {
         return this.readsDataSource;
     }
-
-
 
     /**
      * Sets the collection of GATK main application arguments.
@@ -1035,140 +959,14 @@ public class GenomeAnalysisEngine {
         return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
     }
 
-    public SampleDataSource getSampleMetadata() {
-        return this.sampleDataSource;
-    }
+    // -------------------------------------------------------------------------------------
+    //
+    // code for working with Samples database
+    //
+    // -------------------------------------------------------------------------------------
 
-    /**
-     * Get a sample by its ID
-     * If an alias is passed in, return the main sample object
-     * @param id sample id
-     * @return sample Object with this ID
-     */
-    public Sample getSampleById(String id) {
-        return sampleDataSource.getSampleById(id);
-    }
-
-    /**
-     * Get the sample for a given read group
-     * Must first look up ID for read group
-     * @param readGroup of sample
-     * @return sample object with ID from the read group
-     */
-    public Sample getSampleByReadGroup(SAMReadGroupRecord readGroup) {
-        return sampleDataSource.getSampleByReadGroup(readGroup);
-    }
-
-    /**
-     * Get a sample for a given read
-     * Must first look up read group, and then sample ID for that read group
-     * @param read of sample
-     * @return sample object of this read
-     */
-    public Sample getSampleByRead(SAMRecord read) {
-        return getSampleByReadGroup(read.getReadGroup());
-    }
-
-    /**
-     * Get number of sample objects
-     * @return size of samples map
-     */
-    public int sampleCount() {
-        return sampleDataSource.sampleCount();
-    }
-
-    /**
-     * Return all samples with a given family ID
-     * Note that this isn't terribly efficient (linear) - it may be worth adding a new family ID data structure for this
-     * @param familyId family ID
-     * @return Samples with the given family ID
-     */
-    public Set<Sample> getFamily(String familyId) {
-        return sampleDataSource.getFamily(familyId);
-    }
-
-    /**
-     * Returns all children of a given sample
-     * See note on the efficiency of getFamily() - since this depends on getFamily() it's also not efficient
-     * @param sample parent sample
-     * @return children of the given sample
-     */
-    public Set<Sample> getChildren(Sample sample) {
-        return sampleDataSource.getChildren(sample);
-    }
-
-    /**
-     * Gets all the samples
-     * @return
-     */
-    public Collection<Sample> getSamples() {
-        return sampleDataSource.getSamples();
-    }
-
-    /**
-     * Takes a list of sample names and returns their corresponding sample objects
-     *
-     * @param sampleNameList List of sample names
-     * @return Corresponding set of samples
-     */
-    public Set<Sample> getSamples(Collection<String> sampleNameList) {
-	return sampleDataSource.getSamples(sampleNameList);
-    }
-
-
-    /**
-     * Returns a set of samples that have any value (which could be null) for a given property
-     * @param key Property key
-     * @return Set of samples with the property
-     */
-    public Set<Sample> getSamplesWithProperty(String key) {
-        return sampleDataSource.getSamplesWithProperty(key);
-    }
-
-    /**
-     * Returns a set of samples that have a property with a certain value
-     * Value must be a string for now - could add a similar method for matching any objects in the future
-     *
-     * @param key Property key
-     * @param value String property value
-     * @return Set of samples that match key and value
-     */
-    public Set<Sample> getSamplesWithProperty(String key, String value) {
-        return sampleDataSource.getSamplesWithProperty(key, value);
-
-    }
-
-    /**
-     * Returns a set of sample objects for the sample names in a variant context
-     *
-     * @param context Any variant context
-     * @return a set of the sample objects
-     */
-    public Set<Sample> getSamplesByVariantContext(VariantContext context) {
-        Set<Sample> samples = new HashSet<Sample>();
-        for (String sampleName : context.getSampleNames()) {
-            samples.add(sampleDataSource.getOrCreateSample(sampleName));
-        }
-        return samples;
-    }
-
-    /**
-     * Returns all samples that were referenced in the SAM file
-     */
-    public Set<Sample> getSAMFileSamples() {
-        return sampleDataSource.getSAMFileSamples();
-    }
-
-    /**
-     * Return a subcontext restricted to samples with a given property key/value
-     * Gets the sample names from key/value and relies on VariantContext.subContextFromGenotypes for the filtering
-     * @param context VariantContext to filter
-     * @param key property key
-     * @param value property value (must be string)
-     * @return subcontext
-     */
-    public VariantContext subContextFromSampleProperty(VariantContext context, String key, String value) {
-        return sampleDataSource.subContextFromSampleProperty(context, key, value);
+    public SampleDB getSampleDB() {
+        return this.sampleDB;
     }
 
     public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {

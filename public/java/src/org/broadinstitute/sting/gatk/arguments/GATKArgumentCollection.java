@@ -32,6 +32,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
@@ -44,10 +45,7 @@ import org.simpleframework.xml.stream.HyphenStyle;
 import java.io.File;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author aaron
@@ -71,11 +69,6 @@ public class GATKArgumentCollection {
     @ElementList(required = false)
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<String> samFiles = new ArrayList<String>();
-
-    // parameters and their defaults
-    @ElementList(required = false)
-    @Argument(fullName = "sample_metadata", shortName = "SM", doc = "Sample file(s) in JSON format", required = false)
-    public List<File> sampleFiles = new ArrayList<File>();
 
     @Element(required = false)
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
@@ -215,28 +208,91 @@ public class GATKArgumentCollection {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // distributed GATK arguments
+    // PED (pedigree) support
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Element(required=false)
-    @Argument(fullName="processingTracker",shortName="C",doc="A lockable, shared file for coordinating distributed GATK runs",required=false)
-    @Hidden
-    public File processingTrackerFile = null;
 
-    @Element(required=false)
-    @Argument(fullName="restartProcessingTracker",shortName="RPT",doc="Should we delete the processing tracker file at startup?",required=false)
-    @Hidden
-    public boolean restartProcessingTracker = false;
+    /**
+     * <p>Reads PED file-formatted tabular text files describing meta-data about the samples being
+     * processed in the GATK.</p>
+     *
+     * <ul>
+     *  <li>see <a href="http://www.broadinstitute.org/mpg/tagger/faq.html">http://www.broadinstitute.org/mpg/tagger/faq.html</a></li>
+     *  <li>see <a href="http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped">http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped</a></li>
+     * </ul>
+     *
+     * <p>The PED file is a white-space (space or tab) delimited file: the first six columns are mandatory:</p>
+     *
+     * <ul>
+     *  <li>Family ID</li>
+     *  <li>Individual ID</li>
+     *  <li>Paternal ID</li>
+     *  <li>Maternal ID</li>
+     *  <li>Sex (1=male; 2=female; other=unknown)</li>
+     *  <li>Phenotype</li>
+     * </ul>
+     *
+     *  <p>The IDs are alphanumeric: the combination of family and individual ID should uniquely identify a person.
+     *  A PED file must have 1 and only 1 phenotype in the sixth column. The phenotype can be either a
+     *  quantitative trait or an affection status column: GATK will automatically detect which type
+     *  (i.e. based on whether a value other than 0, 1, 2 or the missing genotype code is observed).</p>
+     *
+     *  <p>If an individual's sex is unknown, then any character other than 1 or 2 can be used.</p>
+     *
+     *  <p>You can add a comment to a PED or MAP file by starting the line with a # character. The rest of that
+     *  line will be ignored. Do not start any family IDs with this character therefore.</p>
+     *
+     *  <p>Affection status should be coded:</p>
+     *
+     * <ul>
+     *  <li>-9 missing</li>
+     *   <li>0 missing</li>
+     *   <li>1 unaffected</li>
+     *   <li>2 affected</li>
+     * </ul>
+     *
+     * <p>If any value outside of -9,0,1,2 is detected than the samples are assumed
+     * to phenotype values are interpreted as string phenotype values.  In this case -9 uniquely
+     * represents the missing value.</p>
+     *
+     * <p>Genotypes (column 7 onwards) cannot be specified to the GATK.</p>
+     *
+     * <p>For example, here are two individuals (one row = one person):</p>
+     *
+     * <pre>
+     *   FAM001  1  0 0  1  2
+     *   FAM001  2  0 0  1  2
+     * </pre>
+     *
+     * <p>Each -ped argument can be tagged with NO_FAMILY_ID, NO_PARENTS, NO_SEX, NO_PHENOTYPE to
+     * tell the GATK PED parser that the corresponding fields are missing from the ped file.</p>
+     *
+     * <p>Note that most GATK walkers do not use pedigree information.  Walkers that require pedigree
+     * data should clearly indicate so in their arguments and will throw errors if required pedigree
+     * information is missing.</p>
+     */
+    @Argument(fullName="pedigree", shortName = "ped", doc="Pedigree files for samples",required=false)
+    public List<File> pedigreeFiles = Collections.emptyList();
 
-    @Element(required=false)
-    @Argument(fullName="processingTrackerStatusFile",shortName="CSF",doc="If provided, a detailed accounting of the state of the process tracker is written to this file.  For debugging, only",required=false)
-    @Hidden
-    public File processingTrackerStatusFile = null;
+    /**
+     * Inline PED records (see -ped argument).  Each -pedString STRING can contain one or more
+     * valid PED records (see -ped) separated by semi-colons.  Supports all tags for each pedString
+     * as -ped supports
+     */
+    @Argument(fullName="pedigreeString", shortName = "pedString", doc="Pedigree string for samples",required=false)
+    public List<String> pedigreeStrings = Collections.emptyList();
 
-    @Element(required=false)
-    @Argument(fullName="processingTrackerID",shortName="CID",doc="If provided, an integer ID (starting at 1) indicating a unique id for this process within the distributed GATK group",required=false)
-    @Hidden
-    public int processTrackerID = -1;
+    /**
+     * How strict should we be in parsing the PED files?
+     */
+    @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="How strict should we be in validating the pedigree information?",required=false)
+    public PedigreeValidationType pedigreeValidationType = PedigreeValidationType.STRICT;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // BAM indexing and sharding arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     @Element(required = false)
     @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
@@ -387,7 +443,7 @@ public class GATKArgumentCollection {
             return false;
         }
         if ((other.RODToInterval == null && RODToInterval != null) ||
-            (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
+                (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
             return false;
         }
 
@@ -403,20 +459,6 @@ public class GATKArgumentCollection {
 
         if ((other.performanceLog == null && this.performanceLog != null) ||
                 (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog)))
-            return false;
-
-        if ((other.processingTrackerFile == null && this.processingTrackerFile != null) ||
-                (other.processingTrackerFile != null && !other.processingTrackerFile.equals(this.processingTrackerFile)))
-            return false;
-
-        if ((other.processingTrackerStatusFile == null && this.processingTrackerStatusFile != null) ||
-                (other.processingTrackerStatusFile != null && !other.processingTrackerStatusFile.equals(this.processingTrackerStatusFile)))
-            return false;
-
-        if ( restartProcessingTracker != other.restartProcessingTracker )
-            return false;
-
-        if ( processTrackerID != other.processTrackerID )
             return false;
 
         if (allowIntervalsWithUnindexedBAM != other.allowIntervalsWithUnindexedBAM)
