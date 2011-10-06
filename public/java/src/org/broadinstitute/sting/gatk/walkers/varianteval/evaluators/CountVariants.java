@@ -130,6 +130,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     nVariantLoci++;
                     nMixed++;
                     break;
+                case SYMBOLIC:
+                    // ignore symbolic alleles, but don't fail
+                    // todo - consistent way of treating symbolic alleles thgoughout codebase?
+                    break;
                 default:
                     throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
             }
