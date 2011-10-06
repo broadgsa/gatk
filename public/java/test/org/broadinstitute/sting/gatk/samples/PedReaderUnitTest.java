@@ -158,7 +158,7 @@ public class PedReaderUnitTest extends BaseTest {
         // Quantitative trait
         new PedReaderTest("OtherPhenotype",
                 Arrays.asList(
-                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.OTHER, "1.0"),
+                        new Sample("s1", "fam1", null, null, Gender.MALE,   Affection.OTHER, "1"),
                         new Sample("s2", "fam2", null, null, Gender.FEMALE, Affection.OTHER, "10.0")),
                 String.format("%s%n%s",
                         "fam1 s1 0 0 1 1",
@@ -188,7 +188,7 @@ public class PedReaderUnitTest extends BaseTest {
         PedReader reader = new PedReader();
         SampleDB sampleDB = new SampleDB();
         List<Sample> readSamples = reader.parse(myFileContents, missing, sampleDB);
-        Assert.assertEquals(new HashSet<Sample>(test.expectedSamples), new HashSet<Sample>(readSamples), "Parsed incorrect number of samples");
+        Assert.assertEquals(new HashSet<Sample>(test.expectedSamples), new HashSet<Sample>(readSamples));
     }
 
     @Test(enabled = true, dataProvider = "readerTest")
