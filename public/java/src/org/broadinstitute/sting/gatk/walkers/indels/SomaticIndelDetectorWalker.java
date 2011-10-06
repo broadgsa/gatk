@@ -36,12 +36,8 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -51,6 +47,9 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
@@ -392,7 +391,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 		location = getToolkit().getGenomeLocParser().createGenomeLoc(getToolkit().getSAMFileHeader().getSequence(0).getSequenceName(),1);
 
-        normalSamples = getToolkit().getSamplesByReaders().get(0);
+        normalSamples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeaders().get(0));
 
         try {
             // we already checked that bedOutput and output_file are not set simultaneously

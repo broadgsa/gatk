@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
@@ -121,20 +120,7 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * Gets a list of all the samples stored in this pileup.
      * @return List of samples in this pileup.
      */
-    public Collection<String> getSampleNames();
-
-        /**
-     * Gets a list of all the samples stored in this pileup.
-     * @return List of samples in this pileup.
-     */
-    public Collection<Sample> getSamples();
-
-    /**
-     * Gets the particular subset of this pileup with the given sample name.
-     * @param sample Name of the sample to use.
-     * @return A subset of this pileup containing only reads with the given sample.
-     */
-    public ReadBackedExtendedEventPileup getPileupForSample(Sample sample);
+    public Collection<String> getSamples();
 
     public Iterable<ExtendedEventPileupElement> toExtendedIterable();
 

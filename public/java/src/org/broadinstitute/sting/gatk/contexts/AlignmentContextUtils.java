@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -76,14 +75,6 @@ public class AlignmentContextUtils {
         return splitContextBySampleName(context, null);
     }
 
-    public static Map<Sample, AlignmentContext> splitContextBySample(AlignmentContext context) {
-        Map<Sample, AlignmentContext> m = new HashMap<Sample, AlignmentContext>();
-        for ( Map.Entry<String, AlignmentContext> entry : splitContextBySampleName(context, null).entrySet() ) {
-            m.put(new Sample(entry.getKey()), entry.getValue());
-        }
-        return m;
-    }
-
     /**
      * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample, but referencd by sample name instead
      * of sample object.
@@ -97,8 +88,8 @@ public class AlignmentContextUtils {
         GenomeLoc loc = context.getLocation();
         HashMap<String, AlignmentContext> contexts = new HashMap<String, AlignmentContext>();
 
-        for(String sample: context.getPileup().getSampleNames()) {
-            ReadBackedPileup pileupBySample = context.getPileup().getPileupForSampleName(sample);
+        for(String sample: context.getPileup().getSamples()) {
+            ReadBackedPileup pileupBySample = context.getPileup().getPileupForSample(sample);
 
             // Don't add empty pileups to the split context.
             if(pileupBySample.size() == 0)

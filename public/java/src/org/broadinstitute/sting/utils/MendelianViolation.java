@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.utils;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -19,9 +16,6 @@ import java.util.regex.Pattern;
  * Time: 12:38 PM
  */
 public class MendelianViolation {
-
-
-
     String sampleMom;
     String sampleDad;
     String sampleChild;
@@ -34,22 +28,15 @@ public class MendelianViolation {
 
     private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
 
-    static final int[] mvOffsets = new int[] { 1,2,5,6,8,11,15,18,20,21,24,25 };
-    static final int[] nonMVOffsets = new int[]{ 0,3,4,7,9,10,12,13,14,16,17,19,22,23,26 };
-
-
     public String getSampleMom() {
         return sampleMom;
     }
-
     public String getSampleDad() {
         return sampleDad;
     }
-
     public String getSampleChild() {
         return sampleChild;
     }
-
     public double getMinGenotypeQuality() {
         return minGenotypeQuality;
     }
@@ -90,36 +77,11 @@ public class MendelianViolation {
      * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
      */
     public MendelianViolation(Sample sample, double minGenotypeQualityP) {
-        sampleMom = sample.getMother().getId();
-        sampleDad = sample.getFather().getId();
-        sampleChild = sample.getId();
+        sampleMom = sample.getMother().getID();
+        sampleDad = sample.getFather().getID();
+        sampleChild = sample.getID();
         minGenotypeQuality = minGenotypeQualityP;
     }
-
-
-    /**
-     * The most common constructor to be used when give a YAML file with the relationships to the engine with the -SM option.
-     * @param engine - The GATK engine, use getToolkit(). That's where the sample information is stored.
-     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
-     */
-    public MendelianViolation(GenomeAnalysisEngine engine, double minGenotypeQualityP) {
-        boolean gotSampleInformation = false;
-        Collection<Sample> samples = engine.getSamples();
-        // Iterate through all samples in the sample_metadata file but we really can only take one.
-        for (Sample sample : samples) {
-            if (sample.getMother() != null && sample.getFather() != null) {
-                sampleMom = sample.getMother().getId();
-                sampleDad = sample.getFather().getId();
-                sampleChild = sample.getId();
-                minGenotypeQuality = minGenotypeQualityP;
-                gotSampleInformation = true;
-                break; // we can only deal with one trio information
-            }
-        }
-        if (!gotSampleInformation)
-            throw new UserException("YAML file has no sample with relationship information (mother/father)");
-    }
-
 
     /**
      * This method prepares the object to evaluate for violation. Typically you won't call it directly, a call to
@@ -158,7 +120,7 @@ public class MendelianViolation {
      * @return False if we can't determine (lack of information), or it's not a violation. True if it is a violation.
      *
      */
-    public boolean isViolation (VariantContext vc)
+    public boolean isViolation(VariantContext vc)
     {
         return setAlleles(vc) && isViolation();
     }
@@ -171,43 +133,5 @@ public class MendelianViolation {
             allelesMom.contains(allelesChild.get(1)) && allelesDad.contains(allelesChild.get(0)))
             return false;
         return true;
-    }
-
-    /**
-     * @return the likelihood ratio for a mendelian violation
-     */
-    public double violationLikelihoodRatio(VariantContext vc) {
-        double[] logLikAssignments = new double[27];
-        // the matrix to set up is
-        // MOM   DAD    CHILD
-        //                    |-  AA
-        //   AA     AA    |    AB
-        //                    |-   BB
-        //                    |- AA
-        //  AA     AB     |   AB
-        //                    |- BB
-        // etc. The leaves are counted as 0-11 for MVs and 0-14 for non-MVs
-        double[] momGL = vc.getGenotype(sampleMom).getLikelihoods().getAsVector();
-        double[] dadGL = vc.getGenotype(sampleDad).getLikelihoods().getAsVector();
-        double[] childGL = vc.getGenotype(sampleChild).getLikelihoods().getAsVector();
-        int offset = 0;
-        for ( int oMom = 0; oMom < 3; oMom++ ) {
-            for ( int oDad = 0; oDad < 3; oDad++ ) {
-                for ( int oChild = 0; oChild < 3; oChild ++ ) {
-                    logLikAssignments[offset++] = momGL[oMom] + dadGL[oDad] + childGL[oChild];
-                }
-            }
-        }
-        double[] mvLiks = new double[12];
-        double[] nonMVLiks = new double[15];
-        for ( int i = 0; i < 12; i ++ ) {
-            mvLiks[i] = logLikAssignments[mvOffsets[i]];
-        }
-
-        for ( int i = 0; i < 15; i++) {
-            nonMVLiks[i] = logLikAssignments[nonMVOffsets[i]];
-        }
-
-        return MathUtils.log10sumLog10(mvLiks) - MathUtils.log10sumLog10(nonMVLiks);
     }
 }

@@ -215,6 +215,10 @@ public class UserException extends ReviewedStingException {
             super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, e.getMessage()));
         }
 
+        public MalformedFile(String name, String message) {
+            super(String.format("File associated with name %s is malformed: %s", name, message));
+        }
+
         public MalformedFile(String name, String message, Exception e) {
             super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, e.getMessage()));
         }

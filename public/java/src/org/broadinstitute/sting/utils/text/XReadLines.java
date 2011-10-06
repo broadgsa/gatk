@@ -99,9 +99,9 @@ public class XReadLines implements Iterator<String>, Iterable<String> {
      *
      * @param reader
      */
-    public XReadLines(final BufferedReader reader, final boolean trimWhitespace) {
+    public XReadLines(final Reader reader, final boolean trimWhitespace) {
         try {
-            this.in = reader;
+            this.in = new BufferedReader(reader);
             nextline = readNextLine();
             this.trimWhitespace = trimWhitespace;
         } catch(IOException e) {
@@ -109,7 +109,7 @@ public class XReadLines implements Iterator<String>, Iterable<String> {
         }
     }
 
-    public XReadLines(final BufferedReader reader) throws FileNotFoundException {
+    public XReadLines(final Reader reader) {
         this(reader, true);
     }
 
