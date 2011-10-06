@@ -248,6 +248,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="nWayOut", shortName="nWayOut", required=false, doc="Generate one output file for each input (-I) bam file")
     protected String N_WAY_OUT = null;
 
+    @Hidden
+    @Argument(fullName="generate_nWayOut_md5s",doc="Generate md5sums for BAMs")
+    protected boolean generateMD5s = false;
 
     // DEBUGGING OPTIONS FOLLOW
 
@@ -401,9 +404,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
  //           if ( args.containsKey("disable_bam_indexing") )  { System.out.println("NO INDEXING!!"); System.exit(1); createIndex = false; }
 
             if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
-                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true, createIndex);
+                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true, createIndex, generateMD5s);
             } else {
-                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true, createIndex);
+                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true, createIndex, generateMD5s);
             }
 
         }   else {
