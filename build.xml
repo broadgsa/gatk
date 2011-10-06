@@ -548,8 +548,9 @@
     <target name="vcf.jar" depends="gatk.compile,init.jar">
         <jar jarfile="${dist.dir}/vcf.jar">
             <fileset dir="${java.classes}">
-              <include name="**/utils/codecs/**/*.class"/>
-              <include name="**/utils/variantcontext/**/*.class"/>
+              <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
+              <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
+              <include name="org/broadinstitute/sting/gatk/refdata/SelfScopingFeatureCodec.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**"/>
 	      <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
             </fileset>
@@ -916,7 +917,7 @@
     </target>
 
     <!-- Our four different test conditions: Test, IntegrationTest, PerformanceTest, PipelineTest -->
-    <target name="test" depends="init.buildall,test.compile" description="Run unit tests">
+    <target name="test" depends="init.buildall,test.compile,vcf.jar" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
