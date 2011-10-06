@@ -160,7 +160,15 @@ public class UserException extends ReviewedStingException {
 
     public static class MalformedBAM extends UserException {
         public MalformedBAM(SAMRecord read, String message) {
-            super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource() != null ? read.getFileSource().getReader() : "(none)", message));
+            this(read.getFileSource() != null ? read.getFileSource().getReader().toString() : "(none)", message);
+        }
+
+        public MalformedBAM(File file, String message) {
+            this(file.toString(), message);
+        }
+
+        public MalformedBAM(String source, String message) {
+            super(String.format("SAM/BAM file %s is malformed: %s", source, message));
         }
     }
 

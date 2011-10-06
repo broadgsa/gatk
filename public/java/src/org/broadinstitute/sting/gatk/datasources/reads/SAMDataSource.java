@@ -235,6 +235,12 @@ public class SAMDataSource {
         for(SAMFileReader reader: readers.values()) {
             // Get the sort order, forcing it to coordinate if unsorted.
             SAMFileHeader header = reader.getFileHeader();
+
+            if ( header.getReadGroups().isEmpty() ) {
+                throw new UserException.MalformedBAM(readers.getReaderID(reader).samFile,
+                        "SAM file doesn't have any read groups defined in the header.  The GATK no longer supports SAM files without read groups");
+            }
+
             SAMFileHeader.SortOrder sortOrder = header.getSortOrder() != SAMFileHeader.SortOrder.unsorted ? header.getSortOrder() : SAMFileHeader.SortOrder.coordinate;
 
             // Validate that all input files are sorted in the same order.
