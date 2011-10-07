@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -39,7 +40,7 @@ public class VCFJarClassLoadingUnitTest {
     @Test
     public void testVCFJarClassLoading() throws ClassNotFoundException, MalformedURLException {
         URI vcfURI = new File("dist/vcf.jar").toURI();
-        URI tribbleURI = new File("lib/tribble-24.jar").toURI();
+        URI tribbleURI = getTribbleJarFile().toURI();
 
         ClassLoader classLoader = new URLClassLoader(new URL[] {vcfURI.toURL(),tribbleURI.toURL()}, null);
         classLoader.loadClass("org.broadinstitute.sting.utils.variantcontext.VariantContext");
@@ -47,5 +48,22 @@ public class VCFJarClassLoadingUnitTest {
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCFWriter");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter");
+    }
+
+    /**
+     * A very unsafe way of determining the current location of the Tribble jar file.  Assumes that
+     * the tribble jar (as opposed to the constituent tribble classes) is on the classpath.
+     *
+     * This method might or might not work when built via IntelliJ's debugger.
+     *
+     * @return The file representing the tribble jar.
+     */
+    private File getTribbleJarFile() {
+        String[] classPath = System.getProperty("java.class.path").split(File.pathSeparator);
+        for(String classPathEntry: classPath) {
+            if(classPathEntry.contains("tribble"))
+                return new File(classPathEntry);
+        }
+        throw new ReviewedStingException("Unable to find Tribble jar file");
     }
 }
