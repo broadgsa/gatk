@@ -66,15 +66,13 @@ public class ShardTraverser implements Callable {
                     microScheduler.getReadIterator(shard),
                     shard.getGenomeLocs(),
                     microScheduler.engine.getSampleDB().getSampleNames()); // todo: microScheduler.engine is protected - is it okay to user it here?
-            ShardDataProvider dataProvider = null;
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-                dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
+                final ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
                 accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
                 dataProvider.close();
             }
 
-            if (dataProvider != null) dataProvider.close();
             windowMaker.close();
             outputMergeTask = outputTracker.closeStorage();
 
