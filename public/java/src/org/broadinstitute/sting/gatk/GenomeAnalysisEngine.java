@@ -257,13 +257,12 @@ public class GenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     public Collection<ReadFilter> createFilters() {
-        Set<ReadFilter> filters = new HashSet<ReadFilter>();
-        filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
+        final List<ReadFilter> filters = WalkerManager.getReadFilters(walker,this.getFilterManager());
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
-        for(String filterName: this.getArguments().readFilters)
+        for(final String filterName: this.getArguments().readFilters)
             filters.add(this.getFilterManager().createByName(filterName));
-        return Collections.unmodifiableSet(filters);
+        return Collections.unmodifiableList(filters);
     }
 
     /**
