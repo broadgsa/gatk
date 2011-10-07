@@ -12,20 +12,20 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  inputFileName = "~/Desktop/Q-30033@gsa1.jobreport.txt"
+  inputFileName = "~/Desktop/broadLocal/GATK/unstable/wgs.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
 }
 
 RUNTIME_UNITS = "(hours)"
-ORIGINAL_UNITS_TO_SECONDS = 1/1000/60/60
+ORIGINAL_UNITS_TO_RUNTIME_UNITS = 1/1000/60/60
 
 # 
 # Helper function to aggregate all of the jobs in the report across all tables
 #
 allJobsFromReport <- function(report) {
-  names <- c("jobName", "startTime", "analysisName", "doneTime", "exechosts")
+  names <- c("jobName", "startTime", "analysisName", "doneTime", "exechosts", "runtime")
   sub <- lapply(report, function(table) table[,names])
   do.call("rbind", sub)
 }
@@ -44,8 +44,8 @@ plotJobsGantt <- function(gatkReport, sortOverall, includeText) {
   }
   allJobs$index = 1:nrow(allJobs)
   minTime = min(allJobs$startTime)
-  allJobs$relStartTime = (allJobs$startTime - minTime) * ORIGINAL_UNITS_TO_SECONDS
-  allJobs$relDoneTime = (allJobs$doneTime - minTime) * ORIGINAL_UNITS_TO_SECONDS
+  allJobs$relStartTime = allJobs$startTime - minTime 
+  allJobs$relDoneTime = allJobs$doneTime - minTime
   allJobs$ganttName = paste(allJobs$jobName, "@", allJobs$exechosts)
   maxRelTime = max(allJobs$relDoneTime)
   p <- ggplot(data=allJobs, aes(x=relStartTime, y=index, color=analysisName))
@@ -54,7 +54,7 @@ plotJobsGantt <- function(gatkReport, sortOverall, includeText) {
   if ( includeText )
     p <- p + geom_text(aes(x=relDoneTime, label=ganttName, hjust=-0.2), size=2)
   p <- p + xlim(0, maxRelTime * 1.1)
-  p <- p + xlab(paste("Start time (relative to first job)", RUNTIME_UNITS))
+  p <- p + xlab(paste("Start time, relative to first job", RUNTIME_UNITS))
   p <- p + ylab("Job number")
   p <- p + opts(title=title)
   print(p)
@@ -121,7 +121,7 @@ plotGroup <- function(groupTable) {
   if ( length(groupAnnotations) == 1 && dim(sub)[1] > 1 ) {
     # todo -- how do we group by annotations?
     p <- ggplot(data=sub, aes(x=runtime)) + geom_histogram()
-    p <- p + xlab("runtime in seconds") + ylab("No. of jobs")
+    p <- p + xlab(paste("runtime", RUNTIME_UNITS)) + ylab("No. of jobs")
     p <- p + opts(title=paste("Job runtime histogram for", name))
     print(p)
   }
@@ -141,9 +141,9 @@ print(paste("Project          :", inputFileName))
 
 convertUnits <- function(gatkReportData) {
   convertGroup <- function(g) {
-    g$runtime = g$runtime * ORIGINAL_UNITS_TO_SECONDS
-    g$startTime = g$startTime * ORIGINAL_UNITS_TO_SECONDS
-    g$doneTime = g$doneTime * ORIGINAL_UNITS_TO_SECONDS
+    g$runtime = g$runtime * ORIGINAL_UNITS_TO_RUNTIME_UNITS
+    g$startTime = g$startTime * ORIGINAL_UNITS_TO_RUNTIME_UNITS
+    g$doneTime = g$doneTime * ORIGINAL_UNITS_TO_RUNTIME_UNITS
     g
   }
   lapply(gatkReportData, convertGroup)
