@@ -138,7 +138,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * Any number of VCF files representing known indels to be used for constructing alternate consenses.
      * Could be e.g. dbSNP and/or official 1000 Genomes indel calls.  Non-indel variants in these files will be ignored.
      */
-    @Input(fullName="known", shortName = "known", doc="Input VCF file(s) with known indels", required=false)
+    @Input(fullName="knownAlleles", shortName = "known", doc="Input VCF file(s) with known indels", required=false)
     public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
     /**
