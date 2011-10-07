@@ -80,7 +80,8 @@ public abstract class BaseTest {
     public static final String networkTempDir = "/broad/shptmp/";
     public static final File networkTempDirFile = new File(networkTempDir);
 
-    public static final String testDir = "public/testdata/";
+    public static final File testDirFile = new File("public/testdata/");
+    public static final String testDir = testDirFile.getAbsolutePath() + "/";
 
     /** before the class starts up */
     static {
