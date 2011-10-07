@@ -415,6 +415,10 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
                             eventStartPos = lastPosition;
                         else
                             eventStartPos = Math.min(eventStartPos, lastPosition);
+                    } else if ( eventStartPos == -1 && e.eventStartPos != -1 ) {
+                        eventStartPos = e.eventStartPos;
+                        eventStopPos = e.eventStopPos;
+                        furthestStopPos = e.furthestStopPos;
                     }
                 }
                 pointEvents.add(newPosition);
