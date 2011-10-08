@@ -11,12 +11,13 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 
 public class VariantContextUnitTest extends BaseTest {
-    Allele A, Aref, T, Tref;
+    Allele A, Aref, C, T, Tref;
     Allele del, delRef, ATC, ATCref;
 
     // A [ref] / T at 10
@@ -45,6 +46,7 @@ public class VariantContextUnitTest extends BaseTest {
         delRef = Allele.create("-", true);
 
         A = Allele.create("A");
+        C = Allele.create("C");
         Aref = Allele.create("A", true);
         T = Allele.create("T");
         Tref = Allele.create("T", true);
@@ -130,6 +132,16 @@ public class VariantContextUnitTest extends BaseTest {
         alleles = Arrays.asList(Tref, symbolic);
         vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.SYMBOLIC);
+    }
+
+    @Test
+    public void testMultipleSNPAlleleOrdering() {
+        final List<Allele> allelesNaturalOrder = Arrays.asList(Aref, C, T);
+        final List<Allele> allelesUnnaturalOrder = Arrays.asList(Aref, T, C);
+        VariantContext naturalVC = new VariantContext("natural", snpLoc, snpLocStart, snpLocStop, allelesNaturalOrder);
+        VariantContext unnaturalVC = new VariantContext("unnatural", snpLoc, snpLocStart, snpLocStop, allelesUnnaturalOrder);
+        Assert.assertEquals(new ArrayList<Allele>(naturalVC.getAlleles()), allelesNaturalOrder);
+        Assert.assertEquals(new ArrayList<Allele>(unnaturalVC.getAlleles()), allelesUnnaturalOrder);
     }
 
     @Test
