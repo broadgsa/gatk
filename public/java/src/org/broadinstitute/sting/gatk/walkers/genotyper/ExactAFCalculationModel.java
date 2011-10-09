@@ -29,19 +29,14 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     //
@@ -58,7 +53,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,
                                 ReferenceContext ref,
-                                Map<String, Genotype> GLs, Set<Allele>alleles,
+                                Map<String, Genotype> GLs, List<Allele> alleles,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();

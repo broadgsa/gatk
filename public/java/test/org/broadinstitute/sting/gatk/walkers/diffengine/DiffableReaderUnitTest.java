@@ -70,7 +70,7 @@ public class DiffableReaderUnitTest extends BaseTest {
     private static void testLeaf(DiffNode rec, String field, Object expected) {
         DiffElement value = rec.getElement(field);
         Assert.assertNotNull(value, "Expected to see leaf named " + field + " in rec " + rec);
-        Assert.assertEquals(value.getValue().getValue(), expected, "Expected to leaf named " + field + " to have value " + expected + " in rec " + rec);
+        Assert.assertEquals(value.getValue().getValue(), expected, "Expected to see leaf named " + field + " to have value " + expected + " in rec " + rec + " but got instead " + value.getValue().getValue());
     }
 
     @Test(enabled = true, dependsOnMethods = "testPluggableDiffableReaders")
@@ -95,7 +95,7 @@ public class DiffableReaderUnitTest extends BaseTest {
         testLeaf(rec1, "POS", 2646);
         testLeaf(rec1, "ID", "rs62635284");
         testLeaf(rec1, "REF", Allele.create("G", true));
-        testLeaf(rec1, "ALT", new HashSet<Allele>(Arrays.asList(Allele.create("A"))));
+        testLeaf(rec1, "ALT", Arrays.asList(Allele.create("A")));
         testLeaf(rec1, "QUAL", 0.15);
         testLeaf(rec1, "FILTER", Collections.<Object>emptySet());
         testLeaf(rec1, "AC", "2");

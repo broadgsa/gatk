@@ -181,7 +181,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     protected Type type = null;
 
     /** A set of the alleles segregating in this context */
-    protected LinkedHashSet<Allele> alleles = null;
+    final protected List<Allele> alleles;
 
     /** A mapping from sampleName -> genotype objects for all genotypes associated with this context */
     protected Map<String, Genotype> genotypes = null;
@@ -355,7 +355,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         if ( alleles == null ) { throw new IllegalArgumentException("Alleles cannot be null"); }
 
         // we need to make this a LinkedHashSet in case the user prefers a given ordering of alleles
-        this.alleles = alleleCollectionToSet(new LinkedHashSet<Allele>(), alleles);
+        this.alleles = makeAlleles(alleles);
 
 
         if ( genotypes == null ) { genotypes = NO_GENOTYPES; }
@@ -445,7 +445,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param alleles the set of allele segregating alleles at this site.  Must include those in genotypes, but may be more
      * @return vc subcontext
      */
-    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Set<Allele> alleles) {
+    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Collection<Allele> alleles) {
         return new VariantContext(getSource(), contig, start, stop, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, getNegLog10PError(), filtersWereApplied() ? getFilters() : null, getAttributes(), getReferenceBaseForIndel());
     }
 
@@ -687,17 +687,6 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return ref;
     }
 
-    /** Private helper routine that grabs the reference allele but doesn't throw an error if there's no such allele */
-
-//    private Allele getReferenceWithoutError() {
-//        for ( Allele allele : getAlleles() ) {
-//            if ( allele.isReference() ) {
-//                return allele;
-//            }
-//        }
-//
-//        return null;
-//    }
 
     /**
      * @return true if the context is strictly bi-allelic
@@ -754,7 +743,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * @return the set of alleles
      */
-    public Set<Allele> getAlleles() { return alleles; }
+    public List<Allele> getAlleles() { return alleles; }
 
     /**
      * Gets the alternate alleles.  This method should return all the alleles present at the location,
@@ -763,14 +752,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * @return the set of alternate alleles
      */
-    public Set<Allele> getAlternateAlleles() {
-        LinkedHashSet<Allele> altAlleles = new LinkedHashSet<Allele>();
-        for ( Allele allele : alleles ) {
-            if ( allele.isNonReference() )
-                altAlleles.add(allele);
-        }
-
-        return Collections.unmodifiableSet(altAlleles);
+    public List<Allele> getAlternateAlleles() {
+        return alleles.subList(1, alleles.size());
     }
 
     /**
@@ -797,14 +780,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @throws IllegalArgumentException if i is invalid
      */
     public Allele getAlternateAllele(int i) {
-        int n = 0;
-
-        for ( Allele allele : alleles ) {
-            if ( allele.isNonReference() && n++ == i )
-                return allele;
-        }
-
-        throw new IllegalArgumentException("Requested " + i + " alternative allele but there are only " + n + " alternative alleles " + this);
+        return alleles.get(i+1);
     }
 
     /**
@@ -813,8 +789,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *         regardless of ordering. Otherwise returns false.
      */
     public boolean hasSameAlternateAllelesAs ( VariantContext other ) {
-        Set<Allele> thisAlternateAlleles = getAlternateAlleles();
-        Set<Allele> otherAlternateAlleles = other.getAlternateAlleles();
+        List<Allele> thisAlternateAlleles = getAlternateAlleles();
+        List<Allele> otherAlternateAlleles = other.getAlternateAlleles();
 
         if ( thisAlternateAlleles.size() != otherAlternateAlleles.size() ) {
             return false;
@@ -1121,7 +1097,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         if ( !hasGenotypes() )
             return;
 
-        Set<Allele> reportedAlleles = getAlleles();
+        List<Allele> reportedAlleles = getAlleles();
         Set<Allele> observedAlleles = new HashSet<Allele>();
         observedAlleles.add(getReference());
         for ( Genotype g : getGenotypes().values() ) {
@@ -1371,17 +1347,34 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     // protected basic manipulation routines
-    private static LinkedHashSet<Allele> alleleCollectionToSet(LinkedHashSet<Allele> dest, Collection<Allele> alleles) {
-        for ( Allele a : alleles ) {
-            for ( Allele b : dest ) {
+    private static List<Allele> makeAlleles(Collection<Allele> alleles) {
+        final List<Allele> alleleList = new ArrayList<Allele>(alleles.size());
+
+        boolean sawRef = false;
+        for ( final Allele a : alleles ) {
+            for ( final Allele b : alleleList ) {
                 if ( a.equals(b, true) )
                     throw new IllegalArgumentException("Duplicate allele added to VariantContext: " + a);
             }
 
-            dest.add(a);
+           // deal with the case where the first allele isn't the reference
+            if ( a.isReference() ) {
+                if ( sawRef )
+                    throw new IllegalArgumentException("Alleles for a VariantContext must contain a single reference allele: " + alleles);
+                alleleList.add(0, a);
+                sawRef = true;
+            }
+            else
+                alleleList.add(a);
         }
 
-        return dest;
+        if ( alleleList.isEmpty() )
+            throw new IllegalArgumentException("Cannot create a VariantContext with an empty allele list");
+
+        if ( alleleList.get(0).isNonReference() )
+            throw new IllegalArgumentException("Alleles for a VariantContext must contain a single reference allele: " + alleles);
+
+        return alleleList;
     }
 
     public static Map<String, Genotype> genotypeCollectionToMap(Map<String, Genotype> dest, Collection<Genotype> genotypes) {

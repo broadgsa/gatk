@@ -666,7 +666,7 @@ public class VariantContextUtils {
         return merged;
     }
 
-    private static final boolean hasPLIncompatibleAlleles(final Set<Allele> alleleSet1, final Set<Allele> alleleSet2) {
+    private static final boolean hasPLIncompatibleAlleles(final Collection<Allele> alleleSet1, final Collection<Allele> alleleSet2) {
         final Iterator<Allele> it1 = alleleSet1.iterator();
         final Iterator<Allele> it2 = alleleSet2.iterator();
 

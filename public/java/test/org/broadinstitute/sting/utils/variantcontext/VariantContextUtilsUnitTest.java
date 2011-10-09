@@ -439,7 +439,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         new MergeGenotypesTest("PerserveAlleles", "1,2",
                 makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
                 makeVC("2", Arrays.asList(Aref, C), makeG("s2", Aref, C, 2)),
-                makeVC("3", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, 1), makeG("s2", Aref, C, 2)));
+                makeVC("3", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1), makeG("s2", Aref, C, 2)));
 
         new MergeGenotypesTest("TakeGenotypePartialOverlap-1,2", "1,2",
                 makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),

@@ -237,7 +237,7 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
         infoMap.put("HomVarPct", String.format("%.1f", 100.0*homVarProp));
         infoMap.put("HetPct", String.format("%.1f", 100.0*hetProp));
         infoMap.put("HW", String.format("%.2f", hwScore));
-        Set<Allele> altAlleles = vContext.getAlternateAlleles();
+        Collection<Allele> altAlleles = vContext.getAlternateAlleles();
         int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getChromosomeCount(altAlleles.iterator().next());
         if ( !isViolation && altAlleleCount > 0 )
             numTrueVariants++;

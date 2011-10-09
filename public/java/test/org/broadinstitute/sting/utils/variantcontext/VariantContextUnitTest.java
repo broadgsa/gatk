@@ -13,6 +13,7 @@ import org.testng.Assert;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -261,9 +262,14 @@ public class VariantContextUnitTest extends BaseTest {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, del));
     }
 
-    @Test (expectedExceptions = IllegalStateException.class)
+    @Test (expectedExceptions = IllegalArgumentException.class)
     public void testBadConstructorArgs3() {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(del));
+    }
+
+    @Test (expectedExceptions = IllegalArgumentException.class)
+    public void testBadConstructorArgs4() {
+        new VariantContext("test", insLoc, insLocStart, insLocStop, Collections.<Allele>emptyList());
     }
 
     @Test (expectedExceptions = IllegalArgumentException.class)

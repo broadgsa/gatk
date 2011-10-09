@@ -47,7 +47,7 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
         if (!g.isHet())
             return null;
 
-        Set<Allele> altAlleles = vc.getAlternateAlleles();
+        Collection<Allele> altAlleles = vc.getAlternateAlleles();
         if ( altAlleles.size() == 0 )
             return null;
 
