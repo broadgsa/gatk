@@ -66,8 +66,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         return new Genotype(sample, Arrays.asList(a1, a2));
     }
 
-    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double l1, double l2, double l3) {
-        return new Genotype(sample, Arrays.asList(a1, a2), log10pError, new double[]{l1,l2,l3});
+    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double... pls) {
+        return new Genotype(sample, Arrays.asList(a1, a2), log10pError, pls);
     }
 
 
@@ -144,15 +144,18 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         new MergeAllelesTest(Arrays.asList(Aref, T),
                 Arrays.asList(Aref, C),
-                Arrays.asList(Aref, C, T)); // sorted by allele
+                Arrays.asList(Aref, T, C)); // in order of appearence
 
         new MergeAllelesTest(Arrays.asList(Aref, C, T),
                 Arrays.asList(Aref, C),
                 Arrays.asList(Aref, C, T));
 
+        new MergeAllelesTest(Arrays.asList(Aref, C, T), Arrays.asList(Aref, C, T));
+        new MergeAllelesTest(Arrays.asList(Aref, T, C), Arrays.asList(Aref, T, C));
+
         new MergeAllelesTest(Arrays.asList(Aref, T, C),
                 Arrays.asList(Aref, C),
-                Arrays.asList(Aref, C, T)); // sorted by allele
+                Arrays.asList(Aref, T, C)); // in order of appearence
 
         // The following is actually a pathological case - there's no way on a vcf to represent a null allele that's non-variant.
         // The code converts this (correctly) to a single-base non-variant vc with whatever base was there as a reference.
@@ -167,10 +170,12 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 Arrays.asList(delRef, ATC, ATCATC),
                 Arrays.asList(delRef, ATC, ATCATC));
 
+        // alleles in the order we see them
         new MergeAllelesTest(Arrays.asList(delRef, ATCATC),
                 Arrays.asList(delRef, ATC, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC));
+                Arrays.asList(delRef, ATCATC, ATC));
 
+        // same
         new MergeAllelesTest(Arrays.asList(delRef, ATC),
                 Arrays.asList(delRef, ATCATC),
                 Arrays.asList(delRef, ATC, ATCATC));
@@ -446,7 +451,31 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)),
                 makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)));
 
+        //
         // merging genothpes with PLs
+        //
+
+        // first, do no harm
+        new MergeGenotypesTest("OrderedPLs", "1",
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1, 1, 2, 3)),
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1, 1, 2, 3)));
+
+        // first, do no harm
+        new MergeGenotypesTest("OrderedPLs-3Alleles", "1",
+                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)));
+
+        // first, do no harm
+        new MergeGenotypesTest("OrderedPLs-3Alleles-2", "1",
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)));
+
+        // first, do no harm
+        new MergeGenotypesTest("OrderedPLs-3Alleles-2", "1",
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s2", Aref, C, 1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6), makeG("s2", Aref, C, 1, 1, 2, 3, 4, 5, 6)));
+
         new MergeGenotypesTest("TakeGenotypePartialOverlapWithPLs-2,1", "2,1",
                 makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1,5,0,3)),
                 makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)),
@@ -457,6 +486,12 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)),
                 // no likelihoods on result since type changes to mixed multiallelic
                 makeVC("3", Arrays.asList(Aref, ATC, T), makeG("s1", Aref, ATC, 1), makeG("s3", Aref, T, 3)));
+
+        new MergeGenotypesTest("MultipleSamplePLsDifferentOrder", "1,2",
+                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, C, 1, 1, 2, 3, 4, 5, 6)),
+                makeVC("2", Arrays.asList(Aref, T, C), makeG("s2", Aref, T, 2, 6, 5, 4, 3, 2, 1)),
+                // no likelihoods on result since type changes to mixed multiallelic
+                makeVC("3", Arrays.asList(Aref, C, T), makeG("s1", Aref, C, 1), makeG("s2", Aref, T, 2)));
 
         return MergeGenotypesTest.getTests(MergeGenotypesTest.class);
     }
@@ -493,11 +528,11 @@ public class VariantContextUtilsUnitTest extends BaseTest {
             Genotype value = entry.getValue();
             Genotype expectedValue = expected.get(key);
 
-            Assert.assertEquals(value.alleles, expectedValue.alleles);
-            Assert.assertEquals(value.getNegLog10PError(), expectedValue.getNegLog10PError());
-            Assert.assertEquals(value.hasLikelihoods(), expectedValue.hasLikelihoods());
+            Assert.assertEquals(value.alleles, expectedValue.alleles, "Alleles in Genotype aren't equal");
+            Assert.assertEquals(value.getNegLog10PError(), expectedValue.getNegLog10PError(), "GQ values aren't equal");
+            Assert.assertEquals(value.hasLikelihoods(), expectedValue.hasLikelihoods(), "Either both have likelihoods or both not");
             if ( value.hasLikelihoods() )
-                Assert.assertEquals(value.getLikelihoods().getAsVector(), expectedValue.getLikelihoods().getAsVector());
+                Assert.assertEquals(value.getLikelihoods().getAsVector(), expectedValue.getLikelihoods().getAsVector(), "Genotype likelihoods aren't equal");
         }
     }
 
