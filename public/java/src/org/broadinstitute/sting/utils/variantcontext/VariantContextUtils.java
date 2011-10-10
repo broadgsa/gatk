@@ -29,6 +29,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.util.StringUtil;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
+import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -44,6 +45,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public class VariantContextUtils {
+    private static Logger logger = Logger.getLogger(VariantContextUtils.class);
     public final static String MERGE_INTERSECTION = "Intersection";
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
@@ -511,7 +513,7 @@ public class VariantContextUtils {
         final String name = first.getSource();
         final Allele refAllele = determineReferenceAllele(VCs);
 
-        final Set<Allele> alleles = new TreeSet<Allele>();
+        final Set<Allele> alleles = new LinkedHashSet<Allele>();
         final Set<String> filters = new TreeSet<String>();
         final Map<String, Object> attributes = new TreeMap<String, Object>();
         final Set<String> inconsistentAttributes = new HashSet<String>();
@@ -604,11 +606,14 @@ public class VariantContextUtils {
             }
         }
 
-        // if we have more alternate alleles in the merged VC than in one or more of the original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
+        // if we have more alternate alleles in the merged VC than in one or more of the
+        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
         for ( VariantContext vc : VCs ) {
             if (vc.alleles.size() == 1)
                 continue;
-            if ( vc.alleles.size() != alleles.size()) {
+            if ( hasPLIncompatibleAlleles(alleles, vc.alleles)) {
+                logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
+                        genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
                 genotypes = stripPLs(genotypes);
                 break;
             }
@@ -659,6 +664,24 @@ public class VariantContextUtils {
 
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
+    }
+
+    private static final boolean hasPLIncompatibleAlleles(final Collection<Allele> alleleSet1, final Collection<Allele> alleleSet2) {
+        final Iterator<Allele> it1 = alleleSet1.iterator();
+        final Iterator<Allele> it2 = alleleSet2.iterator();
+
+        while ( it1.hasNext() && it2.hasNext() ) {
+            final Allele a1 = it1.next();
+            final Allele a2 = it2.next();
+            if ( ! a1.equals(a2) )
+                return true;
+        }
+
+        // by this point, at least one of the iterators is empty.  All of the elements
+        // we've compared are equal up until this point.  But it's possible that the
+        // sets aren't the same size, which is indicated by the test below.  If they
+        // are of the same size, though, the sets are compatible
+        return it1.hasNext() || it2.hasNext();
     }
 
     public static boolean allelesAreSubset(VariantContext vc1, VariantContext vc2) {

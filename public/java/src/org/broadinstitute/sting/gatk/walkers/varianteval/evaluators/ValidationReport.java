@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -142,8 +143,8 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
 
 
     public boolean haveDifferentAltAlleles(VariantContext eval, VariantContext comp) {
-        Set<Allele> evalAlts = eval.getAlternateAlleles();
-        Set<Allele> compAlts = comp.getAlternateAlleles();
+        Collection<Allele> evalAlts = eval.getAlternateAlleles();
+        Collection<Allele> compAlts = comp.getAlternateAlleles();
         if ( evalAlts.size() != compAlts.size() ) {
             return true;
         } else {

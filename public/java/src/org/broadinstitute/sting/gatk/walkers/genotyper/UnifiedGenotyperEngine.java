@@ -423,7 +423,7 @@ public class UnifiedGenotyperEngine {
 
         int endLoc = calculateEndPos(vc.getAlleles(), vc.getReference(), loc);
 
-        Set<Allele> myAlleles = vc.getAlleles();
+        Set<Allele> myAlleles = new HashSet<Allele>(vc.getAlleles());
         // strip out the alternate allele if it's a ref call
         if ( bestAFguess == 0 && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
             myAlleles = new HashSet<Allele>(1);
@@ -447,7 +447,7 @@ public class UnifiedGenotyperEngine {
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
     }
 
-    private int calculateEndPos(Set<Allele> alleles, Allele refAllele, GenomeLoc loc) {
+    private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
         // TODO - temp fix until we can deal with extended events properly
         // for indels, stop location is one more than ref allele length
         boolean isSNP = true, hasNullAltAllele = false;

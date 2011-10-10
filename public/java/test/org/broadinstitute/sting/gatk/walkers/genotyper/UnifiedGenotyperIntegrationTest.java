@@ -257,34 +257,40 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
      }
 
     @Test
-    public void testWithIndelAllelesPassedIn() {
+    public void testWithIndelAllelesPassedIn1() {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
                 Arrays.asList("408d3aba4d094c067fc00a43992c2292"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in", spec1);
+    }
 
+    @Test
+    public void testWithIndelAllelesPassedIn2() {
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles "
                         + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("94977d6e42e764280e9deaf4e3ac8c80"));
+                Arrays.asList("5e4e09354410b76fc0d822050d84132a"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in and emitting all sites", spec2);
+    }
+
+    @Test
+    public void testWithIndelAllelesPassedIn3() {
 
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,080,000", 1,
-                Arrays.asList("e66b7321e2ac91742ad3ef91040daafd"));
+                Arrays.asList("c599eedbeb422713b8a28529e805e4ae"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
+    }
 
+    @Test
+    public void testWithIndelAllelesPassedIn4() {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("37e891bf1ac40caec9ea228f39c27e44"));
+                Arrays.asList("37d908a682ac269f8f19dec939ff5b01"));
         executeTest("test MultiSample 1000G Phase1 indels with complicated records emitting all sites", spec4);
-
     }
-
-
-
 }

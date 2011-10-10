@@ -54,7 +54,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
     protected void getLog10PNonRef(RefMetaDataTracker tracker,
                                    ReferenceContext ref,
-                                   Map<String, Genotype> GLs, Set<Allele>alleles,
+                                   Map<String, Genotype> GLs, List<Allele> alleles,
                                    double[] log10AlleleFrequencyPriors,
                                    double[] log10AlleleFrequencyPosteriors) {
         initializeAFMatrix(GLs);
