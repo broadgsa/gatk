@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -285,6 +286,13 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     }
 
-
-
+    @Test
+    public void testSnpEffAnnotationRequestedWithoutRodBinding() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000 " +
+                "-A SnpEff",
+                1,
+                UserException.class);
+        executeTest("testSnpEffAnnotationRequestedWithoutRodBinding", spec);
+    }
 }
