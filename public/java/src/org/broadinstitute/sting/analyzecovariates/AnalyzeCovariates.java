@@ -135,7 +135,6 @@ public class AnalyzeCovariates extends CommandLineProgram {
      */
     @Argument(fullName="max_histogram_value", shortName="maxHist", required = false, doc="If supplied, this value will be the max value of the histogram plots")
     private int MAX_HISTOGRAM_VALUE = 0;
-    @Hidden
     @Argument(fullName="do_indel_quality", shortName="indels", required = false, doc="If supplied, do indel quality plotting")
     private boolean DO_INDEL_QUALITY = false;
 
