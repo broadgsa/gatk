@@ -12,6 +12,7 @@ import net.sf.samtools.SAMFileHeader.SortOrder
 
 import org.broadinstitute.sting.queue.util.QScriptUtils
 import org.broadinstitute.sting.queue.function.ListWriterFunction
+import org.broadinstitute.sting.commandline.Hidden
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -72,11 +73,23 @@ class DataProcessingPipeline extends QScript {
 
 
   /****************************************************************************
+  * Hidden Parameters
+  ****************************************************************************/
+  @Hidden
+  @Input(doc="How many ways to scatter/gather", fullName="scatter_gather", shortName="sg", required=false)
+  var nContigs: Int = -1
+
+  @Hidden
+  @Input(doc="Define the default platform for Count Covariates -- useful for techdev purposes only.", fullName="default_platform", shortName="dp", required=false)
+  var defaultPlatform: String = _
+
+
+  /****************************************************************************
   * Global Variables
   ****************************************************************************/
 
   val queueLogDir: String = ".qlog/"  // Gracefully hide Queue's output
-  var nContigs: Int = 0               // Use the number of contigs for scatter gathering jobs
+
   var cleanModelEnum: ConsensusDeterminationModel = ConsensusDeterminationModel.USE_READS
 
 
@@ -210,7 +223,8 @@ class DataProcessingPipeline extends QScript {
 
     // keep a record of the number of contigs in the first bam file in the list
     val bams = QScriptUtils.createListFromFile(input)
-    nContigs = QScriptUtils.getNumberOfContigs(bams(0))
+    if (nContigs < 0)
+     nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
     val realignedBAMs = if (useBWApe || useBWAse) {performAlignment(bams)} else {revertBams(bams)}
 
@@ -325,6 +339,7 @@ class DataProcessingPipeline extends QScript {
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
+    if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.scatterCount = nContigs
