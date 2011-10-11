@@ -214,7 +214,13 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
 
         // initialize the header
-        writer.writeHeader(new VCFHeader(getHeaderInfo(), samples)) ;
+        Set<VCFHeaderLine> headerInfo = getHeaderInfo();
+
+        // invoke initialize() method on each of the annotation classes, allowing them to add their own header lines
+        // and perform any necessary initialization/validation steps
+        annotationEngine.invokeAnnotationInitializationMethods(headerInfo);
+
+        writer.writeHeader(new VCFHeader(headerInfo, samples));
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
