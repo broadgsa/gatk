@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.analyzecovariates;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
