@@ -63,7 +63,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
 
-    private final static double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
+    private final static double SUM_GL_THRESH_NOCALL = 0.001; // if max(gl)-min(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
     final private ExactCalculation calcToUse;
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
