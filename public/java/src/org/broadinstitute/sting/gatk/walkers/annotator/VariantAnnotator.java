@@ -133,6 +133,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected List<String> annotationsToUse = new ArrayList<String>();
 
     /**
+     * Note that this argument has higher priority than the -A or -G arguments,
+     * so annotations will be excluded even if they are explicitly included with the other options.
+     */
+    @Argument(fullName="excludeAnnotation", shortName="XA", doc="One or more specific annotations to exclude", required=false)
+    protected List<String> annotationsToExclude = new ArrayList<String>();
+
+    /**
      * See the -list argument to view available groups.
      */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
@@ -148,6 +155,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
     protected List<String> expressionsToUse = new ArrayList<String>();
 
+    /**
+     * Note that the -XL argument can be used along with this one to exclude annotations.
+     */
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
 
@@ -209,9 +219,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         }
 
         if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(this, getToolkit());
+            engine = new VariantAnnotatorEngine(annotationsToExclude, this, getToolkit());
         else
-            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, this, getToolkit());
+            engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, annotationsToExclude, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
 
         // setup the header fields
