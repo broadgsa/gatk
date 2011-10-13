@@ -89,7 +89,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @DataProvider(name = "trtestdata")
     public Object[][] createTRTestData() {
         new TRTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "2864f231fab7030377f3c8826796e48f" );
-        new TRTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "c164dd635721ba6df3f06dac1877c32d");
+        new TRTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "d04cf1f6df486e45226ebfbf93a188a5");
         new TRTest( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "74314e5562c1a65547bb0edaacffe602" );
         new TRTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "2a37c6001826bfabf87063b1dfcf594f" );
         return TRTest.getTests(TRTest.class);
@@ -200,7 +200,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "7d5edb75b176e4151de225f699719ee4" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "2ad4c17ac3ed380071137e4e53a398a5" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
