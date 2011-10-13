@@ -81,7 +81,7 @@ class DataProcessingPipeline extends QScript {
 
   @Hidden
   @Input(doc="Define the default platform for Count Covariates -- useful for techdev purposes only.", fullName="default_platform", shortName="dp", required=false)
-  var defaultPlatform: String = _
+  var defaultPlatform: String = ""
 
 
   /****************************************************************************
