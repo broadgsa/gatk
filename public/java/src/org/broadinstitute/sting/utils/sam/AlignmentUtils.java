@@ -353,7 +353,7 @@ public class AlignmentUtils {
                 break;
             case D:
             case N:
-                refPos++;
+                refPos += elementLength;
                 break;
             case M:
                 for ( int jjj = 0; jjj < elementLength; jjj++ ) {
