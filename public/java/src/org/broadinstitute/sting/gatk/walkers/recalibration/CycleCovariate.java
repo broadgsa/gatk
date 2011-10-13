@@ -164,6 +164,7 @@ public class CycleCovariate implements StandardCovariate {
     private static List<String> LS454_NAMES = Arrays.asList("454");
     private static List<String> COMPLETE_GENOMICS_NAMES = Arrays.asList("COMPLETE");
     private static List<String> PACBIO_NAMES = Arrays.asList("PACBIO");
+    private static List<String> ION_TORRENT_NAMES = Arrays.asList("IONTORRENT");
 
     private static boolean isPlatform(SAMRecord read, List<String> names) {
         String pl = read.getReadGroup().getPlatform().toUpperCase();
@@ -224,10 +225,10 @@ public class CycleCovariate implements StandardCovariate {
         }
 
         //-----------------------------
-        // 454
+        // 454 and Ion Torrent
         //-----------------------------
 
-        else if ( isPlatform(read, LS454_NAMES) ) { // Some bams have "LS454" and others have just "454"
+        else if ( isPlatform(read, LS454_NAMES) || isPlatform(read, ION_TORRENT_NAMES)) { // Some bams have "LS454" and others have just "454"
 
             final int readLength = read.getReadLength();
             final byte[] bases = read.getReadBases();

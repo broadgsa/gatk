@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.MutableVariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -266,8 +265,13 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     public static class CountedData {
         private long nAltCalledAlt = 0L;
         private long nAltCalledRef = 0L;
+        private long nAltNotCalled = 0L;
         private long nRefCalledAlt = 0L;
         private long nRefCalledRef = 0L;
+        private long nRefNotCalled = 0L;
+        private long nNoStatusCalledAlt = 0L;
+        private long nNoStatusCalledRef = 0L;
+        private long nNoStatusNotCalled = 0L;
         private long nNotConfidentCalls = 0L;
         private long nUncovered = 0L;
 
@@ -278,8 +282,13 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         public void add(CountedData other) {
             nAltCalledAlt += other.nAltCalledAlt;
             nAltCalledRef += other.nAltCalledRef;
+            nAltNotCalled += other.nAltNotCalled;
             nRefCalledAlt += other.nRefCalledAlt;
             nRefCalledRef += other.nRefCalledRef;
+            nRefNotCalled += other.nRefNotCalled;
+            nNoStatusCalledAlt += other.nNoStatusCalledAlt;
+            nNoStatusCalledRef += other.nNoStatusCalledRef;
+            nNoStatusNotCalled += other.nNoStatusNotCalled;
             nUncovered += other.nUncovered;
             nNotConfidentCalls += other.nNotConfidentCalls;
         }
@@ -358,6 +367,13 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         // Do not operate on variants that are not covered to the optional minimum depth
         if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
             counter.nUncovered = 1L;
+            if (vcComp.getAttribute("GV").equals("T"))
+                counter.nAltNotCalled = 1L;
+            else if (vcComp.getAttribute("GV").equals("F"))
+                counter.nRefNotCalled = 1L;
+            else
+                counter.nNoStatusNotCalled = 1L;
+
             return counter;
         }
 
@@ -382,7 +398,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
                 // If truth is a confident REF call
                 if (call.isVariant()) {
                     if (vcComp.isVariant())
-                        counter.nAltCalledAlt = 1L;  // todo -- may wanna check if the alts called are the same?
+                        counter.nAltCalledAlt = 1L;
                     else {
                         counter.nAltCalledRef = 1L;
                         if ( printInterestingSites )
@@ -407,30 +423,41 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             }
         }
         else {
-            if (!vcComp.hasAttribute("GV"))
-                throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
-
-
+//            if (!vcComp.hasAttribute("GV"))
+//                throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
 
             if (call.isCalledAlt(callConf)) {
                 if (vcComp.getAttribute("GV").equals("T"))
                     counter.nAltCalledAlt = 1L;
-                else {
+                else if (vcComp.getAttribute("GV").equals("F")) {
                     counter.nRefCalledAlt = 1L;
                     if ( printInterestingSites )
                         System.out.println("Truth=REF Call=ALT at " + call.getChr() + ":" + call.getStart());
                 }
+                else
+                    counter.nNoStatusCalledAlt = 1L;
             }
             else if (call.isCalledRef(callConf)) {
                 if (vcComp.getAttribute("GV").equals("T")) {
                     counter.nAltCalledRef = 1L;
                     if ( printInterestingSites )
                         System.out.println("Truth=ALT Call=REF at " + call.getChr() + ":" + call.getStart());
-                } else
+                }
+                else if (vcComp.getAttribute("GV").equals("F"))
                     counter.nRefCalledRef = 1L;
+
+                else
+                    counter.nNoStatusCalledRef = 1L;
             }
             else {
                 counter.nNotConfidentCalls = 1L;
+                if (vcComp.getAttribute("GV").equals("T"))
+                    counter.nAltNotCalled = 1L;
+                else if (vcComp.getAttribute("GV").equals("F"))
+                    counter.nRefNotCalled = 1L;
+                else
+                    counter.nNoStatusNotCalled = 1L;
+
                 if ( printInterestingSites )
                     System.out.println("Truth is not confident at " + call.getChr() + ":" + call.getStart());
                 writeVariant = false;
@@ -475,20 +502,21 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         double sensitivity = 100 * ((double) reduceSum.nAltCalledAlt /( reduceSum.nAltCalledAlt + reduceSum.nAltCalledRef));
         double specificity = (reduceSum.nRefCalledRef + reduceSum.nRefCalledAlt > 0) ? 100 * ((double) reduceSum.nRefCalledRef /( reduceSum.nRefCalledRef + reduceSum.nRefCalledAlt)) : 100;
         logger.info(String.format("Resulting Truth Table Output\n\n" +
-                                  "---------------------------------------------------\n" +
-                                  "\t\t|\tALT\t|\tREF\t\n"  +
-                                  "---------------------------------------------------\n" +
-                                  "called alt\t|\t%d\t|\t%d\n" +
-                                  "called ref\t|\t%d\t|\t%d\n" +
-                                  "---------------------------------------------------\n" +
+                                  "------------------------------------------------------------------\n" +
+                                  "\t\t|\tALT\t|\tREF\t|\tNo Status\n"  +
+                                  "------------------------------------------------------------------\n" +
+                                  "called alt\t|\t%d\t|\t%d\t|\t%d\n" +
+                                  "called ref\t|\t%d\t|\t%d\t|\t%d\n" +
+                                  "not called\t|\t%d\t|\t%d\t|\t%d\n" +
+                                  "------------------------------------------------------------------\n" +
                                   "positive predictive value: %f%%\n" +
                                   "negative predictive value: %f%%\n" +
-                                  "---------------------------------------------------\n" +
+                                  "------------------------------------------------------------------\n" +
                                   "sensitivity: %f%%\n" +
                                   "specificity: %f%%\n" +
-                                  "---------------------------------------------------\n" +
+                                  "------------------------------------------------------------------\n" +
                                   "not confident: %d\n" +
                                   "not covered: %d\n" +
-                                  "---------------------------------------------------\n", reduceSum.nAltCalledAlt, reduceSum.nRefCalledAlt, reduceSum.nAltCalledRef, reduceSum.nRefCalledRef, ppv, npv, sensitivity, specificity, reduceSum.nNotConfidentCalls, reduceSum.nUncovered));
+                                  "------------------------------------------------------------------\n", reduceSum.nAltCalledAlt, reduceSum.nRefCalledAlt, reduceSum.nNoStatusCalledAlt, reduceSum.nAltCalledRef, reduceSum.nRefCalledRef, reduceSum.nNoStatusCalledRef, reduceSum.nAltNotCalled, reduceSum.nRefNotCalled, reduceSum.nNoStatusNotCalled, ppv, npv, sensitivity, specificity, reduceSum.nNotConfidentCalls, reduceSum.nUncovered));
     }
 }

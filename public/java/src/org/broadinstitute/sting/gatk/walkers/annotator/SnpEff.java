@@ -31,8 +31,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAnnotation;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -50,7 +50,7 @@ import java.util.*;
  *
  * @author David Roazen
  */
-public class SnpEff extends InfoFieldAnnotation implements ExperimentalAnnotation {
+public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotation {
 
     private static Logger logger = Logger.getLogger(SnpEff.class);
 

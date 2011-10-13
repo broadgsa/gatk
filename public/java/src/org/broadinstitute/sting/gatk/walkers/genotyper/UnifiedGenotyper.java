@@ -150,6 +150,13 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     protected List<String> annotationsToUse = new ArrayList<String>();
 
     /**
+     * Which annotations to exclude from output in the VCF file.  Note that this argument has higher priority than the -A or -G arguments,
+     * so annotations will be excluded even if they are explicitly included with the other options.
+     */
+    @Argument(fullName="excludeAnnotation", shortName="XA", doc="One or more specific annotations to exclude", required=false)
+    protected List<String> annotationsToExclude = new ArrayList<String>();
+
+    /**
      * Which groups of annotations to add to the output VCF file. See the VariantAnnotator -list argument to view available groups.
      */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
@@ -210,11 +217,17 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( verboseWriter != null )
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
 
-        annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, this, getToolkit());
+        annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, annotationsToExclude, this, getToolkit());
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
 
         // initialize the header
-        writer.writeHeader(new VCFHeader(getHeaderInfo(), samples)) ;
+        Set<VCFHeaderLine> headerInfo = getHeaderInfo();
+
+        // invoke initialize() method on each of the annotation classes, allowing them to add their own header lines
+        // and perform any necessary initialization/validation steps
+        annotationEngine.invokeAnnotationInitializationMethods(headerInfo);
+
+        writer.writeHeader(new VCFHeader(headerInfo, samples));
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
