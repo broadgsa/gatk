@@ -67,6 +67,8 @@
 
     <!-- If running the 'package' task, this property controls the name of the xml file to package -->
     <property name="package.xml.dir" value="${public.dir}/packages" />
+    <property name="package.output.dir" value="${dist.dir}/packages" />
+    <property name="staging.dir" value="staging" />
     <property name="executable" value="GenomeAnalysisTK" />
 
     <property environment="env"/>
@@ -116,6 +118,16 @@
       <fileset dir="${lib.dir}">
         <patternset refid="dependency.mask" />
       </fileset>
+    </path>
+
+    <path id="testng.dependencies">
+        <fileset dir="${lib.dir}">
+            <include name="jcommander*.jar"/>
+            <include name="guice*.jar"/>
+            <include name="junit*.jar"/>
+            <include name="bsh*.jar"/>
+            <include name="snakeyaml*.jar"/>
+        </fileset>
     </path>
 
     <path id="build.results">
@@ -829,10 +841,54 @@
 
     <target name="test.compile" depends="init.usecontracts,test.java.compile,test.scala.compile" />
 
+
+    <path id="testng.default.classpath">
+        <path refid="external.dependencies" />
+        <pathelement location="${java.classes}" />
+        <pathelement location="${scala.classes}" />
+        <pathelement location="${java.contracts}" />
+        <pathelement location="${java.public.test.classes}" />
+        <pathelement location="${java.private.test.classes}" />
+        <pathelement location="${scala.public.test.classes}" />
+        <pathelement location="${scala.private.test.classes}" />
+    </path>
+
+    <path id="testng.gatk.releasetest.classpath">
+        <path refid="testng.dependencies" />
+        <path>
+            <fileset dir="${package.output.dir}">
+                <include name="**/${executable}.jar" />
+            </fileset>
+        </path>
+        <pathelement location="${java.contracts}" />
+        <pathelement location="${java.public.test.classes}" />
+        <pathelement location="${scala.public.test.classes}" />
+        <pathelement location="${scala.classes}" />
+        <path>
+            <fileset dir="${lib.dir}">
+                <include name="scala*.jar"/>
+                <include name="jna*.jar"/>
+            </fileset>
+        </path>
+    </path>
+
+    <path id="testng.queue.releasetest.classpath">
+        <path refid="testng.dependencies" />
+        <path>
+            <fileset dir="${package.output.dir}">
+                <include name="**/${executable}.jar" />
+            </fileset>
+        </path>
+        <pathelement location="${java.contracts}" />
+        <pathelement location="${java.public.test.classes}" />
+        <pathelement location="${scala.public.test.classes}" />
+    </path>
+
     <!-- TEST -->
     <macrodef name="run-test">
         <attribute name="testtype"/>
         <attribute name="outputdir"/>
+        <attribute name="classpath"/>
         <attribute name="runfailed"/>
 
         <sequential>
@@ -853,6 +909,7 @@
             <echo message="Sting: Running @{testtype} test cases!"/>
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
+                    classpathref="@{classpath}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
                     workingDir="${basedir}"
@@ -865,16 +922,6 @@
                 <jvmarg line="${cofoja.jvm.args}"/>
 <!--                 <jvmarg value="-Xdebug"/> -->
 <!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
-                <classpath>
-                    <path refid="external.dependencies" />
-                    <pathelement location="${java.classes}" />
-                    <pathelement location="${scala.classes}" />
-                    <pathelement location="${java.contracts}" />
-                    <pathelement location="${java.public.test.classes}" />
-                    <pathelement location="${java.private.test.classes}" />
-                    <pathelement location="${scala.public.test.classes}" />
-                    <pathelement location="${scala.private.test.classes}" />
-                </classpath>
 
                 <classfileset dir="${java.public.test.classes}" includes="**/@{testtype}.class"/>
                 <classfileset dir="${java.private.test.classes}" erroronmissingdir="false">
@@ -904,6 +951,10 @@
         </sequential>
     </macrodef>
 
+    <target name="test.init">
+        <property name="testng.classpath" value="testng.default.classpath" />
+    </target>
+
     <target name="alltests">
         <antcall target="test" inheritAll="false"/>
         <antcall target="integrationtest" inheritAll="false"/>
@@ -916,62 +967,81 @@
         <antcall target="pipelinetest.public" inheritAll="false"/>
     </target>
 
+    <target name="alltests.gatk.packagejar" depends="init.buildpublic,package">
+        <antcall target="test.public" inheritAll="false">
+            <param name="testng.classpath" value="testng.gatk.releasetest.classpath" />
+        </antcall>
+        <antcall target="integrationtest.public" inheritAll="false">
+            <param name="testng.classpath" value="testng.gatk.releasetest.classpath" />
+        </antcall>
+    </target>
+
+    <target name="alltests.queue.packagejar" depends="init.buildpublic,queue">
+        <antcall target="package" inheritAll="false">
+            <param name="executable" value="Queue" />
+        </antcall>
+        <antcall target="pipelinetest.public" inheritAll="false">
+            <param name="executable" value="Queue" />
+            <param name="testng.classpath" value="testng.queue.releasetest.classpath" />
+        </antcall>
+    </target>
+
     <!-- Our four different test conditions: Test, IntegrationTest, PerformanceTest, PipelineTest -->
-    <target name="test" depends="init.buildall,test.compile,vcf.jar" description="Run unit tests">
+    <target name="test" depends="init.buildall,test.compile,vcf.jar,test.init" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${ttype}" outputdir="${report}/${ttype}" runfailed="false"/>
+        <run-test testtype="${ttype}" outputdir="${report}/${ttype}" classpath="${testng.classpath}" runfailed="false"/>
     </target>
     <target name="test.public" depends="init.buildpublic,test"/>
 
-    <target name="integrationtest" depends="init.buildall,test.compile" description="Run integration tests">
+    <target name="integrationtest" depends="init.buildall,test.compile,test.init" description="Run integration tests">
         <condition property="itype" value="*IntegrationTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${itype}" outputdir="${report}/${itype}" runfailed="false"/>
+        <run-test testtype="${itype}" outputdir="${report}/${itype}" classpath="${testng.classpath}" runfailed="false"/>
     </target>
     <target name="integrationtest.public" depends="init.buildpublic,integrationtest"/>
 
-    <target name="performancetest" depends="init.buildall,test.compile" description="Run performance tests">
+    <target name="performancetest" depends="init.buildall,test.compile,test.init" description="Run performance tests">
        <condition property="ptype" value="*PerformanceTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${ptype}" outputdir="${report}/${ptype}" runfailed="false"/>
+        <run-test testtype="${ptype}" outputdir="${report}/${ptype}" classpath="${testng.classpath}" runfailed="false"/>
     </target>
     <target name="performancetest.public" depends="init.buildpublic,performancetest" />
 
-    <target name="pipelinetest" depends="init.buildall,test.compile" description="Run pipeline tests">
+    <target name="pipelinetest" depends="init.buildall,test.compile,test.init" description="Run pipeline tests">
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" classpath="${testng.classpath}" runfailed="false"/>
     </target>
     <target name="pipelinetest.public" depends="init.buildpublic,pipelinetest" />
 
-    <target name="pipelinetestrun" depends="init.buildall,test.compile" description="Run pipeline tests">
+    <target name="pipelinetestrun" depends="init.buildall,test.compile,test.init" description="Run pipeline tests">
         <property name="pipeline.run" value="run"/>
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" classpath="${testng.classpath}" runfailed="false"/>
     </target>
     <target name="pipelinetestrun.public" depends="init.buildpublic,pipelinetestrun" />
 
-    <target name="failed-test" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    <target name="failed-test" depends="init.buildall,test.compile,test.init">
+        <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
     </target>
 
-    <target name="failed-integration" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    <target name="failed-integration" depends="init.buildall,test.compile,test.init">
+        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
     </target>
 
-    <target name="failed-performance" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*PerformanceTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    <target name="failed-performance" depends="init.buildall,test.compile,test.init">
+        <run-test testtype="${report}/*PerformanceTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
     </target>
 
-    <target name="failed-pipeline" depends="init.buildall,test.compile">
-        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    <target name="failed-pipeline" depends="init.buildall,test.compile,test.init">
+        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
     </target>
 
     <!-- ******************************************************************************** -->
@@ -1029,14 +1099,14 @@
 
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
     <target name="stage" description="stage files for distribution">
-        <mkdir dir="staging"/>
+        <mkdir dir="${staging.dir}"/>
         <!--
             HACK: Create the edu directory before EDU on case-insensitive mac filesystems.
             The ivy dependency colt -> concurrent contains an EDU.oswego package which
             BCEL doesn't even pull in but messes up edu.mit.broad.
           -->
-        <mkdir dir="staging/edu"/>
-        <unjar dest="staging" overwrite="false">
+        <mkdir dir="${staging.dir}/edu"/>
+        <unjar dest="${staging.dir}" overwrite="false">
           <fileset dir="${dist.dir}">
             <patternset refid="dependency.mask" />
           </fileset>
@@ -1045,8 +1115,8 @@
 
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
-      <mkdir dir="dist/packages" />
-      <xslt destdir="dist/packages" style="${package.xml.dir}/CreatePackager.xsl" useImplicitFileset="false">
+      <mkdir dir="${package.output.dir}" />
+      <xslt destdir="${package.output.dir}" style="${package.xml.dir}/CreatePackager.xsl" useImplicitFileset="false">
           <flattenmapper/>
           <fileset dir="${package.xml.dir}">
               <include name="${executable}.xml" />
@@ -1057,11 +1127,11 @@
           </fileset>
 
       </xslt>
-      <ant antfile="${dist.dir}/packages/${executable}.xml" target="package" />
+      <ant antfile="${package.output.dir}/${executable}.xml" target="package" />
     </target>
 
     <target name="release" depends="package" description="release a build, putting each file in a location specified by the package">
-      <ant antfile="${dist.dir}/packages/${executable}.xml" target="release" />      
+      <ant antfile="${package.output.dir}/${executable}.xml" target="release" />
     </target>
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
@@ -1070,7 +1140,7 @@
       <!-- Build out a classpath -->
       <pathconvert property="required.picard.jars" pathsep=":">
         <fileset dir="${basedir}">
-	     <include name="staging" />
+	     <include name="${staging.dir}" />
 	     <include name="${lib.dir}/picard-*.*.*.jar" />
 	     <include name="${lib.dir}/sam-*.jar" />
 	   </fileset>
@@ -1078,14 +1148,14 @@
       <echo message="required.picard.jars=${required.picard.jars}" />
 
       <!-- Stage picard-private -->
-      <delete dir="staging" />
-      <mkdir dir="staging" />
-      <unjar src="${picard.dist.dir}/picard-private.jar" dest="staging" overwrite="true" />
+      <delete dir="${staging.dir}" />
+      <mkdir dir="${staging.dir}" />
+      <unjar src="${picard.dist.dir}/picard-private.jar" dest="${staging.dir}" overwrite="true" />
 
       <!-- Use the packaging system to extract parts of picard-private we need -->
-      <mkdir dir="${dist.dir}/packages" />
-      <xslt in="${package.xml.dir}/PicardPrivate.xml" out="${dist.dir}/packages/BuildPicardPrivate.xml" style="${package.xml.dir}/CreatePackager.xsl" />
-      <ant antfile="${dist.dir}/packages/BuildPicardPrivate.xml">
+      <mkdir dir="${package.output.dir}" />
+      <xslt in="${package.xml.dir}/PicardPrivate.xml" out="${package.output.dir}/BuildPicardPrivate.xml" style="${package.xml.dir}/CreatePackager.xsl" />
+      <ant antfile="${package.output.dir}/BuildPicardPrivate.xml">
 	    <property name="additional.jars" value="${required.picard.jars}" />
       </ant>
     </target>
@@ -1121,7 +1191,7 @@
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
         <delete dir="dump"/>
-        <delete dir="staging"/>
+        <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete dir="pipelinetests"/>
     </target>

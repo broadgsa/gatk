@@ -26,14 +26,10 @@
 <package name="GATKEngine">
   <executable name="GATKEngine">
     <dependencies>
-      <!-- Core walkers -->
-      <package name="org.broadinstitute.sting.gatk.walkers.**" />
-      <!-- All non-oneoff GATK-specific RODs -->
-      <package name="org.broadinstitute.sting.utils.codecs.**" />
-      <!-- Filters -->
-      <package name="org.broadinstitute.sting.gatk.filters" />
+      <!-- Package everything in org.broadinstitute.sting -->
+      <package name="org.broadinstitute.sting.**" />
       <!-- Tribble codecs -->
-      <package name="org.broad.tribble.*" />
+      <package name="org.broad.tribble.**" />
       <!-- Workaround - depend on the logger impl required by JEXL -->
       <package name="org.apache.commons.logging.impl" />
     </dependencies>
