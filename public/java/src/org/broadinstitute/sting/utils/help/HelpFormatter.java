@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.ArgumentDefinition;
 import org.broadinstitute.sting.commandline.ArgumentDefinitionGroup;
 import org.broadinstitute.sting.commandline.ArgumentDefinitions;
+import org.broadinstitute.sting.commandline.ArgumentMatchSource;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
@@ -47,6 +48,7 @@ public class HelpFormatter {
 
     /**
      * Prints the help, given a collection of argument definitions.
+     * @param applicationDetails Application details
      * @param argumentDefinitions Argument definitions for which help should be printed.
      */
     public void printHelp( ApplicationDetails applicationDetails, ArgumentDefinitions argumentDefinitions ) {
@@ -233,7 +235,7 @@ public class HelpFormatter {
     private List<ArgumentDefinitionGroup> prepareArgumentGroups( ArgumentDefinitions argumentDefinitions ) {
         // Sort the list of argument definitions according to how they should be shown.
         // Put the sorted results into a new cloned data structure.
-        Comparator definitionComparator = new Comparator<ArgumentDefinition>() {
+        Comparator<ArgumentDefinition> definitionComparator = new Comparator<ArgumentDefinition>() {
             public int compare( ArgumentDefinition lhs, ArgumentDefinition rhs ) {
                 if( lhs.required && rhs.required ) return 0;
                 if( lhs.required ) return -1;
@@ -242,15 +244,15 @@ public class HelpFormatter {
             }
         };
 
-        List<ArgumentDefinitionGroup> argumentGroups = new ArrayList();        
+        List<ArgumentDefinitionGroup> argumentGroups = new ArrayList<ArgumentDefinitionGroup>();
         for( ArgumentDefinitionGroup argumentGroup: argumentDefinitions.getArgumentDefinitionGroups() ) {
-            List<ArgumentDefinition> sortedDefinitions = new ArrayList( argumentGroup.argumentDefinitions );
+            List<ArgumentDefinition> sortedDefinitions = new ArrayList<ArgumentDefinition>( argumentGroup.argumentDefinitions );
             Collections.sort( sortedDefinitions, definitionComparator );
             argumentGroups.add( new ArgumentDefinitionGroup(argumentGroup.groupName,sortedDefinitions) );
         }
 
         // Sort the argument groups themselves with main arguments first, followed by plugins sorted in name order.
-        Comparator groupComparator = new Comparator<ArgumentDefinitionGroup>() {
+        Comparator<ArgumentDefinitionGroup> groupComparator = new Comparator<ArgumentDefinitionGroup>() {
             public int compare( ArgumentDefinitionGroup lhs, ArgumentDefinitionGroup rhs ) {
                 if( lhs.groupName == null && rhs.groupName == null ) return 0;
                 if( lhs.groupName == null ) return -1;
@@ -271,9 +273,9 @@ public class HelpFormatter {
      * Generate a standard header for the logger
      *
      * @param applicationDetails details of the application to run.
-     * @param args the command line arguments passed in
+     * @param parsedArgs the command line arguments passed in
      */
-    public static void generateHeaderInformation(ApplicationDetails applicationDetails, String[] args) {
+    public static void generateHeaderInformation(ApplicationDetails applicationDetails, Map<ArgumentMatchSource, List<String>> parsedArgs) {
 
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         java.util.Date date = new java.util.Date();
@@ -283,11 +285,22 @@ public class HelpFormatter {
         logger.info(barrier);
         for (String headerLine : applicationDetails.applicationHeader)
             logger.info(headerLine);
-        String output = "";
-        for (String str : args) {
-            output = output + str + " ";
+        logger.debug("Current directory: " + System.getProperty("user.dir"));
+        for (Map.Entry<ArgumentMatchSource, List<String>> entry: parsedArgs.entrySet()) {
+            ArgumentMatchSource matchSource = entry.getKey();
+            final String sourceName;
+            switch (matchSource.getType()) {
+                case CommandLine: sourceName = "Program"; break;
+                case File: sourceName = matchSource.getFile().getPath(); break;
+                default: throw new RuntimeException("Unexpected argument match source type: " + matchSource.getType());
+            }
+
+            String output = sourceName + " Args:";
+            for (String str : entry.getValue()) {
+                output = output + " " + str;
+            }
+            logger.info(output);
         }
-        logger.info("Program Args: " + output);
         logger.info("Date/Time: " + dateFormat.format(date));
         logger.info(barrier);
 

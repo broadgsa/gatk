@@ -68,7 +68,7 @@ public abstract class ParsingMethod {
      * @return An argument match.  Definition field will be populated if a match was found or
      *         empty if no appropriate definition could be found. 
      */
-    public ArgumentMatch match( ArgumentDefinitions definitions, String token, int position ) {
+    public ArgumentMatch match( ArgumentDefinitions definitions, String token, ArgumentMatchSite position ) {
         // If the argument is valid, parse out the argument.
         Matcher matcher = pattern.matcher(token);
 
@@ -102,9 +102,7 @@ public abstract class ParsingMethod {
 
         // Try to find a matching argument.  If found, label that as the match.  If not found, add the argument
         // with a null definition.
-        ArgumentMatch argumentMatch = new ArgumentMatch(argument,argumentDefinition,position,tags);
-
-        return argumentMatch;
+        return new ArgumentMatch(argument,argumentDefinition,position,tags);
     }
 
     /**
