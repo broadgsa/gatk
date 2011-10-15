@@ -521,7 +521,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
-                 additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"> <!-- -test to only do DocumentationTest walker -->
+                 additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet"> <!-- -test to only do DocumentationTest walker -->
             <sourcefiles>
                 <union>
                     <fileset refid="all.java.source.files"/>
