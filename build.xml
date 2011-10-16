@@ -541,7 +541,7 @@
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}">
               <include name="**/utils/**/*.class"/>
-              <exclude name="**/utils/codecs/vcf/**/*.class"/>
+              <exclude name="**/utils/codecs/**/*.class"/>
               <exclude name="**/utils/variantcontext/**/*.class"/>
             </fileset>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
