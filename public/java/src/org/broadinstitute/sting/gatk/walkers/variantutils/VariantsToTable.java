@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -294,6 +295,14 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 return x.toString();
             }
         });
+        getters.put("EVENTLENGTH", new Getter() { public String get(VariantContext vc) {
+            int maxLength = 0;
+            for ( final Allele a : vc.getAlternateAlleles() ) {
+                final int length = a.length() - vc.getReference().length();
+                if( Math.abs(length) > Math.abs(maxLength) ) { maxLength = length; }
+            }
+            return Integer.toString(maxLength);
+        }});
         getters.put("QUAL", new Getter() { public String get(VariantContext vc) { return Double.toString(vc.getPhredScaledQual()); } });
         getters.put("TRANSITION", new Getter() { public String get(VariantContext vc) {
             if ( vc.isSNP() && vc.isBiallelic() )
@@ -304,7 +313,6 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("FILTER", new Getter() { public String get(VariantContext vc) {
             return vc.isNotFiltered() ? "PASS" : Utils.join(",", vc.getFilters()); }
         });
-
         getters.put("HET", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHetCount()); } });
         getters.put("HOM-REF", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomRefCount()); } });
         getters.put("HOM-VAR", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomVarCount()); } });
