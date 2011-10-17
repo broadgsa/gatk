@@ -111,6 +111,10 @@ public class UserException extends ReviewedStingException {
             super(String.format("Couldn't read file because %s caused by %s", message, e.getMessage()));
         }
 
+        public CouldNotReadInputFile(File file) {
+            super(String.format("Couldn't read file %s", file.getAbsolutePath()));
+        }
+
         public CouldNotReadInputFile(File file, String message) {
             super(String.format("Couldn't read file %s because %s", file.getAbsolutePath(), message));
         }
