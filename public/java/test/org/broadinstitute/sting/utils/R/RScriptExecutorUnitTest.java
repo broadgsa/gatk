@@ -26,21 +26,12 @@ package org.broadinstitute.sting.utils.R;
 
 import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.walkers.diffengine.DiffElement;
-import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
-import org.broadinstitute.sting.gatk.walkers.diffengine.DiffNode;
-import org.broadinstitute.sting.gatk.walkers.diffengine.Difference;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,7 +40,6 @@ import java.util.List;
 public class RScriptExecutorUnitTest extends BaseTest {
     final static String testrscript = "print(\"hello, world\")\n";
     final static String publicRScript = "plot_Tranches.R";
-    final static String privateRScript = "variantCallQC.R";
 
     // --------------------------------------------------------------------------------
     //
@@ -73,17 +63,6 @@ public class RScriptExecutorUnitTest extends BaseTest {
 
     @Test
     public void testPublic() { testOne(publicRScript, null, null, true); }
-
-    @Test
-    public void testPrivate() { testOne(privateRScript, null, null, true); }
-
-    // make sure we don't break finding something in private by adding another directory
-    @Test
-    public void testPrivateWithAdditionalPath1() { testOne(privateRScript, null, "dist", true); }
-
-    // make sure we don't break finding something in private by adding another directory
-    @Test
-    public void testPrivateWithAdditionalPath2() { testOne(privateRScript, null, "doesNotExist", true); }
 
     @Test(expectedExceptions = UserException.class)
     public void testNonExistantScriptException() { testOne("does_not_exist.R", null, null, true); }
