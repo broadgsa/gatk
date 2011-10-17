@@ -46,7 +46,7 @@ public class SimpleTimer {
      * @return the name associated with this timer
      */
     @Ensures("result != null")
-    public String getName() {
+    public synchronized String getName() {
         return name;
     }
 
@@ -82,14 +82,14 @@ public class SimpleTimer {
     /**
      * @return is this timer running?
      */
-    public boolean isRunning() {
+    public synchronized boolean isRunning() {
         return running;
     }
 
     /**
      * @return A convenience function to obtain the current time in milliseconds from this timer
      */
-    public long currentTime() {
+    public synchronized long currentTime() {
         return System.currentTimeMillis();
     }
 
@@ -118,9 +118,5 @@ public class SimpleTimer {
             "result >= 0"})
     public synchronized double getElapsedTime() {
         return (running ? (currentTime() - startTime + elapsed) : elapsed) / 1000.0;
-    }
-
-    public void printElapsedTime(PrintStream out) {
-        out.printf("SimpleTimer %s: %.2f%n", name, getElapsedTime());
     }
 }
