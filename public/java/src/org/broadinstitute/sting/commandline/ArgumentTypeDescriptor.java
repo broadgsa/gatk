@@ -381,7 +381,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     if ( tribbleType == null )
                         if ( ! file.exists() ) {
                             throw new UserException.CouldNotReadInputFile(file, "file does not exist");
-                        } else if ( ! file.canRead() | ! file.isFile() ) {
+                        } else if ( ! file.canRead() || ! file.isFile() ) {
                             throw new UserException.CouldNotReadInputFile(file, "file could not be read");
                         } else {
                             throw new UserException.CommandLineException(
