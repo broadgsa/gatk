@@ -239,7 +239,7 @@ public class MD5DB {
                 if ( ! expectedMD5.equals(filemd5sum) ) {
                     // we are going to fail for real in assertEquals (so we are counted by the testing framework).
                     // prepare ourselves for the comparison
-                    System.out.printf("##### Test %s is going fail #####%n", name);
+                    System.out.printf("##### Test %s is going to fail #####%n", name);
                     String pathToExpectedMD5File = getMD5FilePath(expectedMD5, "[No DB file found]");
                     String pathToFileMD5File = getMD5FilePath(filemd5sum, "[No DB file found]");
                     System.out.printf("##### Path to expected   file (MD5=%s): %s%n", expectedMD5, pathToExpectedMD5File);

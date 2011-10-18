@@ -46,7 +46,7 @@ public class SimpleTimer {
      * @return the name associated with this timer
      */
     @Ensures("result != null")
-    public String getName() {
+    public synchronized String getName() {
         return name;
     }
 
@@ -58,7 +58,7 @@ public class SimpleTimer {
      */
     @Requires("running == false")
     @Ensures({"result != null", "elapsed == 0l"})
-    public SimpleTimer start() {
+    public synchronized SimpleTimer start() {
         elapsed = 0l;
         restart();
         return this;
@@ -73,7 +73,7 @@ public class SimpleTimer {
      */
     @Requires("running == false")
     @Ensures("result != null")
-    public SimpleTimer restart() {
+    public synchronized SimpleTimer restart() {
         running = true;
         startTime = currentTime();
         return this;
@@ -82,14 +82,14 @@ public class SimpleTimer {
     /**
      * @return is this timer running?
      */
-    public boolean isRunning() {
+    public synchronized boolean isRunning() {
         return running;
     }
 
     /**
      * @return A convenience function to obtain the current time in milliseconds from this timer
      */
-    public long currentTime() {
+    public synchronized long currentTime() {
         return System.currentTimeMillis();
     }
 
@@ -101,7 +101,7 @@ public class SimpleTimer {
      */
     @Requires("running == true")
     @Ensures({"result != null", "elapsed >= old(elapsed)", "running == false"})
-    public SimpleTimer stop() {
+    public synchronized SimpleTimer stop() {
         running = false;
         elapsed += currentTime() - startTime;
         return this;
@@ -116,12 +116,7 @@ public class SimpleTimer {
     @Ensures({
             "result >= (elapsed/1000.0)",
             "result >= 0"})
-    public double getElapsedTime() {
+    public synchronized double getElapsedTime() {
         return (running ? (currentTime() - startTime + elapsed) : elapsed) / 1000.0;
-    }
-
-
-    public void printElapsedTime(PrintStream out) {
-        out.printf("SimpleTimer %s: %.2f%n", name, getElapsedTime());
     }
 }

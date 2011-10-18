@@ -36,8 +36,6 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
   private lazy val originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
 
   override def freezeFieldValues {
-    this.memoryLimit = Some(1)
-
     this.jarFile = this.originalGATK.jarFile
     this.reference_sequence = this.originalGATK.reference_sequence
     this.intervals = this.originalGATK.intervals
