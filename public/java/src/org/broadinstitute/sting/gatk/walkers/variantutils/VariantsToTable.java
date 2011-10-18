@@ -313,6 +313,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("FILTER", new Getter() { public String get(VariantContext vc) {
             return vc.isNotFiltered() ? "PASS" : Utils.join(",", vc.getFilters()); }
         });
+        getters.put("ID", new Getter() { public String get(VariantContext vc) { return vc.hasID() ? vc.getID() : "."; } });
         getters.put("HET", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHetCount()); } });
         getters.put("HOM-REF", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomRefCount()); } });
         getters.put("HOM-VAR", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomVarCount()); } });
