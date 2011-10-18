@@ -381,7 +381,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             }
         }
 
-        attributes.put(VariantContext.ID_KEY, id);
+        if ( ! id.equals(VCFConstants.EMPTY_ID_FIELD) )
+            attributes.put(VariantContext.ID_KEY, id);
         return attributes;
     }
 
