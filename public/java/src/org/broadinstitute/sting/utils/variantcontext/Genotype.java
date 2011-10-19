@@ -197,14 +197,16 @@ public class Genotype {
         if ( alleles == null ) return;
         if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0");
 
-        int nNoCalls = 0;
+        // int nNoCalls = 0;
         for ( Allele allele : alleles ) {
             if ( allele == null )
                 throw new IllegalArgumentException("BUG: allele cannot be null in Genotype");
-            nNoCalls += allele.isNoCall() ? 1 : 0;
+            // nNoCalls += allele.isNoCall() ? 1 : 0;
         }
-        if ( nNoCalls > 0 && nNoCalls != alleles.size() )
-            throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
+
+        // Technically, the spec does allow for the below case so this is not an illegal state
+        //if ( nNoCalls > 0 && nNoCalls != alleles.size() )
+        //    throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
     }
 
     public String getGenotypeString() {
