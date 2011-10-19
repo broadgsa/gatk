@@ -998,7 +998,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
                 else if ( g.isHomVar() )
                     genotypeCounts[Genotype.Type.HOM_VAR.ordinal()]++;
                 else
-                    throw new IllegalStateException("Genotype of unknown type: " + g);
+                    genotypeCounts[Genotype.Type.MIXED.ordinal()]++;
             }
         }
     }
@@ -1040,6 +1040,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     public int getHomVarCount() {
         return genotypeCounts[Genotype.Type.HOM_VAR.ordinal()];
+    }
+
+    /**
+     * Genotype-specific functions -- how many mixed calls are there in the genotypes?
+     *
+     * @return number of mixed calls
+     */
+    public int getMixedCount() {
+        return genotypeCounts[Genotype.Type.MIXED.ordinal()];
     }
 
     // ---------------------------------------------------------------------------------------------------------

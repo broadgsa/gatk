@@ -267,6 +267,12 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(vc.getChromosomeCount(), 2); // we know that there are 2 chromosomes, even though one isn't called
         Assert.assertEquals(vc.getChromosomeCount(Aref), 0);
         Assert.assertEquals(vc.getChromosomeCount(C), 1);
+        Assert.assertFalse(vc.getGenotype("foo").isHet());
+        Assert.assertFalse(vc.getGenotype("foo").isHom());
+        Assert.assertFalse(vc.getGenotype("foo").isNoCall());
+        Assert.assertFalse(vc.getGenotype("foo").isHom());
+        Assert.assertTrue(vc.getGenotype("foo").isMixed());
+        Assert.assertEquals(vc.getGenotype("foo").getType(), Genotype.Type.MIXED);
     }
 
     @Test (expectedExceptions = IllegalArgumentException.class)
