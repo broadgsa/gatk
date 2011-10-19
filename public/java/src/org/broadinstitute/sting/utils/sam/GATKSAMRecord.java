@@ -36,6 +36,16 @@ public class GATKSamRecord extends BAMRecord {
     // These attributes exist in memory only, and are never written to disk.
     private Map<Object, Object> temporaryAttributes;
 
+    /**
+     * HACK TO CREATE GATKSAMRECORD WITH ONLY A HEADER FOR TESTING PURPOSES ONLY
+     * @param header
+     */
+    public GATKSamRecord(final SAMFileHeader header) {
+        super(header, SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX, SAMRecord.NO_ALIGNMENT_START,
+                (short)0, (short)255, 0, 1, 0, 1, 0, 0, 0, null);
+    }
+
+
     public GATKSamRecord(final SAMFileHeader header,
                          final int referenceSequenceIndex,
                          final int alignmentStart,
@@ -57,17 +67,20 @@ public class GATKSamRecord extends BAMRecord {
     // *** The following methods are overloaded to cache the appropriate data ***//
     ///////////////////////////////////////////////////////////////////////////////
 
+    @Override
     public String getReadString() {
         if ( mReadString == null )
             mReadString = super.getReadString();
         return mReadString;
     }
 
+    @Override
     public void setReadString(String s) {
         super.setReadString(s);
         mReadString = s;
     }
 
+    @Override
     public SAMReadGroupRecord getReadGroup() {
         if ( !retrievedReadGroup ) {
             SAMReadGroupRecord tempReadGroup = super.getReadGroup();
