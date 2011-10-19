@@ -146,7 +146,7 @@ public class ArtificialSAMUtils {
         if( (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
             (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
             throw new ReviewedStingException("Invalid alignment start for artificial read, start = " + alignmentStart);
-        SAMRecord record = new SAMRecord(header);
+        SAMRecord record = new GATKSamRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
         record.setAlignmentStart(alignmentStart);
