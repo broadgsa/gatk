@@ -40,19 +40,7 @@ public class MutableGenotype extends Genotype {
      */
     public void setAlleles(List<Allele> alleles) {
         this.alleles = new ArrayList<Allele>(alleles);
-
-        // todo -- add validation checking here
-
-        if ( alleles == null ) throw new IllegalArgumentException("BUG: alleles cannot be null in setAlleles");
-        if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0 in setAlleles");
-
-        int nNoCalls = 0;
-        for ( Allele allele : alleles ) { nNoCalls += allele.isNoCall() ? 1 : 0; }
-        if ( nNoCalls > 0 && nNoCalls != alleles.size() )
-            throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
-
-        for ( Allele allele : alleles )
-            if ( allele == null ) throw new IllegalArgumentException("BUG: Cannot add a null allele to a genotype");
+        validate();
     }
 
     public void setPhase(boolean isPhased) {
