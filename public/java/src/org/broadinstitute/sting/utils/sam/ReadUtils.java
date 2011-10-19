@@ -55,6 +55,7 @@ public class ReadUtils {
     public static final String REDUCED_READ_CONSENSUS_COUNTS_TAG = "CC";
 
     public final static byte[] getReducedReadQualityTagValue(final SAMRecord read) {
+        // TODO -- warning of performance problem.  Should be cached in GATKSamRecord
         return read.getByteArrayAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
     }
 
@@ -68,21 +69,6 @@ public class ReadUtils {
 
     public final static byte getReducedCount(final SAMRecord read, final int i) {
         return getReducedReadQualityTagValue(read)[i];
-    }
-
-    public final static SAMRecord reducedReadWithReducedQuals(final SAMRecord read) {
-        if ( ! isReducedRead(read) ) throw new IllegalArgumentException("read must be a reduced read");
-        return read;
-//        try {
-//            SAMRecord newRead = (SAMRecord)read.clone();
-//            byte reducedQual = (byte)(int)getReducedReadQualityTagValue(read);
-//            byte[] newQuals = new byte[read.getBaseQualities().length];
-//            Arrays.fill(newQuals, reducedQual);
-//            newRead.setBaseQualities(newQuals);
-//            return newRead;
-//        } catch ( CloneNotSupportedException e ) {
-//            throw new ReviewedStingException("SAMRecord no longer supports clone", e);
-//        }
     }
 
     // ----------------------------------------------------------------------------------------------------
