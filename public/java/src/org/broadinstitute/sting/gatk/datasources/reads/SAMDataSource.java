@@ -647,7 +647,9 @@ public class SAMDataSource {
                                                         BAQ.QualityMode qmode,
                                                         IndexedFastaSequenceFile refReader,
                                                         byte defaultBaseQualities) {
-        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
+        if ( useOriginalBaseQualities || defaultBaseQualities >= 0 )
+            // only wrap if we are replacing the original qualitiies or using a default base quality
+            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away

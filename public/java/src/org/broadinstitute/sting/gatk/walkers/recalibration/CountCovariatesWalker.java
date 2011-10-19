@@ -41,7 +41,7 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.GATKSamRecord;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -352,7 +352,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
         if( tracker.getValues(knownSites).size() == 0 ) { // If something here is in one of the knownSites tracks then skip over it, otherwise proceed
             // For each read at this locus
             for( final PileupElement p : context.getBasePileup() ) {
-                final GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
+                final GATKSamRecord gatkRead = (GATKSamRecord) p.getRead();
                 int offset = p.getOffset();
 
                 if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE  ) ) {
@@ -445,7 +445,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      * @param offset The offset in the read for this locus
      * @param refBase The reference base at this locus
      */
-    private void updateDataFromRead(CountedData counter, final GATKSAMRecord gatkRead, final int offset, final byte refBase) {
+    private void updateDataFromRead(CountedData counter, final GATKSamRecord gatkRead, final int offset, final byte refBase) {
         final Object[][] covars = (Comparable[][]) gatkRead.getTemporaryAttribute(COVARS_ATTRIBUTE);
         final Object[] key = covars[offset];
 

@@ -57,18 +57,18 @@ public class GATKSamRecordFactory implements SAMRecordFactory {
                                      final int mateAlignmentStart,
                                      final int insertSize,
                                      final byte[] variableLengthBlock) {
-        return new BAMRecord(header,
-                             referenceSequenceIndex,
-                             alignmentStart,
-                             readNameLength,
-                             mappingQuality,
-                             indexingBin,
-                             cigarLen,
-                             flags,
-                             readLen,
-                             mateReferenceSequenceIndex,
-                             mateAlignmentStart,
-                             insertSize,
-                             variableLengthBlock);
+        return new GATKSamRecord(header,
+                referenceSequenceIndex,
+                alignmentStart,
+                readNameLength,
+                mappingQuality,
+                indexingBin,
+                cigarLen,
+                flags,
+                readLen,
+                mateReferenceSequenceIndex,
+                mateAlignmentStart,
+                insertSize,
+                variableLengthBlock);
     }
 }
