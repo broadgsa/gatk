@@ -31,10 +31,10 @@ import net.sf.samtools.BAMRecord;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
- * Factory interface which allows plugging in of different classes for generating instances of
- * SAMRecord and BAMRecord when reading from SAM/BAM files.
+ * Factory interface implementation used to create GATKSamRecords
+ * from SAMFileReaders with SAM-JDK
  *
- * @author Tim Fennell
+ * @author Mark DePristo
  */
 public class GATKSamRecordFactory implements SAMRecordFactory {
 
