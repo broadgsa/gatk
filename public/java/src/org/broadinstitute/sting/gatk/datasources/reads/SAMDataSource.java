@@ -43,6 +43,7 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -57,6 +58,8 @@ import java.util.*;
  * Converts shards to SAM iterators over the specified region
  */
 public class SAMDataSource {
+    final private static GATKSamRecordFactory factory = new GATKSamRecordFactory();
+
     /** Backing support for reads. */
     protected final ReadProperties readProperties;
 
@@ -756,6 +759,7 @@ public class SAMDataSource {
         public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
             for(SAMReaderID readerID: readerIDs) {
                 SAMFileReader reader = new SAMFileReader(readerID.samFile);
+                reader.setSAMRecordFactory(factory);
                 reader.enableFileSource(true);
                 reader.enableIndexMemoryMapping(false);
                 if(!enableLowMemorySharding)
