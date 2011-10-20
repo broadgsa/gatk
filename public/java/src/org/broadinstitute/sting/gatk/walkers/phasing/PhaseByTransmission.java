@@ -7,18 +7,18 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -32,13 +32,13 @@ import java.util.*;
  * the genotypes exhibit a Mendelian violation.  This walker assumes there are only three samples in the VCF file to
  * begin.
  */
-public class PhaseByTransmission extends RodWalker<Integer, Integer> {
+public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMap<Byte,Integer>> {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Argument(shortName="f", fullName="familySpec", required=true, doc="Patterns for the family structure (usage: mom+dad=child).  Specify several trios by supplying this argument many times and/or a file containing many patterns.")
-    public ArrayList<String> familySpecs = null;
+    @Argument(shortName = "mvf",required = false,fullName = "MendelianViolationsFile", doc="File to output the mendelian violation details.")
+    private PrintStream mvFile = null;
 
     @Output
     protected VCFWriter vcfWriter = null;
@@ -48,239 +48,523 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
 
     private final Double MENDELIAN_VIOLATION_PRIOR = 1e-8;
 
-    private class Trio {
-        private String mother;
-        private String father;
-        private String child;
+    private ArrayList<Sample> trios = new ArrayList<Sample>();
 
-        public Trio(String mother, String father, String child) {
-            this.mother = mother;
-            this.father = father;
-            this.child = child;
-        }
+    //Matrix of priors for all genotype combinations
+    private EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>> mvCountMatrix;
 
-        public Trio(String familySpec) {
-            String[] pieces = familySpec.split("[\\+\\=]");
+    //Matrix of allele transmission
+    private EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>> transmissionMatrix;
 
-            this.mother = pieces[0];
-            this.father = pieces[1];
-            this.child = pieces[2];
-        }
+    //Metrics counters hashkeys
+    private final Byte NUM_TRIO_GENOTYPES_CALLED = 0;
+    private final Byte NUM_TRIO_GENOTYPES_NOCALL = 1;
+    private final Byte NUM_TRIO_GENOTYPES_PHASED = 2;
+    private final Byte NUM_HET = 3;
+    private final Byte NUM_HET_HET_HET = 4;
+    private final Byte NUM_VIOLATIONS = 5;
 
-        public String getMother() { return mother; }
-        public String getFather() { return father; }
-        public String getChild() { return child; }
+   private enum AlleleType {
+        NO_CALL,
+        REF,
+        VAR,
+        UNPHASED_REF,
+        UNPHASED_VAR
     }
 
-    private ArrayList<Trio> trios = new ArrayList<Trio>();
+    //Stores a trio-genotype
+    private class TrioPhase {
 
-    public ArrayList<Trio> getFamilySpecsFromCommandLineInput(ArrayList<String> familySpecs) {
-        if (familySpecs != null) {
-            // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
-            // spec list set, and treat the entries as if they had been specified on the command line.
-            ArrayList<Trio> specs = new ArrayList<Trio>();
-            for (String familySpec : familySpecs) {
-                File specFile = new File(familySpec);
+        private ArrayList<AlleleType> trioAlleles = new ArrayList<AlleleType>(6);
 
-                try {
-                    XReadLines reader = new XReadLines(specFile);
+        private ArrayList<AlleleType> getAlleles(Genotype.Type genotype){
+        ArrayList<AlleleType> alleles = new ArrayList<AlleleType>(2);
+        if(genotype == Genotype.Type.HOM_REF){
+            alleles.add(AlleleType.REF);
+            alleles.add(AlleleType.REF);
+        }
+        else if(genotype == Genotype.Type.HET){
+            alleles.add(AlleleType.REF);
+            alleles.add(AlleleType.VAR);
+        }
+        else if(genotype == Genotype.Type.HOM_VAR){
+            alleles.add(AlleleType.VAR);
+            alleles.add(AlleleType.VAR);
+        }
+        else{
+            alleles.add(AlleleType.NO_CALL);
+            alleles.add(AlleleType.NO_CALL);
+        }
+        return alleles;
+    }
 
-                    List<String> lines = reader.readLines();
-                    for (String line : lines) {
-                        specs.add(new Trio(line));
-                    }
-                } catch (FileNotFoundException e) {
-                    specs.add(new Trio(familySpec)); // not a file, so must be a family spec
-                }
-            }
+    private ArrayList<AlleleType> phaseSingleIndividualAlleles(Genotype.Type genotype){
+        if(genotype == Genotype.Type.HET){
+            ArrayList<AlleleType> phasedAlleles = new ArrayList<AlleleType>(2);
+            phasedAlleles.add(AlleleType.UNPHASED_REF);
+            phasedAlleles.add(AlleleType.UNPHASED_VAR);
+            return phasedAlleles;
+        }
+        else
+            return  getAlleles(genotype);
+    }
 
-            return specs;
+    private ArrayList<AlleleType> phaseMonoParentFamilyAlleles(Genotype.Type parent, Genotype.Type child){
+        ArrayList<AlleleType> phasedAlleles = new ArrayList<AlleleType>(4);
+        //Special case for Het/Het as it is ambiguous
+        if(parent == Genotype.Type.HET && child == Genotype.Type.HET){
+            phasedAlleles.add(AlleleType.UNPHASED_REF);
+            phasedAlleles.add(AlleleType.UNPHASED_VAR);
+            phasedAlleles.add(AlleleType.UNPHASED_REF);
+            phasedAlleles.add(AlleleType.UNPHASED_VAR);
         }
 
-        return new ArrayList<Trio>();
+        ArrayList<AlleleType> parentAlleles = getAlleles(parent);
+        ArrayList<AlleleType> childAlleles = getAlleles(child);
+
+        int childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(0));
+        if(childTransmittedAlleleIndex > -1){
+           phasedAlleles.add(parentAlleles.get(0));
+           phasedAlleles.add(parentAlleles.get(1));
+           phasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
+           phasedAlleles.add(childAlleles.get(0));
+        }
+        else if((childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(1))) > -1){
+           phasedAlleles.add(parentAlleles.get(1));
+           phasedAlleles.add(parentAlleles.get(0));
+           phasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
+           phasedAlleles.add(childAlleles.get(0));
+        }
+        else{
+            parentAlleles.addAll(childAlleles);
+            for(AlleleType allele : parentAlleles){
+                if(allele == AlleleType.REF){
+                    phasedAlleles.add(AlleleType.UNPHASED_REF);
+                }
+                else if(allele == AlleleType.VAR){
+                    phasedAlleles.add(AlleleType.UNPHASED_VAR);
+                }
+                else{
+                    phasedAlleles.add(AlleleType.NO_CALL);
+                }
+            }
+        }
+
+        return phasedAlleles;
+    }
+
+    private ArrayList<AlleleType> phaseFamilyAlleles(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+        ArrayList<AlleleType> phasedAlleles = new ArrayList<AlleleType>(6);
+
+        Set<ArrayList<AlleleType>> possiblePhasedChildGenotypes = new HashSet<ArrayList<AlleleType>>();
+        ArrayList<AlleleType> motherAlleles = getAlleles(mother);
+        ArrayList<AlleleType> fatherAlleles = getAlleles(father);
+        ArrayList<AlleleType> childAlleles = getAlleles(child);
+
+        //Build all possible child genotypes for the given parent's genotypes
+        for (AlleleType momAllele : motherAlleles) {
+            for (AlleleType fatherAllele : fatherAlleles) {
+                ArrayList<AlleleType> possiblePhasedChildAlleles = new ArrayList<AlleleType>(2);
+                possiblePhasedChildAlleles.add(momAllele);
+                possiblePhasedChildAlleles.add(fatherAllele);
+                possiblePhasedChildGenotypes.add(possiblePhasedChildAlleles);
+            }
+        }
+
+        for (ArrayList<AlleleType> phasedChildGenotype : possiblePhasedChildGenotypes) {
+            int firstAlleleIndex = phasedChildGenotype.indexOf(childAlleles.get(0));
+            int secondAlleleIndex = phasedChildGenotype.lastIndexOf(childAlleles.get(1));
+            if (firstAlleleIndex != secondAlleleIndex && firstAlleleIndex > -1 && secondAlleleIndex > -1) {
+                //Add mother's alleles
+                phasedAlleles.add(phasedChildGenotype.get(0));
+                if(motherAlleles.get(0) != phasedAlleles.get(0))
+                    phasedAlleles.add(motherAlleles.get(0));
+                else
+                    phasedAlleles.add(motherAlleles.get(1));
+
+                //Add father's alleles
+                phasedAlleles.add(phasedChildGenotype.get(1));
+                if(fatherAlleles.get(0) != phasedAlleles.get(2))
+                    phasedAlleles.add(fatherAlleles.get(0));
+                else
+                    phasedAlleles.add(fatherAlleles.get(1));
+
+                //Add child's alleles
+                phasedAlleles.addAll(phasedChildGenotype);
+                return phasedAlleles;
+            }
+        }
+
+        //If this is reached then no phasing could be found
+        motherAlleles.addAll(fatherAlleles);
+        motherAlleles.addAll(childAlleles);
+        for(AlleleType allele : motherAlleles){
+            if(allele == AlleleType.REF){
+                    phasedAlleles.add(AlleleType.UNPHASED_REF);
+                }
+                else if(allele == AlleleType.VAR){
+                    phasedAlleles.add(AlleleType.UNPHASED_VAR);
+                }
+                else{
+                    phasedAlleles.add(AlleleType.NO_CALL);
+                }
+        }
+        return phasedAlleles;
+    }
+
+
+    public TrioPhase(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+
+        //Take care of cases where one or more family members are no call
+        if(child == Genotype.Type.NO_CALL){
+            trioAlleles.addAll(phaseSingleIndividualAlleles(mother));
+            trioAlleles.addAll(phaseSingleIndividualAlleles(father));
+            trioAlleles.add(AlleleType.NO_CALL);
+            trioAlleles.add(AlleleType.NO_CALL);
+        }
+        else if(mother == Genotype.Type.NO_CALL){
+            trioAlleles.add(AlleleType.NO_CALL);
+            trioAlleles.add(AlleleType.NO_CALL);
+            if(father == Genotype.Type.NO_CALL){
+                trioAlleles.add(AlleleType.NO_CALL);
+                trioAlleles.add(AlleleType.NO_CALL);
+                trioAlleles.addAll(phaseSingleIndividualAlleles(child));
+            }
+            else
+                trioAlleles.addAll(phaseMonoParentFamilyAlleles(father, child));
+        }
+        else if(father == Genotype.Type.NO_CALL){
+            trioAlleles.addAll(phaseMonoParentFamilyAlleles(mother, child));
+            trioAlleles.add(2, AlleleType.NO_CALL);
+            trioAlleles.add(3, AlleleType.NO_CALL);
+        }
+        //Special case for Het/Het/Het as it is ambiguous
+        else if(mother == Genotype.Type.HET && father  == Genotype.Type.HET && child == Genotype.Type.HET){
+            trioAlleles.add(AlleleType.UNPHASED_REF);
+            trioAlleles.add(AlleleType.UNPHASED_VAR);
+            trioAlleles.add(AlleleType.UNPHASED_REF);
+            trioAlleles.add(AlleleType.UNPHASED_VAR);
+            trioAlleles.add(AlleleType.UNPHASED_REF);
+            trioAlleles.add(AlleleType.UNPHASED_VAR);
+        }
+        //All family members have genotypes and at least one of them is not Het
+        else{
+            trioAlleles = phaseFamilyAlleles(mother, father, child);
+        }
+    }
+
+    public ArrayList<Genotype> getPhasedGenotypes(Allele ref, Allele alt, Genotype motherGenotype, Genotype fatherGenotype, Genotype childGenotype, int transmissionProb,ArrayList<Genotype> phasedGenotypes){
+        phasedGenotypes.add(getPhasedGenotype(ref,alt,motherGenotype,transmissionProb,trioAlleles.subList(0,2)));
+        phasedGenotypes.add(getPhasedGenotype(ref,alt,fatherGenotype,transmissionProb,trioAlleles.subList(2,4)));
+        phasedGenotypes.add(getPhasedGenotype(ref,alt,childGenotype,transmissionProb,trioAlleles.subList(4,6)));
+        return phasedGenotypes;
+    }
+
+   private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, int transmissionProb, List<AlleleType> phasedAlleles){
+
+       //Add the transmission probability
+       Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
+       genotypeAttributes.putAll(genotype.getAttributes());
+       genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, transmissionProb);
+
+       boolean isPhased = true;
+
+       List<Allele> alleles = new ArrayList<Allele>(2);
+
+        //If unphased, return original genotype
+        for(AlleleType allele : phasedAlleles){
+            if(allele == AlleleType.NO_CALL){
+                 genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
+                return genotype;
+            }
+            //Otherwise add the appropriate allele
+            else if(allele == AlleleType.UNPHASED_REF){
+                isPhased = false;
+                alleles.add(refAllele);
+            }
+            else if(allele == AlleleType.UNPHASED_VAR){
+                isPhased = false;
+                alleles.add(altAllele);
+            }
+            else if(allele == AlleleType.REF){
+                alleles.add(refAllele);
+            }
+            else if(allele == AlleleType.VAR){
+                alleles.add(altAllele);
+            }
+        }
+       //TODO: Recalculate GQ field for the new genotype
+       //Remove the GQ attribute as it needs to be recalculated for the new genotype assignment
+       //double[] likelihoods = genotype.getLikelihoods().getAsVector();
+
+       //genotypeAttributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,likelihoods[1]);
+       genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
+       return new Genotype(genotype.getSampleName(), alleles, genotype.getNegLog10PError(), null, genotype.getAttributes(), isPhased);
+   }
+
+
     }
 
     /**
      * Parse the familial relationship specification, and initialize VCF writer
      */
     public void initialize() {
-        trios = getFamilySpecsFromCommandLineInput(familySpecs);
-
         ArrayList<String> rodNames = new ArrayList<String>();
         rodNames.add(variantCollection.variants.getName());
-
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
+        //Get the trios from the families passed as ped
+        setTrios();
+        if(trios.size()<1)
+            throw new UserException.BadInput("No PED file passed or no trios found in PED file. Aborted.");
+
+
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
         headerLines.addAll(VCFUtils.getHeaderFields(this.getToolkit()));
-        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
+        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Integer, "Phred score of the phase given that the genotypes are correct"));
         headerLines.add(new VCFHeaderLine("source", SOURCE_NAME));
         vcfWriter.writeHeader(new VCFHeader(headerLines, vcfSamples));
+
+        buildMatrices();
+
+        if(mvFile != null)
+            mvFile.println("#CHROM\tPOS\tFILTER\tAC\tFAMILY\tTP\tMOTHER_GT\tMOTHER_DP\tMOTHER_RAD\tMOTHER_AAD\tMOTHER_HRPL\tMOTHER_HETPL\tMOTHER_HAPL\tFATHER_GT\tFATHER_DP\tFATHER_RAD\tFATHER_AAD\tFATHER_HRPL\tFATHER_HETPL\tFATHER_HAPL\tCHILD_GT\tCHILD_DP\tCHILD_RAD\tCHILD_AAD\tCHILD_HRPL\tCHILD_HETPL\tCHILD_HAPL");
+
     }
 
-    private double computeTransmissionLikelihoodOfGenotypeConfiguration(Genotype mom, Genotype dad, Genotype child) {
-        double[] momLikelihoods = MathUtils.normalizeFromLog10(mom.getLikelihoods().getAsVector());
-        double[] dadLikelihoods = MathUtils.normalizeFromLog10(dad.getLikelihoods().getAsVector());
-        double[] childLikelihoods = MathUtils.normalizeFromLog10(child.getLikelihoods().getAsVector());
+    /**
+     * Select Trios only
+     */
+    private void setTrios(){
 
-        int momIndex = mom.getType().ordinal() - 1;
-        int dadIndex = dad.getType().ordinal() - 1;
-        int childIndex = child.getType().ordinal() - 1;
-
-        return momLikelihoods[momIndex]*dadLikelihoods[dadIndex]*childLikelihoods[childIndex];
-    }
-
-    private ArrayList<Genotype> createAllThreeGenotypes(Allele refAllele, Allele altAllele, Genotype g) {
-        List<Allele> homRefAlleles = new ArrayList<Allele>();
-        homRefAlleles.add(refAllele);
-        homRefAlleles.add(refAllele);
-        Genotype homRef = new Genotype(g.getSampleName(), homRefAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
-
-        List<Allele> hetAlleles = new ArrayList<Allele>();
-        hetAlleles.add(refAllele);
-        hetAlleles.add(altAllele);
-        Genotype het = new Genotype(g.getSampleName(), hetAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
-
-        List<Allele> homVarAlleles = new ArrayList<Allele>();
-        homVarAlleles.add(altAllele);
-        homVarAlleles.add(altAllele);
-        Genotype homVar = new Genotype(g.getSampleName(), homVarAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
-
-        ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
-        genotypes.add(homRef);
-        genotypes.add(het);
-        genotypes.add(homVar);
-
-        return genotypes;
-    }
-
-    private int getNumberOfMatchingAlleles(Allele alleleToMatch, Genotype g) {
-        List<Allele> alleles = g.getAlleles();
-        int matchingAlleles = 0;
-
-        for (Allele a : alleles) {
-            if (!alleleToMatch.equals(a)) {
-                matchingAlleles++;
+        Map<String,Set<Sample>> families = this.getSampleDB().getFamilies();
+        Set<Sample> family;
+        ArrayList<Sample> parents;
+        for(String familyID : families.keySet()){
+            family = families.get(familyID);
+            if(family.size()!=3){
+                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios. Family skipped.",familyID,family.size()));
             }
-        }
-
-        return matchingAlleles;
-    }
-
-    private boolean isMendelianViolation(Allele refAllele, Allele altAllele, Genotype mom, Genotype dad, Genotype child) {
-        int numMomRefAlleles = getNumberOfMatchingAlleles(refAllele, mom) > 0 ? 1 : 0;
-        int numMomAltAlleles = getNumberOfMatchingAlleles(altAllele, mom) > 0 ? 1 : 0;
-
-        int numDadRefAlleles = getNumberOfMatchingAlleles(refAllele, dad) > 0 ? 1 : 0;
-        int numDadAltAlleles = getNumberOfMatchingAlleles(altAllele, dad) > 0 ? 1 : 0;
-
-        int numChildRefAlleles = getNumberOfMatchingAlleles(refAllele, child);
-        int numChildAltAlleles = getNumberOfMatchingAlleles(altAllele, child);
-
-        return (numMomRefAlleles + numDadRefAlleles < numChildRefAlleles || numMomAltAlleles + numDadAltAlleles < numChildAltAlleles);
-    }
-
-    private ArrayList<Genotype> getPhasedGenotypes(Genotype mom, Genotype dad, Genotype child) {
-        Set<Genotype> possiblePhasedChildGenotypes = new HashSet<Genotype>();
-
-        for (Allele momAllele : mom.getAlleles()) {
-            for (Allele dadAllele : dad.getAlleles()) {
-                ArrayList<Allele> possiblePhasedChildAlleles = new ArrayList<Allele>();
-                possiblePhasedChildAlleles.add(momAllele);
-                possiblePhasedChildAlleles.add(dadAllele);
-
-                Genotype possiblePhasedChildGenotype = new Genotype(child.getSampleName(), possiblePhasedChildAlleles, child.getNegLog10PError(), child.getFilters(), child.getAttributes(), true);
-
-                possiblePhasedChildGenotypes.add(possiblePhasedChildGenotype);
-            }
-        }
-
-        ArrayList<Genotype> finalGenotypes = new ArrayList<Genotype>();
-
-        for (Genotype phasedChildGenotype : possiblePhasedChildGenotypes) {
-            if (child.sameGenotype(phasedChildGenotype, true)) {
-                Allele momTransmittedAllele = phasedChildGenotype.getAllele(0);
-                Allele momUntransmittedAllele = mom.getAllele(0) != momTransmittedAllele ? mom.getAllele(0) : mom.getAllele(1);
-
-                ArrayList<Allele> phasedMomAlleles = new ArrayList<Allele>();
-                phasedMomAlleles.add(momTransmittedAllele);
-                phasedMomAlleles.add(momUntransmittedAllele);
-
-                Genotype phasedMomGenotype = new Genotype(mom.getSampleName(), phasedMomAlleles, mom.getNegLog10PError(), mom.getFilters(), mom.getAttributes(), true);
-
-                Allele dadTransmittedAllele = phasedChildGenotype.getAllele(1);
-                Allele dadUntransmittedAllele = dad.getAllele(0) != dadTransmittedAllele ? dad.getAllele(0) : dad.getAllele(1);
-
-                ArrayList<Allele> phasedDadAlleles = new ArrayList<Allele>();
-                phasedDadAlleles.add(dadTransmittedAllele);
-                phasedDadAlleles.add(dadUntransmittedAllele);
-
-                Genotype phasedDadGenotype = new Genotype(dad.getSampleName(), phasedDadAlleles, dad.getNegLog10PError(), dad.getFilters(), dad.getAttributes(), true);
-
-                finalGenotypes.add(phasedMomGenotype);
-                finalGenotypes.add(phasedDadGenotype);
-                finalGenotypes.add(phasedChildGenotype);
-
-                return finalGenotypes;
-            }
-        }
-
-        finalGenotypes.add(mom);
-        finalGenotypes.add(dad);
-        finalGenotypes.add(child);
-
-        return finalGenotypes;
-    }
-
-    private ArrayList<Genotype> phaseTrioGenotypes(Allele ref, Allele alt, Genotype mother, Genotype father, Genotype child) {
-        ArrayList<Genotype> finalGenotypes = new ArrayList<Genotype>();
-        finalGenotypes.add(mother);
-        finalGenotypes.add(father);
-        finalGenotypes.add(child);
-
-        if (mother.isCalled() && father.isCalled() && child.isCalled()) {
-            ArrayList<Genotype> possibleMotherGenotypes = createAllThreeGenotypes(ref, alt, mother);
-            ArrayList<Genotype> possibleFatherGenotypes = createAllThreeGenotypes(ref, alt, father);
-            ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(ref, alt, child);
-
-            double bestConfigurationLikelihood = 0.0;
-            double bestPrior = 0.0;
-            Genotype bestMotherGenotype = mother;
-            Genotype bestFatherGenotype = father;
-            Genotype bestChildGenotype = child;
-
-            double norm = 0.0;
-
-            for (Genotype motherGenotype : possibleMotherGenotypes) {
-                for (Genotype fatherGenotype : possibleFatherGenotypes) {
-                    for (Genotype childGenotype : possibleChildGenotypes) {
-                        double prior = isMendelianViolation(ref, alt, motherGenotype, fatherGenotype, childGenotype) ? MENDELIAN_VIOLATION_PRIOR : 1.0 - 12*MENDELIAN_VIOLATION_PRIOR;
-                        double configurationLikelihood = computeTransmissionLikelihoodOfGenotypeConfiguration(motherGenotype, fatherGenotype, childGenotype);
-                        norm += prior*configurationLikelihood;
-
-                        if (prior*configurationLikelihood > bestPrior*bestConfigurationLikelihood) {
-                            bestConfigurationLikelihood = configurationLikelihood;
-                            bestPrior = prior;
-                            bestMotherGenotype = motherGenotype;
-                            bestFatherGenotype = fatherGenotype;
-                            bestChildGenotype = childGenotype;
-                        }
-                    }
+            else{
+                for(Sample familyMember : family){
+                     parents = familyMember.getParents();
+                     if(parents.size()>0){
+                        if(family.containsAll(parents))
+                            this.trios.add(familyMember);
+                        else
+                            logger.info(String.format("Caution: Family %s is not a trio; At the moment Phase By Transmission only supports trios. Family skipped.",familyID));
+                        break;
+                     }
                 }
             }
 
-            if (!(bestMotherGenotype.isHet() && bestFatherGenotype.isHet() && bestChildGenotype.isHet())) {
-                Map<String, Object> attributes = new HashMap<String, Object>();
-                attributes.putAll(bestChildGenotype.getAttributes());
-                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
-                bestChildGenotype = Genotype.modifyAttributes(bestChildGenotype, attributes);
+        }
 
-                finalGenotypes = getPhasedGenotypes(bestMotherGenotype, bestFatherGenotype, bestChildGenotype);
+
+
+    }
+
+    private void buildMatrices(){
+        mvCountMatrix = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>>(Genotype.Type.class);
+        transmissionMatrix = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>>(Genotype.Type.class);
+        for(Genotype.Type mother : Genotype.Type.values()){
+           mvCountMatrix.put(mother,new EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>(Genotype.Type.class));
+           transmissionMatrix.put(mother,new EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>(Genotype.Type.class));
+           for(Genotype.Type father : Genotype.Type.values()){
+               mvCountMatrix.get(mother).put(father,new EnumMap<Genotype.Type, Integer>(Genotype.Type.class));
+               transmissionMatrix.get(mother).put(father,new EnumMap<Genotype.Type,TrioPhase>(Genotype.Type.class));
+                for(Genotype.Type child : Genotype.Type.values()){
+                    mvCountMatrix.get(mother).get(father).put(child, getCombinationMVCount(mother, father, child));
+                    transmissionMatrix.get(mother).get(father).put(child,new TrioPhase(mother,father,child));
+                }
+            }
+        }
+    }
+
+    private int getCombinationMVCount(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+
+        //Child is no call => No MV
+        if(child == Genotype.Type.NO_CALL || child == Genotype.Type.UNAVAILABLE)
+            return 0;
+        //Add parents with genotypes for the evaluation
+        ArrayList<Genotype.Type> parents = new ArrayList<Genotype.Type>();
+        if (!(mother == Genotype.Type.NO_CALL || mother == Genotype.Type.UNAVAILABLE))
+            parents.add(mother);
+        if (!(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE))
+            parents.add(father);
+
+        //Both parents no calls => No MV
+        if (parents.isEmpty())
+            return 0;
+
+        //If at least one parent had a genotype, then count the number of ref and alt alleles that can be passed
+        int parentsNumRefAlleles = 0;
+        int parentsNumAltAlleles = 0;
+
+        for(Genotype.Type parent : parents){
+            if(parent == Genotype.Type.HOM_REF){
+                parentsNumRefAlleles++;
+            }
+            else if(parent == Genotype.Type.HET){
+                parentsNumRefAlleles++;
+                parentsNumAltAlleles++;
+            }
+            else if(parent == Genotype.Type.HOM_VAR){
+                parentsNumAltAlleles++;
             }
         }
 
-        return finalGenotypes;
+        //Case Child is HomRef
+        if(child == Genotype.Type.HOM_REF){
+            if(parentsNumRefAlleles == parents.size())
+                return 0;
+            else return (parents.size()-parentsNumRefAlleles);
+        }
+
+        //Case child is HomVar
+        if(child == Genotype.Type.HOM_VAR){
+            if(parentsNumAltAlleles == parents.size())
+                return 0;
+            else return parents.size()-parentsNumAltAlleles;
+        }
+
+        //Case child is Het
+        if(child == Genotype.Type.HET && ((parentsNumRefAlleles > 0 && parentsNumAltAlleles > 0) || parents.size()<2))
+            return 0;
+
+        //MV
+        return 1;
+    }
+
+    private Double getCombinationPrior(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+
+        double nonMVPrior = 1.0 - 12*MENDELIAN_VIOLATION_PRIOR;
+
+        //Child is no call => No MV
+        if(child == Genotype.Type.NO_CALL || child == Genotype.Type.UNAVAILABLE)
+            return nonMVPrior;
+        //Add parents with genotypes for the evaluation
+        ArrayList<Genotype.Type> parents = new ArrayList<Genotype.Type>();
+        if (!(mother == Genotype.Type.NO_CALL || mother == Genotype.Type.UNAVAILABLE))
+            parents.add(mother);
+        if (!(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE))
+            parents.add(father);
+
+        //Both parents no calls => No MV
+        if (parents.isEmpty())
+            return nonMVPrior;
+
+        //If at least one parent had a genotype, then count the number of ref and alt alleles that can be passed
+        int parentsNumRefAlleles = 0;
+        int parentsNumAltAlleles = 0;
+
+        for(Genotype.Type parent : parents){
+            if(parent == Genotype.Type.HOM_REF){
+                parentsNumRefAlleles++;
+            }
+            else if(parent == Genotype.Type.HET){
+                parentsNumRefAlleles++;
+                parentsNumAltAlleles++;
+            }
+            else if(parent == Genotype.Type.HOM_VAR){
+                parentsNumAltAlleles++;
+            }
+        }
+
+        //Case Child is HomRef
+        if(child == Genotype.Type.HOM_REF){
+            if(parentsNumRefAlleles == parents.size())
+                return nonMVPrior;
+            else return Math.pow(MENDELIAN_VIOLATION_PRIOR, parents.size()-parentsNumRefAlleles);
+        }
+
+        //Case child is HomVar
+        if(child == Genotype.Type.HOM_VAR){
+            if(parentsNumAltAlleles == parents.size())
+                return nonMVPrior;
+            else return Math.pow(MENDELIAN_VIOLATION_PRIOR, parents.size()-parentsNumAltAlleles);
+        }
+
+        //Case child is Het
+        if(child == Genotype.Type.HET && ((parentsNumRefAlleles > 0 && parentsNumAltAlleles > 0) || parents.size()<2))
+            return nonMVPrior;
+
+        //MV
+        return MENDELIAN_VIOLATION_PRIOR;
+    }
+
+    private int countFamilyGenotypeDiff(Genotype.Type motherOriginal,Genotype.Type fatherOriginal,Genotype.Type childOriginal,Genotype.Type motherNew,Genotype.Type fatherNew,Genotype.Type childNew){
+        int count = 0;
+        if(motherOriginal!=motherNew)
+            count++;
+        if(fatherOriginal!=fatherNew)
+            count++;
+        if(childOriginal!=childNew)
+            count++;
+        return count;
+    }
+
+
+    private boolean phaseTrioGenotypes(Allele ref, Allele alt, Genotype mother, Genotype father, Genotype child,ArrayList<Genotype> finalGenotypes) {
+
+        //For now, only consider trios with complete information
+        //TODO: Phasing of trios with missing information
+        if(!(mother.isCalled() && father.isCalled() && child.isCalled())) {
+            finalGenotypes.add(mother);
+            finalGenotypes.add(father);
+            finalGenotypes.add(child);
+            return false;
+        }
+
+        //Get the PL
+        Map<Genotype.Type,Double> motherLikelihoods = mother.getLikelihoods().getAsMap(true);
+        Map<Genotype.Type,Double> fatherLikelihoods = father.getLikelihoods().getAsMap(true);
+        Map<Genotype.Type,Double> childLikelihoods = child.getLikelihoods().getAsMap(true);
+
+        //Prior vars
+        double bestConfigurationLikelihood = 0.0;
+        double norm = 0.0;
+        boolean isMV = false;
+        int bestConfigurationGenotypeDiffs=4;
+        Genotype.Type bestMotherGenotype = mother.getType();
+        Genotype.Type bestFatherGenotype = father.getType();
+        Genotype.Type bestChildGenotype = child.getType();
+
+        //Get the most likely combination
+        int mvCount;
+        double configurationLikelihood;
+        int configurationGenotypeDiffs;
+        for(Map.Entry<Genotype.Type,Double> motherGenotype : motherLikelihoods.entrySet()){
+            for(Map.Entry<Genotype.Type,Double> fatherGenotype : fatherLikelihoods.entrySet()){
+                for(Map.Entry<Genotype.Type,Double> childGenotype : childLikelihoods.entrySet()){
+                    mvCount = mvCountMatrix.get(motherGenotype.getKey()).get(fatherGenotype.getKey()).get(childGenotype.getKey());
+                    configurationLikelihood =  mvCount>0 ? Math.pow(MENDELIAN_VIOLATION_PRIOR,mvCount)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue() : (1.0-12*MENDELIAN_VIOLATION_PRIOR)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue();
+                    norm += configurationLikelihood;
+                    configurationGenotypeDiffs = countFamilyGenotypeDiff(mother.getType(),father.getType(),child.getType(),motherGenotype.getKey(),fatherGenotype.getKey(),childGenotype.getKey());
+                    //Keep this combination if
+                    //It has a better likelihood
+                    //Or it has the same likelihood but requires less changes from original genotypes
+                    if ((configurationLikelihood > bestConfigurationLikelihood) ||
+                            (configurationLikelihood == bestConfigurationLikelihood && configurationGenotypeDiffs < bestConfigurationGenotypeDiffs)) {
+                        bestConfigurationLikelihood = configurationLikelihood;
+                        bestMotherGenotype = motherGenotype.getKey();
+                        bestFatherGenotype = fatherGenotype.getKey();
+                        bestChildGenotype = childGenotype.getKey();
+                        isMV = mvCount>0;
+                        bestConfigurationGenotypeDiffs=configurationGenotypeDiffs;
+                    }
+                }
+            }
+        }
+
+        //Get the phased alleles for the genotype configuration
+        TrioPhase phasedTrioGenotypes = transmissionMatrix.get(bestMotherGenotype).get(bestFatherGenotype).get(bestChildGenotype);
+
+        //Return the phased genotypes
+        phasedTrioGenotypes.getPhasedGenotypes(ref,alt,mother,father,child,MathUtils.probabilityToPhredScale(1-(bestConfigurationLikelihood / norm)),finalGenotypes);
+        return isMV;
+
     }
 
     /**
@@ -292,18 +576,34 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
      * @return null
      */
     @Override
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public HashMap<Byte,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+
+        //Local cars to avoid lookups on increment
+        int numTrioGenotypesCalled = 0;
+        int numTrioGenotypesNoCall = 0;
+        int numTrioGenotypesPhased = 0;
+        int numHet = 0 ;
+        int numHetHetHet = 0;
+        int numMVs = 0;
+
         if (tracker != null) {
             VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
 
             Map<String, Genotype> genotypeMap = vc.getGenotypes();
 
-            for (Trio trio : trios) {
-                Genotype mother = vc.getGenotype(trio.getMother());
-                Genotype father = vc.getGenotype(trio.getFather());
-                Genotype child = vc.getGenotype(trio.getChild());
+            boolean isMV;
 
-                ArrayList<Genotype> trioGenotypes = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child);
+            for (Sample sample : trios) {
+                Genotype mother = vc.getGenotype(sample.getMaternalID());
+                Genotype father = vc.getGenotype(sample.getPaternalID());
+                Genotype child = vc.getGenotype(sample.getID());
+
+                //Skip trios where any of the genotype is missing in the variant context
+                if(mother == null || father == null | child == null)
+                    continue;
+
+                ArrayList<Genotype> trioGenotypes = new ArrayList<Genotype>(3);
+                isMV = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child,trioGenotypes);
 
                 Genotype phasedMother = trioGenotypes.get(0);
                 Genotype phasedFather = trioGenotypes.get(1);
@@ -312,14 +612,47 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 genotypeMap.put(phasedMother.getSampleName(), phasedMother);
                 genotypeMap.put(phasedFather.getSampleName(), phasedFather);
                 genotypeMap.put(phasedChild.getSampleName(), phasedChild);
+
+                //Increment metrics counters
+                if(phasedMother.isCalled() && phasedFather.isCalled() && phasedChild.isCalled()){
+                   numTrioGenotypesCalled++;
+                   if(phasedMother.isPhased())
+                       numTrioGenotypesPhased++;
+
+                    if(phasedMother.isHet() || phasedFather.isHet() || phasedChild.isHet()){
+                        numHet++;
+                        if(phasedMother.isHet() && phasedFather.isHet() && phasedChild.isHet()){
+                            numHetHetHet++;
+                        }else if(!phasedMother.isPhased()){
+                            int x =9;
+                        }
+                    }
+
+                    if(isMV){
+                        numMVs++;
+                        if(mvFile != null)
+                            mvFile.println(String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString()));
+                    }
+                }else{
+                    numTrioGenotypesNoCall++;
+                }
+
             }
+
 
             VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeMap);
 
             vcfWriter.add(newvc);
         }
 
-        return null;
+        HashMap<Byte,Integer> metricsCounters = new HashMap<Byte, Integer>(5);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_CALLED,numTrioGenotypesCalled);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_NOCALL,numTrioGenotypesNoCall);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_PHASED,numTrioGenotypesPhased);
+        metricsCounters.put(NUM_HET,numHet);
+        metricsCounters.put(NUM_HET_HET_HET,numHetHetHet);
+        metricsCounters.put(NUM_VIOLATIONS,numMVs);
+        return metricsCounters;
     }
 
     /**
@@ -328,8 +661,15 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
      * @return Initial value of reduce.
      */
     @Override
-    public Integer reduceInit() {
-        return null;
+    public HashMap<Byte,Integer> reduceInit() {
+        HashMap<Byte,Integer> metricsCounters = new HashMap<Byte, Integer>(5);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_CALLED,0);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_NOCALL,0);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_PHASED,0);
+        metricsCounters.put(NUM_HET,0);
+        metricsCounters.put(NUM_HET_HET_HET,0);
+        metricsCounters.put(NUM_VIOLATIONS,0);
+        return metricsCounters;
     }
 
     /**
@@ -340,7 +680,24 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
      * @return accumulator with result of the map taken into account.
      */
     @Override
-    public Integer reduce(Integer value, Integer sum) {
-        return null;
+    public HashMap<Byte,Integer> reduce(HashMap<Byte,Integer> value, HashMap<Byte,Integer> sum) {
+        sum.put(NUM_TRIO_GENOTYPES_CALLED,value.get(NUM_TRIO_GENOTYPES_CALLED)+sum.get(NUM_TRIO_GENOTYPES_CALLED));
+        sum.put(NUM_TRIO_GENOTYPES_NOCALL,value.get(NUM_TRIO_GENOTYPES_NOCALL)+sum.get(NUM_TRIO_GENOTYPES_NOCALL));
+        sum.put(NUM_TRIO_GENOTYPES_PHASED,value.get(NUM_TRIO_GENOTYPES_PHASED)+sum.get(NUM_TRIO_GENOTYPES_PHASED));
+        sum.put(NUM_HET,value.get(NUM_HET)+sum.get(NUM_HET));
+        sum.put(NUM_HET_HET_HET,value.get(NUM_HET_HET_HET)+sum.get(NUM_HET_HET_HET));
+        sum.put(NUM_VIOLATIONS,value.get(NUM_VIOLATIONS)+sum.get(NUM_VIOLATIONS));
+        return sum;
+    }
+
+
+    @Override
+    public void onTraversalDone(HashMap<Byte,Integer> result) {
+        logger.info("Number of complete trio-genotypes: " + result.get(NUM_TRIO_GENOTYPES_CALLED));
+        logger.info("Number of trio-genotypes containing no call(s): " + result.get(NUM_TRIO_GENOTYPES_NOCALL));
+        logger.info("Number of trio-genotypes phased: " + result.get(NUM_TRIO_GENOTYPES_PHASED));
+        logger.info("Number of resulting Hom/Hom/Hom trios: " + result.get(NUM_HET));
+        logger.info("Number of resulting Het/Het/Het trios: " + result.get(NUM_HET_HET_HET));
+        logger.info("Number of remaining mendelian violations: " + result.get(NUM_VIOLATIONS));
     }
 }
