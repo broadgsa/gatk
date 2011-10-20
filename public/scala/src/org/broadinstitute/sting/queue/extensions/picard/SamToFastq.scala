@@ -58,6 +58,7 @@ class SamToFastq extends org.broadinstitute.sting.queue.function.JavaCommandLine
 
   override def inputBams = input
   override def outputBam = null
+  this.sortOrder = null
 
   override def commandLine = super.commandLine +
        " FASTQ=" + fastq +
