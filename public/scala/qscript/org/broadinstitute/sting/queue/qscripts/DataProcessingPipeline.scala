@@ -162,7 +162,7 @@ class DataProcessingPipeline extends QScript {
     var index = 1
     for (bam <- bams) {
       // first revert the BAM file to the original qualities
-      val revertedBAM = revertBAM(bam)
+      val revertedBAM = revertBAM(bam, true)
       val readSortedBam = swapExt(revertedBAM, ".bam", "." + index + ".sorted.bam" )
       val saiFile1 = swapExt(bam, ".bam", "." + index + ".1.sai")
       val saiFile2 = swapExt(bam, ".bam", "." + index + ".2.sai")
@@ -196,16 +196,16 @@ class DataProcessingPipeline extends QScript {
       ConsensusDeterminationModel.USE_READS
   }
 
-  def revertBams(bams: List[File]): List[File] = {
+  def revertBams(bams: List[File], removeAlignmentInformation: Boolean): List[File] = {
     var revertedBAMList: List[File] = List()
     for (bam <- bams)
-      revertedBAMList :+= revertBAM(bam)
+      revertedBAMList :+= revertBAM(bam, removeAlignmentInformation)
     return revertedBAMList
   }
 
-  def revertBAM(bam: File): File = {
+  def revertBAM(bam: File, removeAlignmentInformation: Boolean): File = {
     val revertedBAM = swapExt(bam, ".bam", ".reverted.bam")
-    add(revert(bam, revertedBAM))
+    add(revert(bam, revertedBAM, removeAlignmentInformation))
     return revertedBAM
   }
 
@@ -226,7 +226,7 @@ class DataProcessingPipeline extends QScript {
     if (nContigs < 0)
      nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
-    val realignedBAMs = if (useBWApe || useBWAse) {performAlignment(bams)} else {revertBams(bams)}
+    val realignedBAMs = if (useBWApe || useBWAse) {performAlignment(bams)} else {revertBams(bams, false)}
 
     // generate a BAM file per sample joining all per lane files if necessary
     val sampleBAMFiles: Map[String, List[File]] = createSampleFiles(bams, realignedBAMs)
@@ -423,9 +423,10 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  case class revert (inBam: File, outBam: File) extends RevertSam with ExternalCommonArgs {
+  case class revert (inBam: File, outBam: File, removeAlignmentInfo: Boolean) extends RevertSam with ExternalCommonArgs {
     this.output = outBam
     this.input :+= inBam
+    this.removeAlignmentInformation = removeAlignmentInfo;
     this.analysisName = queueLogDir + outBam + "revert"
     this.jobName = queueLogDir + outBam + ".revert"
 
