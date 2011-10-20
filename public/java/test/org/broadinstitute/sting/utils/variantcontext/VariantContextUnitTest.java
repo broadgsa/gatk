@@ -252,6 +252,29 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(vc.getSampleNames().size(), 0);
     }
 
+    @Test
+    public void testCreatingPartiallyCalledGenotype() {
+        List<Allele> alleles = Arrays.asList(Aref, C);
+        Genotype g = new Genotype("foo", Arrays.asList(C, Allele.NO_CALL), 10);
+        VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, alleles, Arrays.asList(g));
+
+        Assert.assertTrue(vc.isSNP());
+        Assert.assertEquals(vc.getNAlleles(), 2);
+        Assert.assertTrue(vc.hasGenotypes());
+        Assert.assertFalse(vc.isMonomorphic());
+        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertEquals(vc.getGenotype("foo"), g);
+        Assert.assertEquals(vc.getChromosomeCount(), 2); // we know that there are 2 chromosomes, even though one isn't called
+        Assert.assertEquals(vc.getChromosomeCount(Aref), 0);
+        Assert.assertEquals(vc.getChromosomeCount(C), 1);
+        Assert.assertFalse(vc.getGenotype("foo").isHet());
+        Assert.assertFalse(vc.getGenotype("foo").isHom());
+        Assert.assertFalse(vc.getGenotype("foo").isNoCall());
+        Assert.assertFalse(vc.getGenotype("foo").isHom());
+        Assert.assertTrue(vc.getGenotype("foo").isMixed());
+        Assert.assertEquals(vc.getGenotype("foo").getType(), Genotype.Type.MIXED);
+    }
+
     @Test (expectedExceptions = IllegalArgumentException.class)
     public void testBadConstructorArgs1() {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATCref));
