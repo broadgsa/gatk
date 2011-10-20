@@ -25,8 +25,10 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.jgrapht.util.MathUtil;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -98,6 +100,7 @@ public class GenotypeLikelihoods {
         return likelihoodsAsString_PLs;
     }
 
+    //Return genotype likelihoods as an EnumMap with Genotypes as keys and likelihoods as values
     public EnumMap<Genotype.Type,Double> getAsMap(boolean normalizeFromLog10){
         //Make sure that the log10likelihoods are set
         double[] likelihoods = normalizeFromLog10 ? MathUtils.normalizeFromLog10(getAsVector()) : getAsVector();
@@ -106,6 +109,32 @@ public class GenotypeLikelihoods {
         likelihoodsMap.put(Genotype.Type.HET,likelihoods[Genotype.Type.HET.ordinal()-1]);
         likelihoodsMap.put(Genotype.Type.HOM_VAR, likelihoods[Genotype.Type.HOM_VAR.ordinal() - 1]);
         return likelihoodsMap;
+    }
+
+    //Return the log10 Genotype Quality (GQ) for the given genotype
+    public double getLog10GQ(Genotype.Type genotype){
+
+        double qual = Double.NEGATIVE_INFINITY;
+        EnumMap<Genotype.Type,Double> likelihoods = getAsMap(false);
+        for(Map.Entry<Genotype.Type,Double> likelihood : likelihoods.entrySet()){
+            if(likelihood.getKey() == genotype)
+                continue;
+            if(likelihood.getValue() > qual)
+                qual = likelihood.getValue();
+
+        }
+
+        qual = likelihoods.get(genotype) - qual;
+
+        if (qual < 0) {
+                // QUAL can be negative if the chosen genotype is not the most likely one individually.
+                // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen one
+                double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
+                double chosenGenotype = normalized[genotype.ordinal()-1];
+                qual = -1.0 * Math.log10(1.0 - chosenGenotype);
+        }
+
+        return qual;
     }
 
     private final static double[] parsePLsIntoLikelihoods(String likelihoodsAsString_PLs) {

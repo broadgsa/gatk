@@ -266,6 +266,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
        Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
        genotypeAttributes.putAll(genotype.getAttributes());
        genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, transmissionProb);
+       genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
 
        boolean isPhased = true;
 
@@ -274,7 +275,6 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         //If unphased, return original genotype
         for(AlleleType allele : phasedAlleles){
             if(allele == AlleleType.NO_CALL){
-                 genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
                 return genotype;
             }
             //Otherwise add the appropriate allele
@@ -293,13 +293,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 alleles.add(altAllele);
             }
         }
-       //TODO: Recalculate GQ field for the new genotype
-       //Remove the GQ attribute as it needs to be recalculated for the new genotype assignment
-       //double[] likelihoods = genotype.getLikelihoods().getAsVector();
 
-       //genotypeAttributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,likelihoods[1]);
-       genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
-       return new Genotype(genotype.getSampleName(), alleles, genotype.getNegLog10PError(), null, genotype.getAttributes(), isPhased);
+       return new Genotype(genotype.getSampleName(), alleles, genotype.getLikelihoods().getLog10GQ(genotype.getType()), null, genotype.getAttributes(), isPhased);
    }
 
 
