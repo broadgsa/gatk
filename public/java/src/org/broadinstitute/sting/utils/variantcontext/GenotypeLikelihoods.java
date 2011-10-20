@@ -25,7 +25,11 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 public class GenotypeLikelihoods {
     public static final boolean CAP_PLS = false;
@@ -92,6 +96,16 @@ public class GenotypeLikelihoods {
         }
 
         return likelihoodsAsString_PLs;
+    }
+
+    public EnumMap<Genotype.Type,Double> getAsMap(boolean normalizeFromLog10){
+        //Make sure that the log10likelihoods are set
+        double[] likelihoods = normalizeFromLog10 ? MathUtils.normalizeFromLog10(getAsVector()) : getAsVector();
+        EnumMap<Genotype.Type,Double> likelihoodsMap = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
+        likelihoodsMap.put(Genotype.Type.HOM_REF,likelihoods[Genotype.Type.HOM_REF.ordinal()-1]);
+        likelihoodsMap.put(Genotype.Type.HET,likelihoods[Genotype.Type.HET.ordinal()-1]);
+        likelihoodsMap.put(Genotype.Type.HOM_VAR, likelihoods[Genotype.Type.HOM_VAR.ordinal() - 1]);
+        return likelihoodsMap;
     }
 
     private final static double[] parsePLsIntoLikelihoods(String likelihoodsAsString_PLs) {
