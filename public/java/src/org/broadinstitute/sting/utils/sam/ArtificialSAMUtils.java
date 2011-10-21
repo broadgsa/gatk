@@ -134,6 +134,7 @@ public class ArtificialSAMUtils {
     /**
      * Create an artificial read based on the parameters.  The cigar string will be *M, where * is the length of the read
      *
+     *
      * @param header         the SAM header to associate the read with
      * @param name           the name of the read
      * @param refIndex       the reference index, i.e. what chromosome to associate it with
@@ -142,11 +143,11 @@ public class ArtificialSAMUtils {
      *
      * @return the artificial read
      */
-    public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
+    public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, int length) {
         if( (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
             (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
             throw new ReviewedStingException("Invalid alignment start for artificial read, start = " + alignmentStart);
-        SAMRecord record = new GATKSAMRecord(header);
+        GATKSAMRecord record = new GATKSAMRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
         record.setAlignmentStart(alignmentStart);
@@ -166,6 +167,7 @@ public class ArtificialSAMUtils {
         if (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
             record.setReadUnmappedFlag(true);
         }
+
         return record;
     }
 
@@ -181,16 +183,17 @@ public class ArtificialSAMUtils {
      *
      * @return the artificial read
      */
-    public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual ) {
+    public static GATKSAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual ) {
         if (bases.length != qual.length) {
             throw new ReviewedStingException("Passed in read string is different length then the quality array");
         }
-        SAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
+        GATKSAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);
         rec.setBaseQualities(qual);
         if (refIndex == -1) {
             rec.setReadUnmappedFlag(true);
         }
+
         return rec;
     }
 

@@ -4,6 +4,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
@@ -82,16 +83,16 @@ public class PileupElement {
     // --------------------------------------------------------------------------
 
     public boolean isReducedRead() {
-        return ReadUtils.isReducedRead(getRead());
+        return ((GATKSAMRecord)read).isReducedRead();
     }
 
     public int getReducedCount() {
         if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced count for non-reduced read " + getRead().getReadName());
-        return ReadUtils.getReducedCount(getRead(), offset);
+        return ((GATKSAMRecord)read).getReducedCount(offset);
     }
 
     public byte getReducedQual() {
         if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced qual for non-reduced read " + getRead().getReadName());
-        return ReadUtils.getReducedQual(getRead(), offset);
+        return getQual();
     }
 }

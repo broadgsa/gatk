@@ -45,9 +45,11 @@ public class GATKSAMRecord extends BAMRecord {
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
+    private byte[] reducedReadCounts = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
+    private boolean retrievedReduceReadCounts = false;
 
     // These temporary attributes were added here to make life easier for
     // certain algorithms by providing a way to label or attach arbitrary data to
@@ -60,8 +62,27 @@ public class GATKSAMRecord extends BAMRecord {
      * @param header
      */
     public GATKSAMRecord(final SAMFileHeader header) {
-        super(header, SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX, SAMRecord.NO_ALIGNMENT_START,
-                (short)0, (short)255, 0, 1, 0, 1, 0, 0, 0, null);
+        this(new SAMRecord(header));
+    }
+
+    /**
+     * HACK TO CREATE GATKSAMRECORD BASED ONLY A SAMRECORD FOR TESTING PURPOSES ONLY
+     * @param read
+     */
+    public GATKSAMRecord(final SAMRecord read) {
+        super(read.getHeader(), read.getMateReferenceIndex(),
+                read.getAlignmentStart(),
+                read.getReadName() != null ? (short)read.getReadNameLength() : 0,
+                (short)read.getMappingQuality(),
+                0,
+                read.getCigarLength(),
+                read.getFlags(),
+                read.getReadLength(),
+                read.getMateReferenceIndex(),
+                read.getMateAlignmentStart(),
+                read.getInferredInsertSize(),
+                new byte[]{});
+        super.clearAttributes();
     }
 
     public GATKSAMRecord(final SAMFileHeader header,
@@ -119,6 +140,29 @@ public class GATKSAMRecord extends BAMRecord {
     public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
         mReadGroup = readGroup;
         retrievedReadGroup = true;
+    }
+
+    //
+    //
+    // Reduced read functions
+    //
+    //
+
+    public byte[] getReducedReadCounts() {
+        if ( ! retrievedReduceReadCounts ) {
+            reducedReadCounts = getByteArrayAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+            retrievedReduceReadCounts = true;
+        }
+
+        return reducedReadCounts;
+    }
+
+    public boolean isReducedRead() {
+        return getReducedReadCounts() != null;
+    }
+
+    public final byte getReducedCount(final int i) {
+        return getReducedReadCounts()[i];
     }
 
     /**

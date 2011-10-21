@@ -52,24 +52,6 @@ public class ReadUtils {
     // ----------------------------------------------------------------------------------------------------
 
     public static final String REDUCED_READ_QUALITY_TAG = "RQ";
-    public static final String REDUCED_READ_CONSENSUS_COUNTS_TAG = "CC";
-
-    public final static byte[] getReducedReadQualityTagValue(final SAMRecord read) {
-        // TODO -- warning of performance problem.  Should be cached in GATKSAMRecord
-        return read.getByteArrayAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
-    }
-
-    public final static boolean isReducedRead(final SAMRecord read) {
-        return getReducedReadQualityTagValue(read) != null;
-    }
-
-    public final static byte getReducedQual(final SAMRecord read, final int i) {
-        return read.getBaseQualities()[i];
-    }
-
-    public final static byte getReducedCount(final SAMRecord read, final int i) {
-        return getReducedReadQualityTagValue(read)[i];
-    }
 
     // ----------------------------------------------------------------------------------------------------
     //
