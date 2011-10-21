@@ -57,7 +57,7 @@ public class GATKSamRecordFactory implements SAMRecordFactory {
                                      final int mateAlignmentStart,
                                      final int insertSize,
                                      final byte[] variableLengthBlock) {
-        return new GATKSamRecord(header,
+        return new GATKSAMRecord(header,
                 referenceSequenceIndex,
                 alignmentStart,
                 readNameLength,

@@ -39,7 +39,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSamRecord;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -398,7 +398,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         //compute all covariate values for this read
         final Comparable[][] covariateValues_offset_x_covar =
-            RecalDataManager.computeCovariates((GATKSamRecord) read, requestedCovariates);
+            RecalDataManager.computeCovariates((GATKSAMRecord) read, requestedCovariates);
 
         // For each base in the read
         for( int offset = 0; offset < read.getReadLength(); offset++ ) {

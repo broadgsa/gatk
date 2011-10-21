@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2011, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
@@ -7,23 +31,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author ebanks
+ * @author ebanks, depristo
  * GATKSAMRecord
  *
- * this class extends the samtools SAMRecord class and caches important
+ * this class extends the samtools BAMRecord class (and SAMRecord) and caches important
  * (and oft-accessed) data that's not already cached by the SAMRecord class
  *
  * IMPORTANT NOTE: Because ReadGroups are not set through the SAMRecord,
  *   if they are ever modified externally then one must also invoke the
  *   setReadGroup() method here to ensure that the cache is kept up-to-date.
- *
- * 13 Oct 2010 - mhanna - this class is fundamentally flawed: it uses a decorator
- *                        pattern to wrap a heavyweight object, which can lead
- *                        to heinous side effects if the wrapping is not carefully
- *                        done.  Hopefully SAMRecord will become an interface and
- *                        this will eventually be fixed.
  */
-public class GATKSamRecord extends BAMRecord {
+public class GATKSAMRecord extends BAMRecord {
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
@@ -41,13 +59,12 @@ public class GATKSamRecord extends BAMRecord {
      * HACK TO CREATE GATKSAMRECORD WITH ONLY A HEADER FOR TESTING PURPOSES ONLY
      * @param header
      */
-    public GATKSamRecord(final SAMFileHeader header) {
+    public GATKSAMRecord(final SAMFileHeader header) {
         super(header, SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX, SAMRecord.NO_ALIGNMENT_START,
                 (short)0, (short)255, 0, 1, 0, 1, 0, 0, 0, null);
     }
 
-
-    public GATKSamRecord(final SAMFileHeader header,
+    public GATKSAMRecord(final SAMFileHeader header,
                          final int referenceSequenceIndex,
                          final int alignmentStart,
                          final short readNameLength,
@@ -91,6 +108,10 @@ public class GATKSamRecord extends BAMRecord {
         return mReadGroup;
     }
 
+    /**
+     * Efficient caching accessor that returns the GATK NGSPlatform of this read
+     * @return
+     */
     public NGSPlatform getNGSPlatform() {
         return getReadGroup().getNGSPlatform();
     }
@@ -154,11 +175,15 @@ public class GATKSamRecord extends BAMRecord {
     }
 
     @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
 
-        // note -- this forbids a GATKSAMRecord being equal to its underlying SAMRecord
-        if (!(o instanceof GATKSamRecord)) return false;
+        if (!(o instanceof GATKSAMRecord)) return false;
 
         // note that we do not consider the GATKSAMRecord internal state at all
         return super.equals(o);

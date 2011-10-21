@@ -55,7 +55,7 @@ public class ReadUtils {
     public static final String REDUCED_READ_CONSENSUS_COUNTS_TAG = "CC";
 
     public final static byte[] getReducedReadQualityTagValue(final SAMRecord read) {
-        // TODO -- warning of performance problem.  Should be cached in GATKSamRecord
+        // TODO -- warning of performance problem.  Should be cached in GATKSAMRecord
         return read.getByteArrayAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
     }
 
@@ -260,10 +260,10 @@ public class ReadUtils {
      * @param adaptorLength  length of adaptor sequence
      * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
      */
-    public static GATKSamRecord hardClipAdaptorSequence(final SAMRecord rec, int adaptorLength) {
+    public static GATKSAMRecord hardClipAdaptorSequence(final SAMRecord rec, int adaptorLength) {
 
         Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(rec, adaptorLength);
-        GATKSamRecord result = (GATKSamRecord)rec;
+        GATKSAMRecord result = (GATKSAMRecord)rec;
 
         if ( adaptorBoundaries != null ) {
             if ( rec.getReadNegativeStrandFlag() && adaptorBoundaries.second >= rec.getAlignmentStart() && adaptorBoundaries.first < rec.getAlignmentEnd() )
@@ -276,7 +276,7 @@ public class ReadUtils {
     }
 
     // return true if the read needs to be completely clipped
-    private static GATKSamRecord hardClipStartOfRead(SAMRecord oldRec, int stopPosition) {
+    private static GATKSAMRecord hardClipStartOfRead(SAMRecord oldRec, int stopPosition) {
 
         if ( stopPosition >= oldRec.getAlignmentEnd() ) {
             // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
@@ -284,9 +284,9 @@ public class ReadUtils {
             return null;
         }
 
-        GATKSamRecord rec;
+        GATKSAMRecord rec;
         try {
-            rec = (GATKSamRecord)oldRec.clone();
+            rec = (GATKSAMRecord)oldRec.clone();
         } catch (Exception e) {
             return null;
         }
@@ -356,7 +356,7 @@ public class ReadUtils {
         return rec;
     }
 
-    private static GATKSamRecord hardClipEndOfRead(SAMRecord oldRec, int startPosition) {
+    private static GATKSAMRecord hardClipEndOfRead(SAMRecord oldRec, int startPosition) {
 
         if ( startPosition <= oldRec.getAlignmentStart() ) {
             // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
@@ -364,9 +364,9 @@ public class ReadUtils {
             return null;
         }
 
-        GATKSamRecord rec;
+        GATKSAMRecord rec;
         try {
-            rec = (GATKSamRecord)oldRec.clone();
+            rec = (GATKSAMRecord)oldRec.clone();
         } catch (Exception e) {
             return null;
         }
@@ -584,7 +584,7 @@ public class ReadUtils {
      * @param rec  original SAM record
      * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
      */
-    public static GATKSamRecord hardClipAdaptorSequence(final SAMRecord rec) {
+    public static GATKSAMRecord hardClipAdaptorSequence(final SAMRecord rec) {
         return hardClipAdaptorSequence(rec, DEFAULT_ADAPTOR_SIZE);
     }
 

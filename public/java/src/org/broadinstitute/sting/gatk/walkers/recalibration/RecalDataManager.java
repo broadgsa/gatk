@@ -36,7 +36,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
-import org.broadinstitute.sting.utils.sam.GATKSamRecord;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -229,7 +229,7 @@ public class RecalDataManager {
      * @param RAC The list of shared command line arguments
      */
     public static void parseSAMRecord( final SAMRecord read, final RecalibrationArgumentCollection RAC ) {
-        GATKSAMReadGroupRecord readGroup = ((GATKSamRecord)read).getReadGroup();
+        GATKSAMReadGroupRecord readGroup = ((GATKSAMRecord)read).getReadGroup();
 
         // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments
         if( readGroup == null ) {
@@ -243,7 +243,7 @@ public class RecalDataManager {
                 // There is no readGroup so defaulting to these values
                 readGroup = new GATKSAMReadGroupRecord( RAC.DEFAULT_READ_GROUP );
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
-                ((GATKSamRecord)read).setReadGroup( readGroup );
+                ((GATKSAMRecord)read).setReadGroup( readGroup );
             } else {
                 throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() );
             }
@@ -253,7 +253,7 @@ public class RecalDataManager {
             final String oldPlatform = readGroup.getPlatform();
             readGroup = new GATKSAMReadGroupRecord( RAC.FORCE_READ_GROUP );
             readGroup.setPlatform( oldPlatform );
-            ((GATKSamRecord)read).setReadGroup( readGroup );
+            ((GATKSAMRecord)read).setReadGroup( readGroup );
         }
 
         if( RAC.FORCE_PLATFORM != null && (readGroup.getPlatform() == null || !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM))) {
@@ -572,7 +572,7 @@ public class RecalDataManager {
      * value for the ith position in the read and the jth covariate in
      * reqeustedCovariates list.
      */
-     public static Comparable[][] computeCovariates(final GATKSamRecord gatkRead, final List<Covariate> requestedCovariates) {
+     public static Comparable[][] computeCovariates(final GATKSAMRecord gatkRead, final List<Covariate> requestedCovariates) {
          //compute all covariates for this read
          final List<Covariate> requestedCovariatesRef = requestedCovariates;
          final int numRequestedCovariates = requestedCovariatesRef.size();

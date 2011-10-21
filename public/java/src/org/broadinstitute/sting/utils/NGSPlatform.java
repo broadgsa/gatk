@@ -29,7 +29,7 @@ import net.sf.samtools.SAMRecord;
 
 /**
  * A canonical, master list of the standard NGS platforms.  These values
- * can be obtained (efficiently) from a GATKSamRecord object with the
+ * can be obtained (efficiently) from a GATKSAMRecord object with the
  * getNGSPlatform method.
  *
  * @author Mark DePristo
@@ -65,7 +65,7 @@ public enum NGSPlatform {
 
     /**
      * Convenience constructor -- calculates the NGSPlatfrom from a SAMRecord.
-     * Note you should not use this function if you have a GATKSamRecord -- use the
+     * Note you should not use this function if you have a GATKSAMRecord -- use the
      * accessor method instead.
      *
      * @param read

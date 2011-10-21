@@ -4,7 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSamRecord;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -71,7 +71,7 @@ public class CycleCovariate implements StandardCovariate {
         // Illumina, Solid, PacBio, and Complete Genomics
         //-----------------------------
 
-        final NGSPlatform ngsPlatform = ((GATKSamRecord)read).getNGSPlatform();
+        final NGSPlatform ngsPlatform = ((GATKSAMRecord)read).getNGSPlatform();
         if( DISCRETE_CYCLE_PLATFORMS.contains(ngsPlatform) ) {
             final int init;
             final int increment;
