@@ -98,13 +98,17 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // BUGBUG: We no longer support b36/hg18 because several of the necessary files aren't available aligned to those references
 
   val targetDataSets: Map[String, Target] = Map(
+    "NA12878_gold" -> new Target("NA12878.goldStandard", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/data/goldStandard.list"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** There is no gold standard for the gold standard **
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, lowPass, !exome, 391),
     "NA12878_wgs_b37" -> new Target("NA12878.HiSeq.WGS.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
-              new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "NA12878_wgs_decoy" -> new Target("NA12878.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37_decoy.NA12878.clean.dedup.recal.bam"),
-              new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "NA12878_wgs_hg18" -> new Target("NA12878.HiSeq.WGS.hg18", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
@@ -142,7 +146,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
     "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
-              new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
