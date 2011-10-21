@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.NGSPlatform;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +26,7 @@ import java.util.Map;
 public class GATKSamRecord extends BAMRecord {
     // the SAMRecord data we're caching
     private String mReadString = null;
-    private SAMReadGroupRecord mReadGroup = null;
+    private GATKSAMReadGroupRecord mReadGroup = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -81,17 +82,22 @@ public class GATKSamRecord extends BAMRecord {
     }
 
     @Override
-    public SAMReadGroupRecord getReadGroup() {
+    public GATKSAMReadGroupRecord getReadGroup() {
         if ( !retrievedReadGroup ) {
             SAMReadGroupRecord tempReadGroup = super.getReadGroup();
-            mReadGroup = (tempReadGroup == null ? tempReadGroup : new GATKSAMReadGroupRecord(tempReadGroup));
+            mReadGroup = (tempReadGroup == null ? null : new GATKSAMReadGroupRecord(tempReadGroup));
             retrievedReadGroup = true;
         }
         return mReadGroup;
     }
 
-    public void setReadGroup(SAMReadGroupRecord record) {
-        mReadGroup = record;
+    public NGSPlatform getNGSPlatform() {
+        return getReadGroup().getNGSPlatform();
+    }
+
+    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
+        mReadGroup = readGroup;
+        retrievedReadGroup = true;
     }
 
     /**
