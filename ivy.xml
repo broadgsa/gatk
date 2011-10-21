@@ -10,7 +10,7 @@
   <dependencies defaultconf="default">
     <dependency org="net.sf" name="sam" rev="latest.integration"/>
     <dependency org="net.sf" name="picard" rev="latest.integration"/>
-    <dependency org="edu.mit.broad" name="picard-private-parts" rev="latest.integration"/>
+<!--     <dependency org="edu.mit.broad" name="picard-private-parts" rev="latest.integration"/> -->
 
     <!-- Tribble -->
     <dependency org="org.broad" name="tribble" rev="latest.integration"/>
