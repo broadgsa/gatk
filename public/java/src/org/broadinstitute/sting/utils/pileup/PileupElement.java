@@ -13,7 +13,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  * Date: Apr 14, 2009
  * Time: 8:54:05 AM
  */
-public class PileupElement {
+public class PileupElement implements Comparable<PileupElement> {
     public static final byte DELETION_BASE = BaseUtils.D;
     public static final byte DELETION_QUAL = (byte) 16;
     public static final byte A_FOLLOWED_BY_INSERTION_BASE = (byte) 87;
@@ -74,6 +74,20 @@ public class PileupElement {
 
     protected byte getQual(final int offset) {
         return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
+    }
+
+    @Override
+    public int compareTo(final PileupElement pileupElement) {
+        if ( offset < pileupElement.offset )
+            return -1;
+        else if ( offset > pileupElement.offset )
+            return 1;
+        else if ( read.getAlignmentStart() < pileupElement.read.getAlignmentStart() )
+            return -1;
+        else if ( read.getAlignmentStart() > pileupElement.read.getAlignmentStart() )
+            return 1;
+        else
+            return 0;
     }
 
     // --------------------------------------------------------------------------

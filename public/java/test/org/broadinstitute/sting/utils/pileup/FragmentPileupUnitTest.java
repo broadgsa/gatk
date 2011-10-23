@@ -43,37 +43,48 @@ import java.util.*;
 public class FragmentPileupUnitTest extends BaseTest {
     private static SAMFileHeader header;
 
+    public final static List<SAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
+        SAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
+        SAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);
+
+        left.setReadPairedFlag(true);
+        right.setReadPairedFlag(true);
+
+        left.setProperPairFlag(true);
+        right.setProperPairFlag(true);
+
+        left.setFirstOfPairFlag(leftIsFirst);
+        right.setFirstOfPairFlag(! leftIsFirst);
+
+        left.setReadNegativeStrandFlag(leftIsNegative);
+        left.setMateNegativeStrandFlag(!leftIsNegative);
+        right.setReadNegativeStrandFlag(!leftIsNegative);
+        right.setMateNegativeStrandFlag(leftIsNegative);
+
+        left.setMateAlignmentStart(right.getAlignmentStart());
+        right.setMateAlignmentStart(left.getAlignmentStart());
+
+        left.setMateReferenceIndex(0);
+        right.setMateReferenceIndex(0);
+
+        int isize = rightStart + readLen - leftStart;
+        left.setInferredInsertSize(isize);
+        right.setInferredInsertSize(-isize);
+
+        return Arrays.asList(left, right);
+    }
+
     private class FragmentPileupTest extends TestDataProvider {
         List<TestState> states = new ArrayList<TestState>();
 
         private FragmentPileupTest(String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
             super(FragmentPileupTest.class, String.format("%s-leftIsFirst:%b-leftIsNegative:%b", name, leftIsFirst, leftIsNegative));
 
+            List<SAMRecord> pair = createPair(header, "readpair", readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
+            SAMRecord left = pair.get(0);
+            SAMRecord right = pair.get(1);
+
             for ( int pos = leftStart; pos < rightStart + readLen; pos++) {
-                SAMRecord left = ArtificialSAMUtils.createArtificialRead(header, "readpair", 0, leftStart, readLen);
-                SAMRecord right = ArtificialSAMUtils.createArtificialRead(header, "readpair", 0, rightStart, readLen);
-
-                left.setProperPairFlag(true);
-                right.setProperPairFlag(true);
-
-                left.setFirstOfPairFlag(leftIsFirst);
-                right.setFirstOfPairFlag(! leftIsFirst);
-
-                left.setReadNegativeStrandFlag(leftIsNegative);
-                left.setMateNegativeStrandFlag(!leftIsNegative);
-                right.setReadNegativeStrandFlag(!leftIsNegative);
-                right.setMateNegativeStrandFlag(leftIsNegative);
-
-                left.setMateAlignmentStart(right.getAlignmentStart());
-                right.setMateAlignmentStart(left.getAlignmentStart());
-
-                left.setMateReferenceIndex(0);
-                right.setMateReferenceIndex(0);
-
-                int isize = rightStart + readLen - leftStart;
-                left.setInferredInsertSize(isize);
-                right.setInferredInsertSize(-isize);
-
                 boolean posCoveredByLeft = pos >= left.getAlignmentStart() && pos <= left.getAlignmentEnd();
                 boolean posCoveredByRight = pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd();
 
@@ -138,7 +149,6 @@ public class FragmentPileupUnitTest extends BaseTest {
             Assert.assertEquals(fp.getOneReadPileup().size(), testState.shouldBeFragment ? 0 : 1);
         }
     }
-
 
     @BeforeTest
     public void setup() {
