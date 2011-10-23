@@ -68,16 +68,12 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     /**
      * Must be overridden by concrete subclasses
-     * @param tracker                         rod data
-     * @param ref                             reference context
      * @param GLs                             genotype likelihoods
      * @param Alleles                       Alleles corresponding to GLs
      * @param log10AlleleFrequencyPriors      priors
      * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
      */
-    protected abstract void getLog10PNonRef(RefMetaDataTracker tracker,
-                                            ReferenceContext ref,
-                                            Map<String, Genotype> GLs,  List<Allele> Alleles,
+    protected abstract void getLog10PNonRef(Map<String, Genotype> GLs,  List<Allele> Alleles,
                                             double[] log10AlleleFrequencyPriors,
                                             double[] log10AlleleFrequencyPosteriors);
 

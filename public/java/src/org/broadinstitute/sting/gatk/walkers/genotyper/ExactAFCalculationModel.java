@@ -51,9 +51,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public void getLog10PNonRef(RefMetaDataTracker tracker,
-                                ReferenceContext ref,
-                                Map<String, Genotype> GLs, List<Allele> alleles,
+    public void getLog10PNonRef(Map<String, Genotype> GLs, List<Allele> alleles,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();
