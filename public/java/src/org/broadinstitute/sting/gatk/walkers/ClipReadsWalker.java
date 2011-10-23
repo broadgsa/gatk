@@ -475,7 +475,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
     }
 
     public void onTraversalDone(ClippingData data) {
-        out.printf(data.toString());
+        if ( out != null )
+            out.printf(data.toString());
     }
 
     // --------------------------------------------------------------------------------------------------------------
