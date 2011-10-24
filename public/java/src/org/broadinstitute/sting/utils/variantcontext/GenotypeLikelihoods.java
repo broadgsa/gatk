@@ -111,8 +111,8 @@ public class GenotypeLikelihoods {
         return likelihoodsMap;
     }
 
-    //Return the log10 Genotype Quality (GQ) for the given genotype
-    public double getLog10GQ(Genotype.Type genotype){
+    //Return the neg log10 Genotype Quality (GQ) for the given genotype
+    public double getNegLog10GQ(Genotype.Type genotype){
 
         double qual = Double.NEGATIVE_INFINITY;
         EnumMap<Genotype.Type,Double> likelihoods = getAsMap(false);
@@ -124,15 +124,9 @@ public class GenotypeLikelihoods {
 
         }
 
-        qual = likelihoods.get(genotype) - qual;
-
-        if (qual < 0) {
-                // QUAL can be negative if the chosen genotype is not the most likely one individually.
-                // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen one
-                double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
-                double chosenGenotype = normalized[genotype.ordinal()-1];
-                qual = -1.0 * Math.log10(1.0 - chosenGenotype);
-        }
+        double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
+        double chosenGenotype = normalized[genotype.ordinal()-1];
+        qual = -1.0 * Math.log10(1.0 - chosenGenotype);
 
         return qual;
     }
