@@ -53,38 +53,12 @@ public class FragmentPileupBenchmark extends SimpleBenchmark {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
         GenomeLocParser genomeLocParser;
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
-        final int pos = 50;
-        GenomeLoc loc = genomeLocParser.createGenomeLoc("chr1", pos);
-
-        final Random ran = new Random();
+        GenomeLoc loc = genomeLocParser.createGenomeLoc("chr1", 50);
         final int readLen = 100;
-        final boolean leftIsFirst = true;
-        final boolean leftIsNegative = false;
-        final int insertSizeVariation = insertSize / 10;
 
         for ( int pileupN = 0; pileupN < nPileupsToGenerate; pileupN++ ) {
-            List<PileupElement> pileupElements = new ArrayList<PileupElement>();
-            for ( int i = 0; i < pileupSize / 2; i++ ) {
-                final String readName = "read" + i;
-                final int leftStart = new Random().nextInt(49) + 1;
-                final int fragmentSize = (int)(ran.nextGaussian() * insertSizeVariation + insertSize);
-                final int rightStart = leftStart + fragmentSize - readLen;
-
-                if ( rightStart <= 0 ) continue;
-
-                List<SAMRecord> pair = FragmentPileupUnitTest.createPair(header, readName, readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
-                SAMRecord left = pair.get(0);
-                SAMRecord right = pair.get(1);
-
-                pileupElements.add(new PileupElement(left, pos - leftStart));
-
-                if ( pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd() ) {
-                    pileupElements.add(new PileupElement(right, pos - rightStart));
-                }
-            }
-
-            Collections.sort(pileupElements);
-            pileups.add(new ReadBackedPileupImpl(loc, pileupElements));
+            ReadBackedPileup rbp = ArtificialSAMUtils.createReadBackedPileup(header, loc, readLen, insertSize, pileupSize);
+            pileups.add(rbp);
         }
     }
 
@@ -100,16 +74,8 @@ public class FragmentPileupBenchmark extends SimpleBenchmark {
         run(rep, FragmentPileup.FragmentMatchingAlgorithm.ORIGINAL);
     }
 
-    public void timeFullOverlapPotential(int rep) {
-        run(rep, FragmentPileup.FragmentMatchingAlgorithm.FAST_V1);
-    }
-
     public void timeSkipNonOverlapping(int rep) {
         run(rep, FragmentPileup.FragmentMatchingAlgorithm.skipNonOverlapping);
-    }
-
-    public void timeSkipNonOverlappingNotLazy(int rep) {
-        run(rep, FragmentPileup.FragmentMatchingAlgorithm.skipNonOverlappingNotLazy);
     }
 
     public static void main(String[] args) {

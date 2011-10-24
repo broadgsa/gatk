@@ -43,44 +43,13 @@ import java.util.*;
 public class FragmentPileupUnitTest extends BaseTest {
     private static SAMFileHeader header;
 
-    public final static List<SAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
-        SAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
-        SAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);
-
-        left.setReadPairedFlag(true);
-        right.setReadPairedFlag(true);
-
-        left.setProperPairFlag(true);
-        right.setProperPairFlag(true);
-
-        left.setFirstOfPairFlag(leftIsFirst);
-        right.setFirstOfPairFlag(! leftIsFirst);
-
-        left.setReadNegativeStrandFlag(leftIsNegative);
-        left.setMateNegativeStrandFlag(!leftIsNegative);
-        right.setReadNegativeStrandFlag(!leftIsNegative);
-        right.setMateNegativeStrandFlag(leftIsNegative);
-
-        left.setMateAlignmentStart(right.getAlignmentStart());
-        right.setMateAlignmentStart(left.getAlignmentStart());
-
-        left.setMateReferenceIndex(0);
-        right.setMateReferenceIndex(0);
-
-        int isize = rightStart + readLen - leftStart;
-        left.setInferredInsertSize(isize);
-        right.setInferredInsertSize(-isize);
-
-        return Arrays.asList(left, right);
-    }
-
     private class FragmentPileupTest extends TestDataProvider {
         List<TestState> states = new ArrayList<TestState>();
 
         private FragmentPileupTest(String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
             super(FragmentPileupTest.class, String.format("%s-leftIsFirst:%b-leftIsNegative:%b", name, leftIsFirst, leftIsNegative));
 
-            List<SAMRecord> pair = createPair(header, "readpair", readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
+            List<SAMRecord> pair = ArtificialSAMUtils.createPair(header, "readpair", readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
             SAMRecord left = pair.get(0);
             SAMRecord right = pair.get(1);
 

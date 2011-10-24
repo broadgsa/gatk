@@ -214,54 +214,6 @@ public class ReadUtils {
         return state;
     }
 
-    /**
-     * s1                      e1
-     * |-----------------------> [record in hand]
-     *                  s2
-     *                  <-----------------------|
-     *
-     * s1, e1, and s2 are all in the record.  Assuming that s1 < s2 (we are the left most read),
-     * we can compute whether we overlap with our mate by seeing if s2 <= e1 or no.  If e1 <
-     * s2 then we known that we cannot over.
-     *
-     * If we are looking at the right read
-     *
-     * s1
-     * |----------------------->
-     *                  s2                      e2
-     *                  <-----------------------| [record in hand]
-     *
-     * we know the position of s1 and s2, but we don't know e1, so we cannot tell if we
-     * overlap with our mate or not, so in this case we return MAYBE.
-     *
-     * Note that if rec has an unmapped mate or is unpaired we certainly know the answer
-     *
-     * @param rec
-     * @return
-     */
-    public static ReadOverlapsMateType readMightOverlapMate(final SAMRecord rec) {
-        if ( ! rec.getReadPairedFlag() || rec.getMateUnmappedFlag() ) {
-            return ReadOverlapsMateType.NO;
-        } else { // read is actually paired
-            final int recStart = rec.getAlignmentStart();
-            final int recEnd = rec.getAlignmentEnd();
-            final int mateStart =  rec.getMateAlignmentStart();
-
-            if ( recStart < mateStart ) {
-                // we are the left most read
-                return mateStart <= recEnd ? ReadOverlapsMateType.LEFT_YES: ReadOverlapsMateType.NO;
-            } else if ( recStart == mateStart ) {
-                // we are the left most read
-                return ReadOverlapsMateType.SAME_START;
-            } else {
-                // we are the right most read, so we cannot tell
-                return ReadOverlapsMateType.RIGHT_MAYBE;
-            }
-        }
-    }
-
-    public enum ReadOverlapsMateType { LEFT_YES, NO, SAME_START, RIGHT_MAYBE }
-
     private static Pair<Integer, Integer> getAdaptorBoundaries(SAMRecord rec, int adaptorLength) {
         int isize = rec.getInferredInsertSize();
         if ( isize == 0 )
