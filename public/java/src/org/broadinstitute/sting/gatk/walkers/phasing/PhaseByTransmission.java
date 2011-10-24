@@ -22,15 +22,57 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Phases a trio VCF (child phased by transmission, implied phase carried over to parents).  Given genotypes for a trio,
- * this walker modifies the genotypes (if necessary) to reflect the most likely configuration given the genotype
- * likelihoods and inheritance constraints, phases child by transmission and carries over implied phase to the parents
- * (their alleles in their genotypes are ordered as transmitted|untransmitted).  Computes probability that the
- * determined phase is correct given that the genotype configuration is correct (useful if you want to use this to
- * compare phasing accuracy, but want to break that comparison down by phasing confidence in the truth set).  Optionally
- * filters out sites where the phasing is indeterminate (site has no-calls), ambiguous (everyone is heterozygous), or
- * the genotypes exhibit a Mendelian violation.  This walker assumes there are only three samples in the VCF file to
- * begin.
+ * Computes the most likely genotype combination and phases trios and parent/child pairs
+ *
+ * <p>
+ * PhaseByTransmission is a GATK tool that 1) computes the most likely genotype combination and phases trios and parent/child pairs given their genotype likelihoods and a mutation prior and 2) phases
+ * all sites were parent/child transmission can be inferred unambiguously. It reports the genotype combination (and hence phasing) probability.
+ * Ambiguous sites are:
+ * <ul>
+ *     <li>Sites where all individuals are heterozygous</li>
+ *     <li>Sites where there is a Mendelian violation</li>
+ * </ul>
+ * Missing genotypes are handled as follows:
+ * <ul>
+ *     <li>In parent/child pairs: If an individual genotype is missing at one site, the other one is phased if it is homozygous. No phasing probability is emitted.</li>
+ *     <li>In trios: If the child is missing, parents are treated as separate individuals and phased if homozygous. No phasing probability is emitted.</li>
+ *     <li>In trios: If one of the parents is missing, it is handled like a parent/child pair. Phasing is done unless both the parent and child are heterozygous and a phasing probabilitt is emitted.</li>
+ *     <li>In trios: If two individuals are missing, the remaining individual is phased if it is homozygous. No phasing probability is emitted.</li>
+ * </ul>
+ *
+ * <h2>Input</h2>
+ * <p>
+ * <ul>
+ *     <li>A VCF variant set containing trio(s) and/or parent/child pair(s).</li>
+ *     <li>A PED pedigree file containing the description of the individuals relationships.</li>
+ * </ul>
+ * </p>
+ *
+ * <h2>Options</h2>
+ * <p>
+ *     <ul>
+ *         <li>MendelianViolationsFile: An optional argument for reporting. If a file is specified, all sites that remain in mendelian violation after being assigned the most likely genotype
+ *         combination will be reported there. Information reported: chromosome, position, filter, allele count in VCF, family, transmission probability,
+ *         and each individual genotype, depth, allelic depth and likelihoods.</li>
+ *         <li>DeNovoPrior: Mutation prio; default is 1e-8</li>
+ *     </ul>
+ * </p>
+ *
+ * <h2>Output</h2>
+ * <p>
+ * An VCF with genotypes recalibrated as most likely under the familial constraint and phased by descent where non ambiguous..
+ * </p>
+ *
+ * <h2>Examples</h2>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T PhaseByTransmission \
+ *   -V input.vcf \
+ *   -ped input.ped \
+ *   -o output.vcf
+ * </pre>
+ *
  */
 public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMap<Byte,Integer>> {
 
@@ -73,7 +115,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         CHILD
     }
 
-    //Stores a trio-genotype
+    //Stores a conceptual trio or parent/child pair genotype combination along with its phasing.
+    //This combination can then be "applied" to a given trio or pair using the getPhasedGenotypes method.
     private class TrioPhase {
 
         //Create 2 fake alleles
@@ -119,7 +162,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             trioPhasedGenotypes.put(familyMember, new Genotype(DUMMY_NAME,getAlleles(genotype),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
     }
 
-    private void phaseMonoParentFamilyAlleles(Genotype.Type parentGenotype, Genotype.Type childGenotype, FamilyMember parent){
+    //Find the phase for a parent/child pair
+    private void phasePairAlleles(Genotype.Type parentGenotype, Genotype.Type childGenotype, FamilyMember parent){
 
         //Special case for Het/Het as it is ambiguous
         if(parentGenotype == Genotype.Type.HET && childGenotype == Genotype.Type.HET){
@@ -155,6 +199,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         }
     }
 
+    //Phases a family by transmission
     private void phaseFamilyAlleles(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
 
         Set<ArrayList<Allele>> possiblePhasedChildGenotypes = new HashSet<ArrayList<Allele>>();
@@ -209,7 +254,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(child),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
     }
 
-
+    /*  Constructor: Creates a conceptual trio genotype combination from the given genotypes.
+        If one or more genotypes are set as NO_CALL or UNAVAILABLE, it will phase them like a pair
+        or single individual.
+    */
     public TrioPhase(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
 
         //Take care of cases where one or more family members are no call
@@ -225,10 +273,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
             }
             else
-                phaseMonoParentFamilyAlleles(father, child, FamilyMember.FATHER);
+                phasePairAlleles(father, child, FamilyMember.FATHER);
         }
         else if(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE){
-            phaseMonoParentFamilyAlleles(mother, child, FamilyMember.MOTHER);
+            phasePairAlleles(mother, child, FamilyMember.MOTHER);
             phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
         }
         //Special case for Het/Het/Het as it is ambiguous
@@ -243,11 +291,20 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         }
     }
 
-    public ArrayList<Genotype> getPhasedGenotypes(Allele ref, Allele alt, Genotype motherGenotype, Genotype fatherGenotype, Genotype childGenotype, double transmissionProb,ArrayList<Genotype> phasedGenotypes){
+        /**
+         * Applies the trio genotype combination to the given trio.
+         * @param ref: Reference allele
+         * @param alt: Alternate allele
+         * @param motherGenotype: Genotype of the mother to phase using this trio genotype combination
+         * @param fatherGenotype: Genotype of the father to phase using this trio genotype combination
+         * @param childGenotype: Genotype of the child to phase using this trio genotype combination
+         * @param transmissionProb: Probability for this trio genotype combination to be correct (pass NO_TRANSMISSION_PROB if unavailable)
+         * @param phasedGenotypes: An ArrayList<Genotype> to which the newly phased genotypes are added in the following order: Mother, Father, Child
+         */
+    public void getPhasedGenotypes(Allele ref, Allele alt, Genotype motherGenotype, Genotype fatherGenotype, Genotype childGenotype, double transmissionProb,ArrayList<Genotype> phasedGenotypes){
         phasedGenotypes.add(getPhasedGenotype(ref,alt,motherGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.MOTHER)));
         phasedGenotypes.add(getPhasedGenotype(ref,alt,fatherGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.FATHER)));
         phasedGenotypes.add(getPhasedGenotype(ref,alt,childGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.CHILD)));
-        return phasedGenotypes;
     }
 
    private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, double transmissionProb, Genotype phasedGenotype){
@@ -290,7 +347,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
     /**
-     * Parse the familial relationship specification, and initialize VCF writer
+     * Parse the familial relationship specification, build the transmission matrices and initialize VCF writer
      */
     public void initialize() {
         ArrayList<String> rodNames = new ArrayList<String>();
@@ -306,7 +363,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
         headerLines.addAll(VCFUtils.getHeaderFields(this.getToolkit()));
-        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Integer, "Phred score of the phase given that the genotypes are correct"));
+        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Integer, "Phred score of the genotype combination and phase given that the genotypes are correct"));
         headerLines.add(new VCFHeaderLine("source", SOURCE_NAME));
         vcfWriter.writeHeader(new VCFHeader(headerLines, vcfSamples));
 
@@ -318,7 +375,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
     /**
-     * Select Trios only
+     * Select trios and parent/child pairs only
      */
     private void setTrios(){
 
@@ -349,6 +406,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
     }
 
+    //Create the transmission matrices
     private void buildMatrices(){
         mvCountMatrix = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>>(Genotype.Type.class);
         transmissionMatrix = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>>(Genotype.Type.class);
@@ -366,6 +424,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         }
     }
 
+    //Returns the number of Mendelian Violations for a given genotype combination.
+    //If one of the parents genotype is missing, it will consider it as a parent/child pair
+    //If the child genotype or both parents genotypes are missing, 0 is returned.
     private int getCombinationMVCount(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
 
         //Child is no call => No MV
@@ -421,6 +482,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         return 1;
     }
 
+    //Given two trio genotypes combinations, returns the number of different genotypes between the two combinations.
     private int countFamilyGenotypeDiff(Genotype.Type motherOriginal,Genotype.Type fatherOriginal,Genotype.Type childOriginal,Genotype.Type motherNew,Genotype.Type fatherNew,Genotype.Type childNew){
         int count = 0;
         if(motherOriginal!=motherNew)
@@ -432,6 +494,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         return count;
     }
 
+    //Get a Map of genotype likelihoods. If the genotype is NO_CALL or UNAVAILABLE, the Map will contain a single
+    //NO_CALL resp. UNAVAILABLE element with a likelihood of 1.0
     private EnumMap<Genotype.Type,Double> getLikelihoodsAsMapSafeNull(Genotype genotype){
         if(genotype == null || !genotype.isAvailable()){
             EnumMap<Genotype.Type,Double> likelihoods = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
@@ -446,6 +510,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         return genotype.getLikelihoods().getAsMap(true);
     }
 
+    //Returns the Genotype.Type; returns UNVAILABLE if given null
     private Genotype.Type getTypeSafeNull(Genotype genotype){
         if(genotype == null)
             return Genotype.Type.UNAVAILABLE;
@@ -453,6 +518,16 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
 
+    /**
+     * Phases the genotypes of the given trio. If one of the parents is null, it is considered a parent/child pair.
+     * @param ref: Reference allele
+     * @param alt: Alternative allele
+     * @param mother: Mother's genotype
+     * @param father: Father's genotype
+     * @param child: Child's genotype
+     * @param finalGenotypes: An ArrayList<Genotype> that will be added the genotypes phased by transmission in the following order: Mother, Father, Child
+     * @return
+     */
     private boolean phaseTrioGenotypes(Allele ref, Allele alt, Genotype mother, Genotype father, Genotype child,ArrayList<Genotype> finalGenotypes) {
 
         //Get the PL
@@ -600,9 +675,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
     /**
-     * Provide an initial value for reduce computations.
+     * Initializes the reporting counters.
      *
-     * @return Initial value of reduce.
+     * @return All counters initialized to 0
      */
     @Override
     public HashMap<Byte,Integer> reduceInit() {
@@ -617,10 +692,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
     /**
-     * Reduces a single map with the accumulator provided as the ReduceType.
+     * Adds the value of the site phased to the reporting counters.
      *
-     * @param value result of the map.
-     * @param sum   accumulator for the reduce.
+     * @param value Site values
+     * @param sum   accumulator for the reporting counters
      * @return accumulator with result of the map taken into account.
      */
     @Override
@@ -635,6 +710,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
 
+    /**
+     * Reports statistics on the phasing by transmission process.
+     * @param result Accumulator with all counters.
+     */
     @Override
     public void onTraversalDone(HashMap<Byte,Integer> result) {
         logger.info("Number of complete trio-genotypes: " + result.get(NUM_TRIO_GENOTYPES_CALLED));
