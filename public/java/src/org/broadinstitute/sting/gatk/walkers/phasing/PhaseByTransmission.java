@@ -40,13 +40,16 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     @Argument(shortName = "mvf",required = false,fullName = "MendelianViolationsFile", doc="File to output the mendelian violation details.")
     private PrintStream mvFile = null;
 
+    @Argument(shortName = "prior",required = false,fullName = "DeNovoPrior", doc="Prior for de novo mutations. Default: 1e-8")
+    private double deNovoPrior=1e-8;
+
     @Output
     protected VCFWriter vcfWriter = null;
 
     private final String TRANSMISSION_PROBABILITY_TAG_NAME = "TP";
     private final String SOURCE_NAME = "PhaseByTransmission";
 
-    private final Double MENDELIAN_VIOLATION_PRIOR = 1e-8;
+    public final double NO_TRANSMISSION_PROB = -1.0;
 
     private ArrayList<Sample> trios = new ArrayList<Sample>();
 
@@ -240,26 +243,26 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         }
     }
 
-    public ArrayList<Genotype> getPhasedGenotypes(Allele ref, Allele alt, Genotype motherGenotype, Genotype fatherGenotype, Genotype childGenotype, int transmissionProb,ArrayList<Genotype> phasedGenotypes){
+    public ArrayList<Genotype> getPhasedGenotypes(Allele ref, Allele alt, Genotype motherGenotype, Genotype fatherGenotype, Genotype childGenotype, double transmissionProb,ArrayList<Genotype> phasedGenotypes){
         phasedGenotypes.add(getPhasedGenotype(ref,alt,motherGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.MOTHER)));
         phasedGenotypes.add(getPhasedGenotype(ref,alt,fatherGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.FATHER)));
         phasedGenotypes.add(getPhasedGenotype(ref,alt,childGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.CHILD)));
         return phasedGenotypes;
     }
 
-   private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, int transmissionProb, Genotype phasedGenotype){
+   private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, double transmissionProb, Genotype phasedGenotype){
+
+       //Handle null, missing and unavailable genotypes
+       //Note that only cases where a null/missing/unavailable genotype was passed in the first place can lead to a null/missing/unavailable
+       //genotype so it is safe to return the original genotype in this case.
+       if(genotype == null || !phasedGenotype.isAvailable() || phasedGenotype.isNoCall())
+           return genotype;
 
        //Add the transmission probability
        Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
        genotypeAttributes.putAll(genotype.getAttributes());
-       genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, transmissionProb);
-
-       //Handle missing genotype
-       if(!phasedGenotype.isAvailable())
-           return new Genotype(genotype.getSampleName(), null);
-       //Handle NoCall genotype
-       else if(phasedGenotype.isNoCall())
-           return new Genotype(genotype.getSampleName(), phasedGenotype.getAlleles());
+       if(transmissionProb>NO_TRANSMISSION_PROB)
+            genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, MathUtils.probabilityToPhredScale(1-(transmissionProb)));
 
        ArrayList<Allele> phasedAlleles = new ArrayList<Allele>(2);
        for(Allele allele : phasedGenotype.getAlleles()){
@@ -324,8 +327,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         ArrayList<Sample> parents;
         for(String familyID : families.keySet()){
             family = families.get(familyID);
-            if(family.size()!=3){
-                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios. Family skipped.",familyID,family.size()));
+            if(family.size()<2 || family.size()>3){
+                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyID,family.size()));
             }
             else{
                 for(Sample familyMember : family){
@@ -334,7 +337,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         if(family.containsAll(parents))
                             this.trios.add(familyMember);
                         else
-                            logger.info(String.format("Caution: Family %s is not a trio; At the moment Phase By Transmission only supports trios. Family skipped.",familyID));
+                            logger.info(String.format("Caution: Family %s skipped as it is not a trio nor a parent/child pair; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyID));
                         break;
                      }
                 }
@@ -429,64 +432,84 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         return count;
     }
 
+    private EnumMap<Genotype.Type,Double> getLikelihoodsAsMapSafeNull(Genotype genotype){
+        if(genotype == null || !genotype.isAvailable()){
+            EnumMap<Genotype.Type,Double> likelihoods = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
+            likelihoods.put(Genotype.Type.UNAVAILABLE,1.0);
+            return likelihoods;
+        }
+        else if(genotype.isNoCall()){
+            EnumMap<Genotype.Type,Double> likelihoods = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
+            likelihoods.put(Genotype.Type.NO_CALL,1.0);
+            return likelihoods;
+        }
+        return genotype.getLikelihoods().getAsMap(true);
+    }
+
+    private Genotype.Type getTypeSafeNull(Genotype genotype){
+        if(genotype == null)
+            return Genotype.Type.UNAVAILABLE;
+        return genotype.getType();
+    }
+
 
     private boolean phaseTrioGenotypes(Allele ref, Allele alt, Genotype mother, Genotype father, Genotype child,ArrayList<Genotype> finalGenotypes) {
 
-        //For now, only consider trios with complete information
-        //TODO: Phasing of trios with missing information
-        if(!(mother.isCalled() && father.isCalled() && child.isCalled())) {
-            finalGenotypes.add(mother);
-            finalGenotypes.add(father);
-            finalGenotypes.add(child);
-            return false;
-        }
-
         //Get the PL
-        Map<Genotype.Type,Double> motherLikelihoods = mother.getLikelihoods().getAsMap(true);
-        Map<Genotype.Type,Double> fatherLikelihoods = father.getLikelihoods().getAsMap(true);
-        Map<Genotype.Type,Double> childLikelihoods = child.getLikelihoods().getAsMap(true);
+        Map<Genotype.Type,Double> motherLikelihoods = getLikelihoodsAsMapSafeNull(mother);
+        Map<Genotype.Type,Double> fatherLikelihoods = getLikelihoodsAsMapSafeNull(father);
+        Map<Genotype.Type,Double> childLikelihoods = getLikelihoodsAsMapSafeNull(child);
 
         //Prior vars
         double bestConfigurationLikelihood = 0.0;
         double norm = 0.0;
         boolean isMV = false;
         int bestConfigurationGenotypeDiffs=4;
-        Genotype.Type bestMotherGenotype = mother.getType();
-        Genotype.Type bestFatherGenotype = father.getType();
-        Genotype.Type bestChildGenotype = child.getType();
+        Genotype.Type bestMotherGenotype = getTypeSafeNull(mother);
+        Genotype.Type bestFatherGenotype = getTypeSafeNull(father);
+        Genotype.Type bestChildGenotype = getTypeSafeNull(child);
 
         //Get the most likely combination
-        int mvCount;
-        double configurationLikelihood;
-        int configurationGenotypeDiffs;
-        for(Map.Entry<Genotype.Type,Double> motherGenotype : motherLikelihoods.entrySet()){
-            for(Map.Entry<Genotype.Type,Double> fatherGenotype : fatherLikelihoods.entrySet()){
-                for(Map.Entry<Genotype.Type,Double> childGenotype : childLikelihoods.entrySet()){
-                    mvCount = mvCountMatrix.get(motherGenotype.getKey()).get(fatherGenotype.getKey()).get(childGenotype.getKey());
-                    configurationLikelihood =  mvCount>0 ? Math.pow(MENDELIAN_VIOLATION_PRIOR,mvCount)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue() : (1.0-11*MENDELIAN_VIOLATION_PRIOR)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue();
-                    norm += configurationLikelihood;
-                    configurationGenotypeDiffs = countFamilyGenotypeDiff(mother.getType(),father.getType(),child.getType(),motherGenotype.getKey(),fatherGenotype.getKey(),childGenotype.getKey());
-                    //Keep this combination if
-                    //It has a better likelihood
-                    //Or it has the same likelihood but requires less changes from original genotypes
-                    if ((configurationLikelihood > bestConfigurationLikelihood) ||
-                            (configurationLikelihood == bestConfigurationLikelihood && configurationGenotypeDiffs < bestConfigurationGenotypeDiffs)) {
-                        bestConfigurationLikelihood = configurationLikelihood;
-                        bestMotherGenotype = motherGenotype.getKey();
-                        bestFatherGenotype = fatherGenotype.getKey();
-                        bestChildGenotype = childGenotype.getKey();
-                        isMV = mvCount>0;
-                        bestConfigurationGenotypeDiffs=configurationGenotypeDiffs;
+        //Only check for most likely combination if at least a parent and the child have genotypes
+        if(childLikelihoods.size()>2 && (motherLikelihoods.size() + fatherLikelihoods.size())>3){
+            int mvCount;
+            double configurationLikelihood;
+            int configurationGenotypeDiffs;
+            for(Map.Entry<Genotype.Type,Double> motherGenotype : motherLikelihoods.entrySet()){
+                for(Map.Entry<Genotype.Type,Double> fatherGenotype : fatherLikelihoods.entrySet()){
+                    for(Map.Entry<Genotype.Type,Double> childGenotype : childLikelihoods.entrySet()){
+                        mvCount = mvCountMatrix.get(motherGenotype.getKey()).get(fatherGenotype.getKey()).get(childGenotype.getKey());
+                        configurationLikelihood =  mvCount>0 ? Math.pow(deNovoPrior,mvCount)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue() : (1.0-11*deNovoPrior)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue();
+                        norm += configurationLikelihood;
+                        configurationGenotypeDiffs = countFamilyGenotypeDiff(mother.getType(),father.getType(),child.getType(),motherGenotype.getKey(),fatherGenotype.getKey(),childGenotype.getKey());
+                        //Keep this combination if
+                        //It has a better likelihood
+                        //Or it has the same likelihood but requires less changes from original genotypes
+                        if ((configurationLikelihood > bestConfigurationLikelihood) ||
+                                (configurationLikelihood == bestConfigurationLikelihood && configurationGenotypeDiffs < bestConfigurationGenotypeDiffs)) {
+                            bestConfigurationLikelihood = configurationLikelihood;
+                            bestMotherGenotype = motherGenotype.getKey();
+                            bestFatherGenotype = fatherGenotype.getKey();
+                            bestChildGenotype = childGenotype.getKey();
+                            isMV = mvCount>0;
+                            bestConfigurationGenotypeDiffs=configurationGenotypeDiffs;
+                        }
                     }
                 }
             }
+
+            //normalize the best configuration probability
+            bestConfigurationLikelihood = bestConfigurationLikelihood / norm;
+        }
+        else{
+            bestConfigurationLikelihood = NO_TRANSMISSION_PROB;
         }
 
         //Get the phased alleles for the genotype configuration
         TrioPhase phasedTrioGenotypes = transmissionMatrix.get(bestMotherGenotype).get(bestFatherGenotype).get(bestChildGenotype);
 
         //Return the phased genotypes
-        phasedTrioGenotypes.getPhasedGenotypes(ref,alt,mother,father,child,MathUtils.probabilityToPhredScale(1-(bestConfigurationLikelihood / norm)),finalGenotypes);
+        phasedTrioGenotypes.getPhasedGenotypes(ref,alt,mother,father,child,bestConfigurationLikelihood,finalGenotypes);
         return isMV;
 
     }
@@ -522,8 +545,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 Genotype father = vc.getGenotype(sample.getPaternalID());
                 Genotype child = vc.getGenotype(sample.getID());
 
-                //Skip trios where any of the genotype is missing in the variant context
-                if(mother == null || father == null | child == null)
+                //Keep only trios and parent/child pairs
+                if(mother == null && father == null || child == null)
                     continue;
 
                 ArrayList<Genotype> trioGenotypes = new ArrayList<Genotype>(3);
@@ -545,11 +568,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
                     if(phasedMother.isHet() || phasedFather.isHet() || phasedChild.isHet()){
                         numHet++;
-                        if(phasedMother.isHet() && phasedFather.isHet() && phasedChild.isHet()){
+                        if(phasedMother.isHet() && phasedFather.isHet() && phasedChild.isHet())
                             numHetHetHet++;
-                        }else if(!phasedMother.isPhased()){
-                            int x =9;
-                        }
                     }
 
                     if(isMV){
