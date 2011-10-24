@@ -30,6 +30,13 @@ public class FragmentPileup {
     Collection<PileupElement> oneReadPile = null;
     Collection<TwoReadPileupElement> twoReadPile = null;
 
+    public enum FragmentMatchingAlgorithm {
+        ORIGINAL,
+        FAST_V1,
+        skipNonOverlapping,
+        skipNonOverlappingNotLazy
+    }
+
     /**
      * Create a new Fragment-based pileup from the standard read-based pileup
      * @param pileup
@@ -39,15 +46,17 @@ public class FragmentPileup {
         fastNewCalculation(pileup);
     }
 
-    protected FragmentPileup(ReadBackedPileup pileup, boolean useOldAlgorithm) {
-        if ( useOldAlgorithm )
-            oldSlowCalculation(pileup);
-        else
-            fastNewCalculation(pileup);
+    protected FragmentPileup(ReadBackedPileup pileup, FragmentMatchingAlgorithm algorithm) {
+        switch ( algorithm ) {
+            case ORIGINAL: oldSlowCalculation(pileup); break;
+            case FAST_V1: fastNewCalculation(pileup); break;
+            case skipNonOverlapping: skipNonOverlapping(pileup); break;
+            case skipNonOverlappingNotLazy: skipNonOverlappingNotLazy(pileup); break;
+        }
     }
 
     private final void oldSlowCalculation(final ReadBackedPileup pileup) {
-        final Map<String, PileupElement> nameMap = new HashMap<String, PileupElement>();
+        final Map<String, PileupElement> nameMap = new HashMap<String, PileupElement>(pileup.size());
 
         // build an initial map, grabbing all of the multi-read fragments
         for ( final PileupElement p : pileup ) {
@@ -104,7 +113,6 @@ public class FragmentPileup {
                     break;
                 }
 
-
                 // in this case we need to see if our mate is already present, and if so
                 // grab the read from the list
                 case RIGHT_MAYBE: {
@@ -120,9 +128,74 @@ public class FragmentPileup {
             }
         }
 
-        if ( nameMap != null && ! nameMap.isEmpty() ) // could be slightly more optimally
-            for ( final PileupElement p : nameMap.values() )
-                addToOnePile(p);
+        if ( nameMap != null && ! nameMap.isEmpty() ) {
+            if ( oneReadPile == null )
+                oneReadPile = nameMap.values();
+            else
+                oneReadPile.addAll(nameMap.values());
+        }
+    }
+
+    /**
+     * @param pileup
+     */
+    private final void skipNonOverlappingNotLazy(final ReadBackedPileup pileup) {
+        oneReadPile = new ArrayList<PileupElement>(pileup.size());
+        twoReadPile = new ArrayList<TwoReadPileupElement>();
+        final Map<String, PileupElement> nameMap = new HashMap<String, PileupElement>(pileup.size());
+
+        // build an initial map, grabbing all of the multi-read fragments
+        for ( final PileupElement p : pileup ) {
+            // if we know that this read won't overlap its mate, or doesn't have one, jump out early
+            final SAMRecord read = p.getRead();
+            final int mateStart = read.getMateAlignmentStart();
+            if ( mateStart == 0 || mateStart > read.getAlignmentEnd() ) {
+                oneReadPile.add(p);
+            } else {
+                final String readName = p.getRead().getReadName();
+                final PileupElement pe1 = nameMap.get(readName);
+                if ( pe1 != null ) {
+                    // assumes we have at most 2 reads per fragment
+                    twoReadPile.add(new TwoReadPileupElement(pe1, p));
+                    nameMap.remove(readName);
+                } else {
+                    nameMap.put(readName, p);
+                }
+            }
+        }
+
+        oneReadPile.addAll(nameMap.values());
+    }
+
+    private final void skipNonOverlapping(final ReadBackedPileup pileup) {
+        Map<String, PileupElement> nameMap = null;
+
+        // build an initial map, grabbing all of the multi-read fragments
+        for ( final PileupElement p : pileup ) {
+            // if we know that this read won't overlap its mate, or doesn't have one, jump out early
+            final SAMRecord read = p.getRead();
+            final int mateStart = read.getMateAlignmentStart();
+            if ( mateStart == 0 || mateStart > read.getAlignmentEnd() ) {
+                if ( oneReadPile == null ) oneReadPile = new ArrayList<PileupElement>(pileup.size());
+                oneReadPile.add(p);
+            } else {
+                final String readName = p.getRead().getReadName();
+                final PileupElement pe1 = nameMap == null ? null : nameMap.get(readName);
+                if ( pe1 != null ) {
+                    // assumes we have at most 2 reads per fragment
+                    if ( twoReadPile == null ) twoReadPile = new ArrayList<TwoReadPileupElement>();
+                    twoReadPile.add(new TwoReadPileupElement(pe1, p));
+                    nameMap.remove(readName);
+                } else {
+                    nameMap = addToNameMap(nameMap, p);
+                }
+            }
+        }
+
+        if ( oneReadPile == null )
+            oneReadPile = nameMap == null ? Collections.<PileupElement>emptyList() : nameMap.values();
+        else if ( nameMap != null )
+            oneReadPile.addAll(nameMap.values());
     }
 
     private final Map<String, PileupElement> addToNameMap(Map<String, PileupElement> map, final PileupElement p) {

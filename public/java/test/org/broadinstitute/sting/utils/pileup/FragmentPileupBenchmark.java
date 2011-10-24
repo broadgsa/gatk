@@ -39,16 +39,17 @@ import java.util.*;
  * Caliper microbenchmark of fragment pileup
  */
 public class FragmentPileupBenchmark extends SimpleBenchmark {
-    final int N_PILEUPS_TO_GENERATE = 100;
-    List<ReadBackedPileup> pileups = new ArrayList<ReadBackedPileup>(N_PILEUPS_TO_GENERATE);
+    List<ReadBackedPileup> pileups;
 
-    @Param({"10", "100", "1000"}) // , "10000"})
+    @Param({"0", "4", "30", "150", "1000"})
     int pileupSize; // set automatically by framework
 
-    @Param({"150", "400"})
+    @Param({"200", "400"})
     int insertSize; // set automatically by framework
 
     @Override protected void setUp() {
+        final int nPileupsToGenerate = 100;
+        pileups = new ArrayList<ReadBackedPileup>(nPileupsToGenerate);
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
         GenomeLocParser genomeLocParser;
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
@@ -61,7 +62,7 @@ public class FragmentPileupBenchmark extends SimpleBenchmark {
         final boolean leftIsNegative = false;
         final int insertSizeVariation = insertSize / 10;
 
-        for ( int pileupN = 0; pileupN < N_PILEUPS_TO_GENERATE; pileupN++ ) {
+        for ( int pileupN = 0; pileupN < nPileupsToGenerate; pileupN++ ) {
             List<PileupElement> pileupElements = new ArrayList<PileupElement>();
             for ( int i = 0; i < pileupSize / 2; i++ ) {
                 final String readName = "read" + i;
@@ -87,19 +88,28 @@ public class FragmentPileupBenchmark extends SimpleBenchmark {
         }
     }
 
-    public void timeNaiveNameMatch(int rep) {
+    private void run(int rep, FragmentPileup.FragmentMatchingAlgorithm algorithm) {
         int nFrags = 0;
         for ( int i = 0; i < rep; i++ ) {
             for ( ReadBackedPileup rbp : pileups )
-                nFrags += new FragmentPileup(rbp, true).getTwoReadPileup().size();
+                nFrags += new FragmentPileup(rbp, algorithm).getTwoReadPileup().size();
         }
     }
 
-    public void timeFastNameMatch(int rep) {
-        int nFrags = 0;
-        for ( int i = 0; i < rep; i++ )
-            for ( ReadBackedPileup rbp : pileups )
-                nFrags += new FragmentPileup(rbp, false).getTwoReadPileup().size();
+    public void timeOriginal(int rep) {
+        run(rep, FragmentPileup.FragmentMatchingAlgorithm.ORIGINAL);
+    }
+
+    public void timeFullOverlapPotential(int rep) {
+        run(rep, FragmentPileup.FragmentMatchingAlgorithm.FAST_V1);
+    }
+
+    public void timeSkipNonOverlapping(int rep) {
+        run(rep, FragmentPileup.FragmentMatchingAlgorithm.skipNonOverlapping);
+    }
+
+    public void timeSkipNonOverlappingNotLazy(int rep) {
+        run(rep, FragmentPileup.FragmentMatchingAlgorithm.skipNonOverlappingNotLazy);
     }
 
     public static void main(String[] args) {
