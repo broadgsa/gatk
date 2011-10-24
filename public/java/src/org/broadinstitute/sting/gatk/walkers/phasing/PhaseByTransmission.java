@@ -56,7 +56,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     //Matrix of allele transmission
     private EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>> transmissionMatrix;
 
-    //Metrics counters hashkeys
+    //Metrics counters hash keys
     private final Byte NUM_TRIO_GENOTYPES_CALLED = 0;
     private final Byte NUM_TRIO_GENOTYPES_NOCALL = 1;
     private final Byte NUM_TRIO_GENOTYPES_PHASED = 2;
@@ -64,237 +64,223 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     private final Byte NUM_HET_HET_HET = 4;
     private final Byte NUM_VIOLATIONS = 5;
 
-   private enum AlleleType {
-        NO_CALL,
-        REF,
-        VAR,
-        UNPHASED_REF,
-        UNPHASED_VAR
+    private enum FamilyMember {
+        MOTHER,
+        FATHER,
+        CHILD
     }
 
     //Stores a trio-genotype
     private class TrioPhase {
 
-        private ArrayList<AlleleType> trioAlleles = new ArrayList<AlleleType>(6);
+        //Create 2 fake alleles
+        //The actual bases will never be used but the Genotypes created using the alleles will be.
+        private final Allele REF = Allele.create("A",true);
+        private final Allele VAR = Allele.create("A",false);
+        private final Allele NO_CALL = Allele.create(".",false);
+        private final String DUMMY_NAME = "DummySample";
 
-        private ArrayList<AlleleType> getAlleles(Genotype.Type genotype){
-        ArrayList<AlleleType> alleles = new ArrayList<AlleleType>(2);
+       private EnumMap<FamilyMember,Genotype> trioPhasedGenotypes = new EnumMap<FamilyMember, Genotype>(FamilyMember.class);
+
+        private ArrayList<Allele> getAlleles(Genotype.Type genotype){
+        ArrayList<Allele> alleles = new ArrayList<Allele>(2);
         if(genotype == Genotype.Type.HOM_REF){
-            alleles.add(AlleleType.REF);
-            alleles.add(AlleleType.REF);
+            alleles.add(REF);
+            alleles.add(REF);
         }
         else if(genotype == Genotype.Type.HET){
-            alleles.add(AlleleType.REF);
-            alleles.add(AlleleType.VAR);
+            alleles.add(REF);
+            alleles.add(VAR);
         }
         else if(genotype == Genotype.Type.HOM_VAR){
-            alleles.add(AlleleType.VAR);
-            alleles.add(AlleleType.VAR);
+            alleles.add(VAR);
+            alleles.add(VAR);
+        }
+        else if(genotype == Genotype.Type.NO_CALL){
+            alleles.add(NO_CALL);
+            alleles.add(NO_CALL);
         }
         else{
-            alleles.add(AlleleType.NO_CALL);
-            alleles.add(AlleleType.NO_CALL);
+            return null;
         }
         return alleles;
     }
 
-    private ArrayList<AlleleType> phaseSingleIndividualAlleles(Genotype.Type genotype){
-        if(genotype == Genotype.Type.HET){
-            ArrayList<AlleleType> phasedAlleles = new ArrayList<AlleleType>(2);
-            phasedAlleles.add(AlleleType.UNPHASED_REF);
-            phasedAlleles.add(AlleleType.UNPHASED_VAR);
-            return phasedAlleles;
+    //Create a new Genotype based on information from a single individual
+    //Homozygous genotypes will be set as phased, heterozygous won't be
+    private void phaseSingleIndividualAlleles(Genotype.Type genotype, FamilyMember familyMember){
+        if(genotype == Genotype.Type.HOM_REF || genotype == Genotype.Type.HOM_VAR){
+            trioPhasedGenotypes.put(familyMember, new Genotype(DUMMY_NAME, getAlleles(genotype), Genotype.NO_NEG_LOG_10PERROR, null, null, true));
         }
         else
-            return  getAlleles(genotype);
+            trioPhasedGenotypes.put(familyMember, new Genotype(DUMMY_NAME,getAlleles(genotype),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
     }
 
-    private ArrayList<AlleleType> phaseMonoParentFamilyAlleles(Genotype.Type parent, Genotype.Type child){
-        ArrayList<AlleleType> phasedAlleles = new ArrayList<AlleleType>(4);
+    private void phaseMonoParentFamilyAlleles(Genotype.Type parentGenotype, Genotype.Type childGenotype, FamilyMember parent){
+
         //Special case for Het/Het as it is ambiguous
-        if(parent == Genotype.Type.HET && child == Genotype.Type.HET){
-            phasedAlleles.add(AlleleType.UNPHASED_REF);
-            phasedAlleles.add(AlleleType.UNPHASED_VAR);
-            phasedAlleles.add(AlleleType.UNPHASED_REF);
-            phasedAlleles.add(AlleleType.UNPHASED_VAR);
+        if(parentGenotype == Genotype.Type.HET && childGenotype == Genotype.Type.HET){
+            trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, getAlleles(parentGenotype), Genotype.NO_NEG_LOG_10PERROR, null, null, false));
+            trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(childGenotype),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
         }
 
-        ArrayList<AlleleType> parentAlleles = getAlleles(parent);
-        ArrayList<AlleleType> childAlleles = getAlleles(child);
+        ArrayList<Allele> parentAlleles = getAlleles(parentGenotype);
+        ArrayList<Allele> childAlleles = getAlleles(childGenotype);
+        ArrayList<Allele> parentPhasedAlleles = new ArrayList<Allele>(2);
+        ArrayList<Allele> childPhasedAlleles = new ArrayList<Allele>(2);
 
+        //If there is a possible phasing between the mother and child => phase
         int childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(0));
         if(childTransmittedAlleleIndex > -1){
-           phasedAlleles.add(parentAlleles.get(0));
-           phasedAlleles.add(parentAlleles.get(1));
-           phasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
-           phasedAlleles.add(childAlleles.get(0));
+           trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, parentAlleles, Genotype.NO_NEG_LOG_10PERROR, null, null, true));
+           childPhasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
+           childPhasedAlleles.add(childAlleles.get(0));
+           trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME, childPhasedAlleles, Genotype.NO_NEG_LOG_10PERROR, null, null, true));
         }
         else if((childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(1))) > -1){
-           phasedAlleles.add(parentAlleles.get(1));
-           phasedAlleles.add(parentAlleles.get(0));
-           phasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
-           phasedAlleles.add(childAlleles.get(0));
+           parentPhasedAlleles.add(parentAlleles.get(1));
+           parentPhasedAlleles.add(parentAlleles.get(0));
+           trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, parentPhasedAlleles, Genotype.NO_NEG_LOG_10PERROR, null, null, true));
+           childPhasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
+           childPhasedAlleles.add(childAlleles.get(0));
+           trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME, childPhasedAlleles, Genotype.NO_NEG_LOG_10PERROR, null, null, true));
         }
+        //This is a Mendelian Violation => Do not phase
         else{
-            parentAlleles.addAll(childAlleles);
-            for(AlleleType allele : parentAlleles){
-                if(allele == AlleleType.REF){
-                    phasedAlleles.add(AlleleType.UNPHASED_REF);
-                }
-                else if(allele == AlleleType.VAR){
-                    phasedAlleles.add(AlleleType.UNPHASED_VAR);
-                }
-                else{
-                    phasedAlleles.add(AlleleType.NO_CALL);
-                }
-            }
+            trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME,getAlleles(parentGenotype),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
+            trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(childGenotype),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
         }
-
-        return phasedAlleles;
     }
 
-    private ArrayList<AlleleType> phaseFamilyAlleles(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
-        ArrayList<AlleleType> phasedAlleles = new ArrayList<AlleleType>(6);
+    private void phaseFamilyAlleles(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
 
-        Set<ArrayList<AlleleType>> possiblePhasedChildGenotypes = new HashSet<ArrayList<AlleleType>>();
-        ArrayList<AlleleType> motherAlleles = getAlleles(mother);
-        ArrayList<AlleleType> fatherAlleles = getAlleles(father);
-        ArrayList<AlleleType> childAlleles = getAlleles(child);
+        Set<ArrayList<Allele>> possiblePhasedChildGenotypes = new HashSet<ArrayList<Allele>>();
+        ArrayList<Allele> motherAlleles = getAlleles(mother);
+        ArrayList<Allele> fatherAlleles = getAlleles(father);
+        ArrayList<Allele> childAlleles = getAlleles(child);
 
         //Build all possible child genotypes for the given parent's genotypes
-        for (AlleleType momAllele : motherAlleles) {
-            for (AlleleType fatherAllele : fatherAlleles) {
-                ArrayList<AlleleType> possiblePhasedChildAlleles = new ArrayList<AlleleType>(2);
+        for (Allele momAllele : motherAlleles) {
+            for (Allele fatherAllele : fatherAlleles) {
+                ArrayList<Allele> possiblePhasedChildAlleles = new ArrayList<Allele>(2);
                 possiblePhasedChildAlleles.add(momAllele);
                 possiblePhasedChildAlleles.add(fatherAllele);
                 possiblePhasedChildGenotypes.add(possiblePhasedChildAlleles);
             }
         }
 
-        for (ArrayList<AlleleType> phasedChildGenotype : possiblePhasedChildGenotypes) {
-            int firstAlleleIndex = phasedChildGenotype.indexOf(childAlleles.get(0));
-            int secondAlleleIndex = phasedChildGenotype.lastIndexOf(childAlleles.get(1));
+        for (ArrayList<Allele> childPhasedAllelesAlleles : possiblePhasedChildGenotypes) {
+            int firstAlleleIndex = childPhasedAllelesAlleles.indexOf(childAlleles.get(0));
+            int secondAlleleIndex = childPhasedAllelesAlleles.lastIndexOf(childAlleles.get(1));
+            //If a possible combination has been found, create the genotypes
             if (firstAlleleIndex != secondAlleleIndex && firstAlleleIndex > -1 && secondAlleleIndex > -1) {
-                //Add mother's alleles
-                phasedAlleles.add(phasedChildGenotype.get(0));
-                if(motherAlleles.get(0) != phasedAlleles.get(0))
-                    phasedAlleles.add(motherAlleles.get(0));
+                //Create mother's genotype
+                ArrayList<Allele> motherPhasedAlleles = new ArrayList<Allele>(2);
+                motherPhasedAlleles.add(childPhasedAllelesAlleles.get(0));
+                if(motherAlleles.get(0) != motherPhasedAlleles.get(0))
+                    motherPhasedAlleles.add(motherAlleles.get(0));
                 else
-                    phasedAlleles.add(motherAlleles.get(1));
+                    motherPhasedAlleles.add(motherAlleles.get(1));
+                trioPhasedGenotypes.put(FamilyMember.MOTHER, new Genotype(DUMMY_NAME,motherPhasedAlleles,Genotype.NO_NEG_LOG_10PERROR,null,null,true));
 
-                //Add father's alleles
-                phasedAlleles.add(phasedChildGenotype.get(1));
-                if(fatherAlleles.get(0) != phasedAlleles.get(2))
-                    phasedAlleles.add(fatherAlleles.get(0));
+                //Create father's genotype
+                ArrayList<Allele> fatherPhasedAlleles = new ArrayList<Allele>(2);
+                fatherPhasedAlleles.add(childPhasedAllelesAlleles.get(1));
+                if(fatherAlleles.get(0) != fatherPhasedAlleles.get(0))
+                    fatherPhasedAlleles.add(fatherAlleles.get(0));
                 else
-                    phasedAlleles.add(fatherAlleles.get(1));
+                    fatherPhasedAlleles.add(fatherAlleles.get(1));
+                trioPhasedGenotypes.put(FamilyMember.FATHER, new Genotype(DUMMY_NAME,fatherPhasedAlleles,Genotype.NO_NEG_LOG_10PERROR,null,null,true));
 
-                //Add child's alleles
-                phasedAlleles.addAll(phasedChildGenotype);
-                return phasedAlleles;
+                //Create child's genotype
+                trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,childPhasedAllelesAlleles,Genotype.NO_NEG_LOG_10PERROR,null,null,true));
+
+                //Once a phased combination is found; exit
+                return;
             }
         }
 
         //If this is reached then no phasing could be found
-        motherAlleles.addAll(fatherAlleles);
-        motherAlleles.addAll(childAlleles);
-        for(AlleleType allele : motherAlleles){
-            if(allele == AlleleType.REF){
-                    phasedAlleles.add(AlleleType.UNPHASED_REF);
-                }
-                else if(allele == AlleleType.VAR){
-                    phasedAlleles.add(AlleleType.UNPHASED_VAR);
-                }
-                else{
-                    phasedAlleles.add(AlleleType.NO_CALL);
-                }
-        }
-        return phasedAlleles;
+        trioPhasedGenotypes.put(FamilyMember.MOTHER, new Genotype(DUMMY_NAME,getAlleles(mother),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
+        trioPhasedGenotypes.put(FamilyMember.FATHER, new Genotype(DUMMY_NAME,getAlleles(father),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
+        trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(child),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
     }
 
 
     public TrioPhase(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
 
         //Take care of cases where one or more family members are no call
-        if(child == Genotype.Type.NO_CALL){
-            trioAlleles.addAll(phaseSingleIndividualAlleles(mother));
-            trioAlleles.addAll(phaseSingleIndividualAlleles(father));
-            trioAlleles.add(AlleleType.NO_CALL);
-            trioAlleles.add(AlleleType.NO_CALL);
+        if(child == Genotype.Type.NO_CALL || child == Genotype.Type.UNAVAILABLE){
+            phaseSingleIndividualAlleles(mother, FamilyMember.MOTHER);
+            phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
+            phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
         }
-        else if(mother == Genotype.Type.NO_CALL){
-            trioAlleles.add(AlleleType.NO_CALL);
-            trioAlleles.add(AlleleType.NO_CALL);
-            if(father == Genotype.Type.NO_CALL){
-                trioAlleles.add(AlleleType.NO_CALL);
-                trioAlleles.add(AlleleType.NO_CALL);
-                trioAlleles.addAll(phaseSingleIndividualAlleles(child));
+        else if(mother == Genotype.Type.NO_CALL || mother == Genotype.Type.UNAVAILABLE){
+            phaseSingleIndividualAlleles(mother, FamilyMember.MOTHER);
+            if(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE){
+                phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
+                phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
             }
             else
-                trioAlleles.addAll(phaseMonoParentFamilyAlleles(father, child));
+                phaseMonoParentFamilyAlleles(father, child, FamilyMember.FATHER);
         }
-        else if(father == Genotype.Type.NO_CALL){
-            trioAlleles.addAll(phaseMonoParentFamilyAlleles(mother, child));
-            trioAlleles.add(2, AlleleType.NO_CALL);
-            trioAlleles.add(3, AlleleType.NO_CALL);
+        else if(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE){
+            phaseMonoParentFamilyAlleles(mother, child, FamilyMember.MOTHER);
+            phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
         }
         //Special case for Het/Het/Het as it is ambiguous
         else if(mother == Genotype.Type.HET && father  == Genotype.Type.HET && child == Genotype.Type.HET){
-            trioAlleles.add(AlleleType.UNPHASED_REF);
-            trioAlleles.add(AlleleType.UNPHASED_VAR);
-            trioAlleles.add(AlleleType.UNPHASED_REF);
-            trioAlleles.add(AlleleType.UNPHASED_VAR);
-            trioAlleles.add(AlleleType.UNPHASED_REF);
-            trioAlleles.add(AlleleType.UNPHASED_VAR);
+            phaseSingleIndividualAlleles(mother, FamilyMember.MOTHER);
+            phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
+            phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
         }
         //All family members have genotypes and at least one of them is not Het
         else{
-            trioAlleles = phaseFamilyAlleles(mother, father, child);
+            phaseFamilyAlleles(mother, father, child);
         }
     }
 
     public ArrayList<Genotype> getPhasedGenotypes(Allele ref, Allele alt, Genotype motherGenotype, Genotype fatherGenotype, Genotype childGenotype, int transmissionProb,ArrayList<Genotype> phasedGenotypes){
-        phasedGenotypes.add(getPhasedGenotype(ref,alt,motherGenotype,transmissionProb,trioAlleles.subList(0,2)));
-        phasedGenotypes.add(getPhasedGenotype(ref,alt,fatherGenotype,transmissionProb,trioAlleles.subList(2,4)));
-        phasedGenotypes.add(getPhasedGenotype(ref,alt,childGenotype,transmissionProb,trioAlleles.subList(4,6)));
+        phasedGenotypes.add(getPhasedGenotype(ref,alt,motherGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.MOTHER)));
+        phasedGenotypes.add(getPhasedGenotype(ref,alt,fatherGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.FATHER)));
+        phasedGenotypes.add(getPhasedGenotype(ref,alt,childGenotype,transmissionProb,this.trioPhasedGenotypes.get(FamilyMember.CHILD)));
         return phasedGenotypes;
     }
 
-   private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, int transmissionProb, List<AlleleType> phasedAlleles){
+   private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, int transmissionProb, Genotype phasedGenotype){
 
        //Add the transmission probability
        Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
        genotypeAttributes.putAll(genotype.getAttributes());
        genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, transmissionProb);
-       genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
 
-       boolean isPhased = true;
+       //Handle missing genotype
+       if(!phasedGenotype.isAvailable())
+           return new Genotype(genotype.getSampleName(), null);
+       //Handle NoCall genotype
+       else if(phasedGenotype.isNoCall())
+           return new Genotype(genotype.getSampleName(), phasedGenotype.getAlleles());
 
-       List<Allele> alleles = new ArrayList<Allele>(2);
+       ArrayList<Allele> phasedAlleles = new ArrayList<Allele>(2);
+       for(Allele allele : phasedGenotype.getAlleles()){
+           if(allele.isReference())
+               phasedAlleles.add(refAllele);
+           else if(allele.isNonReference())
+               phasedAlleles.add(altAllele);
+           //At this point there should not be any other alleles left
+           else
+               throw new UserException(String.format("BUG: Unexpected allele: %s. Please report.",allele.toString()));
 
-        //If unphased, return original genotype
-        for(AlleleType allele : phasedAlleles){
-            if(allele == AlleleType.NO_CALL){
-                return genotype;
-            }
-            //Otherwise add the appropriate allele
-            else if(allele == AlleleType.UNPHASED_REF){
-                isPhased = false;
-                alleles.add(refAllele);
-            }
-            else if(allele == AlleleType.UNPHASED_VAR){
-                isPhased = false;
-                alleles.add(altAllele);
-            }
-            else if(allele == AlleleType.REF){
-                alleles.add(refAllele);
-            }
-            else if(allele == AlleleType.VAR){
-                alleles.add(altAllele);
-            }
-        }
+       }
 
-       return new Genotype(genotype.getSampleName(), alleles, genotype.getLikelihoods().getLog10GQ(genotype.getType()), null, genotype.getAttributes(), isPhased);
+       //Compute the new Log10Error if the genotype is different from the original genotype
+       double negLog10Error;
+       if(genotype.getType() == phasedGenotype.getType())
+           negLog10Error = genotype.getNegLog10PError();
+       else
+          negLog10Error =  genotype.getLikelihoods().getNegLog10GQ(phasedGenotype.getType());
+
+       return new Genotype(genotype.getSampleName(), phasedAlleles, negLog10Error, null, genotypeAttributes, phasedGenotype.isPhased());
    }
 
 
@@ -432,63 +418,6 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         return 1;
     }
 
-    private Double getCombinationPrior(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
-
-        double nonMVPrior = 1.0 - 12*MENDELIAN_VIOLATION_PRIOR;
-
-        //Child is no call => No MV
-        if(child == Genotype.Type.NO_CALL || child == Genotype.Type.UNAVAILABLE)
-            return nonMVPrior;
-        //Add parents with genotypes for the evaluation
-        ArrayList<Genotype.Type> parents = new ArrayList<Genotype.Type>();
-        if (!(mother == Genotype.Type.NO_CALL || mother == Genotype.Type.UNAVAILABLE))
-            parents.add(mother);
-        if (!(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE))
-            parents.add(father);
-
-        //Both parents no calls => No MV
-        if (parents.isEmpty())
-            return nonMVPrior;
-
-        //If at least one parent had a genotype, then count the number of ref and alt alleles that can be passed
-        int parentsNumRefAlleles = 0;
-        int parentsNumAltAlleles = 0;
-
-        for(Genotype.Type parent : parents){
-            if(parent == Genotype.Type.HOM_REF){
-                parentsNumRefAlleles++;
-            }
-            else if(parent == Genotype.Type.HET){
-                parentsNumRefAlleles++;
-                parentsNumAltAlleles++;
-            }
-            else if(parent == Genotype.Type.HOM_VAR){
-                parentsNumAltAlleles++;
-            }
-        }
-
-        //Case Child is HomRef
-        if(child == Genotype.Type.HOM_REF){
-            if(parentsNumRefAlleles == parents.size())
-                return nonMVPrior;
-            else return Math.pow(MENDELIAN_VIOLATION_PRIOR, parents.size()-parentsNumRefAlleles);
-        }
-
-        //Case child is HomVar
-        if(child == Genotype.Type.HOM_VAR){
-            if(parentsNumAltAlleles == parents.size())
-                return nonMVPrior;
-            else return Math.pow(MENDELIAN_VIOLATION_PRIOR, parents.size()-parentsNumAltAlleles);
-        }
-
-        //Case child is Het
-        if(child == Genotype.Type.HET && ((parentsNumRefAlleles > 0 && parentsNumAltAlleles > 0) || parents.size()<2))
-            return nonMVPrior;
-
-        //MV
-        return MENDELIAN_VIOLATION_PRIOR;
-    }
-
     private int countFamilyGenotypeDiff(Genotype.Type motherOriginal,Genotype.Type fatherOriginal,Genotype.Type childOriginal,Genotype.Type motherNew,Genotype.Type fatherNew,Genotype.Type childNew){
         int count = 0;
         if(motherOriginal!=motherNew)
@@ -534,7 +463,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             for(Map.Entry<Genotype.Type,Double> fatherGenotype : fatherLikelihoods.entrySet()){
                 for(Map.Entry<Genotype.Type,Double> childGenotype : childLikelihoods.entrySet()){
                     mvCount = mvCountMatrix.get(motherGenotype.getKey()).get(fatherGenotype.getKey()).get(childGenotype.getKey());
-                    configurationLikelihood =  mvCount>0 ? Math.pow(MENDELIAN_VIOLATION_PRIOR,mvCount)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue() : (1.0-12*MENDELIAN_VIOLATION_PRIOR)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue();
+                    configurationLikelihood =  mvCount>0 ? Math.pow(MENDELIAN_VIOLATION_PRIOR,mvCount)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue() : (1.0-11*MENDELIAN_VIOLATION_PRIOR)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue();
                     norm += configurationLikelihood;
                     configurationGenotypeDiffs = countFamilyGenotypeDiff(mother.getType(),father.getType(),child.getType(),motherGenotype.getKey(),fatherGenotype.getKey(),childGenotype.getKey());
                     //Keep this combination if
