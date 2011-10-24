@@ -2,8 +2,8 @@ package org.broadinstitute.sting.queue.engine
 
 import org.broadinstitute.sting.queue.function.InProcessFunction
 import java.util.Date
-import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
 import org.broadinstitute.sting.utils.Utils
+import org.apache.commons.io.FileUtils
 
 /**
  * Runs a function that executes in process and does not fork out an external process.
@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.Utils
 class InProcessRunner(val function: InProcessFunction) extends JobRunner[InProcessFunction] {
   private var runStatus: RunnerStatus.Value = _
 
-  def start() = {
+  def start() {
     getRunInfo.startTime = new Date()
     getRunInfo.exechosts = Utils.resolveHostname()
     runStatus = RunnerStatus.RUNNING
@@ -20,7 +20,7 @@ class InProcessRunner(val function: InProcessFunction) extends JobRunner[InProce
 
     getRunInfo.doneTime = new Date()
     val content = "%s%nDone.".format(function.description)
-    IOUtils.writeContents(function.jobOutputFile, content)
+    FileUtils.writeStringToFile(function.jobOutputFile, content)
     runStatus = RunnerStatus.DONE
   }
 

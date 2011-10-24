@@ -22,13 +22,38 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.R;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.sting.utils.io.Resource;
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+import java.io.File;
+
+/**
+ * Libraries embedded in the StingUtils package.
+ */
+public enum RScriptLibrary {
+    GSALIB("gsalib");
+
+    private final String name;
+
+    private RScriptLibrary(String name) {
+        this.name = name;
+    }
+
+    public String getLibraryName() {
+        return this.name;
+    }
+
+    public String getResourcePath() {
+        return name + ".tar.gz";
+    }
+
+    /**
+     * Writes the library source code to a temporary tar.gz file and returns the path.
+     * @return The path to the library source code. The caller must delete the code when done.
+     */
+    public File writeTemp() {
+        return IOUtils.writeTempResource(new Resource(getResourcePath(), RScriptLibrary.class));
+    }
 }

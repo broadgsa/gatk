@@ -32,6 +32,8 @@
       <package name="org.broad.tribble.**" />
       <!-- Workaround - depend on the logger impl required by JEXL -->
       <package name="org.apache.commons.logging.impl" />
+      <!-- R packages -->
+      <dir name="org/broadinstitute/sting/utils/R" includes="*.tar.gz" />
     </dependencies>
   </executable>
   <resources>

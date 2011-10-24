@@ -22,13 +22,35 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.runtime;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+public class ProcessOutput {
+    private final int exitValue;
+    private final StreamOutput stdout;
+    private final StreamOutput stderr;
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+    /**
+     * The output of a process.
+     *
+     * @param exitValue The exit value.
+     * @param stdout    The capture of stdout as defined by the stdout OutputStreamSettings.
+     * @param stderr    The capture of stderr as defined by the stderr OutputStreamSettings.
+     */
+    public ProcessOutput(int exitValue, StreamOutput stdout, StreamOutput stderr) {
+        this.exitValue = exitValue;
+        this.stdout = stdout;
+        this.stderr = stderr;
+    }
+
+    public int getExitValue() {
+        return exitValue;
+    }
+
+    public StreamOutput getStdout() {
+        return stdout;
+    }
+
+    public StreamOutput getStderr() {
+        return stderr;
+    }
 }

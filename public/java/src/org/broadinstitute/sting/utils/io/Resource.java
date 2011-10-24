@@ -22,13 +22,32 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.io;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+/**
+ * Stores a resource by path and a relative class.
+ */
+public class Resource {
+    private final String path;
+    private final Class<?> relativeClass;
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+    /**
+     * Create a resource with a path and a relative class.
+     * @param path Relative or absolute path to the class.
+     * @param relativeClass Relative class to use as a class loader and for a relative package.
+     *
+     * If the relative class is null then the system classloader will be used and the path must be absolute.
+     */
+    public Resource(String path, Class<?> relativeClass) {
+        this.path = path;
+        this.relativeClass = relativeClass;
+    }
+
+    public Class<?> getRelativeClass() {
+        return relativeClass;
+    }
+
+    public String getPath() {
+        return path;
+    }
 }

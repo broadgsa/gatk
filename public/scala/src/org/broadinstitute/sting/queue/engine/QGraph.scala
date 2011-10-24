@@ -40,6 +40,7 @@ import collection.immutable.{TreeSet, TreeMap}
 import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
 import java.util.Date
 import org.broadinstitute.sting.utils.Utils
+import org.broadinstitute.sting.utils.io.IOUtils
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -416,8 +417,12 @@ class QGraph extends Logging {
           startedJobsToEmail = Set.empty[FunctionEdge]
         }
 
-        if (readyJobs.size == 0 && runningJobs.size > 0)
-          Thread.sleep(nextRunningCheck(lastRunningCheck))
+        if (readyJobs.size == 0 && runningJobs.size > 0) {
+          runningLock.synchronized {
+            if (running)
+              runningLock.wait(nextRunningCheck(lastRunningCheck))
+          }
+        }
 
         lastRunningCheck = System.currentTimeMillis
         updateStatus()
@@ -1002,7 +1007,12 @@ class QGraph extends Logging {
       true
     } else {
       !this.jobGraph.edgeSet.exists(edge => {
-        edge.isInstanceOf[FunctionEdge] && edge.asInstanceOf[FunctionEdge].status == RunnerStatus.FAILED
+        if (edge.isInstanceOf[FunctionEdge]) {
+          val status = edge.asInstanceOf[FunctionEdge].status
+          (status == RunnerStatus.PENDING || status == RunnerStatus.RUNNING || status == RunnerStatus.FAILED)
+        } else {
+          false
+        }
       })
     }
   }
@@ -1051,7 +1061,13 @@ class QGraph extends Logging {
   def shutdown() {
     // Signal the main thread to shutdown.
     running = false
-    // Wait for the thread to finish and exit normally.
+
+    // Try and wait for the thread to finish and exit normally.
+    runningLock.synchronized {
+      runningLock.notify()
+    }
+
+    // Start killing jobs.
     runningLock.synchronized {
       val runners = runningJobs.map(_.runner)
       runningJobs = Set.empty[FunctionEdge]

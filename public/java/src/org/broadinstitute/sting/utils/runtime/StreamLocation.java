@@ -22,13 +22,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.runtime;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
-
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+/**
+ * Where to read/write a stream
+ */
+public enum StreamLocation {
+    Buffer, File, Standard
 }

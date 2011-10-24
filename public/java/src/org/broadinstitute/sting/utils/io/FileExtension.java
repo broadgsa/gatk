@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2011, The Broad Institute
  *
- * Permission is hereby granted, free of charge, to any person
+ * Permission is hereby granted, free of charge, to any person 
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
  * restriction, including without limitation the rights to use,
@@ -22,13 +22,15 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.io;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+import java.io.File;
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+public interface FileExtension {
+    /**
+     * Returns a clone of the FileExtension with a new path.
+     * @param path New path.
+     * @return New FileExtension
+     */
+    public File withPath(String path);
 }

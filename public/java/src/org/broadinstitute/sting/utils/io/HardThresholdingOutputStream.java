@@ -21,14 +21,34 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+package org.broadinstitute.sting.utils.io;
 
-package org.broadinstitute.sting.queue.engine.shell
+import org.apache.commons.io.output.ThresholdingOutputStream;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+import java.io.IOException;
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+/**
+ * An output stream which stops at the threshold
+ * instead of potentially triggering early.
+ */
+public abstract class HardThresholdingOutputStream extends ThresholdingOutputStream {
+    protected HardThresholdingOutputStream(int threshold) {
+        super(threshold);
+    }
+
+    @Override
+    public void write(byte[] b) throws IOException {
+        write(b, 0, b.length);
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        int remaining = this.getThreshold() - (int)this.getByteCount();
+        if (!isThresholdExceeded() && len > remaining) {
+            super.write(b, off, remaining);
+            super.write(b, off + remaining, len - remaining);
+        } else {
+            super.write(b, off, len);
+        }
+    }
 }

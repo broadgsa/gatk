@@ -22,13 +22,47 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.runtime;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+/**
+ * The content of stdout or stderr.
+ */
+public abstract class StreamOutput {
+    /**
+     * Empty stream output when no output is captured due to an error.
+     */
+    public static final StreamOutput EMPTY = new StreamOutput() {
+        @Override
+        public byte[] getBufferBytes() {
+            return new byte[0];
+        }
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+        @Override
+        public boolean isBufferTruncated() {
+            return false;
+        }
+    };
+
+    /**
+     * Returns the content as a string.
+     *
+     * @return The content as a string.
+     */
+    public String getBufferString() {
+        return new String(getBufferBytes());
+    }
+
+    /**
+     * Returns the content as a string.
+     *
+     * @return The content as a string.
+     */
+    public abstract byte[] getBufferBytes();
+
+    /**
+     * Returns true if the buffer was truncated.
+     *
+     * @return true if the buffer was truncated.
+     */
+    public abstract boolean isBufferTruncated();
 }

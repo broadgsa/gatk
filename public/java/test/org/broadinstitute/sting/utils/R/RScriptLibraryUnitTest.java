@@ -22,13 +22,25 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.sting.utils.R;
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+import org.apache.commons.io.FileUtils;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
-  def runnerType = classOf[ShellJobRunner]
-  def create(function: CommandLineFunction) = new ShellJobRunner(function)
-  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
+import java.io.File;
+
+public class RScriptLibraryUnitTest {
+    @Test
+    public void testProperties() {
+        Assert.assertEquals(RScriptLibrary.GSALIB.getLibraryName(), "gsalib");
+        Assert.assertEquals(RScriptLibrary.GSALIB.getResourcePath(), "gsalib.tar.gz");
+    }
+
+    @Test
+    public void testWriteTemp() {
+        File file = RScriptLibrary.GSALIB.writeTemp();
+        Assert.assertTrue(file.exists(), "R library was not written to temp file: " + file);
+        FileUtils.deleteQuietly(file);
+    }
 }
