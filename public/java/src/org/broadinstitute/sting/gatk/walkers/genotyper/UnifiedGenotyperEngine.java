@@ -447,6 +447,7 @@ public class UnifiedGenotyperEngine {
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
     }
 
+    // A barebones entry point to the exact model when there is no tracker or stratified contexts available -- only GLs
     public VariantCallContext calculateGenotypes(final VariantContext vc, final GenomeLoc loc, final GenotypeLikelihoodsCalculationModel.Model model) {
 
         // initialize the data for this thread if that hasn't been done yet
