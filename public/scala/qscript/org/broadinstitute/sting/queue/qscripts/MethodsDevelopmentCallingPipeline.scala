@@ -205,7 +205,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 1.) Unified Genotyper Base
   class GenotyperBase (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = 3
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 140
@@ -232,6 +231,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 1b.) Call Indels with UG
   class indelCall (t: Target) extends GenotyperBase(t) {
+    this.memoryLimit = 6
     this.out = t.rawIndelVCF
     this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.INDEL
     this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF
@@ -259,7 +259,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 3.) Variant Quality Score Recalibration - Generate Recalibration table
   class VQSR(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = 4
     this.nt = 2
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)

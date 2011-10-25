@@ -26,7 +26,8 @@ package org.broadinstitute.sting.queue.engine
 
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import java.io.File
-import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
+import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.sting.utils.io.IOUtils
 
 /**
  * Runs a command line function.
@@ -69,7 +70,7 @@ trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
 
   override def init() {
     super.init()
-    var exec = new StringBuilder
+    val exec = new StringBuilder
     
     var dirs = Set.empty[File]
     for (dir <- function.jobDirectories)

@@ -65,6 +65,10 @@
             <package name="ca.mcgill.mcb.pcingola.**" />
             <file path="snpEff_genes.ftl" />
             <file path="snpEff_summary.ftl" />
+            
+            <!-- R scripts -->
+            <dir name="org/broadinstitute/sting/queue" includes="**/*.R" />
+
         </dependencies>
         <modules>
             <module file="GATKEngine.xml"/>

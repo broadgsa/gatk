@@ -33,7 +33,7 @@ import java.text.SimpleDateFormat
 import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.MD5DB
 import org.broadinstitute.sting.queue.QCommandLine
-import org.broadinstitute.sting.queue.util.{Logging, ProcessController}
+import org.broadinstitute.sting.queue.util.Logging
 import java.io.File
 import org.broadinstitute.sting.gatk.report.GATKReport
 import org.apache.commons.io.FileUtils
@@ -217,11 +217,6 @@ object PipelineTest extends BaseTest with Logging {
   Runtime.getRuntime.addShutdownHook(new Thread {
     /** Cleanup as the JVM shuts down. */
     override def run() {
-      try {
-        ProcessController.shutdown()
-      } catch {
-        case _ => /*ignore */
-      }
       runningCommandLines.foreach(commandLine =>
         try {
           commandLine.shutdown()

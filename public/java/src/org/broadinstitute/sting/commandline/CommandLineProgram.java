@@ -35,10 +35,7 @@ import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Locale;
+import java.util.*;
 
 public abstract class CommandLineProgram {
 
@@ -155,6 +152,7 @@ public abstract class CommandLineProgram {
      *
      * @param clp  the command line program to execute
      * @param args the command line arguments passed in
+     * @param dryRun dry run
      * @throws Exception when an exception occurs
      */
     @SuppressWarnings("unchecked")
@@ -176,6 +174,8 @@ public abstract class CommandLineProgram {
             ParsingEngine parser = clp.parser = new ParsingEngine(clp);
             parser.addArgumentSource(clp.getClass());
 
+            Map<ArgumentMatchSource, List<String>> parsedArgs;
+
             // process the args
             if (clp.canAddArgumentsDynamically()) {
                 // if the command-line program can toss in extra args, fetch them and reparse the arguments.
@@ -196,14 +196,14 @@ public abstract class CommandLineProgram {
                 Class[] argumentSources = clp.getArgumentSources();
                 for (Class argumentSource : argumentSources)
                     parser.addArgumentSource(clp.getArgumentSourceName(argumentSource), argumentSource);
-                parser.parse(args);
+                parsedArgs = parser.parse(args);
 
                 if (isHelpPresent(parser))
                     printHelpAndExit(clp, parser);
 
                 if ( ! dryRun ) parser.validate();
             } else {
-                parser.parse(args);
+                parsedArgs = parser.parse(args);
 
                 if ( ! dryRun ) {
                     if (isHelpPresent(parser))
@@ -230,7 +230,7 @@ public abstract class CommandLineProgram {
                 }
 
                 // regardless of what happens next, generate the header information
-                HelpFormatter.generateHeaderInformation(clp.getApplicationDetails(), args);
+                HelpFormatter.generateHeaderInformation(clp.getApplicationDetails(), parsedArgs);
 
                 // call the execute
                 CommandLineProgram.result = clp.execute();

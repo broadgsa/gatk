@@ -607,7 +607,7 @@ public class VariantContextUtils {
         }
 
         // if we have more alternate alleles in the merged VC than in one or more of the
-        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate)
+        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF
         for ( VariantContext vc : VCs ) {
             if (vc.alleles.size() == 1)
                 continue;
@@ -615,6 +615,8 @@ public class VariantContextUtils {
                 logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
                         genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
                 genotypes = stripPLs(genotypes);
+                // this will remove stale AC,AF attributed from vc
+                calculateChromosomeCounts(vc, attributes, true);
                 break;
             }
         }

@@ -28,8 +28,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 
@@ -39,10 +39,16 @@ import java.net.URLClassLoader;
 public class VCFJarClassLoadingUnitTest {
     @Test
     public void testVCFJarClassLoading() throws ClassNotFoundException, MalformedURLException {
-        URI vcfURI = new File("dist/vcf.jar").toURI();
-        URI tribbleURI = getTribbleJarFile().toURI();
+        URL[] jarURLs;
 
-        ClassLoader classLoader = new URLClassLoader(new URL[] {vcfURI.toURL(),tribbleURI.toURL()}, null);
+        try {
+            jarURLs = new URL[] { getVCFJarFile().toURI().toURL(), getTribbleJarFile().toURI().toURL() };
+        }
+        catch ( FileNotFoundException e ) {
+            throw new ReviewedStingException("Could not find the VCF jar and/or its dependencies", e);
+        }
+
+        ClassLoader classLoader = new URLClassLoader(jarURLs, null);
         classLoader.loadClass("org.broadinstitute.sting.utils.variantcontext.VariantContext");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCFCodec");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec");
@@ -51,19 +57,49 @@ public class VCFJarClassLoadingUnitTest {
     }
 
     /**
-     * A very unsafe way of determining the current location of the Tribble jar file.  Assumes that
-     * the tribble jar (as opposed to the constituent tribble classes) is on the classpath.
+     * Locates the tribble jar within the dist directory.
      *
-     * This method might or might not work when built via IntelliJ's debugger.
+     * Makes the horrible assumption that tests will always be run from the root of a Sting clone,
+     * but this is much less problematic than using the classpath to locate tribble, since
+     * the classpath won't explicitly contain tribble when we're testing the fully-packaged
+     * GATK jar.
      *
-     * @return The file representing the tribble jar.
+     * @return The tribble jar file, if found
+     * @throws FileNotFoundException If we couldn't locate a tribble jar within the dist directory
      */
-    private File getTribbleJarFile() {
-        String[] classPath = System.getProperty("java.class.path").split(File.pathSeparator);
-        for(String classPathEntry: classPath) {
-            if(classPathEntry.contains("tribble"))
-                return new File(classPathEntry);
+    private File getTribbleJarFile() throws FileNotFoundException {
+        File distDir = new File("dist");
+        if ( ! distDir.isDirectory() ) {
+            throw new FileNotFoundException("The dist directory does not exist");
         }
-        throw new ReviewedStingException("Unable to find Tribble jar file");
+
+        for ( File distDirEntry : distDir.listFiles() ) {
+            if ( distDirEntry.getName().startsWith("tribble") && distDirEntry.getName().endsWith(".jar") ) {
+                return distDirEntry;
+            }
+        }
+
+        throw new FileNotFoundException("Could not find a tribble jar file in the dist directory.");
+    }
+
+    /**
+     * Locates the vcf jar within the dist directory.
+     *
+     * Makes the horrible assumption that tests will always be run from the root of a Sting clone,
+     * but this is much less problematic than using the classpath to locate vcf.jar, since
+     * the classpath won't explicitly contain vcf.jar when we're testing the fully-packaged
+     * GATK jar.
+     *
+     * @return The vcf jar file, if found
+     * @throws FileNotFoundException If we couldn't locate a vcf jar within the dist directory
+     */
+    private File getVCFJarFile() throws FileNotFoundException {
+        File vcfJar = new File("dist/vcf.jar");
+
+        if ( ! vcfJar.exists() ) {
+            throw new FileNotFoundException("Could not find dist/vcf.jar");
+        }
+
+        return vcfJar;
     }
 }

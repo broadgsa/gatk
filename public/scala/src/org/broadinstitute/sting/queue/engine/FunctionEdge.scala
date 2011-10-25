@@ -2,7 +2,10 @@ package org.broadinstitute.sting.queue.engine
 
 import org.broadinstitute.sting.queue.function.QFunction
 import java.io.{StringWriter, PrintWriter}
-import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
+import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.sting.utils.io.IOUtils
+import org.apache.commons.io.FileUtils
+import org.apache.commons.lang.StringUtils
 
 /**
  * An edge in the QGraph that runs a QFunction.
@@ -150,24 +153,17 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
   /**
    * Outputs the last lines of the error logs.
    */
-  private def tailError() = {
+  private def tailError() {
     val errorFile = functionErrorFile
     if (IOUtils.waitFor(errorFile, 120)) {
       val maxLines = 100
       val tailLines = IOUtils.tail(errorFile, maxLines)
       val nl = "%n".format()
       val summary = if (tailLines.size > maxLines) "Last %d lines".format(maxLines) else "Contents"
-      logger.error("%s of %s:%n%s".format(summary, errorFile, tailLines.mkString(nl)))
+      logger.error("%s of %s:%n%s".format(summary, errorFile, StringUtils.join(tailLines, nl)))
     } else {
       logger.error("Unable to access log file: %s".format(errorFile))
     }
-  }
-
-  /**
-   * Writes the contents of the error to the error file.
-   */
-  private def writeError(content: String) {
-    IOUtils.writeContents(functionErrorFile, content)
   }
 
   /**
@@ -178,8 +174,8 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
     val printWriter = new PrintWriter(stackTrace)
     printWriter.println(function.description)
     e.printStackTrace(printWriter)
-    printWriter.close
-    IOUtils.writeContents(functionErrorFile, stackTrace.toString)
+    printWriter.close()
+    FileUtils.writeStringToFile(functionErrorFile, stackTrace.toString)
   }
 
   def getRunInfo = {
