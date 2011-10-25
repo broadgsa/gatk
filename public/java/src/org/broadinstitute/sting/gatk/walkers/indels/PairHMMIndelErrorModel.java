@@ -32,11 +32,17 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -44,9 +50,6 @@ import java.util.LinkedHashMap;
 
 public class PairHMMIndelErrorModel {
     public static final int BASE_QUAL_THRESHOLD = 20;
-
-    private final double logGapOpenProbability;
-    private final double logGapContinuationProbability;
 
     private boolean DEBUG = false;
     private boolean bandedLikelihoods = false;
@@ -89,8 +92,6 @@ public class PairHMMIndelErrorModel {
     }
 
     public PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean bandedLikelihoods) {
-        this.logGapOpenProbability = -indelGOP/10.0; // QUAL to log prob
-        this.logGapContinuationProbability = -indelGCP/10.0; // QUAL to log prob
         this.DEBUG = deb;
         this.bandedLikelihoods = bandedLikelihoods;
 
@@ -98,13 +99,14 @@ public class PairHMMIndelErrorModel {
         this.GAP_CONT_PROB_TABLE = new double[MAX_HRUN_GAP_IDX];
         this.GAP_OPEN_PROB_TABLE = new double[MAX_HRUN_GAP_IDX];
 
+        double gop = -indelGOP/10.0;
+        double gcp = -indelGCP/10.0;
+
         for (int i = 0; i < START_HRUN_GAP_IDX; i++) {
-            GAP_OPEN_PROB_TABLE[i] = logGapOpenProbability;
-            GAP_CONT_PROB_TABLE[i] = logGapContinuationProbability;
+            GAP_OPEN_PROB_TABLE[i] = gop;
+            GAP_CONT_PROB_TABLE[i] = gcp;
         }
 
-        double gop = logGapOpenProbability;
-        double gcp = logGapContinuationProbability;
         double step = GAP_PENALTY_HRUN_STEP/10.0;
 
         double maxGOP = -MIN_GAP_OPEN_PENALTY/10.0;  // phred to log prob
@@ -185,60 +187,57 @@ public class PairHMMIndelErrorModel {
     }
 
     private double computeReadLikelihoodGivenHaplotypeAffineGaps(byte[] haplotypeBases, byte[] readBases, byte[] readQuals,
-                                                                 double[] currentGOP, double[] currentGCP, int eventLength) {
+                                                                 double[] currentGOP, double[] currentGCP, int indToStart,
+                                                                 double[][] matchMetricArray, double[][] XMetricArray, double[][] YMetricArray) {
 
         final int X_METRIC_LENGTH = readBases.length+1;
         final int Y_METRIC_LENGTH = haplotypeBases.length+1;
 
-        // initialize path metric and traceback memories for likelihood computation
-        final double[][] matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-        final double[][] XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-        final double[][] YMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+        if (indToStart == 0) {
+            // default initialization for all arrays
 
-
-        final double DIAG_TOL = 20; // means that max - min element in diags have to be > this number for banding to take effect.
-        // default initialization for all arrays
-        for (int i=0; i < X_METRIC_LENGTH; i++) {
-            Arrays.fill(matchMetricArray[i],Double.NEGATIVE_INFINITY);
-            Arrays.fill(YMetricArray[i],Double.NEGATIVE_INFINITY);
-            Arrays.fill(XMetricArray[i],Double.NEGATIVE_INFINITY);
-        }
-
-        for (int i=1; i < X_METRIC_LENGTH; i++) {
-            //initialize first column
-            XMetricArray[i][0]      = END_GAP_COST*(i);
-        }
-
-        for (int j=1; j < Y_METRIC_LENGTH; j++) {
-            // initialize first row
-            YMetricArray[0][j]      = END_GAP_COST*(j);
-        }
-        matchMetricArray[0][0]= END_GAP_COST;//Double.NEGATIVE_INFINITY;
-        XMetricArray[0][0]=  YMetricArray[0][0] = 0;
-
-
-        final int numDiags = X_METRIC_LENGTH +  Y_METRIC_LENGTH -1;
-        final int elemsInDiag = Math.min(X_METRIC_LENGTH, Y_METRIC_LENGTH);
-
-        int idxWithMaxElement = 0;
-
-        double maxElementInDiag = Double.NEGATIVE_INFINITY;
-
-        for (int  diag=0; diag <  numDiags; diag++) {
-            // compute default I and J start positions at edge of diagonals
-            int indI = 0;
-            int indJ = diag;
-            if (diag >= Y_METRIC_LENGTH ) {
-                indI = diag-(Y_METRIC_LENGTH-1);
-                indJ = Y_METRIC_LENGTH-1;
+            for (int i=0; i < X_METRIC_LENGTH; i++) {
+                Arrays.fill(matchMetricArray[i],Double.NEGATIVE_INFINITY);
+                Arrays.fill(YMetricArray[i],Double.NEGATIVE_INFINITY);
+                Arrays.fill(XMetricArray[i],Double.NEGATIVE_INFINITY);
             }
 
-            // first pass: from max element to edge
-            int idxLow = bandedLikelihoods? idxWithMaxElement : 0;
+            for (int i=1; i < X_METRIC_LENGTH; i++) {
+                //initialize first column
+                XMetricArray[i][0]      = END_GAP_COST*(i);
+            }
 
-            // reset diag max value before starting
-            if (bandedLikelihoods) {
-                maxElementInDiag = Double.NEGATIVE_INFINITY;
+            for (int j=1; j < Y_METRIC_LENGTH; j++) {
+                // initialize first row
+                YMetricArray[0][j]      = END_GAP_COST*(j);
+            }
+            matchMetricArray[0][0]= END_GAP_COST;//Double.NEGATIVE_INFINITY;
+            XMetricArray[0][0]=  YMetricArray[0][0] = 0;
+        }
+
+
+        if (bandedLikelihoods) {
+            final double DIAG_TOL = 20; // means that max - min element in diags have to be > this number for banding to take effect.
+
+            final int numDiags = X_METRIC_LENGTH +  Y_METRIC_LENGTH -1;
+            final int elemsInDiag = Math.min(X_METRIC_LENGTH, Y_METRIC_LENGTH);
+
+            int idxWithMaxElement = 0;
+
+            for (int  diag=indToStart; diag <  numDiags; diag++) {
+                // compute default I and J start positions at edge of diagonals
+                int indI = 0;
+                int indJ = diag;
+                if (diag >= Y_METRIC_LENGTH ) {
+                    indI = diag-(Y_METRIC_LENGTH-1);
+                    indJ = Y_METRIC_LENGTH-1;
+                }
+
+                // first pass: from max element to edge
+                int idxLow =  idxWithMaxElement;
+
+                // reset diag max value before starting
+                double maxElementInDiag = Double.NEGATIVE_INFINITY;
                 // set indI, indJ to correct values
                 indI += idxLow;
                 indJ -= idxLow;
@@ -248,46 +247,10 @@ public class PairHMMIndelErrorModel {
                     indJ++;
                 }
 
-            }
 
-            for (int el = idxLow; el < elemsInDiag; el++) {
-                updateCell(indI, indJ, X_METRIC_LENGTH, Y_METRIC_LENGTH, readBases, readQuals, haplotypeBases,
-                            currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
-                // update max in diagonal
-                if (bandedLikelihoods) {
-                    final double bestMetric = MathUtils.max(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
-
-                    // check if we've fallen off diagonal value by threshold
-                    if (bestMetric > maxElementInDiag) {
-                        maxElementInDiag = bestMetric;
-                        idxWithMaxElement = el;
-                    }
-                    else if (bestMetric < maxElementInDiag - DIAG_TOL)
-                        break; // done w/current diagonal
-                }
-
-                indI++;
-                if (indI >=X_METRIC_LENGTH )
-                    break;
-                indJ--;
-                if (indJ <= 0)
-                    break;
-            }
-            if (bandedLikelihoods && idxLow > 0) {
-                // now do second part in opposite direction
-                indI = 0;
-                indJ = diag;
-                if (diag >= Y_METRIC_LENGTH ) {
-                    indI = diag-(Y_METRIC_LENGTH-1);
-                    indJ = Y_METRIC_LENGTH-1;
-                }
-
-                indI += idxLow-1;
-                indJ -= idxLow-1;
-                for (int el = idxLow-1; el >= 0; el--) {
-
+                for (int el = idxLow; el < elemsInDiag; el++) {
                     updateCell(indI, indJ, X_METRIC_LENGTH, Y_METRIC_LENGTH, readBases, readQuals, haplotypeBases,
-                                currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
+                            currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
                     // update max in diagonal
                     final double bestMetric = MathUtils.max(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
 
@@ -296,34 +259,81 @@ public class PairHMMIndelErrorModel {
                         maxElementInDiag = bestMetric;
                         idxWithMaxElement = el;
                     }
-                    else if (bestMetric < maxElementInDiag - DIAG_TOL)
+                    else if (bestMetric < maxElementInDiag - DIAG_TOL && idxWithMaxElement > 0)
                         break; // done w/current diagonal
 
-                    indJ++;
-                    if (indJ >= Y_METRIC_LENGTH )
+                    indI++;
+                    if (indI >=X_METRIC_LENGTH )
                         break;
-                    indI--;
-                    if (indI <= 0)
+                    indJ--;
+                    if (indJ <= 0)
                         break;
                 }
+                if (idxLow > 0) {
+                    // now do second part in opposite direction
+                    indI = 0;
+                    indJ = diag;
+                    if (diag >= Y_METRIC_LENGTH ) {
+                        indI = diag-(Y_METRIC_LENGTH-1);
+                        indJ = Y_METRIC_LENGTH-1;
+                    }
+
+                    indI += idxLow-1;
+                    indJ -= idxLow-1;
+                    for (int el = idxLow-1; el >= 0; el--) {
+
+                        updateCell(indI, indJ, X_METRIC_LENGTH, Y_METRIC_LENGTH, readBases, readQuals, haplotypeBases,
+                                currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
+                        // update max in diagonal
+                        final double bestMetric = MathUtils.max(matchMetricArray[indI][indJ], XMetricArray[indI][indJ], YMetricArray[indI][indJ]);
+
+                        // check if we've fallen off diagonal value by threshold
+                        if (bestMetric > maxElementInDiag) {
+                            maxElementInDiag = bestMetric;
+                            idxWithMaxElement = el;
+                        }
+                        else if (bestMetric < maxElementInDiag - DIAG_TOL)
+                            break; // done w/current diagonal
+
+                        indJ++;
+                        if (indJ >= Y_METRIC_LENGTH )
+                            break;
+                        indI--;
+                        if (indI <= 0)
+                            break;
+                    }
+                }
+                // if (DEBUG)
+                //     System.out.format("Max:%4.1f el:%d\n",maxElementInDiag,  idxWithMaxElement);
             }
-           // if (DEBUG)
-           //     System.out.format("Max:%4.1f el:%d\n",maxElementInDiag,  idxWithMaxElement);
         }
+        else {
+            // simplified rectangular version of update loop
+            for (int indI=1; indI < X_METRIC_LENGTH; indI++) {
+                for (int indJ=indToStart+1; indJ < Y_METRIC_LENGTH; indJ++) {
+                    updateCell(indI, indJ, X_METRIC_LENGTH, Y_METRIC_LENGTH, readBases, readQuals, haplotypeBases,
+                            currentGOP, currentGCP,  matchMetricArray,  XMetricArray, YMetricArray);
+
+                }
+            }
+        }
+
+
 
         final int bestI = X_METRIC_LENGTH - 1, bestJ = Y_METRIC_LENGTH - 1;
         final double bestMetric = MathUtils.softMax(matchMetricArray[bestI][bestJ],
                 XMetricArray[bestI][bestJ],
                 YMetricArray[bestI][bestJ]);
-     /*
+
+        /*
         if (DEBUG) {
             PrintStream outx, outy, outm, outs;
             double[][] sumMetrics = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
             try {
-                outx = new PrintStream("../../UGOptim/datax.txt");
-                outy = new PrintStream("../../UGOptim/datay.txt");
-                outm = new PrintStream("../../UGOptim/datam.txt");
-                outs = new PrintStream("../../UGOptim/datas.txt");
+                outx = new PrintStream("datax.txt");
+                outy = new PrintStream("datay.txt");
+                outm = new PrintStream("datam.txt");
+                outs = new PrintStream("datas.txt");
                 double metrics[] = new double[3];
                 for (int indI=0; indI < X_METRIC_LENGTH; indI++) {
                     for (int indJ=0; indJ < Y_METRIC_LENGTH; indJ++) {
@@ -410,11 +420,13 @@ public class PairHMMIndelErrorModel {
                 if (read == null)
                     continue;
 
+                if ( isReduced ) {
+                    read = ReadUtils.reducedReadWithReducedQuals(read);
+                }
+
                 if(ReadUtils.is454Read(read)) {
                     continue;
                 }
-
-                double[] recalQuals = null;
 
                 // get bases of candidate haplotypes that overlap with reads
                 final int trailingBases = 3;
@@ -534,6 +546,12 @@ public class PairHMMIndelErrorModel {
                             unclippedReadBases.length-numEndClippedBases);
 
                     int j=0;
+
+                    // initialize path metric and traceback memories for likelihood computation
+                    double[][] matchMetricArray = null, XMetricArray = null, YMetricArray = null;
+                    byte[] previousHaplotypeSeen = null;
+                    double[] previousGOP = null;
+                    int startIdx;
                     for (Allele a: haplotypeMap.keySet()) {
 
 
@@ -551,11 +569,37 @@ public class PairHMMIndelErrorModel {
                         byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
                                 (int)indStart, (int)indStop);
 
+                        double readLikelihood;
+                        if (matchMetricArray == null) {
+                            final int X_METRIC_LENGTH = readBases.length+1;
+                            final int Y_METRIC_LENGTH = haplotypeBases.length+1;
+
+                            matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+                            XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+                            YMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+                        }
                         final double[] currentContextGOP = Arrays.copyOfRange(gapOpenProbabilityMap.get(a), (int)indStart, (int)indStop);
                         final double[] currentContextGCP = Arrays.copyOfRange(gapContProbabilityMap.get(a), (int)indStart, (int)indStop);
-                        final double readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals,
-                                currentContextGOP, currentContextGCP, eventLength);
+                        if (previousHaplotypeSeen == null)
+                            startIdx = 0;
+                        else {
+                            int s1 = computeFirstDifferingPosition(haplotypeBases, previousHaplotypeSeen);
+                            int s2 = computeFirstDifferingPosition(currentContextGOP, previousGOP);
+                            startIdx = Math.min(s1,s2);
+                        }
+                        previousHaplotypeSeen = haplotypeBases.clone();
+                        previousGOP = currentContextGOP.clone();
 
+
+
+                        readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals,
+                                currentContextGOP, currentContextGCP, startIdx, matchMetricArray, XMetricArray, YMetricArray);
+                        if (DEBUG) {
+                            System.out.println("H:"+new String(haplotypeBases));
+                            System.out.println("R:"+new String(readBases));
+                            System.out.format("L:%4.2f\n",readLikelihood);
+                            System.out.format("StPos:%d\n", startIdx);
+                        }
                         readEl.put(a,readLikelihood);
                         readLikelihoods[readIdx][j++] = readLikelihood;
                     }
@@ -577,6 +621,28 @@ public class PairHMMIndelErrorModel {
         }
 
         return getHaplotypeLikelihoods(numHaplotypes, readCounts, readLikelihoods);
+    }
+
+    private int computeFirstDifferingPosition(byte[] b1, byte[] b2) {
+        if (b1.length != b2.length)
+            return 0; // sanity check
+
+        for (int i=0; i < b1.length; i++ ){
+            if ( b1[i]!= b2[i])
+                return i;
+        }
+        return 0; // sanity check
+    }
+
+    private int computeFirstDifferingPosition(double[] b1, double[] b2) {
+        if (b1.length != b2.length)
+            return 0; // sanity check
+
+        for (int i=0; i < b1.length; i++ ){
+            if ( b1[i]!= b2[i])
+                return i;
+        }
+        return 0; // sanity check
     }
 
     private final static double[] getHaplotypeLikelihoods(final int numHaplotypes, final int readCounts[], final double readLikelihoods[][]) {
