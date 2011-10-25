@@ -2,7 +2,7 @@ package org.broadinstitute.sting.queue
 
 import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.io.PlainFile
-import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
+import org.broadinstitute.sting.queue.util.Logging
 import collection.JavaConversions._
 import java.io.File
 import scala.tools.nsc.reporters.AbstractReporter
@@ -20,7 +20,7 @@ class QScriptManager() extends Logging {
    * Compiles and loads the scripts in the files into the current classloader.
    * Heavily based on scala/src/compiler/scala/tools/ant/Scalac.scala
    */
-  def loadScripts(scripts: List[File], tempDir: File) = {
+  def loadScripts(scripts: List[File], tempDir: File) {
     if (scripts.size > 0) {
       val settings = new Settings((error: String) => logger.error(error))
       settings.deprecation.value = true
@@ -63,7 +63,7 @@ object QScriptManager extends Logging {
    * Heavily based on scala/src/compiler/scala/tools/nsc/reporters/ConsoleReporter.scala
    */
   private class Log4JReporter(val settings: Settings) extends AbstractReporter {
-    def displayPrompt = throw new UnsupportedOperationException("Unable to prompt the user.  Prompting should be off.")
+    def displayPrompt { throw new UnsupportedOperationException("Unable to prompt the user.  Prompting should be off.") }
 
     /**
      * Displays the message at position with severity.
@@ -71,7 +71,7 @@ object QScriptManager extends Logging {
      * @param msg Message to display.
      * @param severity Severity of the event.
      */
-    def display(posIn: Position, msg: String, severity: Severity) = {
+    def display(posIn: Position, msg: String, severity: Severity) {
       severity.count += 1
       val level = severity match {
         case INFO => Level.INFO
@@ -87,7 +87,6 @@ object QScriptManager extends Logging {
         case NoPosition =>
           printMessage(level, msg)
         case _ =>
-          val buf = new StringBuilder(msg)
           val file = pos.source.file
           printMessage(level, file.name+":"+pos.line+": "+msg)
           printSourceLine(level, pos)
@@ -97,7 +96,7 @@ object QScriptManager extends Logging {
     /**
      * Prints a summary count of warnings and errors.
      */
-    def printSummary() = {
+    def printSummary() {
       if (WARNING.count > 0)
         printMessage(Level.WARN, countElementsAsString(WARNING.count, "warning") + " found")
       if (ERROR.count > 0)
@@ -119,15 +118,16 @@ object QScriptManager extends Logging {
      * @param level Severity level.
      * @param pos Position in the file of the event.
      */
-    private def printColumnMarker(level: Level, pos: Position) =
+    private def printColumnMarker(level: Level, pos: Position) {
       if (pos.isDefined) { printMessage(level, " " * (pos.column - 1) + "^") }
+    }
 
     /**
      * Prints the message at the severity level.
      * @param level Severity level.
      * @param message Message content.
      */
-    private def printMessage(level: Level, message: String) = {
+    private def printMessage(level: Level, message: String) {
       logger.log(level, message)
     }
   }

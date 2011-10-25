@@ -25,41 +25,66 @@
 package org.broadinstitute.sting.queue.engine.shell
 
 import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util.ShellJob
 import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
 import java.util.Date
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
 import org.broadinstitute.sting.utils.Utils
+import org.broadinstitute.sting.utils.runtime.{ProcessSettings, OutputStreamSettings, ProcessController}
 
 /**
  * Runs jobs one at a time locally
  */
 class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
-  private var runStatus: RunnerStatus.Value = _
+  // Controller on the thread that started the job
+  private var controller: ProcessController = null
 
   /**
    * Runs the function on the local shell.
    * @param function Command to run.
    */
   def start() {
-    val job = new ShellJob
+    val commandLine = Array("sh", jobScript.getAbsolutePath)
+    val stdoutSettings = new OutputStreamSettings
+    val stderrSettings = new OutputStreamSettings
+    val mergeError = (function.jobErrorFile != null)
 
-    job.workingDir = function.commandDirectory
-    job.outputFile = function.jobOutputFile
-    job.errorFile = function.jobErrorFile
+    stdoutSettings.setOutputFile(function.jobOutputFile, true)
+    if (function.jobErrorFile != null)
+      stderrSettings.setOutputFile(function.jobErrorFile, true)
 
-    job.shellScript = jobScript
+    if (logger.isDebugEnabled) {
+      stdoutSettings.printStandard(true)
+      stderrSettings.printStandard(true)
+    }
 
-    // Allow advanced users to update the job.
-    updateJobRun(job)
+    val processSettings = new ProcessSettings(
+      commandLine, mergeError, function.commandDirectory, null,
+      null, stdoutSettings, stderrSettings)
+
+    updateJobRun(processSettings)
 
     getRunInfo.startTime = new Date()
     getRunInfo.exechosts = Utils.resolveHostname()
     updateStatus(RunnerStatus.RUNNING)
-    job.run()
+    controller = ProcessController.getThreadLocal
+    val exitStatus = controller.exec(processSettings).getExitValue
     getRunInfo.doneTime = new Date()
-    updateStatus(RunnerStatus.DONE)
+    updateStatus(if (exitStatus == 0) RunnerStatus.DONE else RunnerStatus.FAILED)
   }
 
-  override def checkUnknownStatus() {}
+  /**
+   * Possibly invoked from a shutdown thread, find and
+   * stop the controller from the originating thread
+   */
+  def tryStop() {
+    // Assumes that after being set the job may be
+    // reassigned but will not be reset back to null
+    if (controller != null) {
+      try {
+        controller.tryDestroy()
+      } catch {
+        case e =>
+          logger.error("Unable to kill shell job: " + function.description)
+      }
+    }
+  }
 }

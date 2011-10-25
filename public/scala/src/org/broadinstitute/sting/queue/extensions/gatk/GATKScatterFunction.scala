@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue.extensions.gatk
 import org.broadinstitute.sting.utils.interval.IntervalUtils
 import java.io.File
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.util.IOUtils
+import org.broadinstitute.sting.utils.io.IOUtils
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterFunction}
 import org.broadinstitute.sting.commandline.Output
 

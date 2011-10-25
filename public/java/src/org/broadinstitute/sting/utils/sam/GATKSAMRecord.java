@@ -86,10 +86,6 @@ public class GATKSAMRecord extends SAMRecord {
             if ( originalQuals != null )
                 mRecord.setBaseQualities(originalQuals);
         }
-
-        // sanity check that the lengths of the base and quality strings are equal
-        if ( getBaseQualities().length  != getReadLength() )
-            throw new UserException.MalformedBAM(this, String.format("Error: the number of base qualities does not match the number of bases in %s.", mRecord.getReadName()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////

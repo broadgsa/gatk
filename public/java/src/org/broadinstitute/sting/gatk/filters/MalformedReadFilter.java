@@ -27,7 +27,9 @@ package org.broadinstitute.sting.gatk.filters;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * Filter out malformed reads.
@@ -37,14 +39,25 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
  */
 public class MalformedReadFilter extends ReadFilter {
     private SAMFileHeader header;
-    
+
+    @Argument(fullName = "filter_mismatching_base_and_quals", shortName = "filterMBQ", doc = "if a read has mismatching number of bases and base qualities, filter out the read instead of blowing up.", required = false)
+    boolean filterMismatchingBaseAndQuals = false;
+
     @Override
     public void initialize(GenomeAnalysisEngine engine) {
         this.header = engine.getSAMFileHeader();
     }
 
     public boolean filterOut(SAMRecord read) {
-        return !checkInvalidAlignmentStart(read) ||
+        // slowly changing the behavior to blow up first and filtering out if a parameter is explicitly provided
+        if (!checkMismatchingBasesAndQuals(read)) {
+            if (!filterMismatchingBaseAndQuals)
+                throw new UserException.MalformedBAM(read, "BAM file has a read with mismatching number of bases and base qualities. Offender: " + read.getReadName() +"  [" + read.getReadLength() + " bases] [" +read.getBaseQualities().length +"] quals");
+            else
+                return true;
+        }
+
+        return  !checkInvalidAlignmentStart(read) ||
                 !checkInvalidAlignmentEnd(read) ||
                 !checkAlignmentDisagreesWithHeader(this.header,read) ||
                 !checkCigarDisagreesWithAlignment(read);
@@ -107,5 +120,14 @@ public class MalformedReadFilter extends ReadFilter {
             read.getAlignmentBlocks().size() < 0 )
             return false;
         return true;
+    }
+
+    /**
+     * Check if the read has the same number of bases and base qualities
+     * @param read the read to validate
+     * @return true if they have the same number. False otherwise.
+     */
+    private static boolean checkMismatchingBasesAndQuals(SAMRecord read) {
+        return (read.getReadLength() == read.getBaseQualities().length);
     }
 }

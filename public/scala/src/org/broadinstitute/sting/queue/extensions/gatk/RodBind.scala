@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
 import java.io.File
-import org.broadinstitute.sting.queue.util.FileExtension
+import org.broadinstitute.sting.utils.io.FileExtension
 import java.lang.String
 
 /**

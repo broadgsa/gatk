@@ -30,4 +30,5 @@ import org.broadinstitute.sting.queue.engine.CommandLineJobManager
 class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
   def runnerType = classOf[ShellJobRunner]
   def create(function: CommandLineFunction) = new ShellJobRunner(function)
+  override def tryStop(runners: Set[ShellJobRunner]) { runners.foreach(_.tryStop()) }
 }
