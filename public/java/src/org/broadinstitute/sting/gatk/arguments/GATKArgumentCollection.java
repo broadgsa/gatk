@@ -135,8 +135,8 @@ public class GATKArgumentCollection {
 
     /**
      * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
-     * a default downsampling mechanism, return null.
-     * @return The explicitly specified downsampling mechanism, or null if none exists.
+     * a default downsampling mechanism, return the default.
+     * @return The explicitly specified downsampling mechanism, or the default if none exists.
      */
     public DownsamplingMethod getDownsamplingMethod() {
         if(downsamplingType == null && downsampleFraction == null && downsampleCoverage == null)
@@ -144,6 +144,18 @@ public class GATKArgumentCollection {
         if(downsamplingType == null && downsampleCoverage != null)
             return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,downsampleCoverage,null);
         return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
+    }
+
+    /**
+     * Set the downsampling method stored in the argument collection so that it is read back out when interrogating the command line arguments.
+     * @param method The downsampling mechanism.
+     */
+    public void setDownsamplingMethod(DownsamplingMethod method) {
+        if (method == null)
+            throw new IllegalArgumentException("method is null");
+        downsamplingType = method.type;
+        downsampleCoverage = method.toCoverage;
+        downsampleFraction = method.toFraction;
     }
 
     // --------------------------------------------------------------------------------------------------------------

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.queue.{QException, QSettings}
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
 import org.broadinstitute.sting.queue.util._
+import org.broadinstitute.sting.utils.io.IOUtils
 
 /**
  * The base interface for all functions in Queue.
