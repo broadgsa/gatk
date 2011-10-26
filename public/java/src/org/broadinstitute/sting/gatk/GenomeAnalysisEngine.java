@@ -600,10 +600,6 @@ public class GenomeAnalysisEngine {
             logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
                     toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
-
-        // DEBUGGING OUTPUT
-        for ( GenomeLoc loc : intervals )
-            logger.info("Including -L interval: " + loc);
     }
 
     /**
