@@ -27,10 +27,10 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.FragmentUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.pileup.FragmentPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -259,12 +259,12 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         // for each fragment, add to the likelihoods
-        FragmentPileup fpile = new FragmentPileup(pileup);
+        FragmentUtils fpile = new FragmentUtils(pileup);
 
         for ( PileupElement p : fpile.getOneReadPileup() )
             n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
-        for ( FragmentPileup.TwoReadPileupElement twoRead : fpile.getTwoReadPileup() )
+        for ( FragmentUtils.TwoReadPileupElement twoRead : fpile.getTwoReadPileup() )
             n += add(twoRead, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         return n;
@@ -286,7 +286,7 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         }
     }
 
-    public int add(FragmentPileup.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
+    public int add(FragmentUtils.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         final byte observedBase1 = twoRead.getFirst().getBase();
         final byte qualityScore1 = qualToUse(twoRead.getFirst(), ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
         final byte observedBase2 = twoRead.getSecond().getBase();

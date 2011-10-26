@@ -28,7 +28,7 @@ import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import com.google.caliper.runner.CaliperMain;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.FragmentUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -62,20 +62,20 @@ public class FragmentPileupBenchmark extends SimpleBenchmark {
         }
     }
 
-    private void run(int rep, FragmentPileup.FragmentMatchingAlgorithm algorithm) {
+    private void run(int rep, FragmentUtils.FragmentMatchingAlgorithm algorithm) {
         int nFrags = 0;
         for ( int i = 0; i < rep; i++ ) {
             for ( ReadBackedPileup rbp : pileups )
-                nFrags += new FragmentPileup(rbp, algorithm).getTwoReadPileup().size();
+                nFrags += new FragmentUtils(rbp, algorithm).getTwoReadPileup().size();
         }
     }
 
     public void timeOriginal(int rep) {
-        run(rep, FragmentPileup.FragmentMatchingAlgorithm.ORIGINAL);
+        run(rep, FragmentUtils.FragmentMatchingAlgorithm.ORIGINAL);
     }
 
     public void timeSkipNonOverlapping(int rep) {
-        run(rep, FragmentPileup.FragmentMatchingAlgorithm.skipNonOverlapping);
+        run(rep, FragmentUtils.FragmentMatchingAlgorithm.skipNonOverlapping);
     }
 
     public static void main(String[] args) {

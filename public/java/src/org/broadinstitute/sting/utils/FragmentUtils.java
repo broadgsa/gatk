@@ -1,6 +1,8 @@
-package org.broadinstitute.sting.utils.pileup;
+package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -23,7 +25,7 @@ import java.util.*;
  * Date: 3/26/11
  * Time: 10:09 PM
  */
-public class FragmentPileup {
+public class FragmentUtils {
     Collection<PileupElement> oneReadPile = null;
     Collection<TwoReadPileupElement> twoReadPile = null;
 
@@ -36,12 +38,12 @@ public class FragmentPileup {
      * Create a new Fragment-based pileup from the standard read-based pileup
      * @param pileup
      */
-    public FragmentPileup(ReadBackedPileup pileup) {
+    public FragmentUtils(ReadBackedPileup pileup) {
         skipNonOverlapping(pileup);
     }
 
     /** For performance testing only */
-    protected FragmentPileup(ReadBackedPileup pileup, FragmentMatchingAlgorithm algorithm) {
+    protected FragmentUtils(ReadBackedPileup pileup, FragmentMatchingAlgorithm algorithm) {
         switch ( algorithm ) {
             case ORIGINAL: oldSlowCalculation(pileup); break;
             case skipNonOverlapping: skipNonOverlapping(pileup); break;

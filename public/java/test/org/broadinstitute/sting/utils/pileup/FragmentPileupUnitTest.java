@@ -25,10 +25,9 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.FragmentUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -113,7 +112,7 @@ public class FragmentPileupUnitTest extends BaseTest {
     public void testMe(FragmentPileupTest test) {
         for ( TestState testState : test.states ) {
             ReadBackedPileup rbp = testState.pileup;
-            FragmentPileup fp = new FragmentPileup(rbp);
+            FragmentUtils fp = new FragmentUtils(rbp);
             Assert.assertEquals(fp.getTwoReadPileup().size(), testState.shouldBeFragment ? 1 : 0);
             Assert.assertEquals(fp.getOneReadPileup().size(), testState.shouldBeFragment ? 0 : 1);
         }
