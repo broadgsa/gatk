@@ -1,0 +1,17 @@
+/*.bam
+/*.bai
+/*.bed
+*.idx
+*~
+/*.vcf
+/*.txt
+/*.csh
+/.*
+/*.pdf
+/*.eval
+*.ipr
+*.iws
+queueScatterGather
+/foo*
+/bar*
+integrationtests/
