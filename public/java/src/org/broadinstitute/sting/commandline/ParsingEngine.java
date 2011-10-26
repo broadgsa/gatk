@@ -75,6 +75,7 @@ public class ParsingEngine {
      * The type of set used must be ordered (but not necessarily sorted).
      */
     private static final Set<ArgumentTypeDescriptor> STANDARD_ARGUMENT_TYPE_DESCRIPTORS = new LinkedHashSet<ArgumentTypeDescriptor>( Arrays.asList(new SimpleArgumentTypeDescriptor(),
+            new IntervalBindingArgumentTypeDescriptor(),
             new RodBindingArgumentTypeDescriptor(),
             new CompoundArgumentTypeDescriptor(),
             new MultiplexArgumentTypeDescriptor()) );

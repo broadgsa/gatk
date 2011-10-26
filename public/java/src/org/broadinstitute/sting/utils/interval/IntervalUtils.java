@@ -35,62 +35,60 @@ public class IntervalUtils {
      *
      * @param parser Genome loc parser.
      * @param argList A list of strings containing interval data.
-     * @param allowEmptyIntervalList If false instead of an empty interval list will return null.
-     * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used. 
+     * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used.
      */
-    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, List<String> argList, boolean allowEmptyIntervalList) {
+    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, List<String> argList) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
 
         if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
                                // ensure that the arg list isn't null before looping.
             for (String argument : argList) {
-
-                // separate argument on semicolon first
-                for (String fileOrInterval : argument.split(";")) {
-                    // if any interval argument is '-L all', consider all loci by returning no intervals
-                    if (fileOrInterval.trim().toLowerCase().equals("all")) {
-                        if (argList.size() != 1) {
-                            // throw error if '-L all' is not only interval - potentially conflicting commands
-                            throw new UserException.CommandLineException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
-                        }
-                        return null;
-                    }
-                    // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
-                    else if (isUnmapped(fileOrInterval))
-                        rawIntervals.add(GenomeLoc.UNMAPPED);
-                    // if it's a file, add items to raw interval list
-                    else if (isIntervalFile(fileOrInterval)) {
-                        try {
-                            rawIntervals.addAll(intervalFileToList(parser, fileOrInterval, allowEmptyIntervalList));
-                        }
-                        catch ( UserException.MalformedGenomeLoc e ) {
-                            throw e;
-                        }
-                        catch ( Exception e ) {
-                            throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in any supported format.", e);
-                        }
-                    }
-
-                        // otherwise treat as an interval -> parse and add to raw interval list
-                    else {
-                        rawIntervals.add(parser.parseGenomeLoc(fileOrInterval));
-                    }
-                }
+                rawIntervals.addAll(parseIntervalArguments(parser, argument));
             }
         }
 
         return rawIntervals;
     }
 
-        /**
+    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, String arg) {
+        List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
+
+        // separate argument on semicolon first
+        for (String fileOrInterval : arg.split(";")) {
+            // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
+            if (isUnmapped(fileOrInterval))
+                rawIntervals.add(GenomeLoc.UNMAPPED);
+            // if it's a file, add items to raw interval list
+            else if (isIntervalFile(fileOrInterval)) {
+                try {
+                    rawIntervals.addAll(intervalFileToList(parser, fileOrInterval));
+                }
+                catch ( UserException.MalformedGenomeLoc e ) {
+                    throw e;
+                }
+                catch ( Exception e ) {
+                    throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in any supported format.", e);
+                }
+            }
+
+                // otherwise treat as an interval -> parse and add to raw interval list
+            else {
+                rawIntervals.add(parser.parseGenomeLoc(fileOrInterval));
+            }
+        }
+
+        return rawIntervals;
+    }
+
+    /**
      * Read a file of genome locations to process. The file may be in BED, Picard,
      * or GATK interval format.
      *
-     * @param file_name interval file
-     * @param allowEmptyIntervalList if false an exception will be thrown for files that contain no intervals
+     * @param glParser   GenomeLocParser
+     * @param file_name  interval file
      * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
      */
-    public static List<GenomeLoc> intervalFileToList(final GenomeLocParser glParser, final String file_name, boolean allowEmptyIntervalList) {
+    public static List<GenomeLoc> intervalFileToList(final GenomeLocParser glParser, final String file_name) {
         // try to open file
         File inputFile = new File(file_name);
         List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
@@ -143,12 +141,6 @@ public class IntervalUtils {
                     }
                 }
             }
-        }
-
-        if ( ret.isEmpty() && ! allowEmptyIntervalList ) {
-            throw new UserException("The interval file " + inputFile.getAbsolutePath() + " contains no intervals " +
-                                    "that could be parsed, and the unsafe operation ALLOW_EMPTY_INTERVAL_LIST has " +
-                                    "not been enabled");
         }
 
         return ret;

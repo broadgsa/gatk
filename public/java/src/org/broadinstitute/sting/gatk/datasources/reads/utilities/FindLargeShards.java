@@ -97,7 +97,7 @@ public class FindLargeShards extends CommandLineProgram {
         // intervals
         GenomeLocSortedSet intervalSortedSet = null;
         if(intervals != null)
-            intervalSortedSet = IntervalUtils.sortAndMergeIntervals(genomeLocParser, IntervalUtils.parseIntervalArguments(genomeLocParser, intervals, true), IntervalMergingRule.ALL);
+            intervalSortedSet = IntervalUtils.sortAndMergeIntervals(genomeLocParser, IntervalUtils.parseIntervalArguments(genomeLocParser, intervals), IntervalMergingRule.ALL);
         else {
             intervalSortedSet = new GenomeLocSortedSet(genomeLocParser);
             for(SAMSequenceRecord entry: refReader.getSequenceDictionary().getSequences())

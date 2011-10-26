@@ -32,7 +32,6 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -386,10 +385,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             intervals = merger; 
         } else {
             // read in the whole list of intervals for cleaning
-            boolean allowEmptyIntervalList = (getToolkit().getArguments().unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
-                                              getToolkit().getArguments().unsafe == ValidationExclusion.TYPE.ALL);
             GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
-                    IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile),allowEmptyIntervalList),
+                    IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile)),
                     IntervalMergingRule.OVERLAPPING_ONLY);
             intervals = locs.iterator();
         }

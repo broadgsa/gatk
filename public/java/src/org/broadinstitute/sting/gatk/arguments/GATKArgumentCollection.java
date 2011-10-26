@@ -26,9 +26,11 @@
 package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
@@ -84,11 +86,20 @@ public class GATKArgumentCollection {
 
     @ElementList(required = false)
     @Input(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
-    public List<String> intervals = null;
+    public List<IntervalBinding<Feature>> intervals = null;
 
     @ElementList(required = false)
     @Input(fullName = "excludeIntervals", shortName = "XL", doc = "A list of genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file.", required = false)
-    public List<String> excludeIntervals = null;
+    public List<IntervalBinding<Feature>> excludeIntervals = null;
+
+    @Element(required = false)
+    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L inputs", required = false)
+    public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;
+
+    /** What rule should we use when merging intervals */
+    @Element(required = false)
+    @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
+    public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     @Element(required = false)
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
@@ -99,14 +110,6 @@ public class GATKArgumentCollection {
     @ElementList(required = false)
     @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form :<name>,<type> <file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
-
-    @Element(required = false)
-    @Argument(fullName = "rodToIntervalTrackName", shortName = "BTI", doc = "Indicates that the named track should be converted into an interval list, to drive the traversal", required = false)
-    public String RODToInterval = null;
-
-    @Element(required = false)
-    @Argument(fullName = "BTI_merge_rule", shortName = "BTIMR", doc = "Indicates the merging approach the interval parser should use to combine the BTI track with other -L options", required = false)
-    public IntervalSetRule BTIMergeRule = IntervalSetRule.UNION;
 
     @Element(required = false)
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
@@ -196,11 +199,6 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public int numberOfThreads = 1;
-
-    /** What rule should we use when merging intervals */
-    @Element(required = false)
-    @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use.", required = false)
-    public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     @ElementList(required = false)
     @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
@@ -442,19 +440,15 @@ public class GATKArgumentCollection {
         if (other.intervalMerging != this.intervalMerging) {
             return false;
         }
-        if ((other.RODToInterval == null && RODToInterval != null) ||
-                (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
-            return false;
-        }
 
         if (other.phoneHomeType != this.phoneHomeType) {
             return false;
         }
 
-        if (BTIMergeRule != other.BTIMergeRule)
+        if (intervalSetRule != other.intervalSetRule)
             return false;
 
-        if ( BAQMode != other.BAQMode) return false;
+        if ( BAQMode != other.BAQMode ) return false;
         if ( BAQGOP != other.BAQGOP ) return false;
 
         if ((other.performanceLog == null && this.performanceLog != null) ||

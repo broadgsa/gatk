@@ -140,7 +140,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         final FeatureManager.FeatureDescriptor descriptor = getFeatureManager().getByCodec(codecClass);
 
         if (descriptor == null)
-            throw new ReviewedStingException("Unable to find type name for codex class " + codecClass.getName());
+            throw new ReviewedStingException("Unable to find type name for codec class " + codecClass.getName());
 
         return createInstanceOfTrack(new RMDTriplet("anonymous",descriptor.getName(),inputFile.getAbsolutePath(),RMDStorageType.FILE,new Tags()));
     }

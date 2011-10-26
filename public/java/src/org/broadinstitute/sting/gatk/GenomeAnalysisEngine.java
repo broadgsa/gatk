@@ -28,6 +28,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -42,7 +43,6 @@ import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -50,6 +50,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 import java.io.File;
@@ -296,7 +297,7 @@ public class GenomeAnalysisEngine {
         else if(WalkerManager.getDownsamplingMethod(walker) != null)
             method = WalkerManager.getDownsamplingMethod(walker);
         else
-            method = argCollection.getDefaultDownsamplingMethod();
+            method = GATKArgumentCollection.getDefaultDownsamplingMethod();
         return method;
     }
 
@@ -563,34 +564,23 @@ public class GenomeAnalysisEngine {
     protected void initializeIntervals() {
 
         // return if no interval arguments at all
-        if ((argCollection.intervals == null) && (argCollection.excludeIntervals == null) && (argCollection.RODToInterval == null))
+        if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
             return;
 
-        // if '-L all' was specified, verify that it was the only -L specified and return if so.
-        if(argCollection.intervals != null) {
-            for(String interval: argCollection.intervals) {
-                if(interval.trim().equals("all")) {
-                    if(argCollection.intervals.size() > 1)
-                        throw new UserException("'-L all' was specified along with other intervals or interval lists; the GATK cannot combine '-L all' with other intervals.");
-
-                    // '-L all' was specified and seems valid.  Return.
-                    return;
-                }
-            }
-        }
+        // Note that the use of '-L all' is no longer supported.
 
         // if include argument isn't given, create new set of all possible intervals
-        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
+        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
             GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-            loadIntervals(argCollection.intervals, IntervalUtils.mergeIntervalLocations(getRODIntervals(), argCollection.intervalMerging)));
+            loadIntervals(argCollection.intervals, argCollection.intervalSetRule));
 
         // if no exclude arguments, can return parseIntervalArguments directly
-        if (argCollection.excludeIntervals == null)
+        if ( argCollection.excludeIntervals == null )
             intervals = includeSortedSet;
 
-            // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
+        // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
         else {
-            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, null);
+            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, IntervalSetRule.UNION);
             intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
             // logging messages only printed when exclude (-XL) arguments are given
@@ -601,49 +591,37 @@ public class GenomeAnalysisEngine {
             logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
                     toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
+
+        // DEBUGGING OUTPUT
+        for ( GenomeLoc loc : intervals )
+            logger.info("Including -L interval: " + loc);
     }
 
     /**
      * Loads the intervals relevant to the current execution
-     * @param argList String representation of arguments; might include 'all', filenames, intervals in samtools
-     *                notation, or a combination of the above
-     * @param rodIntervals a list of ROD intervals to add to the returned set.  Can be empty or null.
+     * @param argList  argument bindings; might include filenames, intervals in samtools notation, or a combination of the above
+     * @param rule     interval merging rule
      * @return A sorted, merged list of all intervals specified in this arg list.
      */
-    protected GenomeLocSortedSet loadIntervals( List<String> argList, List<GenomeLoc> rodIntervals ) {
+    protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
 
         boolean allowEmptyIntervalList = (argCollection.unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
                                           argCollection.unsafe == ValidationExclusion.TYPE.ALL);
 
-        List<GenomeLoc> nonRODIntervals = IntervalUtils.parseIntervalArguments(genomeLocParser, argList, allowEmptyIntervalList);
-        List<GenomeLoc> allIntervals = IntervalUtils.mergeListsBySetOperator(rodIntervals, nonRODIntervals, argCollection.BTIMergeRule);
+        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>(0);
+        for ( IntervalBinding intervalBinding : argList ) {
+            List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
+
+            if ( !allowEmptyIntervalList && intervals.isEmpty() ) {
+                throw new UserException("The interval file " + intervalBinding.getSource() + " contains no intervals " +
+                                        "that could be parsed, and the unsafe operation ALLOW_EMPTY_INTERVAL_LIST has " +
+                                        "not been enabled");
+            }
+
+            allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, rule);
+        }
 
         return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, argCollection.intervalMerging);
-    }
-
-    /**
-     * if we have a ROD specified as a 'rodToIntervalTrackName', convert its records to RODs
-     * @return ROD intervals as GenomeLocs
-     */
-    private List<GenomeLoc> getRODIntervals() {
-        Map<String, ReferenceOrderedDataSource> rodNames = RMDIntervalGenerator.getRMDTrackNames(rodDataSources);
-        // Do we have any RODs that overloaded as interval lists with the 'rodToIntervalTrackName' flag?
-        List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
-        if (rodNames != null && argCollection.RODToInterval != null) {
-            String rodName = argCollection.RODToInterval;
-
-            // check to make sure we have a rod of that name
-            if (!rodNames.containsKey(rodName))
-                throw new UserException.CommandLineException("--rodToIntervalTrackName (-BTI) was passed the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
-
-            for (String str : rodNames.keySet())
-                if (str.equals(rodName)) {
-                    logger.info("Adding interval list from track (ROD) named " + rodName);
-                    RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str));
-                    ret.addAll(intervalGenerator.toGenomeLocList());
-                }
-        }
-        return ret;
     }
 
     /**
