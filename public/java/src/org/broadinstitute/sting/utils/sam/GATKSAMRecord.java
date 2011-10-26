@@ -40,6 +40,7 @@ import java.util.Map;
  * IMPORTANT NOTE: Because ReadGroups are not set through the SAMRecord,
  *   if they are ever modified externally then one must also invoke the
  *   setReadGroup() method here to ensure that the cache is kept up-to-date.
+ *
  */
 public class GATKSAMRecord extends BAMRecord {
     // the SAMRecord data we're caching
