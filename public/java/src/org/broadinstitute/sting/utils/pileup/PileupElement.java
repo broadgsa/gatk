@@ -4,6 +4,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
@@ -12,7 +13,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  * Date: Apr 14, 2009
  * Time: 8:54:05 AM
  */
-public class PileupElement {
+public class PileupElement implements Comparable<PileupElement> {
     public static final byte DELETION_BASE = BaseUtils.D;
     public static final byte DELETION_QUAL = (byte) 16;
     public static final byte A_FOLLOWED_BY_INSERTION_BASE = (byte) 87;
@@ -75,6 +76,20 @@ public class PileupElement {
         return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
     }
 
+    @Override
+    public int compareTo(final PileupElement pileupElement) {
+        if ( offset < pileupElement.offset )
+            return -1;
+        else if ( offset > pileupElement.offset )
+            return 1;
+        else if ( read.getAlignmentStart() < pileupElement.read.getAlignmentStart() )
+            return -1;
+        else if ( read.getAlignmentStart() > pileupElement.read.getAlignmentStart() )
+            return 1;
+        else
+            return 0;
+    }
+
     // --------------------------------------------------------------------------
     //
     // Reduced read accessors
@@ -82,16 +97,16 @@ public class PileupElement {
     // --------------------------------------------------------------------------
 
     public boolean isReducedRead() {
-        return ReadUtils.isReducedRead(getRead());
+        return ((GATKSAMRecord)read).isReducedRead();
     }
 
     public int getReducedCount() {
         if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced count for non-reduced read " + getRead().getReadName());
-        return ReadUtils.getReducedCount(getRead(), offset);
+        return ((GATKSAMRecord)read).getReducedCount(offset);
     }
 
     public byte getReducedQual() {
         if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced qual for non-reduced read " + getRead().getReadName());
-        return ReadUtils.getReducedQual(getRead(), offset);
+        return getQual();
     }
 }

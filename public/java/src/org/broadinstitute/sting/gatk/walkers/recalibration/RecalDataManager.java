@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
@@ -228,8 +229,7 @@ public class RecalDataManager {
      * @param RAC The list of shared command line arguments
      */
     public static void parseSAMRecord( final SAMRecord read, final RecalibrationArgumentCollection RAC ) {
-
-        SAMReadGroupRecord readGroup = read.getReadGroup();
+        GATKSAMReadGroupRecord readGroup = ((GATKSAMRecord)read).getReadGroup();
 
         // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments
         if( readGroup == null ) {
@@ -241,7 +241,7 @@ public class RecalDataManager {
                     warnUserNullReadGroup = true;
                 }
                 // There is no readGroup so defaulting to these values
-                readGroup = new SAMReadGroupRecord( RAC.DEFAULT_READ_GROUP );
+                readGroup = new GATKSAMReadGroupRecord( RAC.DEFAULT_READ_GROUP );
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
                 ((GATKSAMRecord)read).setReadGroup( readGroup );
             } else {
@@ -251,7 +251,7 @@ public class RecalDataManager {
 
         if( RAC.FORCE_READ_GROUP != null && !readGroup.getReadGroupId().equals(RAC.FORCE_READ_GROUP) ) { // Collapse all the read groups into a single common String provided by the user
             final String oldPlatform = readGroup.getPlatform();
-            readGroup = new SAMReadGroupRecord( RAC.FORCE_READ_GROUP );
+            readGroup = new GATKSAMReadGroupRecord( RAC.FORCE_READ_GROUP );
             readGroup.setPlatform( oldPlatform );
             ((GATKSAMRecord)read).setReadGroup( readGroup );
         }

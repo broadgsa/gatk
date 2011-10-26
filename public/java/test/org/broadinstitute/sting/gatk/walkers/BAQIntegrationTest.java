@@ -18,7 +18,7 @@ public class BAQIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testPrintReadsNoBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("902197bf77ed5a828d50e08771685928"));
+        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("d97340a2bba2c6320d1ebeb86024a27c"));
         executeTest(String.format("testPrintReadsNoBAQ"), spec);
     }
 

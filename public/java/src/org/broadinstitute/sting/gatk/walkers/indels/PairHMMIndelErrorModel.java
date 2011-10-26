@@ -403,7 +403,7 @@ public class PairHMMIndelErrorModel {
 
         for (PileupElement p: pileup) {
             // > 1 when the read is a consensus read representing multiple independent observations
-            final boolean isReduced = ReadUtils.isReducedRead(p.getRead());
+            final boolean isReduced = p.isReducedRead();
             readCounts[readIdx] = isReduced ? p.getReducedCount() : 1;
 
             // check if we've already computed likelihoods for this pileup element (i.e. for this read at this location)
@@ -419,10 +419,6 @@ public class PairHMMIndelErrorModel {
                 SAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;
-
-                if ( isReduced ) {
-                    read = ReadUtils.reducedReadWithReducedQuals(read);
-                }
 
                 if(ReadUtils.is454Read(read)) {
                     continue;
