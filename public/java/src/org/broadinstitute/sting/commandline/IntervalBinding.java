@@ -27,14 +27,19 @@ package org.broadinstitute.sting.commandline;
 import com.google.java.contract.Requires;
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.Feature;
+import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -74,15 +79,25 @@ public final class IntervalBinding<T extends Feature> {
         if ( featureIntervals != null ) {
             intervals = new ArrayList<GenomeLoc>();
 
-            RMDTrackBuilder builder = new RMDTrackBuilder(toolkit.getReferenceDataSource().getReference().getSequenceDictionary(),
-                    toolkit.getGenomeLocParser(),
-                    toolkit.getArguments().unsafe);
-            FeatureManager.FeatureDescriptor descriptor = new FeatureManager().getByName(featureIntervals.getTribbleType());
-            CloseableIterator<GATKFeature> iterator = builder.createInstanceOfTrack(descriptor.getCodecClass(), new File(featureIntervals.getSource())).getIterator();
-            while ( iterator.hasNext() ) {
-                intervals.add(iterator.next().getLocation());
+            //RMDTrackBuilder builder = new RMDTrackBuilder(toolkit.getReferenceDataSource().getReference().getSequenceDictionary(),
+            //        toolkit.getGenomeLocParser(),
+            //        toolkit.getArguments().unsafe);
+
+            // TODO -- after ROD system cleanup, go through the ROD system so that we can handle things like gzipped files
+
+            FeatureCodec codec = new FeatureManager().getByName(featureIntervals.getTribbleType()).getCodec();
+            try {
+                FileInputStream fis = new FileInputStream(new File(featureIntervals.getSource()));
+                AsciiLineReader lineReader = new AsciiLineReader(fis);
+                codec.readHeader(lineReader);
+                String line = lineReader.readLine();
+                while ( line != null ) {
+                    intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(codec.decodeLoc(line)));
+                    line = lineReader.readLine();
+                }
+            } catch (IOException e) {
+                throw new UserException("Problem reading the interval file " + featureIntervals.getSource() + "; " + e.getMessage());
             }
-            iterator.close();
 
         } else {
             intervals = IntervalUtils.parseIntervalArguments(toolkit.getGenomeLocParser(), stringIntervals);
