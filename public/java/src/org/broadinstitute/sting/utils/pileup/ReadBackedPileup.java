@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.pileup;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.sting.utils.fragments.FragmentCollection;
 
 import java.util.Collection;
 import java.util.List;
@@ -222,4 +223,9 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public byte[] getMappingQuals();
 
+    /**
+     * Converts this pileup into a FragmentCollection (see FragmentUtils for documentation)
+     * @return
+     */
+    public FragmentCollection<PileupElement> toFragments();
 }

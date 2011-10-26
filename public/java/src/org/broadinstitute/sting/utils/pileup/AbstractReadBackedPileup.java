@@ -29,6 +29,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.fragments.FragmentCollection;
+import org.broadinstitute.sting.utils.fragments.FragmentUtils;
 
 import java.util.*;
 
@@ -871,5 +873,10 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         return quals2String(getQuals());
     }
 
+    @Override
+    public FragmentCollection<PileupElement> toFragments() {
+        return FragmentUtils.create(this);
+    }
 }
+
 

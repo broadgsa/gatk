@@ -22,15 +22,15 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.pileup;
+package org.broadinstitute.sting.utils.fragments;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import com.google.caliper.runner.CaliperMain;
 import net.sf.samtools.SAMFileHeader;
-import org.broadinstitute.sting.utils.FragmentUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import java.util.*;
@@ -38,7 +38,7 @@ import java.util.*;
 /**
  * Caliper microbenchmark of fragment pileup
  */
-public class FragmentPileupBenchmark extends SimpleBenchmark {
+public class FragmentUtilsBenchmark extends SimpleBenchmark {
     List<ReadBackedPileup> pileups;
 
     @Param({"0", "4", "30", "150", "1000"})
@@ -62,23 +62,19 @@ public class FragmentPileupBenchmark extends SimpleBenchmark {
         }
     }
 
-    private void run(int rep, FragmentUtils.FragmentMatchingAlgorithm algorithm) {
+//    public void timeOriginal(int rep) {
+//        run(rep, FragmentUtils.FragmentMatchingAlgorithm.ORIGINAL);
+//    }
+
+    public void timeSkipNonOverlapping(int rep) {
         int nFrags = 0;
         for ( int i = 0; i < rep; i++ ) {
             for ( ReadBackedPileup rbp : pileups )
-                nFrags += new FragmentUtils(rbp, algorithm).getTwoReadPileup().size();
+                nFrags += FragmentUtils.create(rbp).getOverlappingPairs().size();
         }
     }
 
-    public void timeOriginal(int rep) {
-        run(rep, FragmentUtils.FragmentMatchingAlgorithm.ORIGINAL);
-    }
-
-    public void timeSkipNonOverlapping(int rep) {
-        run(rep, FragmentUtils.FragmentMatchingAlgorithm.skipNonOverlapping);
-    }
-
     public static void main(String[] args) {
-        CaliperMain.main(FragmentPileupBenchmark.class, args);
+        CaliperMain.main(FragmentUtilsBenchmark.class, args);
     }
 }
