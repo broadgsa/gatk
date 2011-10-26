@@ -11,6 +11,8 @@
 /*.eval
 *.ipr
 *.iws
+*.iml
+.DS_Store
 queueScatterGather
 /foo*
 /bar*
