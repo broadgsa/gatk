@@ -5,6 +5,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -12,7 +13,7 @@ import org.testng.annotations.Test;
 
 
 public class ReadUtilsUnitTest extends BaseTest {
-    SAMRecord read, reducedRead;
+    GATKSAMRecord read, reducedRead;
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?";
     final private static byte[] REDUCED_READ_COUNTS = new byte[]{10, 20, 30, 40};
@@ -47,13 +48,12 @@ public class ReadUtilsUnitTest extends BaseTest {
 
     @Test
     public void testReducedReads() {
-        Assert.assertFalse(ReadUtils.isReducedRead(read), "isReducedRead is false for normal read");
-        Assert.assertEquals(ReadUtils.getReducedReadQualityTagValue(read), null, "No reduced read tag in normal read");
+        Assert.assertFalse(read.isReducedRead(), "isReducedRead is false for normal read");
+        Assert.assertEquals(read.getReducedReadCounts(), null, "No reduced read tag in normal read");
 
-        Assert.assertTrue(ReadUtils.isReducedRead(reducedRead), "isReducedRead is true for reduced read");
+        Assert.assertTrue(reducedRead.isReducedRead(), "isReducedRead is true for reduced read");
         for ( int i = 0; i < reducedRead.getReadLength(); i++) {
-            Assert.assertEquals(ReadUtils.getReducedQual(reducedRead, i), read.getBaseQualities()[i], "Reduced read quality not set to the expected value at " + i);
-            Assert.assertEquals(ReadUtils.getReducedCount(reducedRead, i), REDUCED_READ_COUNTS[i], "Reduced read count not set to the expected value at " + i);
+            Assert.assertEquals(reducedRead.getReducedCount(i), REDUCED_READ_COUNTS[i], "Reduced read count not set to the expected value at " + i);
         }
     }
 

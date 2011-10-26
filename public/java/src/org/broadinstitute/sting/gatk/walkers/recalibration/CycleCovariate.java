@@ -2,9 +2,12 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 
 /*
@@ -46,6 +49,9 @@ import java.util.List;
  */
 
 public class CycleCovariate implements StandardCovariate {
+    private final static EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);
+    private final static EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454,  NGSPlatform.ION_TORRENT);
+
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         if( RAC.DEFAULT_PLATFORM != null ) {
@@ -58,122 +64,6 @@ public class CycleCovariate implements StandardCovariate {
         }
     }
 
-    /*
-    // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
-
-        int cycle = 1;
-
-        //-----------------------------
-        // ILLUMINA and SOLID
-        //-----------------------------
-
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SLX" ) || // Some bams have "illumina" and others have "SLX"
-            read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "ABI_SOLID" )) { // Some bams have "solid" and others have "ABI_SOLID"
-            cycle = offset + 1;
-            if( read.getReadNegativeStrandFlag() ) {
-                cycle = read.getReadLength() - offset;
-            }
-        }
-
-        //-----------------------------
-        // 454
-        //-----------------------------
-
-        else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
-            final byte[] bases = read.getReadBases();
-
-            // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
-            // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
-            if( !read.getReadNegativeStrandFlag() ) { // Forward direction
-                int iii = 0;
-                while( iii <= offset )
-                {
-                    while( iii <= offset && bases[iii] == (byte)'T' ) { iii++; }
-                    while( iii <= offset && bases[iii] == (byte)'A' ) { iii++; }
-                    while( iii <= offset && bases[iii] == (byte)'C' ) { iii++; }
-                    while( iii <= offset && bases[iii] == (byte)'G' ) { iii++; }
-                    if( iii <= offset ) { cycle++; }
-                    if( iii <= offset && !BaseUtils.isRegularBase(bases[iii]) ) { iii++; }
-
-                }
-            } else { // Negative direction
-                int iii = bases.length-1;
-                while( iii >= offset )
-                {
-                    while( iii >= offset && bases[iii] == (byte)'T' ) { iii--; }
-                    while( iii >= offset && bases[iii] == (byte)'A' ) { iii--; }
-                    while( iii >= offset && bases[iii] == (byte)'C' ) { iii--; }
-                    while( iii >= offset && bases[iii] == (byte)'G' ) { iii--; }
-                    if( iii >= offset ) { cycle++; }
-                    if( iii >= offset && !BaseUtils.isRegularBase(bases[iii]) ) { iii--; }
-                }
-            }
-        }
-
-        //-----------------------------
-        // SOLID (unused), only to be used in conjunction with PrimerRoundCovariate
-        //-----------------------------
-
-        //else if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
-        //    // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-        //    int pos = offset + 1;
-        //    if( read.getReadNegativeStrandFlag() ) {
-        //        pos = read.getReadLength() - offset;
-        //    }
-        //    cycle = pos / 5; // integer division
-        //}
-
-        //-----------------------------
-        // UNRECOGNIZED PLATFORM
-        //-----------------------------
-
-        else { // Platform is unrecognized so revert to the default platform but warn the user first
-            if( defaultPlatform != null) { // The user set a default platform
-                if( !warnedUserBadPlatform ) {
-                    Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
-                            "Defaulting to platform = " + defaultPlatform + "." );
-                }
-                warnedUserBadPlatform = true;
-
-                read.getReadGroup().setPlatform( defaultPlatform );
-                return getValue( read, offset ); // A recursive call
-            } else { // The user did not set a default platform
-                throw new StingException( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
-                        "No default platform specified. Users must set the default platform using the --default_platform <String> argument." );
-            }
-        }
-
-        // Differentiate between first and second of pair.
-        // The sequencing machine cycle keeps incrementing for the second read in a pair. So it is possible for a read group
-        // to have an error affecting quality at a particular cycle on the first of pair which carries over to the second of pair.
-        // Therefore the cycle covariate must differentiate between first and second of pair reads.
-        // This effect can not be corrected by pulling out the first of pair and second of pair flags into a separate covariate because
-        //   the current sequential model would consider the effects independently instead of jointly.
-        if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
-            cycle *= -1;
-        }
-
-        return cycle;
-    }
-    */
-
-    // todo -- this should be put into a common place in the code base
-    private static List<String> ILLUMINA_NAMES = Arrays.asList("ILLUMINA", "SLX", "SOLEXA");
-    private static List<String> SOLID_NAMES = Arrays.asList("SOLID");
-    private static List<String> LS454_NAMES = Arrays.asList("454");
-    private static List<String> COMPLETE_GENOMICS_NAMES = Arrays.asList("COMPLETE");
-    private static List<String> PACBIO_NAMES = Arrays.asList("PACBIO");
-    private static List<String> ION_TORRENT_NAMES = Arrays.asList("IONTORRENT");
-
-    private static boolean isPlatform(SAMRecord read, List<String> names) {
-        String pl = read.getReadGroup().getPlatform().toUpperCase();
-        for ( String name : names )
-            if ( pl.contains( name ) )
-                return true;
-        return false;
-    }
-
     // Used to pick out the covariate's value from attributes of the read
     public void getValues(SAMRecord read, Comparable[] comparable) {
 
@@ -181,7 +71,8 @@ public class CycleCovariate implements StandardCovariate {
         // Illumina, Solid, PacBio, and Complete Genomics
         //-----------------------------
 
-        if( isPlatform(read, ILLUMINA_NAMES) || isPlatform(read, SOLID_NAMES) || isPlatform(read, PACBIO_NAMES) || isPlatform(read, COMPLETE_GENOMICS_NAMES) ) {
+        final NGSPlatform ngsPlatform = ((GATKSAMRecord)read).getNGSPlatform();
+        if( DISCRETE_CYCLE_PLATFORMS.contains(ngsPlatform) ) {
             final int init;
             final int increment;
             if( !read.getReadNegativeStrandFlag() ) {
@@ -227,8 +118,7 @@ public class CycleCovariate implements StandardCovariate {
         //-----------------------------
         // 454 and Ion Torrent
         //-----------------------------
-
-        else if ( isPlatform(read, LS454_NAMES) || isPlatform(read, ION_TORRENT_NAMES)) { // Some bams have "LS454" and others have just "454"
+        else if( FLOW_CYCLE_PLATFORMS.contains(ngsPlatform) ) {
 
             final int readLength = read.getReadLength();
             final byte[] bases = read.getReadBases();
@@ -273,8 +163,6 @@ public class CycleCovariate implements StandardCovariate {
         else  {
             throw new IllegalStateException("This method hasn't been implemented yet for " + read.getReadGroup().getPlatform());
         }
-
-
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker

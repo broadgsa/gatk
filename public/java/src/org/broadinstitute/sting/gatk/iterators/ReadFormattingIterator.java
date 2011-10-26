@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * An iterator which does post-processing of a read, including potentially wrapping
@@ -78,7 +77,30 @@ public class ReadFormattingIterator implements StingSAMIterator {
      *         no next exists.
      */
     public SAMRecord next() {
-        return new GATKSAMRecord(wrappedIterator.next(), useOriginalBaseQualities, defaultBaseQualities);
+        SAMRecord rec = wrappedIterator.next();
+
+        // if we are using default quals, check if we need them, and add if necessary.
+        // 1. we need if reads are lacking or have incomplete quality scores
+        // 2. we add if defaultBaseQualities has a positive value
+        if (defaultBaseQualities >= 0) {
+            byte reads [] = rec.getReadBases();
+            byte quals [] = rec.getBaseQualities();
+            if (quals == null || quals.length < reads.length) {
+                byte new_quals [] = new byte [reads.length];
+                for (int i=0; i<reads.length; i++)
+                    new_quals[i] = defaultBaseQualities;
+                rec.setBaseQualities(new_quals);
+            }
+        }
+
+        // if we are using original quals, set them now if they are present in the record
+        if ( useOriginalBaseQualities ) {
+            byte[] originalQuals = rec.getOriginalBaseQualities();
+            if ( originalQuals != null )
+                rec.setBaseQualities(originalQuals);
+        }
+
+        return rec;
     }
 
     /**
