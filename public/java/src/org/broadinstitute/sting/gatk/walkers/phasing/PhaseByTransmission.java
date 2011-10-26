@@ -109,6 +109,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     private final Byte NUM_HET_HET_HET = 4;
     private final Byte NUM_VIOLATIONS = 5;
 
+    //Random number generator
+    private Random rand = new Random();
+
     private enum FamilyMember {
         MOTHER,
         FATHER,
@@ -309,17 +312,22 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
        private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, double transmissionProb, Genotype phasedGenotype){
 
+           int phredScoreTransmission = -1;
+           if(transmissionProb != NO_TRANSMISSION_PROB)
+                phredScoreTransmission = MathUtils.probabilityToPhredScale(1-(transmissionProb));
+
            //Handle null, missing and unavailable genotypes
            //Note that only cases where a null/missing/unavailable genotype was passed in the first place can lead to a null/missing/unavailable
            //genotype so it is safe to return the original genotype in this case.
-           if(genotype == null || !phasedGenotype.isAvailable() || phasedGenotype.isNoCall())
+           //In addition, if the phasing confidence is 0, then return the unphased, original genotypes.
+           if(phredScoreTransmission ==0 || genotype == null || !phasedGenotype.isAvailable() || phasedGenotype.isNoCall())
                return genotype;
 
            //Add the transmission probability
            Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
            genotypeAttributes.putAll(genotype.getAttributes());
            if(transmissionProb>NO_TRANSMISSION_PROB)
-                genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, MathUtils.probabilityToPhredScale(1-(transmissionProb)));
+                genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, phredScoreTransmission);
 
            ArrayList<Allele> phasedAlleles = new ArrayList<Allele>(2);
            for(Allele allele : phasedGenotype.getAlleles()){
@@ -538,36 +546,46 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         //Prior vars
         double bestConfigurationLikelihood = 0.0;
         double norm = 0.0;
-        boolean isMV = false;
-        int bestConfigurationGenotypeDiffs=4;
-        Genotype.Type bestMotherGenotype = getTypeSafeNull(mother);
-        Genotype.Type bestFatherGenotype = getTypeSafeNull(father);
-        Genotype.Type bestChildGenotype = getTypeSafeNull(child);
+        int configuration_index =0;
+        ArrayList<Boolean> isMV = new ArrayList<Boolean>();
+        isMV.add(false);
+        ArrayList<Genotype.Type> bestMotherGenotype = new ArrayList<Genotype.Type>();
+        bestMotherGenotype.add(getTypeSafeNull(mother));
+        ArrayList<Genotype.Type> bestFatherGenotype = new ArrayList<Genotype.Type>();
+        bestFatherGenotype.add(getTypeSafeNull(father));
+        ArrayList<Genotype.Type> bestChildGenotype = new ArrayList<Genotype.Type>();
+        bestChildGenotype.add(getTypeSafeNull(child));
 
         //Get the most likely combination
         //Only check for most likely combination if at least a parent and the child have genotypes
         if(childLikelihoods.size()>2 && (motherLikelihoods.size() + fatherLikelihoods.size())>3){
             int mvCount;
             double configurationLikelihood;
-            int configurationGenotypeDiffs;
             for(Map.Entry<Genotype.Type,Double> motherGenotype : motherLikelihoods.entrySet()){
                 for(Map.Entry<Genotype.Type,Double> fatherGenotype : fatherLikelihoods.entrySet()){
                     for(Map.Entry<Genotype.Type,Double> childGenotype : childLikelihoods.entrySet()){
                         mvCount = mvCountMatrix.get(motherGenotype.getKey()).get(fatherGenotype.getKey()).get(childGenotype.getKey());
                         configurationLikelihood =  mvCount>0 ? Math.pow(deNovoPrior,mvCount)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue() : (1.0-11*deNovoPrior)*motherGenotype.getValue()*fatherGenotype.getValue()*childGenotype.getValue();
                         norm += configurationLikelihood;
-                        configurationGenotypeDiffs = countFamilyGenotypeDiff(mother.getType(),father.getType(),child.getType(),motherGenotype.getKey(),fatherGenotype.getKey(),childGenotype.getKey());
                         //Keep this combination if
                         //It has a better likelihood
                         //Or it has the same likelihood but requires less changes from original genotypes
-                        if ((configurationLikelihood > bestConfigurationLikelihood) ||
-                                (configurationLikelihood == bestConfigurationLikelihood && configurationGenotypeDiffs < bestConfigurationGenotypeDiffs)) {
+                        if (configurationLikelihood > bestConfigurationLikelihood){
                             bestConfigurationLikelihood = configurationLikelihood;
-                            bestMotherGenotype = motherGenotype.getKey();
-                            bestFatherGenotype = fatherGenotype.getKey();
-                            bestChildGenotype = childGenotype.getKey();
-                            isMV = mvCount>0;
-                            bestConfigurationGenotypeDiffs=configurationGenotypeDiffs;
+                            isMV.clear();
+                            isMV.add(mvCount>0);
+                            bestMotherGenotype.clear();
+                            bestMotherGenotype.add(motherGenotype.getKey());
+                            bestFatherGenotype.clear();
+                            bestFatherGenotype.add(fatherGenotype.getKey());
+                            bestChildGenotype.clear();
+                            bestChildGenotype.add(childGenotype.getKey());
+                        }
+                        else if(configurationLikelihood == bestConfigurationLikelihood) {
+                            bestMotherGenotype.add(motherGenotype.getKey());
+                            bestFatherGenotype.add(fatherGenotype.getKey());
+                            bestChildGenotype.add(childGenotype.getKey());
+                            isMV.add(mvCount>0);
                         }
                     }
                 }
@@ -575,17 +593,22 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
             //normalize the best configuration probability
             bestConfigurationLikelihood = bestConfigurationLikelihood / norm;
+
+            //In case of multiple equally likely combinations, take a random one
+            if(bestMotherGenotype.size()>1){
+                configuration_index = rand.nextInt(bestMotherGenotype.size()-1);
+            }
+
         }
         else{
             bestConfigurationLikelihood = NO_TRANSMISSION_PROB;
         }
 
-        //Get the phased alleles for the genotype configuration
-        TrioPhase phasedTrioGenotypes = transmissionMatrix.get(bestMotherGenotype).get(bestFatherGenotype).get(bestChildGenotype);
+            TrioPhase phasedTrioGenotypes = transmissionMatrix.get(bestMotherGenotype.get(configuration_index)).get(bestFatherGenotype.get(configuration_index)).get(bestChildGenotype.get(configuration_index));
 
-        //Return the phased genotypes
-        phasedTrioGenotypes.getPhasedGenotypes(ref,alt,mother,father,child,bestConfigurationLikelihood,finalGenotypes);
-        return isMV;
+            //Return the phased genotypes
+            phasedTrioGenotypes.getPhasedGenotypes(ref,alt,mother,father,child,bestConfigurationLikelihood,finalGenotypes);
+            return isMV.get(configuration_index);
 
     }
 
