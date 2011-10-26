@@ -124,10 +124,15 @@ public class GenotypeLikelihoods {
 
         }
 
-        double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
-        double chosenGenotype = normalized[genotype.ordinal()-1];
-        qual = -1.0 * Math.log10(1.0 - chosenGenotype);
+        //Quality of the most likely genotype = likelihood(most likely) - likelihood (2nd best)
+        qual = likelihoods.get(genotype) - qual;
 
+        //Quality of other genotypes 1-P(G)
+        if (qual < 0) {
+            double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
+            double chosenGenotype = normalized[genotype.ordinal()-1];
+            qual = -1.0 * Math.log10(1.0 - chosenGenotype);
+        }
         return qual;
     }
 
