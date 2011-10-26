@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.arguments;
 
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -84,9 +86,9 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         collect.unsafe = ValidationExclusion.TYPE.ALL;
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;
-        collect.intervals = new ArrayList<String>();
-        collect.intervals.add("intervals".toLowerCase());
-        collect.excludeIntervals = new ArrayList<String>();
+        collect.intervals = new ArrayList<IntervalBinding<Feature>>();
+        collect.intervals.add(new IntervalBinding<Feature>("intervals".toLowerCase()));
+        collect.excludeIntervals = new ArrayList<IntervalBinding<Feature>>();
         collect.numberOfThreads = 1;
     }
 

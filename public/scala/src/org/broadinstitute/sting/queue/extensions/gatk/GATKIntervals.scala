@@ -48,7 +48,7 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
       if (intervals.isEmpty)
         GenomeLocSortedSet.createSetFromSequenceDictionary(samFileHeader.getSequenceDictionary).toList
       else
-        IntervalUtils.parseIntervalArguments(parser, intervals, false)
+        IntervalUtils.parseIntervalArguments(parser, intervals)
     Collections.sort(parsedLocs)
     Collections.unmodifiableList(parsedLocs)
   }
