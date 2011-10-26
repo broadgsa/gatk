@@ -29,6 +29,7 @@ import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.commandline.{Gatherer, Gather, ArgumentSource}
 import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.sting.utils.io.IOUtils
 
 /**
  * A function that can be run faster by splitting it up into pieces and then joining together the results.
@@ -82,8 +83,8 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   /**
    * Sets the scatter gather directory to the command directory if it is not already set.
    */
-  override def freezeFieldValues = {
-    super.freezeFieldValues
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
 
     if (this.scatterGatherDirectory == null) {
       if (qSettings.jobScatterGatherDirectory != null) {
@@ -98,10 +99,14 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * The scatter function.
    */
   private lazy val scatterFunction = {
+    // Only depend on input fields that have a value
+    val inputFieldsWithValues = this.inputFields.filter(hasFieldValue(_))
+    val inputFiles = inputFieldsWithValues.flatMap(getFieldFiles(_)).toSet
+
     val scatterFunction = newScatterFunction()
     this.copySettingsTo(scatterFunction)
     scatterFunction.originalFunction = this
-    scatterFunction.originalInputs = this.inputs
+    scatterFunction.originalInputs = inputFiles
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
     scatterFunction.isIntermediate = true
     scatterFunction.addOrder = this.addOrder :+ 1
@@ -121,8 +126,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   def generateFunctions() = {
     var functions = List.empty[QFunction]
 
-    // Only depend on input fields that have a value
-    val inputFieldsWithValues = this.inputFields.filter(hasFieldValue(_))
     // Only gather up fields that will have a value
     val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
 
@@ -228,7 +231,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * Calls setupScatterFunction with scatterFunction.
    * @param scatterFunction The function that will create the scatter pieces in the temporary directories.
    */
-  protected def initScatterFunction(scatterFunction: ScatterFunction) = {
+  protected def initScatterFunction(scatterFunction: ScatterFunction) {
     if (this.setupScatterFunction != null)
       if (this.setupScatterFunction.isDefinedAt(scatterFunction))
         this.setupScatterFunction(scatterFunction)
@@ -272,7 +275,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param gatherFunction The function that will merge the gather pieces from the temporary directories.
    * @param gatherField The output field being gathered.
    */
-  protected def initGatherFunction(gatherFunction: GatherFunction, gatherField: ArgumentSource) = {
+  protected def initGatherFunction(gatherFunction: GatherFunction, gatherField: ArgumentSource) {
     if (this.setupGatherFunction != null)
       if (this.setupGatherFunction.isDefinedAt(gatherFunction, gatherField))
         this.setupGatherFunction(gatherFunction, gatherField)
@@ -289,7 +292,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param cloneFunction The clone of this ScatterGatherableFunction
    * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    */
-  protected def initCloneFunction(cloneFunction: CloneFunction, index: Int) = {
+  protected def initCloneFunction(cloneFunction: CloneFunction, index: Int) {
     if (this.setupCloneFunction != null)
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
         this.setupCloneFunction(cloneFunction, index)

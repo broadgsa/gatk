@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.utils.NGSPlatform;
 
 /**
  * @author ebanks
@@ -15,14 +16,26 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
     // the SAMReadGroupRecord data we're caching
     private String mSample = null;
     private String mPlatform = null;
+    private NGSPlatform mNGSPlatform = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedSample = false;
     private boolean retrievedPlatform = false;
+    private boolean retrievedNGSPlatform = false;
 
+    public GATKSAMReadGroupRecord(final String id) {
+        super(id);
+    }
 
     public GATKSAMReadGroupRecord(SAMReadGroupRecord record) {
         super(record.getReadGroupId(), record);
+    }
+
+    public GATKSAMReadGroupRecord(SAMReadGroupRecord record, NGSPlatform pl) {
+        super(record.getReadGroupId(), record);
+        setPlatform(pl.getDefaultPlatform());
+        mNGSPlatform = pl;
+        retrievedPlatform = retrievedNGSPlatform = true;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -55,5 +68,15 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         super.setPlatform(s);
         mPlatform = s;
         retrievedPlatform = true;
+        retrievedNGSPlatform = false;  // recalculate the NGSPlatform
+    }
+
+    public NGSPlatform getNGSPlatform() {
+        if ( ! retrievedNGSPlatform ) {
+            mNGSPlatform = NGSPlatform.fromReadGroupPL(getPlatform());
+            retrievedNGSPlatform = true;
+        }
+
+        return mNGSPlatform;
     }
 }

@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,11 +16,11 @@ import java.util.ArrayList;
 public class MultiallelicGenotypeLikelihoods {
     private String sample;
     private double[] GLs;
-    private ArrayList<Allele> alleleList;
+    private List<Allele> alleleList;
     private int depth;
 
     public MultiallelicGenotypeLikelihoods(String sample,
-                                         ArrayList<Allele> A,
+                                         List<Allele> A,
                                          double[] log10Likelihoods, int depth) {
         /* Check for consistency between likelihood vector and number of alleles */
         int numAlleles = A.size();
@@ -40,7 +41,7 @@ public class MultiallelicGenotypeLikelihoods {
          return GLs;
      }
 
-     public ArrayList<Allele> getAlleles() {
+     public List<Allele> getAlleles() {
          return alleleList;
      }
 

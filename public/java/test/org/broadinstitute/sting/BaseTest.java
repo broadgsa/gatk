@@ -50,6 +50,7 @@ public abstract class BaseTest {
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
     public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
+    //public static final String b37KGReference = "/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta";
     public static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
     public static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
     public static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
@@ -99,10 +100,10 @@ public abstract class BaseTest {
         logger.setLevel(Level.WARN);
 
         // find our file sources
-        if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
-            logger.fatal("We can't locate the reference directories.  Aborting!");
-            throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
-        }
+//        if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
+//            logger.fatal("We can't locate the reference directories.  Aborting!");
+//            throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
+//        }
     }
 
     /**

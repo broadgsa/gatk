@@ -221,12 +221,12 @@ public class GenomeAnalysisEngine {
         ShardStrategy shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
 
         // execute the microscheduler, storing the results
-        Object result =  microScheduler.execute(this.walker, shardStrategy);
+        return microScheduler.execute(this.walker, shardStrategy);
 
         //monitor.stop();
         //logger.info(String.format("Maximum heap size consumed: %d",monitor.getMaxMemoryUsed()));
 
-        return result;
+        //return result;
     }
 
     /**
@@ -299,6 +299,10 @@ public class GenomeAnalysisEngine {
         else
             method = GATKArgumentCollection.getDefaultDownsamplingMethod();
         return method;
+    }
+
+    protected void setDownsamplingMethod(DownsamplingMethod method) {
+        argCollection.setDownsamplingMethod(method);
     }
 
     public BAQ.QualityMode getWalkerBAQQualityMode()         { return WalkerManager.getBAQQualityMode(walker); }
@@ -390,7 +394,9 @@ public class GenomeAnalysisEngine {
     /**
      * Get the sharding strategy given a driving data source.
      *
+     * @param readsDataSource readsDataSource
      * @param drivingDataSource Data on which to shard.
+     * @param intervals intervals
      * @return the sharding strategy
      */
     protected ShardStrategy getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
@@ -427,7 +433,7 @@ public class GenomeAnalysisEngine {
             return new MonolithicShardStrategy(getGenomeLocParser(), readsDataSource,shardType,region);
         }
 
-        ShardStrategy shardStrategy = null;
+        ShardStrategy shardStrategy;
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
 
         long SHARD_SIZE = 100000L;
@@ -436,6 +442,8 @@ public class GenomeAnalysisEngine {
             if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
 
             if (intervals != null && !intervals.isEmpty()) {
+                if (readsDataSource == null)
+                    throw new IllegalArgumentException("readsDataSource is null");
                 if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
 
@@ -499,7 +507,8 @@ public class GenomeAnalysisEngine {
      */
     private void initializeTempDirectory() {
         File tempDir = new File(System.getProperty("java.io.tmpdir"));
-        tempDir.mkdirs();
+        if (!tempDir.exists() && !tempDir.mkdirs())
+            throw new UserException.BadTmpDir("Unable to create directory");
     }
 
     /**
@@ -707,6 +716,7 @@ public class GenomeAnalysisEngine {
      * @param reads     Reads data source.
      * @param reference Reference data source.
      * @param rods    a collection of the reference ordered data tracks
+     * @param manager manager
      */
     private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, RMDTrackBuilder manager) {
         if ((reads.isEmpty() && (rods == null || rods.isEmpty())) || reference == null )
@@ -735,15 +745,22 @@ public class GenomeAnalysisEngine {
     /**
      * Gets a data source for the given set of reads.
      *
+     * @param argCollection arguments
+     * @param genomeLocParser parser
+     * @param refReader reader
      * @return A data source for the given set of reads.
      */
     private SAMDataSource createReadsDataSource(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
         DownsamplingMethod method = getDownsamplingMethod();
 
+        // Synchronize the method back into the collection so that it shows up when
+        // interrogating for the downsample method during command line recreation.
+        setDownsamplingMethod(method);
+
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
-        SAMDataSource dataSource = new SAMDataSource(
+        return new SAMDataSource(
                 samReaderIDs,
                 genomeLocParser,
                 argCollection.useOriginalBaseQualities,
@@ -759,14 +776,12 @@ public class GenomeAnalysisEngine {
                 refReader,
                 argCollection.defaultBaseQualities,
                 !argCollection.disableLowMemorySharding);
-        return dataSource;
     }
 
     /**
      * Opens a reference sequence file paired with an index.  Only public for testing purposes
      *
      * @param refFile Handle to a reference sequence file.  Non-null.
-     * @return A thread-safe file wrapper.
      */
     public void setReferenceDataSource(File refFile) {
         this.referenceDataSource = new ReferenceDataSource(refFile);
