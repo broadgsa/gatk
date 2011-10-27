@@ -28,7 +28,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -100,9 +99,6 @@ public class GATKRunReport {
 
     @Element(required = false, name = "exception")
     private final ExceptionToXML mException;
-
-    @Element(required = false, name = "argument_collection")
-    private final GATKArgumentCollection mCollection;
 
     @Element(required = true, name = "working_directory")
     private String currentPath;
@@ -187,7 +183,6 @@ public class GATKRunReport {
             cmdLine = engine.createApproximateCommandLineArgumentString(engine, walker);
         } catch (Exception ignore) { }
 
-        this.mCollection = engine.getArguments();
         walkerName = engine.getWalkerName(walker.getClass());
         svnVersion = CommandLineGATK.getVersionNumber();
 

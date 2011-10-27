@@ -36,24 +36,16 @@ import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
-import org.simpleframework.xml.*;
-import org.simpleframework.xml.core.Persister;
-import org.simpleframework.xml.stream.Format;
-import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.File;
-import java.io.InputStream;
-import java.io.PrintStream;
 import java.util.*;
 
 /**
  * @author aaron
  * @version 1.0
  */
-@Root
 public class GATKArgumentCollection {
 
     /* our version number */
@@ -64,23 +56,18 @@ public class GATKArgumentCollection {
     public GATKArgumentCollection() {
     }
 
-    @ElementMap(entry = "analysis_argument", key = "key", attribute = true, inline = true, required = false)
     public Map<String, String> walkerArgs = new HashMap<String, String>();
 
     // parameters and their defaults
-    @ElementList(required = false)
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<String> samFiles = new ArrayList<String>();
 
-    @Element(required = false)
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
     public Integer readBufferSize = null;
 
-    @Element(required = false)
     @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate?  Standard is the default, can be verbose or NO_ET so nothing is posted to the run repository", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
-    @ElementList(required = false)
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
     public List<String> readFilters = new ArrayList<String>();
 
@@ -106,28 +93,23 @@ public class GATKArgumentCollection {
      * How should the intervals specified by multiple -L or -XL arguments be combined?  Using this argument one can, for example, traverse over all of the positions
      * for which there is a record in a VCF but just in chromosome 20 (-L chr20 -L file.vcf -isr INTERSECTION).
      */
-    @Element(required = false)
     @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L or -XL inputs", required = false)
     public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;
 
     /**
      * Should abutting (but not overlapping) intervals be treated as separate intervals?
      */
-    @Element(required = false)
     @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
-    @Element(required = false)
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
     @Deprecated
     @Hidden
-    @ElementList(required = false)
     @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form :<name>,<type> <file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
 
-    @Element(required = false)
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
@@ -140,15 +122,12 @@ public class GATKArgumentCollection {
     private static DownsampleType DEFAULT_DOWNSAMPLING_TYPE = DownsampleType.BY_SAMPLE;
     private static int DEFAULT_DOWNSAMPLING_COVERAGE = 1000;
 
-    @Element(required = false)
     @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here", required = false)
     public DownsampleType downsamplingType = null;
 
-    @Element(required = false)
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
-    @Element(required = false)
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus", required = false)
     public Integer downsampleCoverage = null;
 
@@ -182,11 +161,9 @@ public class GATKArgumentCollection {
     // BAQ arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Element(required = false)
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
     public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.OFF;
 
-    @Element(required = false)
     @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
     public double BAQGOP = BAQ.DEFAULT_GOP;
 
@@ -195,7 +172,6 @@ public class GATKArgumentCollection {
     // performance log arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Element(required = false)
     @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
     public File performanceLog = null;
 
@@ -208,26 +184,21 @@ public class GATKArgumentCollection {
         return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,DEFAULT_DOWNSAMPLING_COVERAGE,null);
     }
 
-    @Element(required = false)
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;
 
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;
 
-    @Element(required = false)
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
 
-    @Element(required = false)
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
-    @Element(required = false)
     @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis", required = false)
     public int numberOfThreads = 1;
 
-    @ElementList(required = false)
     @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line", required = false)
     public List<String> readGroupBlackList = null;
 
@@ -319,12 +290,10 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Element(required = false)
     @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
     @Hidden
     public boolean allowIntervalsWithUnindexedBAM = false;
 
-    @Element(required = false)
     @Argument(fullName="disable_experimental_low_memory_sharding",doc="Disable experimental low-memory sharding functionality",required=false)
     public boolean disableLowMemorySharding = false;
 
@@ -333,69 +302,6 @@ public class GATKArgumentCollection {
     // methods
     //
     // --------------------------------------------------------------------------------------------------------------
-
-    /**
-     * marshal the data out to a object
-     *
-     * @param collection the GATKArgumentCollection to load into
-     * @param outputFile the file to write to
-     */
-    public static void marshal(GATKArgumentCollection collection, String outputFile) {
-        Serializer serializer = new Persister(new Format(new HyphenStyle()));
-        File result = new File(outputFile);
-        try {
-            serializer.write(collection, result);
-        } catch (Exception e) {
-            throw new ReviewedStingException("Failed to marshal the data to the file " + outputFile, e);
-        }
-    }
-
-    /**
-     * marshal the data out to a object
-     *
-     * @param collection the GATKArgumentCollection to load into
-     * @param outputFile the stream to write to
-     */
-    public static void marshal(GATKArgumentCollection collection, PrintStream outputFile) {
-        Serializer serializer = new Persister(new Format(new HyphenStyle()));
-        try {
-            serializer.write(collection, outputFile);
-        } catch (Exception e) {
-            throw new ReviewedStingException("Failed to marshal the data to the file " + outputFile, e);
-        }
-    }
-
-    /**
-     * unmashall the object from a configuration file
-     *
-     * @param filename the filename to marshal from
-     */
-    public static GATKArgumentCollection unmarshal(String filename) {
-        Serializer serializer = new Persister(new Format(new HyphenStyle()));
-        File source = new File(filename);
-        try {
-            GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, source);
-            return example;
-        } catch (Exception e) {
-            throw new ReviewedStingException("Failed to marshal the data from file " + filename, e);
-        }
-    }
-
-    /**
-     * unmashall the object from a configuration file
-     *
-     * @param file the inputstream to marshal from
-     */
-    public static GATKArgumentCollection unmarshal(InputStream file) {
-        Serializer serializer = new Persister(new Format(new HyphenStyle()));
-        try {
-            GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, file);
-            return example;
-        } catch (Exception e) {
-            throw new ReviewedStingException("Failed to marshal the data from file " + file.toString(), e);
-        }
-    }
-
 
     /**
      * test equality between two arg collections.  This function defines the statement:
