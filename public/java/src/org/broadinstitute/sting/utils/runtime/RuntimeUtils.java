@@ -22,26 +22,37 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.arguments;
+package org.broadinstitute.sting.utils.runtime;
 
+import org.apache.commons.lang.StringUtils;
 
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import java.io.File;
 
-/**
- * @author ebanks
- * @version 1.0
- */
-public class StandardVariantContextInputArgumentCollection {
+public class RuntimeUtils {
+    public static final String[] PATHS;
+
+    static {
+        String path = System.getenv("PATH");
+        if (path == null)
+            path = System.getenv("path");
+        if (path == null) {
+            PATHS = new String[0];
+        } else {
+            PATHS = StringUtils.split(path, File.pathSeparatorChar);
+        }
+    }
 
     /**
-     * Variants from this VCF file are used by this tool as input.
-     * The file must at least contain the standard VCF header lines, but
-     * can be empty (i.e., no variants are contained in the file).
+     * Returns the path to an executable or null if it doesn't exist.
+     * @param executable Relative path
+     * @return The absolute file path.
      */
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
-
+    public static File which(String executable) {
+        for (String path: PATHS) {
+            File file = new File(path, executable);
+            if (file.exists())
+                return file.getAbsoluteFile();
+        }
+        return null;
+    }
 }
-

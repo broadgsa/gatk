@@ -61,14 +61,7 @@ public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
 
         try {
             XReadLines reader = new XReadLines(f);
-
-            if (f.getName().toUpperCase().endsWith(".BED")) {
-                it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( genomeLocParser,reader.iterator(),
-                                                              StringToGenomeLocIteratorAdapter.FORMAT.BED ) ) ;
-            } else {
-                it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( genomeLocParser,reader.iterator(),
-                                                              StringToGenomeLocIteratorAdapter.FORMAT.GATK ) ) ;
-            }
+            it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( genomeLocParser,reader.iterator() ));
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(f, e);
         }

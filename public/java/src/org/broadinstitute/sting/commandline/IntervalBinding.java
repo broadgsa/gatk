@@ -25,14 +25,11 @@
 package org.broadinstitute.sting.commandline;
 
 import com.google.java.contract.Requires;
-import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;

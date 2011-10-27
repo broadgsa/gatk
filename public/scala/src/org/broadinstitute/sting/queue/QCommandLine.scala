@@ -131,7 +131,7 @@ class QCommandLine extends CommandLineProgram with Logging {
 
           val pdfFile = new File(jobStringName + ".pdf")
           logger.info("Plotting JobLogging GATKReport to file " + pdfFile)
-          QJobReport.plotReport(settings.rScriptArgs, reportFile, pdfFile)
+          QJobReport.plotReport(reportFile, pdfFile)
         }
       }
     }

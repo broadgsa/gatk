@@ -237,6 +237,9 @@ public class UserException extends ReviewedStingException {
      }
 
     public static class CannotExecuteRScript extends UserException {
+        public CannotExecuteRScript(String message) {
+            super(String.format("Unable to execute RScript command: " + message));
+        }
         public CannotExecuteRScript(String message, Exception e) {
             super(String.format("Unable to execute RScript command: " + message), e);
         }

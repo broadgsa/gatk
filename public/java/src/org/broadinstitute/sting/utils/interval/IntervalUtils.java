@@ -8,8 +8,8 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -94,9 +94,9 @@ public class IntervalUtils {
         List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
 
         // case: BED file
-        if (file_name.toUpperCase().endsWith(".BED")) {
-            BedParser parser = new BedParser(glParser,inputFile);
-            ret.addAll(parser.getLocations());
+        if ( file_name.toUpperCase().endsWith(".BED") ) {
+            // this is now supported in Tribble
+            throw new ReviewedStingException("BED files must be parsed through Tribble; parsing them as intervals through the GATK engine is no longer supported");
         }
         else {
             /**

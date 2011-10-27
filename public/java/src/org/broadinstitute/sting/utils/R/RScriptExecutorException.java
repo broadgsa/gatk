@@ -22,26 +22,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.arguments;
+package org.broadinstitute.sting.utils.R;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-
-/**
- * @author ebanks
- * @version 1.0
- */
-public class StandardVariantContextInputArgumentCollection {
-
-    /**
-     * Variants from this VCF file are used by this tool as input.
-     * The file must at least contain the standard VCF header lines, but
-     * can be empty (i.e., no variants are contained in the file).
-     */
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
-
+public class RScriptExecutorException extends ReviewedStingException {
+    public RScriptExecutorException(String msg) {
+        super(msg);
+    }
 }
-

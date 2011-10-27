@@ -80,20 +80,24 @@ public class Utils {
     }
 
     public static void warnUser(final String msg) {
+        warnUser(logger, msg);
+    }
+    
+    public static void warnUser(final Logger logger, final String msg) {
         logger.warn(String.format("********************************************************************************"));
         logger.warn(String.format("* WARNING:"));
         logger.warn(String.format("*"));
-        prettyPrintWarningMessage(msg);
+        prettyPrintWarningMessage(logger, msg);
         logger.warn(String.format("********************************************************************************"));
     }
-    
 
     /**
      * pretty print the warning message supplied
      *
+     * @param logger logger for the message
      * @param message the message
      */
-    private static void prettyPrintWarningMessage(String message) {
+    private static void prettyPrintWarningMessage(Logger logger, String message) {
         StringBuilder builder = new StringBuilder(message);
         while (builder.length() > 70) {
             int space = builder.lastIndexOf(" ", 70);

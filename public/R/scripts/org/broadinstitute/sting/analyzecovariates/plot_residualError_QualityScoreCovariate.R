@@ -1,5 +1,7 @@
 #!/bin/env Rscript
 
+library(tools)
+
 args <- commandArgs(TRUE)
 
 input = args[1]
@@ -33,6 +35,10 @@ points(f$Qreported, f$Qempirical, type="p", col="maroon1", pch=16)
 abline(0,1, lty=2)
 dev.off()
 
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}
+
 #
 # Plot Q empirical histogram
 #
@@ -52,6 +58,10 @@ points(hst2$f.Qempirical, hst2$f.nBases, type="h", lwd=4, col="maroon1")
 axis(2,axTicks(2), format(axTicks(2), scientific=F))
 dev.off()
 
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}
+
 #
 # Plot Q reported histogram
 #
@@ -68,3 +78,7 @@ plot(hst$e.Qreported, hst$e.nBases, type="h", lwd=4, xlim=c(0,maxQ), ylim=c(0,yM
 points(hst2$f.Qreported, hst2$f.nBases, type="h", lwd=4, col="maroon1")
 axis(2,axTicks(2), format(axTicks(2), scientific=F))
 dev.off()
+
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}

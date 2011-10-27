@@ -26,60 +26,84 @@ package org.broadinstitute.sting.utils.R;
 
 import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.io.IOUtils;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Basic unit test for RScriptExecutor in reduced reads
  */
 public class RScriptExecutorUnitTest extends BaseTest {
-    final static String testrscript = "print(\"hello, world\")\n";
-    final static String publicRScript = "plot_Tranches.R";
 
-    // --------------------------------------------------------------------------------
-    //
-    // Difference testing routines
-    //
-    // --------------------------------------------------------------------------------
-
-    private void testOne(String script, String pathToRscript, String anotherSearchPath, boolean exceptOnError) {
-        RScriptExecutor.RScriptArgumentCollection collection =
-                new RScriptExecutor.RScriptArgumentCollection();
-        if ( pathToRscript != null )
-            collection.PATH_TO_RSCRIPT = pathToRscript;
-        if ( anotherSearchPath != null ) {
-            List<String> x = new ArrayList<String>(collection.PATH_TO_RESOURCES);
-            x.add(anotherSearchPath);
-            collection.PATH_TO_RESOURCES = x;
-        }
-        RScriptExecutor executor = new RScriptExecutor(collection, exceptOnError);
-        executor.callRScripts(script);
-    }
+    private static final String HELLO_WORLD_SCRIPT = "print('hello, world')";
+    private static final String GSALIB_LOADED_SCRIPT = "if (!'package:gsalib' %in% search()) stop('gsalib not loaded')";
 
     @Test
-    public void testPublic() { testOne(publicRScript, null, null, true); }
+    public void testRscriptExists() {
+        Assert.assertTrue(RScriptExecutor.RSCRIPT_EXISTS, "Rscript not found in environment ${PATH}");
+    }
 
-    @Test(expectedExceptions = UserException.class)
-    public void testNonExistantScriptException() { testOne("does_not_exist.R", null, null, true); }
+    @Test(dependsOnMethods = "testRscriptExists")
+    public void testExistingScript() {
+        File script = writeScript(HELLO_WORLD_SCRIPT);
+        try {
+            RScriptExecutor executor = new RScriptExecutor();
+            executor.addScript(script);
+            executor.setExceptOnError(true);
+            Assert.assertTrue(executor.exec(), "Exec failed");
+        } finally {
+            FileUtils.deleteQuietly(script);
+        }
+    }
 
-    @Test()
-    public void testNonExistantScriptNoException() { testOne("does_not_exist.R", null, null, false); }
+    @Test(dependsOnMethods = "testRscriptExists", expectedExceptions = RScriptExecutorException.class)
+    public void testNonExistantScriptException() {
+        RScriptExecutor executor = new RScriptExecutor();
+        executor.setExceptOnError(true);
+        executor.addScript(new File("does_not_exists.R"));
+        executor.exec();
+    }
 
-    @Test(expectedExceptions = UserException.class)
-    public void testNonExistantRScriptException() { testOne(publicRScript, "badRScriptValue", null, true); }
+    @Test(dependsOnMethods = "testRscriptExists")
+    public void testNonExistantScriptNoException() {
+        logger.warn("Testing that warning is printed an no exception thrown for missing script.");
+        RScriptExecutor executor = new RScriptExecutor();
+        executor.setExceptOnError(false);
+        executor.addScript(new File("does_not_exists.R"));
+        Assert.assertFalse(executor.exec(), "Exec should have returned false when the job failed");
+    }
 
-    @Test()
-    public void testNonExistantRScriptNoException() { testOne(publicRScript, "badRScriptValue", null, false); }
+    @Test(dependsOnMethods = "testRscriptExists")
+    public void testLibrary() {
+        File script = writeScript(GSALIB_LOADED_SCRIPT);
+        try {
+            RScriptExecutor executor = new RScriptExecutor();
+            executor.addScript(script);
+            executor.addLibrary(RScriptLibrary.GSALIB);
+            executor.setExceptOnError(true);
+            Assert.assertTrue(executor.exec(), "Exec failed");
+        } finally {
+            FileUtils.deleteQuietly(script);
+        }
+    }
 
-    @Test()
-    public void testScriptInNewPath() throws IOException {
-        File t = createTempFile("myTestScript", ".R");
-        FileUtils.writeStringToFile(t, testrscript);
-        testOne(t.getName(), null, t.getParent(), true);
+    @Test(dependsOnMethods = "testRscriptExists", expectedExceptions = RScriptExecutorException.class)
+    public void testLibraryMissing() {
+        File script = writeScript(GSALIB_LOADED_SCRIPT);
+        try {
+            RScriptExecutor executor = new RScriptExecutor();
+            executor.addScript(script);
+            // GSALIB is not added nor imported in the script
+            executor.setExceptOnError(true);
+            executor.exec();
+        } finally {
+            FileUtils.deleteQuietly(script);
+        }
+    }
+
+    private File writeScript(String content) {
+        return IOUtils.writeTempFile(content, "myTestScript", ".R");
     }
 }

@@ -28,7 +28,6 @@ import java.io.File
 import org.broadinstitute.sting.queue.QSettings
 import org.broadinstitute.sting.queue.util.SystemUtils
 import org.broadinstitute.sting.commandline.{Advanced, ArgumentCollection, Argument}
-import org.broadinstitute.sting.utils.R.RScriptExecutor
 
 /**
  * Command line options for a QGraph.
@@ -76,9 +75,6 @@ class QGraphSettings {
   @Advanced
   @Argument(fullName="disableJobReport", shortName="disabpleJobReport", doc="If provided, we will not create a job report", required=false)
   var disableJobReport: Boolean = false
-
-  @ArgumentCollection
-  var rScriptArgs = new RScriptExecutor.RScriptArgumentCollection
 
   @ArgumentCollection
   val qSettings = new QSettings
