@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils.interval;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.bed.BedParser;
 
 import java.util.Iterator;
 
@@ -52,22 +51,13 @@ public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
 
     private PushbackIterator<String> it = null;
 
-    public enum FORMAT { BED, GATK };
-
-    FORMAT myFormat = FORMAT.GATK;
-
-    public StringToGenomeLocIteratorAdapter(GenomeLocParser genomeLocParser,Iterator<String> it, FORMAT format) {
+    public StringToGenomeLocIteratorAdapter(GenomeLocParser genomeLocParser, Iterator<String> it) {
         this.genomeLocParser = genomeLocParser;
         this.it = new PushbackIterator<String>(it);
-        myFormat = format;
-    }
-
-    public StringToGenomeLocIteratorAdapter(GenomeLocParser genomeLocParser,Iterator<String> it ) {
-        this(genomeLocParser,it,FORMAT.GATK);
     }
 
     public boolean hasNext() {
-        String s = null;
+        String s;
         boolean success = false;
 
         // skip empty lines:
@@ -83,9 +73,7 @@ public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
     }
 
     public GenomeLoc next() {
-
-        if ( myFormat == FORMAT.GATK ) return genomeLocParser.parseGenomeLoc(it.next());
-        return BedParser.parseLocation( genomeLocParser,it.next() );
+        return genomeLocParser.parseGenomeLoc(it.next());
     }
 
     public void remove() {

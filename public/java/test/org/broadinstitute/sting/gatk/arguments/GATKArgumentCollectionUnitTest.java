@@ -87,7 +87,7 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;
         collect.intervals = new ArrayList<IntervalBinding<Feature>>();
-        collect.intervals.add(new IntervalBinding<Feature>("intervals".toLowerCase()));
+        //collect.intervals.add(new IntervalBinding<Feature>("intervals".toLowerCase()));
         collect.excludeIntervals = new ArrayList<IntervalBinding<Feature>>();
         collect.numberOfThreads = 1;
     }
