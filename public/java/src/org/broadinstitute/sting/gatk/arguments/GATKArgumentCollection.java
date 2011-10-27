@@ -76,18 +76,16 @@ public class GATKArgumentCollection {
      * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
      * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
      */
-    //@ElementList(required = false)
     @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
-    public List<IntervalBinding<Feature>> intervals = Collections.emptyList();
+    public List<IntervalBinding<Feature>> intervals = null;
 
     /**
      * Using this option one can instruct the GATK engine NOT to traverse over certain parts of the genome.  This argument can be specified multiple times.
      * One may use samtools-style intervals either explicitly (e.g. -XL chr1 or -XL chr1:100-200) or listed in a file (e.g. -XL myFile.intervals).
      * Additionally, one may specify a rod file to skip over the positions for which there is a record in the file (e.g. -XL file.vcf).
      */
-    //@ElementList(required = false)
     @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
-    public List<IntervalBinding<Feature>> excludeIntervals = Collections.emptyList();
+    public List<IntervalBinding<Feature>> excludeIntervals = null;
 
     /**
      * How should the intervals specified by multiple -L or -XL arguments be combined?  Using this argument one can, for example, traverse over all of the positions
@@ -350,7 +348,7 @@ public class GATKArgumentCollection {
         if (!other.referenceFile.equals(this.referenceFile)) {
             return false;
         }
-        if (!other.intervals.equals(this.intervals)) {
+        if ((other.intervals == null && this.intervals != null) || !other.intervals.equals(this.intervals)) {
             return false;
         }
         if (!other.excludeIntervals.equals(this.excludeIntervals)) {
