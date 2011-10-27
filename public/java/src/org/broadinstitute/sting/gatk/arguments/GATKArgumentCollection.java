@@ -81,22 +81,38 @@ public class GATKArgumentCollection {
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
     @ElementList(required = false)
-    @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required = false)
+    @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
     public List<String> readFilters = new ArrayList<String>();
 
+    /**
+     * Using this option one can instruct the GATK engine to traverse over only part of the genome.  This argument can be specified multiple times.
+     * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
+     * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
+     */
     @ElementList(required = false)
-    @Input(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
+    @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
     public List<IntervalBinding<Feature>> intervals = null;
 
+    /**
+     * Using this option one can instruct the GATK engine NOT to traverse over certain parts of the genome.  This argument can be specified multiple times.
+     * One may use samtools-style intervals either explicitly (e.g. -XL chr1 or -XL chr1:100-200) or listed in a file (e.g. -XL myFile.intervals).
+     * Additionally, one may specify a rod file to skip over the positions for which there is a record in the file (e.g. -XL file.vcf).
+     */
     @ElementList(required = false)
-    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "A list of genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file.", required = false)
+    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
     public List<IntervalBinding<Feature>> excludeIntervals = null;
 
+    /**
+     * How should the intervals specified by multiple -L or -XL arguments be combined?  Using this argument one can, for example, traverse over all of the positions
+     * for which there is a record in a VCF but just in chromosome 20 (-L chr20 -L file.vcf -isr INTERSECTION).
+     */
     @Element(required = false)
-    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L inputs", required = false)
+    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L or -XL inputs", required = false)
     public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;
 
-    /** What rule should we use when merging intervals */
+    /**
+     * Should abutting (but not overlapping) intervals be treated as separate intervals?
+     */
     @Element(required = false)
     @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
@@ -125,7 +141,7 @@ public class GATKArgumentCollection {
     private static int DEFAULT_DOWNSAMPLING_COVERAGE = 1000;
 
     @Element(required = false)
-    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here.", required = false)
+    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here", required = false)
     public DownsampleType downsamplingType = null;
 
     @Element(required = false)
@@ -207,13 +223,12 @@ public class GATKArgumentCollection {
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
-    /** How many threads should be allocated to this analysis. */
     @Element(required = false)
-    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
+    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis", required = false)
     public int numberOfThreads = 1;
 
     @ElementList(required = false)
-    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
+    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line", required = false)
     public List<String> readGroupBlackList = null;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -310,7 +325,7 @@ public class GATKArgumentCollection {
     public boolean allowIntervalsWithUnindexedBAM = false;
 
     @Element(required = false)
-    @Argument(fullName="disable_experimental_low_memory_sharding",doc="Disable experimental low-memory sharding functionality.",required=false)
+    @Argument(fullName="disable_experimental_low_memory_sharding",doc="Disable experimental low-memory sharding functionality",required=false)
     public boolean disableLowMemorySharding = false;
 
     // --------------------------------------------------------------------------------------------------------------

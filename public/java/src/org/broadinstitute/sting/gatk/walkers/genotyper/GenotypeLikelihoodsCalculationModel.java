@@ -53,7 +53,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
     }
 
     public enum GENOTYPING_MODE {
-        /** the default; the Unified Genotyper will choose the most likely alternate allele */
+        /** the Unified Genotyper will choose the most likely alternate allele */
         DISCOVERY,
         /** only the alleles passed in from a VCF rod bound to the -alleles argument will be used for genotyping */
         GENOTYPE_GIVEN_ALLELES
