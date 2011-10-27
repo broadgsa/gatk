@@ -526,6 +526,9 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      */
     public void onTraversalDone( CountedData sum ) {
         logger.info( "Writing raw recalibration data..." );
+        if( sum.countedBases == 0L ) {
+            throw new UserException.BadInput("Could not find any usable data in the input BAM file(s).");
+        }
         outputToCSV( sum, RECAL_FILE );
         logger.info( "...done!" );
     }
