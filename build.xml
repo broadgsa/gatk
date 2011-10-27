@@ -38,6 +38,7 @@
     <property name="java.private.source.dir" value="${private.dir}/java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="R.public.scripts.dir" value="${public.dir}/R/scripts" />
+    <property name="R.private.scripts.dir" value="${private.dir}/R/scripts" />
     <property name="R.public.src.dir" value="${public.dir}/R/src" />
     <!-- Legacy: Installing libraries back into the source directory
     instead of the build or dist directory... intentionally avoids ant clean?? -->
@@ -571,6 +572,9 @@
             <fileset dir="${R.public.scripts.dir}">
               <include name="**/utils/**/*.R"/>
             </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+              <include name="**/utils/**/*.R"/>
+            </fileset>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
             </manifest>
@@ -603,6 +607,10 @@
                 <include name="**/gatk/**/*.R"/>
                 <include name="**/alignment/**/*.R"/>
             </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+                <include name="**/gatk/**/*.R"/>
+                <include name="**/alignment/**/*.R"/>
+            </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
             </manifest>
@@ -618,6 +626,10 @@
             <include name="**/gatk/walkers/recalibration/*.class" />
           </fileset>
             <fileset dir="${R.public.scripts.dir}">
+                <include name="**/analyzecovariates/**/*.R"/>
+                <include name="**/gatk/walkers/recalibration/**/*.R"/>
+            </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
                 <include name="**/analyzecovariates/**/*.R"/>
                 <include name="**/gatk/walkers/recalibration/**/*.R"/>
             </fileset>
@@ -651,6 +663,9 @@
               <include name="org/broadinstitute/sting/queue/**/*.class" />
             </fileset>
             <fileset dir="${R.public.scripts.dir}">
+                <include name="org/broadinstitute/sting/queue/**/*.R"/>
+            </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
                 <include name="org/broadinstitute/sting/queue/**/*.R"/>
             </fileset>
             <manifest>
@@ -842,6 +857,7 @@
         <pathelement location="${scala.private.test.classes}" />
         <pathelement location="${R.tar.dir}" />
         <pathelement location="${R.public.scripts.dir}" />
+        <pathelement location="${R.private.scripts.dir}" />
     </path>
 
     <path id="testng.gatk.releasetest.classpath">

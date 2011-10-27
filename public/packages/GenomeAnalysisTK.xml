@@ -19,7 +19,6 @@
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java" />
-    <file name="public/R/plot_Tranches.R" />
     <file name="public/R/titvFPEst.R" />
   </resources>
   <release>

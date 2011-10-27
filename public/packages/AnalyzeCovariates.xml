@@ -7,11 +7,8 @@
       <!-- Recalibration analysis script -->
       <class name="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
       <package name="org.broadinstitute.sting.gatk.walkers.recalibration" />
+      <!-- Supplemental scripts for graph generation, etc. -->
+      <dir name="org/broadinstitute/sting/analyzecovariates" includes="**/*.R" />
     </dependencies>
   </executable>
-  <resources>
-    <!-- Supplemental scripts for graph generation, etc. -->
-    <file name="public/R/plot_residualError_OtherCovariate.R" />
-    <file name="public/R/plot_residualError_QualityScoreCovariate.R" />
-  </resources>
 </package>

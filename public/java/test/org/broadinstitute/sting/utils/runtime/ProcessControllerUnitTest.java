@@ -168,7 +168,7 @@ public class ProcessControllerUnitTest extends BaseTest {
         File input = null;
         try {
             String fileText = "Hello from file";
-            input = IOUtils.writeTempFile(fileText, "stdin.", ".txt", null);
+            input = IOUtils.writeTempFile(fileText, "stdin.", ".txt");
 
             ProcessSettings job = new ProcessSettings(new String[] {"cat"});
             job.getStdoutSettings().setBufferSize(-1);

@@ -96,6 +96,18 @@ public class IOUtils {
      * @param content   to write.
      * @param prefix    Prefix for the temp file.
      * @param suffix    Suffix for the temp file.
+     * @return the path to the temp file.
+     */
+    public static File writeTempFile(String content, String prefix, String suffix) {
+        return writeTempFile(content, prefix, suffix, null);
+    }
+
+    /**
+     * Writes content to a temp file and returns the path to the temporary file.
+     *
+     * @param content   to write.
+     * @param prefix    Prefix for the temp file.
+     * @param suffix    Suffix for the temp file.
      * @param directory Directory for the temp file.
      * @return the path to the temp file.
      */
