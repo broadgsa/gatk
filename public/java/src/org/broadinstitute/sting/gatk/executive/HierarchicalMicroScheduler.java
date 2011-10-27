@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
@@ -258,8 +259,17 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                 traverser.waitForComplete();
 
             OutputMergeTask mergeTask = traverser.getOutputMergeTask();
-            if( mergeTask != null )
-                mergeTask.merge();
+            if( mergeTask != null ) {
+                try {
+                    mergeTask.merge();
+                }
+                catch(TribbleException ex) {
+                    // Specifically catch Tribble I/O exceptions and rethrow them as Reviewed.  We don't expect
+                    // any issues here because we created the Tribble output file mere moments ago and expect it to
+                    // be completely valid.
+                    throw new ReviewedStingException("Unable to merge temporary Tribble output file.",ex);
+                }
+            }
         }
 
         long endTime = System.currentTimeMillis();
