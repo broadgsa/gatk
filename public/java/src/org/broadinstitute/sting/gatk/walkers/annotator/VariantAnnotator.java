@@ -232,6 +232,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
+        for ( String expression : expressionsToUse )
+            hInfo.add(new VCFInfoHeaderLine(expression, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Value transferred from another external VCF resource"));
 
         engine.invokeAnnotationInitializationMethods(hInfo);
 

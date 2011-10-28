@@ -120,7 +120,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testUsingExpression() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --resource:foo " + validationDataLocation + "targetAnnotations.vcf -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -L " + validationDataLocation + "vcfexample3empty.vcf", 1,
-                Arrays.asList("e9c0d832dc6b4ed06c955060f830c140"));
+                Arrays.asList("ae30a1ac7bfbc3d22a327f8b689cad31"));
         executeTest("using expression", spec);
     }
 
