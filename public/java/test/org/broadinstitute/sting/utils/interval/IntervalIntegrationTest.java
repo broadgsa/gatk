@@ -83,7 +83,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testUnmappedReadInclusion",spec);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testUnmappedReadExclusion() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T PrintReads" +
@@ -191,8 +191,8 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testMergingWithComplexVCF", spec);
     }
 
-    @Test(enabled = true, expectedExceptions = RuntimeException.class)
-    public void testEmptyVCFNoUnsafe() {
+    @Test(enabled = true)
+    public void testEmptyVCF() {
         String md5 = "";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T CountLoci" +
@@ -205,22 +205,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testEmptyVCFError", spec);
     }
 
-    @Test(enabled = true, expectedExceptions = RuntimeException.class)
-    public void testEmptyVCFWithUnsafe() {
-        String md5 = "";
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
-                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
-                        " -R " + hg18Reference +
-                        " -o %s" +
-                        " -U ALLOW_EMPTY_INTERVAL_LIST" +
-                        " -L " + validationDataLocation + "intervalTest.empty.vcf",
-                        1, // just one output file
-                        Arrays.asList(md5));
-        executeTest("testEmptyVCFNoError", spec);
-    }
-
-    @Test(enabled = true, expectedExceptions = RuntimeException.class)
+    @Test(enabled = true)
     public void testIncludeExcludeIsTheSame() {
         String md5 = "";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(

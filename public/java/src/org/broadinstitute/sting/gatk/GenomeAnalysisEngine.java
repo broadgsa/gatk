@@ -383,11 +383,9 @@ public class GenomeAnalysisEngine {
         // If intervals is non-null and empty at this point, it means that the list of intervals to process
         // was filtered down to an empty set (eg., the user specified something like -L chr1 -XL chr1). Since
         // this was very likely unintentional, the user should be informed of this. Note that this is different
-        // from the case where intervals == null, which indicates either that there were no interval arguments,
-        // or that -L all was specified.
+        // from the case where intervals == null, which indicates that there were no interval arguments.
         if ( intervals != null && intervals.isEmpty() ) {
-            throw new ArgumentException("The given combination of -L and -XL options results in an empty set. " +
-                                        "No intervals to process.");
+            logger.warn("The given combination of -L and -XL options results in an empty set.  No intervals to process.");
         }
     }
 
@@ -610,17 +608,12 @@ public class GenomeAnalysisEngine {
      */
     protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
 
-        boolean allowEmptyIntervalList = (argCollection.unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
-                                          argCollection.unsafe == ValidationExclusion.TYPE.ALL);
-
         List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>(0);
         for ( IntervalBinding intervalBinding : argList ) {
             List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
 
-            if ( !allowEmptyIntervalList && intervals.isEmpty() ) {
-                throw new UserException("The interval file " + intervalBinding.getSource() + " contains no intervals " +
-                                        "that could be parsed, and the unsafe operation ALLOW_EMPTY_INTERVAL_LIST has " +
-                                        "not been enabled");
+            if ( intervals.isEmpty() ) {
+                logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");
             }
 
             allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, rule);

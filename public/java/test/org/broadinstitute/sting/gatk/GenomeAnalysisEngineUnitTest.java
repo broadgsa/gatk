@@ -82,7 +82,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         testEngine.checkForDuplicateSamFiles();
     }
 
-    @Test(expectedExceptions=ArgumentException.class)
+    @Test
     public void testEmptyIntervalSetHandling() throws Exception {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
@@ -109,7 +109,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         };
     }
 
-    @Test(expectedExceptions=UserException.class, dataProvider="invalidIntervalTestData")
+    @Test(dataProvider="invalidIntervalTestData")
     public void testInvalidPicardIntervalHandling(GenomeAnalysisEngine testEngine, GenomeLocParser genomeLocParser,
                                                   String contig, int intervalStart, int intervalEnd ) throws Exception {
 
@@ -139,11 +139,6 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
 
         testEngine.loadIntervals(intervalArgs, IntervalSetRule.UNION);
     }
-
-
-
-
-
 
     private File createTempFile( String tempFilePrefix, String tempFileExtension, String... lines ) throws Exception {
         File tempFile = File.createTempFile(tempFilePrefix, tempFileExtension);
