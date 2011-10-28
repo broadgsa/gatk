@@ -191,6 +191,22 @@ public class IntervalUtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testOverlappingIntervalsFromSameSourceWithIntersection() {
+        // a couple of lists we'll use for the testing
+        List<GenomeLoc> source1 = new ArrayList<GenomeLoc>();
+        List<GenomeLoc> source2 = new ArrayList<GenomeLoc>();
+
+        source1.add(hg18GenomeLocParser.createGenomeLoc("chr1", 10, 20));
+        source1.add(hg18GenomeLocParser.createGenomeLoc("chr1", 15, 25));
+
+        source2.add(hg18GenomeLocParser.createGenomeLoc("chr1", 16, 18));
+        source2.add(hg18GenomeLocParser.createGenomeLoc("chr1", 22, 24));
+
+        List<GenomeLoc> ret = IntervalUtils.mergeListsBySetOperator(source1, source2, IntervalSetRule.INTERSECTION);
+        Assert.assertEquals(ret.size(), 2);
+    }
+
+    @Test
     public void testGetContigLengths() {
         Map<String, Long> lengths = IntervalUtils.getContigSizes(new File(BaseTest.hg18Reference));
         Assert.assertEquals((long)lengths.get("chr1"), 247249719);
