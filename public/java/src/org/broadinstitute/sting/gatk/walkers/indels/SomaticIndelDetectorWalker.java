@@ -130,7 +130,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    boolean FORMAT_VCF = false;
 
     @Hidden
-    @Argument(fullName = "genotype_intervals", shortName = "genotype",
+    @Input(fullName = "genotype_intervals", shortName = "genotype",
         doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or not", required = false)
     public IntervalBinding<Feature> genotypeIntervalsFile = null;
 
