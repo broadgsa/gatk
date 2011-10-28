@@ -385,7 +385,7 @@ public class GenomeAnalysisEngine {
         // this was very likely unintentional, the user should be informed of this. Note that this is different
         // from the case where intervals == null, which indicates either that there were no interval arguments,
         // or that -L all was specified.
-        if ( intervals != null && intervals.isEmpty() ) {
+        if ( intervals != null && intervals.isEmpty() && argCollection.excludeIntervals != null ) {
             throw new ArgumentException("The given combination of -L and -XL options results in an empty set. " +
                                         "No intervals to process.");
         }

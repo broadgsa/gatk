@@ -25,6 +25,8 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.commandline.ArgumentException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -161,4 +163,79 @@ public class IntervalIntegrationTest extends WalkerTest {
                         Arrays.asList(md5));
         executeTest("testMixedIntervalMerging", spec);
     }
+
+    @Test(enabled = true)
+    public void testComplexVCF() {
+        String md5 = "166d77ac1b46a1ec38aa35ab7e628ab5";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "intervalTest.3.vcf",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testComplexVCF", spec);
+    }
+
+    @Test(enabled = true)
+    public void testMergingWithComplexVCF() {
+        String md5 = "6d7fce9fee471194aa8b5b6e47267f03";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "intervalTest.1.vcf" +
+                        " -XL " + validationDataLocation + "intervalTest.3.vcf",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testMergingWithComplexVCF", spec);
+    }
+
+    @Test(enabled = true, expectedExceptions = RuntimeException.class)
+    public void testEmptyVCFError() {
+        String md5 = "";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "intervalTest.empty.vcf",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testEmptyVCFError", spec);
+    }
+
+    @Test(enabled = true)
+    public void testEmptyVCFNoError() {
+        String md5 = "";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -U ALLOW_EMPTY_INTERVAL_LIST" +
+                        " -L " + validationDataLocation + "intervalTest.empty.vcf",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testEmptyVCFNoError", spec);
+    }
+
+    @Test(enabled = true, expectedExceptions = RuntimeException.class)
+    public void testIncludeExcludeIsTheSame() {
+        String md5 = "";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "intervalTest.1.vcf" +
+                        " -XL " + validationDataLocation + "intervalTest.1.vcf",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testIncludeExcludeIsTheSame", spec);
+    }
+
+
 }

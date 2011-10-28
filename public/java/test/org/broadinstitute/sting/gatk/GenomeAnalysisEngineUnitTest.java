@@ -110,20 +110,6 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
     }
 
     @Test(expectedExceptions=UserException.class, dataProvider="invalidIntervalTestData")
-    public void testInvalidBedIntervalHandling(GenomeAnalysisEngine testEngine, GenomeLocParser genomeLocParser,
-                                               String contig, int intervalStart, int intervalEnd ) throws Exception {
-        // We need to adjust intervalStart, since BED intervals are 0-based. We don't need to adjust intervalEnd,
-        // since the ending point is an open interval.
-        File bedFile = createTempFile("testInvalidBedIntervalHandling", ".bed",
-                                      String.format("%s %d %d", contig, intervalStart -1, intervalEnd));
-
-        List<IntervalBinding<Feature>> intervalArgs = new ArrayList<IntervalBinding<Feature>>(1);
-        intervalArgs.add(new IntervalBinding<Feature>(bedFile.getAbsolutePath()));
-
-        testEngine.loadIntervals(intervalArgs, IntervalSetRule.UNION);
-    }
-
-    @Test(expectedExceptions=UserException.class, dataProvider="invalidIntervalTestData")
     public void testInvalidPicardIntervalHandling(GenomeAnalysisEngine testEngine, GenomeLocParser genomeLocParser,
                                                   String contig, int intervalStart, int intervalEnd ) throws Exception {
 
@@ -153,6 +139,11 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
 
         testEngine.loadIntervals(intervalArgs, IntervalSetRule.UNION);
     }
+
+
+
+
+
 
     private File createTempFile( String tempFilePrefix, String tempFileExtension, String... lines ) throws Exception {
         File tempFile = File.createTempFile(tempFilePrefix, tempFileExtension);
