@@ -29,6 +29,7 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -83,6 +84,8 @@ public final class IntervalBinding<T extends Feature> {
             // TODO -- after ROD system cleanup, go through the ROD system so that we can handle things like gzipped files
 
             FeatureCodec codec = new FeatureManager().getByName(featureIntervals.getTribbleType()).getCodec();
+            if ( codec instanceof ReferenceDependentFeatureCodec )
+                ((ReferenceDependentFeatureCodec)codec).setGenomeLocParser(toolkit.getGenomeLocParser());
             try {
                 FileInputStream fis = new FileInputStream(new File(featureIntervals.getSource()));
                 AsciiLineReader lineReader = new AsciiLineReader(fis);
