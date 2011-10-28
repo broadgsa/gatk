@@ -26,7 +26,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-EV TiTvVariantEvaluator",
                                         "-noST",
                                         "-ST FunctionalClass",
-                                        "-BTI eval",
+                                        "-L " + validationDataLocation + "snpEff.AFR.unfiltered.VariantAnnotator.output.vcf",
                                         "-o %s"
                                 ),
                                 1,
@@ -46,7 +46,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-noEV",
                                         "-EV TiTvVariantEvaluator",
                                         "-ST Sample",
-                                        "-BTI eval",
+                                        "-L " + variantEvalTestDataRoot + "/CEU.trio.callsForVE.vcf",
                                         "-o %s"
                                 ),
                                 1,
@@ -66,7 +66,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-noEV",
                                         "-EV CountVariants",
                                         "-noST",
-                                        "-BTI eval",
+                                        "-L " + fundamentalTestVCF,
                                         "-o %s"
                                 ),
                                 1,
@@ -87,7 +87,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-EV CountVariants",
                         "-noST",
                         "-ST Novelty",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -109,7 +109,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-noST",
                         "-ST Novelty",
                         "-ST Filter",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -130,7 +130,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-EV CountVariants",
                         "-noST",
                         "-ST CpG",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -151,7 +151,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-EV CountVariants",
                         "-noST",
                         "-ST FunctionalClass",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -172,7 +172,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-EV CountVariants",
                         "-noST",
                         "-ST Degeneracy",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -193,7 +193,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-EV CountVariants",
                         "-noST",
                         "-ST Sample",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -216,7 +216,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-ST JexlExpression",
                         "-select 'DP < 20'",
                         "-selectName DepthSelect",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -241,7 +241,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-selectName DepthLt20",
                         "-select 'DP > 20'",
                         "-selectName DepthGt20",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -260,7 +260,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-noEV",
                         "-EV CountVariants",
                         "-noST",
-                        "-BTI eval",
+                        "-L " + fundamentalTestVCF,
                         "-o %s"
                 ),
                 1,
@@ -371,7 +371,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-EV CompOverlap",
                         "-sn HG00625",
                         "-noST",
-                        "-BTI eval",
+                        "-L " + fundamentalTestSNPsVCF,
                         "-o %s"
                 ),
                 1,
@@ -388,7 +388,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-noEV",
                         "-EV CompOverlap",
                         "-noST",
-                        "-BTI eval",
+                        "-L " + fundamentalTestSNPsOneSampleVCF,
                         "-o %s"
                 ),
                 1,
@@ -410,7 +410,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-EV CountVariants",
                                         "-noST",
                                         "-ST AlleleCount",
-                                        "-BTI eval",
+                                        "-L " + fundamentalTestSNPsVCF,
                                         "-o %s"
                                 ),
                                 1,

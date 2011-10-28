@@ -141,7 +141,7 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
  *  <h3>Additional Details</h3>
  *  <ul>
  *      <li>
- *          You should always use -BTI on your VCF track, so that the GATK only looks at the sites on the VCF file.
+ *          You should always use -L on your VCF track, so that the GATK only looks at the sites on the VCF file.
  *          This speeds up the process a lot.
  *      </li>
  *      <li>
@@ -164,7 +164,7 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
  *      -R human_g1k_v37.fasta
  *      -I myNewTechReads.bam
  *      -alleles handAnnotatedVCF.vcf
- *      -BTI alleles
+ *      -L handAnnotatedVCF.vcf
  * </pre>
  *
  *      <li>
@@ -178,7 +178,7 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
  *      -R human_g1k_v37.fasta
  *      -I myTruthDataset.bam
  *      -alleles callsToValidate.vcf
- *      -BTI alleles
+ *      -L callsToValidate.vcf
  *      -bt
  *      -o gav.vcf
  * </pre>

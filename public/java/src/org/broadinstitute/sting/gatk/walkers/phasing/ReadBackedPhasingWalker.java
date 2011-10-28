@@ -75,9 +75,8 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
  *      -T ReadBackedPhasing
  *      -R reference.fasta
  *      -I reads.bam
- *      --variant:vcf SNPs.vcf
- *      -BTI variant
- *      -BTIMR INTERSECTION
+ *      --variant SNPs.vcf
+ *      -L SNPs.vcf
  *      -o phased_SNPs.vcf
  *      --phaseQualityThresh 20.0
  * </pre>

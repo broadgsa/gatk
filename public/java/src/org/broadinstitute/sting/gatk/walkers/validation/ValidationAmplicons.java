@@ -80,7 +80,7 @@ import java.util.List;
  *      -jar GenomeAnalysisTK.jar
  *      -T ValidationAmplicons
  *      -R /humgen/1kg/reference/human_g1k_v37.fasta
- *      -BTI ProbeIntervals
+ *      -L:table interval_table.table
  *      -ProbeIntervals:table interval_table.table
  *      -ValidateAlleles:vcf sites_to_validate.vcf
  *      -MaskAlleles:vcf mask_sites.vcf
