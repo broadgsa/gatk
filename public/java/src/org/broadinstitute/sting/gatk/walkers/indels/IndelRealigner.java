@@ -30,6 +30,7 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.SequenceUtil;
 import net.sf.samtools.util.StringUtil;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -45,10 +46,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.NWaySAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -144,7 +141,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * The interval list output from the RealignerTargetCreator tool using the same bam(s), reference, and known indel file(s).
      */
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
-    protected String intervalsFile = null;
+    protected IntervalBinding<Feature> intervalsFile = null;
 
     /**
      * This term is equivalent to "significance" - i.e. is the improvement significant enough to merit realignment? Note that this number
@@ -359,32 +356,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile,ex);
         }
 
-        NwayIntervalMergingIterator merger = new NwayIntervalMergingIterator(IntervalMergingRule.OVERLAPPING_ONLY);
-        List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();
-        // separate argument on semicolon first
-        for (String fileOrInterval : intervalsFile.split(";")) {
-            // if it's a file, add items to raw interval list
-            if (IntervalUtils.isIntervalFile(fileOrInterval)) {
-                merger.add(new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
-            } else {
-                rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeLoc(fileOrInterval));
-            }
-        }
-        if ( ! rawIntervals.isEmpty() )
-            merger.add(rawIntervals.iterator());
-
-        // prepare to read intervals one-by-one, as needed
-        intervals = merger;
+        intervals = intervalsFile.getIntervals(getToolkit()).iterator();
 
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         writerToUse = writer;
 
         if ( N_WAY_OUT != null ) {
- //           Map<String,String> args = getToolkit().getArguments().walkerArgs;
             boolean createIndex =  true;
-
- //           if ( args.containsKey("disable_bam_indexing") )  { System.out.println("NO INDEXING!!"); System.exit(1); createIndex = false; }
 
             if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
                 writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true, createIndex, generateMD5s);
@@ -557,7 +536,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
         } catch (ReviewedStingException e) {
-            throw new UserException.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
+            throw new UserException.MissortedFile(new File(intervalsFile.getSource()), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
         }
         sawReadInCurrentInterval = false;
 

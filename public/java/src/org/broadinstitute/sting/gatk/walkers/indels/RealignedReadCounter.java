@@ -25,23 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
-
-import java.io.File;
-import java.util.Iterator;
 
 @By(DataSource.READS)
 // walker to count realigned reads
@@ -50,85 +39,21 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
     public static final String ORIGINAL_CIGAR_TAG = "OC";
     public static final String ORIGINAL_POSITION_TAG = "OP";
 
-    @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
-    protected String intervalsFile = null;
-
-    // the intervals input by the user
-    private Iterator<GenomeLoc> intervals = null;
-
-    // the current interval in the list
-    private GenomeLoc currentInterval = null;
-
-    private long updatedIntervals = 0, updatedReads = 0, affectedBases = 0;
-    private boolean intervalWasUpdated = false;
-
-    public void initialize() {
-        // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-        intervals = new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
-        currentInterval = intervals.hasNext() ? intervals.next() : null;
-    }
+    private long updatedReads = 0;
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
-        if ( currentInterval == null ) {
-            return 0;
-        }
 
-        GenomeLoc readLoc = ref.getGenomeLocParser().createGenomeLoc(read);
-        // hack to get around unmapped reads having screwy locations
-        if ( readLoc.getStop() == 0 )
-            readLoc = ref.getGenomeLocParser().createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
-
-        if ( readLoc.isBefore(currentInterval) || ReadUtils.is454Read(read) )
-            return 0;
-
-        if ( readLoc.overlapsP(currentInterval) ) {
-            if ( doNotTryToClean(read) )
+        if ( read.getAttribute(ORIGINAL_CIGAR_TAG) != null ) {
+            String newCigar = (String)read.getAttribute(ORIGINAL_CIGAR_TAG);
+            // deal with an old bug
+            if ( read.getCigar().toString().equals(newCigar) ) {
                 return 0;
-
-            if ( read.getAttribute(ORIGINAL_CIGAR_TAG) != null ) {
-                String newCigar = (String)read.getAttribute(ORIGINAL_CIGAR_TAG);
-                // deal with an old bug
-                if ( read.getCigar().toString().equals(newCigar) ) {
-                    //System.out.println(currentInterval + ": " + read.getReadName() + " " + read.getCigarString() + " " + newCigar);
-                    return 0;
-                }
-
-                if ( !intervalWasUpdated ) {
-                    intervalWasUpdated = true;
-                    updatedIntervals++;
-                    affectedBases += 20 + getIndelSize(read);
-                }
-                updatedReads++;
-
             }
-        } else {
-            do {
-                intervalWasUpdated = false;
-                currentInterval = intervals.hasNext() ? intervals.next() : null;
-            } while ( currentInterval != null && currentInterval.isBefore(readLoc) );
+
+            updatedReads++;
         }
 
         return 0;
-    }
-
-    private int getIndelSize(SAMRecord read) {
-        for ( CigarElement ce : read.getCigar().getCigarElements() ) {
-            if ( ce.getOperator() == CigarOperator.I )
-                return 0;
-            if ( ce.getOperator() == CigarOperator.D )
-                return ce.getLength();
-        }
-        logger.warn("We didn't see an indel for this read: " + read.getReadName() + " " + read.getAlignmentStart() + " " + read.getCigar());
-        return 0;
-    }
-
-    private boolean doNotTryToClean(SAMRecord read) {
-        return read.getReadUnmappedFlag() ||
-                read.getNotPrimaryAlignmentFlag() ||
-                read.getReadFailsVendorQualityCheckFlag() ||
-                read.getMappingQuality() == 0 ||
-                read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
-                (BadMateFilter.hasBadMate(read));
     }
 
     public Integer reduceInit() {
@@ -140,8 +65,6 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        System.out.println(updatedIntervals + " intervals were updated");
         System.out.println(updatedReads + " reads were updated");
-        System.out.println(affectedBases + " bases were affected");
     }
 }

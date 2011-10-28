@@ -26,10 +26,8 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.Tags;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
@@ -55,7 +53,6 @@ import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
@@ -135,15 +132,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
     @Hidden
     @Argument(fullName = "genotype_intervals", shortName = "genotype",
         doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or not", required = false)
-    public String genotypeIntervalsFile = null;
-
-    @Hidden
-    @Argument(fullName="genotypeIntervalsAreNotSorted", shortName="giNotSorted", required=false,
-        doc="This tool assumes that the genotyping interval list (--genotype_intervals) is sorted; "+
-            "if the list turns out to be unsorted, it will throw an exception.  "+
-            "Use this argument when your interval list is not sorted to instruct the IndelGenotyper "+
-            "to sort and keep it in memory (increases memory usage!).")
-    protected boolean GENOTYPE_NOT_SORTED = false;
+    public IntervalBinding<Feature> genotypeIntervalsFile = null;
 
     @Hidden
     @Argument(fullName="unpaired", shortName="unpaired",
@@ -365,16 +354,9 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             }
             if ( genotypeIntervalsFile != null ) {
 
-                if ( ! GENOTYPE_NOT_SORTED && IntervalUtils.isIntervalFile(genotypeIntervalsFile)) {
-                    // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-                    genotypeIntervalIterator = new IntervalFileMergingIterator(getToolkit().getGenomeLocParser(),
-                        new java.io.File(genotypeIntervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
-                } else {
-                    // read in the whole list of intervals for cleaning
-                    GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
-                        IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(genotypeIntervalsFile)), IntervalMergingRule.OVERLAPPING_ONLY);
-                    genotypeIntervalIterator = locs.iterator();
-                }
+                // read in the whole list of intervals for cleaning
+                GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(), genotypeIntervalsFile.getIntervals(getToolkit()), IntervalMergingRule.OVERLAPPING_ONLY);
+                genotypeIntervalIterator = locs.iterator();
 
                 // wrap intervals requested for genotyping inside overlapping iterator, so that we actually
                 // genotype only on the intersections of the requested intervals with the -L intervals
