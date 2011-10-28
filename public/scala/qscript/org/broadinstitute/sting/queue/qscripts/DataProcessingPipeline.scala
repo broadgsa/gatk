@@ -18,15 +18,12 @@ class DataProcessingPipeline extends QScript {
   qscript =>
 
   /****************************************************************************
-  * Required Parameters (if default values are not good for you)
+  * Required Parameters
   ****************************************************************************/
 
 
   @Input(doc="input BAM file - or list of BAM files", fullName="input", shortName="i", required=true)
   var input: File = _
-
-  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
-  var R: String = _
 
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
   var reference: File = _
@@ -377,7 +374,6 @@ class DataProcessingPipeline extends QScript {
 
 
   case class analyzeCovariates (inRecalFile: File, outPath: File) extends AnalyzeCovariates {
-    this.resources = qscript.R
     this.recal_file = inRecalFile
     this.output_dir = outPath.toString
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
