@@ -25,8 +25,6 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.commandline.ArgumentException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -194,7 +192,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     }
 
     @Test(enabled = true, expectedExceptions = RuntimeException.class)
-    public void testEmptyVCFError() {
+    public void testEmptyVCFNoUnsafe() {
         String md5 = "";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T CountLoci" +
@@ -207,8 +205,8 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testEmptyVCFError", spec);
     }
 
-    @Test(enabled = true)
-    public void testEmptyVCFNoError() {
+    @Test(enabled = true, expectedExceptions = RuntimeException.class)
+    public void testEmptyVCFWithUnsafe() {
         String md5 = "";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T CountLoci" +
