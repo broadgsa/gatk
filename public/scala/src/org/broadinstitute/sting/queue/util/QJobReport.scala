@@ -29,7 +29,6 @@ import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
 import java.io.{FileOutputStream, PrintStream, File}
-import org.broadinstitute.sting.utils.R.RScriptExecutor.RScriptArgumentCollection
 import org.broadinstitute.sting.utils.R.{RScriptLibrary, RScriptExecutor}
 import org.broadinstitute.sting.utils.io.Resource
 
@@ -104,8 +103,8 @@ object QJobReport {
     stream.close()
   }
 
-  def plotReport(args: RScriptArgumentCollection, reportFile: File, pdfFile: File) {
-    val executor = new RScriptExecutor(args, false) // don't except on error
+  def plotReport(reportFile: File, pdfFile: File) {
+    val executor = new RScriptExecutor
     executor.addLibrary(RScriptLibrary.GSALIB)
     executor.addScript(new Resource(JOB_REPORT_QUEUE_SCRIPT, classOf[QJobReport]))
     executor.addArgs(reportFile.getAbsolutePath, pdfFile.getAbsolutePath)

@@ -1,5 +1,7 @@
 #!/bin/env Rscript
 
+library(tools)
+
 args <- commandArgs(TRUE)
 verbose = TRUE
 
@@ -47,6 +49,9 @@ if( is.numeric(c$Covariate) ) {
 }
 dev.off()
 
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}
 
 #
 # Plot mean quality versus the covariate
@@ -68,6 +73,10 @@ if( is.numeric(c$Covariate) ) {
 	points(d.1000$Covariate, d.1000$Qreported, type="l", col="cornflowerblue")
 }
 dev.off()
+
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}
 
 #
 # Plot histogram of the covariate
@@ -106,3 +115,7 @@ if( is.numeric(c$Covariate) ) {
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 }
 dev.off()
+
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}

@@ -230,14 +230,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
     /**
-     * For expert users only!  This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.
-     * Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.
-     */
-    @Advanced
-    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="The target intervals are not sorted")
-    protected boolean TARGET_NOT_SORTED = false;
-
-    /**
      * Reads from all input files will be realigned together, but then each read will be saved in the output file corresponding to the input file that
      * the read came from. There are two ways to generate output bam file names: 1) if the value of this argument is a general string (e.g. '.cleaned.bam'),
      * then extensions (".bam" or ".sam") will be stripped from the input file names and the provided string value will be pasted on instead; 2) if the
@@ -366,30 +358,24 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         catch(FileNotFoundException ex) {
             throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile,ex);
         }
-        
-        if ( !TARGET_NOT_SORTED ) {
 
-            NwayIntervalMergingIterator merger = new NwayIntervalMergingIterator(IntervalMergingRule.OVERLAPPING_ONLY);
-            List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();
-            // separate argument on semicolon first
-            for (String fileOrInterval : intervalsFile.split(";")) {
-                // if it's a file, add items to raw interval list
-                if (IntervalUtils.isIntervalFile(fileOrInterval)) {
-                    merger.add(new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
-                } else {
-                    rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeLoc(fileOrInterval));
-                }
+        NwayIntervalMergingIterator merger = new NwayIntervalMergingIterator(IntervalMergingRule.OVERLAPPING_ONLY);
+        List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();
+        // separate argument on semicolon first
+        for (String fileOrInterval : intervalsFile.split(";")) {
+            // if it's a file, add items to raw interval list
+            if (IntervalUtils.isIntervalFile(fileOrInterval)) {
+                merger.add(new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
+            } else {
+                rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeLoc(fileOrInterval));
             }
-            if ( ! rawIntervals.isEmpty() ) merger.add(rawIntervals.iterator());
-            // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-            intervals = merger; 
-        } else {
-            // read in the whole list of intervals for cleaning
-            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
-                    IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile)),
-                    IntervalMergingRule.OVERLAPPING_ONLY);
-            intervals = locs.iterator();
         }
+        if ( ! rawIntervals.isEmpty() )
+            merger.add(rawIntervals.iterator());
+
+        // prepare to read intervals one-by-one, as needed
+        intervals = merger;
+
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         writerToUse = writer;

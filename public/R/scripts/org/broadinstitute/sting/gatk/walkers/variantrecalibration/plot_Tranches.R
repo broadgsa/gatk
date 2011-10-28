@@ -1,5 +1,7 @@
 #!/bin/env Rscript
 
+library(tools)
+
 args <- commandArgs(TRUE)
 verbose = TRUE
 
@@ -85,3 +87,7 @@ if ( ! is.null(sensitivity) ) {
 }
 
 dev.off()
+
+if (exists('compactPDF')) {
+  compactPDF(outfile)
+}

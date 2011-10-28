@@ -22,26 +22,20 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.arguments;
+package org.broadinstitute.sting.utils.runtime;
 
+import org.broadinstitute.sting.BaseTest;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+public class RuntimeUtilsUnitTest extends BaseTest {
+    @Test
+    public void testWhichExists() {
+        Assert.assertNotNull(RuntimeUtils.which("ls"), "Unable to locate ls");
+    }
 
-/**
- * @author ebanks
- * @version 1.0
- */
-public class StandardVariantContextInputArgumentCollection {
-
-    /**
-     * Variants from this VCF file are used by this tool as input.
-     * The file must at least contain the standard VCF header lines, but
-     * can be empty (i.e., no variants are contained in the file).
-     */
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public RodBinding<VariantContext> variants;
-
+    @Test
+    public void testWhichNotExists() {
+        Assert.assertNull(RuntimeUtils.which("does_not_exist"), "Found nonexistent binary: does_not_exist");
+    }
 }
-

@@ -51,7 +51,6 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
 
         private static File refFile =  new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
         private static String intervalFileNameGATK = validationDataLocation+"test.gatk.intervals";
-        private static String intervalFileNameBED = validationDataLocation+"test.bed";
         private static List<GenomeLoc> results1 = null;
         private static List<GenomeLoc> results2 = null;
 
@@ -114,20 +113,6 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
 
         Iterator<GenomeLoc> it = new IntervalFileMergingIterator(genomeLocParser,new File(intervalFileNameGATK),IntervalMergingRule.ALL);
         Iterator<GenomeLoc> check_it = results2.iterator();
-        while(it.hasNext()) {
-                GenomeLoc l = it.next();
-                GenomeLoc l_expected = check_it.next();
-//                System.out.println("int: "+l+" expected: "+l_expected) ;
-                Assert.assertEquals(l_expected, l, "Unexpected location returned by the iterator: "+l);
-        }
-   }
-
-    @Test
-    public void testBEDIntervalFileIterator_Overlap() {
-        logger.warn("Executing testBEDIntervalFileIterator_Overlap");
-
-        Iterator<GenomeLoc> it = new IntervalFileMergingIterator(genomeLocParser,new File(intervalFileNameBED),IntervalMergingRule.OVERLAPPING_ONLY);
-        Iterator<GenomeLoc> check_it = results1.iterator();
         while(it.hasNext()) {
                 GenomeLoc l = it.next();
                 GenomeLoc l_expected = check_it.next();

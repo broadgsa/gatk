@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.io;
 
+import java.io.File;
+
 /**
  * Stores a resource by path and a relative class.
  */
@@ -49,5 +51,16 @@ public class Resource {
 
     public String getPath() {
         return path;
+    }
+
+    public String getFullPath() {
+        if (relativeClass == null)
+            return path;
+        if (new File(path).isAbsolute())
+            return path;
+        return String.format("%s%s%s",
+                relativeClass.getPackage().getName().replace('.', File.separatorChar),
+                File.separator,
+                path);
     }
 }

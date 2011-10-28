@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.analyzecovariates;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
@@ -33,14 +36,16 @@ import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.io.Resource;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -71,15 +76,13 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * <p>
- * NOTE: For those running this tool externally from the Broad, it is crucial to note that both the -Rscript and -resources options
- * must be changed from the default. -Rscript needs to point to your installation of Rscript (this is the scripting version of R,
- * not the interactive version) while -resources needs to point to the folder holding the R scripts that are used. For those using
- * this tool as part of the Binary Distribution the -resources should point to the resources folder that is part of the tarball.
- * For those using this tool by building from the git repository the -resources should point to the R/ subdirectory of the Sting checkout.
+ * NOTE: Rscript needs to be in your environment PATH (this is the scripting version of R, not the interactive version).
+ * See <a target="r-project" href="http://www.r-project.org">http://www.r-project.org</a> for more info on how to download and install R.
  *
  * <p>
  * See the GATK wiki for a tutorial and example recalibration accuracy plots.
- * http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration
+ * <a target="gatkwiki" href="http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration"
+ * >http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration</a>
  *
  * <h2>Input</h2>
  * <p>
@@ -91,7 +94,6 @@ import java.util.regex.Pattern;
  * java -Xmx4g -jar AnalyzeCovariates.jar \
  *   -recalFile /path/to/recal.table.csv  \
  *   -outputDir /path/to/output_dir/  \
- *   -resources resources/  \
  *   -ignoreQ 5
  * </pre>
  *
@@ -101,6 +103,11 @@ import java.util.regex.Pattern;
         groupName = "AnalyzeCovariates",
         summary = "Package to plot residual accuracy versus error covariates for the base quality score recalibrator")
 public class AnalyzeCovariates extends CommandLineProgram {
+    final private static Logger logger = Logger.getLogger(AnalyzeCovariates.class);
+
+    private static final String PLOT_RESDIUAL_ERROR_QUALITY_SCORE_COVARIATE = "plot_residualError_QualityScoreCovariate.R";
+    private static final String PLOT_RESDIUAL_ERROR_OTHER_COVARIATE = "plot_residualError_OtherCovariate.R";
+    private static final String PLOT_INDEL_QUALITY_RSCRIPT = "plot_indelQuality.R";
 
     /////////////////////////////
     // Command Line Arguments
@@ -114,11 +121,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
     @Input(fullName = "recal_file", shortName = "recalFile", doc = "The input recal csv file to analyze", required = false)
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName = "output_dir", shortName = "outputDir", doc = "The directory in which to output all the plots and intermediate data files", required = false)
-    private String OUTPUT_DIR = "analyzeCovariates/";
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.12.0/bin/Rscript", required = false)
-    private String PATH_TO_RSCRIPT = "Rscript";
-    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-    private String PATH_TO_RESOURCES = "public/R/";
+    private File OUTPUT_DIR = new File("analyzeCovariates");
     @Argument(fullName = "ignoreQ", shortName = "ignoreQ", doc = "Ignore bases with reported quality less than this number.", required = false)
     private int IGNORE_QSCORES_LESS_THAN = 5;
     @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)
@@ -154,29 +157,26 @@ public class AnalyzeCovariates extends CommandLineProgram {
     protected int execute() {
 
         // create the output directory where all the data tables and plots will go
-        try {
-            Process p = Runtime.getRuntime().exec("mkdir " + OUTPUT_DIR);
-        } catch (IOException e) {
-            System.out.println("Couldn't create directory: " + OUTPUT_DIR);
-            System.out.println("User is responsible for making sure the output directory exists.");
-        }
-        if( !OUTPUT_DIR.endsWith("/") ) { OUTPUT_DIR = OUTPUT_DIR + "/"; }
-        if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
+        if (!OUTPUT_DIR.exists() && !OUTPUT_DIR.mkdirs())
+            throw new UserException.BadArgumentValue("--output_dir/-outDir", "Unable to create output directory: " + OUTPUT_DIR);
+
+        if (!RScriptExecutor.RSCRIPT_EXISTS)
+            Utils.warnUser(logger, "Rscript not found in environment path. Plots will not be generated.");
 
         // initialize all the data from the csv file and allocate the list of covariates
-        System.out.println("Reading in input csv file...");
+        logger.info("Reading in input csv file...");
         initializeData();
-        System.out.println("...Done!");
+        logger.info("...Done!");
 
         // output data tables for Rscript to read in
-        System.out.println("Writing out intermediate tables for R...");
+        logger.info("Writing out intermediate tables for R...");
         writeDataTables();
-        System.out.println("...Done!");
+        logger.info("...Done!");
 
         // perform the analysis using Rscript and output the plots
-        System.out.println("Calling analysis R scripts and writing out figures...");
+        logger.info("Calling analysis R scripts and writing out figures...");
         callRScripts();
-        System.out.println("...Done!");
+        logger.info("...Done!");
 
         return 0;
     }
@@ -287,37 +287,40 @@ public class AnalyzeCovariates extends CommandLineProgram {
             if(NUM_READ_GROUPS_TO_PROCESS == -1 || ++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS) {
                 String readGroup = readGroupKey.toString();
                 RecalDatum readGroupDatum = (RecalDatum) dataManager.getCollapsedTable(0).data.get(readGroupKey);
-                System.out.print("Writing out data tables for read group: " + readGroup + "\twith " + readGroupDatum.getNumObservations() + " observations"  );
-                System.out.println("\tand aggregate residual error = " + String.format("%.3f", readGroupDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE) - readGroupDatum.getEstimatedQReported()));
+                logger.info(String.format(
+                        "Writing out data tables for read group: %s\twith %s observations\tand aggregate residual error = %.3f",
+                        readGroup, readGroupDatum.getNumObservations(),
+                        readGroupDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE) - readGroupDatum.getEstimatedQReported()));
 
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
                     Covariate cov = requestedCovariates.get(iii);
 
                     // Create a PrintStream
-                    PrintStream output = null;
+                    File outputFile = new File(OUTPUT_DIR, readGroup + "." + cov.getClass().getSimpleName()+ ".dat");
+                    PrintStream output;
                     try {
-                        output = new PrintStream(new FileOutputStream(OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat"));
-
-                    } catch (FileNotFoundException e) {
-                        System.err.println("Can't create file: " + OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat");
-                        System.exit(-1);
+                        output = new PrintStream(FileUtils.openOutputStream(outputFile));
+                    } catch (IOException e) {
+                        throw new UserException.CouldNotCreateOutputFile(outputFile, e);
                     }
 
-                    // Output the header
-                    output.println("Covariate\tQreported\tQempirical\tnMismatches\tnBases");
+                    try {
+                        // Output the header
+                        output.println("Covariate\tQreported\tQempirical\tnMismatches\tnBases");
 
-                    for( Object covariateKey : ((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).keySet()) {
-                        output.print( covariateKey.toString() + "\t" );                                                     // Covariate
-                        RecalDatum thisDatum = (RecalDatum)((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).get(covariateKey);
-                        output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );                    // Qreported
-                        output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE)) + "\t" );  // Qempirical
-                        output.print( thisDatum.getNumMismatches() + "\t" );                                                // nMismatches
-                        output.println( thisDatum.getNumObservations() );                                                   // nBases
+                        for( Object covariateKey : ((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).keySet()) {
+                            output.print( covariateKey.toString() + "\t" );                                                     // Covariate
+                            RecalDatum thisDatum = (RecalDatum)((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).get(covariateKey);
+                            output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );                    // Qreported
+                            output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE)) + "\t" );  // Qempirical
+                            output.print( thisDatum.getNumMismatches() + "\t" );                                                // nMismatches
+                            output.println( thisDatum.getNumObservations() );                                                   // nBases
+                        }
+                    } finally {
+                        // Close the PrintStream
+                        IOUtils.closeQuietly(output);
                     }
-
-                    // Close the PrintStream
-                    output.close();
                 }
             } else {
                 break;
@@ -327,10 +330,6 @@ public class AnalyzeCovariates extends CommandLineProgram {
     }
 
     private void callRScripts() {
-        RScriptExecutor.RScriptArgumentCollection argumentCollection =
-                new RScriptExecutor.RScriptArgumentCollection(PATH_TO_RSCRIPT, Arrays.asList(PATH_TO_RESOURCES));
-        RScriptExecutor executor = new RScriptExecutor(argumentCollection, true);
-
         int numReadGroups = 0;
 
         // for each read group
@@ -338,23 +337,32 @@ public class AnalyzeCovariates extends CommandLineProgram {
             if(++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS || NUM_READ_GROUPS_TO_PROCESS == -1) {
 
                 String readGroup = readGroupKey.toString();
-                System.out.println("Analyzing read group: " + readGroup);
+                logger.info("Analyzing read group: " + readGroup);
 
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
                     Covariate cov = requestedCovariates.get(iii);
-                    final String outputFilename = OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat";
+                    final File outputFile = new File(OUTPUT_DIR, readGroup + "." + cov.getClass().getSimpleName()+ ".dat");
                     if (DO_INDEL_QUALITY) {
-                        executor.callRScripts("plot_indelQuality.R", outputFilename,
-                                cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                        RScriptExecutor executor = new RScriptExecutor();
+                        executor.addScript(new Resource(PLOT_INDEL_QUALITY_RSCRIPT, AnalyzeCovariates.class));
+                        // The second argument is the name of the covariate in order to make the plots look nice
+                        executor.addArgs(outputFile, cov.getClass().getSimpleName().split("Covariate")[0]);
+                        executor.exec();
                     }   else {
                         if( iii == 1 ) {
                             // Analyze reported quality
-                            executor.callRScripts("plot_residualError_QualityScoreCovariate.R", outputFilename,
-                                    IGNORE_QSCORES_LESS_THAN, MAX_QUALITY_SCORE, MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                            RScriptExecutor executor = new RScriptExecutor();
+                            executor.addScript(new Resource(PLOT_RESDIUAL_ERROR_QUALITY_SCORE_COVARIATE, AnalyzeCovariates.class));
+                            // The second argument is the Q scores that should be turned pink in the plot because they were ignored
+                            executor.addArgs(outputFile, IGNORE_QSCORES_LESS_THAN, MAX_QUALITY_SCORE, MAX_HISTOGRAM_VALUE);
+                            executor.exec();
                         } else { // Analyze all other covariates
-                            executor.callRScripts("plot_residualError_OtherCovariate.R", outputFilename,
-                                    cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                            RScriptExecutor executor = new RScriptExecutor();
+                            executor.addScript(new Resource(PLOT_RESDIUAL_ERROR_OTHER_COVARIATE, AnalyzeCovariates.class));
+                            // The second argument is the name of the covariate in order to make the plots look nice
+                            executor.addArgs(outputFile, cov.getClass().getSimpleName().split("Covariate")[0]);
+                            executor.exec();
                         }
                     }
                 }
