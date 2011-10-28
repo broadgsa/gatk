@@ -419,8 +419,11 @@ class QGraph extends Logging {
 
         if (readyJobs.size == 0 && runningJobs.size > 0) {
           runningLock.synchronized {
-            if (running)
-              runningLock.wait(nextRunningCheck(lastRunningCheck))
+            if (running) {
+              val timeout = nextRunningCheck(lastRunningCheck)
+              if (timeout > 0)
+                runningLock.wait(timeout)
+            }
           }
         }
 
@@ -471,7 +474,7 @@ class QGraph extends Logging {
     lastRunningCheck > 0 && nextRunningCheck(lastRunningCheck) <= 0
 
   private def nextRunningCheck(lastRunningCheck: Long) =
-    0L max ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
+    ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
 
   private def logStatusCounts {
     logger.info("%d Pend, %d Run, %d Fail, %d Done".format(
