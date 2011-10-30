@@ -198,15 +198,13 @@ public class AlignmentUtils {
         return sum;
     }
 
-    /** Returns the number of mismatches in the pileup element within the given reference context.
+    /** Returns the mismatches in the read within the given reference context.
      *
-     * @param read          the SAMRecord
-     * @param ref           the reference context
-     * @param maxMismatches the maximum number of surrounding mismatches we tolerate to consider a base good
-     * @param windowSize    window size (on each side) to test
-     * @return a bitset representing which bases are good
+     * @param read       the SAMRecord
+     * @param ref        the reference context
+     * @return each base is represented by a bit in the BitSet. True for mismatch, false for ref
      */
-    public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize) {
+    public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref) {
         // first determine the positions with mismatches
         int readLength = read.getReadLength();
         BitSet mismatches = new BitSet(readLength);
@@ -214,7 +212,7 @@ public class AlignmentUtils {
         // it's possible we aren't starting at the beginning of a read,
         //  and we don't need to look at any of the previous context outside our window
         //  (although we do need future context)
-        int readStartPos = Math.max(read.getAlignmentStart(), ref.getLocus().getStart() - windowSize);
+        int readStartPos = read.getAlignmentStart();
         int currentReadPos = read.getAlignmentStart();
 
         byte[] refBases = ref.getBases();
@@ -265,9 +263,22 @@ public class AlignmentUtils {
                     break;
             }
         }
+        return mismatches;
+    }
+    /** Returns a BitSet showing what bases are good according to the criteria of maxMismatches in the window
+     *
+     * @param read          the SAMRecord
+     * @param ref           the reference context
+     * @param maxMismatches the maximum number of surrounding mismatches we tolerate to consider a base good
+     * @param windowSize    window size (on each side) to test
+     * @return a bitset representing which bases are good
+     */
+    public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize) {
+        int readLength = read.getReadLength();
 
         // all bits are set to false by default
         BitSet result = new BitSet(readLength);
+        BitSet mismatches = mismatchesInRefWindow(read, ref);
 
         int currentPos = 0, leftPos = 0, rightPos;
         int mismatchCount = 0;
