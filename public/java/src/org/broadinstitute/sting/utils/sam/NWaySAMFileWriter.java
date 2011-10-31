@@ -25,18 +25,16 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -50,21 +48,35 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     private Map<SAMReaderID,SAMFileWriter> writerMap = null;
     private boolean presorted ;
     GenomeAnalysisEngine toolkit;
+    boolean KEEP_ALL_PG_RECORDS = false;
 
-    public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, Map<String,String> in2out, SAMFileHeader.SortOrder order, boolean presorted, boolean indexOnTheFly, boolean generateMD5) {
+    public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, Map<String,String> in2out, SAMFileHeader.SortOrder order,
+                             boolean presorted, boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord pRecord, boolean keep_records) {
         this.presorted = presorted;
         this.toolkit = toolkit;
+        this.KEEP_ALL_PG_RECORDS = keep_records;
         writerMap = new HashMap<SAMReaderID,SAMFileWriter>();
-        setupByReader(toolkit,in2out,order, presorted, indexOnTheFly, generateMD5);
+        setupByReader(toolkit,in2out,order, presorted, indexOnTheFly, generateMD5, pRecord);
     }
 
-    public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, String ext, SAMFileHeader.SortOrder order, boolean presorted, boolean indexOnTheFly , boolean generateMD5) {
+    public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, String ext, SAMFileHeader.SortOrder order,
+                              boolean presorted, boolean indexOnTheFly , boolean generateMD5, SAMProgramRecord pRecord, boolean keep_records) {
         this.presorted = presorted;
         this.toolkit = toolkit;
+        this.KEEP_ALL_PG_RECORDS = keep_records;
         writerMap = new HashMap<SAMReaderID,SAMFileWriter>();
-        setupByReader(toolkit,ext,order, presorted, indexOnTheFly, generateMD5);
+        setupByReader(toolkit,ext,order, presorted, indexOnTheFly, generateMD5, pRecord);
     }
 
+    public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, Map<String,String> in2out, SAMFileHeader.SortOrder order,
+                             boolean presorted, boolean indexOnTheFly, boolean generateMD5) {
+        this(toolkit, in2out, order, presorted, indexOnTheFly, generateMD5, null,false);
+    }
+
+    public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, String ext, SAMFileHeader.SortOrder order,
+                              boolean presorted, boolean indexOnTheFly , boolean generateMD5) {
+        this(toolkit, ext, order, presorted, indexOnTheFly, generateMD5, null,false);
+    }
 
     /**
      * Instantiates multiple underlying SAM writes, one per input SAM reader registered with GATK engine (those will be retrieved
@@ -73,7 +85,8 @@ public class NWaySAMFileWriter implements SAMFileWriter {
      * @param toolkit
      * @param in2out
      */
-    public void setupByReader(GenomeAnalysisEngine toolkit, Map<String,String> in2out, SAMFileHeader.SortOrder order, boolean presorted, boolean indexOnTheFly, boolean generateMD5) {
+    public void setupByReader(GenomeAnalysisEngine toolkit, Map<String,String> in2out, SAMFileHeader.SortOrder order,
+                              boolean presorted, boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord pRecord) {
         if ( in2out==null ) throw new StingException("input-output bam filename map for n-way-out writing is NULL");
         for ( SAMReaderID rid : toolkit.getReadsDataSource().getReaderIDs() ) {
 
@@ -85,9 +98,10 @@ public class NWaySAMFileWriter implements SAMFileWriter {
             outName = in2out.get(fName);
 
             if ( writerMap.containsKey( rid ) )
-                throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
+                throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered; "+
+                        "map file likely contains multiple entries for this input file");
 
-            addWriter(rid,outName, order, presorted, indexOnTheFly, generateMD5);
+            addWriter(rid,outName, order, presorted, indexOnTheFly, generateMD5, pRecord);
         }
 
     }
@@ -100,7 +114,8 @@ public class NWaySAMFileWriter implements SAMFileWriter {
      * @param toolkit
      * @param ext
      */
-    public void setupByReader(GenomeAnalysisEngine toolkit, String ext, SAMFileHeader.SortOrder order, boolean presorted, boolean indexOnTheFly, boolean generateMD5) {
+    public void setupByReader(GenomeAnalysisEngine toolkit, String ext, SAMFileHeader.SortOrder order,
+                              boolean presorted, boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord pRecord) {
         for ( SAMReaderID rid : toolkit.getReadsDataSource().getReaderIDs() ) {
 
             String fName = toolkit.getReadsDataSource().getSAMFile(rid).getName();
@@ -117,16 +132,29 @@ public class NWaySAMFileWriter implements SAMFileWriter {
 
             if ( writerMap.containsKey( rid ) )
                 throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
-
-            addWriter(rid,outName, order, presorted, indexOnTheFly, generateMD5);
+            addWriter(rid,outName, order, presorted, indexOnTheFly, generateMD5, pRecord);
         }
 
     }
 
-    private void addWriter(SAMReaderID id , String outName, SAMFileHeader.SortOrder order, boolean presorted, boolean indexOnTheFly, boolean generateMD5) {
+    private void addWriter(SAMReaderID id , String outName, SAMFileHeader.SortOrder order, boolean presorted,
+                           boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord programRecord) {
         File f = new File(outName);
         SAMFileHeader header = toolkit.getSAMFileHeader(id).clone();
         header.setSortOrder(order);
+
+        if ( programRecord != null )  {
+            // --->> add program record
+            List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+            List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+            for ( SAMProgramRecord record : oldRecords ) {
+                if ( !record.getId().startsWith(programRecord.getId()) || KEEP_ALL_PG_RECORDS )
+                    newRecords.add(record);
+            }
+            newRecords.add(programRecord);
+            header.setProgramRecords(newRecords);
+            // <-- add program record ends here
+        }
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         factory.setCreateIndex(indexOnTheFly);
         factory.setCreateMd5File(generateMD5);
@@ -134,7 +162,10 @@ public class NWaySAMFileWriter implements SAMFileWriter {
         writerMap.put(id,sw);
     }
 
-    
+    public Collection<SAMFileWriter> getWriters() {
+        return writerMap.values();
+    }
+
     public void addAlignment(SAMRecord samRecord) {
         final SAMReaderID id = toolkit.getReaderIDForRead(samRecord);
         String rg = samRecord.getStringAttribute("RG");
@@ -146,7 +177,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     }
 
     public SAMFileHeader getFileHeader() {
-        return toolkit.getSAMFileHeader();  
+        return toolkit.getSAMFileHeader();
     }
 
     public void close() {

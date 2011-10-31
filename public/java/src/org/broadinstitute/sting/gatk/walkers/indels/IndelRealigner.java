@@ -264,6 +264,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected boolean NO_PG_TAG = false;
 
     @Hidden
+    @Argument(fullName="keepPGTags", shortName="keepPG", required=false,
+            doc="Keep older PG tags left in the bam header by previous runs of this tool (by default, all these "+
+                    "historical tags will be replaced by the latest tag generated in the current run).")
+    protected boolean KEEP_ALL_PG_RECORDS = false;
+
+    @Hidden
     @Output(fullName="indelsFileForDebugging", shortName="indels", required=false, doc="Output file (text) for the indels found; FOR DEBUGGING PURPOSES ONLY")
     protected String OUT_INDELS = null;
 
@@ -404,11 +410,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
  //           if ( args.containsKey("disable_bam_indexing") )  { System.out.println("NO INDEXING!!"); System.exit(1); createIndex = false; }
 
             if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
-                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true, createIndex, generateMD5s);
+                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),
+                            SAMFileHeader.SortOrder.coordinate,true, createIndex, generateMD5s,createProgramRecord(),KEEP_ALL_PG_RECORDS);
             } else {
-                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true, createIndex, generateMD5s);
+                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true,
+                        createIndex, generateMD5s,createProgramRecord(),KEEP_ALL_PG_RECORDS);
             }
-
         }   else {
 
             // set up the output writer
@@ -448,18 +455,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void setupWriter(SAMFileHeader header) {
         
         if ( !NO_PG_TAG ) {
-            final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
-            final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
-            try {
-                final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
-                programRecord.setProgramVersion(version);
-            } catch (MissingResourceException e) {}
-            programRecord.setCommandLine(getToolkit().createApproximateCommandLineArgumentString(getToolkit(), this));
+            final SAMProgramRecord programRecord = createProgramRecord();
 
             List<SAMProgramRecord> oldRecords = header.getProgramRecords();
             List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
             for ( SAMProgramRecord record : oldRecords ) {
-                if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) )
+                if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) || KEEP_ALL_PG_RECORDS )
                     newRecords.add(record);
             }
             newRecords.add(programRecord);
@@ -468,6 +469,20 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         writer.writeHeader(header);
         writer.setPresorted(true);
+    }
+
+
+    private SAMProgramRecord createProgramRecord() {
+        if ( NO_PG_TAG ) return null;
+
+        final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
+        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        try {
+            final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+            programRecord.setProgramVersion(version);
+        } catch (MissingResourceException e) {}
+        programRecord.setCommandLine(getToolkit().createApproximateCommandLineArgumentString(getToolkit(), this));
+        return programRecord;
     }
 
     private void emit(final SAMRecord read) {
