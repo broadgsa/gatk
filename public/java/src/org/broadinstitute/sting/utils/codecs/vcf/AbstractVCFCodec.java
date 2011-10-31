@@ -155,7 +155,10 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      */
     public Feature decodeLoc(String line) {
         String[] locParts = new String[6];
-        ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+        int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+
+        if ( nParts != 6 )
+            throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
 
         // get our alleles (because the end position depends on them)
         String ref = getCachedString(locParts[3].toUpperCase());
