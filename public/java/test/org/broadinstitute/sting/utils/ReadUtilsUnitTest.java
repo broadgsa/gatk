@@ -29,7 +29,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead = ArtificialSAMUtils.createArtificialRead(header, "reducedRead", 0, 1, BASES.length());
         reducedRead.setReadBases(BASES.getBytes());
         reducedRead.setBaseQualityString(QUALS);
-        reducedRead.setAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG, REDUCED_READ_COUNTS);
+        reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_QUALITY_TAG, REDUCED_READ_COUNTS);
     }
 
     private void testReadBasesAndQuals(SAMRecord read, int expectedStart, int expectedStop) {

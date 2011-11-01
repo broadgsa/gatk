@@ -43,6 +43,7 @@ import java.util.Map;
  *
  */
 public class GATKSAMRecord extends BAMRecord {
+    public static final String REDUCED_READ_QUALITY_TAG = "RR";
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
@@ -151,7 +152,7 @@ public class GATKSAMRecord extends BAMRecord {
 
     public byte[] getReducedReadCounts() {
         if ( ! retrievedReduceReadCounts ) {
-            reducedReadCounts = getByteArrayAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_QUALITY_TAG);
             retrievedReduceReadCounts = true;
         }
 
