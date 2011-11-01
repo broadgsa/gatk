@@ -44,3 +44,4 @@ class ContigScatterFunction extends GATKScatterFunction with InProcessFunction {
     IntervalUtils.scatterContigIntervals(gi.samFileHeader, gi.locs, this.scatterOutputFiles)
   }
 }
+

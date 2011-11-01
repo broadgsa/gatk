@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
  * To change this template use File | Settings | File Templates.
  */
 @Requires({DataSource.READS, DataSource.REFERENCE_BASES})
-@PartitionBy(PartitionType.CONTIG)
+@PartitionBy(PartitionType.READ)
 public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     public boolean requiresOrderedReads() { return false; }
     
