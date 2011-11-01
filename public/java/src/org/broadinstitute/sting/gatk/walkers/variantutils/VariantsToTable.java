@@ -66,12 +66,14 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A table deliminated file containing the values of the requested fields in the VCF file
+ * A table delimited file containing the values of the requested fields in the VCF file
  * </p>
  *
  * <h2>Examples</h2>
  * <pre>
- *     -T $WalkerName \
+ *     java -jar GenomeAnalysisTK.jar \
+ *     -R reference.fasta
+ *     -T VariantsToTable \
  *     -V file.vcf \
  *     -F CHROM -F POS -F ID -F QUAL -F AC \
  *     -o results.table
