@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.interval;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.util.IntervalUtil;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
@@ -130,6 +131,56 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
         Assert.assertEquals(totalSize, sumOfSplitSizes, "Split intervals don't contain the exact number of bases in the origianl intervals");
     }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // tests to ensure the quality of the interval cuts of the interval cutting functions
+    //
+    // -------------------------------------------------------------------------------------
+
+    private class IntervalRepartitionTest extends TestDataProvider {
+        final List<GenomeLoc> originalIntervals;
+        final public int parts;
+
+        private IntervalRepartitionTest(final String name, List<GenomeLoc> originalIntervals, final int parts) {
+            super(IntervalRepartitionTest.class, name);
+            this.parts = parts;
+            this.originalIntervals = originalIntervals;
+        }
+
+        public String toString() {
+            return String.format("%s parts=%d", super.toString(), parts);
+        }
+    }
+
+    @DataProvider(name = "IntervalRepartitionTest")
+    public Object[][] createIntervalRepartitionTest() {
+        for ( int parts : Arrays.asList(1, 10, 100, 1000, 10000) ) {
+            new IntervalRepartitionTest("hg19RefLocs", hg19ReferenceLocs, parts);
+            new IntervalRepartitionTest("hg19ExomeLocs", hg19exomeIntervals, parts);
+        }
+
+        return IntervalSlicingTest.getTests(IntervalRepartitionTest.class);
+    }
+
+    @Test(enabled = true, dataProvider = "IntervalRepartitionTest")
+    public void testIntervalRepartition(IntervalRepartitionTest test) {
+        List<List<GenomeLoc>> splitByLocus = IntervalUtils.splitLocusIntervals(test.originalIntervals, test.parts);
+        Assert.assertEquals(test.parts, splitByLocus.size(), "SplitLocusIntervals failed to generate correct number of intervals");
+        List<GenomeLoc> flat = IntervalUtils.flattenSplitIntervals(splitByLocus);
+
+        // test sizes
+        final long originalSize = IntervalUtils.intervalSize(test.originalIntervals);
+        final long splitSize = IntervalUtils.intervalSize(flat);
+        Assert.assertEquals(originalSize, splitSize, "SplitLocusIntervals locs cover an incorrect number of bases");
+
+        // test that every base in original is covered once by a base in split by locus intervals
+        // todo implement test (complex)
+    }
+
+    //
+    // Misc. tests
+    //
 
     @Test(expectedExceptions=UserException.class)
     public void testMergeListsBySetOperatorNoOverlap() {

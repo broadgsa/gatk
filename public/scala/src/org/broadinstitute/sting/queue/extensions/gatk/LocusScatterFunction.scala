@@ -24,8 +24,20 @@
 
 package org.broadinstitute.sting.queue.extensions.gatk
 
+import org.broadinstitute.sting.utils.interval.IntervalUtils
+import org.broadinstitute.sting.queue.function.InProcessFunction
+
 /**
- * For now returns an IntervalScatterFunction.
- * TODO: A scatter function that divides down to the locus level.
+ * A scatter function that divides down to the locus level.
  */
-class LocusScatterFunction extends IntervalScatterFunction {}
+class LocusScatterFunction extends IntervalScatterFunction {
+}
+//
+//class LocusScatterFunction extends GATKScatterFunction with InProcessFunction {
+//  // todo -- max intervals is actually the original scatter count, not capped by interval size
+//  def run() {
+//    val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
+//    val splits = IntervalUtils.splitLocusIntervals(gi.locs, this.scatterOutputFiles.size)
+//    IntervalUtils.scatterFixedIntervals(gi.samFileHeader, splits, this.scatterOutputFiles)
+//  }
+//}
