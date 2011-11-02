@@ -29,7 +29,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead = ArtificialSAMUtils.createArtificialRead(header, "reducedRead", 0, 1, BASES.length());
         reducedRead.setReadBases(BASES.getBytes());
         reducedRead.setBaseQualityString(QUALS);
-        reducedRead.setAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG, REDUCED_READ_COUNTS);
+        reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_QUALITY_TAG, REDUCED_READ_COUNTS);
     }
 
     private void testReadBasesAndQuals(SAMRecord read, int expectedStart, int expectedStop) {
@@ -65,7 +65,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         Assert.assertFalse(readp.isReducedRead());
 
         Assert.assertTrue(reducedreadp.isReducedRead());
-        Assert.assertEquals(reducedreadp.getReducedCount(), REDUCED_READ_COUNTS[0]);
-        Assert.assertEquals(reducedreadp.getReducedQual(), readp.getQual());
+        Assert.assertEquals(reducedreadp.getRepresentativeCount(), REDUCED_READ_COUNTS[0]);
+        Assert.assertEquals(reducedreadp.getQual(), readp.getQual());
     }
 }

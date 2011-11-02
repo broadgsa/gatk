@@ -17,7 +17,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
  */
 @By(DataSource.READS)
 @Requires({DataSource.READS,DataSource.REFERENCE, DataSource.REFERENCE_BASES})
-@PartitionBy(PartitionType.INTERVAL)
+@PartitionBy(PartitionType.LOCUS)
 @ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class,DuplicateReadFilter.class,FailsVendorQualityCheckFilter.class})
 public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?

@@ -408,12 +408,12 @@ public class MathUtils {
         return Math.sqrt(rms);
     }
 
-    public static double rms(Collection<Double> l) {
+    public static double rms(Collection<Integer> l) {
         if (l.size() == 0)
             return 0.0;
 
         double rms = 0.0;
-        for (Double i : l)
+        for (int i : l)
             rms += i*i;
         rms /= l.size();
         return Math.sqrt(rms);

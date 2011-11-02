@@ -43,7 +43,7 @@ public class SpanningDeletions extends InfoFieldAnnotation implements StandardAn
 
             if (pileup != null) {
                 deletions += pileup.getNumberOfDeletions();
-                depth += pileup.size();
+                depth += pileup.getNumberOfElements();
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();

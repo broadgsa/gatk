@@ -113,7 +113,7 @@ public class FragmentUtils {
     }
 
     public final static FragmentCollection<PileupElement> create(ReadBackedPileup rbp) {
-        return create(rbp, rbp.size(), PileupElementGetter);
+        return create(rbp, rbp.getNumberOfElements(), PileupElementGetter);
     }
 
     public final static FragmentCollection<SAMRecord> create(List<SAMRecord> reads) {

@@ -586,6 +586,12 @@ public class Utils {
         return rcbases;
     }
 
+    static public final <T> List<T> reverse(final List<T> l) {
+        final List<T> newL = new ArrayList<T>(l);
+        Collections.reverse(newL);
+        return newL;
+    }
+
     /**
      * Reverse an int array of bases
      *

@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.interval;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
@@ -8,6 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -222,6 +225,44 @@ public class IntervalUtils {
     }
 
     /**
+     * computes whether the test interval list is equivalent to master.  To be equivalent, test must
+     * contain GenomeLocs covering every base in master, exactly once.  Note that this algorithm
+     * assumes that master genomelocs are all discontiguous (i.e., we don't have locs like 1-3 and 4-6 but
+     * rather just 1-6).  In order to use this algorithm with contiguous genomelocs first merge them.  The algorithm
+     * doesn't assume that test has discontinuous genomelocs.
+     *
+     * Returns a null string if there are no differences, otherwise returns a string describing the difference
+     * (useful for UnitTests).  Assumes both lists are sorted
+     */
+    public static final String equateIntervals(List<GenomeLoc> masterArg, List<GenomeLoc> testArg) {
+        LinkedList<GenomeLoc> master = new LinkedList<GenomeLoc>(masterArg);
+        LinkedList<GenomeLoc> test = new LinkedList<GenomeLoc>(testArg);
+
+        while ( ! master.isEmpty() ) { // there's still unchecked bases in master
+            final GenomeLoc masterHead = master.pop();
+            final GenomeLoc testHead = test.pop();
+
+            if ( testHead.overlapsP(masterHead) ) {
+                // remove the parts of test that overlap master, and push the remaining
+                // parts onto master for further comparison.
+                for ( final GenomeLoc masterPart : Utils.reverse(masterHead.subtract(testHead)) ) {
+                    master.push(masterPart);
+                }
+            } else {
+                // testHead is incompatible with masterHead, so we must have extra bases in testHead
+                // that aren't in master
+                return "Incompatible locs detected masterHead=" + masterHead + ", testHead=" + testHead;
+            }
+        }
+
+        if ( test.isEmpty() ) // everything is equal
+            return null; // no differences
+        else
+            return "Remaining elements found in test: first=" + test.peek();
+    }
+
+
+    /**
      * Check if string argument was intented as a file
      * Accepted file extensions: .bed .list, .picard, .interval_list, .intervals.
      * @param str token to identify as a filename.
@@ -382,6 +423,92 @@ public class IntervalUtils {
         Collections.sort(splitPoints);
         splitPoints.add(locs.size());
         return splitIntervalsToSubLists(locs, splitPoints);
+    }
+
+    @Requires({"locs != null", "numParts > 0"})
+    @Ensures("result != null")
+    public static List<List<GenomeLoc>> splitLocusIntervals(List<GenomeLoc> locs, int numParts) {
+        // the ideal size of each split
+        final long bp = IntervalUtils.intervalSize(locs);
+        final long idealSplitSize = Math.max((long)Math.floor(bp / (1.0*numParts)), 1);
+
+        // algorithm:
+        // split = ()
+        // set size = 0
+        // pop the head H off locs.
+        // If size + size(H) < splitSize:
+        //      add H to split, continue
+        // If size + size(H) == splitSize:
+        //      done with split, put in splits, restart
+        // if size + size(H) > splitSize:
+        //      cut H into two pieces, first of which has splitSize - size bp
+        //      push both pieces onto locs, continue
+        // The last split is special -- when you have only one split left, it gets all of the remaining locs
+        // to deal with rounding issues
+        final List<List<GenomeLoc>> splits = new ArrayList<List<GenomeLoc>>(numParts);
+
+        LinkedList<GenomeLoc> locsLinkedList = new LinkedList<GenomeLoc>(locs);
+        while ( ! locsLinkedList.isEmpty() ) {
+            if ( splits.size() + 1 == numParts ) {
+                // the last one gets all of the remaining parts
+                splits.add(new ArrayList<GenomeLoc>(locsLinkedList));
+                locsLinkedList.clear();
+            } else {
+                final SplitLocusRecursive one = splitLocusIntervals1(locsLinkedList, idealSplitSize);
+                splits.add(one.split);
+                locsLinkedList = one.remaining;
+            }
+        }
+
+        return splits;
+    }
+
+    @Requires({"remaining != null", "!remaining.isEmpty()", "idealSplitSize > 0"})
+    @Ensures({"result != null"})
+    final static SplitLocusRecursive splitLocusIntervals1(LinkedList<GenomeLoc> remaining, long idealSplitSize) {
+        final List<GenomeLoc> split = new ArrayList<GenomeLoc>();
+        long size = 0;
+
+        while ( ! remaining.isEmpty() ) {
+            GenomeLoc head = remaining.pop();
+            final long newSize = size + head.size();
+
+            if ( newSize == idealSplitSize ) {
+                split.add(head);
+                break; // we are done
+            } else if ( newSize > idealSplitSize ) {
+                final long remainingBp = idealSplitSize - size;
+                final long cutPoint = head.getStart() + remainingBp;
+                GenomeLoc[] parts = head.split((int)cutPoint);
+                remaining.push(parts[1]);
+                remaining.push(parts[0]);
+                // when we go around, head.size' = idealSplitSize - size
+                // so newSize' = splitSize + head.size' = size + (idealSplitSize - size) = idealSplitSize
+            } else {
+                split.add(head);
+                size = newSize;
+            }
+        }
+
+        return new SplitLocusRecursive(split, remaining);
+    }
+
+    private final static class SplitLocusRecursive {
+        final List<GenomeLoc> split;
+        final LinkedList<GenomeLoc> remaining;
+
+        @Requires({"split != null", "remaining != null"})
+        private SplitLocusRecursive(final List<GenomeLoc> split, final LinkedList<GenomeLoc> remaining) {
+            this.split = split;
+            this.remaining = remaining;
+        }
+    }
+
+    public static List<GenomeLoc> flattenSplitIntervals(List<List<GenomeLoc>> splits) {
+        final List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
+        for ( final List<GenomeLoc> split : splits )
+            locs.addAll(split);
+        return locs;
     }
 
     private static void addFixedSplit(List<Integer> splitPoints, List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int numParts) {

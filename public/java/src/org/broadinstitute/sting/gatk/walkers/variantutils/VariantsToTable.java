@@ -66,7 +66,7 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A table delimited file containing the values of the requested fields in the VCF file
+ * A tab-delimited file containing the values of the requested fields in the VCF file
  * </p>
  *
  * <h2>Examples</h2>
@@ -106,7 +106,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * By default this tool only emits values for fields where the FILTER field is either PASS or . (unfiltered).
-     * Throwing this flag will cause $WalkerName to emit values regardless of the FILTER field value.
+     * Throwing this flag will cause VariantsToTable to emit values regardless of the FILTER field value.
      */
     @Advanced
     @Argument(fullName="showFiltered", shortName="raw", doc="If provided, field values from filtered records will be included in the output", required=false)

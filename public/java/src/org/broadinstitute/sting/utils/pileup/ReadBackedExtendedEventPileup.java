@@ -155,7 +155,7 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
     /**
      * @return the number of elements in this pileup
      */
-    public int size();
+    public int getNumberOfElements();
 
     /**
      * @return the location of this pileup
