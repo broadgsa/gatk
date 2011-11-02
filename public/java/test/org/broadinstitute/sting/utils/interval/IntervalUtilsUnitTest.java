@@ -134,16 +134,17 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     // -------------------------------------------------------------------------------------
     //
-    // tests to ensure the quality of the interval cuts of the interval cutting functions
+    // splitLocusIntervals tests
     //
     // -------------------------------------------------------------------------------------
 
-    private class IntervalRepartitionTest extends TestDataProvider {
+    /** large scale tests for many intervals */
+    private class SplitLocusIntervalsTest extends TestDataProvider {
         final List<GenomeLoc> originalIntervals;
         final public int parts;
 
-        private IntervalRepartitionTest(final String name, List<GenomeLoc> originalIntervals, final int parts) {
-            super(IntervalRepartitionTest.class, name);
+        private SplitLocusIntervalsTest(final String name, List<GenomeLoc> originalIntervals, final int parts) {
+            super(SplitLocusIntervalsTest.class, name);
             this.parts = parts;
             this.originalIntervals = originalIntervals;
         }
@@ -155,27 +156,105 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "IntervalRepartitionTest")
     public Object[][] createIntervalRepartitionTest() {
-        for ( int parts : Arrays.asList(1, 10, 100, 1000, 10000) ) {
-            new IntervalRepartitionTest("hg19RefLocs", hg19ReferenceLocs, parts);
-            new IntervalRepartitionTest("hg19ExomeLocs", hg19exomeIntervals, parts);
+        for ( int parts : Arrays.asList(1, 2, 3, 10, 13, 100, 151, 1000, 10000) ) {
+        //for ( int parts : Arrays.asList(10) ) {
+            new SplitLocusIntervalsTest("hg19RefLocs", hg19ReferenceLocs, parts);
+            new SplitLocusIntervalsTest("hg19ExomeLocs", hg19exomeIntervals, parts);
         }
 
-        return IntervalSlicingTest.getTests(IntervalRepartitionTest.class);
+        return SplitLocusIntervalsTest.getTests(SplitLocusIntervalsTest.class);
     }
 
     @Test(enabled = true, dataProvider = "IntervalRepartitionTest")
-    public void testIntervalRepartition(IntervalRepartitionTest test) {
+    public void testIntervalRepartition(SplitLocusIntervalsTest test) {
         List<List<GenomeLoc>> splitByLocus = IntervalUtils.splitLocusIntervals(test.originalIntervals, test.parts);
-        Assert.assertEquals(test.parts, splitByLocus.size(), "SplitLocusIntervals failed to generate correct number of intervals");
+        Assert.assertEquals(splitByLocus.size(), test.parts, "SplitLocusIntervals failed to generate correct number of intervals");
+        List<GenomeLoc> flat = IntervalUtils.flattenSplitIntervals(splitByLocus);
+
+        // test overall size
+        final long originalSize = IntervalUtils.intervalSize(test.originalIntervals);
+        final long flatSize = IntervalUtils.intervalSize(flat);
+        Assert.assertEquals(flatSize, originalSize, "SplitLocusIntervals locs cover an incorrect number of bases");
+
+        // test size of each split
+        final long ideal = (long)Math.floor(originalSize / (1.0 * test.parts));
+        final long maxSize = ideal + (originalSize % test.parts) * test.parts; // no more than N * rounding error in size
+        for ( final List<GenomeLoc> split : splitByLocus ) {
+            final long splitSize = IntervalUtils.intervalSize(split);
+            Assert.assertTrue(splitSize >= ideal && splitSize <= maxSize,
+                    String.format("SplitLocusIntervals interval (start=%s) has size %d outside of bounds ideal=%d, max=%d",
+                            split.get(0), splitSize, ideal, maxSize));
+        }
+
+        // test that every base in original is covered once by a base in split by locus intervals
+        String diff = IntervalUtils.equateIntervals(test.originalIntervals, flat);
+        Assert.assertNull(diff, diff);
+    }
+
+    /** small scale tests where the expected cuts are enumerated upfront for testing */
+    private class SplitLocusIntervalsSmallTest extends TestDataProvider {
+        final List<GenomeLoc> original;
+        final public int parts;
+        final public int expectedParts;
+        final List<GenomeLoc> expected;
+
+        private SplitLocusIntervalsSmallTest(final String name, List<GenomeLoc> originalIntervals, final int parts, List<GenomeLoc> expected) {
+            this(name, originalIntervals, parts,  expected, parts);
+        }
+
+        private SplitLocusIntervalsSmallTest(final String name, List<GenomeLoc> originalIntervals, final int parts, List<GenomeLoc> expected, int expectedParts) {
+            super(SplitLocusIntervalsSmallTest.class, name);
+            this.parts = parts;
+            this.expectedParts = expectedParts;
+            this.original = originalIntervals;
+            this.expected = expected;
+        }
+
+        public String toString() {
+            return String.format("%s parts=%d", super.toString(), parts);
+        }
+    }
+
+    @DataProvider(name = "SplitLocusIntervalsSmallTest")
+    public Object[][] createSplitLocusIntervalsSmallTest() {
+        GenomeLoc bp01_10 = hg19GenomeLocParser.createGenomeLoc("1", 1, 10);
+
+        GenomeLoc bp1_5 = hg19GenomeLocParser.createGenomeLoc("1", 1, 5);
+        GenomeLoc bp6_10 = hg19GenomeLocParser.createGenomeLoc("1", 6, 10);
+        new SplitLocusIntervalsSmallTest("cut into two", Arrays.asList(bp01_10), 2, Arrays.asList(bp1_5, bp6_10));
+
+        GenomeLoc bp20_30 = hg19GenomeLocParser.createGenomeLoc("1", 20, 30);
+        new SplitLocusIntervalsSmallTest("two in two", Arrays.asList(bp01_10, bp20_30), 2, Arrays.asList(bp01_10, bp20_30));
+
+        GenomeLoc bp1_7 = hg19GenomeLocParser.createGenomeLoc("1", 1, 7);
+        GenomeLoc bp8_10 = hg19GenomeLocParser.createGenomeLoc("1", 8, 10);
+        GenomeLoc bp20_23 = hg19GenomeLocParser.createGenomeLoc("1", 20, 23);
+        GenomeLoc bp24_30 = hg19GenomeLocParser.createGenomeLoc("1", 24, 30);
+        new SplitLocusIntervalsSmallTest("two in three", Arrays.asList(bp01_10, bp20_30), 3,
+                Arrays.asList(bp1_7, bp8_10, bp20_23, bp24_30));
+
+        GenomeLoc bp1_2 = hg19GenomeLocParser.createGenomeLoc("1", 1, 2);
+        GenomeLoc bp1_1 = hg19GenomeLocParser.createGenomeLoc("1", 1, 1);
+        GenomeLoc bp2_2 = hg19GenomeLocParser.createGenomeLoc("1", 2, 2);
+        new SplitLocusIntervalsSmallTest("too many pieces", Arrays.asList(bp1_2), 5, Arrays.asList(bp1_1, bp2_2), 2);
+
+        new SplitLocusIntervalsSmallTest("emptyList", Collections.<GenomeLoc>emptyList(), 5, Collections.<GenomeLoc>emptyList(), 0);
+
+        return SplitLocusIntervalsSmallTest.getTests(SplitLocusIntervalsSmallTest.class);
+    }
+
+    @Test(enabled = true, dataProvider = "SplitLocusIntervalsSmallTest")
+    public void splitLocusIntervalsSmallTest(SplitLocusIntervalsSmallTest test) {
+        List<List<GenomeLoc>> splitByLocus = IntervalUtils.splitLocusIntervals(test.original, test.parts);
+        Assert.assertEquals(splitByLocus.size(), test.expectedParts, "SplitLocusIntervals failed to generate correct number of intervals");
         List<GenomeLoc> flat = IntervalUtils.flattenSplitIntervals(splitByLocus);
 
         // test sizes
-        final long originalSize = IntervalUtils.intervalSize(test.originalIntervals);
+        final long originalSize = IntervalUtils.intervalSize(test.original);
         final long splitSize = IntervalUtils.intervalSize(flat);
-        Assert.assertEquals(originalSize, splitSize, "SplitLocusIntervals locs cover an incorrect number of bases");
+        Assert.assertEquals(splitSize, originalSize, "SplitLocusIntervals locs cover an incorrect number of bases");
 
-        // test that every base in original is covered once by a base in split by locus intervals
-        // todo implement test (complex)
+        Assert.assertEquals(flat, test.expected, "SplitLocusIntervals locs not expected intervals");
     }
 
     //
