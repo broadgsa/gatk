@@ -726,38 +726,6 @@ public class ReadUtils {
         return true;
     }
 
-    /**
-     * Looks for a read coordinate that corresponds to the reference coordinate in the soft clipped region before
-     * the alignment start of the read.
-     *
-     * @param read
-     * @param refCoord
-     * @return the corresponding read coordinate or -1 if it failed to find it (it has been hard clipped before)
-     */
-    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord < read.getAlignmentStart()"})
-    private static int getReadCoordinateForReferenceCoordinateBeforeAlignmentStart(SAMRecord read, int refCoord) {
-        if (getRefCoordSoftUnclippedStart(read) <= refCoord)
-            return refCoord - getRefCoordSoftUnclippedStart(read) + 1;
-        return -1;
-    }
-
-
-    /**
-     * Looks for a read coordinate that corresponds to the reference coordinate in the soft clipped region after
-     * the alignment end of the read.
-     *
-     * @param read
-     * @param refCoord
-     * @return the corresponding read coordinate or -1 if it failed to find it (it has been hard clipped before)
-     */
-    @Requires({"refCoord <= read.getUnclippedEnd()", "refCoord > read.getAlignmentEnd()"})
-    private static int getReadCoordinateForReferenceCoordinateBeforeAlignmentEnd(SAMRecord read, int refCoord) {
-        if (getRefCoordSoftUnclippedEnd(read) >= refCoord)
-            return refCoord - getRefCoordSoftUnclippedStart(read) + 1;
-        return -1;
-    }
-
-
     public enum ClippingTail {
         LEFT_TAIL,
         RIGHT_TAIL
@@ -802,96 +770,85 @@ public class ReadUtils {
      * @param refCoord
      * @return the read coordinate corresponding to the requested reference coordinate. (see warning!)
      */
-    @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
+    @Requires({"refCoord >= getRefCoordSoftUnclippedStart(read)", "refCoord <= getRefCoordSoftUnclippedEnd(read)"})
     @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
         boolean fallsInsideDeletion = false;
 
-        if (refCoord < read.getAlignmentStart()) {
-            readBases = getReadCoordinateForReferenceCoordinateBeforeAlignmentStart(read, refCoord);
-            if (readBases < 0)
-                throw new ReviewedStingException("Requested a coordinate in a hard clipped area of the read. No equivalent read coordinate.");
-        }
-        else if (refCoord > read.getAlignmentEnd()) {
-            readBases = getReadCoordinateForReferenceCoordinateBeforeAlignmentEnd(read, refCoord);
-            if (readBases < 0)
-                throw new ReviewedStingException("Requested a coordinate in a hard clipped area of the read. No equivalent read coordinate.");
-        }
-        else {
-            int goal = refCoord - read.getAlignmentStart();  // The goal is to move this many reference bases
-            boolean goalReached = refBases == goal;
+        int goal = refCoord - getRefCoordSoftUnclippedStart(read);  // The goal is to move this many reference bases
+        boolean goalReached = refBases == goal;
 
-            Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
-            while (!goalReached && cigarElementIterator.hasNext()) {
-                CigarElement cigarElement = cigarElementIterator.next();
-                int shift = 0;
+        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        while (!goalReached && cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            int shift = 0;
 
-                if (cigarElement.getOperator().consumesReferenceBases()) {
-                    if (refBases + cigarElement.getLength() < goal)
-                        shift = cigarElement.getLength();
-                    else
-                        shift = goal - refBases;
+            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP) {
+                if (refBases + cigarElement.getLength() < goal)
+                    shift = cigarElement.getLength();
+                else
+                    shift = goal - refBases;
 
-                    refBases += shift;
-                }
-                goalReached = refBases == goal;
+                refBases += shift;
+            }
+            goalReached = refBases == goal;
 
-                if (!goalReached && cigarElement.getOperator().consumesReadBases())
-                    readBases += cigarElement.getLength();
+            if (!goalReached && cigarElement.getOperator().consumesReadBases())
+                readBases += cigarElement.getLength();
 
-                if (goalReached) {
-                    // Is this base's reference position within this cigar element? Or did we use it all?
-                    boolean endsWithinCigar = shift <  cigarElement.getLength();
+            if (goalReached) {
+                // Is this base's reference position within this cigar element? Or did we use it all?
+                boolean endsWithinCigar = shift <  cigarElement.getLength();
 
-                    // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
-                    // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
-                    if (!endsWithinCigar && !cigarElementIterator.hasNext())
-                        throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
+                // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
+                if (!endsWithinCigar && !cigarElementIterator.hasNext())
+                    throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
 
-                    CigarElement nextCigarElement;
+                CigarElement nextCigarElement;
 
-                    // if we end inside the current cigar element, we just have to check if it is a deletion
-                    if (endsWithinCigar)
-                        fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
+                // if we end inside the current cigar element, we just have to check if it is a deletion
+                if (endsWithinCigar)
+                    fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
 
-                    // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
-                    else {
+                // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
+                else {
+                    nextCigarElement = cigarElementIterator.next();
+
+                    // if it's an insertion, we need to clip the whole insertion before looking at the next element
+                    if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
+                        readBases += nextCigarElement.getLength();
+                        if (!cigarElementIterator.hasNext())
+                            throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+
                         nextCigarElement = cigarElementIterator.next();
-
-                        // if it's an insertion, we need to clip the whole insertion before looking at the next element
-                        if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
-                            readBases += nextCigarElement.getLength();
-                            if (!cigarElementIterator.hasNext())
-                                throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
-
-                            nextCigarElement = cigarElementIterator.next();
-                        }
-
-                        // if it's a deletion, we will pass the information on to be handled downstream.
-                        fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
                     }
 
-                    // If we reached our goal outside a deletion, add the shift
-                    if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
-                        readBases += shift;
+                    // if it's a deletion, we will pass the information on to be handled downstream.
+                    fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
+                }
 
-                    // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
-                    // to add the shift of the current cigar element but go back to it's last element to return the last
-                    // base before the deletion (see warning in function contracts)
-                    else if (fallsInsideDeletion && !endsWithinCigar)
-                        readBases += shift - 1;
+                // If we reached our goal outside a deletion, add the shift
+                if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
+                    readBases += shift;
 
-                    // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
-                    else if (fallsInsideDeletion && endsWithinCigar)
-                        readBases--;
-                    }
+                // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
+                // to add the shift of the current cigar element but go back to it's last element to return the last
+                // base before the deletion (see warning in function contracts)
+                else if (fallsInsideDeletion && !endsWithinCigar)
+                    readBases += shift - 1;
+
+                // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
+                else if (fallsInsideDeletion && endsWithinCigar)
+                    readBases--;
+                }
             }
 
             if (!goalReached)
                 throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
-        }
+        
 
         return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
