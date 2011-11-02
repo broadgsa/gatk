@@ -56,7 +56,6 @@ import java.util.List;
  *   -R ref.fasta \
  *   -T GCContentByInterval \
  *   -o output.txt \
- *   -I input.bam \
  *   -L input.intervals
  * </pre>
  *
