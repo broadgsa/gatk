@@ -205,7 +205,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
-                if ( p.isDeletion() ) // ignore deletions
+                if ( p.isDeletion() || p.isReducedRead() ) // ignore deletions and reduced reads
                     continue;
 
                 if ( p.getRead().getMappingQuality() < 20 || p.getQual() < 20 )
@@ -258,6 +258,8 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                  continue;
 
             for (final PileupElement p: pileup) {
+                if ( p.isReducedRead() ) // ignore reduced reads
+                    continue;
                 if ( p.getRead().getMappingQuality() < 20)
                     continue;
                 if (indelLikelihoodMap.containsKey(p)) {
