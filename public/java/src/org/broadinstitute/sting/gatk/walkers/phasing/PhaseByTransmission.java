@@ -105,9 +105,13 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     private final Byte NUM_TRIO_GENOTYPES_CALLED = 0;
     private final Byte NUM_TRIO_GENOTYPES_NOCALL = 1;
     private final Byte NUM_TRIO_GENOTYPES_PHASED = 2;
-    private final Byte NUM_HET = 3;
-    private final Byte NUM_HET_HET_HET = 4;
-    private final Byte NUM_VIOLATIONS = 5;
+    private final Byte NUM_TRIO_HET_HET_HET = 3;
+    private final Byte NUM_TRIO_VIOLATIONS = 4;
+    private final Byte NUM_PAIR_GENOTYPES_CALLED = 5;
+    private final Byte NUM_PAIR_GENOTYPES_NOCALL = 6;
+    private final Byte NUM_PAIR_GENOTYPES_PHASED = 7;
+    private final Byte NUM_PAIR_HET_HET = 8;
+    private final Byte NUM_PAIR_VIOLATIONS = 9;
 
     //Random number generator
     private Random rand = new Random();
@@ -172,6 +176,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             if(parentGenotype == Genotype.Type.HET && childGenotype == Genotype.Type.HET){
                 trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, getAlleles(parentGenotype), Genotype.NO_NEG_LOG_10PERROR, null, null, false));
                 trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(childGenotype),Genotype.NO_NEG_LOG_10PERROR,null,null,false));
+                return;
             }
 
             ArrayList<Allele> parentAlleles = getAlleles(parentGenotype);
@@ -612,6 +617,48 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
     }
 
+
+    private void updatePairMetricsCounters(Genotype parent, Genotype child, boolean isMV, HashMap<Byte,Integer> counters){
+
+        //Increment metrics counters
+        if(parent.isCalled() && child.isCalled()){
+           counters.put(NUM_PAIR_GENOTYPES_CALLED,counters.get(NUM_PAIR_GENOTYPES_CALLED)+1);
+           if(parent.isPhased())
+               counters.put(NUM_PAIR_GENOTYPES_PHASED,counters.get(NUM_PAIR_GENOTYPES_PHASED)+1);
+           else{
+                if(parent.isHet() && child.isHet())
+                    counters.put(NUM_PAIR_HET_HET,counters.get(NUM_PAIR_HET_HET)+1);
+
+                else if(isMV)
+                    counters.put(NUM_PAIR_VIOLATIONS,counters.get(NUM_PAIR_VIOLATIONS)+1);
+           }
+        }else{
+            counters.put(NUM_PAIR_GENOTYPES_NOCALL,counters.get(NUM_PAIR_GENOTYPES_NOCALL)+1);
+        }
+
+    }
+
+    private void updateTrioMetricsCounters(Genotype mother, Genotype father, Genotype child, boolean isMV, HashMap<Byte,Integer> counters){
+
+        //Increment metrics counters
+        if(mother.isCalled() && father.isCalled() && child.isCalled()){
+           counters.put(NUM_TRIO_GENOTYPES_CALLED,counters.get(NUM_TRIO_GENOTYPES_CALLED)+1);
+           if(mother.isPhased())
+               counters.put(NUM_TRIO_GENOTYPES_PHASED,counters.get(NUM_TRIO_GENOTYPES_PHASED)+1);
+
+           else{
+                if(mother.isHet() && father.isHet() && child.isHet())
+                    counters.put(NUM_TRIO_HET_HET_HET,counters.get(NUM_TRIO_HET_HET_HET)+1);
+
+                else if(isMV)
+                    counters.put(NUM_TRIO_VIOLATIONS,counters.get(NUM_TRIO_VIOLATIONS)+1);
+
+           }
+        }else{
+            counters.put(NUM_TRIO_GENOTYPES_NOCALL,counters.get(NUM_TRIO_GENOTYPES_NOCALL)+1);
+        }
+    }
+
     /**
      * For each variant in the file, determine the phasing for the child and replace the child's genotype with the trio's genotype
      *
@@ -623,13 +670,17 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     @Override
     public HashMap<Byte,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        //Local cars to avoid lookups on increment
-        int numTrioGenotypesCalled = 0;
-        int numTrioGenotypesNoCall = 0;
-        int numTrioGenotypesPhased = 0;
-        int numHet = 0 ;
-        int numHetHetHet = 0;
-        int numMVs = 0;
+        HashMap<Byte,Integer> metricsCounters = new HashMap<Byte, Integer>(10);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_CALLED,0);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_NOCALL,0);
+        metricsCounters.put(NUM_TRIO_GENOTYPES_PHASED,0);
+        metricsCounters.put(NUM_TRIO_HET_HET_HET,0);
+        metricsCounters.put(NUM_TRIO_VIOLATIONS,0);
+        metricsCounters.put(NUM_PAIR_GENOTYPES_CALLED,0);
+        metricsCounters.put(NUM_PAIR_GENOTYPES_NOCALL,0);
+        metricsCounters.put(NUM_PAIR_GENOTYPES_PHASED,0);
+        metricsCounters.put(NUM_PAIR_HET_HET,0);
+        metricsCounters.put(NUM_PAIR_VIOLATIONS,0);
 
         if (tracker != null) {
             VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
@@ -654,30 +705,26 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 Genotype phasedFather = trioGenotypes.get(1);
                 Genotype phasedChild = trioGenotypes.get(2);
 
-                genotypeMap.put(phasedMother.getSampleName(), phasedMother);
-                genotypeMap.put(phasedFather.getSampleName(), phasedFather);
-                genotypeMap.put(phasedChild.getSampleName(), phasedChild);
-
-                //Increment metrics counters
-                if(phasedMother.isCalled() && phasedFather.isCalled() && phasedChild.isCalled()){
-                   numTrioGenotypesCalled++;
-                   if(phasedMother.isPhased())
-                       numTrioGenotypesPhased++;
-
-                    if(phasedMother.isHet() || phasedFather.isHet() || phasedChild.isHet()){
-                        numHet++;
-                        if(phasedMother.isHet() && phasedFather.isHet() && phasedChild.isHet())
-                            numHetHetHet++;
+                //Fill the genotype map with the new genotypes and increment metrics counters
+                genotypeMap.put(phasedChild.getSampleName(),phasedChild);
+                if(mother != null){
+                    genotypeMap.put(phasedMother.getSampleName(), phasedMother);
+                    if(father != null){
+                        genotypeMap.put(phasedFather.getSampleName(), phasedFather);
+                        updateTrioMetricsCounters(phasedMother,phasedFather,phasedChild,isMV,metricsCounters);
                     }
-
-                    if(isMV){
-                        numMVs++;
-                        if(mvFile != null)
-                            mvFile.println(String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString()));
-                    }
-                }else{
-                    numTrioGenotypesNoCall++;
+                    else
+                        updatePairMetricsCounters(phasedMother,phasedChild,isMV,metricsCounters);
                 }
+                else{
+                    genotypeMap.put(phasedFather.getSampleName(),phasedFather);
+                    updatePairMetricsCounters(phasedFather,phasedChild,isMV,metricsCounters);
+                    }
+
+                //Report violation if set so
+                //TODO: ADAPT FOR PAIRS TOO!!
+                if(isMV && mvFile != null)
+                    mvFile.println(String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString()));
 
             }
 
@@ -686,14 +733,6 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
             vcfWriter.add(newvc);
         }
-
-        HashMap<Byte,Integer> metricsCounters = new HashMap<Byte, Integer>(5);
-        metricsCounters.put(NUM_TRIO_GENOTYPES_CALLED,numTrioGenotypesCalled);
-        metricsCounters.put(NUM_TRIO_GENOTYPES_NOCALL,numTrioGenotypesNoCall);
-        metricsCounters.put(NUM_TRIO_GENOTYPES_PHASED,numTrioGenotypesPhased);
-        metricsCounters.put(NUM_HET,numHet);
-        metricsCounters.put(NUM_HET_HET_HET,numHetHetHet);
-        metricsCounters.put(NUM_VIOLATIONS,numMVs);
         return metricsCounters;
     }
 
@@ -704,13 +743,17 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
      */
     @Override
     public HashMap<Byte,Integer> reduceInit() {
-        HashMap<Byte,Integer> metricsCounters = new HashMap<Byte, Integer>(5);
+        HashMap<Byte,Integer> metricsCounters = new HashMap<Byte, Integer>(10);
         metricsCounters.put(NUM_TRIO_GENOTYPES_CALLED,0);
         metricsCounters.put(NUM_TRIO_GENOTYPES_NOCALL,0);
         metricsCounters.put(NUM_TRIO_GENOTYPES_PHASED,0);
-        metricsCounters.put(NUM_HET,0);
-        metricsCounters.put(NUM_HET_HET_HET,0);
-        metricsCounters.put(NUM_VIOLATIONS,0);
+        metricsCounters.put(NUM_TRIO_HET_HET_HET,0);
+        metricsCounters.put(NUM_TRIO_VIOLATIONS,0);
+        metricsCounters.put(NUM_PAIR_GENOTYPES_CALLED,0);
+        metricsCounters.put(NUM_PAIR_GENOTYPES_NOCALL,0);
+        metricsCounters.put(NUM_PAIR_GENOTYPES_PHASED,0);
+        metricsCounters.put(NUM_PAIR_HET_HET,0);
+        metricsCounters.put(NUM_PAIR_VIOLATIONS,0);
         return metricsCounters;
     }
 
@@ -726,9 +769,13 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         sum.put(NUM_TRIO_GENOTYPES_CALLED,value.get(NUM_TRIO_GENOTYPES_CALLED)+sum.get(NUM_TRIO_GENOTYPES_CALLED));
         sum.put(NUM_TRIO_GENOTYPES_NOCALL,value.get(NUM_TRIO_GENOTYPES_NOCALL)+sum.get(NUM_TRIO_GENOTYPES_NOCALL));
         sum.put(NUM_TRIO_GENOTYPES_PHASED,value.get(NUM_TRIO_GENOTYPES_PHASED)+sum.get(NUM_TRIO_GENOTYPES_PHASED));
-        sum.put(NUM_HET,value.get(NUM_HET)+sum.get(NUM_HET));
-        sum.put(NUM_HET_HET_HET,value.get(NUM_HET_HET_HET)+sum.get(NUM_HET_HET_HET));
-        sum.put(NUM_VIOLATIONS,value.get(NUM_VIOLATIONS)+sum.get(NUM_VIOLATIONS));
+        sum.put(NUM_TRIO_HET_HET_HET,value.get(NUM_TRIO_HET_HET_HET)+sum.get(NUM_TRIO_HET_HET_HET));
+        sum.put(NUM_TRIO_VIOLATIONS,value.get(NUM_TRIO_VIOLATIONS)+sum.get(NUM_TRIO_VIOLATIONS));
+        sum.put(NUM_PAIR_GENOTYPES_CALLED,value.get(NUM_PAIR_GENOTYPES_CALLED)+sum.get(NUM_PAIR_GENOTYPES_CALLED));
+        sum.put(NUM_PAIR_GENOTYPES_NOCALL,value.get(NUM_PAIR_GENOTYPES_NOCALL)+sum.get(NUM_PAIR_GENOTYPES_NOCALL));
+        sum.put(NUM_PAIR_GENOTYPES_PHASED,value.get(NUM_PAIR_GENOTYPES_PHASED)+sum.get(NUM_PAIR_GENOTYPES_PHASED));
+        sum.put(NUM_PAIR_HET_HET,value.get(NUM_PAIR_HET_HET)+sum.get(NUM_PAIR_HET_HET));
+        sum.put(NUM_PAIR_VIOLATIONS,value.get(NUM_PAIR_VIOLATIONS)+sum.get(NUM_PAIR_VIOLATIONS));
         return sum;
     }
 
@@ -742,8 +789,12 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         logger.info("Number of complete trio-genotypes: " + result.get(NUM_TRIO_GENOTYPES_CALLED));
         logger.info("Number of trio-genotypes containing no call(s): " + result.get(NUM_TRIO_GENOTYPES_NOCALL));
         logger.info("Number of trio-genotypes phased: " + result.get(NUM_TRIO_GENOTYPES_PHASED));
-        logger.info("Number of resulting Hom/Hom/Hom trios: " + result.get(NUM_HET));
-        logger.info("Number of resulting Het/Het/Het trios: " + result.get(NUM_HET_HET_HET));
-        logger.info("Number of remaining mendelian violations: " + result.get(NUM_VIOLATIONS));
+        logger.info("Number of resulting Het/Het/Het trios: " + result.get(NUM_TRIO_HET_HET_HET));
+        logger.info("Number of remaining mendelian violations in trios: " + result.get(NUM_TRIO_VIOLATIONS));
+        logger.info("Number of complete pair-genotypes: " + result.get(NUM_PAIR_GENOTYPES_CALLED));
+        logger.info("Number of pair-genotypes containing no call(s): " + result.get(NUM_PAIR_GENOTYPES_NOCALL));
+        logger.info("Number of pair-genotypes phased: " + result.get(NUM_PAIR_GENOTYPES_PHASED));
+        logger.info("Number of resulting Het/Het pairs: " + result.get(NUM_PAIR_HET_HET));
+        logger.info("Number of remaining mendelian violations in pairs: " + result.get(NUM_PAIR_VIOLATIONS));
     }
 }
