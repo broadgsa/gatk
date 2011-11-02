@@ -24,20 +24,21 @@
 
 package org.broadinstitute.sting.queue.extensions.gatk
 
+import collection.JavaConversions._
 import org.broadinstitute.sting.utils.interval.IntervalUtils
 import org.broadinstitute.sting.queue.function.InProcessFunction
 
 /**
  * A scatter function that divides down to the locus level.
  */
-class LocusScatterFunction extends IntervalScatterFunction {
+//class LocusScatterFunction extends IntervalScatterFunction { }
+
+class LocusScatterFunction extends GATKScatterFunction with InProcessFunction {
+  protected override def maxIntervals = scatterCount
+
+  def run() {
+    val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
+    val splits = IntervalUtils.splitLocusIntervals(gi.locs, this.scatterOutputFiles.size)
+    IntervalUtils.scatterFixedIntervals(gi.samFileHeader, splits, this.scatterOutputFiles)
+  }
 }
-//
-//class LocusScatterFunction extends GATKScatterFunction with InProcessFunction {
-//  // todo -- max intervals is actually the original scatter count, not capped by interval size
-//  def run() {
-//    val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
-//    val splits = IntervalUtils.splitLocusIntervals(gi.locs, this.scatterOutputFiles.size)
-//    IntervalUtils.scatterFixedIntervals(gi.samFileHeader, splits, this.scatterOutputFiles)
-//  }
-//}
