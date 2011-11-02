@@ -92,7 +92,7 @@ public class AlignmentContextUtils {
             ReadBackedPileup pileupBySample = context.getPileup().getPileupForSample(sample);
 
             // Don't add empty pileups to the split context.
-            if(pileupBySample.size() == 0)
+            if(pileupBySample.getNumberOfElements() == 0)
                 continue;
 
             if(sample != null)

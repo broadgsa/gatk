@@ -228,7 +228,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             // make sure we're supposed to look for high entropy
             if ( mismatchThreshold > 0.0 &&
                     mismatchThreshold <= 1.0 &&
-                    pileup.size() >= minReadsAtLocus &&
+                    pileup.getNumberOfElements() >= minReadsAtLocus &&
                     (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
                 hasPointEvent = true;
         }

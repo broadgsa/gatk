@@ -102,7 +102,7 @@ public class ReadBackedPileupUnitTest {
 
         ReadBackedPileup nullRgPileup = pileup.getPileupForReadGroup(null);
         List<SAMRecord> nullRgReads = nullRgPileup.getReads();
-        Assert.assertEquals(nullRgPileup.size(), 3, "Wrong number of reads in null read group");
+        Assert.assertEquals(nullRgPileup.getNumberOfElements(), 3, "Wrong number of reads in null read group");
         Assert.assertEquals(nullRgReads.get(0), read1, "Read " + read1.getReadName() + " should be in null rg but isn't");
         Assert.assertEquals(nullRgReads.get(1), read2, "Read " + read2.getReadName() + " should be in null rg but isn't");
         Assert.assertEquals(nullRgReads.get(2), read3, "Read " + read3.getReadName() + " should be in null rg but isn't");
@@ -187,7 +187,7 @@ public class ReadBackedPileupUnitTest {
         ReadBackedPileup pileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 
         ReadBackedPileup sample2Pileup = pileup.getPileupForSample(sample2);
-        Assert.assertEquals(sample2Pileup.size(),1,"Sample 2 pileup has wrong number of elements");
+        Assert.assertEquals(sample2Pileup.getNumberOfElements(),1,"Sample 2 pileup has wrong number of elements");
         Assert.assertEquals(sample2Pileup.getReads().get(0),read2,"Sample 2 pileup has incorrect read");
 
         ReadBackedPileup missingSamplePileup = pileup.getPileupForSample("missing");

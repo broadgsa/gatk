@@ -258,10 +258,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
             int numReads = 0;
             if (context.hasBasePileup()) {
-                numReads = context.getBasePileup().size();
+                numReads = context.getBasePileup().getNumberOfElements();
             }
             else if (context.hasExtendedEventPileup()) {
-                numReads = context.getExtendedEventPileup().size();
+                numReads = context.getExtendedEventPileup().getNumberOfElements();
             }
             PhasingStats addInPhaseStats = new PhasingStats(numReads, 1);
             phaseStats.addIn(addInPhaseStats);

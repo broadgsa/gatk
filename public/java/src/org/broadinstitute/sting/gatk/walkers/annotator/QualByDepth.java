@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -43,7 +42,7 @@ public class QualByDepth extends AnnotationByDepth implements StandardAnnotation
             if ( context == null )
                 continue;
 
-            depth += context.size();
+            depth += context.getBasePileup().depthOfCoverage();
         }
 
         if ( depth == 0 )

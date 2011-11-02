@@ -169,9 +169,14 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
     public int getNumberOfMappingQualityZeroReads();
 
     /**
-     * @return the number of elements in this pileup
+     * @return the number of physical elements in this pileup (a reduced read is counted just once)
      */
-    public int size();
+    public int getNumberOfElements();
+
+    /**
+     * @return the number of abstract elements in this pileup (reduced reads are expanded to count all reads that they represent)
+     */
+    public int depthOfCoverage();
 
     /**
      * @return true if there are 0 elements in the pileup, false otherwise

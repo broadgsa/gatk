@@ -100,13 +100,8 @@ public class PileupElement implements Comparable<PileupElement> {
         return ((GATKSAMRecord)read).isReducedRead();
     }
 
-    public int getReducedCount() {
-        if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced count for non-reduced read " + getRead().getReadName());
-        return ((GATKSAMRecord)read).getReducedCount(offset);
+    public int getRepresentativeCount() {
+        return isReducedRead() ? ((GATKSAMRecord)read).getReducedCount(offset) : 1;
     }
 
-    public byte getReducedQual() {
-        if ( ! isReducedRead() ) throw new IllegalArgumentException("Cannot get reduced qual for non-reduced read " + getRead().getReadName());
-        return getQual();
-    }
 }
