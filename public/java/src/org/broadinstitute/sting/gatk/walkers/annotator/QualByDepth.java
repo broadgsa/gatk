@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -21,7 +21,7 @@ import java.util.Map;
  *
  * Low scores are indicative of false positive calls and artifacts.
  */
-public class QualByDepth extends AnnotationByDepth implements StandardAnnotation {
+public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
@@ -43,14 +43,13 @@ public class QualByDepth extends AnnotationByDepth implements StandardAnnotation
             if ( context == null )
                 continue;
 
-            depth += context.size();
+            depth += context.getBasePileup().depthOfCoverage();
         }
 
         if ( depth == 0 )
             return null;
 
-        int qDepth = annotationByVariantDepth(genotypes, stratifiedContexts);
-        double QD = 10.0 * vc.getNegLog10PError() / (double)qDepth;
+        double QD = 10.0 * vc.getNegLog10PError() / (double)depth;
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", QD));

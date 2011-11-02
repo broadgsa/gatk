@@ -45,6 +45,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     protected final PileupElementTracker<PE> pileupElementTracker;
 
     protected int size = 0;                   // cached value of the size of the pileup
+    protected int abstractSize = -1;           // cached value of the abstract size of the pileup
     protected int nDeletions = 0;             // cached value of the number of deletions
     protected int nMQ0Reads = 0;              // cached value of the number of MQ0 reads
 
@@ -145,8 +146,16 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         }
     }
 
+    protected void calculateAbstractSize() {
+        abstractSize = 0;
+        for ( PileupElement p : pileupElementTracker ) {
+            abstractSize += p.getRepresentativeCount();
+        }
+    }
+
     protected void addPileupToCumulativeStats(AbstractReadBackedPileup<RBP,PE> pileup) {
-        size += pileup.size();
+        size += pileup.getNumberOfElements();
+        abstractSize += pileup.depthOfCoverage();
         nDeletions += pileup.getNumberOfDeletions();
         nMQ0Reads += pileup.getNumberOfMappingQualityZeroReads();
     }
@@ -574,7 +583,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      */
     @Override
     public RBP getDownsampledPileup(int desiredCoverage) {
-        if ( size() <= desiredCoverage )
+        if ( getNumberOfElements() <= desiredCoverage )
             return (RBP)this;
 
         // randomly choose numbers corresponding to positions in the reads list
@@ -727,11 +736,21 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     }
 
     /**
-     * @return the number of elements in this pileup
+     * @return the number of physical elements in this pileup
      */
     @Override
-    public int size() {
+    public int getNumberOfElements() {
         return size;
+    }
+
+    /**
+     * @return the number of abstract elements in this pileup
+     */
+    @Override
+    public int depthOfCoverage() {
+        if ( abstractSize == -1 )
+            calculateAbstractSize();
+        return abstractSize;
     }
 
     /**
@@ -806,7 +825,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      */
     @Override
     public List<SAMRecord> getReads() {
-        List<SAMRecord> reads = new ArrayList<SAMRecord>(size());
+        List<SAMRecord> reads = new ArrayList<SAMRecord>(getNumberOfElements());
         for ( PileupElement pile : this ) { reads.add(pile.getRead()); }
         return reads;
     }
@@ -817,7 +836,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      */
     @Override
     public List<Integer> getOffsets() {
-        List<Integer> offsets = new ArrayList<Integer>(size());
+        List<Integer> offsets = new ArrayList<Integer>(getNumberOfElements());
         for ( PileupElement pile : this ) { offsets.add(pile.getOffset()); }
         return offsets;
     }
@@ -828,7 +847,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      */
     @Override
     public byte[] getBases() {
-        byte[] v = new byte[size()];
+        byte[] v = new byte[getNumberOfElements()];
         int pos = 0;
         for ( PileupElement pile : pileupElementTracker ) { v[pos++] = pile.getBase(); }
         return v;
@@ -840,7 +859,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      */
     @Override
     public byte[] getQuals() {
-        byte[] v = new byte[size()];
+        byte[] v = new byte[getNumberOfElements()];
         int pos = 0;
         for ( PileupElement pile : pileupElementTracker ) { v[pos++] = pile.getQual(); }
         return v;
@@ -852,7 +871,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      */
     @Override
     public byte[] getMappingQuals() {
-        byte[] v = new byte[size()];
+        byte[] v = new byte[getNumberOfElements()];
         int pos = 0;
         for ( PileupElement pile : pileupElementTracker ) { v[pos++] = (byte)pile.getRead().getMappingQuality(); }
         return v;

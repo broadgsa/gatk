@@ -569,7 +569,7 @@ public class UnifiedGenotyperEngine {
                 ReadBackedPileup pileup = rawContext.getBasePileup() .getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
                 // don't call when there is no coverage
-                if ( pileup.size() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
+                if ( pileup.getNumberOfElements() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
                     return null;
 
                 // stratify the AlignmentContext and cut by sample
@@ -586,7 +586,7 @@ public class UnifiedGenotyperEngine {
                 ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
                 // don't call when there is no coverage
-                if ( pileup.size() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
+                if ( pileup.getNumberOfElements() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
                     return null;
 
                 // stratify the AlignmentContext and cut by sample
@@ -602,7 +602,7 @@ public class UnifiedGenotyperEngine {
                 for( final PileupElement p : rawContext.getBasePileup() ) {
                     if( p.isDeletion() ) { numDeletions++; }
                 }
-                if( ((double) numDeletions) / ((double) rawContext.getBasePileup().size()) > UAC.MAX_DELETION_FRACTION ) {
+                if( ((double) numDeletions) / ((double) rawContext.getBasePileup().getNumberOfElements()) > UAC.MAX_DELETION_FRACTION ) {
                     return null;
                 }
             }
@@ -649,9 +649,9 @@ public class UnifiedGenotyperEngine {
             if (isCovered) {
                 AlignmentContext context =  contexts.get(sample);
                 if (context.hasBasePileup())
-                    depth = context.getBasePileup().size();
+                    depth = context.getBasePileup().depthOfCoverage();
                 else if (context.hasExtendedEventPileup())
-                    depth = context.getExtendedEventPileup().size();
+                    depth = context.getExtendedEventPileup().depthOfCoverage();
             }
 
             P_of_ref *= 1.0 - (theta / 2.0) * getRefBinomialProb(depth);

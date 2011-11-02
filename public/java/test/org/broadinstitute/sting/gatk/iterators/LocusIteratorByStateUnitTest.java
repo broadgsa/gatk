@@ -78,7 +78,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
 
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup().getBaseFilteredPileup(10);
             Assert.assertEquals(pileup.getLocation().getStart(), 5, "Extended event pileup at wrong location");
-            Assert.assertEquals(pileup.size(), 3, "Pileup size is incorrect");
+            Assert.assertEquals(pileup.getNumberOfElements(), 3, "Pileup size is incorrect");
 
             foundExtendedEventPileup = true;
         }

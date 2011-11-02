@@ -133,7 +133,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
      */
     @Override
     public byte[] getEvents() {
-        byte[] v = new byte[size()];
+        byte[] v = new byte[getNumberOfElements()];
         int i = 0;
         for ( ExtendedEventPileupElement e : this.toExtendedIterable() ) {
             switch ( e.getType() ) {

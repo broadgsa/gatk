@@ -65,7 +65,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         Assert.assertFalse(readp.isReducedRead());
 
         Assert.assertTrue(reducedreadp.isReducedRead());
-        Assert.assertEquals(reducedreadp.getReducedCount(), REDUCED_READ_COUNTS[0]);
-        Assert.assertEquals(reducedreadp.getReducedQual(), readp.getQual());
+        Assert.assertEquals(reducedreadp.getRepresentativeCount(), REDUCED_READ_COUNTS[0]);
+        Assert.assertEquals(reducedreadp.getQual(), readp.getQual());
     }
 }

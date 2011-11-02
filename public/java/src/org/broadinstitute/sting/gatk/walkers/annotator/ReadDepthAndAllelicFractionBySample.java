@@ -79,7 +79,7 @@ public class ReadDepthAndAllelicFractionBySample extends GenotypeAnnotation {
                 alleleCounts.put(allele.getBases()[0], 0);
 
             ReadBackedPileup pileup = stratifiedContext.getBasePileup();
-            int totalDepth = pileup.size();
+            int totalDepth = pileup.getNumberOfElements();
 
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(getKeyNames().get(0), totalDepth); // put total depth in right away
@@ -119,7 +119,7 @@ public class ReadDepthAndAllelicFractionBySample extends GenotypeAnnotation {
             ReadBackedExtendedEventPileup pileup = stratifiedContext.getExtendedEventPileup();
             if ( pileup == null )
                 return null;
-            int totalDepth = pileup.size();
+            int totalDepth = pileup.getNumberOfElements();
 
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(getKeyNames().get(0), totalDepth); // put total depth in right away

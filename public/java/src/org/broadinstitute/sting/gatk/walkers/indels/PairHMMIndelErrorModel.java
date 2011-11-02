@@ -32,17 +32,11 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -376,8 +370,8 @@ public class PairHMMIndelErrorModel {
                                                                  HashMap<PileupElement, LinkedHashMap<Allele,Double>> indelLikelihoodMap){
 
         int numHaplotypes = haplotypeMap.size();
-        final double readLikelihoods[][] = new double[pileup.size()][numHaplotypes];
-        final int readCounts[] = new int[pileup.size()];
+        final double readLikelihoods[][] = new double[pileup.getNumberOfElements()][numHaplotypes];
+        final int readCounts[] = new int[pileup.getNumberOfElements()];
         int readIdx=0;
 
         LinkedHashMap<Allele,double[]> gapOpenProbabilityMap = new LinkedHashMap<Allele,double[]>();
@@ -403,8 +397,7 @@ public class PairHMMIndelErrorModel {
 
         for (PileupElement p: pileup) {
             // > 1 when the read is a consensus read representing multiple independent observations
-            final boolean isReduced = p.isReducedRead();
-            readCounts[readIdx] = isReduced ? p.getReducedCount() : 1;
+            readCounts[readIdx] = p.getRepresentativeCount();
 
             // check if we've already computed likelihoods for this pileup element (i.e. for this read at this location)
             if (indelLikelihoodMap.containsKey(p)) {
@@ -607,7 +600,7 @@ public class PairHMMIndelErrorModel {
 
         if (DEBUG) {
             System.out.println("\nLikelihood summary");
-            for (readIdx=0; readIdx < pileup.size(); readIdx++) {
+            for (readIdx=0; readIdx < pileup.getNumberOfElements(); readIdx++) {
                 System.out.format("Read Index: %d ",readIdx);
                 for (int i=0; i < readLikelihoods[readIdx].length; i++)
                     System.out.format("L%d: %f ",i,readLikelihoods[readIdx][i]);

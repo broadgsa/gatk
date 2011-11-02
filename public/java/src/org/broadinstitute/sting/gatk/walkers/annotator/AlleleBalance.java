@@ -92,7 +92,7 @@ public class AlleleBalance extends InfoFieldAnnotation {
                     continue;
                 }
                 // todo -- actually care about indel length from the pileup (agnostic at the moment)
-                int refCount = indelPileup.size();
+                int refCount = indelPileup.getNumberOfElements();
                 int altCount = vc.isSimpleInsertion() ? indelPileup.getNumberOfInsertions() : indelPileup.getNumberOfDeletions();
 
                 if ( refCount + altCount == 0 ) {

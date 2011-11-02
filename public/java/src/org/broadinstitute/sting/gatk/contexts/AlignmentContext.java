@@ -138,7 +138,7 @@ public class AlignmentContext implements HasGenomeLocation {
      * @return
      */
     public boolean hasReads() {
-        return basePileup != null && basePileup.size() > 0 ;
+        return basePileup != null && basePileup.getNumberOfElements() > 0 ;
     }
 
     /**
@@ -146,7 +146,7 @@ public class AlignmentContext implements HasGenomeLocation {
      * @return
      */
     public int size() {
-        return basePileup.size();
+        return basePileup.getNumberOfElements();
     }
 
     /**
