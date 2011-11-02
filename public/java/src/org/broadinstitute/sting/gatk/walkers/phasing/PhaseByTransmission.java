@@ -681,6 +681,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         metricsCounters.put(NUM_PAIR_GENOTYPES_PHASED,0);
         metricsCounters.put(NUM_PAIR_HET_HET,0);
         metricsCounters.put(NUM_PAIR_VIOLATIONS,0);
+        String mvfLine = "";
 
         if (tracker != null) {
             VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
@@ -712,19 +713,23 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     if(father != null){
                         genotypeMap.put(phasedFather.getSampleName(), phasedFather);
                         updateTrioMetricsCounters(phasedMother,phasedFather,phasedChild,isMV,metricsCounters);
+                        mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString());
                     }
-                    else
+                    else{
                         updatePairMetricsCounters(phasedMother,phasedChild,isMV,metricsCounters);
+                        mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t.:.:.:.\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString());
+                    }
                 }
                 else{
                     genotypeMap.put(phasedFather.getSampleName(),phasedFather);
                     updatePairMetricsCounters(phasedFather,phasedChild,isMV,metricsCounters);
+                    mvfLine =   String.format("%s\t%d\t%s\t%s\t%s\t%s\t.:.:.:.\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedFather.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString());
                     }
 
                 //Report violation if set so
                 //TODO: ADAPT FOR PAIRS TOO!!
                 if(isMV && mvFile != null)
-                    mvFile.println(String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString()));
+                    mvFile.println(mvfLine);
 
             }
 
