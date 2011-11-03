@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileupImpl;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
@@ -377,10 +378,7 @@ public class LocusIteratorByState extends LocusIterator {
                                 maxDeletionLength = Math.max(maxDeletionLength,state.getEventLength());
                             }
                             else nInsertions++;
-                            indelPile.add ( new ExtendedEventPileupElement(state.getRead(),
-                                                                           state.getReadEventStartOffset(),
-                                                                           state.getEventLength(),
-                                                                           state.getEventBases()) );
+                            indelPile.add ( new ExtendedEventPileupElement((GATKSAMRecord) state.getRead(), state.getReadEventStartOffset(), state.getEventLength(), state.getEventBases()) );
 
                         }   else {
                             // HACK: The readahead mechanism for LocusIteratorByState will effectively read past the current position
@@ -402,9 +400,7 @@ public class LocusIteratorByState extends LocusIterator {
                                     // we count such reads (with a longer deletion spanning over a deletion at the previous base we are
                                     // about to report) only if includeReadsWithDeletionAtLoci is true.
                                     size++;
-                                    indelPile.add ( new ExtendedEventPileupElement(state.getRead(),
-                                                                           state.getReadOffset()-1,
-                                                                           -1) // length=-1 --> noevent
+                                    indelPile.add ( new ExtendedEventPileupElement((GATKSAMRecord) state.getRead(), state.getReadOffset()-1, -1) // length=-1 --> noevent
                                             );
                                 }
                             }
@@ -442,12 +438,12 @@ public class LocusIteratorByState extends LocusIterator {
                                 continue;
                             } else {
                                 //observed_bases++;
-                                pile.add(new PileupElement(state.getRead(), state.getReadOffset()));
+                                pile.add(new PileupElement((GATKSAMRecord) state.getRead(), state.getReadOffset()));
                                 size++;
                             }
                         } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
                             size++;
-                            pile.add(new PileupElement(state.getRead(), -1));
+                            pile.add(new PileupElement((GATKSAMRecord) state.getRead(), -1));
                             nDeletions++;
                         }
 

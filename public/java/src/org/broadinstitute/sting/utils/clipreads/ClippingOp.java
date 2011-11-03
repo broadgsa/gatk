@@ -4,9 +4,9 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 import java.util.Stack;
@@ -39,14 +39,14 @@ public class ClippingOp {
      * @param algorithm
      * @param read
      */
-    public SAMRecord apply(ClippingRepresentation algorithm, SAMRecord read) {
+    public GATKSAMRecord apply(ClippingRepresentation algorithm, GATKSAMRecord read) {
         byte[] quals = read.getBaseQualities();
         byte[] bases = read.getReadBases();
 
         switch (algorithm) {
             // important note:
             //   it's not safe to call read.getReadBases()[i] = 'N' or read.getBaseQualities()[i] = 0
-            //   because you're not guaranteed to get a pointer to the actual array of bytes in the SAMRecord
+            //   because you're not guaranteed to get a pointer to the actual array of bytes in the GATKSAMRecord
             case WRITE_NS:
                 for (int i = start; i <= stop; i++)
                     bases[i] = 'N';
@@ -248,9 +248,9 @@ public class ClippingOp {
     }
 
     @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1", "!read.getReadUnmappedFlag()"})
-    private SAMRecord hardClip (SAMRecord read, int start, int stop) {
+    private GATKSAMRecord hardClip (GATKSAMRecord read, int start, int stop) {
         if (start == 0 && stop == read.getReadLength() - 1)
-            return new SAMRecord(read.getHeader());
+            return new GATKSAMRecord(read.getHeader());
 
         // If the read is unmapped there is no Cigar string and neither should we create a new cigar string
         CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);
@@ -265,9 +265,9 @@ public class ClippingOp {
         System.arraycopy(read.getReadBases(), copyStart, newBases, 0, newLength);
         System.arraycopy(read.getBaseQualities(), copyStart, newQuals, 0, newLength);
 
-        SAMRecord hardClippedRead;
+        GATKSAMRecord hardClippedRead;
         try {
-            hardClippedRead = (SAMRecord) read.clone();
+            hardClippedRead = (GATKSAMRecord) read.clone();
         } catch (CloneNotSupportedException e) {
             throw new ReviewedStingException("Where did the clone go?");
         }

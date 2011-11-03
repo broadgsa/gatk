@@ -23,8 +23,8 @@
  */
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.List;
 import java.util.Map;
@@ -35,11 +35,11 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
         super(loc);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets ) {
+    public ReadBackedPileupImpl(GenomeLoc loc, List<GATKSAMRecord> reads, List<Integer> offsets ) {
         super(loc,reads,offsets);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, List<SAMRecord> reads, int offset ) {
+    public ReadBackedPileupImpl(GenomeLoc loc, List<GATKSAMRecord> reads, int offset ) {
         super(loc,reads,offset);
     }
 
@@ -70,7 +70,7 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
     }
 
     @Override
-    protected PileupElement createNewPileupElement(SAMRecord read, int offset) {
+    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset) {
         return new PileupElement(read,offset);
     }
 }

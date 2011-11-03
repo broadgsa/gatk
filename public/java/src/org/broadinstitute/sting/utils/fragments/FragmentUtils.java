@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.fragments;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 
@@ -35,17 +36,17 @@ public class FragmentUtils {
      * @param <T>
      */
     public interface ReadGetter<T> {
-        public SAMRecord get(T object);
+        public GATKSAMRecord get(T object);
     }
 
     /** Identify getter for SAMRecords themselves */
-    private final static ReadGetter<SAMRecord> SamRecordGetter = new ReadGetter<SAMRecord>() {
-        @Override public SAMRecord get(final SAMRecord object) { return object; }
+    private final static ReadGetter<GATKSAMRecord> SamRecordGetter = new ReadGetter<GATKSAMRecord>() {
+        @Override public GATKSAMRecord get(final GATKSAMRecord object) { return object; }
     };
 
     /** Gets the SAMRecord in a PileupElement */
     private final static ReadGetter<PileupElement> PileupElementGetter = new ReadGetter<PileupElement>() {
-        @Override public SAMRecord get(final PileupElement object) { return object.getRead(); }
+        @Override public GATKSAMRecord get(final PileupElement object) { return object.getRead(); }
     };
 
 
@@ -116,7 +117,7 @@ public class FragmentUtils {
         return create(rbp, rbp.getNumberOfElements(), PileupElementGetter);
     }
 
-    public final static FragmentCollection<SAMRecord> create(List<SAMRecord> reads) {
+    public final static FragmentCollection<GATKSAMRecord> create(List<GATKSAMRecord> reads) {
         return create(reads, reads.size(), SamRecordGetter);
     }
 

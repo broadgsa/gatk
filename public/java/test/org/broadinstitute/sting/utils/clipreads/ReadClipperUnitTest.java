@@ -26,9 +26,9 @@
 package org.broadinstitute.sting.utils.clipreads;
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -44,7 +44,7 @@ public class ReadClipperUnitTest extends BaseTest {
 
     // TODO: Add error messages on failed tests
 
-    SAMRecord read, expected;
+    GATKSAMRecord read, expected;
     ReadClipper readClipper;
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?"; //ASCII values = 33,43,53,63
@@ -65,7 +65,7 @@ public class ReadClipperUnitTest extends BaseTest {
         logger.warn("Executing testHardClipBothEndsByReferenceCoordinates");
 
         //Clip whole read
-        Assert.assertEquals(readClipper.hardClipBothEndsByReferenceCoordinates(0,0), new SAMRecord(read.getHeader()));
+        Assert.assertEquals(readClipper.hardClipBothEndsByReferenceCoordinates(0,0), new GATKSAMRecord(read.getHeader()));
         //clip 1 base
         expected = readClipper.hardClipBothEndsByReferenceCoordinates(0,3);
         Assert.assertEquals(expected.getReadBases(), BASES.substring(1,3).getBytes());
@@ -79,7 +79,7 @@ public class ReadClipperUnitTest extends BaseTest {
         logger.warn("Executing testHardClipByReadCoordinates");
 
         //Clip whole read
-        Assert.assertEquals(readClipper.hardClipByReadCoordinates(0,3), new SAMRecord(read.getHeader()));
+        Assert.assertEquals(readClipper.hardClipByReadCoordinates(0,3), new GATKSAMRecord(read.getHeader()));
 
         //clip 1 base at start
         expected = readClipper.hardClipByReadCoordinates(0,0);
@@ -112,7 +112,7 @@ public class ReadClipperUnitTest extends BaseTest {
         logger.warn("Executing testHardClipByReferenceCoordinates");
 
         //Clip whole read
-        Assert.assertEquals(readClipper.hardClipByReferenceCoordinates(1,4), new SAMRecord(read.getHeader()));
+        Assert.assertEquals(readClipper.hardClipByReferenceCoordinates(1,4), new GATKSAMRecord(read.getHeader()));
 
         //clip 1 base at start
         expected = readClipper.hardClipByReferenceCoordinates(-1,1);
@@ -145,7 +145,7 @@ public class ReadClipperUnitTest extends BaseTest {
         logger.warn("Executing testHardClipByReferenceCoordinatesLeftTail");
 
         //Clip whole read
-        Assert.assertEquals(readClipper.hardClipByReferenceCoordinatesLeftTail(4), new SAMRecord(read.getHeader()));
+        Assert.assertEquals(readClipper.hardClipByReferenceCoordinatesLeftTail(4), new GATKSAMRecord(read.getHeader()));
 
         //clip 1 base at start
         expected = readClipper.hardClipByReferenceCoordinatesLeftTail(1);
@@ -166,7 +166,7 @@ public class ReadClipperUnitTest extends BaseTest {
         logger.warn("Executing testHardClipByReferenceCoordinatesRightTail");
 
         //Clip whole read
-        Assert.assertEquals(readClipper.hardClipByReferenceCoordinatesRightTail(1), new SAMRecord(read.getHeader()));
+        Assert.assertEquals(readClipper.hardClipByReferenceCoordinatesRightTail(1), new GATKSAMRecord(read.getHeader()));
 
         //clip 1 base at end
         expected = readClipper.hardClipByReferenceCoordinatesRightTail(3);
@@ -188,7 +188,7 @@ public class ReadClipperUnitTest extends BaseTest {
 
 
         //Clip whole read
-        Assert.assertEquals(readClipper.hardClipLowQualEnds((byte)64), new SAMRecord(read.getHeader()));
+        Assert.assertEquals(readClipper.hardClipLowQualEnds((byte)64), new GATKSAMRecord(read.getHeader()));
 
         //clip 1 base at start
         expected = readClipper.hardClipLowQualEnds((byte)34);

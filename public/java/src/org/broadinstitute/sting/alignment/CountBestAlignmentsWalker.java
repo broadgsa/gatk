@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.alignment;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
@@ -34,6 +33,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
 import java.util.Iterator;
@@ -79,12 +79,13 @@ public class CountBestAlignmentsWalker extends ReadWalker<Integer,Integer> {
 
     /**
      * Aligns a read to the given reference.
+     *
      * @param ref Reference over the read.  Read will most likely be unmapped, so ref will be null.
      * @param read Read to align.
      * @return Number of alignments found for this read.
      */
     @Override
-    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         Iterator<Alignment[]> alignmentIterator = aligner.getAllAlignments(read.getReadBases()).iterator();
         if(alignmentIterator.hasNext()) {
             int numAlignments = alignmentIterator.next().length;

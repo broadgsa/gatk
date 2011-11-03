@@ -24,10 +24,10 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.fragments.FragmentCollection;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.List;
@@ -202,7 +202,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * Returns a list of the reads in this pileup. Note this call costs O(n) and allocates fresh lists each time
      * @return
      */
-    public List<SAMRecord> getReads();
+    public List<GATKSAMRecord> getReads();
 
     /**
      * Returns a list of the offsets in this pileup. Note this call costs O(n) and allocates fresh lists each time

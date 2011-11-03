@@ -364,11 +364,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     /**
      * For each base in the read calculate a new recalibrated quality score and replace the quality scores in the read
+     *
      * @param refBases References bases over the length of the read
      * @param read The read to be recalibrated
      * @return The read with quality scores replaced
      */
-    public SAMRecord map( ReferenceContext refBases, SAMRecord read, ReadMetaDataTracker metaDataTracker  ) {
+    public SAMRecord map( ReferenceContext refBases, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker  ) {
 
         if( read.getReadLength() == 0 ) { // Some reads have '*' as the SEQ field and samtools returns length zero. We don't touch these reads.
             return read;

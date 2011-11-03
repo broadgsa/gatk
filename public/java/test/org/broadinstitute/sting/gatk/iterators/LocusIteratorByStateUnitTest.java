@@ -7,6 +7,7 @@ import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
@@ -38,8 +39,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
     }
 
     private final LocusIteratorByState makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
-        return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),
-                readAttributes, genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
+        return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()), readAttributes, genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     @Test
@@ -212,12 +212,12 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             Assert.assertEquals(alignmentContext.getLocation().getStart(),currentLocus,"Current locus returned by alignment context is incorrect");
 
             if(currentLocus == firstLocus) {
-                List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+                List<GATKSAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
                 Assert.assertEquals(readsAtLocus.size(),1,"Wrong number of reads at locus " + currentLocus);
                 Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at locus " + currentLocus);
             }
             else if(currentLocus == secondLocus) {
-                List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+                List<GATKSAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
                 Assert.assertEquals(readsAtLocus.size(),2,"Wrong number of reads at locus " + currentLocus);
                 Assert.assertSame(readsAtLocus.get(0),indelOnlyRead,"indelOnlyRead absent from pileup at locus " + currentLocus);
                 Assert.assertSame(readsAtLocus.get(1),fullMatchAfterIndel,"fullMatchAfterIndel absent from pileup at locus " + currentLocus);
@@ -265,7 +265,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         Assert.assertTrue(li.hasNext(),"Missing first locus at " + firstLocus);
         AlignmentContext alignmentContext = li.next();
         Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus,"Incorrect locus at this position; should be " + firstLocus);
-        List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+        List<GATKSAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
         Assert.assertEquals(readsAtLocus.size(),1,"Wrong number of reads at locus " + firstLocus);
         Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at locus " + firstLocus);
 

@@ -2,10 +2,8 @@ package org.broadinstitute.sting.utils.pileup;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -21,14 +19,14 @@ public class PileupElement implements Comparable<PileupElement> {
     public static final byte T_FOLLOWED_BY_INSERTION_BASE = (byte) 89;
     public static final byte G_FOLLOWED_BY_INSERTION_BASE = (byte) 90;
 
-    protected final SAMRecord read;
+    protected final GATKSAMRecord read;
     protected final int offset;
 
     @Requires({
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement( SAMRecord read, int offset ) {
+    public PileupElement( GATKSAMRecord read, int offset ) {
         this.read = read;
         this.offset = offset;
     }
@@ -38,7 +36,7 @@ public class PileupElement implements Comparable<PileupElement> {
     }
 
     @Ensures("result != null")
-    public SAMRecord getRead() { return read; }
+    public GATKSAMRecord getRead() { return read; }
 
     @Ensures("result == offset")
     public int getOffset() { return offset; }

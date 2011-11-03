@@ -32,7 +32,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_QUALITY_TAG, REDUCED_READ_COUNTS);
     }
 
-    private void testReadBasesAndQuals(SAMRecord read, int expectedStart, int expectedStop) {
+    private void testReadBasesAndQuals(GATKSAMRecord read, int expectedStart, int expectedStop) {
         SAMRecord clipped = ReadUtils.hardClipBases(read, expectedStart, expectedStop - 1, null);
         String expectedBases = BASES.substring(expectedStart, expectedStop);
         String expectedQuals = QUALS.substring(expectedStart, expectedStop);

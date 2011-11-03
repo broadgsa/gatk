@@ -47,6 +47,7 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.NWaySAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -281,10 +282,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     // the reads and known indels that fall into the current interval
     private final ReadBin readsToClean = new ReadBin();
-    private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
+    private final ArrayList<GATKSAMRecord> readsNotToClean = new ArrayList<GATKSAMRecord>();
     private final ArrayList<VariantContext> knownIndelsToTry = new ArrayList<VariantContext>();
     private final HashSet<Object> indelRodsSeen = new HashSet<Object>();
-    private final HashSet<SAMRecord> readsActuallyCleaned = new HashSet<SAMRecord>();
+    private final HashSet<GATKSAMRecord> readsActuallyCleaned = new HashSet<GATKSAMRecord>();
 
     private static final int MAX_QUAL = 99;
 
@@ -469,7 +470,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         readsActuallyCleaned.clear();
     }
 
-    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
             emit(read);
             return 0;
@@ -535,7 +536,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
     }
 
-    private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
+    private void cleanAndCallMap(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
         if ( readsToClean.size() > 0 ) {
             GenomeLoc earliestPossibleMove = getToolkit().getGenomeLocParser().createGenomeLoc(readsToClean.getReads().get(0));
             if ( manager.canMoveReads(earliestPossibleMove) )
@@ -656,14 +657,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private void clean(ReadBin readsToClean) {
 
-        final List<SAMRecord> reads = readsToClean.getReads();
+        final List<GATKSAMRecord> reads = readsToClean.getReads();
         if ( reads.size() == 0 )
             return;
 
         byte[] reference = readsToClean.getReference(referenceReader);
         int leftmostIndex = readsToClean.getLocation().getStart();
 
-        final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                 // reads that perfectly match ref
+        final ArrayList<GATKSAMRecord> refReads = new ArrayList<GATKSAMRecord>();                 // reads that perfectly match ref
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         final LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
         final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();               // list of alt consenses
@@ -815,7 +816,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         // however we don't have enough info to use the proper MAQ scoring system.
                         // For now, we will just arbitrarily add 10 to the mapping quality. [EB, 6/7/2010].
                         // TODO -- we need a better solution here
-                        SAMRecord read = aRead.getRead();
+                        GATKSAMRecord read = aRead.getRead();
                         read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
 
                         // before we fix the attribute tags we first need to make sure we have enough of the reference sequence
@@ -874,8 +875,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private long determineReadsThatNeedCleaning(final List<SAMRecord> reads,
-                                                final ArrayList<SAMRecord> refReadsToPopulate,
+    private long determineReadsThatNeedCleaning(final List<GATKSAMRecord> reads,
+                                                final ArrayList<GATKSAMRecord> refReadsToPopulate,
                                                 final ArrayList<AlignedRead> altReadsToPopulate,
                                                 final LinkedList<AlignedRead> altAlignmentsToTest,
                                                 final Set<Consensus> altConsenses,
@@ -884,7 +885,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         long totalRawMismatchSum = 0L;
 
-        for ( final SAMRecord read : reads ) {
+        for ( final GATKSAMRecord read : reads ) {
 
             // we can not deal with screwy records
             if ( read.getCigar().numCigarElements() == 0 ) {
@@ -1372,7 +1373,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private class AlignedRead {
-        private final SAMRecord read;
+        private final GATKSAMRecord read;
         private byte[] readBases = null;
         private byte[] baseQuals = null;
         private Cigar newCigar = null;
@@ -1380,12 +1381,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         private int mismatchScoreToReference = 0;
         private long alignerMismatchScore = 0;
 
-        public AlignedRead(SAMRecord read) {
+        public AlignedRead(GATKSAMRecord read) {
             this.read = read;
             mismatchScoreToReference = 0;
         }
 
-        public SAMRecord getRead() {
+        public GATKSAMRecord getRead() {
                return read;
         }
 
@@ -1569,7 +1570,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private class ReadBin implements HasGenomeLocation {
 
-        private final ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
+        private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
         private byte[] reference = null;
         private GenomeLoc loc = null;
 
@@ -1577,7 +1578,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // Return false if we can't process this read bin because the reads are not correctly overlapping.
         // This can happen if e.g. there's a large known indel with no overlapping reads.
-        public void add(SAMRecord read) {
+        public void add(GATKSAMRecord read) {
 
             GenomeLoc locForRead = getToolkit().getGenomeLocParser().createGenomeLoc(read);
             if ( loc == null )
@@ -1588,7 +1589,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             reads.add(read);
         }
 
-        public List<SAMRecord> getReads() { return reads; }
+        public List<GATKSAMRecord> getReads() { return reads; }
 
         public byte[] getReference(IndexedFastaSequenceFile referenceReader) {
             // set up the reference if we haven't done so yet
