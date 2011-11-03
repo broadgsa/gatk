@@ -18,8 +18,8 @@ import java.util.Map;
 public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm INDEL --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -NO_HEADER -glm INDEL --dbsnp " + b37dbSNP132;
+    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -114,7 +114,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testCallingParameters() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "--min_base_quality_score 26", "531966aee1cd5dced61c96c4fedb59a9" );
-        e.put( "--min_mapping_quality_score 26", "c71ca370947739cb7d87b59452be7a07" );
         e.put( "--computeSLOD", "1a5648f26c18ced27df4be031b44e72d" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
@@ -241,7 +240,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList("5fe98ee853586dc9db58f0bc97daea63"));
 
-        executeTest(String.format("test indel caller in SLX witn low min allele count"), spec);
+        executeTest(String.format("test indel caller in SLX with low min allele count"), spec);
     }
 
     @Test

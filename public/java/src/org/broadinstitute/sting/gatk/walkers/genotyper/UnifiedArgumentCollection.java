@@ -31,8 +31,6 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-
 
 public class UnifiedArgumentCollection {
 
@@ -103,17 +101,12 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
 
-    // TODO -- delete me
-    @Hidden
-    @Argument(fullName = "abort_at_too_much_coverage", doc = "Don't call a site if the downsampled coverage is greater than this value", required = false)
-    public int COVERAGE_AT_WHICH_TO_ABORT = -1;
-
-    // control the various parameters to be used
+    /**
+     * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
+     * is capped by the mapping quality so that bases on reads with low mapping quality may get filtered out depending on this value.
+     */
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 17;
-
-    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
-    public int MIN_MAPPING_QUALTY_SCORE = 20;
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
@@ -165,14 +158,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
 
-    @Deprecated
-    @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)
-    private Boolean ALL_BASES_DEPRECATED = false;   
-
-    @Deprecated
-    @Argument(fullName="genotype", shortName="genotype", doc="Please use --output_mode EMIT_ALL_CONFIDENT_SITES instead" ,required=false)
-    private Boolean GENOTYPE_DEPRECATED = false;
-
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
@@ -189,7 +174,6 @@ public class UnifiedArgumentCollection {
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
-        uac.MIN_MAPPING_QUALTY_SCORE = MIN_MAPPING_QUALTY_SCORE;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
@@ -200,7 +184,6 @@ public class UnifiedArgumentCollection {
         uac.alleles = alleles;
 
         // todo- arguments to remove
-        uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
         uac.BANDED_INDEL_COMPUTATION = BANDED_INDEL_COMPUTATION;
         return uac;
