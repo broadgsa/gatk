@@ -43,7 +43,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
             if ( context == null )
                 continue;
 
-            depth += context.getBasePileup().depthOfCoverage();
+            depth += context.hasBasePileup() ? context.getBasePileup().depthOfCoverage() : context.getExtendedEventPileup().depthOfCoverage();
         }
 
         if ( depth == 0 )
