@@ -547,10 +547,15 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         int parentsCalled = 0;
         Map<Genotype.Type,Double> firstParentLikelihoods;
         Map<Genotype.Type,Double> secondParentLikelihoods;
+        ArrayList<Genotype.Type> bestFirstParentGenotype = new ArrayList<Genotype.Type>();
+        ArrayList<Genotype.Type> bestSecondParentGenotype = new ArrayList<Genotype.Type>();
+        ArrayList<Genotype.Type> bestChildGenotype = new ArrayList<Genotype.Type>();
         Genotype.Type pairSecondParentGenotype = null;
         if(mother == null || !mother.isCalled()){
             firstParentLikelihoods = getLikelihoodsAsMapSafeNull(father);
             secondParentLikelihoods = getLikelihoodsAsMapSafeNull(mother);
+            bestFirstParentGenotype.add(getTypeSafeNull(father));
+            bestSecondParentGenotype.add(getTypeSafeNull(mother));
             pairSecondParentGenotype = mother == null ? Genotype.Type.UNAVAILABLE : mother.getType();
             if(father != null && father.isCalled())
                 parentsCalled = 1;
@@ -558,6 +563,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         else{
             firstParentLikelihoods = getLikelihoodsAsMapSafeNull(mother);
             secondParentLikelihoods = getLikelihoodsAsMapSafeNull(father);
+            bestFirstParentGenotype.add(getTypeSafeNull(mother));
+            bestSecondParentGenotype.add(getTypeSafeNull(father));
             if(father == null || !father.isCalled()){
                 parentsCalled = 1;
                 pairSecondParentGenotype = father == null ? Genotype.Type.UNAVAILABLE : father.getType();
@@ -566,6 +573,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             }
         }
         Map<Genotype.Type,Double> childLikelihoods = getLikelihoodsAsMapSafeNull(child);
+        bestChildGenotype.add(getTypeSafeNull(child));
 
         //Prior vars
         double bestConfigurationLikelihood = 0.0;
@@ -573,13 +581,6 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         int configuration_index =0;
         ArrayList<Integer> bestMVCount = new ArrayList<Integer>();
         bestMVCount.add(0);
-
-        ArrayList<Genotype.Type> bestFirstParentGenotype = new ArrayList<Genotype.Type>();
-        ArrayList<Genotype.Type> bestSecondParentGenotype = new ArrayList<Genotype.Type>();
-        ArrayList<Genotype.Type> bestChildGenotype = new ArrayList<Genotype.Type>();
-        bestFirstParentGenotype.add(getTypeSafeNull(mother));
-        bestSecondParentGenotype.add(getTypeSafeNull(father));
-        bestChildGenotype.add(getTypeSafeNull(child));
 
         //Get the most likely combination
         //Only check for most likely combination if at least a parent and the child have genotypes
