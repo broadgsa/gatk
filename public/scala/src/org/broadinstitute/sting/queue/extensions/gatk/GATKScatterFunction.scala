@@ -53,9 +53,6 @@ trait GATKScatterFunction extends ScatterFunction {
   /** Whether the last scatter job should also include any unmapped reads. */
   protected var includeUnmapped: Boolean = _
 
-  /** The total number of clone jobs that will be created. */
-  override def scatterCount = if (intervalFilesExist) super.scatterCount min this.maxIntervals else super.scatterCount
-
   override def init() {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
     this.referenceSequence = this.originalGATK.reference_sequence

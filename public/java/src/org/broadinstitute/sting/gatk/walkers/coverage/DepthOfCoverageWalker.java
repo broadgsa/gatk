@@ -113,6 +113,7 @@ import java.util.*;
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
+@PartitionBy(PartitionType.INTERVAL)
 public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partition,Map<String,int[]>>, CoveragePartitioner> implements TreeReducible<CoveragePartitioner> {
     @Output
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
