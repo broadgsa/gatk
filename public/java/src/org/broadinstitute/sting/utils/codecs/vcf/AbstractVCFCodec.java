@@ -163,19 +163,26 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      */
     public Feature decodeLoc(String line) {
         lineNo++;
-        String[] locParts = new String[6];
+
+        // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
+        if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
+
+        // our header cannot be null, we need the genotype sample names and counts
+        if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
+
+        final String[] locParts = new String[6];
         int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
         if ( nParts != 6 )
             throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
 
         // get our alleles (because the end position depends on them)
-        String ref = getCachedString(locParts[3].toUpperCase());
-        String alts = getCachedString(locParts[4].toUpperCase());
-        List<Allele> alleles = parseAlleles(ref, alts, lineNo);
+        final String ref = getCachedString(locParts[3].toUpperCase());
+        final String alts = getCachedString(locParts[4].toUpperCase());
+        final List<Allele> alleles = parseAlleles(ref, alts, lineNo);
 
         // find out our location
-        int start = Integer.valueOf(locParts[1]);
+        final int start = Integer.valueOf(locParts[1]);
         int stop = start;
 
         // ref alleles don't need to be single bases for monomorphic sites
