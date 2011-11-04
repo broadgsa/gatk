@@ -162,6 +162,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
+        lineNo++;
         String[] locParts = new String[6];
         int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
