@@ -25,12 +25,12 @@
 package org.broadinstitute.sting.utils.fragments;
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
@@ -52,16 +52,16 @@ public class FragmentUtilsUnitTest extends BaseTest {
                                   boolean leftIsFirst, boolean leftIsNegative) {
             super(FragmentUtilsTest.class, String.format("%s-leftIsFirst:%b-leftIsNegative:%b", name, leftIsFirst, leftIsNegative));
 
-            List<SAMRecord> pair = ArtificialSAMUtils.createPair(header, "readpair", readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
-            SAMRecord left = pair.get(0);
-            SAMRecord right = pair.get(1);
+            List<GATKSAMRecord> pair = ArtificialSAMUtils.createPair(header, "readpair", readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
+            GATKSAMRecord left = pair.get(0);
+            GATKSAMRecord right = pair.get(1);
 
             for ( int pos = leftStart; pos < rightStart + readLen; pos++) {
                 boolean posCoveredByLeft = pos >= left.getAlignmentStart() && pos <= left.getAlignmentEnd();
                 boolean posCoveredByRight = pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd();
 
                 if ( posCoveredByLeft || posCoveredByRight ) {
-                    List<SAMRecord> reads = new ArrayList<SAMRecord>();
+                    List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
                     List<Integer> offsets = new ArrayList<Integer>();
 
                     if ( posCoveredByLeft ) {
@@ -89,9 +89,9 @@ public class FragmentUtilsUnitTest extends BaseTest {
     private class TestState {
         int expectedSingletons, expectedPairs;
         ReadBackedPileup pileup;
-        List<SAMRecord> rawReads;
+        List<GATKSAMRecord> rawReads;
 
-        private TestState(final int expectedSingletons, final int expectedPairs, final ReadBackedPileup pileup, final List<SAMRecord> rawReads) {
+        private TestState(final int expectedSingletons, final int expectedPairs, final ReadBackedPileup pileup, final List<GATKSAMRecord> rawReads) {
             this.expectedSingletons = expectedSingletons;
             this.expectedPairs = expectedPairs;
             this.pileup = pileup;
@@ -131,7 +131,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
     @Test(enabled = true, dataProvider = "fragmentUtilsTest")
     public void testAsListOfReadsFromPileup(FragmentUtilsTest test) {
         for ( TestState testState : test.statesForPileup ) {
-            FragmentCollection<SAMRecord> fp = FragmentUtils.create(testState.pileup.getReads());
+            FragmentCollection<GATKSAMRecord> fp = FragmentUtils.create(testState.pileup.getReads());
             Assert.assertEquals(fp.getOverlappingPairs().size(), testState.expectedPairs);
             Assert.assertEquals(fp.getSingletonReads().size(), testState.expectedSingletons);
         }
@@ -140,7 +140,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
     @Test(enabled = true, dataProvider = "fragmentUtilsTest")
     public void testAsListOfReads(FragmentUtilsTest test) {
         for ( TestState testState : test.statesForReads ) {
-            FragmentCollection<SAMRecord> fp = FragmentUtils.create(testState.rawReads);
+            FragmentCollection<GATKSAMRecord> fp = FragmentUtils.create(testState.rawReads);
             Assert.assertEquals(fp.getOverlappingPairs().size(), testState.expectedPairs);
             Assert.assertEquals(fp.getSingletonReads().size(), testState.expectedSingletons);
         }
@@ -148,10 +148,10 @@ public class FragmentUtilsUnitTest extends BaseTest {
 
     @Test(enabled = true, expectedExceptions = IllegalArgumentException.class)
     public void testOutOfOrder() {
-        final List<SAMRecord> pair = ArtificialSAMUtils.createPair(header, "readpair", 100, 1, 50, true, true);
-        final SAMRecord left = pair.get(0);
-        final SAMRecord right = pair.get(1);
-        final List<SAMRecord> reads = Arrays.asList(right, left); // OUT OF ORDER!
+        final List<GATKSAMRecord> pair = ArtificialSAMUtils.createPair(header, "readpair", 100, 1, 50, true, true);
+        final GATKSAMRecord left = pair.get(0);
+        final GATKSAMRecord right = pair.get(1);
+        final List<GATKSAMRecord> reads = Arrays.asList(right, left); // OUT OF ORDER!
         final List<Integer> offsets = Arrays.asList(0, 50);
         final ReadBackedPileup pileup = new ReadBackedPileupImpl(null, reads, offsets);
         FragmentUtils.create(pileup); // should throw exception

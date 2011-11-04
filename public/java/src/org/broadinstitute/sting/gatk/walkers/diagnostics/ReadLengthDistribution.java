@@ -1,13 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers.diagnostics;
 
 import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -69,12 +69,12 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
 
     }
 
-    public boolean filter(ReferenceContext ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, GATKSAMRecord read) {
         return ( !read.getReadPairedFlag() || read.getReadPairedFlag() && read.getFirstOfPairFlag());
     }
 
     @Override
-    public Integer map(ReferenceContext referenceContext, SAMRecord samRecord, ReadMetaDataTracker readMetaDataTracker) {
+    public Integer map(ReferenceContext referenceContext, GATKSAMRecord samRecord, ReadMetaDataTracker readMetaDataTracker) {
         GATKReportTable table = report.getTable("ReadLengthDistribution");
 
         int length = Math.abs(samRecord.getReadLength());

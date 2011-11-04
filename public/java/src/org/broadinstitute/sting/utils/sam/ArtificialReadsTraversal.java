@@ -104,9 +104,9 @@ public class ArtificialReadsTraversal<M,T> extends TraversalEngine<M,T,Walker<M,
             // an array of characters that represent the reference
             ReferenceContext refSeq = null;
 
-            final boolean keepMeP = readWalker.filter(refSeq, read);
+            final boolean keepMeP = readWalker.filter(refSeq, (GATKSAMRecord) read);
             if (keepMeP) {
-                M x = readWalker.map(refSeq, read, null);  // TODO: fix me at some point, it would be nice to fake out ROD data too
+                M x = readWalker.map(refSeq, (GATKSAMRecord) read, null);  // TODO: fix me at some point, it would be nice to fake out ROD data too
                 sum = readWalker.reduce(x, sum);
             }
         }

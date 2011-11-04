@@ -188,15 +188,15 @@ public class ReadUtils {
      * This makes the following code a little nasty, since we can only detect if a base is in the adaptor, but not
      * if it overlaps the read.
      *
-     * @param rec
+     * @param read
      * @param basePos
      * @param adaptorLength
      * @return
      */
-    public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos, final int adaptorLength) {
+    public static OverlapType readPairBaseOverlapType(final SAMRecord read, long basePos, final int adaptorLength) {
         OverlapType state = OverlapType.NOT_OVERLAPPING;
 
-        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(rec, adaptorLength);
+        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(read, adaptorLength);
 
         if ( adaptorBoundaries != null ) { // we're not an unmapped pair -- cannot filter out
 
@@ -205,28 +205,28 @@ public class ReadUtils {
             if ( inAdapator ) { 
                 state = OverlapType.IN_ADAPTOR;
                 //System.out.printf("baseOverlapState: %50s negStrand=%b base=%d start=%d stop=%d, adaptorStart=%d adaptorEnd=%d isize=%d => %s%n",
-                //        rec.getReadName(), rec.getReadNegativeStrandFlag(), basePos, rec.getAlignmentStart(), rec.getAlignmentEnd(), adaptorBoundaries.first, adaptorBoundaries.second, rec.getInferredInsertSize(), state);
+                //        read.getReadName(), read.getReadNegativeStrandFlag(), basePos, read.getAlignmentStart(), read.getAlignmentEnd(), adaptorBoundaries.first, adaptorBoundaries.second, read.getInferredInsertSize(), state);
             }
         }
 
         return state;
     }
 
-    private static Pair<Integer, Integer> getAdaptorBoundaries(SAMRecord rec, int adaptorLength) {
-        int isize = rec.getInferredInsertSize();
+    private static Pair<Integer, Integer> getAdaptorBoundaries(SAMRecord read, int adaptorLength) {
+        int isize = read.getInferredInsertSize();
         if ( isize == 0 )
             return null; // don't worry about unmapped pairs
 
         int adaptorStart, adaptorEnd;
 
-        if ( rec.getReadNegativeStrandFlag() ) {
+        if ( read.getReadNegativeStrandFlag() ) {
             // we are on the negative strand, so our mate is on the positive strand
-            int mateStart = rec.getMateAlignmentStart();
+            int mateStart = read.getMateAlignmentStart();
             adaptorStart = mateStart - adaptorLength - 1;
             adaptorEnd = mateStart - 1;
         } else {
             // we are on the positive strand, so our mate is on the negative strand
-            int mateEnd = rec.getAlignmentStart() + isize - 1;
+            int mateEnd = read.getAlignmentStart() + isize - 1;
             adaptorStart = mateEnd + 1;
             adaptorEnd = mateEnd + adaptorLength;
         }
@@ -236,47 +236,47 @@ public class ReadUtils {
 
     /**
      *
-     * @param rec  original SAM record
+     * @param read  original SAM record
      * @param adaptorLength  length of adaptor sequence
      * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
      */
-    public static GATKSAMRecord hardClipAdaptorSequence(final SAMRecord rec, int adaptorLength) {
+    public static GATKSAMRecord hardClipAdaptorSequence(final GATKSAMRecord read, int adaptorLength) {
 
-        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(rec, adaptorLength);
-        GATKSAMRecord result = (GATKSAMRecord)rec;
+        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(read, adaptorLength);
+        GATKSAMRecord result = (GATKSAMRecord)read;
 
         if ( adaptorBoundaries != null ) {
-            if ( rec.getReadNegativeStrandFlag() && adaptorBoundaries.second >= rec.getAlignmentStart() && adaptorBoundaries.first < rec.getAlignmentEnd() )
-                result = hardClipStartOfRead(rec, adaptorBoundaries.second);
-            else if ( !rec.getReadNegativeStrandFlag() && adaptorBoundaries.first <= rec.getAlignmentEnd() )
-                result = hardClipEndOfRead(rec, adaptorBoundaries.first);
+            if ( read.getReadNegativeStrandFlag() && adaptorBoundaries.second >= read.getAlignmentStart() && adaptorBoundaries.first < read.getAlignmentEnd() )
+                result = hardClipStartOfRead(read, adaptorBoundaries.second);
+            else if ( !read.getReadNegativeStrandFlag() && adaptorBoundaries.first <= read.getAlignmentEnd() )
+                result = hardClipEndOfRead(read, adaptorBoundaries.first);
         }
 
         return result;
     }
 
     // return true if the read needs to be completely clipped
-    private static GATKSAMRecord hardClipStartOfRead(SAMRecord oldRec, int stopPosition) {
+    private static GATKSAMRecord hardClipStartOfRead(GATKSAMRecord oldRec, int stopPosition) {
 
         if ( stopPosition >= oldRec.getAlignmentEnd() ) {
             // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
-            //System.out.printf("Entire read needs to be clipped: %50s %n", rec.getReadName());
+            //System.out.printf("Entire read needs to be clipped: %50s %n", read.getReadName());
             return null;
         }
 
-        GATKSAMRecord rec;
+        GATKSAMRecord read;
         try {
-            rec = (GATKSAMRecord)oldRec.clone();
+            read = (GATKSAMRecord)oldRec.clone();
         } catch (Exception e) {
             return null;
         }
 
         //System.out.printf("Clipping start of read: %50s start=%d adaptorEnd=%d isize=%d %n",
-        //        rec.getReadName(), rec.getAlignmentStart(), stopPosition, rec.getInferredInsertSize());
+        //        read.getReadName(), read.getAlignmentStart(), stopPosition, read.getInferredInsertSize());
 
-        Cigar oldCigar = rec.getCigar();
+        Cigar oldCigar = read.getCigar();
         LinkedList<CigarElement> newCigarElements = new LinkedList<CigarElement>();
-        int currentPos = rec.getAlignmentStart();
+        int currentPos = read.getAlignmentStart();
         int basesToClip = 0;
         int basesAlreadyClipped = 0;
 
@@ -315,48 +315,48 @@ public class ReadUtils {
         }
 
         // copy over the unclipped bases
-        final byte[] bases = rec.getReadBases();
-        final byte[] quals = rec.getBaseQualities();
+        final byte[] bases = read.getReadBases();
+        final byte[] quals = read.getBaseQualities();
         int newLength = bases.length - basesToClip;
         byte[] newBases = new byte[newLength];
         byte[] newQuals = new byte[newLength];
         System.arraycopy(bases, basesToClip, newBases, 0, newLength);
         System.arraycopy(quals, basesToClip, newQuals, 0, newLength);
-        rec.setReadBases(newBases);
-        rec.setBaseQualities(newQuals);
+        read.setReadBases(newBases);
+        read.setBaseQualities(newQuals);
 
         // now add a CIGAR element for the clipped bases
         newCigarElements.addFirst(new CigarElement(basesToClip + basesAlreadyClipped, CigarOperator.H));
         Cigar newCigar = new Cigar(newCigarElements);
-        rec.setCigar(newCigar);
+        read.setCigar(newCigar);
 
         // adjust the start accordingly
-        rec.setAlignmentStart(stopPosition + 1);
+        read.setAlignmentStart(stopPosition + 1);
 
-        return rec;
+        return read;
     }
 
-    private static GATKSAMRecord hardClipEndOfRead(SAMRecord oldRec, int startPosition) {
+    private static GATKSAMRecord hardClipEndOfRead(GATKSAMRecord oldRec, int startPosition) {
 
         if ( startPosition <= oldRec.getAlignmentStart() ) {
             // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
-            //System.out.printf("Entire read needs to be clipped: %50s %n", rec.getReadName());
+            //System.out.printf("Entire read needs to be clipped: %50s %n", read.getReadName());
             return null;
         }
 
-        GATKSAMRecord rec;
+        GATKSAMRecord read;
         try {
-            rec = (GATKSAMRecord)oldRec.clone();
+            read = (GATKSAMRecord)oldRec.clone();
         } catch (Exception e) {
             return null;
         }
 
         //System.out.printf("Clipping end of read: %50s adaptorStart=%d end=%d isize=%d %n",
-        //        rec.getReadName(), startPosition, rec.getAlignmentEnd(), rec.getInferredInsertSize());
+        //        read.getReadName(), startPosition, read.getAlignmentEnd(), read.getInferredInsertSize());
 
-        Cigar oldCigar = rec.getCigar();
+        Cigar oldCigar = read.getCigar();
         LinkedList<CigarElement> newCigarElements = new LinkedList<CigarElement>();
-        int currentPos = rec.getAlignmentStart();
+        int currentPos = read.getAlignmentStart();
         int basesToKeep = 0;
         int basesAlreadyClipped = 0;
 
@@ -402,41 +402,41 @@ public class ReadUtils {
         }
 
         // copy over the unclipped bases
-        final byte[] bases = rec.getReadBases();
-        final byte[] quals = rec.getBaseQualities();
+        final byte[] bases = read.getReadBases();
+        final byte[] quals = read.getBaseQualities();
         byte[] newBases = new byte[basesToKeep];
         byte[] newQuals = new byte[basesToKeep];
         System.arraycopy(bases, 0, newBases, 0, basesToKeep);
         System.arraycopy(quals, 0, newQuals, 0, basesToKeep);
-        rec.setReadBases(newBases);
-        rec.setBaseQualities(newQuals);
+        read.setReadBases(newBases);
+        read.setBaseQualities(newQuals);
 
         // now add a CIGAR element for the clipped bases
         newCigarElements.add(new CigarElement((bases.length - basesToKeep) + basesAlreadyClipped, CigarOperator.H));
         Cigar newCigar = new Cigar(newCigarElements);
-        rec.setCigar(newCigar);
+        read.setCigar(newCigar);
 
         // adjust the stop accordingly
-        // rec.setAlignmentEnd(startPosition - 1);
+        // read.setAlignmentEnd(startPosition - 1);
 
-        return rec;
+        return read;
     }
 
     /**
      * Hard clips away (i.e.g, removes from the read) bases that were previously soft clipped.
      *
-     * @param rec
+     * @param read
      * @return
      */
-    @Requires("rec != null")
+    @Requires("read != null")
     @Ensures("result != null")
-    public static SAMRecord hardClipSoftClippedBases(SAMRecord rec) {
-        List<CigarElement> cigarElts = rec.getCigar().getCigarElements();
+    public static GATKSAMRecord hardClipSoftClippedBases(GATKSAMRecord read) {
+        List<CigarElement> cigarElts = read.getCigar().getCigarElements();
 
         if ( cigarElts.size() == 1 ) // can't be soft clipped, just return
-            return rec;
+            return read;
 
-        int keepStart = 0, keepEnd = rec.getReadLength() - 1;
+        int keepStart = 0, keepEnd = read.getReadLength() - 1;
         List<CigarElement> newCigarElements = new LinkedList<CigarElement>();
 
         for ( int i = 0; i < cigarElts.size(); i++ ) {
@@ -447,7 +447,7 @@ public class ReadUtils {
                     if ( i == 0 )
                         keepStart = l;
                     else
-                        keepEnd = rec.getReadLength() - l - 1;
+                        keepEnd = read.getReadLength() - l - 1;
                     newCigarElements.add(new CigarElement(l, CigarOperator.HARD_CLIP));
                     break;
 
@@ -477,54 +477,54 @@ public class ReadUtils {
         }
         mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
 
-        return hardClipBases(rec, keepStart, keepEnd, mergedCigarElements);
+        return hardClipBases(read, keepStart, keepEnd, mergedCigarElements);
     }
 
     /**
-     * Hard clips out the bases in rec, keeping the bases from keepStart to keepEnd, inclusive.  Note these
+     * Hard clips out the bases in read, keeping the bases from keepStart to keepEnd, inclusive.  Note these
      * are offsets, so they are 0 based
      *
-     * @param rec
+     * @param read
      * @param keepStart
      * @param keepEnd
      * @param newCigarElements
      * @return
      */
     @Requires({
-            "rec != null",
+            "read != null",
             "keepStart >= 0",
-            "keepEnd < rec.getReadLength()",
-            "rec.getReadUnmappedFlag() || newCigarElements != null"})
+            "keepEnd < read.getReadLength()",
+            "read.getReadUnmappedFlag() || newCigarElements != null"})
     @Ensures("result != null")
-    public static SAMRecord hardClipBases(SAMRecord rec, int keepStart, int keepEnd, List<CigarElement> newCigarElements) {
+    public static GATKSAMRecord hardClipBases(GATKSAMRecord read, int keepStart, int keepEnd, List<CigarElement> newCigarElements) {
         int newLength = keepEnd - keepStart + 1;
-        if ( newLength != rec.getReadLength() ) {
+        if ( newLength != read.getReadLength() ) {
             try {
-                rec = SimplifyingSAMFileWriter.simplifyRead((SAMRecord)rec.clone());
+                read = (GATKSAMRecord)read.clone();
                 // copy over the unclipped bases
-                final byte[] bases = rec.getReadBases();
-                final byte[] quals = rec.getBaseQualities();
+                final byte[] bases = read.getReadBases();
+                final byte[] quals = read.getBaseQualities();
                 byte[] newBases = new byte[newLength];
                 byte[] newQuals = new byte[newLength];
                 System.arraycopy(bases, keepStart, newBases, 0, newLength);
                 System.arraycopy(quals, keepStart, newQuals, 0, newLength);
-                rec.setReadBases(newBases);
-                rec.setBaseQualities(newQuals);
+                read.setReadBases(newBases);
+                read.setBaseQualities(newQuals);
 
                 // now add a CIGAR element for the clipped bases, if the read isn't unmapped
-                if ( ! rec.getReadUnmappedFlag() ) {
+                if ( ! read.getReadUnmappedFlag() ) {
                     Cigar newCigar = new Cigar(newCigarElements);
-                    rec.setCigar(newCigar);
+                    read.setCigar(newCigar);
                 }
             } catch ( CloneNotSupportedException e ) {
                 throw new ReviewedStingException("WTF, where did clone go?", e);
             }
         }
 
-        return rec;
+        return read;
     }
 
-    public static SAMRecord replaceSoftClipsWithMatches(SAMRecord read) {
+    public static GATKSAMRecord replaceSoftClipsWithMatches(GATKSAMRecord read) {
         List<CigarElement> newCigarElements = new ArrayList<CigarElement>();
 
         for ( CigarElement ce : read.getCigar().getCigarElements() ) {
@@ -561,15 +561,15 @@ public class ReadUtils {
 
     /**
      *
-     * @param rec  original SAM record
+     * @param read  original SAM record
      * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
      */
-    public static GATKSAMRecord hardClipAdaptorSequence(final SAMRecord rec) {
-        return hardClipAdaptorSequence(rec, DEFAULT_ADAPTOR_SIZE);
+    public static GATKSAMRecord hardClipAdaptorSequence(final GATKSAMRecord read) {
+        return hardClipAdaptorSequence(read, DEFAULT_ADAPTOR_SIZE);
     }
 
-    public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos) {
-        return readPairBaseOverlapType(rec, basePos, DEFAULT_ADAPTOR_SIZE);
+    public static OverlapType readPairBaseOverlapType(final SAMRecord read, long basePos) {
+        return readPairBaseOverlapType(read, basePos, DEFAULT_ADAPTOR_SIZE);
     }
 
     public static boolean is454Read(SAMRecord read) {
@@ -601,10 +601,10 @@ public class ReadUtils {
         readFlagNames.put(0x400, "Duplicate");
     }
 
-    public static String readFlagsAsString(SAMRecord rec) {
+    public static String readFlagsAsString(GATKSAMRecord read) {
         String flags = "";
         for (int flag : readFlagNames.keySet()) {
-            if ((rec.getFlags() & flag) != 0) {
+            if ((read.getFlags() & flag) != 0) {
                 flags += readFlagNames.get(flag) + " ";
             }
         }
@@ -618,7 +618,7 @@ public class ReadUtils {
      * @param reads
      * @return
      */
-    public final static List<SAMRecord> coordinateSortReads(List<SAMRecord> reads) {
+    public final static List<GATKSAMRecord> coordinateSortReads(List<GATKSAMRecord> reads) {
         final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
         Collections.sort(reads, comparer);
         return reads;
@@ -647,7 +647,7 @@ public class ReadUtils {
      * @param interval the interval
      * @return the overlap type as described by ReadAndIntervalOverlap enum (see above)
      */
-    public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(SAMRecord read, GenomeLoc interval) {
+    public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(GATKSAMRecord read, GenomeLoc interval) {
 
         int sStart = getRefCoordSoftUnclippedStart(read);
         int sStop = getRefCoordSoftUnclippedEnd(read);
@@ -685,7 +685,7 @@ public class ReadUtils {
     }
 
     @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
-    public static int getRefCoordSoftUnclippedStart(SAMRecord read) {
+    public static int getRefCoordSoftUnclippedStart(GATKSAMRecord read) {
         int start = read.getUnclippedStart();
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
@@ -697,7 +697,7 @@ public class ReadUtils {
     }
 
     @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
-    public static int getRefCoordSoftUnclippedEnd(SAMRecord read) {
+    public static int getRefCoordSoftUnclippedEnd(GATKSAMRecord read) {
         int stop = read.getUnclippedStart();
 
         if (readIsEntirelyInsertion(read))
@@ -716,7 +716,7 @@ public class ReadUtils {
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
     }
 
-    private static boolean readIsEntirelyInsertion(SAMRecord read) {
+    private static boolean readIsEntirelyInsertion(GATKSAMRecord read) {
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() != CigarOperator.INSERTION)
                 return false;
@@ -730,7 +730,7 @@ public class ReadUtils {
     }
 
     /**
-     * Pre-processes the results of getReadCoordinateForReferenceCoordinate(SAMRecord, int) in case it falls in
+     * Pre-processes the results of getReadCoordinateForReferenceCoordinate(GATKSAMRecord, int) in case it falls in
      * a deletion following the typical clipping needs. If clipping the left tail (beginning of the read) returns
      * the base prior to the deletion. If clipping the right tail (end of the read) returns the base after the
      * deletion.
@@ -742,7 +742,7 @@ public class ReadUtils {
      */
     @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd()"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
-    public static int getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord, ClippingTail tail) {
+    public static int getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord, ClippingTail tail) {
         Pair<Integer, Boolean> result = getReadCoordinateForReferenceCoordinate(read, refCoord);
         int readCoord = result.getFirst();
 
@@ -760,7 +760,7 @@ public class ReadUtils {
      * Pair(int readCoord, boolean fallsInsideDeletion) so you can choose which readCoordinate to use when faced with
      * a deletion.
      *
-     * SUGGESTION: Use getReadCoordinateForReferenceCoordinate(SAMRecord, int, ClippingTail) instead to get a
+     * SUGGESTION: Use getReadCoordinateForReferenceCoordinate(GATKSAMRecord, int, ClippingTail) instead to get a
      * pre-processed result according to normal clipping needs. Or you can use this function and tailor the
      * behavior to your needs.
      *
@@ -770,7 +770,7 @@ public class ReadUtils {
      */
     @Requires({"refCoord >= getRefCoordSoftUnclippedStart(read)", "refCoord <= getRefCoordSoftUnclippedEnd(read)"})
     @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
-    public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(SAMRecord read, int refCoord) {
+    public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
         boolean fallsInsideDeletion = false;
@@ -851,13 +851,13 @@ public class ReadUtils {
         return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
 
-    public static SAMRecord unclipSoftClippedBases(SAMRecord rec) {
-        int newReadStart = rec.getAlignmentStart();
-        int newReadEnd = rec.getAlignmentEnd();
-        List<CigarElement> newCigarElements = new ArrayList<CigarElement>(rec.getCigar().getCigarElements().size());
+    public static GATKSAMRecord unclipSoftClippedBases(GATKSAMRecord read) {
+        int newReadStart = read.getAlignmentStart();
+        int newReadEnd = read.getAlignmentEnd();
+        List<CigarElement> newCigarElements = new ArrayList<CigarElement>(read.getCigar().getCigarElements().size());
         int heldOver = -1;
         boolean sSeen = false;
-        for ( CigarElement e : rec.getCigar().getCigarElements() ) {
+        for ( CigarElement e : read.getCigar().getCigarElements() ) {
             if ( e.getOperator().equals(CigarOperator.S) ) {
                 newCigarElements.add(new CigarElement(e.getLength(),CigarOperator.M));
                 if ( sSeen ) {
@@ -872,7 +872,7 @@ public class ReadUtils {
         }
         // merge duplicate operators together
         int idx = 0;
-        List<CigarElement> finalCigarElements = new ArrayList<CigarElement>(rec.getCigar().getCigarElements().size());
+        List<CigarElement> finalCigarElements = new ArrayList<CigarElement>(read.getCigar().getCigarElements().size());
         while ( idx < newCigarElements.size() -1 ) {
             if ( newCigarElements.get(idx).getOperator().equals(newCigarElements.get(idx+1).getOperator()) ) {
                 int combSize = newCigarElements.get(idx).getLength();
@@ -889,10 +889,10 @@ public class ReadUtils {
             idx++;
         }
 
-        rec.setCigar(new Cigar(finalCigarElements));
-        rec.setAlignmentStart(newReadStart);
+        read.setCigar(new Cigar(finalCigarElements));
+        read.setAlignmentStart(newReadStart);
 
-        return rec;
+        return read;
     }
 
     /**
@@ -905,7 +905,7 @@ public class ReadUtils {
 
     @Requires({"read1 != null", "read2 != null"})
     @Ensures("result == 0 || result == 1 || result == -1")
-    public static int compareSAMRecords(SAMRecord read1, SAMRecord read2) {
+    public static int compareSAMRecords(GATKSAMRecord read1, GATKSAMRecord read2) {
         AlignmentStartComparator comp = new AlignmentStartComparator();
         return comp.compare(read1, read2);
     }

@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
@@ -71,21 +72,23 @@ public class FindReadsWithNamesWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     /**
      * The reads filter function.
+     *
      * @param ref the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
-    public boolean filter(ReferenceContext ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, GATKSAMRecord read) {
         return namesToKeep.contains(read.getReadName());
 	}
 
     /**
      * The reads map function.
+     *
      * @param ref the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
-    public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public SAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read;
     }
 

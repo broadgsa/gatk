@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.List;
 
@@ -130,7 +130,7 @@ public class AlignmentContext implements HasGenomeLocation {
      */
     @Deprecated
     //todo: unsafe and tailored for current usage only; both pileups can be null or worse, bot can be not null in theory
-    public List<SAMRecord> getReads() { return ( basePileup.getReads() ); }
+    public List<GATKSAMRecord> getReads() { return ( basePileup.getReads() ); }
 
     /**
      * Are there any reads associated with this locus?

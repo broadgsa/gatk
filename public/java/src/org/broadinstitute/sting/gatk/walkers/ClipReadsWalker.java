@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
@@ -43,6 +42,7 @@ import org.broadinstitute.sting.utils.clipreads.ClippingOp;
 import org.broadinstitute.sting.utils.clipreads.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipreads.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
@@ -292,11 +292,12 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
     /**
      * The reads map function.
      *
+     *
      * @param ref  the reference bases that correspond to our read, if a reference was provided
-     * @param read the read itself, as a SAMRecord
+     * @param read the read itself, as a GATKSAMRecord
      * @return the ReadClipper object describing what should be done to clip this read
      */
-    public ReadClipperWithData map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public ReadClipperWithData map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
             if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES ) {
                 read = ReadUtils.replaceSoftClipsWithMatches(read);
@@ -323,7 +324,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      */
     private void clipSequences(ReadClipperWithData clipper) {
         if (sequencesToClip != null) {                // don't bother if we don't have any sequences to clip
-            SAMRecord read = clipper.getRead();
+            GATKSAMRecord read = clipper.getRead();
             ClippingData data = clipper.getData();
 
             for (SeqToClip stc : sequencesToClip) {
@@ -360,7 +361,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      * @param stop
      * @return
      */
-    private Pair<Integer, Integer> strandAwarePositions(SAMRecord read, int start, int stop) {
+    private Pair<Integer, Integer> strandAwarePositions(GATKSAMRecord read, int start, int stop) {
         if (read.getReadNegativeStrandFlag())
             return new Pair<Integer, Integer>(read.getReadLength() - stop - 1, read.getReadLength() - start - 1);
         else
@@ -374,7 +375,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      */
     private void clipCycles(ReadClipperWithData clipper) {
         if (cyclesToClip != null) {
-            SAMRecord read = clipper.getRead();
+            GATKSAMRecord read = clipper.getRead();
             ClippingData data = clipper.getData();
 
             for (Pair<Integer, Integer> p : cyclesToClip) {   // iterate over each cycle range
@@ -416,7 +417,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      * @param clipper
      */
     private void clipBadQualityScores(ReadClipperWithData clipper) {
-        SAMRecord read = clipper.getRead();
+        GATKSAMRecord read = clipper.getRead();
         ClippingData data = clipper.getData();
         int readLen = read.getReadBases().length;
         byte[] quals = read.getBaseQualities();
@@ -458,7 +459,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
         if ( clipper == null )
             return data;
 
-        SAMRecord clippedRead = clipper.clipRead(clippingRepresentation);
+        GATKSAMRecord clippedRead = clipper.clipRead(clippingRepresentation);
         if (outputBam != null) {
             outputBam.addAlignment(clippedRead);
         } else {
@@ -575,7 +576,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
     public class ReadClipperWithData extends ReadClipper {
         private ClippingData data;
 
-        public ReadClipperWithData(SAMRecord read, List<SeqToClip> clipSeqs) {
+        public ReadClipperWithData(GATKSAMRecord read, List<SeqToClip> clipSeqs) {
             super(read);
             data = new ClippingData(clipSeqs);
         }

@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.alignment;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
@@ -35,6 +34,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 
@@ -72,12 +72,13 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
 
     /**
      * Aligns a read to the given reference.
+     *
      * @param ref Reference over the read.  Read will most likely be unmapped, so ref will be null.
      * @param read Read to align.
      * @return Number of reads aligned by this map (aka 1).
      */
     @Override
-    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //logger.info(String.format("examining read %s", read.getReadName()));
 
         byte[] bases = read.getReadBases();

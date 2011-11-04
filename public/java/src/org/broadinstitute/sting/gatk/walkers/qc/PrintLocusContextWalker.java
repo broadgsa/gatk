@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
 import java.util.Arrays;
@@ -40,7 +40,7 @@ public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integ
         return lhs + rhs;
     }
 
-    private String[] getReadNames( List<SAMRecord> reads ) {
+    private String[] getReadNames( List<GATKSAMRecord> reads ) {
         String[] readNames = new String[ reads.size() ];
         for( int i = 0; i < reads.size(); i++ ) {
             readNames[i] = String.format("%nname = %s, start = %d, end = %d", reads.get(i).getReadName(), reads.get(i).getAlignmentStart(), reads.get(i).getAlignmentEnd());

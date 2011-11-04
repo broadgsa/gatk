@@ -3,8 +3,8 @@ package org.broadinstitute.sting.utils.clipreads;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ import java.util.List;
  * A simple collection of the clipping operations to apply to a read along with its read
  */
 public class ReadClipper {
-    SAMRecord read;
+    GATKSAMRecord read;
     boolean wasClipped;
     List<ClippingOp> ops = null;
 
@@ -23,7 +23,7 @@ public class ReadClipper {
      *
      * @param read
      */
-    public ReadClipper(final SAMRecord read) {
+    public ReadClipper(final GATKSAMRecord read) {
         this.read = read;
         this.wasClipped = false;
     }
@@ -46,19 +46,19 @@ public class ReadClipper {
         return wasClipped;
     }
 
-    public SAMRecord getRead() {
+    public GATKSAMRecord getRead() {
         return read;
     }
 
-    public SAMRecord hardClipByReferenceCoordinatesLeftTail(int refStop) {
+    public GATKSAMRecord hardClipByReferenceCoordinatesLeftTail(int refStop) {
         return hardClipByReferenceCoordinates(-1, refStop);
     }
 
-    public SAMRecord hardClipByReferenceCoordinatesRightTail(int refStart) {
+    public GATKSAMRecord hardClipByReferenceCoordinatesRightTail(int refStart) {
         return hardClipByReferenceCoordinates(refStart, -1);
     }
 
-    private int numDeletions(SAMRecord read) {
+    private int numDeletions(GATKSAMRecord read) {
         int result = 0;
         for (CigarElement e: read.getCigar().getCigarElements()) {
             if ( e.getOperator() == CigarOperator.DELETION || e.getOperator() == CigarOperator.D )
@@ -67,7 +67,7 @@ public class ReadClipper {
         return result;
     }
 
-    protected SAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
+    protected GATKSAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
 
@@ -78,32 +78,32 @@ public class ReadClipper {
             throw new ReviewedStingException("START > STOP -- this should never happen -- call Mauricio!");
 
         this.addOp(new ClippingOp(start, stop));
-        SAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);
+        GATKSAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);
         this.ops = null;
         return clippedRead;
     }
 
-    public SAMRecord hardClipByReadCoordinates(int start, int stop) {
+    public GATKSAMRecord hardClipByReadCoordinates(int start, int stop) {
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 
     @Requires("left <= right")
-    public SAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
+    public GATKSAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
         if (left == right)
-            return new SAMRecord(read.getHeader());
-        SAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
+            return new GATKSAMRecord(read.getHeader());
+        GATKSAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
 
         // after clipping one tail, it is possible that the consequent hard clipping of adjacent deletions
         // make the left cut index no longer part of the read. In that case, clip the read entirely.
         if (left > leftTailRead.getAlignmentEnd())
-            return new SAMRecord(read.getHeader());
+            return new GATKSAMRecord(read.getHeader());
 
         ReadClipper clipper = new ReadClipper(leftTailRead);
         return clipper.hardClipByReferenceCoordinatesLeftTail(left);
     }
 
-    public SAMRecord hardClipLowQualEnds(byte lowQual) {
+    public GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
         byte [] quals = read.getBaseQualities();
         int leftClipIndex = 0;
         int rightClipIndex = read.getReadLength() - 1;
@@ -114,7 +114,7 @@ public class ReadClipper {
 
         // if the entire read should be clipped, then return an empty read. (--todo: maybe null is better? testing this for now)
         if (leftClipIndex > rightClipIndex)
-            return (new SAMRecord(read.getHeader()));
+            return (new GATKSAMRecord(read.getHeader()));
 
         if (rightClipIndex < read.getReadLength() - 1) {
             this.addOp(new ClippingOp(rightClipIndex + 1, read.getReadLength() - 1));
@@ -125,7 +125,7 @@ public class ReadClipper {
         return this.clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 
-    public SAMRecord hardClipSoftClippedBases () {
+    public GATKSAMRecord hardClipSoftClippedBases () {
         int readIndex = 0;
         int cutLeft = -1;            // first position to hard clip (inclusive)
         int cutRight = -1;           // first position to hard clip (inclusive)
@@ -164,12 +164,12 @@ public class ReadClipper {
      * @param algorithm
      * @return
      */
-    public SAMRecord clipRead(ClippingRepresentation algorithm) {
+    public GATKSAMRecord clipRead(ClippingRepresentation algorithm) {
         if (ops == null)
             return getRead();
         else {
             try {
-                SAMRecord clippedRead = (SAMRecord) read.clone();
+                GATKSAMRecord clippedRead = (GATKSAMRecord) read.clone();
                 for (ClippingOp op : getOps()) {
                     clippedRead = op.apply(algorithm, clippedRead);
                 }
@@ -181,7 +181,7 @@ public class ReadClipper {
         }
     }
 
-    public SAMRecord hardClipLeadingInsertions() {
+    public GATKSAMRecord hardClipLeadingInsertions() {
         for(CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP &&
                 cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.DELETION)

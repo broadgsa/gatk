@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
 import java.text.DecimalFormat;
@@ -119,7 +119,7 @@ public class FlagStatWalker extends ReadWalker<Integer, Integer> {
 
     private FlagStat myStat = new FlagStat();
 
-    public Integer map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public Integer map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         myStat.readCount++;
         if (read.getReadFailsVendorQualityCheckFlag()) {
             myStat.QC_failure++;

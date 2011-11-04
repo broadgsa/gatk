@@ -25,13 +25,10 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -41,9 +38,9 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.Collections;
 
 /**
@@ -126,7 +123,7 @@ class CountBasesInReadPerformanceWalker extends ReadWalker<Integer,Long> {
     private long Gs;
     private long Ts;
 
-    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {
         for(byte base: read.getReadBases()) {
             switch(base) {
                 case 'A': As++; break;

@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -55,12 +56,12 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLocs(), Collections.<SAMRecord>emptyList());
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.<GATKSAMRecord>emptyList());
     }
 
     @Test
     public void singleReadTest() {
-        SAMRecord read = buildSAMRecord("chr1", 1, 5);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 1, 5);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         GenomeLoc shardBounds = genomeLocParser.createGenomeLoc("chr1", 1, 5);
@@ -76,7 +77,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readCoveringFirstPartTest() {
-        SAMRecord read = buildSAMRecord("chr1", 1, 5);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 1, 5);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -90,7 +91,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readCoveringLastPartTest() {
-        SAMRecord read = buildSAMRecord("chr1", 6, 10);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 6, 10);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -104,7 +105,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readCoveringMiddleTest() {
-        SAMRecord read = buildSAMRecord("chr1", 3, 7);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 3, 7);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -118,7 +119,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readAndLocusOverlapAtLastBase() {
-        SAMRecord read = buildSAMRecord("chr1", 1, 5);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 1, 5);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 5, 5)));
@@ -132,7 +133,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readOverlappingStartTest() {
-        SAMRecord read = buildSAMRecord("chr1", 1, 10);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 1, 10);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 6, 15)));
@@ -146,7 +147,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readOverlappingEndTest() {
-        SAMRecord read = buildSAMRecord("chr1", 6, 15);
+        GATKSAMRecord read = buildSAMRecord("read1","chr1", 6, 15);
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -160,8 +161,8 @@ public abstract class LocusViewTemplate extends BaseTest {
 
     @Test
     public void readsSpanningTest() {
-        SAMRecord read1 = buildSAMRecord("chr1", 1, 5);
-        SAMRecord read2 = buildSAMRecord("chr1", 6, 10);
+        GATKSAMRecord read1 = buildSAMRecord("read1","chr1", 1, 5);
+        GATKSAMRecord read2 = buildSAMRecord("read2","chr1", 6, 10);
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -170,17 +171,17 @@ public abstract class LocusViewTemplate extends BaseTest {
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), genomeLocParser, window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
 
-        List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
+        List<GATKSAMRecord> expectedReads = new ArrayList<GATKSAMRecord>();
         Collections.addAll(expectedReads, read1, read2);
         testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
     public void duplicateReadsTest() {
-        SAMRecord read1 = buildSAMRecord("chr1", 1, 5);
-        SAMRecord read2 = buildSAMRecord("chr1", 1, 5);
-        SAMRecord read3 = buildSAMRecord("chr1", 6, 10);
-        SAMRecord read4 = buildSAMRecord("chr1", 6, 10);
+        GATKSAMRecord read1 = buildSAMRecord("read1","chr1", 1, 5);
+        GATKSAMRecord read2 = buildSAMRecord("read2","chr1", 1, 5);
+        GATKSAMRecord read3 = buildSAMRecord("read3","chr1", 6, 10);
+        GATKSAMRecord read4 = buildSAMRecord("read4","chr1", 6, 10);
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -189,17 +190,17 @@ public abstract class LocusViewTemplate extends BaseTest {
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), genomeLocParser, window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
 
-        List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
+        List<GATKSAMRecord> expectedReads = new ArrayList<GATKSAMRecord>();
         Collections.addAll(expectedReads, read1, read2, read3, read4);
         testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
     public void cascadingReadsWithinBoundsTest() {
-        SAMRecord read1 = buildSAMRecord("chr1", 2, 6);
-        SAMRecord read2 = buildSAMRecord("chr1", 3, 7);
-        SAMRecord read3 = buildSAMRecord("chr1", 4, 8);
-        SAMRecord read4 = buildSAMRecord("chr1", 5, 9);
+        GATKSAMRecord read1 = buildSAMRecord("read1","chr1", 2, 6);
+        GATKSAMRecord read2 = buildSAMRecord("read2","chr1", 3, 7);
+        GATKSAMRecord read3 = buildSAMRecord("read3","chr1", 4, 8);
+        GATKSAMRecord read4 = buildSAMRecord("read4","chr1", 5, 9);
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -208,19 +209,19 @@ public abstract class LocusViewTemplate extends BaseTest {
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), genomeLocParser, window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
 
-        List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
+        List<GATKSAMRecord> expectedReads = new ArrayList<GATKSAMRecord>();
         Collections.addAll(expectedReads, read1, read2, read3, read4);
         testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
     public void cascadingReadsAtBoundsTest() {
-        SAMRecord read1 = buildSAMRecord("chr1", 1, 5);
-        SAMRecord read2 = buildSAMRecord("chr1", 2, 6);
-        SAMRecord read3 = buildSAMRecord("chr1", 3, 7);
-        SAMRecord read4 = buildSAMRecord("chr1", 4, 8);
-        SAMRecord read5 = buildSAMRecord("chr1", 5, 9);
-        SAMRecord read6 = buildSAMRecord("chr1", 6, 10);
+        GATKSAMRecord read1 = buildSAMRecord("read1","chr1", 1, 5);
+        GATKSAMRecord read2 = buildSAMRecord("read2","chr1", 2, 6);
+        GATKSAMRecord read3 = buildSAMRecord("read3","chr1", 3, 7);
+        GATKSAMRecord read4 = buildSAMRecord("read4","chr1", 4, 8);
+        GATKSAMRecord read5 = buildSAMRecord("read5","chr1", 5, 9);
+        GATKSAMRecord read6 = buildSAMRecord("read6","chr1", 6, 10);
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4, read5, read6);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chr1", 1, 10)));
@@ -229,25 +230,25 @@ public abstract class LocusViewTemplate extends BaseTest {
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), genomeLocParser, window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
 
-        List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
+        List<GATKSAMRecord> expectedReads = new ArrayList<GATKSAMRecord>();
         Collections.addAll(expectedReads, read1, read2, read3, read4, read5, read6);
         testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
     public void cascadingReadsOverlappingBoundsTest() {
-        SAMRecord read01 = buildSAMRecord("chr1", 1, 5);
-        SAMRecord read02 = buildSAMRecord("chr1", 2, 6);
-        SAMRecord read03 = buildSAMRecord("chr1", 3, 7);
-        SAMRecord read04 = buildSAMRecord("chr1", 4, 8);
-        SAMRecord read05 = buildSAMRecord("chr1", 5, 9);
-        SAMRecord read06 = buildSAMRecord("chr1", 6, 10);
-        SAMRecord read07 = buildSAMRecord("chr1", 7, 11);
-        SAMRecord read08 = buildSAMRecord("chr1", 8, 12);
-        SAMRecord read09 = buildSAMRecord("chr1", 9, 13);
-        SAMRecord read10 = buildSAMRecord("chr1", 10, 14);
-        SAMRecord read11 = buildSAMRecord("chr1", 11, 15);
-        SAMRecord read12 = buildSAMRecord("chr1", 12, 16);
+        GATKSAMRecord read01 = buildSAMRecord("read1","chr1", 1, 5);
+        GATKSAMRecord read02 = buildSAMRecord("read2","chr1", 2, 6);
+        GATKSAMRecord read03 = buildSAMRecord("read3","chr1", 3, 7);
+        GATKSAMRecord read04 = buildSAMRecord("read4","chr1", 4, 8);
+        GATKSAMRecord read05 = buildSAMRecord("read5","chr1", 5, 9);
+        GATKSAMRecord read06 = buildSAMRecord("read6","chr1", 6, 10);
+        GATKSAMRecord read07 = buildSAMRecord("read7","chr1", 7, 11);
+        GATKSAMRecord read08 = buildSAMRecord("read8","chr1", 8, 12);
+        GATKSAMRecord read09 = buildSAMRecord("read9","chr1", 9, 13);
+        GATKSAMRecord read10 = buildSAMRecord("read10","chr1", 10, 14);
+        GATKSAMRecord read11 = buildSAMRecord("read11","chr1", 11, 15);
+        GATKSAMRecord read12 = buildSAMRecord("read12","chr1", 12, 16);
         SAMRecordIterator iterator = new SAMRecordIterator(read01, read02, read03, read04, read05, read06,
                                                            read07, read08, read09, read10, read11, read12);
 
@@ -257,7 +258,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), genomeLocParser, window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
 
-        List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
+        List<GATKSAMRecord> expectedReads = new ArrayList<GATKSAMRecord>();
         Collections.addAll(expectedReads, read01, read02, read03, read04, read05, read06,
                            read07, read08, read09, read10, read11, read12);
         testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
@@ -277,7 +278,7 @@ public abstract class LocusViewTemplate extends BaseTest {
      * @param bounds
      * @param reads
      */
-    protected abstract void testReadsInContext(LocusView view, List<GenomeLoc> bounds, List<SAMRecord> reads);
+    protected abstract void testReadsInContext(LocusView view, List<GenomeLoc> bounds, List<GATKSAMRecord> reads);
 
     /**
      * Fake a reference sequence file.  Essentially, seek a header with a bunch of dummy data.
@@ -321,12 +322,13 @@ public abstract class LocusViewTemplate extends BaseTest {
      *
      * @return New SAM Record
      */
-    protected SAMRecord buildSAMRecord(String contig, int alignmentStart, int alignmentEnd) {
+    protected GATKSAMRecord buildSAMRecord(String readName, String contig, int alignmentStart, int alignmentEnd) {
         SAMFileHeader header = new SAMFileHeader();
         header.setSequenceDictionary(sequenceSourceFile.getSequenceDictionary());
 
-        SAMRecord record = new SAMRecord(header);
+        GATKSAMRecord record = new GATKSAMRecord(header);
 
+        record.setReadName(readName);
         record.setReferenceIndex(sequenceSourceFile.getSequenceDictionary().getSequenceIndex(contig));
         record.setAlignmentStart(alignmentStart);
         Cigar cigar = new Cigar();

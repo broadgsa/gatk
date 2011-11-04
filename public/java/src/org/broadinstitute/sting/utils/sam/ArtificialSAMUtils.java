@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -201,9 +200,9 @@ public class ArtificialSAMUtils {
         return rec;
     }
 
-    public final static List<SAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
-        SAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
-        SAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);
+    public final static List<GATKSAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
+        GATKSAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
+        GATKSAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);
 
         left.setReadPairedFlag(true);
         right.setReadPairedFlag(true);
@@ -327,9 +326,9 @@ public class ArtificialSAMUtils {
 
             if ( rightStart <= 0 ) continue;
 
-            List<SAMRecord> pair = createPair(header, readName, readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
-            final SAMRecord left = pair.get(0);
-            final SAMRecord right = pair.get(1);
+            List<GATKSAMRecord> pair = createPair(header, readName, readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
+            final GATKSAMRecord left = pair.get(0);
+            final GATKSAMRecord right = pair.get(1);
 
             pileupElements.add(new PileupElement(left, pos - leftStart));
 

@@ -57,6 +57,7 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -394,7 +395,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 
 	@Override
-	public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+	public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
     //        if ( read.getReadName().equals("428EFAAXX090610:2:36:1384:639#0") ) System.out.println("GOT READ");
 

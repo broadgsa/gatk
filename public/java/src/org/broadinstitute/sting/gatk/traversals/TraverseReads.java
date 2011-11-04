@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -100,9 +101,9 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
             // if the read is mapped, create a metadata tracker
             ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
 
-            final boolean keepMeP = walker.filter(refContext, read);
+            final boolean keepMeP = walker.filter(refContext, (GATKSAMRecord) read);
             if (keepMeP) {
-                M x = walker.map(refContext, read, tracker); // the tracker can be null
+                M x = walker.map(refContext, (GATKSAMRecord) read, tracker); // the tracker can be null
                 sum = walker.reduce(x, sum);
             }
 
