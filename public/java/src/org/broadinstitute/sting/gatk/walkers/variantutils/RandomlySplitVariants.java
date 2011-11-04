@@ -58,15 +58,12 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="fractionToOut1", shortName="fraction", doc="Fraction of records to be placed in out1 (must be 0 >= fraction <= 1); all other records are placed in out2", required=false)
     protected double fraction = 0.5;
 
-    protected int iFraction;
-
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
     public void initialize() {
         if ( fraction < 0.0 || fraction > 1.0 )
             throw new UserException.BadArgumentValue("fractionToOut1", "this value needs to be a number between 0 and 1");
-        iFraction = (int)(fraction * 1000.0);
 
         // setup the header info
         final List<String> inputNames = Arrays.asList(variantCollection.variants.getName());
@@ -93,8 +90,8 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
 
         Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
         for ( VariantContext vc : vcs ) {
-            int random = GenomeAnalysisEngine.getRandomGenerator().nextInt(1000);
-            if ( random < iFraction )
+            double random = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
+            if ( random < fraction )
                 vcfWriter1.add(vc);
             else
                 vcfWriter2.add(vc);
@@ -107,5 +104,8 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
 
     public Integer reduce(Integer value, Integer sum) { return value + sum; }
 
-    public void onTraversalDone(Integer result) { logger.info(result + " records processed."); }
+    public void onTraversalDone(Integer result) {
+        logger.info(result + " records processed.");
+        vcfWriter2.close();
+    }
 }
