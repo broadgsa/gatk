@@ -164,7 +164,15 @@ public class UserException extends ReviewedStingException {
 
     public static class MalformedBAM extends UserException {
         public MalformedBAM(SAMRecord read, String message) {
-            super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource() != null ? read.getFileSource().getReader() : "(none)", message));
+            this(read.getFileSource() != null ? read.getFileSource().getReader().toString() : "(none)", message);
+        }
+
+        public MalformedBAM(File file, String message) {
+            this(file.toString(), message);
+        }
+
+        public MalformedBAM(String source, String message) {
+            super(String.format("SAM/BAM file %s is malformed: %s", source, message));
         }
     }
 
@@ -175,6 +183,12 @@ public class UserException extends ReviewedStingException {
 
         public MalformedVCF(String message, int lineNo) {
             super(String.format("The provided VCF file is malformed at line number %d: %s", lineNo, message));
+        }
+    }
+
+    public static class MalformedVCFHeader extends UserException {
+        public MalformedVCFHeader(String message) {
+            super(String.format("The provided VCF file has a malformed header: %s", message));
         }
     }
 
@@ -213,12 +227,19 @@ public class UserException extends ReviewedStingException {
             super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, e.getMessage()));
         }
 
+        public MalformedFile(String name, String message) {
+            super(String.format("File associated with name %s is malformed: %s", name, message));
+        }
+
         public MalformedFile(String name, String message, Exception e) {
             super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, e.getMessage()));
         }
      }
 
     public static class CannotExecuteRScript extends UserException {
+        public CannotExecuteRScript(String message) {
+            super(String.format("Unable to execute RScript command: " + message));
+        }
         public CannotExecuteRScript(String message, Exception e) {
             super(String.format("Unable to execute RScript command: " + message), e);
         }

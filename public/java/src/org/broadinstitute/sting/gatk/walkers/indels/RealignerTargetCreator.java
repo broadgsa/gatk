@@ -50,6 +50,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Emits intervals for the Local Indel Realigner to target for realignment.
@@ -103,7 +104,7 @@ import java.util.List;
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.REFERENCE)
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
-public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
+public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Event, RealignerTargetCreator.EventPair> implements TreeReducible<RealignerTargetCreator.EventPair> {
 
     /**
      * The target intervals for realignment.
@@ -227,7 +228,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             // make sure we're supposed to look for high entropy
             if ( mismatchThreshold > 0.0 &&
                     mismatchThreshold <= 1.0 &&
-                    pileup.size() >= minReadsAtLocus &&
+                    pileup.getNumberOfElements() >= minReadsAtLocus &&
                     (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
                 hasPointEvent = true;
         }
@@ -251,43 +252,125 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         return new Event(eventLoc, furthestStopPos, eventType);
     }
 
-    public void onTraversalDone(Event sum) {
-        if ( sum != null && sum.isReportableEvent() )
-            out.println(sum.toString());
+    public void onTraversalDone(EventPair sum) {
+        if ( sum.left != null && sum.left.isReportableEvent() )
+            sum.intervals.add(sum.left.getLoc());
+        if ( sum.right != null && sum.right.isReportableEvent() )
+            sum.intervals.add(sum.right.getLoc());
+
+        for ( GenomeLoc loc : sum.intervals )
+            out.println(loc);
     }
 
-    public Event reduceInit() {
-        return null;
+    public EventPair reduceInit() {
+        return new EventPair(null, null);
     }
 
-    public Event reduce(Event value, Event sum) {
-        // ignore no new events
-        if ( value == null )
-            return sum;
+    public EventPair treeReduce(EventPair lhs, EventPair rhs) {
+        EventPair result;
 
-        // if it's the first good value, use it
-        if ( sum == null )
-            return value;
+        if ( lhs.left == null ) {
+            result = rhs;
+        } else if ( rhs.left == null ) {
+            result = lhs;
+        } else if ( lhs.right == null ) {
+            if ( rhs.right == null ) {
+                if ( canBeMerged(lhs.left, rhs.left) )
+                    result = new EventPair(mergeEvents(lhs.left, rhs.left), null, lhs.intervals, rhs.intervals);
+                else
+                    result = new EventPair(lhs.left, rhs.left, lhs.intervals, rhs.intervals);
+            } else {
+                if ( canBeMerged(lhs.left, rhs.left) )
+                    result = new EventPair(mergeEvents(lhs.left, rhs.left), rhs.right, lhs.intervals, rhs.intervals);
+                else {
+                    if ( rhs.left.isReportableEvent() )
+                        rhs.intervals.add(rhs.left.getLoc());
+                    result = new EventPair(lhs.left, rhs.right, lhs.intervals, rhs.intervals);
+                }
+            }
+        } else if ( rhs.right == null ) {
+            if ( canBeMerged(lhs.right, rhs.left) )
+                result = new EventPair(lhs.left, mergeEvents(lhs.right, rhs.left), lhs.intervals, rhs.intervals);
+            else {
+                if ( lhs.right.isReportableEvent() )
+                    lhs.intervals.add(lhs.right.getLoc());
+                result = new EventPair(lhs.left, rhs.left, lhs.intervals, rhs.intervals);
+            }
+        } else {
+            if ( canBeMerged(lhs.right, rhs.left) ) {
+                Event merge = mergeEvents(lhs.right, rhs.left);
+                if ( merge.isReportableEvent() )
+                    lhs.intervals.add(merge.getLoc());
+            } else {
+                if ( lhs.right.isReportableEvent() )
+                    lhs.intervals.add(lhs.right.getLoc());
+                if ( rhs.left.isReportableEvent() )
+                    rhs.intervals.add(rhs.left.getLoc());
+            }
 
-        // if we hit a new contig or they have no overlapping reads, then they are separate events - so clear sum
-        if ( sum.loc.getContigIndex() != value.loc.getContigIndex() || sum.furthestStopPos < value.loc.getStart() ) {
-            if ( sum.isReportableEvent() )
-                out.println(sum.toString());
-            return value;
+            result = new EventPair(lhs.left, rhs.right, lhs.intervals, rhs.intervals);
         }
 
-        // otherwise, merge the two events
-        sum.merge(value);
+        return result;
+    }
+
+    public EventPair reduce(Event value, EventPair sum) {
+        if ( value == null ) {
+            ; // do nothing
+        } else if ( sum.left == null ) {
+            sum.left = value;
+        } else if ( sum.right == null ) {
+            if ( canBeMerged(sum.left, value) )
+                sum.left = mergeEvents(sum.left, value);
+            else
+                sum.right = value;
+        } else {
+            if ( canBeMerged(sum.right, value) )
+                sum.right = mergeEvents(sum.right, value);
+            else {
+                if ( sum.right.isReportableEvent() )
+                    sum.intervals.add(sum.right.getLoc());
+                sum.right = value;
+            }
+        }
+
         return sum;
+    }
+
+    static private boolean canBeMerged(Event left, Event right) {
+        return left.loc.getContigIndex() == right.loc.getContigIndex() && left.furthestStopPos >= right.loc.getStart();
+    }
+
+    @com.google.java.contract.Requires({"left != null", "right != null"})
+    static private Event mergeEvents(Event left, Event right) {
+        left.merge(right);
+        return left;
     }
 
     private enum EVENT_TYPE { POINT_EVENT, INDEL_EVENT, BOTH }
 
+    class EventPair {
+        public Event left, right;
+        public TreeSet<GenomeLoc> intervals = new TreeSet<GenomeLoc>();
+
+        public EventPair(Event left, Event right) {
+            this.left = left;
+            this.right = right;
+        }
+
+        public EventPair(Event left, Event right, TreeSet<GenomeLoc> set1, TreeSet<GenomeLoc> set2) {
+            this.left = left;
+            this.right = right;
+            intervals.addAll(set1);
+            intervals.addAll(set2);
+        }
+    }
+
     class Event {
         public int furthestStopPos;
 
-        public GenomeLoc loc;
-        public int eventStartPos;
+        private GenomeLoc loc;
+        private int eventStartPos;
         private int eventStopPos;
         private EVENT_TYPE type;
         private ArrayList<Integer> pointEvents = new ArrayList<Integer>();
@@ -332,6 +415,10 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
                             eventStartPos = lastPosition;
                         else
                             eventStartPos = Math.min(eventStartPos, lastPosition);
+                    } else if ( eventStartPos == -1 && e.eventStartPos != -1 ) {
+                        eventStartPos = e.eventStartPos;
+                        eventStopPos = e.eventStopPos;
+                        furthestStopPos = e.furthestStopPos;
                     }
                 }
                 pointEvents.add(newPosition);
@@ -342,8 +429,8 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             return getToolkit().getGenomeLocParser().isValidGenomeLoc(loc.getContig(), eventStartPos, eventStopPos, true) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
         }
 
-        public String toString() {
-            return String.format("%s:%d-%d", loc.getContig(), eventStartPos, eventStopPos);
+        public GenomeLoc getLoc() {
+            return getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), eventStartPos, eventStopPos);
         }
     }
 }

@@ -23,15 +23,14 @@
  */
 
 package org.broadinstitute.sting.queue.util
+
 import org.broadinstitute.sting.queue.function.QFunction
 import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
 import java.io.{FileOutputStream, PrintStream, File}
-import org.broadinstitute.sting.queue.function.scattergather.{GathererFunction, ScatterFunction}
-import org.broadinstitute.sting.utils.R.RScriptExecutor.RScriptArgumentCollection
-import org.broadinstitute.sting.utils.R.RScriptExecutor
-import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.sting.utils.R.{RScriptLibrary, RScriptExecutor}
+import org.broadinstitute.sting.utils.io.Resource
 
 /**
  * A mixin to add Job info to the class
@@ -104,10 +103,12 @@ object QJobReport {
     stream.close()
   }
 
-  def plotReport(args: RScriptArgumentCollection, jobReportFile: File) {
-    val executor = new RScriptExecutor(args, false) // don't except on error
-    val pdf = jobReportFile.getAbsolutePath + ".pdf"
-    executor.callRScripts(JOB_REPORT_QUEUE_SCRIPT, jobReportFile.getAbsolutePath, pdf)
+  def plotReport(reportFile: File, pdfFile: File) {
+    val executor = new RScriptExecutor
+    executor.addLibrary(RScriptLibrary.GSALIB)
+    executor.addScript(new Resource(JOB_REPORT_QUEUE_SCRIPT, classOf[QJobReport]))
+    executor.addArgs(reportFile.getAbsolutePath, pdfFile.getAbsolutePath)
+    executor.exec()
   }
 
   def workAroundSameJobNames(func: QFunction):String = {

@@ -98,40 +98,56 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // BUGBUG: We no longer support b36/hg18 because several of the necessary files aren't available aligned to those references
 
   val targetDataSets: Map[String, Target] = Map(
-    "HiSeq" -> new Target("NA12878.HiSeq", hg18, dbSNP_hg18_129, hapmap_hg18,
+    "NA12878_gold" -> new Target("NA12878.goldStandard", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/data/goldStandard.list"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** There is no gold standard for the gold standard **
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, lowPass, !exome, 391),
+    "NA12878_wgs_b37" -> new Target("NA12878.HiSeq.WGS.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
+    "NA12878_wgs_decoy" -> new Target("NA12878.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37_decoy.NA12878.clean.dedup.recal.bam"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
+    "NA12878_wgs_hg18" -> new Target("NA12878.HiSeq.WGS.hg18", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.14, 99.0, !lowPass, !exome, 1),
-    "HiSeq19" -> new Target("NA12878.HiSeq19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
-              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
-              new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
-    "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
-              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
-              new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
-    "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18_129, hapmap_hg18,
+    "NA12878_wex_b37" -> new Target("NA12878.HiSeq.WEx.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/seq/picard_aggregation/C339/NA12878/v3/NA12878.bam"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 1),
+    "NA12878_wex_hg18" -> new Target("NA12878.HiSeq.WEx.hg18", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 3.3, 98.0, !lowPass, exome, 1),
-    "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+    "NA12878_wex_decoy" -> new Target("NA12878.HiSeq.WEx.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.b37_decoy.NA12878.clean.dedup.recal.bam"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 1),
+    "CEUTrio_wex_b37" -> new Target("CEUTrio.HiSeq.WEx.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 3),
-    "WGSTrio" -> new Target("CEUTrio.WGS", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+    "CEUTrio_wgs_b37" -> new Target("CEUTrio.HiSeq.WGS.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
-    "WExTrioDecoy" -> new Target("CEUTrio.HiSeq.WEx.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
+    "CEUTrio_wex_decoy" -> new Target("CEUTrio.HiSeq.WEx.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.b37_decoy.list"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 3),
-    "WGSTrioDecoy" -> new Target("CEUTrio.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
+    "CEUTrio_wgs_decoy" -> new Target("CEUTrio.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37_decoy.list"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
+    "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
+              new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
@@ -189,7 +205,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 1.) Unified Genotyper Base
   class GenotyperBase (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = 3
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 140
@@ -209,13 +224,14 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.max_deletion_fraction = qscript.deletions
     this.out = t.rawVCF
     this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.SNP
-    this.baq = if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY}
+    this.baq = if (noBAQ ||  t.isExome) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY}
     this.analysisName = t.name + "_UGs"
     this.jobName =  queueLogDir + t.name + ".snpcall"
   }
 
   // 1b.) Call Indels with UG
   class indelCall (t: Target) extends GenotyperBase(t) {
+    this.memoryLimit = 6
     this.out = t.rawIndelVCF
     this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.INDEL
     this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF
@@ -243,7 +259,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 3.) Variant Quality Score Recalibration - Generate Recalibration table
   class VQSR(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = 4
     this.nt = 2
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
@@ -254,13 +269,18 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.resource :+= new TaggedFile( t.dbsnpFile, "known=true,prior=2.0" )
     this.resource :+= new TaggedFile( projectConsensus_1000G, "prior=8.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "MQ", "FS")
-    if(t.nSamples >= 10) {
+    if(t.nSamples >= 10) { // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
         this.use_annotation ++= List("InbreedingCoeff")
     }
     if(!t.isExome) {
         this.use_annotation ++= List("DP")
-    } else {
+    } else { // exome specific parameters
+        this.resource :+= new TaggedFile( badSites_1000G, "bad=true,prior=2.0" )
         this.mG = 6
+        if(t.nSamples <= 3) { // very few exome samples means very few variants
+            this.mG = 4
+            this.percentBad = 0.04
+        }
     }
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }

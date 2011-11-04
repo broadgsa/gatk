@@ -24,10 +24,10 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.sting.utils.fragments.FragmentCollection;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.List;
@@ -137,18 +137,11 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public ReadBackedPileup getPileupForLane(String laneID);
 
-
-     /**
-     * Gets a collection of all the samples stored in this pileup.
-     * @return Collection of samples in this pileup.
-     */
-    public Collection<Sample> getSamples();
-
     /**
      * Gets a collection of *names* of all the samples stored in this pileup.
      * @return Collection of names
      */
-    public Collection<String> getSampleNames();
+    public Collection<String> getSamples();
 
 
     /**
@@ -156,7 +149,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @param sampleNames Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSampleNames(Collection<String> sampleNames);
+    public ReadBackedPileup getPileupForSamples(Collection<String> sampleNames);
 
 
     /**
@@ -164,14 +157,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @param sampleName Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSampleName(String sampleName);
-
-    /**
-     * Gets the particular subset of this pileup with the given sample.
-     * @param sample Sample to use.
-     * @return A subset of this pileup containing only reads with the given sample.
-     */
-    public ReadBackedPileup getPileupForSample(Sample sample);
+    public ReadBackedPileup getPileupForSample(String sampleName);
     
     /**
      * Simple useful routine to count the number of deletion bases in this pileup
@@ -183,9 +169,14 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
     public int getNumberOfMappingQualityZeroReads();
 
     /**
-     * @return the number of elements in this pileup
+     * @return the number of physical elements in this pileup (a reduced read is counted just once)
      */
-    public int size();
+    public int getNumberOfElements();
+
+    /**
+     * @return the number of abstract elements in this pileup (reduced reads are expanded to count all reads that they represent)
+     */
+    public int depthOfCoverage();
 
     /**
      * @return true if there are 0 elements in the pileup, false otherwise
@@ -211,7 +202,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * Returns a list of the reads in this pileup. Note this call costs O(n) and allocates fresh lists each time
      * @return
      */
-    public List<SAMRecord> getReads();
+    public List<GATKSAMRecord> getReads();
 
     /**
      * Returns a list of the offsets in this pileup. Note this call costs O(n) and allocates fresh lists each time
@@ -237,4 +228,9 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public byte[] getMappingQuals();
 
+    /**
+     * Converts this pileup into a FragmentCollection (see FragmentUtils for documentation)
+     * @return
+     */
+    public FragmentCollection<PileupElement> toFragments();
 }

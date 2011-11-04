@@ -26,12 +26,29 @@ public class Genotype {
     protected boolean filtersWereAppliedToContext;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
+        this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
+    }
+
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        if ( log10Likelihoods != null )
+            commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
         validate();
+    }
+
+    /**
+     * Creates a new Genotype for sampleName with genotype according to alleles.
+     * @param sampleName
+     * @param alleles
+     * @param negLog10PError the confidence in these alleles
+     * @param log10Likelihoods a log10 likelihoods for each of the genotype combinations possible for alleles, in the standard VCF ordering, or null if not known
+     */
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, double[] log10Likelihoods) {
+        this(sampleName, alleles, negLog10PError, null, null, false, log10Likelihoods);
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError) {
@@ -55,13 +72,6 @@ public class Genotype {
 
     public static Genotype modifyAttributes(Genotype g, Map<String, Object> attributes) {
         return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.isPhased());
-    }
-
-    public static Genotype removePLs(Genotype g) {
-        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
-        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
-        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
     public static Genotype modifyAlleles(Genotype g, List<Allele> alleles) {
@@ -98,14 +108,19 @@ public class Genotype {
     /**
      * @return the ploidy of this genotype
      */
-    public int getPloidy() { return alleles.size(); }
+    public int getPloidy() {
+        if ( alleles == null )
+            throw new ReviewedStingException("Requesting ploidy for an UNAVAILABLE genotype");
+        return alleles.size();
+    }
 
     public enum Type {
         NO_CALL,
         HOM_REF,
         HET,
         HOM_VAR,
-        UNAVAILABLE
+        UNAVAILABLE,
+        MIXED  // no-call and call in the same genotype
     }
 
     public Type getType() {
@@ -119,36 +134,68 @@ public class Genotype {
         if ( alleles == null )
             return Type.UNAVAILABLE;
 
-        Allele firstAllele = alleles.get(0);
+        boolean sawNoCall = false, sawMultipleAlleles = false;
+        Allele observedAllele = null;
 
-        if ( firstAllele.isNoCall() ) {
-            return Type.NO_CALL;
+        for ( Allele allele : alleles ) {
+            if ( allele.isNoCall() )
+                sawNoCall = true;
+            else if ( observedAllele == null )
+                observedAllele = allele;
+            else if ( !allele.equals(observedAllele) )
+                sawMultipleAlleles = true;
         }
 
-        for (Allele a : alleles) {
-            if ( ! firstAllele.equals(a) )
-                return Type.HET;
+        if ( sawNoCall ) {
+            if ( observedAllele == null )
+                return Type.NO_CALL;
+            return Type.MIXED;
         }
-        return firstAllele.isReference() ? Type.HOM_REF : Type.HOM_VAR;
+
+        if ( observedAllele == null )
+            throw new ReviewedStingException("BUG: there are no alleles present in this genotype but the alleles list is not null");
+
+        return sawMultipleAlleles ? Type.HET : observedAllele.isReference() ? Type.HOM_REF : Type.HOM_VAR;
     }
 
     /**
-     * @return true if all observed alleles are the same (regardless of whether they are ref or alt)
+     * @return true if all observed alleles are the same (regardless of whether they are ref or alt); if any alleles are no-calls, this method will return false.
      */
     public boolean isHom()    { return isHomRef() || isHomVar(); }
+
+    /**
+     * @return true if all observed alleles are ref; if any alleles are no-calls, this method will return false.
+     */
     public boolean isHomRef() { return getType() == Type.HOM_REF; }
+
+    /**
+     * @return true if all observed alleles are alt; if any alleles are no-calls, this method will return false.
+     */
     public boolean isHomVar() { return getType() == Type.HOM_VAR; }
     
     /**
-     * @return true if we're het (observed alleles differ)
+     * @return true if we're het (observed alleles differ); if the ploidy is less than 2 or if any alleles are no-calls, this method will return false.
      */
     public boolean isHet() { return getType() == Type.HET; }
 
     /**
-     * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF)
+     * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF); if any alleles are not no-calls (even if some are), this method will return false.
      */
     public boolean isNoCall() { return getType() == Type.NO_CALL; }
+
+    /**
+     * @return true if this genotype is comprised of any alleles that are not no-calls (even if some are).
+     */
     public boolean isCalled() { return getType() != Type.NO_CALL && getType() != Type.UNAVAILABLE; }
+
+    /**
+     * @return true if this genotype is comprised of both calls and no-calls.
+     */
+    public boolean isMixed() { return getType() == Type.MIXED; }
+
+    /**
+     * @return true if the type of this genotype is set.
+     */
     public boolean isAvailable() { return getType() != Type.UNAVAILABLE; }
 
     //
@@ -187,14 +234,16 @@ public class Genotype {
         if ( alleles == null ) return;
         if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0");
 
-        int nNoCalls = 0;
+        // int nNoCalls = 0;
         for ( Allele allele : alleles ) {
             if ( allele == null )
                 throw new IllegalArgumentException("BUG: allele cannot be null in Genotype");
-            nNoCalls += allele.isNoCall() ? 1 : 0;
+            // nNoCalls += allele.isNoCall() ? 1 : 0;
         }
-        if ( nNoCalls > 0 && nNoCalls != alleles.size() )
-            throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
+
+        // Technically, the spec does allow for the below case so this is not an illegal state
+        //if ( nNoCalls > 0 && nNoCalls != alleles.size() )
+        //    throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
     }
 
     public String getGenotypeString() {
@@ -258,7 +307,8 @@ public class Genotype {
      * @param <V> the value type
      * @return a sting, enclosed in {}, with comma seperated key value pairs in order of the keys
      */
-    public static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+    private static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+        // NOTE -- THIS IS COPIED FROM GATK UTILS TO ALLOW US TO KEEP A SEPARATION BETWEEN THE GATK AND VCF CODECS
         List<T> t = new ArrayList<T>(c.keySet());
         Collections.sort(t);
 
@@ -293,17 +343,8 @@ public class Genotype {
         return commonInfo.getAttribute(key, defaultValue); 
     }
 
-    public String getAttributeAsString(String key)                        { return commonInfo.getAttributeAsString(key); }
     public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
-    public int getAttributeAsInt(String key)                              { return commonInfo.getAttributeAsInt(key); }
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
-    public double getAttributeAsDouble(String key)                        { return commonInfo.getAttributeAsDouble(key); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
-    public boolean getAttributeAsBoolean(String key)                        { return commonInfo.getAttributeAsBoolean(key); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
-
-    public Integer getAttributeAsIntegerNoException(String key)  { return commonInfo.getAttributeAsIntegerNoException(key); }
-    public Double getAttributeAsDoubleNoException(String key)    { return commonInfo.getAttributeAsDoubleNoException(key); }
-    public String getAttributeAsStringNoException(String key)    { return commonInfo.getAttributeAsStringNoException(key); }
-    public Boolean getAttributeAsBooleanNoException(String key)  { return commonInfo.getAttributeAsBooleanNoException(key); }
 }

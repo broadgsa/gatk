@@ -26,7 +26,6 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
 import net.sf.picard.filter.FilteringIterator;
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Tags;
@@ -34,15 +33,12 @@ import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -88,12 +84,9 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                (byte)0);
 
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
-            SampleDataSource sampleDataSource = new SampleDataSource();
-            sampleDataSource.addSamplesFromSAMHeader(reader.getFileHeader());
-
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
             Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
-            LocusIteratorByState locusIteratorByState = new LocusIteratorByState(readIterator,readProperties,genomeLocParser,sampleDataSource);
+            LocusIteratorByState locusIteratorByState = new LocusIteratorByState(readIterator,readProperties,genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
             while(locusIteratorByState.hasNext()) {
                 locusIteratorByState.next().getLocation();
             }

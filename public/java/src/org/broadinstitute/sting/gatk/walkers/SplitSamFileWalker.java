@@ -33,6 +33,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
@@ -60,7 +61,7 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
         logger.info("SplitSamFile version: " + VERSION);
     }
 
-    public SAMRecord map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public SAMRecord map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         return read;
     }
 

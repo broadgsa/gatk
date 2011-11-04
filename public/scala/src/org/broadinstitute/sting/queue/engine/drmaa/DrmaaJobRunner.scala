@@ -135,14 +135,18 @@ class DrmaaJobRunner(val session: Session, val function: CommandLineFunction) ex
 
   def tryStop() {
     session.synchronized {
-      try {
-        // Stop runners. SIGTERM(15) is preferred to SIGKILL(9).
-        // Only way to send SIGTERM is for the Sys Admin set the terminate_method
-        // resource of the designated queue to SIGTERM
-        session.control(jobId, Session.TERMINATE)
-      } catch {
-        case e =>
-          logger.error("Unable to kill job " + jobId, e)
+      // Assumes that after being set the job may be
+      // reassigned but will not be reset back to null
+      if (jobId != null) {
+        try {
+          // Stop runners. SIGTERM(15) is preferred to SIGKILL(9).
+          // Only way to send SIGTERM is for the Sys Admin set the terminate_method
+          // resource of the designated queue to SIGTERM
+          session.control(jobId, Session.TERMINATE)
+        } catch {
+          case e =>
+            logger.error("Unable to kill job " + jobId, e)
+        }
       }
     }
   }

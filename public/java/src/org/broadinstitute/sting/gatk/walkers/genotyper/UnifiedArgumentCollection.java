@@ -31,8 +31,6 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-
 
 public class UnifiedArgumentCollection {
 
@@ -103,17 +101,12 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
 
-    // TODO -- delete me
-    @Hidden
-    @Argument(fullName = "abort_at_too_much_coverage", doc = "Don't call a site if the downsampled coverage is greater than this value", required = false)
-    public int COVERAGE_AT_WHICH_TO_ABORT = -1;
-
-    // control the various parameters to be used
+    /**
+     * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
+     * is capped by the mapping quality so that bases on reads with low mapping quality may get filtered out depending on this value.
+     */
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 17;
-
-    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
-    public int MIN_MAPPING_QUALTY_SCORE = 20;
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
@@ -143,46 +136,27 @@ public class UnifiedArgumentCollection {
     @Hidden
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
-    @Hidden
-    @Argument(fullName = "doContextDependentGapPenalties", shortName = "doCDP", doc = "Vary gap penalties by context", required = false)
-     public boolean DO_CONTEXT_DEPENDENT_PENALTIES = true;
+
     //gdebug+
     // experimental arguments, NOT TO BE USED BY ANYONE WHOSE INITIALS AREN'T GDA!!!
+//    @Hidden
+//    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
+//    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
+//
+//    @Hidden
+//    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
+//    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
     @Hidden
-    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
-    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
-
-    @Hidden
-    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
-    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
+    @Argument(fullName = "bandedIndel", shortName = "bandedIndel", doc = "Banded Indel likelihood computation", required = false)
+    public boolean BANDED_INDEL_COMPUTATION = false;
 
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
 
     @Hidden
-    @Argument(fullName = "dovit", shortName = "dovit", doc = "Perform full Viterbi calculation when evaluating the HMM", required = false)
-    public boolean dovit = false;
-
-    @Hidden
-    @Argument(fullName = "GSA_PRODUCTION_ONLY", shortName = "GSA_PRODUCTION_ONLY", doc = "don't ever use me", required = false)
-    public boolean GSA_PRODUCTION_ONLY = false;
-
-    @Hidden
-    @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
-    public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
-
-    @Hidden
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
-
-    @Deprecated
-    @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)
-    private Boolean ALL_BASES_DEPRECATED = false;   
-
-    @Deprecated
-    @Argument(fullName="genotype", shortName="genotype", doc="Please use --output_mode EMIT_ALL_CONFIDENT_SITES instead" ,required=false)
-    private Boolean GENOTYPE_DEPRECATED = false;
 
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
@@ -191,7 +165,6 @@ public class UnifiedArgumentCollection {
 
         uac.GLmodel = GLmodel;
         uac.AFmodel = AFmodel;
-        uac.EXACT_CALCULATION_TYPE = EXACT_CALCULATION_TYPE;
         uac.heterozygosity = heterozygosity;
         uac.PCR_error = PCR_error;
         uac.GenotypingMode = GenotypingMode;
@@ -201,7 +174,6 @@ public class UnifiedArgumentCollection {
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
-        uac.MIN_MAPPING_QUALTY_SCORE = MIN_MAPPING_QUALTY_SCORE;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
@@ -209,17 +181,11 @@ public class UnifiedArgumentCollection {
         uac.INDEL_GAP_CONTINUATION_PENALTY = INDEL_GAP_CONTINUATION_PENALTY;
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
-        uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
         uac.alleles = alleles;
 
-        uac.GET_GAP_PENALTIES_FROM_DATA = GET_GAP_PENALTIES_FROM_DATA;
-        uac.INDEL_RECAL_FILE = INDEL_RECAL_FILE;
         // todo- arguments to remove
-        uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
-        uac.dovit = dovit;
-        uac.GSA_PRODUCTION_ONLY = GSA_PRODUCTION_ONLY;
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
-        
+        uac.BANDED_INDEL_COMPUTATION = BANDED_INDEL_COMPUTATION;
         return uac;
     }
 

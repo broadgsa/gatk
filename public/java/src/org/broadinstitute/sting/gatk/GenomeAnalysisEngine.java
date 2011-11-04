@@ -28,34 +28,30 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.util.*;
@@ -92,7 +88,7 @@ public class GenomeAnalysisEngine {
     /**
      * Accessor for sample metadata
      */
-    private SampleDataSource sampleDataSource = null;
+    private SampleDB sampleDB = null;
 
     /**
      * Accessor for sharded reference-ordered data.
@@ -206,6 +202,9 @@ public class GenomeAnalysisEngine {
         // Prepare the data for traversal.
         initializeDataSources();
 
+        // initialize sampleDB
+        initializeSampleDB();
+
         // initialize and validate the interval list
         initializeIntervals();
         validateSuppliedIntervals();
@@ -222,12 +221,12 @@ public class GenomeAnalysisEngine {
         ShardStrategy shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
 
         // execute the microscheduler, storing the results
-        Object result =  microScheduler.execute(this.walker, shardStrategy);
+        return microScheduler.execute(this.walker, shardStrategy);
 
         //monitor.stop();
         //logger.info(String.format("Maximum heap size consumed: %d",monitor.getMaxMemoryUsed()));
 
-        return result;
+        //return result;
     }
 
     /**
@@ -259,13 +258,12 @@ public class GenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     public Collection<ReadFilter> createFilters() {
-        Set<ReadFilter> filters = new HashSet<ReadFilter>();
-        filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
+        final List<ReadFilter> filters = WalkerManager.getReadFilters(walker,this.getFilterManager());
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
-        for(String filterName: this.getArguments().readFilters)
+        for(final String filterName: this.getArguments().readFilters)
             filters.add(this.getFilterManager().createByName(filterName));
-        return Collections.unmodifiableSet(filters);
+        return Collections.unmodifiableList(filters);
     }
 
     /**
@@ -299,8 +297,12 @@ public class GenomeAnalysisEngine {
         else if(WalkerManager.getDownsamplingMethod(walker) != null)
             method = WalkerManager.getDownsamplingMethod(walker);
         else
-            method = argCollection.getDefaultDownsamplingMethod();
+            method = GATKArgumentCollection.getDefaultDownsamplingMethod();
         return method;
+    }
+
+    protected void setDownsamplingMethod(DownsamplingMethod method) {
+        argCollection.setDownsamplingMethod(method);
     }
 
     public BAQ.QualityMode getWalkerBAQQualityMode()         { return WalkerManager.getBAQQualityMode(walker); }
@@ -381,18 +383,18 @@ public class GenomeAnalysisEngine {
         // If intervals is non-null and empty at this point, it means that the list of intervals to process
         // was filtered down to an empty set (eg., the user specified something like -L chr1 -XL chr1). Since
         // this was very likely unintentional, the user should be informed of this. Note that this is different
-        // from the case where intervals == null, which indicates either that there were no interval arguments,
-        // or that -L all was specified.
+        // from the case where intervals == null, which indicates that there were no interval arguments.
         if ( intervals != null && intervals.isEmpty() ) {
-            throw new ArgumentException("The given combination of -L and -XL options results in an empty set. " +
-                                        "No intervals to process.");
+            logger.warn("The given combination of -L and -XL options results in an empty set.  No intervals to process.");
         }
     }
 
     /**
      * Get the sharding strategy given a driving data source.
      *
+     * @param readsDataSource readsDataSource
      * @param drivingDataSource Data on which to shard.
+     * @param intervals intervals
      * @return the sharding strategy
      */
     protected ShardStrategy getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
@@ -429,7 +431,7 @@ public class GenomeAnalysisEngine {
             return new MonolithicShardStrategy(getGenomeLocParser(), readsDataSource,shardType,region);
         }
 
-        ShardStrategy shardStrategy = null;
+        ShardStrategy shardStrategy;
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
 
         long SHARD_SIZE = 100000L;
@@ -438,6 +440,8 @@ public class GenomeAnalysisEngine {
             if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
 
             if (intervals != null && !intervals.isEmpty()) {
+                if (readsDataSource == null)
+                    throw new IllegalArgumentException("readsDataSource is null");
                 if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
 
@@ -501,7 +505,8 @@ public class GenomeAnalysisEngine {
      */
     private void initializeTempDirectory() {
         File tempDir = new File(System.getProperty("java.io.tmpdir"));
-        tempDir.mkdirs();
+        if (!tempDir.exists() && !tempDir.mkdirs())
+            throw new UserException.BadTmpDir("Unable to create directory");
     }
 
     /**
@@ -566,34 +571,23 @@ public class GenomeAnalysisEngine {
     protected void initializeIntervals() {
 
         // return if no interval arguments at all
-        if ((argCollection.intervals == null) && (argCollection.excludeIntervals == null) && (argCollection.RODToInterval == null))
+        if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
             return;
 
-        // if '-L all' was specified, verify that it was the only -L specified and return if so.
-        if(argCollection.intervals != null) {
-            for(String interval: argCollection.intervals) {
-                if(interval.trim().equals("all")) {
-                    if(argCollection.intervals.size() > 1)
-                        throw new UserException("'-L all' was specified along with other intervals or interval lists; the GATK cannot combine '-L all' with other intervals.");
-
-                    // '-L all' was specified and seems valid.  Return.
-                    return;
-                }
-            }
-        }
+        // Note that the use of '-L all' is no longer supported.
 
         // if include argument isn't given, create new set of all possible intervals
-        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
+        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
             GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-            loadIntervals(argCollection.intervals, IntervalUtils.mergeIntervalLocations(getRODIntervals(), argCollection.intervalMerging)));
+            loadIntervals(argCollection.intervals, argCollection.intervalSetRule));
 
         // if no exclude arguments, can return parseIntervalArguments directly
-        if (argCollection.excludeIntervals == null)
+        if ( argCollection.excludeIntervals == null )
             intervals = includeSortedSet;
 
-            // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
+        // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
         else {
-            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, null);
+            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, IntervalSetRule.UNION);
             intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
             // logging messages only printed when exclude (-XL) arguments are given
@@ -608,45 +602,24 @@ public class GenomeAnalysisEngine {
 
     /**
      * Loads the intervals relevant to the current execution
-     * @param argList String representation of arguments; might include 'all', filenames, intervals in samtools
-     *                notation, or a combination of the above
-     * @param rodIntervals a list of ROD intervals to add to the returned set.  Can be empty or null.
+     * @param argList  argument bindings; might include filenames, intervals in samtools notation, or a combination of the above
+     * @param rule     interval merging rule
      * @return A sorted, merged list of all intervals specified in this arg list.
      */
-    protected GenomeLocSortedSet loadIntervals( List<String> argList, List<GenomeLoc> rodIntervals ) {
+    protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
 
-        boolean allowEmptyIntervalList = (argCollection.unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
-                                          argCollection.unsafe == ValidationExclusion.TYPE.ALL);
+        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>(0);
+        for ( IntervalBinding intervalBinding : argList ) {
+            List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
 
-        List<GenomeLoc> nonRODIntervals = IntervalUtils.parseIntervalArguments(genomeLocParser, argList, allowEmptyIntervalList);
-        List<GenomeLoc> allIntervals = IntervalUtils.mergeListsBySetOperator(rodIntervals, nonRODIntervals, argCollection.BTIMergeRule);
+            if ( intervals.isEmpty() ) {
+                logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");
+            }
+
+            allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, rule);
+        }
 
         return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, argCollection.intervalMerging);
-    }
-
-    /**
-     * if we have a ROD specified as a 'rodToIntervalTrackName', convert its records to RODs
-     * @return ROD intervals as GenomeLocs
-     */
-    private List<GenomeLoc> getRODIntervals() {
-        Map<String, ReferenceOrderedDataSource> rodNames = RMDIntervalGenerator.getRMDTrackNames(rodDataSources);
-        // Do we have any RODs that overloaded as interval lists with the 'rodToIntervalTrackName' flag?
-        List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
-        if (rodNames != null && argCollection.RODToInterval != null) {
-            String rodName = argCollection.RODToInterval;
-
-            // check to make sure we have a rod of that name
-            if (!rodNames.containsKey(rodName))
-                throw new UserException.CommandLineException("--rodToIntervalTrackName (-BTI) was passed the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
-
-            for (String str : rodNames.keySet())
-                if (str.equals(rodName)) {
-                    logger.info("Adding interval list from track (ROD) named " + rodName);
-                    RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str));
-                    ret.addAll(intervalGenerator.toGenomeLocList());
-                }
-        }
-        return ret;
     }
 
     /**
@@ -692,10 +665,20 @@ public class GenomeAnalysisEngine {
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
-        sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
-
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
         rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
+    }
+
+    /**
+     * Entry-point function to initialize the samples database from input data and pedigree arguments
+     */
+    private void initializeSampleDB() {
+        SampleDBBuilder sampleDBBuilder = new SampleDBBuilder(this, argCollection.pedigreeValidationType);
+        sampleDBBuilder.addSamplesFromSAMHeader(getSAMFileHeader());
+        sampleDBBuilder.addSamplesFromSampleNames(SampleUtils.getUniqueSamplesFromRods(this));
+        sampleDBBuilder.addSamplesFromPedigreeFiles(argCollection.pedigreeFiles);
+        sampleDBBuilder.addSamplesFromPedigreeStrings(argCollection.pedigreeStrings);
+        sampleDB = sampleDBBuilder.getFinalSampleDB();
     }
 
     /**
@@ -717,105 +700,12 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
-     * found in the corresponding bam file.
-     *
-     * @return Sets of samples in the merged input SAM stream, grouped by readers
-     */
-    public List<Set<String>> getSamplesByReaders() {
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> samples = new HashSet<String>(1);
-            sample_sets.add(samples);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                samples.add(g.getSample());
-            }
-        }
-
-        return sample_sets;
-
-    }
-
-    /**
-     * Returns sets of libraries present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of library names
-     * found in the corresponding bam file.
-     *
-     * @return Sets of libraries present in the (merged) input SAM stream, grouped by readers
-     */
-    public List<Set<String>> getLibrariesByReaders() {
-
-
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> libs = new HashSet<String>(2);
-            lib_sets.add(libs);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                libs.add(g.getLibrary());
-            }
-        }
-
-        return lib_sets;
-
-    }
-
-    /**
-     * **** UNLESS YOU HAVE GOOD REASON TO, DO NOT USE THIS METHOD; USE getFileToReadGroupIdMapping() INSTEAD ****
-     *
-     * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
-     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-     * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
-     * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
-     *
-     * @return sets of (merged) read group ids in order of input bams
-     */
-    public List<Set<String>> getMergedReadGroupsByReaders() {
-
-
-        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
-
-        List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
-
-        for (SAMReaderID r : readers) {
-
-            Set<String> groups = new HashSet<String>(5);
-            rg_sets.add(groups);
-
-            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
-                if (getReadsDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
-                    // use HeaderMerger to translate original read group id from the reader into the read group id in the
-                    // merged stream, and save that remapped read group id to associate it with specific reader
-                    groups.add(getReadsDataSource().getReadGroupId(r, g.getReadGroupId()));
-                } else {
-                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
-                    groups.add(g.getReadGroupId());
-                }
-            }
-        }
-
-        return rg_sets;
-
-    }
-
-    /**
      * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference vrs the reference ordered data (if available).
      *
      * @param reads     Reads data source.
      * @param reference Reference data source.
      * @param rods    a collection of the reference ordered data tracks
+     * @param manager manager
      */
     private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, RMDTrackBuilder manager) {
         if ((reads.isEmpty() && (rods == null || rods.isEmpty())) || reference == null )
@@ -844,15 +734,22 @@ public class GenomeAnalysisEngine {
     /**
      * Gets a data source for the given set of reads.
      *
+     * @param argCollection arguments
+     * @param genomeLocParser parser
+     * @param refReader reader
      * @return A data source for the given set of reads.
      */
     private SAMDataSource createReadsDataSource(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
         DownsamplingMethod method = getDownsamplingMethod();
 
+        // Synchronize the method back into the collection so that it shows up when
+        // interrogating for the downsample method during command line recreation.
+        setDownsamplingMethod(method);
+
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
-        SAMDataSource dataSource = new SAMDataSource(
+        return new SAMDataSource(
                 samReaderIDs,
                 genomeLocParser,
                 argCollection.useOriginalBaseQualities,
@@ -868,14 +765,12 @@ public class GenomeAnalysisEngine {
                 refReader,
                 argCollection.defaultBaseQualities,
                 !argCollection.disableLowMemorySharding);
-        return dataSource;
     }
 
     /**
      * Opens a reference sequence file paired with an index.  Only public for testing purposes
      *
      * @param refFile Handle to a reference sequence file.  Non-null.
-     * @return A thread-safe file wrapper.
      */
     public void setReferenceDataSource(File refFile) {
         this.referenceDataSource = new ReferenceDataSource(refFile);
@@ -930,6 +825,26 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Returns an ordered list of the unmerged SAM file headers known to this engine.
+     * @return list of header for each input SAM file, in command line order
+     */
+    public List<SAMFileHeader> getSAMFileHeaders() {
+        final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
+        for ( final SAMReaderID id : getReadsDataSource().getReaderIDs() ) {
+            headers.add(getReadsDataSource().getHeader(id));
+        }
+        return headers;
+    }
+
+    /**
+     * Gets the master sequence dictionary for this GATK engine instance
+     * @return a never-null dictionary listing all of the contigs known to this engine instance
+     */
+    public SAMSequenceDictionary getMasterSequenceDictionary() {
+        return getReferenceDataSource().getReference().getSequenceDictionary();
+    }
+
+    /**
      * Returns data source object encapsulating all essential info and handlers used to traverse
      * reads; header merger, individual file readers etc can be accessed through the returned data source object.
      *
@@ -938,8 +853,6 @@ public class GenomeAnalysisEngine {
     public SAMDataSource getReadsDataSource() {
         return this.readsDataSource;
     }
-
-
 
     /**
      * Sets the collection of GATK main application arguments.
@@ -1027,140 +940,14 @@ public class GenomeAnalysisEngine {
         return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
     }
 
-    public SampleDataSource getSampleMetadata() {
-        return this.sampleDataSource;
-    }
+    // -------------------------------------------------------------------------------------
+    //
+    // code for working with Samples database
+    //
+    // -------------------------------------------------------------------------------------
 
-    /**
-     * Get a sample by its ID
-     * If an alias is passed in, return the main sample object
-     * @param id sample id
-     * @return sample Object with this ID
-     */
-    public Sample getSampleById(String id) {
-        return sampleDataSource.getSampleById(id);
-    }
-
-    /**
-     * Get the sample for a given read group
-     * Must first look up ID for read group
-     * @param readGroup of sample
-     * @return sample object with ID from the read group
-     */
-    public Sample getSampleByReadGroup(SAMReadGroupRecord readGroup) {
-        return sampleDataSource.getSampleByReadGroup(readGroup);
-    }
-
-    /**
-     * Get a sample for a given read
-     * Must first look up read group, and then sample ID for that read group
-     * @param read of sample
-     * @return sample object of this read
-     */
-    public Sample getSampleByRead(SAMRecord read) {
-        return getSampleByReadGroup(read.getReadGroup());
-    }
-
-    /**
-     * Get number of sample objects
-     * @return size of samples map
-     */
-    public int sampleCount() {
-        return sampleDataSource.sampleCount();
-    }
-
-    /**
-     * Return all samples with a given family ID
-     * Note that this isn't terribly efficient (linear) - it may be worth adding a new family ID data structure for this
-     * @param familyId family ID
-     * @return Samples with the given family ID
-     */
-    public Set<Sample> getFamily(String familyId) {
-        return sampleDataSource.getFamily(familyId);
-    }
-
-    /**
-     * Returns all children of a given sample
-     * See note on the efficiency of getFamily() - since this depends on getFamily() it's also not efficient
-     * @param sample parent sample
-     * @return children of the given sample
-     */
-    public Set<Sample> getChildren(Sample sample) {
-        return sampleDataSource.getChildren(sample);
-    }
-
-    /**
-     * Gets all the samples
-     * @return
-     */
-    public Collection<Sample> getSamples() {
-        return sampleDataSource.getSamples();
-    }
-
-    /**
-     * Takes a list of sample names and returns their corresponding sample objects
-     *
-     * @param sampleNameList List of sample names
-     * @return Corresponding set of samples
-     */
-    public Set<Sample> getSamples(Collection<String> sampleNameList) {
-	return sampleDataSource.getSamples(sampleNameList);
-    }
-
-
-    /**
-     * Returns a set of samples that have any value (which could be null) for a given property
-     * @param key Property key
-     * @return Set of samples with the property
-     */
-    public Set<Sample> getSamplesWithProperty(String key) {
-        return sampleDataSource.getSamplesWithProperty(key);
-    }
-
-    /**
-     * Returns a set of samples that have a property with a certain value
-     * Value must be a string for now - could add a similar method for matching any objects in the future
-     *
-     * @param key Property key
-     * @param value String property value
-     * @return Set of samples that match key and value
-     */
-    public Set<Sample> getSamplesWithProperty(String key, String value) {
-        return sampleDataSource.getSamplesWithProperty(key, value);
-
-    }
-
-    /**
-     * Returns a set of sample objects for the sample names in a variant context
-     *
-     * @param context Any variant context
-     * @return a set of the sample objects
-     */
-    public Set<Sample> getSamplesByVariantContext(VariantContext context) {
-        Set<Sample> samples = new HashSet<Sample>();
-        for (String sampleName : context.getSampleNames()) {
-            samples.add(sampleDataSource.getOrCreateSample(sampleName));
-        }
-        return samples;
-    }
-
-    /**
-     * Returns all samples that were referenced in the SAM file
-     */
-    public Set<Sample> getSAMFileSamples() {
-        return sampleDataSource.getSAMFileSamples();
-    }
-
-    /**
-     * Return a subcontext restricted to samples with a given property key/value
-     * Gets the sample names from key/value and relies on VariantContext.subContextFromGenotypes for the filtering
-     * @param context VariantContext to filter
-     * @param key property key
-     * @param value property value (must be string)
-     * @return subcontext
-     */
-    public VariantContext subContextFromSampleProperty(VariantContext context, String key, String value) {
-        return sampleDataSource.subContextFromSampleProperty(context, key, value);
+    public SampleDB getSampleDB() {
+        return this.sampleDB;
     }
 
     public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {

@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -131,7 +132,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
 ////                System.out.printf("  ac = %d%n", ac);
             }
             else
-                ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY);
+                ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
             return ac > 0 ? SiteStatus.POLY : SiteStatus.MONO;
         } else {
             return TREAT_ALL_SITES_IN_EVAL_VCF_AS_CALLED ? SiteStatus.POLY : SiteStatus.NO_CALL; // we can't figure out what to do
@@ -142,8 +143,8 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
 
 
     public boolean haveDifferentAltAlleles(VariantContext eval, VariantContext comp) {
-        Set<Allele> evalAlts = eval.getAlternateAlleles();
-        Set<Allele> compAlts = comp.getAlternateAlleles();
+        Collection<Allele> evalAlts = eval.getAlternateAlleles();
+        Collection<Allele> compAlts = comp.getAlternateAlleles();
         if ( evalAlts.size() != compAlts.size() ) {
             return true;
         } else {

@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collections;
 import java.util.List;
@@ -132,7 +132,7 @@ public class AllLocusView extends LocusView {
      * @param site Site at which to create the blank locus context.
      * @return empty context.
      */
-    private final static List<SAMRecord> EMPTY_PILEUP_READS = Collections.emptyList();
+    private final static List<GATKSAMRecord> EMPTY_PILEUP_READS = Collections.emptyList();
     private final static List<Integer> EMPTY_PILEUP_OFFSETS = Collections.emptyList();
     private AlignmentContext createEmptyLocus( GenomeLoc site ) {
         return new AlignmentContext(site,new ReadBackedPileupImpl(site, EMPTY_PILEUP_READS, EMPTY_PILEUP_OFFSETS));

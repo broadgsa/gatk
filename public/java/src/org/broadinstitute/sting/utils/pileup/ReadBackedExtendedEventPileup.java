@@ -25,9 +25,9 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.List;
@@ -121,20 +121,7 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * Gets a list of all the samples stored in this pileup.
      * @return List of samples in this pileup.
      */
-    public Collection<String> getSampleNames();
-
-        /**
-     * Gets a list of all the samples stored in this pileup.
-     * @return List of samples in this pileup.
-     */
-    public Collection<Sample> getSamples();
-
-    /**
-     * Gets the particular subset of this pileup with the given sample name.
-     * @param sample Name of the sample to use.
-     * @return A subset of this pileup containing only reads with the given sample.
-     */
-    public ReadBackedExtendedEventPileup getPileupForSample(Sample sample);
+    public Collection<String> getSamples();
 
     public Iterable<ExtendedEventPileupElement> toExtendedIterable();
 
@@ -169,7 +156,7 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
     /**
      * @return the number of elements in this pileup
      */
-    public int size();
+    public int getNumberOfElements();
 
     /**
      * @return the location of this pileup
@@ -180,7 +167,7 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * Returns a list of the reads in this pileup. Note this call costs O(n) and allocates fresh lists each time
      * @return
      */
-    public List<SAMRecord> getReads();
+    public List<GATKSAMRecord> getReads();
 
     /**
      * Returns a list of the offsets in this pileup. Note this call costs O(n) and allocates fresh lists each time

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.apache.commons.io.FileUtils;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -34,6 +35,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.EnumSet;
 /**
@@ -493,6 +496,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertNotNull(definition, "Invalid default argument name assigned");
     }
 
+    @SuppressWarnings("unused")
     private class CamelCaseArgProvider {
         @Argument(doc="my arg")
         Integer myArg;
@@ -507,6 +511,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
+    @SuppressWarnings("unused")
     private class BooleanArgProvider {
         @Argument(doc="my bool")
         boolean myBool;
@@ -561,6 +566,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
+    @SuppressWarnings("unused")
     private class MutuallyExclusiveArgProvider {
         @Argument(doc="foo",exclusiveOf="bar")
         Integer foo;
@@ -618,6 +624,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.addArgumentSource( MultipleArgumentCollectionProvider.class );
     }
 
+    @SuppressWarnings("unused")
     private class MultipleArgumentCollectionProvider {
         @ArgumentCollection
         RequiredArgProvider rap1 = new RequiredArgProvider();
@@ -936,5 +943,24 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
+    }
+
+    @Test
+    public void argumentListTest() throws IOException {
+        File argsFile = BaseTest.createTempFile("args.", ".list");
+        try {
+            FileUtils.write(argsFile, "-I na12878.bam");
+            final String[] commandLine = new String[] {"-args", argsFile.getPath()};
+            parsingEngine.addArgumentSource(InputFileArgProvider.class);
+            parsingEngine.parse(commandLine);
+            parsingEngine.validate();
+
+            InputFileArgProvider argProvider = new InputFileArgProvider();
+            parsingEngine.loadArgumentsIntoObject(argProvider);
+
+            Assert.assertEquals(argProvider.inputFile, "na12878.bam", "Argument is not correctly initialized");
+        } finally {
+            FileUtils.deleteQuietly(argsFile);
+        }
     }
 }

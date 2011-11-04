@@ -27,13 +27,15 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.fragments.FragmentCollection;
+import org.broadinstitute.sting.utils.fragments.FragmentUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.pileup.FragmentPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+
+import java.util.List;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -260,35 +262,42 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         // for each fragment, add to the likelihoods
-        FragmentPileup fpile = new FragmentPileup(pileup);
+        FragmentCollection<PileupElement> fpile = pileup.toFragments();
 
-        for ( PileupElement p : fpile.getOneReadPileup() )
+        for ( PileupElement p : fpile.getSingletonReads() )
             n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
-        for ( FragmentPileup.TwoReadPileupElement twoRead : fpile.getTwoReadPileup() )
-            n += add(twoRead, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
+        for ( List<PileupElement> overlappingPair : fpile.getOverlappingPairs() )
+            n += add(overlappingPair, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         return n;
     }
+
     public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         byte obsBase = elt.getBase();
 
         if ( elt.isReducedRead() ) {
             // reduced read representation
-            byte qual = elt.getReducedQual();
-            add(obsBase, qual, (byte)0, (byte)0, elt.getReducedCount()); // fast calculation of n identical likelihoods
-            return elt.getReducedCount(); // we added nObs bases here
+            byte qual = elt.getQual();
+            if ( BaseUtils.isRegularBase( elt.getBase() )) {
+                add(obsBase, qual, (byte)0, (byte)0, elt.getRepresentativeCount()); // fast calculation of n identical likelihoods
+                return elt.getRepresentativeCount(); // we added nObs bases here
+            } else // odd bases or deletions => don't use them
+                return 0;
         } else {
             byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
             return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0, 1) : 0;
         }
     }
 
-    public int add(FragmentPileup.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
-        final byte observedBase1 = twoRead.getFirst().getBase();
-        final byte qualityScore1 = qualToUse(twoRead.getFirst(), ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
-        final byte observedBase2 = twoRead.getSecond().getBase();
-        final byte qualityScore2 = qualToUse(twoRead.getSecond(), ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
+    public int add(List<PileupElement> overlappingPair, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
+        final PileupElement p1 = overlappingPair.get(0);
+        final PileupElement p2 = overlappingPair.get(1);
+
+        final byte observedBase1 = p1.getBase();
+        final byte qualityScore1 = qualToUse(p1, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
+        final byte observedBase2 = p2.getBase();
+        final byte qualityScore2 = qualToUse(p2, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         if ( qualityScore1 == 0 ) {
             if ( qualityScore2 == 0 ) // abort early if we didn't see any good bases

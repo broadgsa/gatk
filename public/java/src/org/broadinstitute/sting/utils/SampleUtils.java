@@ -69,6 +69,18 @@ public class SampleUtils {
         return samples;
     }
 
+
+    /**
+     * Same as @link getSAMFileSamples but gets all of the samples
+     * in the SAM files loaded by the engine
+     *
+     * @param engine
+     * @return
+     */
+    public final static Set<String> getSAMFileSamples(GenomeAnalysisEngine engine) {
+        return SampleUtils.getSAMFileSamples(engine.getSAMFileHeader());
+    }
+
     /**
      * Gets all of the unique sample names from all VCF rods input by the user
      *
@@ -190,11 +202,21 @@ public class SampleUtils {
 
     }
 
-    public static List<String> getSamplesFromCommandLineInput(Collection<String> sampleArgs) {
+    /**
+     * Returns a new set of samples, containing a final list of samples expanded from sampleArgs
+     *
+     * Each element E of sampleArgs can either be a literal sample name or a file.  For each E,
+     * we try to read a file named E from disk, and if possible all lines from that file are expanded
+     * into unique sample names.
+     *
+     * @param sampleArgs
+     * @return
+     */
+    public static Set<String> getSamplesFromCommandLineInput(Collection<String> sampleArgs) {
         if (sampleArgs != null) {
             // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
             // sample list set, and treat the entries as if they had been specified on the command line.
-            List<String> samplesFromFiles = new ArrayList<String>();
+            Set<String> samplesFromFiles = new HashSet<String>();
             for (String SAMPLE_EXPRESSION : sampleArgs) {
                 File sampleFile = new File(SAMPLE_EXPRESSION);
 
@@ -203,7 +225,7 @@ public class SampleUtils {
 
                     List<String> lines = reader.readLines();
                     for (String line : lines) {
-                        samplesFromFiles.add(line);
+                        samplesFromFiles.add(line.trim());
                     }
                 } catch (FileNotFoundException e) {
                     samplesFromFiles.add(SAMPLE_EXPRESSION); // not a file, so must be a sample
@@ -212,7 +234,8 @@ public class SampleUtils {
 
             return samplesFromFiles;
         }
-        return new ArrayList<String>();
+
+        return new HashSet<String>();
     }
 
     public static Set<String> getSamplesFromCommandLineInput(Collection<String> vcfSamples, Collection<String> sampleExpressions) {

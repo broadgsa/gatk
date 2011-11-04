@@ -256,14 +256,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
     @Hidden
-    @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure", required=false)
-    private boolean KEEP_AF_SPECTRUM = false;
-
-    @Hidden
-    @Argument(fullName="afFile", shortName="afFile", doc="The output recal file used by ApplyRecalibration", required=false)
-    private File AF_FILE = new File("");
-
-    @Hidden
     @Argument(fullName="family_structure_file", shortName="familyFile", doc="use -family unless you know what you're doing", required=false)
     private File FAMILY_STRUCTURE_FILE = null;
 
@@ -442,7 +434,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                             mvSet.add(mv);
                     }
                 } catch ( FileNotFoundException e ) {
-                    throw new UserException.CouldNotReadInputFile(AF_FILE, e);
+                    throw new UserException.CouldNotReadInputFile(FAMILY_STRUCTURE_FILE, e);
                 }
                 if (outMVFile != null)
                     try {
@@ -452,7 +444,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                         throw new UserException.CouldNotCreateOutputFile(outMVFile, "Can't open output file", e);   }
             }
             else
-                mvSet.add(new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD));
+                mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));
         }
         else if (!FAMILY_STRUCTURE.isEmpty()) {
             mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));
@@ -469,31 +461,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
 
-        if (KEEP_AF_SPECTRUM) {
-            try {
-                afBreakpoints = new ArrayList<Double>();
-                afBoosts = new ArrayList<Double>();
-                logger.info("Reading in AF boost table...");
-                boolean firstLine = false;
-                for ( final String line : new XReadLines( AF_FILE ) ) {
-                    if (!firstLine) {
-                        firstLine = true;
-                        continue;
-                    }
-                    final String[] vals = line.split(" ");
 
-                    double bkp = Double.valueOf(vals[0]);
-                    double afb = Double.valueOf(vals[1]);
-                    afBreakpoints.add(bkp);
-                    afBoosts.add(afb);
-
-                }
-                bkDelta = afBreakpoints.get(0);
-            } catch ( FileNotFoundException e ) {
-                throw new UserException.CouldNotReadInputFile(AF_FILE, e);
-            }
-
-        }
     }
 
     /**
@@ -566,61 +534,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 if (SELECT_RANDOM_NUMBER) {
                     randomlyAddVariant(++variantNumber, sub, ref.getBase());
                 }
-                else if (!SELECT_RANDOM_FRACTION || (!KEEP_AF_SPECTRUM && GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
+                else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
                     vcfWriter.add(sub);
                 }
-                else {
-                    if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
-                        // ok we have a comp VC and we need to match the AF spectrum of inputAFRodName.
-                        // We then pick a variant with probablity AF*desiredFraction
-                        if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
-                            String afo = sub.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
-
-                            double af;
-                            double afBoost = 1.0;
-                            if (afo.contains(",")) {
-                                String[] afs = afo.split(",");
-                                afs[0] = afs[0].substring(1,afs[0].length());
-                                afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
-
-                                double[] afd = new double[afs.length];
-
-                                for (int k=0; k < afd.length; k++)
-                                    afd[k] = Double.valueOf(afs[k]);
-
-                                af = MathUtils.arrayMax(afd);
-                                //af = Double.valueOf(afs[0]);
-
-                            }
-                            else
-                                af = Double.valueOf(afo);
-
-                            // now boost af by table read from file if desired
-                            //double bkpt = 0.0;
-                            int bkidx = 0;
-                            if (!afBreakpoints.isEmpty()) {
-                                for ( Double bkpt : afBreakpoints) {
-                                    if (af < bkpt + bkDelta)
-                                        break;
-                                    else bkidx++;
-                                }
-                                if (bkidx >=afBoosts.size())
-                                    bkidx = afBoosts.size()-1;
-                                afBoost = afBoosts.get(bkidx);
-                                //System.out.formatPrin("af:%f bkidx:%d afboost:%f\n",af,bkidx,afBoost);
 
 
-
-                            }
-
-                            //System.out.format("%s .. %4.4f\n",afo.toString(), af);
-                            if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * afBoost *   afBoost)
-                                vcfWriter.add(sub);
-                        }
-
-
-                    }
-                }
             }
 
         }

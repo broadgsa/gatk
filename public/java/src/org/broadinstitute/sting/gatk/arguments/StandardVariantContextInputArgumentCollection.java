@@ -28,13 +28,11 @@ package org.broadinstitute.sting.gatk.arguments;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.simpleframework.xml.Root;
 
 /**
  * @author ebanks
  * @version 1.0
  */
-@Root
 public class StandardVariantContextInputArgumentCollection {
 
     /**

@@ -30,9 +30,9 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.SequenceUtil;
 import net.sf.samtools.util.StringUtil;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -46,11 +46,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.NWaySAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -138,14 +135,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * Any number of VCF files representing known indels to be used for constructing alternate consenses.
      * Could be e.g. dbSNP and/or official 1000 Genomes indel calls.  Non-indel variants in these files will be ignored.
      */
-    @Input(fullName="known", shortName = "known", doc="Input VCF file(s) with known indels", required=false)
+    @Input(fullName="knownAlleles", shortName = "known", doc="Input VCF file(s) with known indels", required=false)
     public List<RodBinding<VariantContext>> known = Collections.emptyList();
 
     /**
      * The interval list output from the RealignerTargetCreator tool using the same bam(s), reference, and known indel file(s).
      */
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
-    protected String intervalsFile = null;
+    protected IntervalBinding<Feature> intervalsFile = null;
 
     /**
      * This term is equivalent to "significance" - i.e. is the improvement significant enough to merit realignment? Note that this number
@@ -231,14 +228,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
     /**
-     * For expert users only!  This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.
-     * Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.
-     */
-    @Advanced
-    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="The target intervals are not sorted")
-    protected boolean TARGET_NOT_SORTED = false;
-
-    /**
      * Reads from all input files will be realigned together, but then each read will be saved in the output file corresponding to the input file that
      * the read came from. There are two ways to generate output bam file names: 1) if the value of this argument is a general string (e.g. '.cleaned.bam'),
      * then extensions (".bam" or ".sam") will be stripped from the input file names and the provided string value will be pasted on instead; 2) if the
@@ -293,10 +282,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     // the reads and known indels that fall into the current interval
     private final ReadBin readsToClean = new ReadBin();
-    private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
+    private final ArrayList<GATKSAMRecord> readsNotToClean = new ArrayList<GATKSAMRecord>();
     private final ArrayList<VariantContext> knownIndelsToTry = new ArrayList<VariantContext>();
     private final HashSet<Object> indelRodsSeen = new HashSet<Object>();
-    private final HashSet<SAMRecord> readsActuallyCleaned = new HashSet<SAMRecord>();
+    private final HashSet<GATKSAMRecord> readsActuallyCleaned = new HashSet<GATKSAMRecord>();
 
     private static final int MAX_QUAL = 99;
 
@@ -373,41 +362,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         catch(FileNotFoundException ex) {
             throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile,ex);
         }
-        
-        if ( !TARGET_NOT_SORTED ) {
 
-            NwayIntervalMergingIterator merger = new NwayIntervalMergingIterator(IntervalMergingRule.OVERLAPPING_ONLY);
-            List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();
-            // separate argument on semicolon first
-            for (String fileOrInterval : intervalsFile.split(";")) {
-                // if it's a file, add items to raw interval list
-                if (IntervalUtils.isIntervalFile(fileOrInterval)) {
-                    merger.add(new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
-                } else {
-                    rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeLoc(fileOrInterval));
-                }
-            }
-            if ( ! rawIntervals.isEmpty() ) merger.add(rawIntervals.iterator());
-            // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-            intervals = merger; 
-        } else {
-            // read in the whole list of intervals for cleaning
-            boolean allowEmptyIntervalList = (getToolkit().getArguments().unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
-                                              getToolkit().getArguments().unsafe == ValidationExclusion.TYPE.ALL);
-            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
-                    IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile),allowEmptyIntervalList),
-                    IntervalMergingRule.OVERLAPPING_ONLY);
-            intervals = locs.iterator();
-        }
+        intervals = intervalsFile.getIntervals(getToolkit()).iterator();
+
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         writerToUse = writer;
 
         if ( N_WAY_OUT != null ) {
- //           Map<String,String> args = getToolkit().getArguments().walkerArgs;
             boolean createIndex =  true;
-
- //           if ( args.containsKey("disable_bam_indexing") )  { System.out.println("NO INDEXING!!"); System.exit(1); createIndex = false; }
 
             if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
                 writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),
@@ -507,7 +470,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         readsActuallyCleaned.clear();
     }
 
-    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
             emit(read);
             return 0;
@@ -573,7 +536,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
     }
 
-    private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
+    private void cleanAndCallMap(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
         if ( readsToClean.size() > 0 ) {
             GenomeLoc earliestPossibleMove = getToolkit().getGenomeLocParser().createGenomeLoc(readsToClean.getReads().get(0));
             if ( manager.canMoveReads(earliestPossibleMove) )
@@ -589,7 +552,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
         } catch (ReviewedStingException e) {
-            throw new UserException.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
+            throw new UserException.MissortedFile(new File(intervalsFile.getSource()), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
         }
         sawReadInCurrentInterval = false;
 
@@ -694,14 +657,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private void clean(ReadBin readsToClean) {
 
-        final List<SAMRecord> reads = readsToClean.getReads();
+        final List<GATKSAMRecord> reads = readsToClean.getReads();
         if ( reads.size() == 0 )
             return;
 
         byte[] reference = readsToClean.getReference(referenceReader);
         int leftmostIndex = readsToClean.getLocation().getStart();
 
-        final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                 // reads that perfectly match ref
+        final ArrayList<GATKSAMRecord> refReads = new ArrayList<GATKSAMRecord>();                 // reads that perfectly match ref
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         final LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
         final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();               // list of alt consenses
@@ -853,7 +816,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         // however we don't have enough info to use the proper MAQ scoring system.
                         // For now, we will just arbitrarily add 10 to the mapping quality. [EB, 6/7/2010].
                         // TODO -- we need a better solution here
-                        SAMRecord read = aRead.getRead();
+                        GATKSAMRecord read = aRead.getRead();
                         read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
 
                         // before we fix the attribute tags we first need to make sure we have enough of the reference sequence
@@ -912,8 +875,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private long determineReadsThatNeedCleaning(final List<SAMRecord> reads,
-                                                final ArrayList<SAMRecord> refReadsToPopulate,
+    private long determineReadsThatNeedCleaning(final List<GATKSAMRecord> reads,
+                                                final ArrayList<GATKSAMRecord> refReadsToPopulate,
                                                 final ArrayList<AlignedRead> altReadsToPopulate,
                                                 final LinkedList<AlignedRead> altAlignmentsToTest,
                                                 final Set<Consensus> altConsenses,
@@ -922,7 +885,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         long totalRawMismatchSum = 0L;
 
-        for ( final SAMRecord read : reads ) {
+        for ( final GATKSAMRecord read : reads ) {
 
             // we can not deal with screwy records
             if ( read.getCigar().numCigarElements() == 0 ) {
@@ -1410,7 +1373,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private class AlignedRead {
-        private final SAMRecord read;
+        private final GATKSAMRecord read;
         private byte[] readBases = null;
         private byte[] baseQuals = null;
         private Cigar newCigar = null;
@@ -1418,12 +1381,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         private int mismatchScoreToReference = 0;
         private long alignerMismatchScore = 0;
 
-        public AlignedRead(SAMRecord read) {
+        public AlignedRead(GATKSAMRecord read) {
             this.read = read;
             mismatchScoreToReference = 0;
         }
 
-        public SAMRecord getRead() {
+        public GATKSAMRecord getRead() {
                return read;
         }
 
@@ -1607,7 +1570,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private class ReadBin implements HasGenomeLocation {
 
-        private final ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
+        private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
         private byte[] reference = null;
         private GenomeLoc loc = null;
 
@@ -1615,7 +1578,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // Return false if we can't process this read bin because the reads are not correctly overlapping.
         // This can happen if e.g. there's a large known indel with no overlapping reads.
-        public void add(SAMRecord read) {
+        public void add(GATKSAMRecord read) {
 
             GenomeLoc locForRead = getToolkit().getGenomeLocParser().createGenomeLoc(read);
             if ( loc == null )
@@ -1626,7 +1589,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             reads.add(read);
         }
 
-        public List<SAMRecord> getReads() { return reads; }
+        public List<GATKSAMRecord> getReads() { return reads; }
 
         public byte[] getReference(IndexedFastaSequenceFile referenceReader) {
             // set up the reference if we haven't done so yet

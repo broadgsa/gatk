@@ -110,12 +110,12 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 case SNP:
                     nVariantLoci++;
                     nSNPs++;
-                    if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                    if (vc1.getAttributeAsBoolean("ISSINGLETON", false)) nSingletons++;
                     break;
                 case MNP:
                     nVariantLoci++;
                     nMNPs++;
-                    if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                    if (vc1.getAttributeAsBoolean("ISSINGLETON", false)) nSingletons++;
                     break;
                 case INDEL:
                     nVariantLoci++;
@@ -130,6 +130,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     nVariantLoci++;
                     nMixed++;
                     break;
+                case SYMBOLIC:
+                    // ignore symbolic alleles, but don't fail
+                    // todo - consistent way of treating symbolic alleles thgoughout codebase?
+                    break;
                 default:
                     throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
             }
@@ -137,7 +141,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
 
         String refStr = vc1.getReference().getBaseString().toUpperCase();
 
-        String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE").toUpperCase() : null;
+        String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE", null).toUpperCase() : null;
 //        if (aaStr.equals(".")) {
 //            aaStr = refStr;
 //        }

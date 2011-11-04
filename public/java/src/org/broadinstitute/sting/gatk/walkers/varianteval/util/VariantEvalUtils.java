@@ -354,7 +354,7 @@ public class VariantEvalUtils {
 
     private void addMapping(HashMap<String, Set<VariantContext>> mappings, String sample, VariantContext vc) {
         if ( !mappings.containsKey(sample) )
-            mappings.put(sample, new HashSet<VariantContext>());
+            mappings.put(sample, new LinkedHashSet<VariantContext>());
         mappings.get(sample).add(vc);
     }
 

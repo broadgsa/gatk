@@ -37,7 +37,6 @@ public class ValidationExclusion {
 
     public enum TYPE {
         ALLOW_UNINDEXED_BAM,        // allow bam files that do not have an index; we'll traverse them using monolithic shard
-        ALLOW_EMPTY_INTERVAL_LIST,  // allow the user to pass in an empty interval list
         ALLOW_UNSET_BAM_SORT_ORDER, // assume that the bam is sorted, even if the SO (sort-order) flag is not set
         NO_READ_ORDER_VERIFICATION, // do not validate that the reads are in order as we take them from the bam file
         ALLOW_SEQ_DICT_INCOMPATIBILITY, // allow dangerous, but not fatal, sequence dictionary incompabilities

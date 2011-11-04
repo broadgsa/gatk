@@ -40,6 +40,7 @@ import java.util.TreeSet;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear in the input file.
@@ -136,11 +137,12 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /**
      * The reads filter function.
+     *
      * @param ref the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
-    public boolean filter(ReferenceContext ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, GATKSAMRecord read) {
         // check the read group
         if  ( readGroup != null ) {
             SAMReadGroupRecord myReadGroup = read.getReadGroup();
@@ -180,11 +182,12 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /**
      * The reads map function.
+     *
      * @param ref the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
-    public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public SAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read;
     }
 

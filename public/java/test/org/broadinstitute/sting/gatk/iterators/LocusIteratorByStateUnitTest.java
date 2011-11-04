@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
@@ -8,11 +7,11 @@ import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -29,17 +28,18 @@ import java.util.*;
  * testing of the LocusIteratorByState
  */
 public class LocusIteratorByStateUnitTest extends BaseTest {
-
-    private final int MAX_READS = 10;
     private static SAMFileHeader header;
     private LocusIteratorByState li;
-
     private GenomeLocParser genomeLocParser;
 
     @BeforeClass
     public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+    }
+
+    private final LocusIteratorByState makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
+        return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()), readAttributes, genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     @Test
@@ -68,7 +68,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(before,during,after);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser, new SampleDataSource());
+        li = makeLTBS(reads,readAttributes);
 
         boolean foundExtendedEventPileup = false;
         while (li.hasNext()) {
@@ -78,7 +78,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
 
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup().getBaseFilteredPileup(10);
             Assert.assertEquals(pileup.getLocation().getStart(), 5, "Extended event pileup at wrong location");
-            Assert.assertEquals(pileup.size(), 3, "Pileup size is incorrect");
+            Assert.assertEquals(pileup.getNumberOfElements(), 3, "Pileup size is incorrect");
 
             foundExtendedEventPileup = true;
         }
@@ -120,7 +120,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(before,during,after);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser, new SampleDataSource());
+        li = makeLTBS(reads,readAttributes);
 
         boolean foundExtendedEventPileup = false;
         while (li.hasNext()) {
@@ -154,7 +154,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(indelOnlyRead);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser,new SampleDataSource());
+        li = makeLTBS(reads, readAttributes);
 
         // Traditionally, reads that end with indels bleed into the pileup at the following locus.  Verify that the next pileup contains this read
         // and considers it to be an indel-containing read.
@@ -167,7 +167,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
 
         // Turn on extended events, and make sure the event is found.
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser,new SampleDataSource());
+        li = makeLTBS(reads, readAttributes);
 
         Assert.assertTrue(li.hasNext(),"LocusIteratorByState with extended events should contain exactly one pileup");
         alignmentContext = li.next();
@@ -203,7 +203,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(leadingRead,indelOnlyRead,fullMatchAfterIndel);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),createTestReadProperties(),genomeLocParser,new SampleDataSource());
+        li = makeLTBS(reads, createTestReadProperties());
         int currentLocus = firstLocus;
         int numAlignmentContextsFound = 0;
 
@@ -212,12 +212,12 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             Assert.assertEquals(alignmentContext.getLocation().getStart(),currentLocus,"Current locus returned by alignment context is incorrect");
 
             if(currentLocus == firstLocus) {
-                List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+                List<GATKSAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
                 Assert.assertEquals(readsAtLocus.size(),1,"Wrong number of reads at locus " + currentLocus);
                 Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at locus " + currentLocus);
             }
             else if(currentLocus == secondLocus) {
-                List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+                List<GATKSAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
                 Assert.assertEquals(readsAtLocus.size(),2,"Wrong number of reads at locus " + currentLocus);
                 Assert.assertSame(readsAtLocus.get(0),indelOnlyRead,"indelOnlyRead absent from pileup at locus " + currentLocus);
                 Assert.assertSame(readsAtLocus.get(1),fullMatchAfterIndel,"fullMatchAfterIndel absent from pileup at locus " + currentLocus);
@@ -260,12 +260,12 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(leadingRead,indelOnlyRead,fullMatchAfterIndel);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser,new SampleDataSource());
+        li = makeLTBS(reads,readAttributes);
 
         Assert.assertTrue(li.hasNext(),"Missing first locus at " + firstLocus);
         AlignmentContext alignmentContext = li.next();
         Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus,"Incorrect locus at this position; should be " + firstLocus);
-        List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+        List<GATKSAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
         Assert.assertEquals(readsAtLocus.size(),1,"Wrong number of reads at locus " + firstLocus);
         Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at locus " + firstLocus);
 

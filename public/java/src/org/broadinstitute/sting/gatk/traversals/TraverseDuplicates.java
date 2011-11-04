@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 
@@ -57,9 +58,9 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
         return "dups";
     }
 
-    private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
+    private List<GATKSAMRecord> readsAtLoc(final GATKSAMRecord read, PushbackIterator<SAMRecord> iter) {
         GenomeLoc site = engine.getGenomeLocParser().createGenomeLoc(read);
-        ArrayList<SAMRecord> l = new ArrayList<SAMRecord>();
+        ArrayList<GATKSAMRecord> l = new ArrayList<GATKSAMRecord>();
 
         l.add(read);
         for (SAMRecord read2 : iter) {
@@ -70,7 +71,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
                 iter.pushback(read2);
                 break;
             } else {
-                l.add(read2);
+                l.add((GATKSAMRecord) read2);
             }
         }
 
@@ -84,15 +85,15 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
      * @param reads the list of reads to split into unique molecular samples
      * @return
      */
-    protected Set<List<SAMRecord>> uniqueReadSets(List<SAMRecord> reads) {
-        Set<List<SAMRecord>> readSets = new LinkedHashSet<List<SAMRecord>>();
+    protected Set<List<GATKSAMRecord>> uniqueReadSets(List<GATKSAMRecord> reads) {
+        Set<List<GATKSAMRecord>> readSets = new LinkedHashSet<List<GATKSAMRecord>>();
 
         // for each read, find duplicates, and either add the read to its duplicate list or start a new one
-        for ( SAMRecord read : reads ) {
-            List<SAMRecord> readSet = findDuplicateReads(read, readSets);
+        for ( GATKSAMRecord read : reads ) {
+            List<GATKSAMRecord> readSet = findDuplicateReads(read, readSets);
 
             if ( readSet == null ) {
-                readSets.add(new ArrayList<SAMRecord>(Arrays.asList(read)));    // copy so I can add to the list
+                readSets.add(new ArrayList<GATKSAMRecord>(Arrays.asList(read)));    // copy so I can add to the list
             } else {
                 readSet.add(read);
             }
@@ -110,13 +111,13 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
      * @param readSets
      * @return The list of duplicate reads that read is a member of, or null if it's the only one of its kind
      */
-    protected List<SAMRecord> findDuplicateReads(SAMRecord read, Set<List<SAMRecord>> readSets ) {
+    protected List<GATKSAMRecord> findDuplicateReads(GATKSAMRecord read, Set<List<GATKSAMRecord>> readSets ) {
         if ( read.getReadPairedFlag() ) {
             // paired
             final GenomeLoc readMateLoc = engine.getGenomeLocParser().createGenomeLoc(read.getMateReferenceName(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
 
-            for (List<SAMRecord> reads : readSets) {
-                SAMRecord key = reads.get(0);
+            for (List<GATKSAMRecord> reads : readSets) {
+                GATKSAMRecord key = reads.get(0);
 
                 // read and key start at the same place, and either the this read and the key
                 // share a mate location or the read is flagged as a duplicate
@@ -131,8 +132,8 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
                 }
             }
         } else {
-            for (List<SAMRecord> reads : readSets) {
-                SAMRecord key = reads.get(0);
+            for (List<GATKSAMRecord> reads : readSets) {
+                GATKSAMRecord key = reads.get(0);
                 boolean v = (! key.getReadPairedFlag()) && read.getAlignmentStart() == key.getAlignmentStart() && ( key.getDuplicateReadFlag() || read.getDuplicateReadFlag() ) && read.getReadLength() == key.getReadLength();
                 //System.out.printf("%s %s %b %b %d %d %d %d => %b%n",
                 //        read.getReadPairedFlag(), key.getReadPairedFlag(), read.getDuplicateReadFlag(), key.getDuplicateReadFlag(),
@@ -179,7 +180,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
             // get the genome loc from the read
             GenomeLoc site = engine.getGenomeLocParser().createGenomeLoc(read);
 
-            Set<List<SAMRecord>> readSets = uniqueReadSets(readsAtLoc(read, iter));
+            Set<List<GATKSAMRecord>> readSets = uniqueReadSets(readsAtLoc((GATKSAMRecord) read, iter));
             if ( DEBUG ) logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d read sets", site, readSets.size()));
 
             // Jump forward in the reference to this locus location

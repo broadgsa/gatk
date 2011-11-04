@@ -28,6 +28,8 @@
 
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
+    <property name="contract.dump.dir" value="dump" />
+    <property name="pipelinetest.dir" value="pipelinetests" />
     <property name="lib.dir" value="lib" />
     <property name="external.dir" value="external" />
     <property name="public.dir" value="public" />
@@ -35,18 +37,26 @@
     <property name="java.public.source.dir" value="${public.dir}/java/src" />
     <property name="java.private.source.dir" value="${private.dir}/java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
+    <property name="R.public.scripts.dir" value="${public.dir}/R/scripts" />
+    <property name="R.private.scripts.dir" value="${private.dir}/R/scripts" />
+    <property name="R.public.src.dir" value="${public.dir}/R/src" />
+    <!-- Legacy: Installing libraries back into the source directory
+    instead of the build or dist directory... intentionally avoids ant clean?? -->
+    <property name="R.library.dir" value="${public.dir}/R" />
+    <property name="R.tar.dir" value="${build.dir}/R/src" />
+    <property name="R.package.path" value="org/broadinstitute/sting/utils/R" />
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
 
     <property name="scala.public.source.dir" value="${public.dir}/scala/src" />
-    <property name="scala.private.source.dir" value="${private.dir}/scala/src" />    
+    <property name="scala.private.source.dir" value="${private.dir}/scala/src" />
     <property name="scala.classes" value="${build.dir}/scala/classes" />
 
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
 
     <property name="javadoc.dir" value="javadoc" />
     <property name="scaladoc.dir" value="scaladoc" />
-    
+
     <!-- Contracts for Java -->
     <!-- By default, enabled only for test targets -->
     <!-- To disable for test targets, run with -Duse.contracts=false -->
@@ -60,7 +70,7 @@
 
     <!-- do we want to halt on failure of a unit test? default to yes (Bamboo uses 'no') -->
     <property name="halt" value="yes" />
-    
+
     <!-- should our unit test output go to a file or the screen?
     false means it goes to the screen (default) true to file -->
     <property name="usefile" value="false" />
@@ -82,7 +92,7 @@
         <patternset refid="java.source.pattern" />
     </fileset>
 
-    <!-- terrible hack to get gatkdocs to see all files --> 
+    <!-- terrible hack to get gatkdocs to see all files -->
     <patternset id="all.java.source.pattern">
         <include name="${java.public.source.dir}/**/*.java" />
         <include name="${java.private.source.dir}/**/*.java" />
@@ -113,7 +123,7 @@
       <exclude name="testng*.jar" />
       <exclude name="bcel*.jar" />
     </patternset>
-    
+
     <path id="external.dependencies">
       <fileset dir="${lib.dir}">
         <patternset refid="dependency.mask" />
@@ -154,16 +164,18 @@
         <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
         <property name="ivy.settings.dir" value="settings"/>
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
-  
+
       <mkdir dir="${lib.dir}"/>
       <mkdir dir="${ivy.jar.dir}"/>
 
+      <!-- Comment out the following two lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
       <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
            dest="${ivy.jar.dir}/${ivy.jar.file}"
            usetimestamp="true"/>
       <taskdef resource="org/apache/ivy/ant/antlib.xml"
                uri="antlib:org.apache.ivy.ant"
                classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+
       <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
         <property name="init.resolve.done" value="true"/>
     </target>
@@ -209,11 +221,11 @@
         <equals arg1="${git.describe.exit.value}" arg2="0" />
       </condition>
     </target>
-    
+
     <target name="tagged.build.version" depends="git.describe" if="git.describe.succeeded">
         <property name="build.version" value="${git.describe.output}" />
     </target>
-    
+
     <target name="git.rev-parse" depends="git.describe" unless="git.describe.succeeded">
       <exec executable="git" outputproperty="git.rev-parse.output" resultproperty="git.rev-parse.exit.value" failonerror="false">
         <arg line="rev-parse HEAD" />
@@ -222,11 +234,11 @@
         <equals arg1="${git.rev-parse.exit.value}" arg2="0" />
       </condition>
     </target>
-    
+
     <target name="untagged.build.version" depends="git.rev-parse" if="git.rev-parse.succeeded">
         <property name="build.version" value="${git.rev-parse.output}" />
     </target>
-    
+
     <target name="generate.build.version" depends="tagged.build.version, untagged.build.version">
         <!-- Set build.version to exported if no other value has been set -->
         <property name="build.version" value="exported" />
@@ -264,7 +276,7 @@
         <echo message="Scala build     : ${scala.target}"/>
       <echo message="source revision : ${build.version}"/>
       <echo message="build time      : ${build.timestamp}" />
-      
+
       <condition property="include.private">
         <equals arg1="${gatk.target}" arg2="private" casesensitive="false" />
       </condition>
@@ -310,13 +322,13 @@
     <target name="gatk.compile.public.source" depends="init,resolve">
         <javac fork="true" srcdir="${java.public.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
           <compilerarg value="-proc:none"/>
-        </javac>    
+        </javac>
     </target>
 
     <target name="gatk.compile.private.source" depends="gatk.compile.public.source" if="include.private">
         <javac fork="true" srcdir="${java.private.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
           <compilerarg value="-proc:none"/>
-        </javac>    
+        </javac>
     </target>
 
     <target name="gatk.compile.external.source" depends="gatk.compile.public.source,gatk.compile.private.source">
@@ -325,11 +337,11 @@
             <property name="dist.dir" value="${external.dist.dir}" />
             <property name="gatk.classpath" value="${external.gatk.classpath}" />
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
-        </subant>    
+        </subant>
     </target>
 
-    <target name="gatk.compile.source" 
-            depends="gatk.compile.public.source,gatk.compile.private.source,gatk.compile.external.source" 
+    <target name="gatk.compile.source"
+            depends="gatk.compile.public.source,gatk.compile.private.source,gatk.compile.external.source"
             description="compile the GATK source" />
 
    <target name="gatk.contracts.public" depends="gatk.compile.source" if="include.contracts">
@@ -339,9 +351,9 @@
                 <pathelement path="${java.classes}" />
             </classpath>
             <compilerarg value="-Acom.google.java.contract.debug"/>
-            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+            <compilerarg value="-Acom.google.java.contract.dump=${contract.dump.dir}"/>
             <compilerarg value="-proc:only"/>
-        </javac>   
+        </javac>
    </target>
 
     <target name="check.contracts.private" depends="gatk.contracts.public">
@@ -360,14 +372,14 @@
                 <pathelement path="${java.classes}" />
             </classpath>
             <compilerarg value="-Acom.google.java.contract.debug"/>
-            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+            <compilerarg value="-Acom.google.java.contract.dump=${contract.dump.dir}"/>
             <compilerarg value="-proc:only"/>
-        </javac>   
+        </javac>
    </target>
 
-    <target name="gatk.contracts" depends="gatk.contracts.public,gatk.contracts.private" 
+    <target name="gatk.contracts" depends="gatk.contracts.public,gatk.contracts.private"
             description="create GATK contracts" if="include.contracts" />
-    
+
     <target name="gatk.compile" depends="init,resolve,gatk.compile.source,gatk.contracts" />
 
     <target name="init.queue-extensions.generate" depends="gatk.compile">
@@ -411,9 +423,9 @@
             <src path="${scala.public.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
-        </scalac>    
+        </scalac>
     </target>
-    
+
     <target name="check.scala.private" depends="scala.compile.public">
         <condition property="include.scala.private">
           <and>
@@ -422,12 +434,12 @@
           </and>
         </condition>
     </target>
-    
+
     <target name="scala.compile.private" depends="check.scala.private" if="include.scala.private">
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
             <src path="${scala.private.source.dir}" />
             <include name="**/*.scala"/>
-        </scalac>       
+        </scalac>
     </target>
 
     <target name="scala.compile" depends="scala.compile.public,scala.compile.private" if="scala.include" description="compile Scala" />
@@ -530,6 +542,11 @@
 
     <target name="sting.compile" depends="gatk.compile, scala.compile" />
 
+    <target name="R.public.tar">
+        <mkdir dir="${R.tar.dir}/${R.package.path}" />
+        <tar compression="gzip" basedir="${R.public.src.dir}/${R.package.path}" includes="gsalib/**" destfile="${R.tar.dir}/${R.package.path}/gsalib.tar.gz" />
+    </target>
+
     <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
         <copy todir="${dist.dir}">
@@ -537,7 +554,7 @@
         </copy>
     </target>
 
-    <target name="sting-utils.jar" depends="gatk.compile, init.jar">
+    <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar">
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}">
               <include name="**/utils/**/*.class"/>
@@ -549,6 +566,15 @@
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/picard/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/samtools/**/*.class"/>
+            <fileset dir="${R.tar.dir}">
+                <include name="**/${R.package.path}/**/*.tar.gz"/>
+            </fileset>
+            <fileset dir="${R.public.scripts.dir}">
+              <include name="**/utils/**/*.R"/>
+            </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+              <include name="**/utils/**/*.R"/>
+            </fileset>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
             </manifest>
@@ -577,6 +603,14 @@
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
             </fileset>
+            <fileset dir="${R.public.scripts.dir}">
+                <include name="**/gatk/**/*.R"/>
+                <include name="**/alignment/**/*.R"/>
+            </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+                <include name="**/gatk/**/*.R"/>
+                <include name="**/alignment/**/*.R"/>
+            </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
             </manifest>
@@ -591,6 +625,14 @@
             <include name="**/analyzecovariates/**/*.class" />
             <include name="**/gatk/walkers/recalibration/*.class" />
           </fileset>
+            <fileset dir="${R.public.scripts.dir}">
+                <include name="**/analyzecovariates/**/*.R"/>
+                <include name="**/gatk/walkers/recalibration/**/*.R"/>
+            </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+                <include name="**/analyzecovariates/**/*.R"/>
+                <include name="**/gatk/walkers/recalibration/**/*.R"/>
+            </fileset>
           <manifest>
             <attribute name="Main-Class" value="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
           </manifest>
@@ -603,28 +645,7 @@
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
         </subant>
     </target>
-<!--
-    <target name="gatk.oneoffs.jar" depends="gatk.compile, init.jar"
-            description="generate the GATK oneoffs distribution" if="include.oneoffs">
-        <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" whenmanifestonly="skip">
-          <fileset dir="${java.classes}">
-            <include name="**/tools/**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.oneoffprojects.tools.CompareBAMAlignments" />
-          </manifest>
-        </jar>
 
-        <jar jarfile="${dist.dir}/SliceBams.jar" whenmanifestonly="skip">
-          <fileset dir="${java.classes}">
-            <include name="**/tools/**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.SliceBams" />
-          </manifest>
-        </jar>
-    </target>
--->
     <target name="scala.jar" depends="scala.compile, init.jar" if="scala.include">
         <jar jarfile="${dist.dir}/GATKScala.jar">
           <fileset dir="${scala.classes}">
@@ -640,6 +661,12 @@
             </fileset>
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/queue/**/*.class" />
+            </fileset>
+            <fileset dir="${R.public.scripts.dir}">
+                <include name="org/broadinstitute/sting/queue/**/*.R"/>
+            </fileset>
+            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+                <include name="org/broadinstitute/sting/queue/**/*.R"/>
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
@@ -680,20 +707,7 @@
         </jar>
 
     </target>
-<!--
-    <target name="gatk.oneoffs.manifests" depends="gatk.oneoffs.jar, init.manifests" if="include.oneoffs">
-        <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-        <jar jarfile="${dist.dir}/SliceBams.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-    </target>
--->
+
     <target name="queue.manifests" depends="queue.jar, init.manifests" if="scala.include">
         <jar jarfile="${dist.dir}/Queue.jar" update="true" >
             <manifest>
@@ -778,10 +792,6 @@
                 <pathelement location="${testng.jar}"/>
             </classpath>
             <compilerarg value="-proc:none"/>
-<!--
-            <compilerarg value="-Acom.google.java.contract.debug"/>
-            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
- -->
         </javac>
     </target>
 
@@ -798,10 +808,6 @@
                 <pathelement location="${testng.jar}"/>
             </classpath>
             <compilerarg value="-proc:none"/>
-<!--
-            <compilerarg value="-Acom.google.java.contract.debug"/>
-            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
- -->
         </javac>
     </target>
 
@@ -849,6 +855,9 @@
         <pathelement location="${java.private.test.classes}" />
         <pathelement location="${scala.public.test.classes}" />
         <pathelement location="${scala.private.test.classes}" />
+        <pathelement location="${R.tar.dir}" />
+        <pathelement location="${R.public.scripts.dir}" />
+        <pathelement location="${R.private.scripts.dir}" />
     </path>
 
     <path id="testng.gatk.releasetest.classpath">
@@ -1185,19 +1194,18 @@
     </target>
 
     <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs">
-        <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
-        <delete dir="dump"/>
+        <delete dir="${contract.dump.dir}"/>
         <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
-        <delete dir="pipelinetests"/>
+        <delete dir="${pipelinetest.dir}"/>
     </target>
 
     <!-- Build gsalib R module -->
     <target name="gsalib">
       <exec executable="R" failonerror="true">
-        <arg line="R CMD INSTALL -l public/R/ public/R/src/gsalib/" />
+        <arg line="R CMD INSTALL -l ${R.library.dir} ${R.public.src.dir}/${R.package.path}/gsalib" />
       </exec>
     </target>
 </project>

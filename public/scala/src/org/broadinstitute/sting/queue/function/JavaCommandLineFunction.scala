@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.queue.function
 
 import org.broadinstitute.sting.commandline.Argument
-import org.broadinstitute.sting.queue.util.IOUtils
+import org.broadinstitute.sting.utils.io.IOUtils
 import java.io.File
 
 /**

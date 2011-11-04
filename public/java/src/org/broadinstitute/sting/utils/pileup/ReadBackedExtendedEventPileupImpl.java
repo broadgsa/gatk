@@ -23,11 +23,10 @@
  */
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 
@@ -56,7 +55,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
     }
 
     // this is the good new one
-    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<Sample,? extends ReadBackedExtendedEventPileupImpl> pileupElementsBySample) {
+    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<String,? extends ReadBackedExtendedEventPileupImpl> pileupElementsBySample) {
         super(loc,pileupElementsBySample);
     }
 
@@ -96,7 +95,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
     }
 
     @Override
-    protected ExtendedEventPileupElement createNewPileupElement(SAMRecord read, int offset) {
+    protected ExtendedEventPileupElement createNewPileupElement(GATKSAMRecord read, int offset) {
         throw new UnsupportedOperationException("Not enough information provided to create a new pileup element");
     }
 
@@ -134,7 +133,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
      */
     @Override
     public byte[] getEvents() {
-        byte[] v = new byte[size()];
+        byte[] v = new byte[getNumberOfElements()];
         int i = 0;
         for ( ExtendedEventPileupElement e : this.toExtendedIterable() ) {
             switch ( e.getType() ) {

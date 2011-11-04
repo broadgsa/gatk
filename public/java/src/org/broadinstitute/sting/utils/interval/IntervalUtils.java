@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.interval;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
@@ -8,8 +10,9 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.bed.BedParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -35,70 +38,68 @@ public class IntervalUtils {
      *
      * @param parser Genome loc parser.
      * @param argList A list of strings containing interval data.
-     * @param allowEmptyIntervalList If false instead of an empty interval list will return null.
-     * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used. 
+     * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used.
      */
-    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, List<String> argList, boolean allowEmptyIntervalList) {
+    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, List<String> argList) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
 
         if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
                                // ensure that the arg list isn't null before looping.
             for (String argument : argList) {
-
-                // separate argument on semicolon first
-                for (String fileOrInterval : argument.split(";")) {
-                    // if any interval argument is '-L all', consider all loci by returning no intervals
-                    if (fileOrInterval.trim().toLowerCase().equals("all")) {
-                        if (argList.size() != 1) {
-                            // throw error if '-L all' is not only interval - potentially conflicting commands
-                            throw new UserException.CommandLineException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
-                        }
-                        return null;
-                    }
-                    // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
-                    else if (isUnmapped(fileOrInterval))
-                        rawIntervals.add(GenomeLoc.UNMAPPED);
-                    // if it's a file, add items to raw interval list
-                    else if (isIntervalFile(fileOrInterval)) {
-                        try {
-                            rawIntervals.addAll(intervalFileToList(parser, fileOrInterval, allowEmptyIntervalList));
-                        }
-                        catch ( UserException.MalformedGenomeLoc e ) {
-                            throw e;
-                        }
-                        catch ( Exception e ) {
-                            throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in any supported format.", e);
-                        }
-                    }
-
-                        // otherwise treat as an interval -> parse and add to raw interval list
-                    else {
-                        rawIntervals.add(parser.parseGenomeLoc(fileOrInterval));
-                    }
-                }
+                rawIntervals.addAll(parseIntervalArguments(parser, argument));
             }
         }
 
         return rawIntervals;
     }
 
-        /**
+    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, String arg) {
+        List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
+
+        // separate argument on semicolon first
+        for (String fileOrInterval : arg.split(";")) {
+            // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
+            if (isUnmapped(fileOrInterval))
+                rawIntervals.add(GenomeLoc.UNMAPPED);
+            // if it's a file, add items to raw interval list
+            else if (isIntervalFile(fileOrInterval)) {
+                try {
+                    rawIntervals.addAll(intervalFileToList(parser, fileOrInterval));
+                }
+                catch ( UserException.MalformedGenomeLoc e ) {
+                    throw e;
+                }
+                catch ( Exception e ) {
+                    throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in any supported format.", e);
+                }
+            }
+
+                // otherwise treat as an interval -> parse and add to raw interval list
+            else {
+                rawIntervals.add(parser.parseGenomeLoc(fileOrInterval));
+            }
+        }
+
+        return rawIntervals;
+    }
+
+    /**
      * Read a file of genome locations to process. The file may be in BED, Picard,
      * or GATK interval format.
      *
-     * @param file_name interval file
-     * @param allowEmptyIntervalList if false an exception will be thrown for files that contain no intervals
+     * @param glParser   GenomeLocParser
+     * @param file_name  interval file
      * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
      */
-    public static List<GenomeLoc> intervalFileToList(final GenomeLocParser glParser, final String file_name, boolean allowEmptyIntervalList) {
+    public static List<GenomeLoc> intervalFileToList(final GenomeLocParser glParser, final String file_name) {
         // try to open file
         File inputFile = new File(file_name);
         List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
 
         // case: BED file
-        if (file_name.toUpperCase().endsWith(".BED")) {
-            BedParser parser = new BedParser(glParser,inputFile);
-            ret.addAll(parser.getLocations());
+        if ( file_name.toUpperCase().endsWith(".BED") ) {
+            // this is now supported in Tribble
+            throw new ReviewedStingException("BED files must be parsed through Tribble; parsing them as intervals through the GATK engine is no longer supported");
         }
         else {
             /**
@@ -143,12 +144,6 @@ public class IntervalUtils {
                     }
                 }
             }
-        }
-
-        if ( ret.isEmpty() && ! allowEmptyIntervalList ) {
-            throw new UserException("The interval file " + inputFile.getAbsolutePath() + " contains no intervals " +
-                                    "that could be parsed, and the unsafe operation ALLOW_EMPTY_INTERVAL_LIST has " +
-                                    "not been enabled");
         }
 
         return ret;
@@ -204,7 +199,7 @@ public class IntervalUtils {
 
         //if we have an empty list, throw an exception.  If they specified intersection and there are no items, this is bad.
         if (retList.size() == 0)
-                throw new UserException.BadInput("The INTERSECTION of your -BTI and -L options produced no intervals.");
+                throw new UserException.BadInput("The INTERSECTION of your -L options produced no intervals.");
 
         // we don't need to add the rest of remaining locations, since we know they don't overlap. return what we have
         return retList;
@@ -228,6 +223,44 @@ public class IntervalUtils {
 
         return GenomeLocSortedSet.createSetFromList(parser,intervals);
     }
+
+    /**
+     * computes whether the test interval list is equivalent to master.  To be equivalent, test must
+     * contain GenomeLocs covering every base in master, exactly once.  Note that this algorithm
+     * assumes that master genomelocs are all discontiguous (i.e., we don't have locs like 1-3 and 4-6 but
+     * rather just 1-6).  In order to use this algorithm with contiguous genomelocs first merge them.  The algorithm
+     * doesn't assume that test has discontinuous genomelocs.
+     *
+     * Returns a null string if there are no differences, otherwise returns a string describing the difference
+     * (useful for UnitTests).  Assumes both lists are sorted
+     */
+    public static final String equateIntervals(List<GenomeLoc> masterArg, List<GenomeLoc> testArg) {
+        LinkedList<GenomeLoc> master = new LinkedList<GenomeLoc>(masterArg);
+        LinkedList<GenomeLoc> test = new LinkedList<GenomeLoc>(testArg);
+
+        while ( ! master.isEmpty() ) { // there's still unchecked bases in master
+            final GenomeLoc masterHead = master.pop();
+            final GenomeLoc testHead = test.pop();
+
+            if ( testHead.overlapsP(masterHead) ) {
+                // remove the parts of test that overlap master, and push the remaining
+                // parts onto master for further comparison.
+                for ( final GenomeLoc masterPart : Utils.reverse(masterHead.subtract(testHead)) ) {
+                    master.push(masterPart);
+                }
+            } else {
+                // testHead is incompatible with masterHead, so we must have extra bases in testHead
+                // that aren't in master
+                return "Incompatible locs detected masterHead=" + masterHead + ", testHead=" + testHead;
+            }
+        }
+
+        if ( test.isEmpty() ) // everything is equal
+            return null; // no differences
+        else
+            return "Remaining elements found in test: first=" + test.peek();
+    }
+
 
     /**
      * Check if string argument was intented as a file
@@ -334,24 +367,44 @@ public class IntervalUtils {
     }
 
     /**
-     * Splits an interval list into multiple files.
-     * @param fileHeader The sam file header.
+     * Splits an interval list into multiple sublists.
      * @param locs The genome locs to split.
      * @param splits The stop points for the genome locs returned by splitFixedIntervals.
-     * @param scatterParts The output interval lists to write to.
+     * @return A list of lists of genome locs, split according to splits
      */
-    public static void scatterFixedIntervals(SAMFileHeader fileHeader, List<GenomeLoc> locs, List<Integer> splits, List<File> scatterParts) {
-        if (splits.size() != scatterParts.size())
-            throw new UserException.BadArgumentValue("splits", String.format("Split points %d does not equal the number of scatter parts %d.", splits.size(), scatterParts.size()));
-        int fileIndex = 0;
+    public static List<List<GenomeLoc>> splitIntervalsToSubLists(List<GenomeLoc> locs, List<Integer> splits) {
         int locIndex = 1;
         int start = 0;
+        List<List<GenomeLoc>> sublists = new ArrayList<List<GenomeLoc>>(splits.size());
         for (Integer stop: splits) {
-            IntervalList intervalList = new IntervalList(fileHeader);
+            List<GenomeLoc> curList = new ArrayList<GenomeLoc>();
             for (int i = start; i < stop; i++)
-                intervalList.add(toInterval(locs.get(i), locIndex++));
-            intervalList.write(scatterParts.get(fileIndex++));
+                curList.add(locs.get(i));
             start = stop;
+            sublists.add(curList);
+        }
+
+        return sublists;
+    }
+
+
+    /**
+     * Splits an interval list into multiple files.
+     * @param fileHeader The sam file header.
+     * @param splits Pre-divided genome locs returned by splitFixedIntervals.
+     * @param scatterParts The output interval lists to write to.
+     */
+    public static void scatterFixedIntervals(SAMFileHeader fileHeader, List<List<GenomeLoc>> splits, List<File> scatterParts) {
+        if (splits.size() != scatterParts.size())
+            throw new UserException.BadArgumentValue("splits", String.format("Split points %d does not equal the number of scatter parts %d.", splits.size(), scatterParts.size()));
+
+        int fileIndex = 0;
+        int locIndex = 1;
+        for (final List<GenomeLoc> split : splits) {
+            IntervalList intervalList = new IntervalList(fileHeader);
+            for (final GenomeLoc loc : split)
+                intervalList.add(toInterval(loc, locIndex++));
+            intervalList.write(scatterParts.get(fileIndex++));
         }
     }
 
@@ -361,17 +414,101 @@ public class IntervalUtils {
      * @param numParts Number of parts to split the locs into.
      * @return The stop points to split the genome locs.
      */
-    public static List<Integer> splitFixedIntervals(List<GenomeLoc> locs, int numParts) {
+    public static List<List<GenomeLoc>> splitFixedIntervals(List<GenomeLoc> locs, int numParts) {
         if (locs.size() < numParts)
             throw new UserException.BadArgumentValue("scatterParts", String.format("Cannot scatter %d locs into %d parts.", locs.size(), numParts));
-        long locsSize = 0;
-        for (GenomeLoc loc: locs)
-            locsSize += loc.size();
-        List<Integer> splitPoints = new ArrayList<Integer>();
+        final long locsSize = intervalSize(locs);
+        final List<Integer> splitPoints = new ArrayList<Integer>();
         addFixedSplit(splitPoints, locs, locsSize, 0, locs.size(), numParts);
         Collections.sort(splitPoints);
         splitPoints.add(locs.size());
-        return splitPoints;
+        return splitIntervalsToSubLists(locs, splitPoints);
+    }
+
+    @Requires({"locs != null", "numParts > 0"})
+    @Ensures("result != null")
+    public static List<List<GenomeLoc>> splitLocusIntervals(List<GenomeLoc> locs, int numParts) {
+        // the ideal size of each split
+        final long bp = IntervalUtils.intervalSize(locs);
+        final long idealSplitSize = Math.max((long)Math.floor(bp / (1.0*numParts)), 1);
+
+        // algorithm:
+        // split = ()
+        // set size = 0
+        // pop the head H off locs.
+        // If size + size(H) < splitSize:
+        //      add H to split, continue
+        // If size + size(H) == splitSize:
+        //      done with split, put in splits, restart
+        // if size + size(H) > splitSize:
+        //      cut H into two pieces, first of which has splitSize - size bp
+        //      push both pieces onto locs, continue
+        // The last split is special -- when you have only one split left, it gets all of the remaining locs
+        // to deal with rounding issues
+        final List<List<GenomeLoc>> splits = new ArrayList<List<GenomeLoc>>(numParts);
+
+        LinkedList<GenomeLoc> locsLinkedList = new LinkedList<GenomeLoc>(locs);
+        while ( ! locsLinkedList.isEmpty() ) {
+            if ( splits.size() + 1 == numParts ) {
+                // the last one gets all of the remaining parts
+                splits.add(new ArrayList<GenomeLoc>(locsLinkedList));
+                locsLinkedList.clear();
+            } else {
+                final SplitLocusRecursive one = splitLocusIntervals1(locsLinkedList, idealSplitSize);
+                splits.add(one.split);
+                locsLinkedList = one.remaining;
+            }
+        }
+
+        return splits;
+    }
+
+    @Requires({"remaining != null", "!remaining.isEmpty()", "idealSplitSize > 0"})
+    @Ensures({"result != null"})
+    final static SplitLocusRecursive splitLocusIntervals1(LinkedList<GenomeLoc> remaining, long idealSplitSize) {
+        final List<GenomeLoc> split = new ArrayList<GenomeLoc>();
+        long size = 0;
+
+        while ( ! remaining.isEmpty() ) {
+            GenomeLoc head = remaining.pop();
+            final long newSize = size + head.size();
+
+            if ( newSize == idealSplitSize ) {
+                split.add(head);
+                break; // we are done
+            } else if ( newSize > idealSplitSize ) {
+                final long remainingBp = idealSplitSize - size;
+                final long cutPoint = head.getStart() + remainingBp;
+                GenomeLoc[] parts = head.split((int)cutPoint);
+                remaining.push(parts[1]);
+                remaining.push(parts[0]);
+                // when we go around, head.size' = idealSplitSize - size
+                // so newSize' = splitSize + head.size' = size + (idealSplitSize - size) = idealSplitSize
+            } else {
+                split.add(head);
+                size = newSize;
+            }
+        }
+
+        return new SplitLocusRecursive(split, remaining);
+    }
+
+    private final static class SplitLocusRecursive {
+        final List<GenomeLoc> split;
+        final LinkedList<GenomeLoc> remaining;
+
+        @Requires({"split != null", "remaining != null"})
+        private SplitLocusRecursive(final List<GenomeLoc> split, final LinkedList<GenomeLoc> remaining) {
+            this.split = split;
+            this.remaining = remaining;
+        }
+    }
+
+    public static List<GenomeLoc> flattenSplitIntervals(List<List<GenomeLoc>> splits) {
+        final List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
+        for ( final List<GenomeLoc> split : splits )
+            locs.addAll(split);
+        return locs;
     }
 
     private static void addFixedSplit(List<Integer> splitPoints, List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int numParts) {
@@ -440,5 +577,12 @@ public class IntervalUtils {
             merged.add(prev);
             return merged;
         }
+    }
+
+    public static final long intervalSize(final List<GenomeLoc> locs) {
+        long size = 0;
+        for ( final GenomeLoc loc : locs )
+            size += loc.size();
+        return size;
     }
 }

@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
 import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -112,6 +113,7 @@ import java.util.*;
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
+@PartitionBy(PartitionType.INTERVAL)
 public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partition,Map<String,int[]>>, CoveragePartitioner> implements TreeReducible<CoveragePartitioner> {
     @Output
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
@@ -281,20 +283,14 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     private HashSet<String> getSamplesFromToolKit(DoCOutputType.Partition type) {
         HashSet<String> partition = new HashSet<String>();
         if ( type == DoCOutputType.Partition.sample ) {
-            for ( Set<String> sampleSet : getToolkit().getSamplesByReaders() ) {
-                for ( String s : sampleSet ) {
-                    partition.add(s);
-                }
-            }
+            partition.addAll(SampleUtils.getSAMFileSamples(getToolkit()));
         } else if ( type == DoCOutputType.Partition.readgroup ) {
             for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
                 partition.add(rg.getSample()+"_rg_"+rg.getReadGroupId());
             }
         } else if ( type == DoCOutputType.Partition.library ) {
-            for ( Set<String> libraries : getToolkit().getLibrariesByReaders() ) {
-                for ( String l : libraries ) {
-                    partition.add(l);
-                }
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(rg.getLibrary());
             }
         } else if ( type == DoCOutputType.Partition.center ) {
             for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {

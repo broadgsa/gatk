@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * List all of the samples in the info field
+ * List all of the polymorphic samples.
  */
 public class SampleList extends InfoFieldAnnotation {
 

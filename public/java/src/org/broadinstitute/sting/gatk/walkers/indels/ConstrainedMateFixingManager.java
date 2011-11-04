@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 
@@ -180,8 +181,8 @@ public class ConstrainedMateFixingManager {
         addRead(newRead, readWasModified, true);
     }
 
-    public void addReads(List<SAMRecord> newReads, Set<SAMRecord> modifiedReads) {
-        for ( SAMRecord newRead : newReads )
+    public void addReads(List<GATKSAMRecord> newReads, Set<GATKSAMRecord> modifiedReads) {
+        for ( GATKSAMRecord newRead : newReads )
             addRead(newRead, modifiedReads.contains(newRead), false);
     }
 

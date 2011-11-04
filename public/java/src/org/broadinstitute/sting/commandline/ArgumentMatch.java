@@ -46,7 +46,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     /**
      * Maps indices of command line arguments to values paired with that argument.
      */
-    public final SortedMap<Integer,List<String>> indices = new TreeMap<Integer,List<String>>();
+    public final SortedMap<ArgumentMatchSite,List<String>> sites = new TreeMap<ArgumentMatchSite,List<String>>();
 
     /**
      * An ordered, freeform collection of tags.
@@ -72,32 +72,32 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     }
 
     /**
-     * A simple way of indicating that an argument with the given label and definition exists at this index.
+     * A simple way of indicating that an argument with the given label and definition exists at this site.
      * @param label Label of the argument match.  Must not be null.
      * @param definition The associated definition, if one exists.  May be null.
-     * @param index Position of the argument.  Must not be null.
+     * @param site Position of the argument.  Must not be null.
      * @param tags ordered freeform text tags associated with this argument.
      */
-    public ArgumentMatch(final String label, final ArgumentDefinition definition, final int index, final Tags tags) {
-        this( label, definition, index, null, tags );
+    public ArgumentMatch(final String label, final ArgumentDefinition definition, final ArgumentMatchSite site, final Tags tags) {
+        this( label, definition, site, null, tags );
     }
 
     /**
-     * A simple way of indicating that an argument with the given label and definition exists at this index.
+     * A simple way of indicating that an argument with the given label and definition exists at this site.
      * @param label Label of the argument match.  Must not be null.
      * @param definition The associated definition, if one exists.  May be null.
-     * @param index Position of the argument.  Must not be null.
+     * @param site Position of the argument.  Must not be null.
      * @param value Value for the argument at this position.
      * @param tags ordered freeform text tags associated with this argument.
      */
-    private ArgumentMatch(final String label, final ArgumentDefinition definition, final int index, final String value, final Tags tags) {
+    private ArgumentMatch(final String label, final ArgumentDefinition definition, final ArgumentMatchSite site, final String value, final Tags tags) {
         this.label = label;
         this.definition = definition;
 
         ArrayList<String> values = new ArrayList<String>();
         if( value != null )
             values.add(value);
-        indices.put(index,values );
+        sites.put(site,values );
 
         this.tags = tags;
     }
@@ -117,7 +117,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
         ArgumentMatch otherArgumentMatch = (ArgumentMatch)other;
         return this.definition.equals(otherArgumentMatch.definition) &&
                 this.label.equals(otherArgumentMatch.label) &&
-                this.indices.equals(otherArgumentMatch.indices) &&
+                this.sites.equals(otherArgumentMatch.sites) &&
                 this.tags.equals(otherArgumentMatch.tags);
     }
 
@@ -129,16 +129,17 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @param key Key which specifies the transform.
      * @return A variant of this ArgumentMatch with all keys transformed.
      */
+    @SuppressWarnings("unchecked")
     ArgumentMatch transform(Multiplexer multiplexer, Object key) {
-        SortedMap<Integer,List<String>> newIndices = new TreeMap<Integer,List<String>>();
-        for(Map.Entry<Integer,List<String>> index: indices.entrySet()) {
+        SortedMap<ArgumentMatchSite,List<String>> newIndices = new TreeMap<ArgumentMatchSite,List<String>>();
+        for(Map.Entry<ArgumentMatchSite,List<String>> site: sites.entrySet()) {
             List<String> newEntries = new ArrayList<String>();
-            for(String entry: index.getValue())
+            for(String entry: site.getValue())
                 newEntries.add(multiplexer.transformArgument(key,entry));
-            newIndices.put(index.getKey(),newEntries);
+            newIndices.put(site.getKey(),newEntries);
         }
         ArgumentMatch newArgumentMatch = new ArgumentMatch(label,definition);
-        newArgumentMatch.indices.putAll(newIndices);
+        newArgumentMatch.sites.putAll(newIndices);
         return newArgumentMatch;
     }
 
@@ -157,9 +158,9 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     public Iterator<ArgumentMatch> iterator() {
         return new Iterator<ArgumentMatch>() {
             /**
-             * Iterate over each the available index.
+             * Iterate over each the available site.
              */
-            private Iterator<Integer> indexIterator = null;
+            private Iterator<ArgumentMatchSite> siteIterator = null;
 
             /**
              * Iterate over each available token.
@@ -167,9 +168,9 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
             private Iterator<String> tokenIterator = null;
 
             /**
-             * The next index to return.  Null if none remain.
+             * The next site to return.  Null if none remain.
              */
-            Integer nextIndex = null;
+            ArgumentMatchSite nextSite = null;
 
             /**
              * The next token to return.  Null if none remain.
@@ -177,7 +178,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
             String nextToken = null;
 
             {
-                indexIterator = indices.keySet().iterator();
+                siteIterator = sites.keySet().iterator();
                 prepareNext();
             }
 
@@ -186,7 +187,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
              * @return True if there's another token waiting in the wings.  False otherwise.
              */
             public boolean hasNext() {
-                return nextToken != null;    
+                return nextToken != null;
             }
 
             /**
@@ -194,32 +195,32 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
              * @return The next ArgumentMatch in the series.  Should never be null.
              */
             public ArgumentMatch next() {
-                if( nextIndex == null || nextToken == null )
+                if( nextSite == null || nextToken == null )
                     throw new IllegalStateException( "No more ArgumentMatches are available" );
 
-                ArgumentMatch match = new ArgumentMatch( label, definition, nextIndex, nextToken, tags );
+                ArgumentMatch match = new ArgumentMatch( label, definition, nextSite, nextToken, tags );
                 prepareNext();
                 return match;
             }
 
             /**
              * Initialize the next ArgumentMatch to return.  If no ArgumentMatches are available,
-             * initialize nextIndex / nextToken to null.
+             * initialize nextSite / nextToken to null.
              */
             private void prepareNext() {
                 if( tokenIterator != null && tokenIterator.hasNext() ) {
                     nextToken = tokenIterator.next();
                 }
                 else {
-                    nextIndex = null;
+                    nextSite = null;
                     nextToken = null;
 
                     // Do a nested loop.  While more data is present in the inner loop, grab that data.
                     // Otherwise, troll the outer iterator looking for more data.
-                    while( indexIterator.hasNext() ) {
-                        nextIndex = indexIterator.next();
-                        if( indices.get(nextIndex) != null ) {
-                            tokenIterator = indices.get(nextIndex).iterator();
+                    while( siteIterator.hasNext() ) {
+                        nextSite = siteIterator.next();
+                        if( sites.get(nextSite) != null ) {
+                            tokenIterator = sites.get(nextSite).iterator();
                             if( tokenIterator.hasNext() ) {
                                 nextToken = tokenIterator.next();
                                 break;
@@ -245,29 +246,29 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @param other The other match to merge into.
      */
     public void mergeInto( ArgumentMatch other ) {
-        indices.putAll(other.indices);
+        sites.putAll(other.sites);
     }
 
     /**
      * Associate a value with this merge maapping.
-     * @param index index of the command-line argument to which this value is mated.
+     * @param site site of the command-line argument to which this value is mated.
      * @param value Text representation of value to add.
      */
-    public void addValue( int index, String value ) {
-        if( !indices.containsKey(index) || indices.get(index) == null )
-            indices.put(index, new ArrayList<String>() );
-        indices.get(index).add(value);
+    public void addValue( ArgumentMatchSite site, String value ) {
+        if( !sites.containsKey(site) || sites.get(site) == null )
+            sites.put(site, new ArrayList<String>() );
+        sites.get(site).add(value);
     }
 
     /**
      * Does this argument already have a value at the given site?
      * Arguments are only allowed to be single-valued per site, and
      * flags aren't allowed a value at all.
-     * @param index Index at which to check for values.
+     * @param site Site at which to check for values.
      * @return True if the argument has a value at the given site.  False otherwise.
      */
-    public boolean hasValueAtSite( int index ) {
-        return (indices.get(index) != null && indices.get(index).size() >= 1) || isArgumentFlag();
+    public boolean hasValueAtSite( ArgumentMatchSite site ) {
+        return (sites.get(site) != null && sites.get(site).size() >= 1) || isArgumentFlag();
     }
 
     /**
@@ -276,9 +277,9 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      */
     public List<String> values() {
         List<String> values = new ArrayList<String>();
-        for( int index: indices.keySet() ) {
-            if( indices.get(index) != null )
-                values.addAll(indices.get(index));
+        for( ArgumentMatchSite site: sites.keySet() ) {
+            if( sites.get(site) != null )
+                values.addAll(sites.get(site));
         }
         return values;
     }

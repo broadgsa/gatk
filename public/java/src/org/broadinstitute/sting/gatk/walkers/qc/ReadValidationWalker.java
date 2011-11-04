@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -64,21 +65,23 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
 
     /**
      * The reads filter function.
+     *
      * @param ref the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
-    public boolean filter(ReferenceContext ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, GATKSAMRecord read) {
         return true;
 	}
 
     /**
      * The reads map function.
+     *
      * @param ref the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
-    public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public SAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read;
     }
 

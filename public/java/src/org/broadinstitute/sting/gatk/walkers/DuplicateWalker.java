@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.List;
 import java.util.Set;
@@ -20,11 +20,11 @@ import java.util.Set;
 @ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class})
 public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets ) {
+    public boolean filter(GenomeLoc loc, AlignmentContext context, Set<List<GATKSAMRecord>> readSets ) {
         return true;    // We are keeping all the reads
     }
 
-    public abstract MapType map(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets );
+    public abstract MapType map(GenomeLoc loc, AlignmentContext context, Set<List<GATKSAMRecord>> readSets );
 
     // Given result of map function
     public abstract ReduceType reduceInit();

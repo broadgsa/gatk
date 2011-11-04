@@ -99,7 +99,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
 
         final VCFHeader vcfHeader = new VCFHeader(metaData, samples);
-        writer = new StandardVCFWriter(file, false);
+        writer = new StandardVCFWriter(file, getMasterSequenceDictionary(), false);
         writer.writeHeader(vcfHeader);
     }
 

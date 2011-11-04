@@ -35,6 +35,8 @@ class ContigScatterFunction extends GATKScatterFunction with InProcessFunction {
   // Include unmapped reads by default.
   this.includeUnmapped = true
 
+  override def scatterCount = if (intervalFilesExist) super.scatterCount min this.maxIntervals else super.scatterCount
+
   protected override def maxIntervals = {
     GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals).contigs.size
   }
@@ -44,3 +46,4 @@ class ContigScatterFunction extends GATKScatterFunction with InProcessFunction {
     IntervalUtils.scatterContigIntervals(gi.samFileHeader, gi.locs, this.scatterOutputFiles)
   }
 }
+

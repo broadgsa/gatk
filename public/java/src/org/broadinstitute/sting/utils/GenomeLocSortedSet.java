@@ -215,7 +215,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
             if ( p.overlapsP(e) ) {
                 toProcess.pop();
-                for ( GenomeLoc newP : subtractRegion(p, e) )
+                for ( GenomeLoc newP : p.subtract(e) )
                     toProcess.push(newP);
             } else if ( p.compareContigs(e) < 0 ) {
                 good.add(toProcess.pop());         // p is now good
@@ -234,69 +234,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         }
 
         return createSetFromList(genomeLocParser,good);
-    }
-
-    private static final List<GenomeLoc> EMPTY_LIST = new ArrayList<GenomeLoc>();
-    private List<GenomeLoc> subtractRegion(GenomeLoc g, GenomeLoc e) {
-        if (g.equals(e)) {
-            return EMPTY_LIST;
-        } else if (g.containsP(e)) {
-            List<GenomeLoc> l = new ArrayList<GenomeLoc>();
-
-            /**
-             * we have to create two new region, one for the before part, one for the after
-             * The old region:
-             * |----------------- old region (g) -------------|
-             *        |----- to delete (e) ------|
-             *
-             * product (two new regions):
-             * |------|  + |--------|
-             *
-             */
-            int afterStop = g.getStop(), afterStart = e.getStop() + 1;
-            int beforeStop = e.getStart() - 1, beforeStart = g.getStart();
-            if (afterStop - afterStart >= 0) {
-                GenomeLoc after = genomeLocParser.createGenomeLoc(g.getContig(), afterStart, afterStop);
-                l.add(after);
-            }
-            if (beforeStop - beforeStart >= 0) {
-                GenomeLoc before = genomeLocParser.createGenomeLoc(g.getContig(), beforeStart, beforeStop);
-                l.add(before);
-            }
-
-            return l;
-        } else if (e.containsP(g)) {
-            /**
-             * e completely contains g, delete g, but keep looking, there may be more regions
-             * i.e.:
-             *   |--------------------- e --------------------|
-             *       |--- g ---|    |---- others ----|
-             */
-            return EMPTY_LIST;   // don't need to do anything
-        } else {
-            /**
-             * otherwise e overlaps some part of g
-             *
-             * figure out which region occurs first on the genome.  I.e., is it:
-             * |------------- g ----------|
-             *       |------------- e ----------|
-             *
-             * or:
-             *       |------------- g ----------|
-             * |------------ e -----------|
-             *
-             */
-
-            GenomeLoc n;
-            if (e.getStart() < g.getStart()) {
-                n = genomeLocParser.createGenomeLoc(g.getContig(), e.getStop() + 1, g.getStop());
-            } else {
-                n = genomeLocParser.createGenomeLoc(g.getContig(), g.getStart(), e.getStart() - 1);
-            }
-
-            // replace g with the new region
-            return Arrays.asList(n);
-        }
     }
 
 

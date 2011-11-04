@@ -33,11 +33,12 @@ import org.broadinstitute.sting.queue.engine.{QGraphSettings, QGraph}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.classloader.PluginManager
 import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.sting.utils.io.IOUtils
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
  */
-object QCommandLine {
+object QCommandLine extends Logging {
   /**
    * Main.
    * @param argv Arguments.
@@ -45,22 +46,26 @@ object QCommandLine {
   def main(argv: Array[String]) {
     val qCommandLine = new QCommandLine
 
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      /** Cleanup as the JVM shuts down. */
+    val shutdownHook = new Thread {
       override def run() {
-        ProcessController.shutdown()
+        logger.info("Shutting down jobs. Please wait...")
         qCommandLine.shutdown()
       }
-    })
+    }
+
+    Runtime.getRuntime.addShutdownHook(shutdownHook)
 
     try {
-      CommandLineProgram.start(qCommandLine, argv);
+      CommandLineProgram.start(qCommandLine, argv)
+      try {
+        Runtime.getRuntime.removeShutdownHook(shutdownHook)
+      } catch {
+        case _ => /* ignore, example 'java.lang.IllegalStateException: Shutdown in progress' */
+      }
       if (CommandLineProgram.result != 0)
         System.exit(CommandLineProgram.result);
     } catch {
       case e: Exception => CommandLineProgram.exitSystemWithError(e)
-    } finally {
-
     }
   }
 }
@@ -79,6 +84,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   private val qScriptManager = new QScriptManager
   private val qGraph = new QGraph
   private var qScriptClasses: File = _
+  private var shuttingDown = false
 
   private lazy val pluginManager = {
     qScriptClasses = IOUtils.tempDir("Q-Classes", "", settings.qSettings.tempDirectory)
@@ -117,10 +123,16 @@ class QCommandLine extends CommandLineProgram with Logging {
       script.onExecutionDone(qGraph.getFunctionsAndStatus(script.functions), qGraph.success)
       if ( ! settings.disableJobReport ) {
         val jobStringName = (QScriptUtils.?(settings.jobReportFile)).getOrElse(settings.qSettings.jobNamePrefix + ".jobreport.txt")
-        val jobReportFile = new File(jobStringName)
-        logger.info("Writing JobLogging GATKReport to file " + jobReportFile)
-        QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), jobReportFile)
-        QJobReport.plotReport(settings.rScriptArgs, jobReportFile)
+
+        if (!shuttingDown) {
+          val reportFile = new File(jobStringName)
+          logger.info("Writing JobLogging GATKReport to file " + reportFile)
+          QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), reportFile)
+
+          val pdfFile = new File(jobStringName + ".pdf")
+          logger.info("Plotting JobLogging GATKReport to file " + pdfFile)
+          QJobReport.plotReport(reportFile, pdfFile)
+        }
       }
     }
 
@@ -162,6 +174,7 @@ class QCommandLine extends CommandLineProgram with Logging {
     Arrays.asList(new ScalaCompoundArgumentTypeDescriptor)
 
   def shutdown() = {
+    shuttingDown = true
     qGraph.shutdown()
     if (qScriptClasses != null) IOUtils.tryDelete(qScriptClasses)
   }

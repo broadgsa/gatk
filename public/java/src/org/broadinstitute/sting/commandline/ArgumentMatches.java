@@ -37,7 +37,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * Collection matches from argument definition to argument value.
      * Package protected access is deliberate.
      */
-    Map<Integer,ArgumentMatch> argumentMatches = new TreeMap<Integer,ArgumentMatch>();
+    Map<ArgumentMatchSite,ArgumentMatch> argumentMatches = new TreeMap<ArgumentMatchSite,ArgumentMatch>();
 
     /**
      * Provide a place to put command-line argument values that don't seem to belong to
@@ -80,7 +80,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @param site Site at which to check.
      * @return True if the site has a match.  False otherwise.
      */
-    boolean hasMatch( int site ) {
+    boolean hasMatch( ArgumentMatchSite site ) {
         return argumentMatches.containsKey( site );
     }
 
@@ -90,7 +90,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @return The match present at the given site.
      * @throws IllegalArgumentException if site does not contain a match.
      */
-    ArgumentMatch getMatch( int site ) {
+    ArgumentMatch getMatch( ArgumentMatchSite site ) {
         if( !argumentMatches.containsKey(site) )
             throw new IllegalArgumentException( "Site does not contain an argument: " + site );
         return argumentMatches.get(site);
@@ -107,6 +107,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
 
     /**
      * Return all argument matches of this source.
+     * @param parsingEngine Parsing engine.
      * @param argumentSource Argument source to match.
      * @return List of all matches.
      */
@@ -167,6 +168,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * TODO: Generify this.
      * @param multiplexer Multiplexer that controls the transformation process.
      * @param key Key which specifies the transform.
+     * @return new argument matches.
      */
     ArgumentMatches transform(Multiplexer multiplexer, Object key) {
         ArgumentMatches newArgumentMatches = new ArgumentMatches();
@@ -187,15 +189,15 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
         for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
             if( argumentMatch.definition == match.definition && argumentMatch.tags.equals(match.tags) ) {
                 argumentMatch.mergeInto( match );
-                for( int index: match.indices.keySet() )
-                    argumentMatches.put( index, argumentMatch );
+                for( ArgumentMatchSite site: match.sites.keySet() )
+                    argumentMatches.put( site, argumentMatch );
                 definitionExists = true;
             }
         }
 
         if( !definitionExists ) {
-            for( int index: match.indices.keySet() )
-                argumentMatches.put( index, match );
+            for( ArgumentMatchSite site: match.sites.keySet() )
+                argumentMatches.put( site, match );
         }
     }    
 

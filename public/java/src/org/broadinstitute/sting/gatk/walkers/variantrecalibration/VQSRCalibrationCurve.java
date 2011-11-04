@@ -115,7 +115,7 @@ public class VQSRCalibrationCurve {
         if ( vc.isFiltered() )
             return 0.0;
         else if ( vc.hasAttribute(VQSRQualKey) ) {
-            double qual = vc.getAttributeAsDouble(VQSRQualKey);
+            double qual = vc.getAttributeAsDouble(VQSRQualKey, 0.0);
             return probTrueVariant(qual);
         } else {
             throw new UserException.VariantContextMissingRequiredField(VQSRQualKey, vc);
@@ -143,7 +143,7 @@ public class VQSRCalibrationCurve {
             for ( int i = 0; i < log10Likelihoods.length; i++) {
                 double p = Math.pow(10, log10Likelihoods[i]);
                 double q = alpha * p + (1-alpha) * noInfoPr;
-                if ( DEBUG ) System.out.printf("  vqslod = %.2f, p = %.2e, alpha = %.2e, q = %.2e%n", vc.getAttributeAsDouble(VQSRQualKey), p, alpha, q);
+                if ( DEBUG ) System.out.printf("  vqslod = %.2f, p = %.2e, alpha = %.2e, q = %.2e%n", vc.getAttributeAsDouble(VQSRQualKey, 0.0), p, alpha, q);
                 updated[i] = Math.log10(q);
             }
 

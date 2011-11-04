@@ -219,10 +219,10 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
 
     @Override
     public void onTraversalDone(Integer sum) {
-        out.printf("Reading master file %s%n", masterFile);
+        //out.printf("Reading master file %s%n", masterFile);
         DiffElement master = diffEngine.createDiffableFromFile(masterFile, MAX_OBJECTS_TO_READ);
         out.printf("  Read %d objects%n", master.size());
-        out.printf("Reading test file %s%n", testFile);
+        //out.printf("Reading test file %s%n", testFile);
         DiffElement test = diffEngine.createDiffableFromFile(testFile, MAX_OBJECTS_TO_READ);
         out.printf("  Read %d objects%n", test.size());
 

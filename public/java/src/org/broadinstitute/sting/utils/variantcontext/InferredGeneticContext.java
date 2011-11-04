@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+
 import java.util.*;
 
 
@@ -204,27 +206,40 @@ public final class InferredGeneticContext {
             return defaultValue;
     }
 
-//    public AttributedObject getAttributes(Collection<Object> keys) {
-//        AttributedObject selected = new AttributedObject();
-//
-//        for ( Object key : keys )
-//            selected.putAttribute(key, this.getAttribute(key));
-//
-//        return selected;
-//    }
+    public String getAttributeAsString(String key, String defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null ) return defaultValue;
+        if ( x instanceof String ) return (String)x;
+        return String.valueOf(x); // throws an exception if this isn't a string
+    }
 
-    public String getAttributeAsString(String key)      { return (String.valueOf(getAttribute(key))); } // **NOTE**: will turn a null Object into the String "null"
-    public int getAttributeAsInt(String key)            { Object x = getAttribute(key); return x instanceof Integer ? (Integer)x : Integer.valueOf((String)x); }
-    public double getAttributeAsDouble(String key)      { Object x = getAttribute(key); return x instanceof Double ? (Double)x : Double.valueOf((String)x); }
-    public boolean getAttributeAsBoolean(String key)      { Object x = getAttribute(key); return x instanceof Boolean ? (Boolean)x : Boolean.valueOf((String)x); }
+    public int getAttributeAsInt(String key, int defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null || x == VCFConstants.MISSING_VALUE_v4 ) return defaultValue;
+        if ( x instanceof Integer ) return (Integer)x;
+        return Integer.valueOf((String)x); // throws an exception if this isn't a string
+    }
 
-    public String getAttributeAsString(String key, String defaultValue)   { return (String)getAttribute(key, defaultValue); }
-    public int getAttributeAsInt(String key, int defaultValue)            { return (Integer)getAttribute(key, defaultValue); }
-    public double getAttributeAsDouble(String key, double defaultValue)   { return (Double)getAttribute(key, defaultValue); }
-    public boolean getAttributeAsBoolean(String key, boolean defaultValue){ return (Boolean)getAttribute(key, defaultValue); }
+    public double getAttributeAsDouble(String key, double defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null ) return defaultValue;
+        if ( x instanceof Double ) return (Double)x;
+        return Double.valueOf((String)x); // throws an exception if this isn't a string
+    }
 
-    public Integer getAttributeAsIntegerNoException(String key)  { try {return getAttributeAsInt(key);} catch (Exception e) {return null;} }
-    public Double getAttributeAsDoubleNoException(String key)    { try {return getAttributeAsDouble(key);} catch (Exception e) {return null;} }
-    public String getAttributeAsStringNoException(String key)    { if (getAttribute(key) == null) return null; return getAttributeAsString(key); }
-    public Boolean getAttributeAsBooleanNoException(String key)  { try {return getAttributeAsBoolean(key);} catch (Exception e) {return null;} }
+    public boolean getAttributeAsBoolean(String key, boolean defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null ) return defaultValue;
+        if ( x instanceof Boolean ) return (Boolean)x;
+        return Boolean.valueOf((String)x); // throws an exception if this isn't a string
+    }
+
+//    public String getAttributeAsString(String key)      { return (String.valueOf(getAttribute(key))); } // **NOTE**: will turn a null Object into the String "null"
+//    public int getAttributeAsInt(String key)            { Object x = getAttribute(key); return x instanceof Integer ? (Integer)x : Integer.valueOf((String)x); }
+//    public double getAttributeAsDouble(String key)      { Object x = getAttribute(key); return x instanceof Double ? (Double)x : Double.valueOf((String)x); }
+//    public boolean getAttributeAsBoolean(String key)      { Object x = getAttribute(key); return x instanceof Boolean ? (Boolean)x : Boolean.valueOf((String)x); }
+//    public Integer getAttributeAsIntegerNoException(String key)  { try {return getAttributeAsInt(key);} catch (Exception e) {return null;} }
+//    public Double getAttributeAsDoubleNoException(String key)    { try {return getAttributeAsDouble(key);} catch (Exception e) {return null;} }
+//    public String getAttributeAsStringNoException(String key)    { if (getAttribute(key) == null) return null; return getAttributeAsString(key); }
+//    public Boolean getAttributeAsBooleanNoException(String key)  { try {return getAttributeAsBoolean(key);} catch (Exception e) {return null;} }
 }

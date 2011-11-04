@@ -25,104 +25,164 @@
 package org.broadinstitute.sting.utils.R;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.Advanced;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
-import org.broadinstitute.sting.utils.PathUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.sting.utils.io.Resource;
+import org.broadinstitute.sting.utils.runtime.ProcessController;
+import org.broadinstitute.sting.utils.runtime.ProcessSettings;
+import org.broadinstitute.sting.utils.runtime.RuntimeUtils;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Generic service for executing RScripts in the GATK directory
- *
- * @author Your Name
- * @since Date created
+ * Generic service for executing RScripts
  */
 public class RScriptExecutor {
+    private static final String RSCRIPT_BINARY = "Rscript";
+    private static final File RSCRIPT_PATH = RuntimeUtils.which(RSCRIPT_BINARY);
+    public static final boolean RSCRIPT_EXISTS = (RSCRIPT_PATH != null);
+    private static final String RSCRIPT_MISSING_MESSAGE = "Please add the Rscript directory to your environment ${PATH}";
+
     /**
      * our log
      */
-    protected static Logger logger = Logger.getLogger(RScriptExecutor.class);
+    private static Logger logger = Logger.getLogger(RScriptExecutor.class);
 
-    public static class RScriptArgumentCollection {
-        @Advanced
-        @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.12.0/bin/Rscript", required = false)
-        public String PATH_TO_RSCRIPT = "Rscript";
+    private boolean exceptOnError = false;
+    private final List<RScriptLibrary> libraries = new ArrayList<RScriptLibrary>();
+    private final List<Resource> scriptResources = new ArrayList<Resource>();
+    private final List<File> scriptFiles = new ArrayList<File>();
+    private final List<String> args = new ArrayList<String>();
 
-        @Advanced
-        @Argument(fullName = "path_to_Rresources", shortName = "Rresources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-        public List<String> PATH_TO_RESOURCES = Arrays.asList("public/R/", "private/R/");
-
-        public RScriptArgumentCollection() {}
-
-        /** For testing and convenience */
-        public RScriptArgumentCollection(final String PATH_TO_RSCRIPT, final List<String> PATH_TO_RESOURCES) {
-            this.PATH_TO_RSCRIPT = PATH_TO_RSCRIPT;
-            this.PATH_TO_RESOURCES = PATH_TO_RESOURCES;
-        }
-    }
-
-    final RScriptArgumentCollection myArgs;
-    final boolean exceptOnError;
-
-    public RScriptExecutor(final RScriptArgumentCollection myArgs, final boolean exceptOnError) {
-        this.myArgs = myArgs;
+    public void setExceptOnError(boolean exceptOnError) {
         this.exceptOnError = exceptOnError;
     }
 
-    public void callRScripts(String scriptName, Object... scriptArgs) {
-        callRScripts(scriptName, Arrays.asList(scriptArgs));
+    public void addLibrary(RScriptLibrary library) {
+        this.libraries.add(library);
     }
 
-    public void callRScripts(String scriptName, List<Object> scriptArgs) {
-        try {
-            final File pathToScript = findScript(scriptName);
-            if ( pathToScript == null ) return; // we failed but shouldn't exception out
-            final String argString = Utils.join(" ", scriptArgs);
-            final String cmdLine = Utils.join(" ", Arrays.asList(myArgs.PATH_TO_RSCRIPT, pathToScript, argString));
-            logger.info("Executing RScript: " + cmdLine);
-            Runtime.getRuntime().exec(cmdLine).waitFor();
-        } catch (InterruptedException e) {
-            generateException(e);
-        } catch (IOException e) {
-            generateException("Fatal Exception: Perhaps RScript jobs are being spawned too quickly?", e);
-        }
+    public void addScript(Resource script) {
+        this.scriptResources.add(script);
     }
 
-    public File findScript(final String scriptName) {
-        for ( String pathToResource : myArgs.PATH_TO_RESOURCES ) {
-            final File f = new File(pathToResource + "/" + scriptName);
-            if ( f.exists() ) {
-                if ( f.canRead() )
-                    return f;
-                else
-                    generateException("Script exists but couldn't be read: " + scriptName);
+    public void addScript(File script) {
+        this.scriptFiles.add(script);
+    }
+
+    /**
+     * Adds args to the end of the Rscript command line.
+     * @param args the args.
+     * @throws NullPointerException if any of the args are null.
+     */
+    public void addArgs(Object... args) {
+        for (Object arg: args)
+            this.args.add(arg.toString());
+    }
+
+    public String getApproximateCommandLine() {
+        StringBuilder command = new StringBuilder("Rscript");
+        for (Resource script: this.scriptResources)
+            command.append(" (resource)").append(script.getFullPath());
+        for (File script: this.scriptFiles)
+            command.append(" ").append(script.getAbsolutePath());
+        for (String arg: this.args)
+            command.append(" ").append(arg);
+        return command.toString();
+    }
+
+    public boolean exec() {
+        if (!RSCRIPT_EXISTS) {
+            if (exceptOnError) {
+                throw new UserException.CannotExecuteRScript(RSCRIPT_MISSING_MESSAGE);
+            } else {
+                logger.warn("Skipping: " + getApproximateCommandLine());
+                return false;
             }
         }
 
-        generateException("Couldn't find script: " + scriptName + " in " + myArgs.PATH_TO_RESOURCES);
-        return null;
-    }
+        List<File> tempFiles = new ArrayList<File>();
+        try {
+            File tempLibDir = IOUtils.tempDir("R.", ".lib");
+            tempFiles.add(tempLibDir);
 
-    private void generateException(String msg) {
-        generateException(msg, null);
-    }
+            StringBuilder expression = new StringBuilder("tempLibDir = '").append(tempLibDir).append("';");
 
-    private void generateException(Throwable e) {
-        generateException("", e);
-    }
+            if (this.libraries.size() > 0) {
+                List<String> tempLibraryPaths = new ArrayList<String>();
+                for (RScriptLibrary library: this.libraries) {
+                    File tempLibrary = library.writeTemp();
+                    tempFiles.add(tempLibrary);
+                    tempLibraryPaths.add(tempLibrary.getAbsolutePath());
+                }
 
-    private void generateException(String msg, Throwable e) {
-        if ( exceptOnError )
-            throw new UserException(msg, e);
-        else
-            logger.warn(msg + (e == null ? "" : ":" + e.getMessage()));
+                expression.append("install.packages(");
+                expression.append("pkgs=c('").append(StringUtils.join(tempLibraryPaths, "', '")).append("'), lib=tempLibDir, repos=NULL, type='source', ");
+                // Install faster by eliminating cruft.
+                expression.append("INSTALL_opts=c('--no-libs', '--no-data', '--no-help', '--no-demo', '--no-exec')");
+                expression.append(");");
+
+                for (RScriptLibrary library: this.libraries) {
+                    expression.append("library('").append(library.getLibraryName()).append("', lib.loc=tempLibDir);");
+                }
+            }
+
+            for (Resource script: this.scriptResources) {
+                File tempScript = IOUtils.writeTempResource(script);
+                tempFiles.add(tempScript);
+                expression.append("source('").append(tempScript.getAbsolutePath()).append("');");
+            }
+
+            for (File script: this.scriptFiles) {
+                expression.append("source('").append(script.getAbsolutePath()).append("');");
+            }
+
+            String[] cmd = new String[this.args.size() + 3];
+            int i = 0;
+            cmd[i++] = RSCRIPT_BINARY;
+            cmd[i++] = "-e";
+            cmd[i++] = expression.toString();
+            for (String arg: this.args)
+                cmd[i++] = arg;
+
+            ProcessSettings processSettings = new ProcessSettings(cmd);
+            if (logger.isDebugEnabled()) {
+                processSettings.getStdoutSettings().printStandard(true);
+                processSettings.getStderrSettings().printStandard(true);
+            }
+
+            ProcessController controller = ProcessController.getThreadLocal();
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Executing:");
+                for (String arg: cmd)
+                    logger.debug("  " + arg);
+            }
+            int exitValue = controller.exec(processSettings).getExitValue();
+            logger.debug("Result: " + exitValue);
+
+            if (exitValue != 0)
+                throw new RScriptExecutorException(
+                        "RScript exited with " + exitValue +
+                                (logger.isDebugEnabled() ? "" : ". Run with -l DEBUG for more info."));
+
+            return true;
+        } catch (StingException e) {
+            if (exceptOnError) {
+                throw e;
+            } else {
+                logger.warn(e.getMessage());
+                return false;
+            }
+        } finally {
+            for (File temp: tempFiles)
+                FileUtils.deleteQuietly(temp);
+        }
     }
 }

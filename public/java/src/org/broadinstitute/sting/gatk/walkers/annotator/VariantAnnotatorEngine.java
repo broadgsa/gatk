@@ -73,19 +73,20 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want all possible annotations
-    public VariantAnnotatorEngine(AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
+    public VariantAnnotatorEngine(List<String> annotationsToExclude, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
         this.toolkit = toolkit;
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
         requestedGenotypeAnnotations = AnnotationInterfaceManager.createAllGenotypeAnnotations();
+        excludeAnnotations(annotationsToExclude);
         initializeDBs();
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
+    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
         this.toolkit = toolkit;
-        initializeAnnotations(annotationGroupsToUse, annotationsToUse);
+        initializeAnnotations(annotationGroupsToUse, annotationsToUse, annotationsToExclude);
         initializeDBs();
     }
 
@@ -96,10 +97,30 @@ public class VariantAnnotatorEngine {
             requestedExpressions.add(new VAExpression(expression, walker.getResourceRodBindings()));
     }
 
-    private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse) {
+    private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude) {
         AnnotationInterfaceManager.validateAnnotations(annotationGroupsToUse, annotationsToUse);
         requestedInfoAnnotations = AnnotationInterfaceManager.createInfoFieldAnnotations(annotationGroupsToUse, annotationsToUse);
         requestedGenotypeAnnotations = AnnotationInterfaceManager.createGenotypeAnnotations(annotationGroupsToUse, annotationsToUse);
+        excludeAnnotations(annotationsToExclude);
+    }
+
+    private void excludeAnnotations(List<String> annotationsToExclude) {
+        if ( annotationsToExclude.size() == 0 )
+            return;
+
+        List<InfoFieldAnnotation> tempRequestedInfoAnnotations = new ArrayList<InfoFieldAnnotation>(requestedInfoAnnotations.size());
+        for ( InfoFieldAnnotation annotation : requestedInfoAnnotations ) {
+            if ( !annotationsToExclude.contains(annotation.getClass().getSimpleName()) )
+                tempRequestedInfoAnnotations.add(annotation);
+        }
+        requestedInfoAnnotations = tempRequestedInfoAnnotations;
+
+        List<GenotypeAnnotation> tempRequestedGenotypeAnnotations = new ArrayList<GenotypeAnnotation>(requestedGenotypeAnnotations.size());
+        for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+            if ( !annotationsToExclude.contains(annotation.getClass().getSimpleName()) )
+                tempRequestedGenotypeAnnotations.add(annotation);
+        }
+        requestedGenotypeAnnotations = tempRequestedGenotypeAnnotations;
     }
 
     private void initializeDBs() {

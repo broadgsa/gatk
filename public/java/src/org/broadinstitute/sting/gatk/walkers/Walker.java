@@ -25,15 +25,17 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
+import org.broadinstitute.sting.gatk.samples.Sample;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.GenericDocumentationHandler;
 
 import java.util.List;
 
@@ -75,6 +77,23 @@ public abstract class Walker<MapType, ReduceType> {
      */
     protected GenomeAnalysisEngine getToolkit() {
         return toolkit;
+    }
+
+    /**
+     * Gets the master sequence dictionary for this walker
+     * @link GenomeAnalysisEngine.getMasterSequenceDictionary
+     * @return
+     */
+    protected SAMSequenceDictionary getMasterSequenceDictionary() {
+        return getToolkit().getMasterSequenceDictionary();
+    }
+
+    protected SampleDB getSampleDB() {
+        return getToolkit().getSampleDB();
+    }
+
+    protected Sample getSample(final String id) {
+        return getToolkit().getSampleDB().getSample(id);
     }
 
     /**
