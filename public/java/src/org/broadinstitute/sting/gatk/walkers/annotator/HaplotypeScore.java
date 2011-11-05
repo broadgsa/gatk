@@ -180,12 +180,12 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
             final Haplotype haplotype1 = consensusHaplotypeQueue.poll();
 
             List<Haplotype>hlist = new ArrayList<Haplotype>();
-            hlist.add(new Haplotype(haplotype1.getBasesAsBytes(), 60));
+            hlist.add(new Haplotype(haplotype1.getBases(), 60));
 
             for (int k=1; k < haplotypesToCompute; k++) {
                 Haplotype haplotype2 = consensusHaplotypeQueue.poll();
                 if(haplotype2 == null ) { haplotype2 = haplotype1; } // Sometimes only the reference haplotype can be found
-                hlist.add(new Haplotype(haplotype2.getBasesAsBytes(), 20));
+                hlist.add(new Haplotype(haplotype2.getBases(), 20));
             }
             return hlist;
         } else
@@ -229,8 +229,8 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
     }
 
     private Haplotype getConsensusHaplotype(final Haplotype haplotypeA, final Haplotype haplotypeB) {
-        final byte[] a = haplotypeA.getBasesAsBytes();
-        final byte[] b = haplotypeB.getBasesAsBytes();
+        final byte[] a = haplotypeA.getBases();
+        final byte[] b = haplotypeB.getBases();
 
         if (a.length != b.length) {
             throw new ReviewedStingException("Haplotypes a and b must be of same length");
@@ -313,7 +313,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         // actually be a miscall in a matching direction, which would happen at a e / 3 rate.  If b != c, then
         // the chance that it is actually a mismatch is 1 - e, since any of the other 3 options would be a mismatch.
         // so the probability-weighted mismatch rate is sum_i ( matched ? e_i / 3 : 1 - e_i ) for i = 1 ... n
-        final byte[] haplotypeBases = haplotype.getBasesAsBytes();
+        final byte[] haplotypeBases = haplotype.getBases();
         final SAMRecord read = p.getRead();
         byte[] readBases = read.getReadBases();
 

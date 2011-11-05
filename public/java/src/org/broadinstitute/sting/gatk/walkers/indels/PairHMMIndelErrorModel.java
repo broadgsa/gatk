@@ -381,7 +381,7 @@ public class PairHMMIndelErrorModel {
         // todo -- refactor into separate function
         for (Allele a: haplotypeMap.keySet()) {
             Haplotype haplotype = haplotypeMap.get(a);
-            byte[] haplotypeBases = haplotype.getBasesAsBytes();
+            byte[] haplotypeBases = haplotype.getBases();
             double[] contextLogGapOpenProbabilities = new double[haplotypeBases.length];
             double[] contextLogGapContinuationProbabilities = new double[haplotypeBases.length];
 
@@ -555,7 +555,7 @@ public class PairHMMIndelErrorModel {
                         long indStart = start - haplotype.getStartPosition();
                         long indStop =  stop - haplotype.getStartPosition();
 
-                        byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
+                        byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBases(),
                                 (int)indStart, (int)indStop);
 
                         double readLikelihood;
