@@ -206,12 +206,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      **/
     public void initialize() {
         // get all of the unique sample names
-        // if we're supposed to assume a single sample, do so
-        Set<String> samples = new TreeSet<String>();
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-        else
-            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+        Set<String> samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
         // initialize the verbose writer
         if ( verboseWriter != null )

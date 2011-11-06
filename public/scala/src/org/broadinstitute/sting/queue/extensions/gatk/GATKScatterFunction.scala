@@ -56,7 +56,7 @@ trait GATKScatterFunction extends ScatterFunction {
   override def init() {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
     this.referenceSequence = this.originalGATK.reference_sequence
-    if (this.originalGATK.intervals.isEmpty && this.originalGATK.intervalsString.isEmpty) {
+    if (this.originalGATK.intervals.isEmpty && (this.originalGATK.intervalsString == null || this.originalGATK.intervalsString.isEmpty)) {
       this.intervals ++= GATKScatterFunction.getGATKIntervals(this.referenceSequence, List.empty[String]).contigs
     } else {
       this.intervals ++= this.originalGATK.intervals.map(_.toString)
