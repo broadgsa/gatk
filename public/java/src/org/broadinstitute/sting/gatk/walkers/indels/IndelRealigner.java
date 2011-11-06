@@ -817,7 +817,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         // For now, we will just arbitrarily add 10 to the mapping quality. [EB, 6/7/2010].
                         // TODO -- we need a better solution here
                         GATKSAMRecord read = aRead.getRead();
-                        read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
+                        if ( read.getMappingQuality() != 255 ) // 255 == Unknown, so don't modify it
+                            read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
 
                         // before we fix the attribute tags we first need to make sure we have enough of the reference sequence
                         int neededBasesToLeft = leftmostIndex - read.getAlignmentStart();
