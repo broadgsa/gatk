@@ -165,10 +165,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean LIST = false;
 
     @Hidden
-    @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
-    protected String ASSUME_SINGLE_SAMPLE = null;
-
-    @Hidden
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
 
@@ -212,11 +208,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // get the list of all sample names from the variant VCF input rod, if applicable
         List<String> rodName = Arrays.asList(variantCollection.variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
-
-        // if there are no valid samples, warn the user
-        if ( samples.size() == 0 ) {
-            logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
-        }
 
         if ( USE_ALL_ANNOTATIONS )
             engine = new VariantAnnotatorEngine(annotationsToExclude, this, getToolkit());
@@ -301,9 +292,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup(), ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
             } else {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getExtendedEventPileup());
             }
             if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());

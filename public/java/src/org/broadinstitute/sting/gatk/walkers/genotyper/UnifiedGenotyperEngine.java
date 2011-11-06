@@ -106,12 +106,7 @@ public class UnifiedGenotyperEngine {
     // ---------------------------------------------------------------------------------------------------------
     @Requires({"toolkit != null", "UAC != null"})
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null,
-                // get the number of samples
-                // if we're supposed to assume a single sample, do so
-                UAC.ASSUME_SINGLE_SAMPLE != null ?
-                        new TreeSet<String>(Arrays.asList(UAC.ASSUME_SINGLE_SAMPLE)) :
-                        SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()));
+        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()));
     }
 
     @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0"})
@@ -253,7 +248,7 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getExtendedEventPileup();
             else if (rawContext.hasBasePileup())
                 pileup = rawContext.getBasePileup();
-            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
             vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc);
         }
@@ -435,7 +430,7 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getExtendedEventPileup();
             else if (rawContext.hasBasePileup())
                 pileup = rawContext.getBasePileup();
-            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
             vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
         }
@@ -569,7 +564,7 @@ public class UnifiedGenotyperEngine {
                     return null;
 
                 // stratify the AlignmentContext and cut by sample
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
             } else {
 
@@ -586,12 +581,12 @@ public class UnifiedGenotyperEngine {
                     return null;
 
                 // stratify the AlignmentContext and cut by sample
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
             }
         } else if ( model == GenotypeLikelihoodsCalculationModel.Model.SNP ) {
 
             // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup());
 
             if( !(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) ) {
                 int numDeletions = 0;

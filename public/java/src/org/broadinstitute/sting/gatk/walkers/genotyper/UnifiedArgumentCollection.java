@@ -96,11 +96,6 @@ public class UnifiedArgumentCollection {
     @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when in GENOTYPE_MODE = GENOTYPE_GIVEN_ALLELES", required=false)
     public RodBinding<VariantContext> alleles;
 
-    // control the error modes
-    @Hidden
-    @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
-    public String ASSUME_SINGLE_SAMPLE = null;
-
     /**
      * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
      * is capped by the mapping quality so that bases on reads with low mapping quality may get filtered out depending on this value.
@@ -170,7 +165,6 @@ public class UnifiedArgumentCollection {
         uac.GenotypingMode = GenotypingMode;
         uac.OutputMode = OutputMode;
         uac.COMPUTE_SLOD = COMPUTE_SLOD;
-        uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
