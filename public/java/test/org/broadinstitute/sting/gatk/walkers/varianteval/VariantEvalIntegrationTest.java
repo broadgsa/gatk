@@ -9,7 +9,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
     private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
-    private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.HG00625.vcf";
+    private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.NA12045.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
@@ -359,7 +359,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults() {
-        String md5 = "b0565ac61b2860248e4abd478a177b5e";
+        String md5 = "7425ca5c439afd7bb33ed5cfea02c2b3";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
@@ -369,7 +369,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "--eval " + fundamentalTestSNPsVCF,
                         "-noEV",
                         "-EV CompOverlap",
-                        "-sn HG00625",
+                        "-sn NA12045",
                         "-noST",
                         "-L " + fundamentalTestSNPsVCF,
                         "-o %s"

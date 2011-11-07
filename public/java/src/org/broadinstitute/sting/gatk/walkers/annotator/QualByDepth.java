@@ -19,7 +19,8 @@ import java.util.Map;
 /**
  * Variant confidence (given as (AB+BB)/AA from the PLs) / unfiltered depth.
  *
- * Low scores are indicative of false positive calls and artifacts.
+ * Low scores are indicative of false positive calls and artifacts.  Note that QualByDepth requires sequencing
+ * reads associated with the samples with polymorphic genotypes.
  */
 public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotation {
 
