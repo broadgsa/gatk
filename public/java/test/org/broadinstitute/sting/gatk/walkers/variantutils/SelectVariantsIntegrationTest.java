@@ -65,6 +65,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testDiscordanceNoSampleSpecified() {
+        String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + hg19Reference + " -L 20:1012700-1020000 --variant " + b37hapmapGenotypes + " -disc " + testFile + " -o %s -NO_HEADER",
+                1,
+                Arrays.asList("5d7d899c0c4954ec59104aebfe4addd5")
+        );
+
+        executeTest("testDiscordanceNoSampleSpecified--" + testFile, spec);
+    }
+
+    @Test
     public void testConcordance() {
         String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
 
