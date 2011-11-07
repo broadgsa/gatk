@@ -23,7 +23,8 @@ import java.util.Map;
  *
  * A continuous generalization of the Hardy-Weinberg test for disequilibrium that works
  * well with limited coverage per sample.  See the 1000 Genomes Phase I release for
- * more information.
+ * more information.  Note that the Inbreeding Coefficient will not be calculated for files
+ * with fewer than a minimum (generally 10) number of samples.
  */
 public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnnotation {
 

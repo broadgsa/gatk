@@ -52,6 +52,8 @@ import java.util.*;
 /**
  * Consistency of the site with two (and only two) segregating haplotypes. Higher scores
  * are indicative of regions with bad alignments, often leading to artifactual SNP and indel calls.
+ * Note that the Haplotype Score is only calculated for sites with read coverage; also, for SNPs, the
+ * site must be bi-allelic.
  */
 public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation {
     private final static boolean DEBUG = false;
