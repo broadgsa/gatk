@@ -528,10 +528,10 @@ public class PairHMMIndelErrorModel {
 
                 }
                 else {
-                    byte[] readBases = Arrays.copyOfRange(unclippedReadBases,numStartClippedBases,
+                    final byte[] readBases = Arrays.copyOfRange(unclippedReadBases,numStartClippedBases,
                             unclippedReadBases.length-numEndClippedBases);
 
-                    byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,numStartClippedBases,
+                    final byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,numStartClippedBases,
                             unclippedReadBases.length-numEndClippedBases);
 
                     int j=0;
@@ -540,6 +540,7 @@ public class PairHMMIndelErrorModel {
                     double[][] matchMetricArray = null, XMetricArray = null, YMetricArray = null;
                     byte[] previousHaplotypeSeen = null;
                     double[] previousGOP = null;
+                    double[] previousGCP = null;
                     int startIdx;
                     for (Allele a: haplotypeMap.keySet()) {
 
@@ -555,7 +556,7 @@ public class PairHMMIndelErrorModel {
                         long indStart = start - haplotype.getStartPosition();
                         long indStop =  stop - haplotype.getStartPosition();
 
-                        byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
+                        final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
                                 (int)indStart, (int)indStop);
 
                         double readLikelihood;
@@ -572,13 +573,14 @@ public class PairHMMIndelErrorModel {
                         if (previousHaplotypeSeen == null)
                             startIdx = 0;
                         else {
-                            int s1 = computeFirstDifferingPosition(haplotypeBases, previousHaplotypeSeen);
-                            int s2 = computeFirstDifferingPosition(currentContextGOP, previousGOP);
-                            startIdx = Math.min(s1,s2);
+                            final int s1 = computeFirstDifferingPosition(haplotypeBases, previousHaplotypeSeen);
+                            final int s2 = computeFirstDifferingPosition(currentContextGOP, previousGOP);
+                            final int s3 = computeFirstDifferingPosition(currentContextGCP, previousGCP);
+                            startIdx = Math.min(Math.min(s1, s2), s3);
                         }
                         previousHaplotypeSeen = haplotypeBases.clone();
                         previousGOP = currentContextGOP.clone();
-
+                        previousGCP = currentContextGCP.clone();
 
 
                         readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals,
