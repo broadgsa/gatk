@@ -24,7 +24,10 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
+import net.sf.samtools.BAMRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
 import java.util.HashMap;
@@ -83,7 +86,7 @@ public class GATKSAMRecord extends BAMRecord {
                 read.getMateReferenceIndex(),
                 read.getMateAlignmentStart(),
                 read.getInferredInsertSize(),
-                new byte[]{});
+                null);
         super.clearAttributes();
     }
 
