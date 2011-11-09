@@ -556,9 +556,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (vc == null)
             return false;
 
-        // if we're not looking at specific samples then the absense of a compVC means discordance
-        if (NO_SAMPLES_SPECIFIED && (compVCs == null || compVCs.isEmpty()))
-            return true;
+        // if we're not looking at specific samples then the absence of a compVC means discordance
+        if (NO_SAMPLES_SPECIFIED)
+            return (compVCs == null || compVCs.isEmpty());
 
         // check if we find it in the variant rod
         Map<String, Genotype> genotypes = vc.getGenotypes(samples);
