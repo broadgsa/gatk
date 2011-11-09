@@ -37,7 +37,7 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
                 mendelianViolation = new MendelianViolation(((VariantAnnotator)walker).familyStr, ((VariantAnnotator)walker).minGenotypeQualityP );
             }
             else {
-                throw new UserException("Mendelian violation annotation can only be used from the Variant Annotator");
+                throw new UserException("Mendelian violation annotation can only be used from the Variant Annotator, and must be provided a valid Family String file (-family) on the command line.");
             }
         }
 
