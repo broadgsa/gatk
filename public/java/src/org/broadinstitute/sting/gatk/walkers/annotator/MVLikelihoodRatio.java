@@ -33,11 +33,8 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( mendelianViolation == null ) {
-            if ( walker instanceof VariantAnnotator) {
-		if ( ((VariantAnnotator) walker).familyStr != null )
-		    mendelianViolation = new MendelianViolation(((VariantAnnotator)walker).familyStr, ((VariantAnnotator)walker).minGenotypeQualityP );
-		else
-		    return new HashMap<String,Object>();
+            if ( walker instanceof VariantAnnotator && ((VariantAnnotator) walker).familyStr != null) {
+                mendelianViolation = new MendelianViolation(((VariantAnnotator)walker).familyStr, ((VariantAnnotator)walker).minGenotypeQualityP );
             }
             else {
                 throw new UserException("Mendelian violation annotation can only be used from the Variant Annotator");
