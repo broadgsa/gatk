@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.utils.codecs.table;
 
+
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
 
@@ -42,6 +44,10 @@ public class TableFeature implements Feature {
     public String getValue(int columnPosition) {
         if (columnPosition >= values.size()) throw new IllegalArgumentException("We only have " + values.size() + "columns, the requested column = " + columnPosition);
         return values.get(columnPosition);
+    }
+
+    public String toString() {
+        return String.format("%s\t%s",position.toString(), Utils.join("\t",values));
     }
 
     public String get(String columnName) {
