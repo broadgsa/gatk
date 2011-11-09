@@ -33,7 +33,7 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( mendelianViolation == null ) {
-            if ( walker instanceof VariantAnnotator ) {
+            if ( walker instanceof VariantAnnotator && ((VariantAnnotator) walker).familyStr != null) {
                 mendelianViolation = new MendelianViolation(((VariantAnnotator)walker).familyStr, ((VariantAnnotator)walker).minGenotypeQualityP );
             }
             else {
@@ -42,9 +42,9 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
         }
 
         Map<String,Object> toRet = new HashMap<String,Object>(1);
-        boolean hasAppropriateGenotypes = vc.hasGenotype(mendelianViolation.getSampleChild()) &&
-                vc.hasGenotype(mendelianViolation.getSampleDad()) &&
-                vc.hasGenotype(mendelianViolation.getSampleMom());
+        boolean hasAppropriateGenotypes = vc.hasGenotype(mendelianViolation.getSampleChild()) && vc.getGenotype(mendelianViolation.getSampleChild()).hasLikelihoods() &&
+                vc.hasGenotype(mendelianViolation.getSampleDad()) && vc.getGenotype(mendelianViolation.getSampleDad()).hasLikelihoods() &&
+                vc.hasGenotype(mendelianViolation.getSampleMom()) && vc.getGenotype(mendelianViolation.getSampleMom()).hasLikelihoods();
         if ( hasAppropriateGenotypes )
             toRet.put("MVLR",mendelianViolation.violationLikelihoodRatio(vc));
 
