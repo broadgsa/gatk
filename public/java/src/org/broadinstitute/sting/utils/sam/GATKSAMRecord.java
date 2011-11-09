@@ -237,4 +237,8 @@ public class GATKSAMRecord extends BAMRecord {
         // note that we do not consider the GATKSAMRecord internal state at all
         return super.equals(o);
     }
+
+    public boolean isEmpty() {
+        return this.getReadLength() == 0;
+    }
 }
