@@ -89,10 +89,10 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
             boolean isFirst = true;
             while ((line = reader.readLine()) != null) {
                 System.out.println(line);
-                if ( isFirst && ! line.startsWith(headerDelimiter) ) {
+                if ( isFirst && ! line.startsWith(headerDelimiter) && ! line.startsWith(commentDelimiter)) {
                     throw new UserException.MalformedFile("TableCodec file does not have a header");
                 }
-                isFirst &= false;
+		isFirst &= line.startsWith(commentDelimiter);
                 if (line.startsWith(headerDelimiter)) {
                     if (header.size() > 0) throw new IllegalStateException("Input table file seems to have two header lines.  The second is = " + line);
                     String spl[] = line.split(delimiterRegex);
