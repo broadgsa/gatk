@@ -241,4 +241,10 @@ public class GATKSAMRecord extends BAMRecord {
     public boolean isEmpty() {
         return this.getReadLength() == 0;
     }
+
+    public void simplify () {
+        GATKSAMReadGroupRecord rg = getReadGroup();
+        this.clearAttributes();
+        setReadGroup(rg);
+    }
 }
