@@ -163,6 +163,20 @@ public class IntervalIntegrationTest extends WalkerTest {
     }
 
     @Test(enabled = true)
+    public void testBed() {
+        String md5 = "cf4278314ef8e4b996e1b798d8eb92cf";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "intervalTest.bed",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testBed", spec);
+    }
+
+    @Test(enabled = true)
     public void testComplexVCF() {
         String md5 = "166d77ac1b46a1ec38aa35ab7e628ab5";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
