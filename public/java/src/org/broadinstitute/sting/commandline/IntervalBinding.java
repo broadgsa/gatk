@@ -92,7 +92,10 @@ public final class IntervalBinding<T extends Feature> {
                 codec.readHeader(lineReader);
                 String line = lineReader.readLine();
                 while ( line != null ) {
-                    intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(codec.decodeLoc(line)));
+                    final Feature feature = codec.decodeLoc(line);
+                    if ( feature == null )
+                        throw new UserException.MalformedFile(featureIntervals.getSource(), "Couldn't parse line '" + line + "'");
+                    intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(feature));
                     line = lineReader.readLine();
                 }
             } catch (IOException e) {
