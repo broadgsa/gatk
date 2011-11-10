@@ -185,7 +185,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     /**
      * File containing tribble-readable features for the IntervalStratificiation
      */
-    @Input(fullName="stratIntervals", shortName="stratIntervals", doc="File containing tribble-readable features for the IntervalStratificiation", required=true)
+    @Input(fullName="stratIntervals", shortName="stratIntervals", doc="File containing tribble-readable features for the IntervalStratificiation", required=false)
     protected IntervalBinding<Feature> intervalsFile = null;
 
     // Variables
