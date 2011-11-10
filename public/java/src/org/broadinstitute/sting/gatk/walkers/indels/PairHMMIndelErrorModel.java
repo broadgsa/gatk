@@ -622,7 +622,7 @@ public class PairHMMIndelErrorModel {
             if ( b1[i]!= b2[i] )
                 return i;
         }
-        return 0; // sanity check
+        return b1.length;
     }
 
     private int computeFirstDifferingPosition(double[] b1, double[] b2) {
@@ -633,7 +633,7 @@ public class PairHMMIndelErrorModel {
             if ( MathUtils.compareDoubles(b1[i], b2[i]) != 0 )
                 return i;
         }
-        return 0; // sanity check
+        return b1.length;
     }
 
     private final static double[] getHaplotypeLikelihoods(final int numHaplotypes, final int readCounts[], final double readLikelihoods[][]) {
