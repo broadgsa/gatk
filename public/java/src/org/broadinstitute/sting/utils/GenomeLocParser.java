@@ -35,8 +35,10 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /**
  * Factory class for creating GenomeLocs
@@ -451,6 +453,28 @@ public class GenomeLocParser {
      */
     public GenomeLoc createGenomeLoc(final Feature feature) {
         return createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
+    }
+
+    /**
+     * Creates a GenomeLoc corresponding to the variant context vc.  If includeSymbolicEndIfPossible
+     * is true, and VC is a symbolic allele the end of the created genome loc will be the value
+     * of the END info field key, if it exists, or vc.getEnd() if not.
+     *
+     * @param vc
+     * @param includeSymbolicEndIfPossible
+     * @return
+     */
+    public GenomeLoc createGenomeLoc(final VariantContext vc, boolean includeSymbolicEndIfPossible) {
+        if ( includeSymbolicEndIfPossible && vc.isSymbolic() ) {
+            int end = vc.getAttributeAsInt(VCFConstants.END_KEY, vc.getEnd());
+            return createGenomeLoc(vc.getChr(), vc.getStart(), end);
+        }
+        else
+            return createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
+    }
+
+    public GenomeLoc createGenomeLoc(final VariantContext vc) {
+        return createGenomeLoc(vc, false);
     }
 
     /**
