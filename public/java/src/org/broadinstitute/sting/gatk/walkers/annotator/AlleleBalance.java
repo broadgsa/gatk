@@ -69,7 +69,7 @@ public class AlleleBalance extends InfoFieldAnnotation {
             if ( context == null )
                 continue;
 
-            if ( vc.isSNP() ) {
+            if ( vc.isSNP() && context.hasBasePileup() ) {
                 final String bases = new String(context.getBasePileup().getBases());
                 if ( bases.length() == 0 )
                     return null;

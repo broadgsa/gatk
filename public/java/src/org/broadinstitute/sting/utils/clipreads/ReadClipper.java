@@ -58,15 +58,6 @@ public class ReadClipper {
         return hardClipByReferenceCoordinates(refStart, -1);
     }
 
-    private int numDeletions(GATKSAMRecord read) {
-        int result = 0;
-        for (CigarElement e: read.getCigar().getCigarElements()) {
-            if ( e.getOperator() == CigarOperator.DELETION || e.getOperator() == CigarOperator.D )
-                result =+ e.getLength();
-        }
-        return result;
-    }
-
     protected GATKSAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
@@ -90,7 +81,7 @@ public class ReadClipper {
 
     @Requires("left <= right")
     public GATKSAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
-        if (left == right)
+        if (read.isEmpty() || left == right)
             return new GATKSAMRecord(read.getHeader());
         GATKSAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
 
@@ -104,6 +95,9 @@ public class ReadClipper {
     }
 
     public GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
+        if (read.isEmpty())
+            return read;
+
         byte [] quals = read.getBaseQualities();
         int leftClipIndex = 0;
         int rightClipIndex = read.getReadLength() - 1;
@@ -126,6 +120,9 @@ public class ReadClipper {
     }
 
     public GATKSAMRecord hardClipSoftClippedBases () {
+        if (read.isEmpty())
+            return read;
+
         int readIndex = 0;
         int cutLeft = -1;            // first position to hard clip (inclusive)
         int cutRight = -1;           // first position to hard clip (inclusive)
@@ -182,6 +179,9 @@ public class ReadClipper {
     }
 
     public GATKSAMRecord hardClipLeadingInsertions() {
+        if (read.isEmpty())
+            return read;
+
         for(CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP &&
                 cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.DELETION)

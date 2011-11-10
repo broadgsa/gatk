@@ -24,8 +24,8 @@
 
 package org.broadinstitute.sting.utils.codecs.hapmap;
 
+import org.broad.tribble.AbstractFeatureCodec;
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.readers.LineReader;
 
@@ -71,7 +71,7 @@ import java.util.Arrays;
  * @author Mark DePristo
  * @since 2010
  */
-public class RawHapMapCodec implements FeatureCodec {
+public class RawHapMapCodec extends AbstractFeatureCodec {
     // the minimum number of features in the HapMap file line
     private static final int minimumFeatureCount = 11;
 

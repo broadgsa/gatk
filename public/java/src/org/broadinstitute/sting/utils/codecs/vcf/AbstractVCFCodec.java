@@ -8,7 +8,6 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.gatk.refdata.SelfScopingFeatureCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -20,7 +19,7 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 
-public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser, SelfScopingFeatureCodec {
+public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser {
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column

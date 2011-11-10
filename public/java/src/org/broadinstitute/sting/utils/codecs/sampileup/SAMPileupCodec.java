@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.codecs.sampileup;
 
+import org.broad.tribble.AbstractFeatureCodec;
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
@@ -76,7 +76,7 @@ import static org.broadinstitute.sting.utils.codecs.sampileup.SAMPileupFeature.V
  * @author Matt Hanna
  * @since 2009
  */
-public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
+public class SAMPileupCodec extends AbstractFeatureCodec<SAMPileupFeature> {
     // the number of tokens we expect to parse from a pileup line
     private static final int expectedTokenCount = 10;
     private static final char fldDelim = '\t';

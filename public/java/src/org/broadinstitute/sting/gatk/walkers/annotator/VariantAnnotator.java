@@ -33,10 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -180,15 +177,16 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
 
     private void listAnnotationsAndExit() {
+        System.out.println("\nStandard annotations in the list below are marked with a '*'.");
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
         System.out.println("\nAvailable annotations for the VCF INFO field:");
         for (int i = 0; i < infoAnnotationClasses.size(); i++)
-            System.out.println("\t" + infoAnnotationClasses.get(i).getSimpleName());
+            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(infoAnnotationClasses.get(i)) ? "*" : "") + infoAnnotationClasses.get(i).getSimpleName());
         System.out.println();
         List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = new PluginManager<GenotypeAnnotation>(GenotypeAnnotation.class).getPlugins();
         System.out.println("\nAvailable annotations for the VCF FORMAT field:");
         for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
-            System.out.println("\t" + genotypeAnnotationClasses.get(i).getSimpleName());
+            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(genotypeAnnotationClasses.get(i)) ? "*" : "") + genotypeAnnotationClasses.get(i).getSimpleName());
         System.out.println();
         System.out.println("\nAvailable classes/groups of annotations:");
         for ( Class c : new PluginManager<AnnotationType>(AnnotationType.class).getInterfaces() )

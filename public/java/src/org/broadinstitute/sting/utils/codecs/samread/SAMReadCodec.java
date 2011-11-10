@@ -27,8 +27,8 @@ package org.broadinstitute.sting.utils.codecs.samread;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.TextCigarCodec;
 import net.sf.samtools.util.StringUtil;
+import org.broad.tribble.AbstractFeatureCodec;
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
@@ -52,7 +52,7 @@ import org.broad.tribble.util.ParsingUtils;
  * @author Matt Hanna
  * @since 2009
  */
-public class SAMReadCodec implements FeatureCodec<SAMReadFeature> {
+public class SAMReadCodec extends AbstractFeatureCodec<SAMReadFeature> {
     /* SL-XBC:1:10:628:923#0	16	Escherichia_coli_K12	1	37	76M	=	1	0	AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGA	B@>87<;A@?@957:>>@AA@B>@A9AB@B>@A@@@@@A;=AAB@BBBBBCBBBB@>A>:ABB@BAABCB=CA@CB */
 
     // the number of tokens we expect to parse from a read line

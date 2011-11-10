@@ -24,7 +24,10 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
+import net.sf.samtools.BAMRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
 import java.util.HashMap;
@@ -43,7 +46,9 @@ import java.util.Map;
  *
  */
 public class GATKSAMRecord extends BAMRecord {
-    public static final String REDUCED_READ_QUALITY_TAG = "RR";
+    public static final String REDUCED_READ_CONSENSUS_TAG = "RR";
+    public static final String REDUCED_READ_FILTERED_TAG = "RF";
+
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
@@ -83,8 +88,13 @@ public class GATKSAMRecord extends BAMRecord {
                 read.getMateReferenceIndex(),
                 read.getMateAlignmentStart(),
                 read.getInferredInsertSize(),
-                new byte[]{});
-        super.clearAttributes();
+                null);
+        SAMReadGroupRecord samRG = read.getReadGroup();
+        clearAttributes();
+        if (samRG != null) {
+            GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(samRG);
+            setReadGroup(rg);
+        }
     }
 
     public GATKSAMRecord(final SAMFileHeader header,
@@ -131,6 +141,21 @@ public class GATKSAMRecord extends BAMRecord {
         return mReadGroup;
     }
 
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (!(o instanceof GATKSAMRecord)) return false;
+
+        // note that we do not consider the GATKSAMRecord internal state at all
+        return super.equals(o);
+    }
+
     /**
      * Efficient caching accessor that returns the GATK NGSPlatform of this read
      * @return
@@ -142,17 +167,16 @@ public class GATKSAMRecord extends BAMRecord {
     public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
         mReadGroup = readGroup;
         retrievedReadGroup = true;
+        setAttribute("RG", mReadGroup.getId());       // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
-    //
-    //
-    // Reduced read functions
-    //
-    //
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** ReduceReads functions                                              ***//
+    ///////////////////////////////////////////////////////////////////////////////
 
     public byte[] getReducedReadCounts() {
         if ( ! retrievedReduceReadCounts ) {
-            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_QUALITY_TAG);
+            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_CONSENSUS_TAG);
             retrievedReduceReadCounts = true;
         }
 
@@ -166,6 +190,12 @@ public class GATKSAMRecord extends BAMRecord {
     public final byte getReducedCount(final int i) {
         return getReducedReadCounts()[i];
     }
+
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** GATKSAMRecord specific methods                                     ***//
+    ///////////////////////////////////////////////////////////////////////////////
+
 
     /**
      * Checks whether an attribute has been set for the given key.
@@ -220,18 +250,26 @@ public class GATKSAMRecord extends BAMRecord {
         return null;
     }
 
-    @Override
-    public int hashCode() {
-        return super.hashCode();
+    /**
+     * Checks whether if the read has any bases.
+     *
+     * Empty reads can be dangerous as it may have no cigar strings, no read names and
+     * other missing attributes.
+     *
+     * @return true if the read has no bases
+     */
+    public boolean isEmpty() {
+        return this.getReadLength() == 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-
-        if (!(o instanceof GATKSAMRecord)) return false;
-
-        // note that we do not consider the GATKSAMRecord internal state at all
-        return super.equals(o);
+    /**
+     * Clears all attributes except ReadGroup of the read.
+     */
+    public void simplify () {
+        GATKSAMReadGroupRecord rg = getReadGroup();
+        this.clearAttributes();
+        setReadGroup(rg);
     }
+
+
 }

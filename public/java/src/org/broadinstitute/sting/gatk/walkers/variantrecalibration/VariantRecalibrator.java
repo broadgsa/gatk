@@ -66,6 +66,10 @@ import java.util.*;
  * the log odds ratio of being a true variant versus being false under the trained Gaussian mixture model.
  *
  * <p>
+ * NOTE: In order to create the model reporting plots Rscript needs to be in your environment PATH (this is the scripting version of R, not the interactive version).
+ * See <a target="r-project" href="http://www.r-project.org">http://www.r-project.org</a> for more info on how to download and install R.
+ *
+ * <p>
  * See the GATK wiki for a tutorial and example recalibration accuracy plots.
  * http://www.broadinstitute.org/gsa/wiki/index.php/Variant_quality_score_recalibration
  *
