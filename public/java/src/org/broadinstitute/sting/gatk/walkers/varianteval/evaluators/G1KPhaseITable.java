@@ -103,7 +103,7 @@ public class G1KPhaseITable extends VariantEvaluator {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( eval == null ) return null;
+        if ( eval == null || eval.isMonomorphic() ) return null;
 
         switch (eval.getType()) {
 //            case NO_VARIATION:

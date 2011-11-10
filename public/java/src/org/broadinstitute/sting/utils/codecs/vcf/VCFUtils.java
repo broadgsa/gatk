@@ -51,6 +51,10 @@ public class VCFUtils {
         return getVCFHeadersFromRods(toolkit, names);
     }
 
+    public static Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit) {
+        return getVCFHeadersFromRods(toolkit, (Collection<String>)null);
+    }
+
     public static Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
         Map<String, VCFHeader> data = new HashMap<String, VCFHeader>();
 

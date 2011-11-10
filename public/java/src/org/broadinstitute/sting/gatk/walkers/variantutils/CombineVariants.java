@@ -162,7 +162,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private boolean sitesOnlyVCF = false;
 
     public void initialize() {
-        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
+        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit());
 
         if ( PRIORITY_STRING == null ) {
             PRIORITY_STRING = Utils.join(",", vcfRods.keySet());
