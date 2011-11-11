@@ -22,22 +22,14 @@ public final class InferredGeneticContext {
     private Set<String> filters = NO_FILTERS;
     private Map<String, Object> attributes = NO_ATTRIBUTES;
 
-//    public InferredGeneticContext(String name) {
-//        this.name = name;
-//    }
-//
-//    public InferredGeneticContext(String name, double negLog10PError) {
-//        this(name);
-//        setNegLog10PError(negLog10PError);
-//    }
-
-    public InferredGeneticContext(String name, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public InferredGeneticContext(String name, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this.name = name;
         setNegLog10PError(negLog10PError);
-        if ( filters != null )
-            setFilters(filters);
-        if ( attributes != null )
-            setAttributes(attributes);
+        if ( filters != null && ! filters.isEmpty() )
+            this.filters = filters;
+        if ( attributes != null && ! attributes.isEmpty() ) {
+            this.attributes = attributes;
+        }
     }
 
     /**
@@ -157,7 +149,7 @@ public final class InferredGeneticContext {
 
         if ( attributes == NO_ATTRIBUTES ) // immutable -> mutable
             attributes = new HashMap<String, Object>();
-        
+
         attributes.put(key, value);
     }
 

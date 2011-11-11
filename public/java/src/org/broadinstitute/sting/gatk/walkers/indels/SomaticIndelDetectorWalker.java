@@ -1061,7 +1061,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
         for ( String sample : normalSamples ) {
 
-            Map<String,?> attrs = call.makeStatsAttributes(null);
+            Map<String,Object> attrs = call.makeStatsAttributes(null);
 
             if ( call.isCall() ) // we made a call - put actual het genotype here:
                 genotypes.put(sample,new Genotype(sample,alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrs,false));

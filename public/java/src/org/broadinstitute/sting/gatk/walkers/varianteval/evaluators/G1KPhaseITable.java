@@ -51,21 +51,21 @@ public class G1KPhaseITable extends VariantEvaluator {
     @DataPoint(description = "Number of SNPs")
     public long nSNPs = 0;
     @DataPoint(description = "SNP Novelty Rate")
-    public double SNPNoveltyRate = 0;
+    public String SNPNoveltyRate = "NA";
     @DataPoint(description = "Mean number of SNPs per individual")
     public long nSNPsPerSample = 0;
 
     @DataPoint(description = "Number of Indels")
     public long nIndels = 0;
     @DataPoint(description = "Indel Novelty Rate")
-    public double IndelNoveltyRate = 0;
+    public String IndelNoveltyRate = "NA";
     @DataPoint(description = "Mean number of Indels per individual")
     public long nIndelsPerSample = 0;
 
     @DataPoint(description = "Number of SVs")
     public long nSVs = 0;
     @DataPoint(description = "SV Novelty Rate")
-    public double SVNoveltyRate = 0;
+    public String SVNoveltyRate = "NA";
     @DataPoint(description = "Mean number of SVs per individual")
     public long nSVsPerSample = 0;
 
@@ -106,9 +106,6 @@ public class G1KPhaseITable extends VariantEvaluator {
         if ( eval == null || eval.isMonomorphic() ) return null;
 
         switch (eval.getType()) {
-//            case NO_VARIATION:
-//                // shouldn't get here
-//                break;
             case SNP:
             case INDEL:
             case SYMBOLIC:
@@ -139,11 +136,12 @@ public class G1KPhaseITable extends VariantEvaluator {
         return (int)(Math.round(sum / (1.0 * countsPerSample.size())));
     }
 
-    private final double noveltyRate(VariantContext.Type type) {
+    private final String noveltyRate(VariantContext.Type type) {
         int all = allVariantCounts.get(type);
         int known = knownVariantCounts.get(type);
         int novel = all - known;
-        return (novel / (1.0 * all));
+        double rate = (novel / (1.0 * all));
+        return all == 0 ? "NA" : String.format("%.2f", rate);
     }
 
     public void finalizeEvaluation() {

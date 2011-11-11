@@ -141,7 +141,7 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
             Set<String> genotypeFilters = null;
-            Map<String, String> gtAttributes = null;
+            Map<String, Object> gtAttributes = null;
             String sampleName = sampleNameIterator.next();
 
             // check to see if the value list is longer than the key list, which is a problem
@@ -150,7 +150,7 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             int genotypeAlleleLocation = -1;
             if (nGTKeys >= 1) {
-                gtAttributes = new HashMap<String, String>(nGTKeys - 1);
+                gtAttributes = new HashMap<String, Object>(nGTKeys - 1);
 
                 for (int i = 0; i < nGTKeys; i++) {
                     final String gtKey = new String(genotypeKeyArray[i]);

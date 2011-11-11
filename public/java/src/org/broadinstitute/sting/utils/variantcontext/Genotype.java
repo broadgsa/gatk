@@ -25,11 +25,11 @@ public class Genotype {
     protected boolean isPhased = false;
     protected boolean filtersWereAppliedToContext;
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased) {
         this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
     }
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);

@@ -257,7 +257,7 @@ public class VariantContextAdaptors {
                     else genotypeAlleles.add(refAllele);
                 }
 
-                Map<String, String> attributes = new HashMap<String, String>();
+                Map<String, Object> attributes = new HashMap<String, Object>();
                 Collection<Genotype> genotypes = new ArrayList<Genotype>();
                 MutableGenotype call = new MutableGenotype(name, genotypeAlleles);
 

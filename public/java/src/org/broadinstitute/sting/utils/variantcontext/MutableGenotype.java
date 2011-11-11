@@ -17,7 +17,7 @@ public class MutableGenotype extends Genotype {
     }
 
 
-    public MutableGenotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {
+    public MutableGenotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, Object> attributes, boolean genotypesArePhased) {
         super(sampleName, alleles, negLog10PError, filters, attributes, genotypesArePhased);
     }
 

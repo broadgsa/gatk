@@ -18,11 +18,11 @@ public class MutableVariantContext extends VariantContext {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         super(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
     }
 
-    public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         super(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
     }
 

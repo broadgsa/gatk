@@ -222,7 +222,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
      */
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes, Byte referenceBaseForIndel) {
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
         this(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, referenceBaseForIndel, false);
     }
 
@@ -239,7 +239,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
      */
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, null, false);
     }
 
@@ -260,7 +260,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
      */
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, Byte referenceBaseForIndel) {
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
         this(source, contig, start, stop, alleles, NO_GENOTYPES, negLog10PError, filters, attributes, referenceBaseForIndel, true);
     }
 
@@ -277,7 +277,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param filters        filters: use null for unfiltered and empty set for passes filters
      * @param attributes     attributes
      */
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, contig, start, stop, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes, null, false);
     }
 
@@ -334,7 +334,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     private VariantContext(String source, String contig, long start, long stop,
                            Collection<Allele> alleles, Map<String, Genotype> genotypes,
-                           double negLog10PError, Set<String> filters, Map<String, ?> attributes,
+                           double negLog10PError, Set<String> filters, Map<String, Object> attributes,
                            Byte referenceBaseForIndel, boolean genotypesAreUnparsed) {
         if ( contig == null ) { throw new IllegalArgumentException("Contig cannot be null"); }
         this.contig = contig;

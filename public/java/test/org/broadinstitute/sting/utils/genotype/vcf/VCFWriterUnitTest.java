@@ -120,7 +120,7 @@ public class VCFWriterUnitTest extends BaseTest {
         GenomeLoc loc = genomeLocParser.createGenomeLoc("chr1",1);
         List<Allele> alleles = new ArrayList<Allele>();
         Set<String> filters = null;
-        Map<String, String> attributes = new HashMap<String,String>();
+        Map<String, Object> attributes = new HashMap<String,Object>();
         Map<String, Genotype> genotypes = new HashMap<String,Genotype>();
 
         alleles.add(Allele.create("-",true));
@@ -128,7 +128,7 @@ public class VCFWriterUnitTest extends BaseTest {
 
         attributes.put("DP","50");
         for (String name : header.getGenotypeSamples()) {
-            Map<String, String> gtattributes = new HashMap<String,String>();
+            Map<String, Object> gtattributes = new HashMap<String,Object>();
             gtattributes.put("BB","1");
             Genotype gt = new Genotype(name,alleles.subList(1,2),0,null,gtattributes,true);
 
