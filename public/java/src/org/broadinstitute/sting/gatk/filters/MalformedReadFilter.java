@@ -129,8 +129,14 @@ public class MalformedReadFilter extends ReadFilter {
      * @return true if they have the same number. False otherwise.
      */
     private static boolean checkMismatchingBasesAndQuals(SAMRecord read, boolean filterMismatchingBaseAndQuals) {
-        if (!filterMismatchingBaseAndQuals)
-            throw new UserException.MalformedBAM(read, "BAM file has a read with mismatching number of bases and base qualities. Offender: " + read.getReadName() +"  [" + read.getReadLength() + " bases] [" +read.getBaseQualities().length +"] quals");
-        return (read.getReadLength() == read.getBaseQualities().length);
+        boolean result;
+        if (read.getReadLength() == read.getBaseQualities().length)
+            result = true;
+        else if (filterMismatchingBaseAndQuals)
+            result = false;
+        else
+            throw new UserException.MalformedBAM(read, String.format("BAM file has a read with mismatching number of bases and base qualities. Offender: %s [%d bases] [%d quals]", read.getReadName(), read.getReadLength(), read.getBaseQualities().length));
+
+        return result;
     }
 }

@@ -41,6 +41,9 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nDeletions = 0;
     @DataPoint(description = "Number of complex indels")
     public long nComplex = 0;
+    @DataPoint(description = "Number of symbolic events")
+    public long nSymbolic = 0;
+
     @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)")
     public long nMixed = 0;
 
@@ -131,8 +134,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     nMixed++;
                     break;
                 case SYMBOLIC:
-                    // ignore symbolic alleles, but don't fail
-                    // todo - consistent way of treating symbolic alleles thgoughout codebase?
+                    nSymbolic++;
                     break;
                 default:
                     throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());

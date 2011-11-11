@@ -312,12 +312,20 @@ public class VariantEvalUtils {
      *
      * @return the mapping of track to VC list that should be populated
      */
-    public HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, List<RodBinding<VariantContext>> tracks, boolean byFilter, boolean subsetBySample, boolean trackPerSample) {
+    public HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>>
+        bindVariantContexts(RefMetaDataTracker tracker,
+                            ReferenceContext ref,
+                            List<RodBinding<VariantContext>> tracks,
+                            boolean byFilter,
+                            boolean subsetBySample,
+                            boolean trackPerSample,
+                            boolean mergeTracks) {
         if ( tracker == null )
             return null;
 
         HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> bindings = new HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>>();
 
+        RodBinding<VariantContext> firstTrack = tracks.isEmpty() ? null : tracks.get(0);
         for ( RodBinding<VariantContext> track : tracks ) {
             HashMap<String, Set<VariantContext>> mapping = new HashMap<String, Set<VariantContext>>();
 
@@ -346,7 +354,20 @@ public class VariantEvalUtils {
                 }
             }
 
-            bindings.put(track, mapping);
+            if ( mergeTracks && bindings.containsKey(firstTrack) ) {
+                // go through each binding of sample -> value and add all of the bindings from this entry
+                HashMap<String, Set<VariantContext>> firstMapping = bindings.get(firstTrack);
+                for ( Map.Entry<String, Set<VariantContext>> elt : mapping.entrySet() ) {
+                    Set<VariantContext> firstMappingSet = firstMapping.get(elt.getKey());
+                    if ( firstMappingSet != null ) {
+                        firstMappingSet.addAll(elt.getValue());
+                    } else {
+                        firstMapping.put(elt.getKey(), elt.getValue());
+                    }
+                }
+            } else {
+                bindings.put(track, mapping);
+            }
         }
 
         return bindings;

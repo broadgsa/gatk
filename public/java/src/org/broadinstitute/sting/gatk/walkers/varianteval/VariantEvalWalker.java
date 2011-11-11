@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -15,11 +16,14 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.JexlExpression;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
@@ -143,10 +147,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     /**
      * See the -list argument to view available modules.
      */
-    @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noE is specified)", required=false)
+    @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noEV is specified)", required=false)
     protected String[] MODULES_TO_USE = {};
 
-    @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)", required=false)
+    @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -EV option)", required=false)
     protected Boolean NO_STANDARD_MODULES = false;
 
     // Other arguments
@@ -170,6 +174,19 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp and eval tracks with exactly matching reference and alternate alleles will be counted as overlapping", required=false)
     private boolean requireStrictAlleleMatch = false;
+
+    /**
+     * If true, VariantEval will treat -eval 1 -eval 2 as separate tracks from the same underlying
+     * variant set, and evaluate the union of the results.  Useful when you want to do -eval chr1.vcf -eval chr2.vcf etc.
+     */
+    @Argument(fullName="mergeEvals", shortName="mergeEvals", doc="If provided, all -eval tracks will be merged into a single eval track", required=false)
+    public boolean mergeEvals = false;
+
+    /**
+     * File containing tribble-readable features for the IntervalStratificiation
+     */
+    @Input(fullName="stratIntervals", shortName="stratIntervals", doc="File containing tribble-readable features for the IntervalStratificiation", required=false)
+    protected IntervalBinding<Feature> intervalsFile = null;
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
@@ -224,13 +241,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                 knowns.add(compRod);
         }
 
-        // Collect the eval rod names
-        Set<String> evalNames = new TreeSet<String>();
-        for ( RodBinding<VariantContext> evalRod : evals )
-            evalNames.add(evalRod.getName());
-
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
-        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evalNames);
+        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evals);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
         // Load the sample list
@@ -256,6 +268,16 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                 byFilterIsEnabled = true;
             else if ( vs.getClass().getSimpleName().equals("Sample") )
                 perSampleIsEnabled = true;
+        }
+
+        if ( intervalsFile != null ) {
+            boolean fail = true;
+            for ( final VariantStratifier vs : stratificationObjects ) {
+                if ( vs.getClass().equals(IntervalStratification.class) )
+                    fail = false;
+            }
+            if ( fail )
+                throw new UserException.BadArgumentValue("ST", "stratIntervals argument provided but -ST IntervalStratification not provided");
         }
 
         // Initialize the evaluation contexts
@@ -289,8 +311,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
 
             //      --------- track ---------           sample  - VariantContexts -
-            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled);
-            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
 
             // for each eval track
             for ( final RodBinding<VariantContext> evalRod : evals ) {
@@ -353,6 +375,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         }
                     }
                 }
+
+                if ( mergeEvals ) break; // stop processing the eval tracks
             }
         }
 
@@ -528,6 +552,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
 
+    public List<GenomeLoc> getIntervals() {
+        if ( intervalsFile == null )
+            throw new UserException.MissingArgument("stratIntervals", "Must be provided when IntervalStratification is enabled");
+
+        return intervalsFile.getIntervals(getToolkit());
+    }
+
+
     public Set<String> getContigNames() {
         final TreeSet<String> contigs = new TreeSet<String>();
         for( final SAMSequenceRecord r :  getToolkit().getReferenceDataSource().getReference().getSequenceDictionary().getSequences()) {
@@ -536,4 +568,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return contigs;
     }
 
+    public GenomeLocParser getGenomeLocParser() {
+        return getToolkit().getGenomeLocParser();
+    }
 }
