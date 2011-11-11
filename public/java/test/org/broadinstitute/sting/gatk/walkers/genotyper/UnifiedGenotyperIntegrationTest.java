@@ -30,20 +30,23 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("b27939251539439a382538e507e03507"));
+                Arrays.asList("c93def488de12fb3b8199e001b7a24a8"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
     @Test
-    public void testWithAllelesPassedIn() {
+    public void testWithAllelesPassedIn1() {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "allelesForUG.vcf -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,025,000", 1,
-                Arrays.asList("8de2602679ffc92388da0b6cb4325ef6"));
+                Arrays.asList("cef4bd72cbbe72f28e9c72e2818b4708"));
         executeTest("test MultiSample Pilot2 with alleles passed in", spec1);
+    }
 
+    @Test
+    public void testWithAllelesPassedIn2() {
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "allelesForUG.vcf -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,025,000", 1,
-                Arrays.asList("6458f3b8fe4954e2ffc2af972aaab19e"));
+                Arrays.asList("14f5cdfc6818cbba600cbdf5fe285275"));
         executeTest("test MultiSample Pilot2 with alleles passed in and emitting all sites", spec2);
     }
 
@@ -261,7 +264,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("118918f2e9e56a3cfc5ccb2856d529c8"));
+                Arrays.asList("81a1035e59cd883e413e62d34265c1a2"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in", spec1);
     }
 
@@ -271,7 +274,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 baseCommandIndels + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles "
                         + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("a20799237accd52c1b8c2ac096309c8f"));
+                Arrays.asList("102b7d915f21dff0a9b6ea64c4c7d409"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in and emitting all sites", spec2);
     }
 
@@ -281,7 +284,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,080,000", 1,
-                Arrays.asList("18ef8181157b4ac3eb8492f538467f92"));
+                Arrays.asList("5900344f97bbac35d147a0a7c2bf1d0c"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
     }
 
@@ -290,7 +293,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("ad884e511a751b05e64db5314314365a"));
+                Arrays.asList("45e7bf21cd6358921626404e7ae76c69"));
         executeTest("test MultiSample 1000G Phase1 indels with complicated records emitting all sites", spec4);
     }
 

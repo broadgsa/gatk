@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnota
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -28,7 +29,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         if ( stratifiedContexts.size() == 0 )
             return null;
 
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypeMap genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 

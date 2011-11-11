@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -85,7 +86,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    protected abstract Map<String, Genotype> assignGenotypes(VariantContext vc,
-                                                             double[] log10AlleleFrequencyPosteriors,
-                                                             int AFofMaxLikelihood);
+    protected abstract GenotypeMap assignGenotypes(VariantContext vc,
+                                                   double[] log10AlleleFrequencyPosteriors,
+                                                   int AFofMaxLikelihood);
 }

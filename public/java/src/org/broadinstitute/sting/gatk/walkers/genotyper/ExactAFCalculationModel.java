@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -268,14 +269,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
      *
      * @return calls
      */
-    public Map<String, Genotype> assignGenotypes(VariantContext vc,
-                                                 double[] log10AlleleFrequencyPosteriors,
-                                                 int AFofMaxLikelihood) {
+    public GenotypeMap assignGenotypes(VariantContext vc,
+                                       double[] log10AlleleFrequencyPosteriors,
+                                       int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
 
-        Map<String, Genotype> GLs = vc.getGenotypes();
+        GenotypeMap GLs = vc.getGenotypes();
         double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
         int[][] tracebackArray = new int[GLs.size()+1][AFofMaxLikelihood+1];
 
@@ -342,7 +343,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
         }
 
-        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+        GenotypeMap calls = GenotypeMap.create();
 
         int startIdx = AFofMaxLikelihood;
         for (int k = sampleIdx; k > 0; k--) {

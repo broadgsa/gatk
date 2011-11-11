@@ -5,6 +5,7 @@ import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -145,13 +146,13 @@ public class VCFCodec extends AbstractVCFCodec {
      * @param alleles the list of alleles
      * @return a mapping of sample name to genotype object
      */
-    public Map<String, Genotype> createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
+    public GenotypeMap createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
         if (genotypeParts == null)
             genotypeParts = new String[header.getColumnCount() - NUM_STANDARD_FIELDS];
 
         int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
 
-        Map<String, Genotype> genotypes = new LinkedHashMap<String, Genotype>(nParts);
+        GenotypeMap genotypes = GenotypeMap.create(nParts);
 
         // get the format keys
         int nGTKeys = ParsingUtils.split(genotypeParts[0], genotypeKeyArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);

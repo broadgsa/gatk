@@ -42,10 +42,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.util.*;
@@ -133,7 +130,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
                 Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
-                Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+                GenotypeMap genotypes = GenotypeMap.create(1);
                 genotypes.put(sampleName, g);
                 vc = VariantContext.modifyGenotypes(vc, genotypes);
             }

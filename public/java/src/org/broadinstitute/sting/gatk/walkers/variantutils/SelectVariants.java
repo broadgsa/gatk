@@ -33,7 +33,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -41,9 +41,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -561,7 +558,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return (compVCs == null || compVCs.isEmpty());
 
         // check if we find it in the variant rod
-        Map<String, Genotype> genotypes = vc.getGenotypes(samples);
+        GenotypeMap genotypes = vc.getGenotypes(samples);
         for (Genotype g : genotypes.values()) {
             if (sampleHasVariant(g)) {
                 // There is a variant called (or filtered with not exclude filtered option set) that is not HomRef for at least one of the samples.
@@ -659,7 +656,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
-        VariantContext sub = vc.subContextFromSamples(samples);
+        VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )

@@ -41,10 +41,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -355,7 +352,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         UnfinishedVariantContext uvc = uvr.unfinishedVariant;
 
         // Perform per-sample phasing:
-        Map<String, Genotype> sampGenotypes = vc.getGenotypes();
+        GenotypeMap sampGenotypes = vc.getGenotypes();
         Map<String, PhaseCounts> samplePhaseStats = new TreeMap<String, PhaseCounts>();
         for (Map.Entry<String, Genotype> sampGtEntry : sampGenotypes.entrySet()) {
             String samp = sampGtEntry.getKey();
@@ -1126,7 +1123,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private int start;
         private int stop;
         private Collection<Allele> alleles;
-        private Map<String, Genotype> genotypes;
+        private GenotypeMap genotypes;
         private double negLog10PError;
         private Set<String> filters;
         private Map<String, Object> attributes;
@@ -1137,7 +1134,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.start = vc.getStart();
             this.stop = vc.getEnd();
             this.alleles = vc.getAlleles();
-            this.genotypes = new HashMap<String, Genotype>(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
+            this.genotypes = GenotypeMap.create(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
             this.negLog10PError = vc.getNegLog10PError();
             this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());

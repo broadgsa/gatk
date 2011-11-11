@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -89,15 +90,15 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
      *
      * @return calls
      */
-    protected Map<String, Genotype> assignGenotypes(VariantContext vc,
-                                                    double[] log10AlleleFrequencyPosteriors,
-                                                    int AFofMaxLikelihood) {
+    protected GenotypeMap assignGenotypes(VariantContext vc,
+                                          double[] log10AlleleFrequencyPosteriors,
+                                          int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
         Allele refAllele = vc.getReference();
         Allele altAllele = vc.getAlternateAllele(0);
-        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+        GenotypeMap calls = GenotypeMap.create();
 
         // first, the potential alt calls
         for ( String sample : AFMatrix.getSamples() ) {

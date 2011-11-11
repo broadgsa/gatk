@@ -22,7 +22,7 @@ public class MutableVariantContext extends VariantContext {
         super(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
     }
 
-    public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
+    public MutableVariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, GenotypeMap genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         super(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
     }
 
@@ -72,7 +72,7 @@ public class MutableVariantContext extends VariantContext {
     }
 
     public void clearGenotypes() {
-        genotypes = new TreeMap<String, Genotype>();
+        genotypes = GenotypeMap.create();
     }
 
     /**
@@ -98,7 +98,6 @@ public class MutableVariantContext extends VariantContext {
      * @param genotypes
      */
     public void addGenotypes(Map<String, Genotype> genotypes) {
-
         for ( Map.Entry<String, Genotype> elt : genotypes.entrySet() ) {
             addGenotype(elt.getValue());
         }

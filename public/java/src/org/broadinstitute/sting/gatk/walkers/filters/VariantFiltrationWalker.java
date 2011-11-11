@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -282,11 +283,11 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         VariantContext vc = context.getVariantContext();
 
         // make new Genotypes based on filters
-        Map<String, Genotype> genotypes;
+        GenotypeMap genotypes;
         if ( genotypeFilterExps.size() == 0 ) {
             genotypes = null;
         } else {
-            genotypes = new HashMap<String, Genotype>(vc.getGenotypes().size());
+            genotypes = GenotypeMap.create(vc.getGenotypes().size());
 
             // for each genotype, check filters then create a new object
             for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {

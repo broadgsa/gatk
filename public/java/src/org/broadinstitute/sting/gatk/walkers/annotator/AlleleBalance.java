@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -54,7 +55,7 @@ public class AlleleBalance extends InfoFieldAnnotation {
         
         if ( !vc.isBiallelic() )
             return null;
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypeMap genotypes = vc.getGenotypes();
         if ( !vc.hasGenotypes() )
             return null;
 

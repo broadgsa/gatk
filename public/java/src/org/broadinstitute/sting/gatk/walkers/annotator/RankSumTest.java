@@ -13,6 +13,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         if ( stratifiedContexts.size() == 0 )
             return null;
          
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypeMap genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 

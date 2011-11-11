@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -128,7 +129,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
             return null;
 
         VariantContext variantVC = null;
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        GenotypeMap genotypes = GenotypeMap.create();
         for ( VariantContext vc : VCs ) {
             if ( variantVC == null && vc.isVariant() )
                 variantVC = vc;

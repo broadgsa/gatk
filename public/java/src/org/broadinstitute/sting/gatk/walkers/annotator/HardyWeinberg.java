@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -30,7 +31,7 @@ public class HardyWeinberg extends InfoFieldAnnotation implements WorkInProgress
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypeMap genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
             return null;
 

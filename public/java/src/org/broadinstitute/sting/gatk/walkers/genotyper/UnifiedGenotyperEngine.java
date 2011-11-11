@@ -265,7 +265,7 @@ public class UnifiedGenotyperEngine {
         alleles.add(refAllele);
         boolean addedAltAlleles = false;
 
-        HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        GenotypeMap genotypes = GenotypeMap.create();
         for ( MultiallelicGenotypeLikelihoods GL : GLs.values() ) {
             if ( !addedAltAlleles ) {
                 addedAltAlleles = true;
@@ -354,7 +354,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        Map<String, Genotype> genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
+        GenotypeMap genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
 
         // print out stats if we have a writer
         if ( verboseWriter != null )
@@ -491,7 +491,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        Map<String, Genotype> genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
+        GenotypeMap genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();

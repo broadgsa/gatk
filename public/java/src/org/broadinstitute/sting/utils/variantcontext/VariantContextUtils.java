@@ -70,7 +70,7 @@ public class VariantContextUtils {
      * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes != null ? VariantContext.genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes);
+        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, GenotypeMap.create(genotypes), negLog10PError, filters, attributes);
     }
 
     /**
@@ -404,7 +404,7 @@ public class VariantContextUtils {
      */
     public static VariantContext masterMerge(Collection<VariantContext> unsortedVCs, String masterName) {
         VariantContext master = findMaster(unsortedVCs, masterName);
-        Map<String, Genotype> genotypes = master.getGenotypes();
+        GenotypeMap genotypes = master.getGenotypes();
         for (Genotype g : genotypes.values()) {
             genotypes.put(g.getSampleName(), new MutableGenotype(g));
         }
@@ -526,7 +526,7 @@ public class VariantContextUtils {
         final Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
         double negLog10PError = -1;
         VariantContext vcWithMaxAC = null;
-        Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+        GenotypeMap genotypes = GenotypeMap.create();
 
         // counting the number of filtered and variant VCs
         int nFiltered = 0;
@@ -716,7 +716,7 @@ public class VariantContextUtils {
         // nothing to do if we don't need to trim bases
         if (trimVC) {
             List<Allele> alleles = new ArrayList<Allele>();
-            Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+            GenotypeMap genotypes = GenotypeMap.create();
 
             // set the reference base for indels in the attributes
             Map<String,Object> attributes = new TreeMap<String,Object>(inputVC.getAttributes());
@@ -770,8 +770,8 @@ public class VariantContextUtils {
         return inputVC;
     }
 
-    public static Map<String, Genotype> stripPLs(Map<String, Genotype> genotypes) {
-        Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
+    public static GenotypeMap stripPLs(GenotypeMap genotypes) {
+        GenotypeMap newGs = GenotypeMap.create(genotypes.size());
 
         for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
             newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? removePLs(g.getValue()) : g.getValue());
@@ -951,7 +951,7 @@ public class VariantContextUtils {
         }
     }
 
-    private static void mergeGenotypes(Map<String, Genotype> mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
+    private static void mergeGenotypes(GenotypeMap mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
         for ( Genotype g : oneVC.getGenotypes().values() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
             if ( ! mergedGenotypes.containsKey(name) ) {
@@ -992,7 +992,7 @@ public class VariantContextUtils {
         }
 
         // create new Genotype objects
-        Map<String, Genotype> newGenotypes = new HashMap<String, Genotype>(vc.getNSamples());
+        GenotypeMap newGenotypes = GenotypeMap.create(vc.getNSamples());
         for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
             List<Allele> newAlleles = new ArrayList<Allele>();
             for ( Allele allele : genotype.getValue().getAlleles() ) {
@@ -1012,7 +1012,7 @@ public class VariantContextUtils {
         if ( allowedAttributes == null )
             return vc;
 
-        Map<String, Genotype> newGenotypes = new HashMap<String, Genotype>(vc.getNSamples());
+        GenotypeMap newGenotypes = GenotypeMap.create(vc.getNSamples());
         for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
             Map<String, Object> attrs = new HashMap<String, Object>();
             for ( Map.Entry<String, Object> attr : genotype.getValue().getAttributes().entrySet() ) {
@@ -1091,7 +1091,7 @@ public class VariantContextUtils {
         }
         MergedAllelesData mergeData = new MergedAllelesData(intermediateBases, vc1, vc2); // ensures that the reference allele is added
 
-        Map<String, Genotype> mergedGenotypes = new HashMap<String, Genotype>();
+        GenotypeMap mergedGenotypes = GenotypeMap.create();
         for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
             String sample = gt1Entry.getKey();
             Genotype gt1 = gt1Entry.getValue();

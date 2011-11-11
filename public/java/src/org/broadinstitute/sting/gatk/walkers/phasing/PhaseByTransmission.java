@@ -12,10 +12,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -296,7 +293,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         if (tracker != null) {
             VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
 
-            Map<String, Genotype> genotypeMap = vc.getGenotypes();
+            GenotypeMap genotypeMap = vc.getGenotypes();
 
             for (Trio trio : trios) {
                 Genotype mother = vc.getGenotype(trio.getMother());

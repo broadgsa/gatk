@@ -194,7 +194,7 @@ public class VariantContextAdaptors {
                     return null; // we weren't given enough reference context to create the VariantContext
                 Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
-                Map<String, Genotype> genotypes = null;
+                GenotypeMap genotypes = null;
                 VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
                 return vc;
             } else
@@ -329,7 +329,7 @@ public class VariantContextAdaptors {
             String[] samples = hapmap.getSampleIDs();
             String[] genotypeStrings = hapmap.getGenotypes();
 
-            Map<String, Genotype> genotypes = new HashMap<String, Genotype>(samples.length);
+            GenotypeMap genotypes = GenotypeMap.create(samples.length);
             for ( int i = 0; i < samples.length; i++ ) {
                 // ignore bad genotypes
                 if ( genotypeStrings[i].contains("N") )

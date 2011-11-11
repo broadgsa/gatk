@@ -60,6 +60,7 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
@@ -1057,7 +1058,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             stop += event_length;
         }
 
-        Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
+        GenotypeMap genotypes = GenotypeMap.create();
 
         for ( String sample : normalSamples ) {
 
@@ -1147,7 +1148,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         homRefAlleles.add( alleles.get(0));
         homRefAlleles.add( alleles.get(0));
 
-        Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
+        GenotypeMap genotypes = GenotypeMap.create();
 
         for ( String sample : normalSamples ) {
             genotypes.put(sample,new Genotype(sample, homRefN ? homRefAlleles : alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrsNormal,false));

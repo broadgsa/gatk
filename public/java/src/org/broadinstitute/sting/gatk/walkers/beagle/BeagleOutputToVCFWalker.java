@@ -36,10 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -190,8 +187,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         byte refByte = ref.getBase();
 
         // make new Genotypes based on Beagle results
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc_input.getGenotypes().size());
-
+        GenotypeMap genotypes = GenotypeMap.create(vc_input.getGenotypes().size());
 
         // for each genotype, create a new object with Beagle information on it
 
@@ -200,7 +196,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         Double alleleFrequencyH = 0.0;
         int beagleVarCounts = 0;
 
-        Map<String,Genotype> hapmapGenotypes = null;
+        GenotypeMap hapmapGenotypes = null;
 
         if (vc_comp != null) {
             hapmapGenotypes = vc_comp.getGenotypes();
