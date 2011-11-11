@@ -46,11 +46,22 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     @Param({"100"})
     int nSamplesToTake; // set automatically by framework
 
+    @Param({"READ", "READ_SUBSET"})
+    Operation operation; // set automatically by framework
+
+    @Param({"OF_GENOTYPES", "OF_SAMPLES"})
+    SubContextOp subContextOp; // set automatically by framework
+
     private String INPUT_STRING;
 
-    private enum Operation {
+    public enum Operation {
         READ,
         READ_SUBSET
+    }
+
+    public enum SubContextOp {
+        OF_GENOTYPES,
+        OF_SAMPLES
     }
 
     @Override protected void setUp() {
@@ -73,7 +84,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
         }
     }
 
-    private void parseGenotypes(VCFCodec codec, Operation op) {
+    private void parseGenotypes(VCFCodec codec, Operation op, SubContextOp subop ) {
         try {
             InputStream is = new ByteArrayInputStream(INPUT_STRING.getBytes());
             AsciiLineReader lineReader = new AsciiLineReader(is);
@@ -92,30 +103,36 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                 }
 
                 if ( op == Operation.READ_SUBSET)
-                    processOneVC(vc, samples);
+                    processOneVC(vc, samples, subop);
             }
         } catch (Exception e) {
             System.out.println("Benchmarking run failure because of " + e.getMessage());
         }
     }
 
-    public void timeOriginalRead(int rep) {
+    public void timeMe(int rep) {
         for ( int i = 0; i < rep; i++ )
-            parseGenotypes(new VCFCodec(), Operation.READ);
-    }
-
-    public void timeOriginalReadSubset(int rep) {
-        for ( int i = 0; i < rep; i++ )
-            parseGenotypes(new VCFCodec(), Operation.READ_SUBSET);
+            parseGenotypes(new VCFCodec(), operation, subContextOp);
     }
 
     public static void main(String[] args) {
         CaliperMain.main(VariantContextBenchmark.class, args);
     }
 
-    private static final void processOneVC(VariantContext vc, List<String> samples) {
-        VariantContext sub = vc.subContextFromGenotypes(vc.getGenotypes(samples).values(), vc.getAlleles());
+    private static final void processOneVC(VariantContext vc, List<String> samples, SubContextOp subop) {
+        VariantContext sub;
+
+        switch ( subop ) {
+            case OF_GENOTYPES:
+                sub = vc.subContextFromGenotypes(vc.getGenotypes(samples).values(), vc.getAlleles());
+                break;
+            case OF_SAMPLES:
+                sub = vc.subContextFromSamples(samples, vc.getAlleles());
+                break;
+            default:
+                throw new RuntimeException("Unexpected op: " + subop);
+        }
+
         sub.getNSamples();
     }
-
 }
