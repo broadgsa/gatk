@@ -7,10 +7,7 @@ import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -125,6 +122,11 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
 
     @Argument(doc="Do not use BWA, lower-case repeats only",fullName="doNotUseBWA",required=false)
     boolean doNotUseBWA = false;
+
+    @Hidden
+    @Argument(doc="Use Sequenom output format instead of regular FASTA",fullName="sqnm",required=false)
+     boolean sequenomOutput = false;
+
 
     GenomeLoc prevInterval;
     GenomeLoc allelePos;
@@ -485,6 +487,13 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         }
 
         String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
-        out.printf(">%s %s %s%n%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
+
+        if (!sequenomOutput)
+            out.printf(">%s %s %s%n%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
+        else {
+            seqIdentity = seqIdentity.replace("*",""); // identifier < 20 letters long, no * in ref allele, one line per record
+            probeName = probeName.replace("amplicon_","a");
+            out.printf("%s_%s %s%n", allelePos != null ? allelePos.toString() : "multiple", probeName, seqIdentity);
+        }
     }
 }
