@@ -659,13 +659,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
-        ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
-        for ( Map.Entry<String, Genotype> genotypePair : vc.getGenotypes().entrySet() ) {
-            if ( samples.contains(genotypePair.getKey()) )
-                genotypes.add(genotypePair.getValue());
-        }
-
-        VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
+        VariantContext sub = vc.subContextFromSamples(samples);
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )

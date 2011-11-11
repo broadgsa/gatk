@@ -446,9 +446,25 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return vc subcontext
      */
     public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Collection<Allele> alleles) {
-        return new VariantContext(getSource(), contig, start, stop, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, getNegLog10PError(), filtersWereApplied() ? getFilters() : null, getAttributes(), getReferenceBaseForIndel());
+        return new VariantContext(getSource(), contig, start, stop, alleles,
+                genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null,
+                getNegLog10PError(),
+                filtersWereApplied() ? getFilters() : null,
+                getAttributes(),
+                getReferenceBaseForIndel());
     }
 
+    public VariantContext subContextFromSamples(Collection<String> sampleNames, Collection<Allele> alleles) {
+        return subContextFromGenotypes(getGenotypes(sampleNames).values(), alleles);
+    }
+
+    public VariantContext subContextFromSamples(Collection<String> sampleNames) {
+        return subContextFromGenotypes(getGenotypes(sampleNames).values());
+    }
+
+    public VariantContext subContextFromSample(String sampleName) {
+        return subContextFromGenotypes(getGenotype(sampleName));
+    }
 
     /**
      * helper routine for subcontext
