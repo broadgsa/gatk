@@ -70,6 +70,7 @@ import java.util.*;
  *   -o output.vcf \
  *   -A DepthOfCoverage
  *   --variant input.vcf \
+ *   -L input.vcf
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
