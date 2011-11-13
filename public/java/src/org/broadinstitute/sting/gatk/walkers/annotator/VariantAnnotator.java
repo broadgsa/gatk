@@ -68,9 +68,9 @@ import java.util.*;
  *   -T VariantAnnotator \
  *   -I input.bam \
  *   -o output.vcf \
- *   -A DepthOfCoverage
+ *   -A DepthOfCoverage \
  *   --variant input.vcf \
- *   -L input.vcf
+ *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
