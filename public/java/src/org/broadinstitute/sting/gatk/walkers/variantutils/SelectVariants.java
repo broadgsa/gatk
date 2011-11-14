@@ -24,10 +24,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.apache.poi.hpsf.Variant;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -558,7 +556,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return (compVCs == null || compVCs.isEmpty());
 
         // check if we find it in the variant rod
-        GenotypeMap genotypes = vc.getGenotypes(samples);
+        GenotypeCollection genotypes = vc.getGenotypes(samples);
         for (Genotype g : genotypes.values()) {
             if (sampleHasVariant(g)) {
                 // There is a variant called (or filtered with not exclude filtered option set) that is not HomRef for at least one of the samples.

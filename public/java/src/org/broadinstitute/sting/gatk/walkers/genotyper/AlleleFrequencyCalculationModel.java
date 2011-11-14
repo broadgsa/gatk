@@ -26,17 +26,14 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -86,7 +83,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    protected abstract GenotypeMap assignGenotypes(VariantContext vc,
+    protected abstract GenotypeCollection assignGenotypes(VariantContext vc,
                                                    double[] log10AlleleFrequencyPosteriors,
                                                    int AFofMaxLikelihood);
 }

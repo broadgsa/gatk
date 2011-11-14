@@ -99,7 +99,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         int start = 10;
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
         return new VariantContext(source, "1", start, stop, alleles,
-                GenotypeMap.create(genotypes), 1.0, filters, null, Cref.getBases()[0]);
+                GenotypeCollection.create(genotypes), 1.0, filters, null, Cref.getBases()[0]);
     }
 
     // --------------------------------------------------------------------------------

@@ -26,15 +26,13 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -90,7 +88,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
      *
      * @return calls
      */
-    protected GenotypeMap assignGenotypes(VariantContext vc,
+    protected GenotypeCollection assignGenotypes(VariantContext vc,
                                           double[] log10AlleleFrequencyPosteriors,
                                           int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
@@ -98,7 +96,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
         Allele refAllele = vc.getReference();
         Allele altAllele = vc.getAlternateAllele(0);
-        GenotypeMap calls = GenotypeMap.create();
+        GenotypeCollection calls = GenotypeCollection.create();
 
         // first, the potential alt calls
         for ( String sample : AFMatrix.getSamples() ) {

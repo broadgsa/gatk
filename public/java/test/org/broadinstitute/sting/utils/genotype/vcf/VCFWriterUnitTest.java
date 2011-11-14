@@ -4,7 +4,7 @@ import org.broad.tribble.Tribble;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -122,7 +122,7 @@ public class VCFWriterUnitTest extends BaseTest {
         List<Allele> alleles = new ArrayList<Allele>();
         Set<String> filters = null;
         Map<String, Object> attributes = new HashMap<String,Object>();
-        GenotypeMap genotypes = GenotypeMap.create();
+        GenotypeCollection genotypes = GenotypeCollection.create();
 
         alleles.add(Allele.create("-",true));
         alleles.add(Allele.create("CC",false));

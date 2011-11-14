@@ -28,7 +28,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
@@ -146,16 +146,16 @@ public class GCF {
         Map<String, Object> attributes = new HashMap<String, Object>();
         attributes.put("INFO", info);
         Byte refPadByte = refPad == 0 ? null : refPad;
-        GenotypeMap genotypes = decodeGenotypes(header);
+        GenotypeCollection genotypes = decodeGenotypes(header);
 
         return new VariantContext(source, contig, start, stop, alleleMap, genotypes, negLog10PError, filters, attributes, refPadByte);
     }
 
-    private GenotypeMap decodeGenotypes(final GCFHeader header) {
+    private GenotypeCollection decodeGenotypes(final GCFHeader header) {
         if ( genotypes.isEmpty() )
             return VariantContext.NO_GENOTYPES;
         else {
-            GenotypeMap map = GenotypeMap.create();
+            GenotypeCollection map = GenotypeCollection.create();
 
             for ( int i = 0; i < genotypes.size(); i++ ) {
                 final String sampleName = header.getSample(i);

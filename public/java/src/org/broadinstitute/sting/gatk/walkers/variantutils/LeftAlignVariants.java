@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -211,7 +211,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         }
 
         // create new Genotype objects
-        GenotypeMap newGenotypes = GenotypeMap.create(vc.getNSamples());
+        GenotypeCollection newGenotypes = GenotypeCollection.create(vc.getNSamples());
         for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
             List<Allele> newAlleles = new ArrayList<Allele>();
             for ( Allele allele : genotype.getValue().getAlleles() ) {

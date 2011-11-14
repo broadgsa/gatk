@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeMap;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
 
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -21,6 +19,6 @@ public interface VCFParser {
      * @param pos position
      * @return a mapping of sample name to genotype object
      */
-    public GenotypeMap createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
+    public GenotypeCollection createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
 
 }

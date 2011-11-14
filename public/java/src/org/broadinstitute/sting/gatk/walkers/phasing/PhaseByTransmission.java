@@ -293,7 +293,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         if (tracker != null) {
             VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
 
-            GenotypeMap genotypeMap = vc.getGenotypes();
+            GenotypeCollection genotypeCollection = vc.getGenotypes();
 
             for (Trio trio : trios) {
                 Genotype mother = vc.getGenotype(trio.getMother());
@@ -306,12 +306,12 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 Genotype phasedFather = trioGenotypes.get(1);
                 Genotype phasedChild = trioGenotypes.get(2);
 
-                genotypeMap.put(phasedMother.getSampleName(), phasedMother);
-                genotypeMap.put(phasedFather.getSampleName(), phasedFather);
-                genotypeMap.put(phasedChild.getSampleName(), phasedChild);
+                genotypeCollection.put(phasedMother.getSampleName(), phasedMother);
+                genotypeCollection.put(phasedFather.getSampleName(), phasedFather);
+                genotypeCollection.put(phasedChild.getSampleName(), phasedChild);
             }
 
-            VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeMap);
+            VariantContext newvc = VariantContext.modifyGenotypes(vc, genotypeCollection);
 
             vcfWriter.add(newvc);
         }
