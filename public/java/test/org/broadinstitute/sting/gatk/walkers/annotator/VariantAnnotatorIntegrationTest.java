@@ -128,7 +128,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testUsingExpressionWithID() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --resource:foo " + validationDataLocation + "targetAnnotations.vcf -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.ID -L " + validationDataLocation + "vcfexample3empty.vcf", 1,
-                Arrays.asList("4a6f0675242f685e9072c1da5ad9e715"));
+                Arrays.asList("1b4921085b26cbfe07d53b7c947de1e5"));
         executeTest("using expression with ID", spec);
     }
 

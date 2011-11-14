@@ -49,20 +49,20 @@ public class VariantAnnotatorEngine {
     private AnnotatorCompatibleWalker walker;
     private GenomeAnalysisEngine toolkit;
 
-    private static class VAExpression {
+    protected static class VAExpression {
 
         public String fullName, fieldName;
         public RodBinding<VariantContext> binding;
 
-        public VAExpression(String fullEpression, List<RodBinding<VariantContext>> bindings) {
-            int indexOfDot = fullEpression.lastIndexOf(".");
+        public VAExpression(String fullExpression, List<RodBinding<VariantContext>> bindings) {
+            int indexOfDot = fullExpression.lastIndexOf(".");
             if ( indexOfDot == -1 )
-                throw new UserException.BadArgumentValue(fullEpression, "it should be in rodname.value format");
+                throw new UserException.BadArgumentValue(fullExpression, "it should be in rodname.value format");
 
-            fullName = fullEpression;
-            fieldName = fullEpression.substring(indexOfDot+1);
+            fullName = fullExpression;
+            fieldName = fullExpression.substring(indexOfDot+1);
 
-            String bindingName = fullEpression.substring(0, indexOfDot);
+            String bindingName = fullExpression.substring(0, indexOfDot);
             for ( RodBinding<VariantContext> rod : bindings ) {
                 if ( rod.getName().equals(bindingName) ) {
                     binding = rod;
@@ -96,6 +96,8 @@ public class VariantAnnotatorEngine {
         for ( String expression : expressionsToUse )
             requestedExpressions.add(new VAExpression(expression, walker.getResourceRodBindings()));
     }
+
+    protected List<VAExpression> getRequestedExpressions() { return requestedExpressions; }
 
     private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude) {
         AnnotationInterfaceManager.validateAnnotations(annotationGroupsToUse, annotationsToUse);
@@ -211,8 +213,13 @@ public class VariantAnnotatorEngine {
                 continue;
 
             VariantContext vc = VCs.iterator().next();
-            if ( vc.hasAttribute(expression.fieldName) )
+            // special-case the ID field
+            if ( expression.fieldName.equals("ID") ) {
+                if ( vc.hasID() )
+                    infoAnnotations.put(expression.fullName, vc.getID());
+            } else if ( vc.hasAttribute(expression.fieldName) ) {
                 infoAnnotations.put(expression.fullName, vc.getAttribute(expression.fieldName));
+            }
         }
     }
 
