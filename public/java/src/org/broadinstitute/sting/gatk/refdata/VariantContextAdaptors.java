@@ -259,12 +259,7 @@ public class VariantContextAdaptors {
 
                 Map<String, Object> attributes = new HashMap<String, Object>();
                 Collection<Genotype> genotypes = new ArrayList<Genotype>();
-                MutableGenotype call = new MutableGenotype(name, genotypeAlleles);
-
-                // set the likelihoods, depth, and RMS mapping quality values
-                //call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY,geli.getLikelihoods());
-                //call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY,geli.getMaximumMappingQual());
-                //call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY,geli.getDepthOfCoverage());
+                Genotype call = new Genotype(name, genotypeAlleles);
 
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);

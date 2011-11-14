@@ -59,6 +59,11 @@ public class Genotype {
         this(sampleName, alleles, NO_NEG_LOG_10PERROR, null, null, false);
     }
 
+    public Genotype(String sampleName, Genotype parent) {
+        this(sampleName, parent.getAlleles(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes(), parent.isPhased());
+    }
+
+
 
     // ---------------------------------------------------------------------------------------------------------
     //

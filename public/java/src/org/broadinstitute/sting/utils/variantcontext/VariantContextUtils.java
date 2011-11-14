@@ -330,35 +330,36 @@ public class VariantContextUtils {
         return pruneVariantContext(vc, null);
     }
 
-    public static VariantContext pruneVariantContext(final VariantContext vc, final Collection<String> keysToPreserve ) {
-        final MutableVariantContext mvc = new MutableVariantContext(vc);
-
-        if ( keysToPreserve == null || keysToPreserve.size() == 0 )
-            mvc.clearAttributes();
-        else {
-            final Map<String, Object> d = mvc.getAttributes();
-            mvc.clearAttributes();
-            for ( String key : keysToPreserve )
-                if ( d.containsKey(key) )
-                    mvc.putAttribute(key, d.get(key));
+    private final static Map<String, Object> subsetAttributes(final InferredGeneticContext igc, final Collection<String> keysToPreserve) {
+        Map<String, Object> attributes = new HashMap<String, Object>(keysToPreserve.size());
+        for ( final String key : keysToPreserve  ) {
+            if ( igc.hasAttribute(key) )
+                attributes.put(key, igc.getAttribute(key));
         }
+        return attributes;
+    }
+
+    public static VariantContext pruneVariantContext(final VariantContext vc, Collection<String> keysToPreserve ) {
+        if ( keysToPreserve == null ) keysToPreserve = Collections.emptyList();
+
+        // VC info
+        final Map<String, Object> attributes = subsetAttributes(vc.commonInfo, keysToPreserve);
 
         // this must be done as the ID is stored in the attributes field
-        if ( vc.hasID() ) mvc.setID(vc.getID());
+        // todo -- remove me when ID becomes a first class field in VC
+        if ( vc.hasID() ) attributes.put(VariantContext.ID_KEY, vc.getID());
 
-        Collection<Genotype> gs = mvc.getGenotypes().values();
-        mvc.clearGenotypes();
-        for ( Genotype g : gs ) {
-            MutableGenotype mg = new MutableGenotype(g);
-            mg.clearAttributes();
-            if ( keysToPreserve != null )
-                for ( String key : keysToPreserve )
-                    if ( g.hasAttribute(key) )
-                        mg.putAttribute(key, g.getAttribute(key));
-            mvc.addGenotype(mg);
+        // Genotypes
+        final GenotypeMap genotypes = GenotypeMap.create(vc.getNSamples());
+        for ( final Genotype g : vc.getGenotypes().values() ) {
+            Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
+            genotypes.put(g.getSampleName(),
+                    new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(),
+                            genotypeAttributes, g.isPhased()));
         }
 
-        return mvc;
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(),
+                vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
     }
 
     public enum GenotypeMergeType {
@@ -389,75 +390,6 @@ public class VariantContextUtils {
          * Requires all records present at site to be unfiltered. VCF files that don't contain the record don't influence this.
          */
         KEEP_IF_ALL_UNFILTERED
-    }
-
-    /**
-     * Performs a master merge on the VCs.  Here there is a master input [contains all of the information] and many
-     * VCs containing partial, extra genotype information which should be added to the master.  For example,
-     * we scatter out the phasing algorithm over some samples in the master, producing a minimal VCF with phasing
-     * information per genotype.  The master merge will add the PQ information from each genotype record, where
-     * appropriate, to the master VC.
-     *
-     * @param unsortedVCs   collection of VCs
-     * @param masterName    name of master VC
-     * @return  master-merged VC
-     */
-    public static VariantContext masterMerge(Collection<VariantContext> unsortedVCs, String masterName) {
-        VariantContext master = findMaster(unsortedVCs, masterName);
-        GenotypeMap genotypes = master.getGenotypes();
-        for (Genotype g : genotypes.values()) {
-            genotypes.put(g.getSampleName(), new MutableGenotype(g));
-        }
-
-        Map<String, Object> masterAttributes = new HashMap<String, Object>(master.getAttributes());
-
-        for (VariantContext vc : unsortedVCs) {
-            if (!vc.getSource().equals(masterName)) {
-                for (Genotype g : vc.getGenotypes().values()) {
-                    MutableGenotype masterG = (MutableGenotype) genotypes.get(g.getSampleName());
-                    for (Map.Entry<String, Object> attr : g.getAttributes().entrySet()) {
-                        if (!masterG.hasAttribute(attr.getKey())) {
-                            //System.out.printf("Adding GT attribute %s to masterG %s, new %s%n", attr, masterG, g);
-                            masterG.putAttribute(attr.getKey(), attr.getValue());
-                        }
-                    }
-
-                    if (masterG.isPhased() != g.isPhased()) {
-                        if (masterG.sameGenotype(g)) {
-                            // System.out.printf("Updating phasing %s to masterG %s, new %s%n", g.isPhased(), masterG, g);
-                            masterG.setAlleles(g.getAlleles());
-                            masterG.setPhase(g.isPhased());
-                        }
-                        //else System.out.println("WARNING: Not updating phase, since genotypes differ between master file and auxiliary info file!");
-                    }
-
-//                    if ( MathUtils.compareDoubles(masterG.getNegLog10PError(), g.getNegLog10PError()) != 0 ) {
-//                        System.out.printf("Updating GQ %s to masterG %s, new %s%n", g.getNegLog10PError(), masterG, g);
-//                        masterG.setNegLog10PError(g.getNegLog10PError());
-//                    }
-
-                }
-
-                for (Map.Entry<String, Object> attr : vc.getAttributes().entrySet()) {
-                    if (!masterAttributes.containsKey(attr.getKey())) {
-                        //System.out.printf("Adding VC attribute %s to master %s, new %s%n", attr, master, vc);
-                        masterAttributes.put(attr.getKey(), attr.getValue());
-                    }
-                }
-            }
-        }
-
-        return new VariantContext(master.getSource(), master.getChr(), master.getStart(), master.getEnd(), master.getAlleles(), genotypes, master.getNegLog10PError(), master.getFilters(), masterAttributes);
-    }
-
-    private static VariantContext findMaster(Collection<VariantContext> unsortedVCs, String masterName) {
-        for (VariantContext vc : unsortedVCs) {
-            if (vc.getSource().equals(masterName)) {
-                return vc;
-            }
-        }
-
-        throw new ReviewedStingException(String.format("Couldn't find master VCF %s at %s", masterName, unsortedVCs.iterator().next()));
     }
 
     /**
@@ -959,9 +891,8 @@ public class VariantContextUtils {
                 Genotype newG = g;
 
                 if ( uniqifySamples || alleleMapping.needsRemapping() ) {
-                    MutableGenotype mutG = new MutableGenotype(name, g);
-                    if ( alleleMapping.needsRemapping() ) mutG.setAlleles(alleleMapping.remap(g.getAlleles()));
-                    newG = mutG;
+                    final List<Allele> alleles = alleleMapping.needsRemapping() ? alleleMapping.remap(g.getAlleles()) : g.getAlleles();
+                    newG = new Genotype(name, alleles, g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased());
                 }
 
                 mergedGenotypes.put(name, newG);
