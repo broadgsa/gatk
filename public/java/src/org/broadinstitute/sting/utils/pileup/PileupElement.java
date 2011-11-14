@@ -99,7 +99,8 @@ public class PileupElement implements Comparable<PileupElement> {
     }
 
     public int getRepresentativeCount() {
-        return isReducedRead() ? read.getReducedCount(offset) : 1;
+        // TODO -- if we ever decide to reduce the representation of deletions then this will need to be fixed
+        return (!isDeletion() && isReducedRead()) ? read.getReducedCount(offset) : 1;
     }
 
 }
