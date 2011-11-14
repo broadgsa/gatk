@@ -39,10 +39,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -245,18 +242,18 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         }
         if ( markers != null ) markers.append("\n");
 
-        Map<String,Genotype> preferredGenotypes = preferredVC.getGenotypes();
-        Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
+        GenotypeCollection preferredGenotypes = preferredVC.getGenotypes();
+        GenotypeCollection otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
         for ( String sample : samples ) {
             boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getSample(sample).getGender() == Gender.MALE;
 
             Genotype genotype;
             boolean isValidation;
             // use sample as key into genotypes structure
-            if ( preferredGenotypes.keySet().contains(sample) ) {
+            if ( preferredGenotypes.containsSample(sample) ) {
                 genotype = preferredGenotypes.get(sample);
                 isValidation = isValidationSite;
-            } else if ( otherGenotypes != null && otherGenotypes.keySet().contains(sample) ) {
+            } else if ( otherGenotypes != null && otherGenotypes.containsSample(sample) ) {
                 genotype = otherGenotypes.get(sample);
                 isValidation = ! isValidationSite;
             } else {

@@ -122,7 +122,7 @@ public class VCFWriterUnitTest extends BaseTest {
         List<Allele> alleles = new ArrayList<Allele>();
         Set<String> filters = null;
         Map<String, Object> attributes = new HashMap<String,Object>();
-        GenotypeCollection genotypes = GenotypeCollection.create();
+        GenotypeCollection genotypes = GenotypeCollection.create(header.getGenotypeSamples().size());
 
         alleles.add(Allele.create("-",true));
         alleles.add(Allele.create("CC",false));
@@ -133,7 +133,7 @@ public class VCFWriterUnitTest extends BaseTest {
             gtattributes.put("BB","1");
             Genotype gt = new Genotype(name,alleles.subList(1,2),0,null,gtattributes,true);
 
-            genotypes.put(name,gt);
+            genotypes.add(gt);
             
         }
         return new VariantContext("RANDOM",loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, 0, filters, attributes, (byte)'A');

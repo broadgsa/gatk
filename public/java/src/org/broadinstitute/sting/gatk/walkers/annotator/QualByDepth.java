@@ -35,13 +35,13 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
 
         int depth = 0;
 
-        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
+        for ( final Genotype genotype : genotypes ) {
 
             // we care only about variant calls with likelihoods
-            if ( genotype.getValue().isHomRef() )
+            if ( genotype.isHomRef() )
                 continue;
 
-            AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null )
                 continue;
 

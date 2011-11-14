@@ -67,18 +67,26 @@ public class GenotypeCollection implements List<Genotype> {
     }
 
     public static final GenotypeCollection create(final int nGenotypes) {
-        return new GenotypeCollection(nGenotypes, true);
+        return new GenotypeCollection(nGenotypes, false);
     }
 
     // todo -- differentiate between empty constructor and copy constructor
     // todo -- create constructor (Genotype ... genotypes)
 
     public static final GenotypeCollection create(final ArrayList<Genotype> genotypes) {
-        return new GenotypeCollection(genotypes, true);
+        return new GenotypeCollection(genotypes, false);
+    }
+
+    public static final GenotypeCollection create(final Genotype... genotypes) {
+        return new GenotypeCollection(new ArrayList<Genotype>(Arrays.asList(genotypes)), false);
     }
 
     public static final GenotypeCollection copy(final GenotypeCollection toCopy) {
         return create(toCopy.genotypes);
+    }
+
+    public static final GenotypeCollection copy(final Collection<Genotype> toCopy) {
+        return create(new ArrayList<Genotype>(toCopy));
     }
 
 //    public static final GenotypeMap create(final Collection<Genotype> genotypes) {
@@ -171,6 +179,12 @@ public class GenotypeCollection implements List<Genotype> {
         checkImmutability();
         invalidateCaches();
         return genotypes.add(genotype);
+    }
+
+    public boolean add(final Genotype ... genotype) {
+        checkImmutability();
+        invalidateCaches();
+        return genotypes.addAll(Arrays.asList(genotype));
     }
 
     @Override
@@ -291,13 +305,17 @@ public class GenotypeCollection implements List<Genotype> {
         return genotypes.toArray(ts);
     }
 
-    public Iterable<Genotype> iterateInOrder(final Iterable<String> sampleNamesInOrder) {
+    public Iterable<Genotype> iterateInSampleNameOrder(final Iterable<String> sampleNamesInOrder) {
         return new Iterable<Genotype>() {
             @Override
             public Iterator<Genotype> iterator() {
                 return new InOrderIterator(sampleNamesInOrder.iterator());
             }
         };
+    }
+
+    public Iterable<Genotype> iterateInSampleNameOrder() {
+        return iterateInSampleNameOrder(getSampleNamesOrderedByName());
     }
 
     private final class InOrderIterator implements Iterator<Genotype> {
@@ -320,6 +338,43 @@ public class GenotypeCollection implements List<Genotype> {
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    public Set<String> getSampleNames() {
+        buildCache();
+        return sampleNameToOffset.keySet();
+    }
+
+    public Set<String> getSampleNamesOrderedByName() {
+        return new TreeSet<String>(getSampleNames());
+    }
+
+    public boolean containsSample(final String sample) {
+        buildCache();
+        return sampleNameToOffset.containsKey(sample);
+    }
+
+    public boolean containsSamples(final Collection<String> samples) {
+        buildCache();
+        return getSampleNames().containsAll(samples);
+    }
+
+    public GenotypeCollection subsetToSamples( final Collection<String> samples ) {
+        return subsetToSamples(new HashSet<String>(samples));
+    }
+
+    public GenotypeCollection subsetToSamples( final Set<String> samples ) {
+        if ( samples.size() == genotypes.size() )
+            return this;
+        else if ( samples.isEmpty() )
+            return NO_GENOTYPES;
+        else {
+            GenotypeCollection subset = create(samples.size());
+            for ( final Genotype g : genotypes )
+                if ( samples.contains(g.getSampleName()) )
+                    subset.add(g);
+            return subset;
         }
     }
 }

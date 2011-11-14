@@ -133,7 +133,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         for ( VariantContext vc : VCs ) {
             if ( variantVC == null && vc.isVariant() )
                 variantVC = vc;
-            genotypes.putAll(getGenotypesWithGLs(vc.getGenotypes()));
+            genotypes.addAll(getGenotypesWithGLs(vc.getGenotypes()));
         }
 
         if ( variantVC == null ) {
@@ -143,13 +143,12 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         return new VariantContext("VCwithGLs", variantVC.getChr(), variantVC.getStart(), variantVC.getEnd(), variantVC.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
-    private static Map<String, Genotype> getGenotypesWithGLs(Map<String, Genotype> genotypes) {
-        Map<String, Genotype> genotypesWithGLs = new HashMap<String, Genotype>();
-        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            if ( g.getValue().hasLikelihoods() && g.getValue().getLikelihoods().getAsVector() != null )
-                genotypesWithGLs.put(g.getKey(), g.getValue());
+    private static GenotypeCollection getGenotypesWithGLs(GenotypeCollection genotypes) {
+        GenotypeCollection genotypesWithGLs = GenotypeCollection.create(genotypes.size());
+        for ( final Genotype g : genotypes ) {
+            if ( g.hasLikelihoods() && g.getLikelihoods().getAsVector() != null )
+                genotypesWithGLs.add(g);
         }
-
         return genotypesWithGLs;
     }
 }

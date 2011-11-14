@@ -281,7 +281,7 @@ public class UnifiedGenotyperEngine {
             attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
             attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
 
-            genotypes.put(GL.getSample(), new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
+            genotypes.add(new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
         }
 
         GenomeLoc loc = refContext.getLocus();
@@ -810,9 +810,6 @@ public class UnifiedGenotyperEngine {
         switch ( UAC.AFmodel ) {
             case EXACT:
                 afcm = new ExactAFCalculationModel(UAC, N, logger, verboseWriter);
-                break;
-            case GRID_SEARCH:
-                afcm = new GridSearchAFEstimation(UAC, N, logger, verboseWriter);
                 break;
             default: throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
         }

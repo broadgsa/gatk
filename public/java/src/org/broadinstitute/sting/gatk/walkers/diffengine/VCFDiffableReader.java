@@ -102,7 +102,7 @@ public class VCFDiffableReader implements DiffableReader {
                         vcRoot.add(attribute.getKey(), attribute.getValue());
                 }
 
-                for (Genotype g : vc.getGenotypes().values() ) {
+                for (Genotype g : vc.getGenotypes() ) {
                     DiffNode gRoot = DiffNode.empty(g.getSampleName(), vcRoot);
                     gRoot.add("GT", g.getGenotypeString());
                     gRoot.add("GQ", g.hasNegLog10PError() ? g.getNegLog10PError() * 10 : VCFConstants.MISSING_VALUE_v4 );

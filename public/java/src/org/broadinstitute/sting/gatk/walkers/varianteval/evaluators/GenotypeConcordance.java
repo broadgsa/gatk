@@ -209,7 +209,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     //public GenotypeConcordance(VariantEvalWalker parent) {
     //    super(parent);
-	//	discordantInteresting = parent.DISCORDANT_INTERESTING;
+    //	discordantInteresting = parent.DISCORDANT_INTERESTING;
     //}
 
     public String getName() {
@@ -277,8 +277,9 @@ public class GenotypeConcordance extends VariantEvaluator {
 
         // determine concordance for eval data
         if (eval != null) {
-           for (final String sample : eval.getGenotypes().keySet()) {
-                final Genotype.Type called = eval.getGenotype(sample).getType();
+            for (final Genotype g : eval.getGenotypes() ) {
+                final String sample = g.getSampleName();
+                final Genotype.Type called = g.getType();
                 final Genotype.Type truth;
 
                 if (!validationIsValidVC || !validation.hasGenotype(sample)) {
@@ -299,9 +300,9 @@ public class GenotypeConcordance extends VariantEvaluator {
         else {
             final Genotype.Type called = Genotype.Type.NO_CALL;
 
-            for (final String sample : validation.getGenotypes().keySet()) {
-                final Genotype.Type truth = validation.getGenotype(sample).getType();
-                detailedStats.incrValue(sample, truth, called);
+            for (final Genotype g : validation.getGenotypes()) {
+                final Genotype.Type truth = g.getType();
+                detailedStats.incrValue(g.getSampleName(), truth, called);
 
                 // print out interesting sites
                 /*
@@ -410,8 +411,8 @@ class SampleStats implements TableType {
 
     public SampleStats(VariantContext vc, int nGenotypeTypes) {
         this.nGenotypeTypes = nGenotypeTypes;
-        for (String sample : vc.getGenotypes().keySet())
-            concordanceStats.put(sample, new long[nGenotypeTypes][nGenotypeTypes]);
+        for (final Genotype g : vc.getGenotypes())
+            concordanceStats.put(g.getSampleName(), new long[nGenotypeTypes][nGenotypeTypes]);
     }
 
     public SampleStats(int genotypeTypes) {
@@ -511,8 +512,8 @@ class SampleSummaryStats implements TableType {
 
     public SampleSummaryStats(final VariantContext vc) {
         concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
-        for( final String sample : vc.getGenotypes().keySet() ) {
-            concordanceSummary.put(sample, new double[COLUMN_KEYS.length]);
+        for( final Genotype g : vc.getGenotypes() ) {
+            concordanceSummary.put(g.getSampleName(), new double[COLUMN_KEYS.length]);
         }
     }
 

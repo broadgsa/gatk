@@ -212,15 +212,15 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
         // create new Genotype objects
         GenotypeCollection newGenotypes = GenotypeCollection.create(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+        for ( final Genotype genotype : vc.getGenotypes() ) {
             List<Allele> newAlleles = new ArrayList<Allele>();
-            for ( Allele allele : genotype.getValue().getAlleles() ) {
+            for ( Allele allele : genotype.getAlleles() ) {
                 Allele newA = alleleMap.get(allele);
                 if ( newA == null )
                     newA = Allele.NO_CALL;
                 newAlleles.add(newA);
             }
-            newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
+            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
         }
 
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), refBaseForIndel);

@@ -209,13 +209,7 @@ public class VCFCodec extends AbstractVCFCodec {
 
             // add it to the list
             try {
-                genotypes.put(sampleName,
-                        new Genotype(sampleName,
-                                GTalleles,
-                                GTQual,
-                                genotypeFilters,
-                                gtAttributes,
-                                phased));
+                genotypes.add(new Genotype(sampleName, GTalleles, GTQual, genotypeFilters, gtAttributes, phased));
             } catch (TribbleException e) {
                 throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
             }

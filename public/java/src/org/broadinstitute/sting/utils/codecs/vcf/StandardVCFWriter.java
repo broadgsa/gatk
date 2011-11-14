@@ -451,7 +451,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
         boolean sawGoodGT = false;
         boolean sawGoodQual = false;
         boolean sawGenotypeFilter = false;
-        for ( Genotype g : vc.getGenotypes().values() ) {
+        for ( final Genotype g : vc.getGenotypes() ) {
             keys.addAll(g.getAttributes().keySet());
             if ( g.isAvailable() )
                 sawGoodGT = true;

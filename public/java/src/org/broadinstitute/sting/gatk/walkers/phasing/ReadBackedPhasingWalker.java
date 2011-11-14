@@ -122,7 +122,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public int MIN_MAPPING_QUALITY_SCORE = 20;
 
     @Argument(fullName = "sampleToPhase", shortName = "sampleToPhase", doc = "Only include these samples when phasing", required = false)
-    protected List<String> samplesToPhase = null;
+    protected Set
+            <String> samplesToPhase = null;
 
     private GenomeLoc mostDownstreamLocusReached = null;
 
@@ -272,10 +273,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList(PQ_KEY));
 
-    private VariantContext reduceVCToSamples(VariantContext vc, List<String> samplesToPhase) {
+    private VariantContext reduceVCToSamples(VariantContext vc, Set<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
 //            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
-        VariantContext subvc = vc.subContextFromGenotypes(vc.getGenotypes(samplesToPhase).values());
+        VariantContext subvc = vc.subContextFromSamples(samplesToPhase);
 //        logger.debug("original VC = " + vc);
 //        logger.debug("sub      VC = " + subvc);
         return VariantContextUtils.pruneVariantContext(subvc, KEYS_TO_KEEP_IN_REDUCED_VCF);
@@ -354,9 +355,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         // Perform per-sample phasing:
         GenotypeCollection sampGenotypes = vc.getGenotypes();
         Map<String, PhaseCounts> samplePhaseStats = new TreeMap<String, PhaseCounts>();
-        for (Map.Entry<String, Genotype> sampGtEntry : sampGenotypes.entrySet()) {
-            String samp = sampGtEntry.getKey();
-            Genotype gt = sampGtEntry.getValue();
+        for (final Genotype gt : sampGenotypes) {
+            String samp = gt.getSampleName();
 
             if (DEBUG) logger.debug("sample = " + samp);
             if (isUnfilteredCalledDiploidGenotype(gt)) {
@@ -1134,7 +1134,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.start = vc.getStart();
             this.stop = vc.getEnd();
             this.alleles = vc.getAlleles();
-            this.genotypes = GenotypeCollection.create(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
+            this.genotypes = GenotypeCollection.copy(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
             this.negLog10PError = vc.getNegLog10PError();
             this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());
@@ -1153,7 +1153,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public void setGenotype(String sample, Genotype newGt) {
-            genotypes.put(sample, newGt);
+            genotypes.add(newGt);
         }
 
         public void setPhasingInconsistent() {

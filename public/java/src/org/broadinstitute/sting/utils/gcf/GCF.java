@@ -155,12 +155,12 @@ public class GCF {
         if ( genotypes.isEmpty() )
             return VariantContext.NO_GENOTYPES;
         else {
-            GenotypeCollection map = GenotypeCollection.create();
+            GenotypeCollection map = GenotypeCollection.create(genotypes.size());
 
             for ( int i = 0; i < genotypes.size(); i++ ) {
                 final String sampleName = header.getSample(i);
                 final Genotype g = genotypes.get(i).decode(sampleName, header, this, alleleMap);
-                map.put(sampleName, g);
+                map.add(g);
             }
 
             return map;
@@ -173,7 +173,7 @@ public class GCF {
             List<GCFGenotype> genotypes = new ArrayList<GCFGenotype>(nGenotypes);
             for ( int i = 0; i < nGenotypes; i++ ) genotypes.add(null);
 
-            for ( Genotype g : vc.getGenotypes().values() ) {
+            for ( Genotype g : vc.getGenotypes() ) {
                 int i = GCFHeaderBuilder.encodeSample(g.getSampleName());
                 genotypes.set(i, new GCFGenotype(GCFHeaderBuilder, alleleMap, g));
             }

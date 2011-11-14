@@ -52,8 +52,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
         double hetCount = 0.0;
         double homCount = 0.0;
         int N = 0; // number of samples that have likelihoods
-        for ( final Map.Entry<String, Genotype> genotypeMap : genotypes.entrySet() ) {
-            Genotype g = genotypeMap.getValue();
+        for ( final Genotype g : genotypes ) {
             if ( g.isNoCall() || !g.hasLikelihoods() )
                 continue;
 

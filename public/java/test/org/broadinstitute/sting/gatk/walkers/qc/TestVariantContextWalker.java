@@ -37,13 +37,14 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * Test routine for new VariantContext object
@@ -93,7 +94,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
 
                     if ( writer != null && n == 0 ) {
                         if ( ! wroteHeader ) {
-                            writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));
+                            writer.writeHeader(createVCFHeader(vc));
                             wroteHeader = true;
                         }
 
@@ -113,6 +114,10 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
             
             return n;
         }
+    }
+
+    private static VCFHeader createVCFHeader(VariantContext vc) {
+        return new VCFHeader(new HashSet<VCFHeaderLine>(), vc.getGenotypes().getSampleNamesSorted());
     }
 
     public Integer reduceInit() {

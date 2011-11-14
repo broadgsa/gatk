@@ -99,7 +99,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         int start = 10;
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
         return new VariantContext(source, "1", start, stop, alleles,
-                GenotypeCollection.create(genotypes), 1.0, filters, null, Cref.getBases()[0]);
+                GenotypeCollection.copy(genotypes), 1.0, filters, null, Cref.getBases()[0]);
     }
 
     // --------------------------------------------------------------------------------
@@ -509,7 +509,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     }
 
     // necessary to not overload equals for genotypes
-    private void assertGenotypesAreMostlyEqual(Map<String, Genotype> actual, Map<String, Genotype> expected) {
+    private void assertGenotypesAreMostlyEqual(GenotypeCollection actual, GenotypeCollection expected) {
         if (actual == expected) {
             return;
         }
@@ -522,10 +522,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
             Assert.fail("Maps do not have the same size:" + actual.size() + " != " + expected.size());
         }
 
-        for (Map.Entry<String, Genotype> entry : actual.entrySet()) {
-            String key = entry.getKey();
-            Genotype value = entry.getValue();
-            Genotype expectedValue = expected.get(key);
+        for (Genotype value : actual) {
+            Genotype expectedValue = expected.get(value.getSampleName());
 
             Assert.assertEquals(value.alleles, expectedValue.alleles, "Alleles in Genotype aren't equal");
             Assert.assertEquals(value.getNegLog10PError(), expectedValue.getNegLog10PError(), "GQ values aren't equal");
@@ -545,7 +543,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 VariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false);
 
         // test genotypes
-        Assert.assertEquals(merged.getGenotypes().keySet(), new HashSet<String>(Arrays.asList("s1.1", "s1.2")));
+        Assert.assertEquals(merged.getSampleNames(), new HashSet<String>(Arrays.asList("s1.1", "s1.2")));
     }
 
     @Test(expectedExceptions = UserException.class)

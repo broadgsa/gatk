@@ -202,15 +202,6 @@ public class VariantContextAdaptors {
         }
     }
 
-    public static VCFHeader createVCFHeader(Set<VCFHeaderLine> hInfo, VariantContext vc) {
-        HashSet<String> names = new LinkedHashSet<String>();
-        for ( Genotype g : vc.getGenotypesSortedByName() ) {
-            names.add(g.getSampleName());
-        }
-
-        return new VCFHeader(hInfo == null ? new HashSet<VCFHeaderLine>() : hInfo, names);
-    }
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // GELI to VariantContext
@@ -353,7 +344,7 @@ public class VariantContextAdaptors {
                 }
 
                 Genotype g = new Genotype(samples[i], myAlleles);
-                genotypes.put(samples[i], g);
+                genotypes.add(g);
             }
 
             HashMap<String, Object> attrs = new HashMap<String, Object>(1);

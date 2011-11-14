@@ -157,8 +157,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // A    C   A
         // A    C   C
 
-        for (Genotype g : vc1.getGenotypes().values()) {
-            String altStr = vc1.getAlternateAlleles().size() > 0 ? vc1.getAlternateAllele(0).getBaseString().toUpperCase() : null;
+        for (final Genotype g : vc1.getGenotypes()) {
+            final String altStr = vc1.getAlternateAlleles().size() > 0 ? vc1.getAlternateAllele(0).getBaseString().toUpperCase() : null;
 
             switch (g.getType()) {
                 case NO_CALL:

@@ -202,9 +202,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             hapmapGenotypes = vc_comp.getGenotypes();
         }
 
-        for ( Map.Entry<String, Genotype> originalGenotypes : vc_input.getGenotypes().entrySet() ) {
-
-            Genotype g = originalGenotypes.getValue();
+        for ( final Genotype g : vc_input.getGenotypes() ) {
             Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
             boolean genotypeIsPhased = true;
@@ -214,7 +212,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             // use sample as key into genotypes structure
             if (vc_comp != null) {
 
-                if (vc_input.getGenotypes().containsKey(sample) && hapmapGenotypes.containsKey(sample))  {
+                if (vc_input.getGenotypes().containsSample(sample) && hapmapGenotypes.containsSample(sample))  {
 
                     Genotype hapmapGenotype = hapmapGenotypes.get(sample);
                     if (hapmapGenotype.isCalled()){
@@ -325,13 +323,12 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             else {
                 originalAttributes.put("OG",".");
             }
-            Genotype imputedGenotype = new Genotype(originalGenotypes.getKey(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
+            Genotype imputedGenotype = new Genotype(g.getSampleName(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
             if ( imputedGenotype.isHet() || imputedGenotype.isHomVar() ) {
                 beagleVarCounts++;
             }
 
-            genotypes.put(originalGenotypes.getKey(), imputedGenotype);
-
+            genotypes.add(imputedGenotype);
         }
 
         VariantContext filteredVC;

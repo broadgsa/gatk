@@ -180,7 +180,7 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             // add it to the list
             try {
-                genotypes.put(sampleName, new Genotype(sampleName,
+                genotypes.add(new Genotype(sampleName,
                         parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap),
                         GTQual,
                         genotypeFilters,

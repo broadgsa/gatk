@@ -118,7 +118,7 @@ public class G1KPhaseITable extends VariantEvaluator {
         }
 
         // count variants per sample
-        for (final Genotype g : eval.getGenotypes().values()) {
+        for (final Genotype g : eval.getGenotypes()) {
             if ( ! g.isNoCall() && ! g.isHomRef() ) {
                 int count = countsPerSample.get(g.getSampleName()).get(eval.getType());
                 countsPerSample.get(g.getSampleName()).put(eval.getType(), count + 1);

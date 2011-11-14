@@ -557,7 +557,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         // check if we find it in the variant rod
         GenotypeCollection genotypes = vc.getGenotypes(samples);
-        for (Genotype g : genotypes.values()) {
+        for (final Genotype g : genotypes) {
             if (sampleHasVariant(g)) {
                 // There is a variant called (or filtered with not exclude filtered option set) that is not HomRef for at least one of the samples.
                 if (compVCs == null)

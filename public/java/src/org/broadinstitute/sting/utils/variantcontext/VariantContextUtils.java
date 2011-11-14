@@ -70,7 +70,7 @@ public class VariantContextUtils {
      * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, GenotypeCollection.create(genotypes), negLog10PError, filters, attributes);
+        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, GenotypeCollection.copy(genotypes), negLog10PError, filters, attributes);
     }
 
     /**
@@ -351,10 +351,9 @@ public class VariantContextUtils {
 
         // Genotypes
         final GenotypeCollection genotypes = GenotypeCollection.create(vc.getNSamples());
-        for ( final Genotype g : vc.getGenotypes().values() ) {
+        for ( final Genotype g : vc.getGenotypes() ) {
             Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
-            genotypes.put(g.getSampleName(),
-                    new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(),
+            genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(),
                             genotypeAttributes, g.isPhased()));
         }
 
@@ -682,9 +681,9 @@ public class VariantContextUtils {
              if (!hasNullAlleles)
                return inputVC;
            // now we can recreate new genotypes with trimmed alleles
-            for ( Map.Entry<String, Genotype> sample : inputVC.getGenotypes().entrySet() ) {
+            for ( final Genotype genotype : inputVC.getGenotypes() ) {
 
-                List<Allele> originalAlleles = sample.getValue().getAlleles();
+                List<Allele> originalAlleles = genotype.getAlleles();
                 List<Allele> trimmedAlleles = new ArrayList<Allele>();
                 for ( Allele a : originalAlleles ) {
                     if ( a.isCalled() )
@@ -692,7 +691,7 @@ public class VariantContextUtils {
                     else
                         trimmedAlleles.add(Allele.NO_CALL);
                 }
-                genotypes.put(sample.getKey(), Genotype.modifyAlleles(sample.getValue(), trimmedAlleles));
+                genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
 
             }
             return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
@@ -705,8 +704,8 @@ public class VariantContextUtils {
     public static GenotypeCollection stripPLs(GenotypeCollection genotypes) {
         GenotypeCollection newGs = GenotypeCollection.create(genotypes.size());
 
-        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? removePLs(g.getValue()) : g.getValue());
+        for ( final Genotype g : genotypes ) {
+            newGs.add(g.hasLikelihoods() ? removePLs(g) : g);
         }
 
         return newGs;
@@ -884,9 +883,9 @@ public class VariantContextUtils {
     }
 
     private static void mergeGenotypes(GenotypeCollection mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
-        for ( Genotype g : oneVC.getGenotypes().values() ) {
+        for ( Genotype g : oneVC.getGenotypes() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
-            if ( ! mergedGenotypes.containsKey(name) ) {
+            if ( ! mergedGenotypes.containsSample(name) ) {
                 // only add if the name is new
                 Genotype newG = g;
 
@@ -895,7 +894,7 @@ public class VariantContextUtils {
                     newG = new Genotype(name, alleles, g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased());
                 }
 
-                mergedGenotypes.put(name, newG);
+                mergedGenotypes.add(newG);
             }
         }
     }
@@ -924,15 +923,15 @@ public class VariantContextUtils {
 
         // create new Genotype objects
         GenotypeCollection newGenotypes = GenotypeCollection.create(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+        for ( final Genotype genotype : vc.getGenotypes() ) {
             List<Allele> newAlleles = new ArrayList<Allele>();
-            for ( Allele allele : genotype.getValue().getAlleles() ) {
+            for ( Allele allele : genotype.getAlleles() ) {
                 Allele newAllele = alleleMap.get(allele);
                 if ( newAllele == null )
                     newAllele = Allele.NO_CALL;
                 newAlleles.add(newAllele);
             }
-            newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
+            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
         }
 
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
@@ -944,13 +943,13 @@ public class VariantContextUtils {
             return vc;
 
         GenotypeCollection newGenotypes = GenotypeCollection.create(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+        for ( final Genotype genotype : vc.getGenotypes() ) {
             Map<String, Object> attrs = new HashMap<String, Object>();
-            for ( Map.Entry<String, Object> attr : genotype.getValue().getAttributes().entrySet() ) {
+            for ( Map.Entry<String, Object> attr : genotype.getAttributes().entrySet() ) {
                 if ( allowedAttributes.contains(attr.getKey()) )
                     attrs.put(attr.getKey(), attr.getValue());
             }
-            newGenotypes.put(genotype.getKey(), Genotype.modifyAttributes(genotype.getValue(), attrs));
+            newGenotypes.add(Genotype.modifyAttributes(genotype, attrs));
         }
 
         return VariantContext.modifyGenotypes(vc, newGenotypes);
@@ -1023,10 +1022,8 @@ public class VariantContextUtils {
         MergedAllelesData mergeData = new MergedAllelesData(intermediateBases, vc1, vc2); // ensures that the reference allele is added
 
         GenotypeCollection mergedGenotypes = GenotypeCollection.create();
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
+        for (final Genotype gt1 : vc1.getGenotypes()) {
+            Genotype gt2 = vc2.getGenotype(gt1.getSampleName());
 
             List<Allele> site1Alleles = gt1.getAlleles();
             List<Allele> site2Alleles = gt2.getAlleles();
@@ -1052,8 +1049,8 @@ public class VariantContextUtils {
             if (phaseQual.PQ != null)
                 mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, phaseQual.PQ);
 
-            Genotype mergedGt = new Genotype(sample, mergedAllelesForSample, mergedGQ, mergedGtFilters, mergedGtAttribs, phaseQual.isPhased);
-            mergedGenotypes.put(sample, mergedGt);
+            Genotype mergedGt = new Genotype(gt1.getSampleName(), mergedAllelesForSample, mergedGQ, mergedGtFilters, mergedGtAttribs, phaseQual.isPhased);
+            mergedGenotypes.add(mergedGt);
         }
 
         String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getSource(), vc2.getSource());
@@ -1197,8 +1194,7 @@ public class VariantContextUtils {
     }
 
     private static boolean allGenotypesAreUnfilteredAndCalled(VariantContext vc) {
-        for (Map.Entry<String, Genotype> gtEntry : vc.getGenotypes().entrySet()) {
-            Genotype gt = gtEntry.getValue();
+        for (final Genotype gt : vc.getGenotypes()) {
             if (gt.isNoCall() || gt.isFiltered())
                 return false;
         }
@@ -1210,10 +1206,8 @@ public class VariantContextUtils {
 
     private static boolean allSamplesAreMergeable(VariantContext vc1, VariantContext vc2) {
         // Check that each sample's genotype in vc2 is uniquely appendable onto its genotype in vc1:
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
+        for (final Genotype gt1 : vc1.getGenotypes()) {
+            Genotype gt2 = vc2.getGenotype(gt1.getSampleName());
 
             if (!alleleSegregationIsKnown(gt1, gt2)) // can merge if: phased, or if either is a hom
                 return false;
@@ -1275,10 +1269,8 @@ public class VariantContextUtils {
      */
 
     public static boolean someSampleHasDoubleNonReferenceAllele(VariantContext vc1, VariantContext vc2) {
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
+        for (final Genotype gt1 : vc1.getGenotypes()) {
+            Genotype gt2 = vc2.getGenotype(gt1.getSampleName());
 
             List<Allele> site1Alleles = gt1.getAlleles();
             List<Allele> site2Alleles = gt2.getAlleles();
@@ -1309,10 +1301,8 @@ public class VariantContextUtils {
         allele2ToAllele1.put(vc2.getReference(), vc1.getReference());
 
         // Note the segregation of the alleles for each sample (and check that it is consistent with the reference and all previous samples).
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
+        for (final Genotype gt1 : vc1.getGenotypes()) {
+            Genotype gt2 = vc2.getGenotype(gt1.getSampleName());
 
             List<Allele> site1Alleles = gt1.getAlleles();
             List<Allele> site2Alleles = gt2.getAlleles();

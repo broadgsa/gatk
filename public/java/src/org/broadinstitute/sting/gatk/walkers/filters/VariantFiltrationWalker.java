@@ -290,10 +290,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             genotypes = GenotypeCollection.create(vc.getGenotypes().size());
 
             // for each genotype, check filters then create a new object
-            for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
-
-                Genotype g = genotype.getValue();
-
+            for ( final Genotype g : vc.getGenotypes() ) {
                 if ( g.isCalled() ) {
                     Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
@@ -301,9 +298,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                         if ( VariantContextUtils.match(vc, g, exp) )
                             filters.add(exp.name);
                     }
-                    genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.isPhased()));
+                    genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.isPhased()));
                 } else {
-                    genotypes.put(genotype.getKey(), g);
+                    genotypes.add(g);
                 }
             }
         }

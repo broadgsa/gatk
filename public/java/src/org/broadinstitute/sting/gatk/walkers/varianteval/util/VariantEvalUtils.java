@@ -266,7 +266,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested sample
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
-        return getSubsetOfVariantContext(vc, Arrays.asList(sampleName));
+        return getSubsetOfVariantContext(vc, new HashSet<String>(Arrays.asList(sampleName)));
     }
 
     /**
@@ -276,7 +276,7 @@ public class VariantEvalUtils {
      * @param sampleNames the samples to pull out of the VariantContext
      * @return a new VariantContext with just the requested samples
      */
-    public VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
+    public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
         VariantContext vcsub = vc.subContextFromSamples(sampleNames, vc.getAlleles());
 
         HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());

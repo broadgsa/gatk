@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -279,7 +280,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, contig, start, stop, alleles,
-                GenotypeCollection.create(genotypes),
+                GenotypeCollection.copy(genotypes),
                 negLog10PError, filters, attributes, null, false);
     }
 
@@ -423,58 +424,73 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    /**
-     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotype
-     * genotype and alleles in genotype.  This is the right way to test if a single genotype is actually
-     * variant or not.
-     *
-     * @param genotype genotype
-     * @return vc subcontext
-     */
-    public VariantContext subContextFromGenotypes(Genotype genotype) {
-        return subContextFromGenotypes(Arrays.asList(genotype));
-    }
+//    /**
+//     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotype
+//     * genotype and alleles in genotype.  This is the right way to test if a single genotype is actually
+//     * variant or not.
+//     *
+//     * @param genotype genotype
+//     * @return vc subcontext
+//     * @deprecated  replaced by {@link #subContextFromSample(String)}
+//     */
+//    public VariantContext subContextFromGenotypes(Genotype genotype) {
+//        return subContextFromGenotypes(Arrays.asList(genotype));
+//    }
+//
+//
+//    /**
+//     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotypes
+//     * genotypes and alleles in these genotypes.  This is the right way to test if a single genotype is actually
+//     * variant or not.
+//     *
+//     * @param genotypes genotypes
+//     * @return vc subcontext
+//     * @deprecated  replaced by {@link #subContextFromSamples(java.util.Collection)}
+//     */
+//    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes) {
+//        return subContextFromGenotypes(genotypes, allelesOfGenotypes(genotypes)) ;
+//    }
+//
+//    /**
+//     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotypes
+//     * genotypes.  Also, the resulting variant context will contain the alleles provided, not only those found in genotypes
+//     *
+//     * @param genotypes genotypes
+//     * @param alleles the set of allele segregating alleles at this site.  Must include those in genotypes, but may be more
+//     * @return vc subcontext
+//     * @deprecated  replaced by {@link #subContextFromSamples(java.util.Collection, java.util.Collection)}
+//     */
+//    @Deprecated
+//    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Collection<Allele> alleles) {
+//        return new VariantContext(getSource(), contig, start, stop, alleles,
+//                GenotypeCollection.create(genotypes),
+//                getNegLog10PError(),
+//                filtersWereApplied() ? getFilters() : null,
+//                getAttributes(),
+//                getReferenceBaseForIndel());
+//    }
 
-
-    /**
-     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotypes
-     * genotypes and alleles in these genotypes.  This is the right way to test if a single genotype is actually
-     * variant or not.
-     *
-     * @param genotypes genotypes
-     * @return vc subcontext
-     */
-    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes) {
-        return subContextFromGenotypes(genotypes, allelesOfGenotypes(genotypes)) ;
-    }
-
-    /**
-     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotypes
-     * genotypes.  Also, the resulting variant context will contain the alleles provided, not only those found in genotypes
-     *
-     * @param genotypes genotypes
-     * @param alleles the set of allele segregating alleles at this site.  Must include those in genotypes, but may be more
-     * @return vc subcontext
-     */
-    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Collection<Allele> alleles) {
+    public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
         return new VariantContext(getSource(), contig, start, stop, alleles,
-                GenotypeCollection.create(genotypes),
+                genotypes.subsetToSamples(sampleNames),
                 getNegLog10PError(),
                 filtersWereApplied() ? getFilters() : null,
                 getAttributes(),
                 getReferenceBaseForIndel());
     }
 
-    public VariantContext subContextFromSamples(Collection<String> sampleNames, Collection<Allele> alleles) {
-        return subContextFromGenotypes(getGenotypes(sampleNames).values(), alleles);
-    }
-
-    public VariantContext subContextFromSamples(Collection<String> sampleNames) {
-        return subContextFromGenotypes(getGenotypes(sampleNames).values());
+    public VariantContext subContextFromSamples(Set<String> sampleNames) {
+        GenotypeCollection newGenotypes = genotypes.subsetToSamples(sampleNames);
+        return new VariantContext(getSource(), contig, start, stop, allelesOfGenotypes(newGenotypes),
+                newGenotypes,
+                getNegLog10PError(),
+                filtersWereApplied() ? getFilters() : null,
+                getAttributes(),
+                getReferenceBaseForIndel());
     }
 
     public VariantContext subContextFromSample(String sampleName) {
-        return subContextFromGenotypes(getGenotype(sampleName));
+        return subContextFromSamples(new HashSet<String>(Arrays.asList(sampleName)));
     }
 
     /**
@@ -875,16 +891,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     public boolean hasGenotypes() {
         loadGenotypes();
-        return genotypes.size() > 0;
+        return ! genotypes.isEmpty();
     }
 
     public boolean hasGenotypes(Collection<String> sampleNames) {
         loadGenotypes();
-        for ( String name : sampleNames ) {
-            if ( ! genotypes.containsKey(name) )
-                return false;
-        }
-        return true;
+        return genotypes.containsSamples(sampleNames);
     }
 
     /**
@@ -895,10 +907,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return genotypes;
     }
 
-    public List<Genotype> getGenotypesSortedByName() {
+    public Iterable<Genotype> getGenotypesSortedByName() {
         loadGenotypes();
-        Collection<Genotype> types = new TreeMap<String,Genotype>(genotypes).values();
-        return new ArrayList<Genotype>(types);
+        return genotypes.iterateInSampleNameOrder();
     }
 
     /**
@@ -922,24 +933,23 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @throws IllegalArgumentException if sampleName isn't bound to a genotype
      */
     public GenotypeCollection getGenotypes(Collection<String> sampleNames) {
-        GenotypeCollection map = GenotypeCollection.create(sampleNames.size());
-
-        for ( String name : sampleNames ) {
-            if ( map.containsKey(name) ) throw new IllegalArgumentException("Duplicate names detected in requested samples " + sampleNames);
-            final Genotype g = getGenotype(name);
-            if ( g != null ) {
-                map.put(name, g);
-            }
-        }
-
-        return map;
+        return getGenotypes().subsetToSamples(sampleNames);
     }
 
+    public GenotypeCollection getGenotypes(Set<String> sampleNames) {
+        return getGenotypes().subsetToSamples(sampleNames);
+    }
+
+
     /**
-     * @return the set of all sample names in this context
+     * @return the set of all sample names in this context, not ordered
      */
     public Set<String> getSampleNames() {
-        return getGenotypes().keySet();
+        return getGenotypes().getSampleNames();
+    }
+
+    public Set<String> getSampleNamesOrderedByName() {
+        return getGenotypes().getSampleNamesOrderedByName();
     }
 
     /**
@@ -952,11 +962,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public boolean hasGenotype(String sample) {
-        return getGenotypes().containsKey(sample);
+        return getGenotypes().containsSample(sample);
     }
 
     public Genotype getGenotype(int ith) {
-        return getGenotypesSortedByName().get(ith);
+        return genotypes.get(ith);
     }
 
 
@@ -968,7 +978,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public int getChromosomeCount() {
         int n = 0;
 
-        for ( Genotype g : getGenotypes().values() ) {
+        for ( final Genotype g : getGenotypes() ) {
             n += g.isNoCall() ? 0 : g.getPloidy();
         }
 
@@ -984,7 +994,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public int getChromosomeCount(Allele a) {
         int n = 0;
 
-        for ( Genotype g : getGenotypes().values() ) {
+        for ( final Genotype g : getGenotypes() ) {
             n += g.getAlleles(a).size();
         }
 
@@ -1015,7 +1025,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         if ( genotypeCounts == null ) {
             genotypeCounts = new int[Genotype.Type.values().length];
 
-            for ( Genotype g : getGenotypes().values() ) {
+            for ( final Genotype g : getGenotypes() ) {
                 if ( g.isNoCall() )
                     genotypeCounts[Genotype.Type.NO_CALL.ordinal()]++;
                 else if ( g.isHomRef() )
@@ -1136,7 +1146,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         List<Allele> reportedAlleles = getAlleles();
         Set<Allele> observedAlleles = new HashSet<Allele>();
         observedAlleles.add(getReference());
-        for ( Genotype g : getGenotypes().values() ) {
+        for ( final Genotype g : getGenotypes() ) {
             if ( g.isCalled() )
                 observedAlleles.addAll(g.getAlleles());
         }
@@ -1285,12 +1295,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     private void validateGenotypes() {
         if ( this.genotypes == null ) throw new IllegalStateException("Genotypes is null");
 
-        for ( Map.Entry<String, Genotype> elt : this.genotypes.entrySet() ) {
-            String name = elt.getKey();
-            Genotype g = elt.getValue();
-
-            if ( ! name.equals(g.getSampleName()) ) throw new IllegalStateException("Bound sample name " + name + " does not equal the name of the genotype " + g.getSampleName());
-
+        for ( final Genotype g : this.genotypes ) {
             if ( g.isAvailable() ) {
                 for ( Allele gAllele : g.getAlleles() ) {
                     if ( ! hasAllele(gAllele) && gAllele.isCalled() )
@@ -1465,8 +1470,6 @@ public class VariantContext implements Feature { // to enable tribble intergrati
             Byte refByte = inputVC.getReferenceBaseForIndel();
 
             List<Allele> alleles = new ArrayList<Allele>();
-            GenotypeCollection genotypes = GenotypeCollection.create();
-            GenotypeCollection inputGenotypes = inputVC.getGenotypes();
 
             for (Allele a : inputVC.getAlleles()) {
                 // get bases for current allele and create a new one with trimmed bases
@@ -1483,11 +1486,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
             }
 
             // now we can recreate new genotypes with trimmed alleles
-            for (String sample : inputVC.getSampleNames()) {
-                Genotype g = inputGenotypes.get(sample);
-
+            GenotypeCollection genotypes = GenotypeCollection.create(inputVC.getNSamples());
+            for (final Genotype g : inputVC.getGenotypes() ) {
                 List<Allele> inAlleles = g.getAlleles();
-                List<Allele> newGenotypeAlleles = new ArrayList<Allele>();
+                List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
                 for (Allele a : inAlleles) {
                     if (a.isCalled()) {
                         if (a.isSymbolic()) {
@@ -1506,8 +1508,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
                         newGenotypeAlleles.add(Allele.NO_CALL);
                     }
                 }
-                genotypes.put(sample, new Genotype(sample, newGenotypeAlleles, g.getNegLog10PError(),
-                        g.getFilters(),g.getAttributes(),g.isPhased()));
+                genotypes.add(new Genotype(g.getSampleName(), newGenotypeAlleles, g.getNegLog10PError(),
+                        g.getFilters(), g.getAttributes(), g.isPhased()));
 
             }
 
@@ -1520,48 +1522,6 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     }
 
-    public ArrayList<Allele> getTwoAllelesWithHighestAlleleCounts() {
-        // first idea: get two alleles with highest AC
-        int maxAC1 = 0, maxAC2=0,maxAC1ind =0, maxAC2ind = 0;
-        int i=0;
-        int[] alleleCounts = new int[this.getAlleles().size()];
-        ArrayList<Allele> alleleArray = new ArrayList<Allele>();
-        for (Allele a:this.getAlleles()) {
-            int ac = this.getChromosomeCount(a);
-            if (ac >=maxAC1) {
-                maxAC1 = ac;
-                maxAC1ind = i;
-            }
-            alleleArray.add(a);
-            alleleCounts[i++] = ac;
-        }
-        // now get second best allele
-        for (i=0; i < alleleCounts.length; i++) {
-            if (i == maxAC1ind)
-                continue;
-            if (alleleCounts[i] >= maxAC2) {
-                maxAC2 = alleleCounts[i];
-                maxAC2ind = i;
-            }
-        }
-
-        Allele alleleA, alleleB;
-        if (alleleArray.get(maxAC1ind).isReference()) {
-            alleleA = alleleArray.get(maxAC1ind);
-            alleleB = alleleArray.get(maxAC2ind);
-        }
-        else if  (alleleArray.get(maxAC2ind).isReference()) {
-            alleleA = alleleArray.get(maxAC2ind);
-            alleleB = alleleArray.get(maxAC1ind);
-        } else {
-            alleleA = alleleArray.get(maxAC1ind);
-            alleleB = alleleArray.get(maxAC2ind);
-        }
-        ArrayList<Allele> a = new ArrayList<Allele>();
-        a.add(alleleA);
-        a.add(alleleB);
-        return a;
-    }
     public Allele getAltAlleleWithHighestAlleleCount() {
         // first idea: get two alleles with highest AC
         Allele best = null;

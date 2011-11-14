@@ -45,8 +45,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
     public enum Model {
         /** The default model with the best performance in all cases */
         EXACT,
-        /** For posterity we have kept around the older GRID_SEARCH model, but this gives inferior results and shouldn't be used. */
-        GRID_SEARCH
     }
 
     protected int N;
@@ -71,7 +69,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @param log10AlleleFrequencyPriors      priors
      * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
      */
-    protected abstract void getLog10PNonRef(Map<String, Genotype> GLs,  List<Allele> Alleles,
+    protected abstract void getLog10PNonRef(GenotypeCollection GLs,  List<Allele> Alleles,
                                             double[] log10AlleleFrequencyPriors,
                                             double[] log10AlleleFrequencyPosteriors);
 

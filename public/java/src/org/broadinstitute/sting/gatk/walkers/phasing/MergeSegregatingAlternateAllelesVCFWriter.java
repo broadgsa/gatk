@@ -122,7 +122,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
         if (useSingleSample != null) { // only want to output context for one sample
             Genotype sampGt = vc.getGenotype(useSingleSample);
             if (sampGt != null) // TODO: subContextFromGenotypes() does not handle any INFO fields [AB, HaplotypeScore, MQ, etc.].  Note that even SelectVariants.subsetRecord() only handles AC,AN,AF, and DP!
-                vc = vc.subContextFromGenotypes(sampGt);
+                vc = vc.subContextFromSample(sampGt.getSampleName());
             else // asked for a sample that this vc does not contain, so ignore this vc:
                 return;
         }

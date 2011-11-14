@@ -43,8 +43,8 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
 
         if (vc.isSNP() && vc.isBiallelic()) {
             // todo - no current support for multiallelic snps
-            for ( final Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-                final AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            for ( final Genotype genotype : genotypes ) {
+                final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
                 if ( context == null ) {
                     continue;
                 }
@@ -53,8 +53,8 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         }
         else if (vc.isIndel() || vc.isMixed()) {
 
-            for ( final Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-                final AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            for ( final Genotype genotype : genotypes ) {
+                final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
                 if ( context == null ) {
                     continue;
                 }

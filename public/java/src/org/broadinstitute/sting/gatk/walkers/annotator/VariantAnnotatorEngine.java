@@ -229,11 +229,10 @@ public class VariantAnnotatorEngine {
             return vc.getGenotypes();
 
         GenotypeCollection genotypes = GenotypeCollection.create(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> g : vc.getGenotypes().entrySet() ) {
-            Genotype genotype = g.getValue();
-            AlignmentContext context = stratifiedContexts.get(g.getKey());
+        for ( final Genotype genotype : vc.getGenotypes() ) {
+            AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null ) {
-                genotypes.put(g.getKey(), genotype);
+                genotypes.add(genotype);
                 continue;
             }
 
@@ -243,7 +242,7 @@ public class VariantAnnotatorEngine {
                 if ( result != null )
                     genotypeAnnotations.putAll(result);
             }
-            genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
+            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
         }
 
         return genotypes;

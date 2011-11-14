@@ -50,7 +50,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public void getLog10PNonRef(Map<String, Genotype> GLs, List<Allele> alleles,
+    public void getLog10PNonRef(GenotypeCollection GLs, List<Allele> alleles,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();
@@ -94,11 +94,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    private static final ArrayList<double[]> getGLs(Map<String, Genotype> GLs) {
+    private static final ArrayList<double[]> getGLs(GenotypeCollection GLs) {
         ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();
 
         genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
-        for ( Genotype sample : GLs.values() ) {
+        for ( Genotype sample : GLs ) {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
@@ -154,7 +154,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    public int linearExact(Map<String, Genotype> GLs,
+    public int linearExact(GenotypeCollection GLs,
                            double[] log10AlleleFrequencyPriors,
                            double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
@@ -290,16 +290,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // todo = can't deal with optimal dynamic programming solution with multiallelic records
         if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-            sampleIndices.addAll(GLs.keySet());
+            sampleIndices.addAll(GLs.getSampleNames());
             sampleIdx = GLs.size();
         }
         else {
 
-            for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
-                if ( !sample.getValue().hasLikelihoods() )
+            for ( final Genotype genotype : GLs ) {
+                if ( !genotype.hasLikelihoods() )
                     continue;
 
-                double[] likelihoods = sample.getValue().getLikelihoods().getAsVector();
+                double[] likelihoods = genotype.getLikelihoods().getAsVector();
 
                 if (MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL)     {
                     //System.out.print(sample.getKey()+":");
@@ -311,7 +311,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     continue;
                 }
 
-                sampleIndices.add(sample.getKey());
+                sampleIndices.add(genotype.getSampleName());
 
                 for (int k=0; k <= AFofMaxLikelihood; k++) {
 
@@ -415,17 +415,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 qual = -1.0 * Math.log10(1.0 - chosenGenotype);
             }
             //System.out.println(myAlleles.toString());
-            calls.put(sample, new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
+            calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
 
         }
 
-        for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
-
-            if ( !sample.getValue().hasLikelihoods() )
+        for ( final Genotype genotype : GLs ) {
+            if ( !genotype.hasLikelihoods() )
                 continue;
-            Genotype g = GLs.get(sample.getKey());
+            Genotype g = GLs.get(genotype.getSampleName());
 
-            double[] likelihoods = sample.getValue().getLikelihoods().getAsVector();
+            double[] likelihoods = genotype.getLikelihoods().getAsVector();
 
             if (MathUtils.sum(likelihoods) <= SUM_GL_THRESH_NOCALL)
                 continue; // regular likelihoods
@@ -436,7 +435,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             myAlleles.add(Allele.NO_CALL);
             myAlleles.add(Allele.NO_CALL);
             //System.out.println(myAlleles.toString());
-            calls.put(sample.getKey(), new Genotype(sample.getKey(), myAlleles, qual, null, g.getAttributes(), false));
+            calls.add(new Genotype(genotype.getSampleName(), myAlleles, qual, null, g.getAttributes(), false));
         }
         return calls;
     }

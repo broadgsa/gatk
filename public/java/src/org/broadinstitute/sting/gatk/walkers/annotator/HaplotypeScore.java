@@ -89,9 +89,8 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
 
 	    final MathUtils.RunningAverage scoreRA = new MathUtils.RunningAverage();
         if (haplotypes != null) {
-            final Set<Map.Entry<String, Genotype>> genotypes = vc.getGenotypes().entrySet();
-            for ( final Map.Entry<String, Genotype> genotype : genotypes ) {
-                final AlignmentContext thisContext = stratifiedContexts.get(genotype.getKey());
+            for ( final Genotype genotype : vc.getGenotypes()) {
+                final AlignmentContext thisContext = stratifiedContexts.get(genotype.getSampleName());
                 if ( thisContext != null ) {
                     final ReadBackedPileup thisPileup;
                     if (thisContext.hasExtendedEventPileup())
