@@ -245,13 +245,13 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "simplemergersiddata")
     public void testRSIDMerge(SimpleMergeRSIDTest cfg) {
-        final VariantContext snpVC1 = makeVC("snpvc1", Arrays.asList(Aref, T));
+        VariantContext snpVC1 = makeVC("snpvc1", Arrays.asList(Aref, T));
         final List<VariantContext> inputs = new ArrayList<VariantContext>();
 
         for ( final String id : cfg.inputs ) {
-            MutableVariantContext vc = new MutableVariantContext(snpVC1);
-            if ( ! id.equals(".") ) vc.setID(id);
-            inputs.add(vc);
+            if ( id.equals(".") )
+                snpVC1 = VariantContext.modifyID(snpVC1, id);
+            inputs.add(snpVC1);
         }
 
         final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,

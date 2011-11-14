@@ -11,10 +11,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 
 public class VariantContextUnitTest extends BaseTest {
@@ -402,29 +399,26 @@ public class VariantContextUnitTest extends BaseTest {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
         Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
-        MutableVariantContext vc = new MutableVariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2));
+
+        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2));
 
         Assert.assertTrue(vc.isNotFiltered());
         Assert.assertFalse(vc.isFiltered());
         Assert.assertEquals(0, vc.getFilters().size());
 
-        vc.addFilter("BAD_SNP_BAD!");
+        Set<String> filters = new HashSet<String>(Arrays.asList("BAD_SNP_BAD!"));
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2), VariantContext.NO_NEG_LOG_10PERROR, filters, null);
 
         Assert.assertFalse(vc.isNotFiltered());
         Assert.assertTrue(vc.isFiltered());
         Assert.assertEquals(1, vc.getFilters().size());
 
-        vc.addFilters(Arrays.asList("REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
+        filters = new HashSet<String>(Arrays.asList("BAD_SNP_BAD!", "REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2), VariantContext.NO_NEG_LOG_10PERROR, filters, null);
 
         Assert.assertFalse(vc.isNotFiltered());
         Assert.assertTrue(vc.isFiltered());
         Assert.assertEquals(3, vc.getFilters().size());
-
-        vc.clearFilters();
-
-        Assert.assertTrue(vc.isNotFiltered());
-        Assert.assertFalse(vc.isFiltered());
-        Assert.assertEquals(0, vc.getFilters().size());
     }
 
     @Test

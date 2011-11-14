@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.variantcontext.MutableVariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -466,9 +465,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
 
         if (vcfWriter != null && writeVariant) {
             if (!vcComp.hasAttribute("callStatus")) {
-                MutableVariantContext mvc = new MutableVariantContext(vcComp);
-                mvc.putAttribute("callStatus", call.isCalledAlt(callConf) ? "ALT" : "REF" );
-                vcfWriter.add(mvc);
+                vcfWriter.add(VariantContext.modifyAttribute(vcComp, "callStatus", call.isCalledAlt(callConf) ? "ALT" : "REF"));
             }
             else
                 vcfWriter.add(vcComp);

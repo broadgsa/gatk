@@ -399,12 +399,22 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes, vc.getReferenceBaseForIndel(), true);
     }
 
+    public static VariantContext modifyAttribute(VariantContext vc, final String key, final Object value) {
+        Map<String, Object> attributes = new HashMap<String, Object>(vc.getAttributes());
+        attributes.put(key, value);
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes, vc.getReferenceBaseForIndel(), true);
+    }
+
     public static VariantContext modifyReferencePadding(VariantContext vc, Byte b) {
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), b, true);
     }
 
     public static VariantContext modifyPErrorFiltersAndAttributes(VariantContext vc, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, negLog10PError, filters, attributes, vc.getReferenceBaseForIndel(), true);
+    }
+
+    public static VariantContext modifyID(final VariantContext vc, final String id) {
+        return modifyAttribute(vc, ID_KEY, id);
     }
 
     // ---------------------------------------------------------------------------------------------------------
