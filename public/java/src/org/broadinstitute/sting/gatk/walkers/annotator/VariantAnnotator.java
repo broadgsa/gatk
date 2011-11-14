@@ -68,8 +68,9 @@ import java.util.*;
  *   -T VariantAnnotator \
  *   -I input.bam \
  *   -o output.vcf \
- *   -A DepthOfCoverage
+ *   -A DepthOfCoverage \
  *   --variant input.vcf \
+ *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
@@ -221,8 +222,33 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
-        for ( String expression : expressionsToUse )
-            hInfo.add(new VCFInfoHeaderLine(expression, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Value transferred from another external VCF resource"));
+        // for the expressions, pull the info header line from the header of the resource rod
+        for ( VariantAnnotatorEngine.VAExpression expression : engine.getRequestedExpressions() ) {
+            // special case the ID field
+            if ( expression.fieldName.equals("ID") ) {
+                hInfo.add(new VCFInfoHeaderLine(expression.fullName, 1, VCFHeaderLineType.String, "ID field transferred from external VCF resource"));
+                continue;
+            }
+            VCFInfoHeaderLine targetHeaderLine = null;
+            for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(expression.binding.getName())) ) {
+                if ( line instanceof VCFInfoHeaderLine ) {
+                    VCFInfoHeaderLine infoline = (VCFInfoHeaderLine)line;
+                    if ( infoline.getName().equals(expression.fieldName) ) {
+                        targetHeaderLine = infoline;
+                        break;
+                    }
+                }
+            }
+
+            if ( targetHeaderLine != null ) {
+                if ( targetHeaderLine.getCountType() == VCFHeaderLineCount.INTEGER )
+                    hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCount(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
+                else
+                    hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCountType(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
+            } else {
+                hInfo.add(new VCFInfoHeaderLine(expression.fullName, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Value transferred from another external VCF resource"));
+            }
+        }
 
         engine.invokeAnnotationInitializationMethods(hInfo);
 
