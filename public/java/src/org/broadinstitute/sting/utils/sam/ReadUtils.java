@@ -243,7 +243,7 @@ public class ReadUtils {
     public static GATKSAMRecord hardClipAdaptorSequence(final GATKSAMRecord read, int adaptorLength) {
 
         Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(read, adaptorLength);
-        GATKSAMRecord result = (GATKSAMRecord)read;
+        GATKSAMRecord result = read;
 
         if ( adaptorBoundaries != null ) {
             if ( read.getReadNegativeStrandFlag() && adaptorBoundaries.second >= read.getAlignmentStart() && adaptorBoundaries.first < read.getAlignmentEnd() )

@@ -95,11 +95,11 @@ public class PileupElement implements Comparable<PileupElement> {
     // --------------------------------------------------------------------------
 
     public boolean isReducedRead() {
-        return ((GATKSAMRecord)read).isReducedRead();
+        return read.isReducedRead();
     }
 
     public int getRepresentativeCount() {
-        return isReducedRead() ? ((GATKSAMRecord)read).getReducedCount(offset) : 1;
+        return isReducedRead() ? read.getReducedCount(offset) : 1;
     }
 
 }
