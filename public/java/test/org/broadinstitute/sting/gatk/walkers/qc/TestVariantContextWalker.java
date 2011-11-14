@@ -117,7 +117,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
     }
 
     private static VCFHeader createVCFHeader(VariantContext vc) {
-        return new VCFHeader(new HashSet<VCFHeaderLine>(), vc.getGenotypes().getSampleNamesSorted());
+        return new VCFHeader(new HashSet<VCFHeaderLine>(), vc.getGenotypes().getSampleNamesOrderedByName());
     }
 
     public Integer reduceInit() {

@@ -49,7 +49,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     @Param({"READ", "READ_SUBSET"})
     Operation operation; // set automatically by framework
 
-    @Param({"OF_GENOTYPES", "OF_SAMPLES"})
+    @Param({"OF_SAMPLES"})
     SubContextOp subContextOp; // set automatically by framework
 
     private String INPUT_STRING;
@@ -60,7 +60,6 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     }
 
     public enum SubContextOp {
-        OF_GENOTYPES,
         OF_SAMPLES
     }
 
@@ -91,7 +90,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
             codec.readHeader(lineReader);
 
             int counter = 0;
-            List<String> samples = null;
+            Set<String> samples = null;
             while (counter++ < linesToRead ) {
                 String line = lineReader.readLine();
                 if ( line == null )
@@ -99,7 +98,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 
                 VariantContext vc = (VariantContext)codec.decode(line);
                 if ( samples == null ) {
-                    samples = new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake);
+                    samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
                 }
 
                 if ( op == Operation.READ_SUBSET)
@@ -119,13 +118,10 @@ public class VariantContextBenchmark extends SimpleBenchmark {
         CaliperMain.main(VariantContextBenchmark.class, args);
     }
 
-    private static final void processOneVC(VariantContext vc, List<String> samples, SubContextOp subop) {
+    private static final void processOneVC(VariantContext vc, Set<String> samples, SubContextOp subop) {
         VariantContext sub;
 
         switch ( subop ) {
-            case OF_GENOTYPES:
-                sub = vc.subContextFromGenotypes(vc.getGenotypes(samples).values(), vc.getAlleles());
-                break;
             case OF_SAMPLES:
                 sub = vc.subContextFromSamples(samples, vc.getAlleles());
                 break;

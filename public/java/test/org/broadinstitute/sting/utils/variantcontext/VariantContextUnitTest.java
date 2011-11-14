@@ -431,12 +431,12 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g5 = new Genotype("--", Arrays.asList(del, del), 10);
         VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop , alleles, Arrays.asList(g1,g2,g3,g4,g5));
 
-        VariantContext vc12 = vc.subContextFromGenotypes(Arrays.asList(g1,g2));
-        VariantContext vc1 = vc.subContextFromGenotypes(Arrays.asList(g1));
-        VariantContext vc23 = vc.subContextFromGenotypes(Arrays.asList(g2, g3));
-        VariantContext vc4 = vc.subContextFromGenotypes(Arrays.asList(g4));
-        VariantContext vc14 = vc.subContextFromGenotypes(Arrays.asList(g1, g4));
-        VariantContext vc5 = vc.subContextFromGenotypes(Arrays.asList(g5));
+        VariantContext vc12 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName(),g2.getSampleName())));
+        VariantContext vc1 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName())));
+        VariantContext vc23 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g2.getSampleName(), g3.getSampleName())));
+        VariantContext vc4 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g4.getSampleName())));
+        VariantContext vc14 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName(), g4.getSampleName())));
+        VariantContext vc5 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g5.getSampleName())));
 
         Assert.assertTrue(vc12.isPolymorphic());
         Assert.assertTrue(vc23.isPolymorphic());
