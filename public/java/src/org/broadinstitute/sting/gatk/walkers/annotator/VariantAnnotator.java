@@ -240,10 +240,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
                 }
             }
 
-            if ( targetHeaderLine != null )
-                hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCountType(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
-            else
+            if ( targetHeaderLine != null ) {
+                if ( targetHeaderLine.getCountType() == VCFHeaderLineCount.INTEGER )
+                    hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCount(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
+                else
+                    hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCountType(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
+            } else {
                 hInfo.add(new VCFInfoHeaderLine(expression.fullName, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Value transferred from another external VCF resource"));
+            }
         }
 
         engine.invokeAnnotationInitializationMethods(hInfo);
