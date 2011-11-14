@@ -90,45 +90,45 @@ public class VariantContextUnitTest extends BaseTest {
 
         // test INDELs
         alleles = Arrays.asList(Aref, ATC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(Tref, TA, TC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, AC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, Allele.create("ATCTC"));
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         // test MIXED
         alleles = Arrays.asList(TAref, T, TC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(TAref, T, AC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(ACref, ATC, AT);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(Aref, T, symbolic);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         // test SYMBOLIC
         alleles = Arrays.asList(Tref, symbolic);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.SYMBOLIC);
     }
 
@@ -199,7 +199,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testCreatingDeletionVariantContext() {
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContext("test", delLoc, delLocStart, delLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        VariantContext vc = new VariantContext("test", delLoc, delLocStart, delLocStop, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
 
         Assert.assertEquals(vc.getChr(), delLoc);
         Assert.assertEquals(vc.getStart(), delLocStart);
@@ -226,7 +226,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testCreatingInsertionVariantContext() {
         List<Allele> alleles = Arrays.asList(delRef, ATC);
-        VariantContext vc = new VariantContext("test", insLoc, insLocStart, insLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        VariantContext vc = new VariantContext("test", insLoc, insLocStart, insLocStop, alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
 
         Assert.assertEquals(vc.getChr(), insLoc);
         Assert.assertEquals(vc.getStart(), insLocStart);
@@ -514,7 +514,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test(dataProvider = "getAlleles")
     public void testMergeAlleles(GetAllelesTest cfg) {
         final List<Allele> altAlleles = cfg.alleles.subList(1, cfg.alleles.size());
-        final VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        final VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles, null, CommonInfo.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
 
         Assert.assertEquals(vc.getAlleles(), cfg.alleles, "VC alleles not the same as input alleles");
         Assert.assertEquals(vc.getNAlleles(), cfg.alleles.size(), "VC getNAlleles not the same as input alleles size");

@@ -229,7 +229,7 @@ public class UnifiedGenotyperEngine {
             VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, rawContext.getLocation(), false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
-            vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles(), InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, ref.getBase());
+            vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles(), VariantContext.NO_NEG_LOG_10PERROR, null, null, ref.getBase());
 
         } else {
             // deal with bad/non-standard reference bases

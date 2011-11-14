@@ -17,8 +17,8 @@ public class Genotype {
     public final static String PHASED_ALLELE_SEPARATOR = "|";
     public final static String UNPHASED_ALLELE_SEPARATOR = "/";
 
-    protected InferredGeneticContext commonInfo;
-    public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
+    protected CommonInfo commonInfo;
+    public final static double NO_NEG_LOG_10PERROR = CommonInfo.NO_NEG_LOG_10PERROR;
     protected List<Allele> alleles = null; // new ArrayList<Allele>();
     protected Type type = null;
 
@@ -32,7 +32,7 @@ public class Genotype {
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
-        commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        commonInfo = new CommonInfo(sampleName, negLog10PError, filters, attributes);
         if ( log10Likelihoods != null )
             commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         filtersWereAppliedToContext = filters != null;

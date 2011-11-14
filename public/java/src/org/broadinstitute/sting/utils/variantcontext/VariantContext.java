@@ -162,8 +162,8 @@ import java.util.*;
  * @author depristo
  */
 public class VariantContext implements Feature { // to enable tribble intergration
-    protected InferredGeneticContext commonInfo = null;
-    public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
+    protected CommonInfo commonInfo = null;
+    public final static double NO_NEG_LOG_10PERROR = CommonInfo.NO_NEG_LOG_10PERROR;
     public final static String UNPARSED_GENOTYPE_MAP_KEY = "_UNPARSED_GENOTYPE_MAP_";
     public final static String UNPARSED_GENOTYPE_PARSER_KEY = "_UNPARSED_GENOTYPE_PARSER_";
     public final static String ID_KEY = "ID";
@@ -293,7 +293,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param alleles alleles
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles) {
-        this(source, contig, start, stop, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, null, false);
+        this(source, contig, start, stop, alleles, NO_GENOTYPES, CommonInfo.NO_NEG_LOG_10PERROR, null, null, null, false);
     }
 
     /**
@@ -307,7 +307,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param genotypes genotypes
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes) {
-        this(source, contig, start, stop, alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+        this(source, contig, start, stop, alleles, genotypes, CommonInfo.NO_NEG_LOG_10PERROR, null, null);
     }
 
     /**
@@ -350,7 +350,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
                 attributes.remove(UNPARSED_GENOTYPE_PARSER_KEY);
         }
 
-        this.commonInfo = new InferredGeneticContext(source, negLog10PError, filters, attributes);
+        this.commonInfo = new CommonInfo(source, negLog10PError, filters, attributes);
         filtersWereAppliedToContext = filters != null;
         REFERENCE_BASE_FOR_INDEL = referenceBaseForIndel;
 

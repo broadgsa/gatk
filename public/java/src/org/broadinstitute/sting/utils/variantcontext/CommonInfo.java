@@ -11,7 +11,7 @@ import java.util.*;
  *
  * @author depristo
  */
-public final class InferredGeneticContext {
+final class CommonInfo {
     public static final double NO_NEG_LOG_10PERROR = -1.0;
 
     private static Set<String> NO_FILTERS = Collections.unmodifiableSet(new HashSet<String>());
@@ -22,7 +22,7 @@ public final class InferredGeneticContext {
     private Set<String> filters = NO_FILTERS;
     private Map<String, Object> attributes = NO_ATTRIBUTES;
 
-    public InferredGeneticContext(String name, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
+    public CommonInfo(String name, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this.name = name;
         setNegLog10PError(negLog10PError);
         if ( filters != null && ! filters.isEmpty() )

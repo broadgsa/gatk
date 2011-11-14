@@ -81,7 +81,7 @@ public class VariantContextUtils {
      * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles) {
-        return new VariantContext (name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, VariantContext.NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+        return new VariantContext (name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, VariantContext.NO_GENOTYPES, CommonInfo.NO_NEG_LOG_10PERROR, null, null);
     }
 
     /**
@@ -93,7 +93,7 @@ public class VariantContextUtils {
      * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, CommonInfo.NO_NEG_LOG_10PERROR, null, null);
     }
 
     /**
@@ -330,7 +330,7 @@ public class VariantContextUtils {
         return pruneVariantContext(vc, null);
     }
 
-    private final static Map<String, Object> subsetAttributes(final InferredGeneticContext igc, final Collection<String> keysToPreserve) {
+    private final static Map<String, Object> subsetAttributes(final CommonInfo igc, final Collection<String> keysToPreserve) {
         Map<String, Object> attributes = new HashMap<String, Object>(keysToPreserve.size());
         for ( final String key : keysToPreserve  ) {
             if ( igc.hasAttribute(key) )
