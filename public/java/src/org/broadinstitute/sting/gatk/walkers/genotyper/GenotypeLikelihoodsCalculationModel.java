@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -36,7 +35,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Map;
 
@@ -83,8 +81,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      * @param priors               priors to use for GLs
      * @param GLs                  hash of sample->GL to fill in
      * @param alternateAlleleToUse the alternate allele to use, null if not set
-     *
-     * @param useBAQedPileup
+     * @param useBAQedPileup       should we use the BAQed pileup or the raw one?
      * @return genotype likelihoods per sample for AA, AB, BB
      */
     public abstract Allele getLikelihoods(RefMetaDataTracker tracker,
@@ -93,13 +90,14 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                           AlignmentContextUtils.ReadOrientation contextType,
                                           GenotypePriors priors,
                                           Map<String, MultiallelicGenotypeLikelihoods> GLs,
-                                          Allele alternateAlleleToUse, boolean useBAQedPileup);
+                                          Allele alternateAlleleToUse,
+                                          boolean useBAQedPileup);
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;
         for ( PileupElement p : pileup ) {
             if ( BaseUtils.isRegularBase( p.getBase() ) )
-                count++;
+                count += p.getRepresentativeCount();
         }
 
         return count;
