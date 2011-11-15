@@ -1126,9 +1126,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private double negLog10PError;
         private Set<String> filters;
         private Map<String, Object> attributes;
+        private String id;
 
         public UnfinishedVariantContext(VariantContext vc) {
             this.name = vc.getSource();
+            this.id = vc.getID();
             this.contig = vc.getChr();
             this.start = vc.getStart();
             this.stop = vc.getEnd();
@@ -1140,7 +1142,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public VariantContext toVariantContext() {
-            return new VariantContext(name, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
+            return new VariantContext(name, id, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
         }
 
         public GenomeLoc getLocation() {

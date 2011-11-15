@@ -129,9 +129,8 @@ class PhasingUtils {
         List<String> mergedIDs = new ArrayList<String>();
         if ( vc1.hasID() ) mergedIDs.add(vc1.getID());
         if ( vc2.hasID() ) mergedIDs.add(vc2.getID());
-        String mergedID = Utils.join(VCFConstants.ID_FIELD_SEPARATOR, mergedIDs);
+        String mergedID = mergedIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(VCFConstants.ID_FIELD_SEPARATOR, mergedIDs);
 
-        // TODO -- FIX ID
         VariantContext mergedVc = new VariantContext(mergedName, mergedID, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
 
         mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());

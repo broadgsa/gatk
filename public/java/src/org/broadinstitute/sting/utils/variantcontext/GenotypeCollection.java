@@ -70,9 +70,6 @@ public class GenotypeCollection implements List<Genotype> {
         return new GenotypeCollection(nGenotypes, false);
     }
 
-    // todo -- differentiate between empty constructor and copy constructor
-    // todo -- create constructor (Genotype ... genotypes)
-
     public static final GenotypeCollection create(final ArrayList<Genotype> genotypes) {
         return genotypes == null ? NO_GENOTYPES : new GenotypeCollection(genotypes, false);
     }
@@ -82,7 +79,7 @@ public class GenotypeCollection implements List<Genotype> {
     }
 
     public static final GenotypeCollection copy(final GenotypeCollection toCopy) {
-        return create(toCopy.genotypes);
+        return create(new ArrayList<Genotype>(toCopy.genotypes));
     }
 
     public static final GenotypeCollection copy(final Collection<Genotype> toCopy) {
