@@ -188,7 +188,9 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     public final byte getReducedCount(final int i) {
-        return getReducedReadCounts()[i];
+        byte firstCount = getReducedReadCounts()[0];
+        byte offsetCount = getReducedReadCounts()[i];
+        return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
     }
 
 
