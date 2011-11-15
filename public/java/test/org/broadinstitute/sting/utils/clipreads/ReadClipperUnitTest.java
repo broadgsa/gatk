@@ -30,8 +30,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -47,7 +46,6 @@ public class ReadClipperUnitTest extends BaseTest {
 
     // TODO: Add error messages on failed tests
 
-
     //int debug = 0;
 
     GATKSAMRecord read, expected;
@@ -55,73 +53,6 @@ public class ReadClipperUnitTest extends BaseTest {
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?"; //ASCII values = 33,43,53,63
 
-    // What the test read looks like
-    // Ref:    1 2 3 4 5 6 7 8
-    // Read:   0 1 2 3 - - - -
-    // -----------------------------
-    // Bases:  A C T G - - - -
-    // Quals:  ! + 5 ? - - - -
-
-    @BeforeTest
-    public void init() {
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
-        read = ArtificialSAMUtils.createArtificialRead(header, "read1", 0, 1, BASES.length());
-        read.setReadBases(new String(BASES).getBytes());
-        read.setBaseQualityString(new String(QUALS));
-
-        readClipper = new ReadClipper(read);
-        //logger.warn(read.getCigarString());
-    }
-
-    @Test ( enabled = true )
-    public void testHardClipBothEndsByReferenceCoordinates() {
-        init();
-        logger.warn("Executing testHardClipBothEndsByReferenceCoordinates");
-        //int debug = 1;
-        //Clip whole read
-        Assert.assertEquals(readClipper.hardClipBothEndsByReferenceCoordinates(1,1), new GATKSAMRecord(read.getHeader()));
-        //clip 1 base
-        expected = readClipper.hardClipBothEndsByReferenceCoordinates(1,4);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(1,3).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(1,3));
-        Assert.assertEquals(expected.getCigarString(), "1H2M1H");
-
-    }
-
-    @Test ( enabled = false ) // TODO This fails at hardClipCigar and returns a NullPointerException
-    public void testHardClipByReadCoordinates() {
-        init();
-        logger.warn("Executing testHardClipByReadCoordinates");
-
-        //Clip whole read
-        Assert.assertEquals(readClipper.hardClipByReadCoordinates(0,3), new GATKSAMRecord(read.getHeader()));
-
-        //clip 1 base at start
-        System.out.println(readClipper.read.getCigarString());
-        expected = readClipper.hardClipByReadCoordinates(0,0);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(1,4).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(1,4));
-        Assert.assertEquals(expected.getCigarString(), "1H3M");
-
-        //clip 1 base at end
-        expected = readClipper.hardClipByReadCoordinates(3,3);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(0,3).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(0,3));
-        Assert.assertEquals(expected.getCigarString(), "3M1H");
-
-        //clip 2 bases at start
-        expected = readClipper.hardClipByReadCoordinates(0,1);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(2,4).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(2,4));
-        Assert.assertEquals(expected.getCigarString(), "2H2M");
-
-        //clip 2 bases at end
-        expected = readClipper.hardClipByReadCoordinates(2,3);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(0,2).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(0,2));
-        Assert.assertEquals(expected.getCigarString(), "2M2H");
-
-    }
 
     public void testIfEqual( GATKSAMRecord read, byte[] readBases, String baseQuals, String cigar) {
         Assert.assertEquals(read.getReadBases(), readBases);
@@ -143,6 +74,65 @@ public class ReadClipperUnitTest extends BaseTest {
             substringStop = SubstringStop;
             cigar = Cigar;
             }
+    }
+
+    // What the test read looks like
+    // Ref:    1 2 3 4 5 6 7 8
+    // Read:   0 1 2 3 - - - -
+    // -----------------------------
+    // Bases:  A C T G - - - -
+    // Quals:  ! + 5 ? - - - -
+
+    @BeforeMethod
+    public void init() {
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
+        read = ArtificialSAMUtils.createArtificialRead(header, "read1", 0, 1, BASES.length());
+        read.setReadBases(new String(BASES).getBytes());
+        read.setBaseQualityString(new String(QUALS));
+
+        readClipper = new ReadClipper(read);
+        //logger.warn(read.getCigarString());
+    }
+
+    @Test ( enabled = true )
+    public void testHardClipBothEndsByReferenceCoordinates() {
+
+        logger.warn("Executing testHardClipBothEndsByReferenceCoordinates");
+        //int debug = 1;
+        //Clip whole read
+        Assert.assertEquals(readClipper.hardClipBothEndsByReferenceCoordinates(1,1), new GATKSAMRecord(read.getHeader()));
+
+        //clip 1 base
+        expected = readClipper.hardClipBothEndsByReferenceCoordinates(1,4);
+        Assert.assertEquals(expected.getReadBases(), BASES.substring(1,3).getBytes());
+        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(1,3));
+        Assert.assertEquals(expected.getCigarString(), "1H2M1H");
+
+    }
+
+    @Test ( enabled = true )
+    public void testHardClipByReadCoordinates() {
+
+        logger.warn("Executing testHardClipByReadCoordinates");
+
+        //Clip whole read
+        Assert.assertEquals(readClipper.hardClipByReadCoordinates(0,3), new GATKSAMRecord(read.getHeader()));
+
+        List<testParameter> testList = new LinkedList<testParameter>();
+        testList.add(new testParameter(0,0,1,4,"1H3M"));//clip 1 base at start
+        testList.add(new testParameter(3,3,0,3,"3M1H"));//clip 1 base at end
+        testList.add(new testParameter(0,1,2,4,"2H2M"));//clip 2 bases at start
+        testList.add(new testParameter(2,3,0,2,"2M2H"));//clip 2 bases at end
+
+        for ( testParameter p : testList ) {
+            init();
+            //logger.warn("Testing Parameters: " + p.inputStart+","+p.inputStop+","+p.substringStart+","+p.substringStop+","+p.cigar);
+            testIfEqual( readClipper.hardClipByReadCoordinates(p.inputStart, p.inputStop),
+                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart,p.substringStop),
+                    p.cigar );
+        }
+
     }
 
     @Test ( enabled = true )
@@ -178,8 +168,8 @@ public class ReadClipperUnitTest extends BaseTest {
         Assert.assertEquals(readClipper.hardClipByReferenceCoordinatesLeftTail(4), new GATKSAMRecord(read.getHeader()));
 
         List<testParameter> testList = new LinkedList<testParameter>();
-        testList.add(new testParameter(1,-1,1,4,"1H3M"));//clip 1 base at start
-        testList.add(new testParameter(2,-1,2,4,"2H2M"));//clip 2 bases at start
+        testList.add(new testParameter(1, -1, 1, 4, "1H3M"));//clip 1 base at start
+        testList.add(new testParameter(2, -1, 2, 4, "2H2M"));//clip 2 bases at start
 
         for ( testParameter p : testList ) {
             init();
@@ -201,8 +191,8 @@ public class ReadClipperUnitTest extends BaseTest {
         Assert.assertEquals(readClipper.hardClipByReferenceCoordinatesRightTail(1), new GATKSAMRecord(read.getHeader()));
 
         List<testParameter> testList = new LinkedList<testParameter>();
-        testList.add(new testParameter(-1,4,0,3,"3M1H"));//clip 1 base at end
-        testList.add(new testParameter(-1,3,0,2,"2M2H"));//clip 2 bases at end
+        testList.add(new testParameter(-1, 4, 0, 3, "3M1H"));//clip 1 base at end
+        testList.add(new testParameter(-1, 3, 0, 2, "2M2H"));//clip 2 bases at end
 
         for ( testParameter p : testList ) {
             init();
@@ -215,45 +205,55 @@ public class ReadClipperUnitTest extends BaseTest {
 
     }
 
-    @Test ( enabled = false )  // TODO This function is returning null reads
+    @Test ( enabled = true )  // TODO This function is returning null reads
     public void testHardClipLowQualEnds() {
-        init();
-        logger.warn("Executing testHardClipByReferenceCoordinates");
 
+        logger.warn("Executing testHardClipByReferenceCoordinates");
 
         //Clip whole read
         Assert.assertEquals(readClipper.hardClipLowQualEnds((byte)64), new GATKSAMRecord(read.getHeader()));
 
-        //clip 1 base at start
-        expected = readClipper.hardClipLowQualEnds((byte)34);
-        logger.warn(expected.getBaseQualities().toString()+","+expected.getBaseQualityString());
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(1,4).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(1,4));
-        Assert.assertEquals(expected.getCigarString(), "1H3M");
+        List<testParameter> testList = new LinkedList<testParameter>();
+        testList.add(new testParameter(1,-1,1,4,"1H3M"));//clip 1 base at start
+        testList.add(new testParameter(11,-1,2,4,"2H2M"));//clip 2 bases at start
 
-        //clip 2 bases at start
-        expected = readClipper.hardClipLowQualEnds((byte)44);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(2,4).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(2,4));
-        Assert.assertEquals(expected.getCigarString(), "2H2M");
-
+        for ( testParameter p : testList ) {
+            init();
+            //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
+            testIfEqual( readClipper.hardClipLowQualEnds( (byte)p.inputStart ),
+                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart,p.substringStop),
+                    p.cigar );
+        }
+     /*      todo find a better way to test lowqual tail clipping on both sides
         // Reverse Quals sequence
-        //readClipper.getRead().setBaseQualityString("?5+!"); // 63,53,43,33
+        readClipper.getRead().setBaseQualityString("?5+!"); // 63,53,43,33
 
-        //clip 1 base at end
-        expected = readClipper.hardClipLowQualEnds((byte)'!');
-        logger.warn(expected.getBaseQualities().toString()+","+expected.getBaseQualityString());
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(0,3).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(0,3));
-        Assert.assertEquals(expected.getCigarString(), "3M1H");
+        testList = new LinkedList<testParameter>();
+        testList.add(new testParameter(1,-1,0,3,"3M1H"));//clip 1 base at end
+        testList.add(new testParameter(11,-1,0,2,"2M2H"));//clip 2 bases at end
 
-        //clip 2 bases at end
-        expected = readClipper.hardClipLowQualEnds((byte)44);
-        Assert.assertEquals(expected.getReadBases(), BASES.substring(0,2).getBytes());
-        Assert.assertEquals(expected.getBaseQualityString(), QUALS.substring(0,2));
-        Assert.assertEquals(expected.getCigarString(), "2M2H");
+        for ( testParameter p : testList ) {
+            init();
+            readClipper.getRead().setBaseQualityString("?5+!"); // 63,53,43,33
+            //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
+            testIfEqual( readClipper.hardClipLowQualEnds( (byte)p.inputStart ),
+                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart,p.substringStop),
+                    p.cigar );
+        }
+        */
+    }
 
-        // revert Qual sequence
-        readClipper.getRead().setBaseQualityString(QUALS);
+    public class CigarReadMaker  {
+
+    }
+
+    @Test ( enabled = false )
+    public void testHardClipSoftClippedBases() {
+
+        // Generate a list of cigars to test
+        // We will use testParameter in the following way
+        // Right tail, left tail,
     }
 }
