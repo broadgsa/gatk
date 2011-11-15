@@ -6,9 +6,7 @@ import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.List;
 
 /*
  * Copyright (c) 2009 The Broad Institute

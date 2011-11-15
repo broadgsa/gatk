@@ -223,7 +223,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param referenceBaseForIndel   padded reference base
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes, Byte referenceBaseForIndel) {
-        this(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, referenceBaseForIndel, false);
+        this(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, referenceBaseForIndel, false, true);
     }
 
     /**
@@ -240,7 +240,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param attributes      attributes
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
-        this(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, null, false);
+        this(source, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, null, false, true);
     }
 
     /**
@@ -261,7 +261,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param referenceBaseForIndel   padded reference base
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, Byte referenceBaseForIndel) {
-        this(source, contig, start, stop, alleles, NO_GENOTYPES, negLog10PError, filters, attributes, referenceBaseForIndel, true);
+        this(source, contig, start, stop, alleles, NO_GENOTYPES, negLog10PError, filters, attributes, referenceBaseForIndel, true, true);
     }
 
     /**
@@ -278,7 +278,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param attributes     attributes
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
-        this(source, contig, start, stop, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes, null, false);
+        this(source, contig, start, stop, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes, null, false, true);
     }
 
     /**
@@ -291,7 +291,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param alleles alleles
      */
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles) {
-        this(source, contig, start, stop, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, null, false);
+        this(source, contig, start, stop, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, null, false, true);
     }
 
     /**
@@ -314,7 +314,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param other the VariantContext to copy
      */
     public VariantContext(VariantContext other) {
-        this(other.getSource(), other.getChr(), other.getStart(), other.getEnd() , other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.filtersWereApplied() ? other.getFilters() : null, other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL, false);
+        this(other.getSource(), other.getChr(), other.getStart(), other.getEnd() , other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.filtersWereApplied() ? other.getFilters() : null, other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL, false, true);
     }
 
     /**
@@ -331,11 +331,13 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
      * @param genotypesAreUnparsed    true if the genotypes have not yet been parsed
+     * @param performValidation       if true, call validate() as the final step in construction
      */
     private VariantContext(String source, String contig, long start, long stop,
                            Collection<Allele> alleles, Map<String, Genotype> genotypes,
                            double negLog10PError, Set<String> filters, Map<String, ?> attributes,
-                           Byte referenceBaseForIndel, boolean genotypesAreUnparsed) {
+                           Byte referenceBaseForIndel, boolean genotypesAreUnparsed,
+                           boolean performValidation ) {
         if ( contig == null ) { throw new IllegalArgumentException("Contig cannot be null"); }
         this.contig = contig;
         this.start = start;
@@ -371,39 +373,57 @@ public class VariantContext implements Feature { // to enable tribble intergrati
             }
         }
 
-        validate();
+        if ( performValidation ) {
+            validate();
+        }
     }
 
     // ---------------------------------------------------------------------------------------------------------
     //
     // Partial-cloning routines (because Variant Context is immutable).
+    //
+    //    IMPORTANT: These routines assume that the VariantContext on which they're called is already valid.
+    //               Due to this assumption, they explicitly tell the constructor NOT to perform validation by
+    //               calling validate(), and instead perform validation only on the data that's changed.
+    //
     //    Note that we don't call vc.getGenotypes() because that triggers the lazy loading.
     //    Also note that we need to create a new attributes map because it's unmodifiable and the constructor may try to modify it.
     //
     // ---------------------------------------------------------------------------------------------------------
 
     public static VariantContext modifyGenotypes(VariantContext vc, Map<String, Genotype> genotypes) {
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, new HashMap<String, Object>(vc.getAttributes()), vc.getReferenceBaseForIndel(), false);
+        VariantContext modifiedVC = new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, new HashMap<String, Object>(vc.getAttributes()), vc.getReferenceBaseForIndel(), false, false);
+        modifiedVC.validateGenotypes();
+        return modifiedVC;
     }
 
     public static VariantContext modifyLocation(VariantContext vc, String chr, int start, int end) {
-        return new VariantContext(vc.getSource(), chr, start, end, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, new HashMap<String, Object>(vc.getAttributes()), vc.getReferenceBaseForIndel(), true);
+        VariantContext modifiedVC = new VariantContext(vc.getSource(), chr, start, end, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, new HashMap<String, Object>(vc.getAttributes()), vc.getReferenceBaseForIndel(), true, false);
+
+        // Since start and end have changed, we need to call both validateAlleles() and validateReferencePadding(),
+        // since those validation routines rely on the values of start and end:
+        modifiedVC.validateAlleles();
+        modifiedVC.validateReferencePadding();
+
+        return modifiedVC;
     }
 
     public static VariantContext modifyFilters(VariantContext vc, Set<String> filters) {
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd() , vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), filters, new HashMap<String, Object>(vc.getAttributes()), vc.getReferenceBaseForIndel(), true);
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd() , vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), filters, new HashMap<String, Object>(vc.getAttributes()), vc.getReferenceBaseForIndel(), true, false);
     }
 
     public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes, vc.getReferenceBaseForIndel(), true);
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes, vc.getReferenceBaseForIndel(), true, false);
     }
 
     public static VariantContext modifyReferencePadding(VariantContext vc, Byte b) {
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), b, true);
+        VariantContext modifiedVC = new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), b, true, false);
+        modifiedVC.validateReferencePadding();
+        return modifiedVC;
     }
 
     public static VariantContext modifyPErrorFiltersAndAttributes(VariantContext vc, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, negLog10PError, filters, attributes, vc.getReferenceBaseForIndel(), true);
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.genotypes, negLog10PError, filters, attributes, vc.getReferenceBaseForIndel(), true, false);
     }
 
     // ---------------------------------------------------------------------------------------------------------
