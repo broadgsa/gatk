@@ -148,9 +148,9 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
             validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
-            "snpEff.AFR.unfiltered.vcf -L 1:1-1,500,000 -L 2:232,325,429",
+            "snpEff2.0.4.AFR.unfiltered.vcf -L 1:1-1,500,000 -L 2:232,325,429",
             1,
-            Arrays.asList("122321a85e448f21679f6ca15c5e22ad")
+            Arrays.asList("51258f5c880bd1ca3eb45a1711335c66")
         );
         executeTest("Testing SnpEff annotations", spec);
     }

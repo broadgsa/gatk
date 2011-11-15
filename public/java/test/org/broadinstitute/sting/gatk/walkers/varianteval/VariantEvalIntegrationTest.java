@@ -21,16 +21,16 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
                                         "--dbsnp " + b37dbSNP132,
-                                        "--eval " + validationDataLocation + "snpEff.AFR.unfiltered.VariantAnnotator.output.vcf",
+                                        "--eval " + validationDataLocation + "snpEff2.0.4.AFR.unfiltered.VariantAnnotator.output.vcf",
                                         "-noEV",
                                         "-EV TiTvVariantEvaluator",
                                         "-noST",
                                         "-ST FunctionalClass",
-                                        "-L " + validationDataLocation + "snpEff.AFR.unfiltered.VariantAnnotator.output.vcf",
+                                        "-L " + validationDataLocation + "snpEff2.0.4.AFR.unfiltered.VariantAnnotator.output.vcf",
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("d9dcb352c53106f54fcc981f15d35a90")
+                                Arrays.asList("a36414421621b377d6146d58d2fcecd0")
                               );
         executeTest("testFunctionClassWithSnpeff", spec);
     }
