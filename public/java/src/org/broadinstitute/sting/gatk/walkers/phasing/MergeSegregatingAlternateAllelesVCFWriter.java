@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -44,7 +44,7 @@ import java.util.*;
 
 // Streams in VariantContext objects and streams out VariantContexts produced by merging phased segregating polymorphisms into MNP VariantContexts
 
-public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
+class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     private VCFWriter innerWriter;
 
     private GenomeLocParser genomeLocParser;
@@ -52,7 +52,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     private ReferenceSequenceFile referenceFileForMNPmerging;
 
     private VariantContextMergeRule vcMergeRule;
-    private VariantContextUtils.AlleleMergeRule alleleMergeRule;
+    private PhasingUtils.AlleleMergeRule alleleMergeRule;
 
     private String useSingleSample = null;
 
@@ -71,7 +71,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     // Should we call innerWriter.close() in close()
     private boolean takeOwnershipOfInner;
 
-    public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, VariantContextUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
+    public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, PhasingUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.genomeLocParser = genomeLocParser;
         try {
@@ -179,7 +179,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
                 boolean mergedRecords = false;
                 if (shouldAttemptToMerge) {
                     numRecordsSatisfyingMergeRule++;
-                    VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(genomeLocParser, vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging, alleleMergeRule);
+                    VariantContext mergedVc = PhasingUtils.mergeIntoMNP(genomeLocParser, vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging, alleleMergeRule);
 
                     if (mergedVc != null) {
                         mergedRecords = true;
@@ -218,26 +218,6 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
         filteredVcfrList.clear();
     }
 
-    public int getNumRecordsAttemptToMerge() {
-        return numRecordsAttemptToMerge;
-    }
-
-    public int getNumRecordsSatisfyingMergeRule() {
-        return numRecordsSatisfyingMergeRule;
-    }
-
-    public int getNumMergedRecords() {
-        return numMergedRecords;
-    }
-
-    public VariantContextMergeRule getVcMergeRule() {
-        return vcMergeRule;
-    }
-
-    public VariantContextUtils.AlleleMergeRule getAlleleMergeRule() {
-        return alleleMergeRule;
-    }
-
     /**
      * Gets a string representation of this object.
      *
@@ -246,13 +226,6 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     @Override
     public String toString() {
         return getClass().getName();
-    }
-
-    public String getAltAlleleStats() {
-        if (altAlleleStats == null)
-            return "";
-
-        return "\n" + altAlleleStats.toString();
     }
 
     private static class VCFRecord {
@@ -373,7 +346,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
                     if (shouldAttemptToMerge) {
                         aas.numSuccessiveGenotypesAttemptedToBeMerged++;
 
-                        if (!VariantContextUtils.alleleSegregationIsKnown(gt1, gt2)) {
+                        if (!PhasingUtils.alleleSegregationIsKnown(gt1, gt2)) {
                             aas.segregationUnknown++;
                             logger.debug("Unknown segregation of alleles [not phased] for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
                         }
@@ -498,9 +471,9 @@ class DistanceMergeRule extends VariantContextMergeRule {
 }
 
 
-class ExistsDoubleAltAlleleMergeRule extends VariantContextUtils.AlleleMergeRule {
+class ExistsDoubleAltAlleleMergeRule extends PhasingUtils.AlleleMergeRule {
     public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2) {
-        return VariantContextUtils.someSampleHasDoubleNonReferenceAllele(vc1, vc2);
+        return PhasingUtils.someSampleHasDoubleNonReferenceAllele(vc1, vc2);
     }
 
     public String toString() {
@@ -515,7 +488,7 @@ class SegregatingMNPmergeAllelesRule extends ExistsDoubleAltAlleleMergeRule {
 
     public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2) {
         // Must be interesting AND consistent:
-        return super.allelesShouldBeMerged(vc1, vc2) && VariantContextUtils.doubleAllelesSegregatePerfectlyAmongSamples(vc1, vc2);
+        return super.allelesShouldBeMerged(vc1, vc2) && PhasingUtils.doubleAllelesSegregatePerfectlyAmongSamples(vc1, vc2);
     }
 
     public String toString() {

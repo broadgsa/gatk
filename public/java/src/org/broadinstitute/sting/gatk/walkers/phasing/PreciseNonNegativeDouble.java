@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 /* PreciseNonNegativeDouble permits arithmetic operations on NON-NEGATIVE double values
    with precision (prevents underflow by representing in log10 space).
  */
-public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDouble> {
+class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDouble> {
     private static final double EQUALS_THRESH = 1e-6;
     private static final double INFINITY = Double.POSITIVE_INFINITY;
 

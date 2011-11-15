@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class BaseArray implements Comparable<BaseArray> {
+abstract class BaseArray implements Comparable<BaseArray> {
     protected Byte[] bases;
 
     public BaseArray(byte[] bases) {

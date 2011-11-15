@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.DisjointSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -1052,7 +1051,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private void writeVCF(VariantContext vc) {
         if (samplesToPhase == null || vc.isNotFiltered())
             //if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
-            WriteVCF.writeVCF(vc, writer, logger);
+            writer.add(vc);
     }
 
     public static boolean processVariantInPhasing(VariantContext vc) {

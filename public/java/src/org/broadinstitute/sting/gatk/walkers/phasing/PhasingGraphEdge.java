@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 /*
  Edge class for PhasingGraph
  */
-public class PhasingGraphEdge implements Comparable<PhasingGraphEdge> {
+class PhasingGraphEdge implements Comparable<PhasingGraphEdge> {
     protected int v1;
     protected int v2;
 
