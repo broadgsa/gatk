@@ -219,11 +219,8 @@ public class GenotypeCollection implements List<Genotype> {
     public Genotype get(final String sampleName) {
         buildCache();
         Integer offset = sampleNameToOffset.get(sampleName);
-        if ( offset == null )
-            throw new IllegalArgumentException("Sample " + sampleName + " not found in this GenotypeCollection");
-        return genotypes.get(offset);
+        return offset == null ? null : genotypes.get(offset);
     }
-
 
     @Override
     public int indexOf(final Object o) {
