@@ -388,10 +388,14 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         if ( this.ID.equals("") ) throw new IllegalArgumentException("ID field cannot be the empty string");
 
         if ( !genotypesAreUnparsed && attributes != null ) {
-            if ( attributes.containsKey(UNPARSED_GENOTYPE_MAP_KEY) )
+            if ( attributes.containsKey(UNPARSED_GENOTYPE_MAP_KEY) ) {
+                attributes = new HashMap<String, Object>(attributes);
                 attributes.remove(UNPARSED_GENOTYPE_MAP_KEY);
-            if ( attributes.containsKey(UNPARSED_GENOTYPE_PARSER_KEY) )
+            }
+            if ( attributes.containsKey(UNPARSED_GENOTYPE_PARSER_KEY) ) {
+                attributes = new HashMap<String, Object>(attributes);
                 attributes.remove(UNPARSED_GENOTYPE_PARSER_KEY);
+            }
         }
 
         this.commonInfo = new CommonInfo(source, negLog10PError, filters, attributes);

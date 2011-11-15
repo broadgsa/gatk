@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -46,6 +47,8 @@ import java.util.Map;
  * Class implementing diffnode reader for VCF
  */
 public class VCFDiffableReader implements DiffableReader {
+    private static Logger logger = Logger.getLogger(VCFDiffableReader.class);
+
     @Override
     public String getName() { return "VCF"; }
 
@@ -68,7 +71,10 @@ public class VCFDiffableReader implements DiffableReader {
                 String key = headerLine.getKey();
                 if ( headerLine instanceof VCFNamedHeaderLine )
                     key += "_" + ((VCFNamedHeaderLine) headerLine).getName();
-                root.add(key, headerLine.toString());
+                if ( root.hasElement(key) )
+                    logger.warn("Skipping duplicate header line: file=" + file + " line=" + headerLine.toString());
+                else
+                    root.add(key, headerLine.toString());
             }
 
             String line = lineReader.readLine();
