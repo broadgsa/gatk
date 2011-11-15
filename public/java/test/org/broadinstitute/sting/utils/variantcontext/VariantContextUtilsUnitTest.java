@@ -249,16 +249,14 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         final List<VariantContext> inputs = new ArrayList<VariantContext>();
 
         for ( final String id : cfg.inputs ) {
-            if ( id.equals(".") )
-                snpVC1 = VariantContext.modifyID(snpVC1, id);
-            inputs.add(snpVC1);
+            inputs.add(VariantContext.modifyID(snpVC1, id));
         }
 
         final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,
                 inputs, null,
                 VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
                 VariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false);
-        Assert.assertEquals(merged.getID(), cfg.expected.equals(".") ? null : cfg.expected);
+        Assert.assertEquals(merged.getID(), cfg.expected);
     }
 
     // --------------------------------------------------------------------------------

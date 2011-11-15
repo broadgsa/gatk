@@ -74,7 +74,7 @@ public class GenotypeCollection implements List<Genotype> {
     // todo -- create constructor (Genotype ... genotypes)
 
     public static final GenotypeCollection create(final ArrayList<Genotype> genotypes) {
-        return new GenotypeCollection(genotypes, false);
+        return genotypes == null ? NO_GENOTYPES : new GenotypeCollection(genotypes, false);
     }
 
     public static final GenotypeCollection create(final Genotype... genotypes) {
@@ -86,7 +86,7 @@ public class GenotypeCollection implements List<Genotype> {
     }
 
     public static final GenotypeCollection copy(final Collection<Genotype> toCopy) {
-        return create(new ArrayList<Genotype>(toCopy));
+        return toCopy == null ? NO_GENOTYPES : create(new ArrayList<Genotype>(toCopy));
     }
 
 //    public static final GenotypeMap create(final Collection<Genotype> genotypes) {

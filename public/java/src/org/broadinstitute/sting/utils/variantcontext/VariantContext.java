@@ -360,8 +360,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         // we need to make this a LinkedHashSet in case the user prefers a given ordering of alleles
         this.alleles = makeAlleles(alleles);
 
-        if ( genotypes == null ) { genotypes = NO_GENOTYPES; }
-        this.genotypes = genotypes;
+        if ( genotypes == null ) {
+            genotypes = NO_GENOTYPES;
+        } else {
+            this.genotypes = genotypes.immutable();
+        }
 
         // cache the REF and ALT alleles
         int nAlleles = alleles.size();
