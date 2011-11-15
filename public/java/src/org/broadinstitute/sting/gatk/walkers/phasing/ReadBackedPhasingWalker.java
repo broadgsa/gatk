@@ -1141,7 +1141,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public VariantContext toVariantContext() {
-            return new VariantContext(name, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
+            return new VariantContext(name, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
         }
 
         public GenomeLoc getLocation() {

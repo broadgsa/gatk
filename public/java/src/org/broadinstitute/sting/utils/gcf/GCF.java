@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.gcf;
 
 import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -148,7 +149,7 @@ public class GCF {
         Byte refPadByte = refPad == 0 ? null : refPad;
         GenotypeCollection genotypes = decodeGenotypes(header);
 
-        return new VariantContext(source, contig, start, stop, alleleMap, genotypes, negLog10PError, filters, attributes, refPadByte);
+        return new VariantContext(source, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleleMap, genotypes, negLog10PError, filters, attributes, refPadByte);
     }
 
     private GenotypeCollection decodeGenotypes(final GCFHeader header) {
@@ -193,7 +194,7 @@ public class GCF {
         boolean first = true;
         for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
             String key = field.getKey();
-            if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
+            if ( key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
                 continue;
             int stringIndex = GCFHeaderBuilder.encodeString(key);
             String outputValue = StandardVCFWriter.formatVCFField(field.getValue());

@@ -121,10 +121,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
         for ( VariantContext vc : contexts ) {
-            Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-            if ( rsID != null && !vc.hasID() ) {
-                attrs.put(VariantContext.ID_KEY, rsID);
-                vc = VariantContext.modifyAttributes(vc, attrs);
+            if ( rsID != null && vc.emptyID() ) {
+                vc = VariantContext.modifyID(vc, rsID);
             }
 
             // set the appropriate sample name if necessary
@@ -203,7 +201,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         while ( dbsnpIterator.hasNext() ) {
             GATKFeature feature = dbsnpIterator.next();
             VariantContext vc = (VariantContext)feature.getUnderlyingObject();
-            if ( vc.hasID() && vc.getID().equals(rsID) )
+            if ( vc.getID().equals(rsID) )
                 return vc;
         }
 

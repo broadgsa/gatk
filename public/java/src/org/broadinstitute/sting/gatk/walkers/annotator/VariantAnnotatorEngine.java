@@ -163,11 +163,10 @@ public class VariantAnnotatorEngine {
     }
 
     public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
-        annotateDBs(tracker, ref, vc, infoAnnotations);
+        vc = annotateDBs(tracker, ref, vc, infoAnnotations);
 
         // annotate expressions where available
         annotateExpressions(tracker, ref, infoAnnotations);
@@ -186,14 +185,14 @@ public class VariantAnnotatorEngine {
         return VariantContext.modifyGenotypes(annotatedVC, annotateGenotypes(tracker, ref, stratifiedContexts, vc));
     }
 
-    private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
+    private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
                 String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
                 // annotate dbsnp id if available and not already there
-                if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )
-                    infoAnnotations.put(VariantContext.ID_KEY, rsID);
+                if ( rsID != null && vc.emptyID() )
+                    vc = VariantContext.modifyID(vc, rsID);
             } else {
                 boolean overlapsComp = false;
                 for ( VariantContext comp : tracker.getValues(dbSet.getKey(), ref.getLocus()) ) {
@@ -205,6 +204,8 @@ public class VariantAnnotatorEngine {
                 infoAnnotations.put(dbSet.getValue(), overlapsComp);
             }
         }
+
+        return vc;
     }
 
     private void annotateExpressions(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, Object> infoAnnotations) {

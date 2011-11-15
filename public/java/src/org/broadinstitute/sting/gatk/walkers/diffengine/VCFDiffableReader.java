@@ -90,7 +90,7 @@ public class VCFDiffableReader implements DiffableReader {
                 // add fields
                 vcRoot.add("CHROM", vc.getChr());
                 vcRoot.add("POS", vc.getStart());
-                vcRoot.add("ID", vc.hasID() ? vc.getID() : VCFConstants.MISSING_VALUE_v4);
+                vcRoot.add("ID", vc.getID());
                 vcRoot.add("REF", vc.getReference());
                 vcRoot.add("ALT", vc.getAlternateAlleles());
                 vcRoot.add("QUAL", vc.hasNegLog10PError() ? vc.getNegLog10PError() * 10 : VCFConstants.MISSING_VALUE_v4);
@@ -98,7 +98,7 @@ public class VCFDiffableReader implements DiffableReader {
 
                 // add info fields
                 for (Map.Entry<String, Object> attribute : vc.getAttributes().entrySet()) {
-                    if ( ! attribute.getKey().startsWith("_") && ! attribute.getKey().equals(VariantContext.ID_KEY))
+                    if ( ! attribute.getKey().startsWith("_") )
                         vcRoot.add(attribute.getKey(), attribute.getValue());
                 }
 

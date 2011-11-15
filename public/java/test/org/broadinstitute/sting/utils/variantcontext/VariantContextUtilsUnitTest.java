@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.Assert;
@@ -98,7 +99,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     private VariantContext makeVC(String source, List<Allele> alleles, Collection<Genotype> genotypes, Set<String> filters) {
         int start = 10;
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
-        return new VariantContext(source, "1", start, stop, alleles,
+        return new VariantContext(source, VCFConstants.EMPTY_ID_FIELD, "1", start, stop, alleles,
                 GenotypeCollection.copy(genotypes), 1.0, filters, null, Cref.getBases()[0]);
     }
 

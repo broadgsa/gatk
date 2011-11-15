@@ -229,7 +229,7 @@ public class UnifiedGenotyperEngine {
             VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, rawContext.getLocation(), false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
-            vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles(), VariantContext.NO_NEG_LOG_10PERROR, null, null, ref.getBase());
+            vc = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles(), VariantContext.NO_NEG_LOG_10PERROR, null, null, ref.getBase());
 
         } else {
             // deal with bad/non-standard reference bases
@@ -238,7 +238,7 @@ public class UnifiedGenotyperEngine {
 
             Set<Allele> alleles = new HashSet<Allele>();
             alleles.add(Allele.create(ref.getBase(), true));
-            vc = new VariantContext("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles);
+            vc = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles);
         }
         
         if ( annotationEngine != null ) {
@@ -288,7 +288,7 @@ public class UnifiedGenotyperEngine {
         int endLoc = calculateEndPos(alleles, refAllele, loc);
 
         return new VariantContext("UG_call",
-                loc.getContig(),
+                VCFConstants.EMPTY_ID_FIELD, loc.getContig(),
                 loc.getStart(),
                 endLoc,
                 alleles,
@@ -420,7 +420,7 @@ public class UnifiedGenotyperEngine {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
-        VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
+        VariantContext vcCall = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), endLoc,
                 myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, refContext.getBase());
 
         if ( annotationEngine != null ) {
@@ -504,7 +504,7 @@ public class UnifiedGenotyperEngine {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
-        VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
+        VariantContext vcCall = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), endLoc,
                 myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, vc.getReferenceBaseForIndel());
 
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));

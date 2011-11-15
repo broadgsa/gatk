@@ -58,55 +58,6 @@ public class VariantContextUtils {
     }
 
     /**
-     * Create a new VariantContext
-     *
-     * @param name            name
-     * @param loc             location
-     * @param alleles         alleles
-     * @param genotypes       genotypes set
-     * @param negLog10PError  qual
-     * @param filters         filters: use null for unfiltered and empty set for passes filters
-     * @param attributes      attributes
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, GenotypeCollection.copy(genotypes), negLog10PError, filters, attributes);
-    }
-
-    /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     * @param name            name
-     * @param loc             location
-     * @param alleles         alleles
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles) {
-        return new VariantContext (name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, VariantContext.NO_GENOTYPES, CommonInfo.NO_NEG_LOG_10PERROR, null, null);
-    }
-
-    /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     * @param name            name
-     * @param loc             location
-     * @param alleles         alleles
-     * @param genotypes       genotypes
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, CommonInfo.NO_NEG_LOG_10PERROR, null, null);
-    }
-
-    /**
-     * Copy constructor
-     *
-     * @param other the VariantContext to copy
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(VariantContext other) {
-        return new VariantContext(other.getSource(), other.getChr(), other.getStart(), other.getEnd(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
-    }
-
-    /**
      * Update the attributes of the attributes map given the VariantContext to reflect the proper chromosome-based VCF tags
      *
      * @param vc          the VariantContext
@@ -345,19 +296,15 @@ public class VariantContextUtils {
         // VC info
         final Map<String, Object> attributes = subsetAttributes(vc.commonInfo, keysToPreserve);
 
-        // this must be done as the ID is stored in the attributes field
-        // todo -- remove me when ID becomes a first class field in VC
-        if ( vc.hasID() ) attributes.put(VariantContext.ID_KEY, vc.getID());
-
         // Genotypes
         final GenotypeCollection genotypes = GenotypeCollection.create(vc.getNSamples());
         for ( final Genotype g : vc.getGenotypes() ) {
             Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
             genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(),
-                            genotypeAttributes, g.isPhased()));
+                    genotypeAttributes, g.isPhased()));
         }
 
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(),
+        return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(),
                 vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
     }
 
@@ -494,7 +441,7 @@ public class VariantContextUtils {
             //
             if (vc.hasAttribute(VCFConstants.DEPTH_KEY))
                 depth += vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0);
-            if ( vc.hasID() && ! vc.getID().equals(VCFConstants.EMPTY_ID_FIELD) ) rsIDs.add(vc.getID());
+            if ( vc.hasID() ) rsIDs.add(vc.getID());
             if (mergeInfoWithMaxAC && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) {
                 String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY, null);
                 // lets see if the string contains a , separator
@@ -587,11 +534,9 @@ public class VariantContextUtils {
         if ( depth > 0 )
             attributes.put(VCFConstants.DEPTH_KEY, String.valueOf(depth));
 
-        if ( ! rsIDs.isEmpty() ) {
-            attributes.put(VariantContext.ID_KEY, Utils.join(",", rsIDs));
-        }
+        final String ID = rsIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(",", rsIDs);
 
-        VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
+        VariantContext merged = new VariantContext(name, ID, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
         // Trim the padded bases of all alleles if necessary
         merged = createVariantContextWithTrimmedAlleles(merged);
 
@@ -694,7 +639,7 @@ public class VariantContextUtils {
                 genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
 
             }
-            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
+            return new VariantContext(inputVC.getSource(), inputVC.getID(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
 
         }
 
@@ -934,7 +879,7 @@ public class VariantContextUtils {
             newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
         }
 
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
 
     }
 
@@ -1058,7 +1003,14 @@ public class VariantContextUtils {
         Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
         Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1, vc2);
 
-        VariantContext mergedVc = new VariantContext(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
+        // ids
+        List<String> mergedIDs = new ArrayList<String>();
+        if ( vc1.hasID() ) mergedIDs.add(vc1.getID());
+        if ( vc2.hasID() ) mergedIDs.add(vc2.getID());
+        String mergedID = Utils.join(VCFConstants.ID_FIELD_SEPARATOR, mergedIDs);
+
+        // TODO -- FIX ID
+        VariantContext mergedVc = new VariantContext(mergedName, mergedID, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
 
         mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
         VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);
@@ -1153,20 +1105,6 @@ public class VariantContextUtils {
             }
             mergedAttribs.put(orAttrib, attribVal);
         }
-
-        // Merge ID fields:
-        String iDVal = null;
-        for (VariantContext vc : vcList) {
-            String val = vc.getAttributeAsString(VariantContext.ID_KEY, null);
-            if (val != null && !val.equals(VCFConstants.EMPTY_ID_FIELD)) {
-                if (iDVal == null)
-                    iDVal = val;
-                else
-                    iDVal += VCFConstants.ID_FIELD_SEPARATOR + val;
-            }
-        }
-        if (iDVal != null)
-            mergedAttribs.put(VariantContext.ID_KEY, iDVal);
 
         return mergedAttribs;
     }

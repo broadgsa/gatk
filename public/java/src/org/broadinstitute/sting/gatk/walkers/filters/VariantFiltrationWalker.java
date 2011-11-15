@@ -327,7 +327,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( genotypes == null )
             filteredVC = VariantContext.modifyFilters(vc, filters);
         else
-            filteredVC = new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
+            filteredVC = new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
         writer.add(filteredVC);
     }

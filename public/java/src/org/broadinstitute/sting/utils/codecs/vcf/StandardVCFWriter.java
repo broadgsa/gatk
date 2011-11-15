@@ -182,7 +182,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // ID
-            String ID = vc.hasID() ? vc.getID() : VCFConstants.EMPTY_ID_FIELD;
+            String ID = vc.getID();
             mWriter.write(ID);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -227,7 +227,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
-                if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
+                if ( key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
                     continue;
 
                 String outputValue = formatVCFField(field.getValue());

@@ -264,7 +264,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         else if ( parts[2].equals(VCFConstants.EMPTY_ID_FIELD) )
             id = VCFConstants.EMPTY_ID_FIELD;
         else
-            id = new String(parts[2]);
+            id = parts[2];
         String ref = getCachedString(parts[3].toUpperCase());
         String alts = getCachedString(parts[4].toUpperCase());
         Double qual = parseQual(parts[5]);
@@ -274,7 +274,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         // get our alleles, filters, and setup an attribute map
         List<Allele> alleles = parseAlleles(ref, alts, lineNo);
         Set<String> filters = parseFilters(filter);
-        Map<String, Object> attributes = parseInfo(info, id);
+        Map<String, Object> attributes = parseInfo(info);
 
         // find out our current location, and clip the alleles down to their minimum length
         int loc = pos;
@@ -295,7 +295,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
         VariantContext vc = null;
         try {
-            vc =  new VariantContext(name, contig, pos, loc, alleles, qual, filters, attributes, ref.getBytes()[0]);
+            vc =  new VariantContext(name, id, contig, pos, loc, alleles, qual, filters, attributes, ref.getBytes()[0]);
         } catch (Exception e) {
             generateException(e.getMessage());
         }
@@ -349,10 +349,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     /**
      * parse out the info fields
      * @param infoField the fields
-     * @param id the indentifier
      * @return a mapping of keys to objects
      */
-    private Map<String, Object> parseInfo(String infoField, String id) {
+    private Map<String, Object> parseInfo(String infoField) {
         Map<String, Object> attributes = new HashMap<String, Object>();
 
         if ( infoField.length() == 0 )
@@ -391,8 +390,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             }
         }
 
-        if ( ! id.equals(VCFConstants.EMPTY_ID_FIELD) )
-            attributes.put(VariantContext.ID_KEY, id);
         return attributes;
     }
 

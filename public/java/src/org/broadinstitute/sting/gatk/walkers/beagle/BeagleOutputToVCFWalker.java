@@ -333,11 +333,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         VariantContext filteredVC;
         if ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES )
-            filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
+            filteredVC = new VariantContext("outputvcf", VCFConstants.EMPTY_ID_FIELD, vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
         else {
             Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
             removedFilters.add(String.format("BGL_RM_WAS_%s",vc_input.getAlternateAllele(0)));
-            filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), new HashSet<Allele>(Arrays.asList(vc_input.getReference())), genotypes, vc_input.getNegLog10PError(), removedFilters, vc_input.getAttributes());
+            filteredVC = new VariantContext("outputvcf", VCFConstants.EMPTY_ID_FIELD, vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), new HashSet<Allele>(Arrays.asList(vc_input.getReference())), genotypes, vc_input.getNegLog10PError(), removedFilters, vc_input.getAttributes());
         }
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(filteredVC.getAttributes());

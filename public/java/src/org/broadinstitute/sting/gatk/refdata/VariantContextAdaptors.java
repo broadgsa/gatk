@@ -6,8 +6,10 @@ import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.OldDbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -187,7 +189,6 @@ public class VariantContextAdaptors {
                 }
 
                 Map<String, Object> attributes = new HashMap<String, Object>();
-                attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
 
                 int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
                 if ( index < 0 )
@@ -195,7 +196,7 @@ public class VariantContextAdaptors {
                 Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
                 GenotypeCollection genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
+                VariantContext vc = new VariantContext(name, dbsnp.getRsID(), dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -255,8 +256,8 @@ public class VariantContextAdaptors {
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
                 alleles.add(refAllele);
-                VariantContext vc = VariantContextUtils.toVC(name, ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
-                return vc;
+                GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart());
+                return new VariantContext(name, VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
             } else
                 return null; // can't handle anything else
         }
@@ -347,13 +348,10 @@ public class VariantContextAdaptors {
                 genotypes.add(g);
             }
 
-            HashMap<String, Object> attrs = new HashMap<String, Object>(1);
-            attrs.put(VariantContext.ID_KEY, hapmap.getName());
-
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
                 end += deletionLength;
-            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs, refBaseForIndel);
+            VariantContext vc = new VariantContext(name, hapmap.getName(), hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null, refBaseForIndel);
             return vc;
        }
     }

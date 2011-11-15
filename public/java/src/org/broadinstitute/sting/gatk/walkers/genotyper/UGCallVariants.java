@@ -140,7 +140,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
             VariantContext vc = VCs.get(0);
             throw new UserException("There is no ALT allele in any of the VCF records passed in at " + vc.getChr() + ":" + vc.getStart());
         }
-        return new VariantContext("VCwithGLs", variantVC.getChr(), variantVC.getStart(), variantVC.getEnd(), variantVC.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
+        return new VariantContext("VCwithGLs", VCFConstants.EMPTY_ID_FIELD, variantVC.getChr(), variantVC.getStart(), variantVC.getEnd(), variantVC.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
     private static GenotypeCollection getGenotypesWithGLs(GenotypeCollection genotypes) {

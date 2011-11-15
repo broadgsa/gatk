@@ -1074,7 +1074,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             filters = new HashSet<String>();
             filters.add("NoCall");
         }
-        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
+        VariantContext vc = new VariantContext("IGv2_Indel_call", VCFConstants.EMPTY_ID_FIELD, refName, start, stop, alleles, genotypes,
             -1.0 /* log error */,  filters, null, refBases[(int)start-1]);
         vcf.add(vc);
     }
@@ -1171,7 +1171,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             filters.add("TCov");
         }
 
-        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
+        VariantContext vc = new VariantContext("IGv2_Indel_call", VCFConstants.EMPTY_ID_FIELD, refName, start, stop, alleles, genotypes,
             -1.0 /* log error */, filters, attrs, refBases[(int)start-1]);
         vcf.add(vc);
     }
