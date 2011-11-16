@@ -151,14 +151,14 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 alleles.add(VAR);
                 alleles.add(VAR);
             }
-            else if(genotype == Genotype.Type.NO_CALL){
-                alleles.add(NO_CALL);
-                alleles.add(NO_CALL);
-            }
             else{
                 return null;
             }
             return alleles;
+        }
+
+        private boolean isPhasable(Genotype.Type genotype){
+            return genotype == Genotype.Type.HOM_REF || genotype == Genotype.Type.HET || genotype == Genotype.Type.HOM_VAR;
         }
 
         //Create a new Genotype based on information from a single individual
@@ -271,21 +271,21 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         public TrioPhase(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
 
             //Take care of cases where one or more family members are no call
-            if(child == Genotype.Type.NO_CALL || child == Genotype.Type.UNAVAILABLE){
+            if(!isPhasable(child)){
                 phaseSingleIndividualAlleles(mother, FamilyMember.MOTHER);
                 phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
                 phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
             }
-            else if(mother == Genotype.Type.NO_CALL || mother == Genotype.Type.UNAVAILABLE){
+            else if(!isPhasable(mother)){
                 phaseSingleIndividualAlleles(mother, FamilyMember.MOTHER);
-                if(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE){
+                if(!isPhasable(father)){
                     phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
                     phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
                 }
                 else
                     phasePairAlleles(father, child, FamilyMember.FATHER);
             }
-            else if(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE){
+            else if(!isPhasable(father)){
                 phasePairAlleles(mother, child, FamilyMember.MOTHER);
                 phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
             }
@@ -327,7 +327,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
            //Note that only cases where a null/missing/unavailable genotype was passed in the first place can lead to a null/missing/unavailable
            //genotype so it is safe to return the original genotype in this case.
            //In addition, if the phasing confidence is 0, then return the unphased, original genotypes.
-           if(phredScoreTransmission ==0 || genotype == null || !phasedGenotype.isAvailable() || phasedGenotype.isNoCall())
+           if(phredScoreTransmission ==0 || genotype == null || !isPhasable(genotype.getType()))
                return genotype;
 
            //Add the transmission probability
