@@ -401,6 +401,7 @@ public class VariantContextUtils {
         final Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
         double negLog10PError = -1;
         VariantContext vcWithMaxAC = null;
+        Set<String> addedSamples = new HashSet<String>(first.getNSamples());
         GenotypeCollection genotypes = GenotypeCollection.create();
 
         // counting the number of filtered and variant VCs
@@ -425,7 +426,7 @@ public class VariantContextUtils {
 
             alleles.addAll(alleleMapping.values());
 
-            mergeGenotypes(genotypes, vc, alleleMapping, genotypeMergeOptions == GenotypeMergeType.UNIQUIFY);
+            mergeGenotypes(genotypes, addedSamples, vc, alleleMapping, genotypeMergeOptions == GenotypeMergeType.UNIQUIFY);
 
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
@@ -824,10 +825,10 @@ public class VariantContextUtils {
         }
     }
 
-    private static void mergeGenotypes(GenotypeCollection mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
+    private static void mergeGenotypes(GenotypeCollection mergedGenotypes, Set<String> addedSamples, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
         for ( Genotype g : oneVC.getGenotypes() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
-            if ( ! mergedGenotypes.containsSample(name) ) {
+            if ( ! addedSamples.contains(name) ) {
                 // only add if the name is new
                 Genotype newG = g;
 
@@ -837,6 +838,7 @@ public class VariantContextUtils {
                 }
 
                 mergedGenotypes.add(newG);
+                addedSamples.add(name);
             }
         }
     }
