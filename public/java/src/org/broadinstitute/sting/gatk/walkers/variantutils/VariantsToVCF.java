@@ -128,7 +128,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
                 Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
-                GenotypeCollection genotypes = GenotypeCollection.create(g);
+                GenotypesContext genotypes = GenotypesContext.create(g);
                 vc = VariantContext.modifyGenotypes(vc, genotypes);
             }
 

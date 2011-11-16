@@ -100,7 +100,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         int start = 10;
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
         return new VariantContext(source, VCFConstants.EMPTY_ID_FIELD, "1", start, stop, alleles,
-                GenotypeCollection.copy(genotypes), 1.0, filters, null, Cref.getBases()[0]);
+                GenotypesContext.copy(genotypes), 1.0, filters, null, Cref.getBases()[0]);
     }
 
     // --------------------------------------------------------------------------------
@@ -508,7 +508,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     }
 
     // necessary to not overload equals for genotypes
-    private void assertGenotypesAreMostlyEqual(GenotypeCollection actual, GenotypeCollection expected) {
+    private void assertGenotypesAreMostlyEqual(GenotypesContext actual, GenotypesContext expected) {
         if (actual == expected) {
             return;
         }

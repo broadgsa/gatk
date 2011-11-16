@@ -88,7 +88,7 @@ class PhasingUtils {
         }
         MergedAllelesData mergeData = new MergedAllelesData(intermediateBases, vc1, vc2); // ensures that the reference allele is added
 
-        GenotypeCollection mergedGenotypes = GenotypeCollection.create();
+        GenotypesContext mergedGenotypes = GenotypesContext.create();
         for (final Genotype gt1 : vc1.getGenotypes()) {
             Genotype gt2 = vc2.getGenotype(gt1.getSampleName());
 

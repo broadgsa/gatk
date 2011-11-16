@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -188,12 +187,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     final protected List<Allele> alleles;
 
     /** A mapping from sampleName -> genotype objects for all genotypes associated with this context */
-    protected GenotypeCollection genotypes = null;
+    protected GenotypesContext genotypes = null;
 
     /** Counts for each of the possible Genotype types in this context */
     protected int[] genotypeCounts = null;
 
-    public final static GenotypeCollection NO_GENOTYPES = GenotypeCollection.NO_GENOTYPES;
+    public final static GenotypesContext NO_GENOTYPES = GenotypesContext.NO_GENOTYPES;
 
     // a fast cached access point to the ref / alt alleles for biallelic case
     private Allele REF = null;
@@ -226,12 +225,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
      */
-    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypeCollection genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
+    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
         this(source, ID, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, referenceBaseForIndel, false, true);
     }
 
     @Deprecated
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, GenotypeCollection genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
         this(source, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, referenceBaseForIndel);
     }
 
@@ -249,12 +248,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
      */
-    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypeCollection genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
+    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, ID, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, null, false, true);
     }
 
     @Deprecated
-    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, GenotypeCollection genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
+    public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
     }
 
@@ -299,14 +298,14 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, ID, contig, start, stop, alleles,
-                GenotypeCollection.copy(genotypes),
+                GenotypesContext.copy(genotypes),
                 negLog10PError, filters, attributes, null, false, true);
     }
 
     @Deprecated
     public VariantContext(String source, String contig, long start, long stop, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
         this(source, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleles,
-                GenotypeCollection.copy(genotypes),
+                GenotypesContext.copy(genotypes),
                 negLog10PError, filters, attributes);
     }
 
@@ -374,7 +373,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     private VariantContext(String source, String ID,
                            String contig, long start, long stop,
-                           Collection<Allele> alleles, GenotypeCollection genotypes,
+                           Collection<Allele> alleles, GenotypesContext genotypes,
                            double negLog10PError, Set<String> filters, Map<String, Object> attributes,
                            Byte referenceBaseForIndel, boolean genotypesAreUnparsed,
                            boolean performValidation ) {
@@ -445,7 +444,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public static VariantContext modifyGenotypes(VariantContext vc, GenotypeCollection genotypes) {
+    public static VariantContext modifyGenotypes(VariantContext vc, GenotypesContext genotypes) {
         VariantContext modifiedVC = new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), vc.getReferenceBaseForIndel(), false, false);
         modifiedVC.validateGenotypes();
         return modifiedVC;
@@ -544,7 +543,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
         loadGenotypes();
-        GenotypeCollection newGenotypes = genotypes.subsetToSamples(sampleNames);
+        GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
         return new VariantContext(getSource(), getID(), contig, start, stop, alleles,
                 newGenotypes,
                 getNegLog10PError(),
@@ -555,7 +554,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     public VariantContext subContextFromSamples(Set<String> sampleNames) {
         loadGenotypes();
-        GenotypeCollection newGenotypes = genotypes.subsetToSamples(sampleNames);
+        GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
         return new VariantContext(getSource(), getID(), contig, start, stop, allelesOfGenotypes(newGenotypes),
                 newGenotypes,
                 getNegLog10PError(),
@@ -981,7 +980,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * @return set of all Genotypes associated with this context
      */
-    public GenotypeCollection getGenotypes() {
+    public GenotypesContext getGenotypes() {
         loadGenotypes();
         return genotypes;
     }
@@ -999,7 +998,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return
      * @throws IllegalArgumentException if sampleName isn't bound to a genotype
      */
-    public GenotypeCollection getGenotypes(String sampleName) {
+    public GenotypesContext getGenotypes(String sampleName) {
         return getGenotypes(Arrays.asList(sampleName));
     }
 
@@ -1011,11 +1010,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return
      * @throws IllegalArgumentException if sampleName isn't bound to a genotype
      */
-    public GenotypeCollection getGenotypes(Collection<String> sampleNames) {
+    public GenotypesContext getGenotypes(Collection<String> sampleNames) {
         return getGenotypes().subsetToSamples(sampleNames);
     }
 
-    public GenotypeCollection getGenotypes(Set<String> sampleNames) {
+    public GenotypesContext getGenotypes(Set<String> sampleNames) {
         return getGenotypes().subsetToSamples(sampleNames);
     }
 
@@ -1567,7 +1566,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
             }
 
             // now we can recreate new genotypes with trimmed alleles
-            GenotypeCollection genotypes = GenotypeCollection.create(inputVC.getNSamples());
+            GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
             for (final Genotype g : inputVC.getGenotypes() ) {
                 List<Allele> inAlleles = g.getAlleles();
                 List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());

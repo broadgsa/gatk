@@ -294,7 +294,7 @@ public class VariantContextUtils {
         final Map<String, Object> attributes = subsetAttributes(vc.commonInfo, keysToPreserve);
 
         // Genotypes
-        final GenotypeCollection genotypes = GenotypeCollection.create(vc.getNSamples());
+        final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype g : vc.getGenotypes() ) {
             Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
             genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(),
@@ -402,7 +402,7 @@ public class VariantContextUtils {
         double negLog10PError = -1;
         VariantContext vcWithMaxAC = null;
         Set<String> addedSamples = new HashSet<String>(first.getNSamples());
-        GenotypeCollection genotypes = GenotypeCollection.create();
+        GenotypesContext genotypes = GenotypesContext.create();
 
         // counting the number of filtered and variant VCs
         int nFiltered = 0;
@@ -590,7 +590,7 @@ public class VariantContextUtils {
         // nothing to do if we don't need to trim bases
         if (trimVC) {
             List<Allele> alleles = new ArrayList<Allele>();
-            GenotypeCollection genotypes = GenotypeCollection.create();
+            GenotypesContext genotypes = GenotypesContext.create();
 
             // set the reference base for indels in the attributes
             Map<String,Object> attributes = new TreeMap<String,Object>(inputVC.getAttributes());
@@ -644,8 +644,8 @@ public class VariantContextUtils {
         return inputVC;
     }
 
-    public static GenotypeCollection stripPLs(GenotypeCollection genotypes) {
-        GenotypeCollection newGs = GenotypeCollection.create(genotypes.size());
+    public static GenotypesContext stripPLs(GenotypesContext genotypes) {
+        GenotypesContext newGs = GenotypesContext.create(genotypes.size());
 
         for ( final Genotype g : genotypes ) {
             newGs.add(g.hasLikelihoods() ? removePLs(g) : g);
@@ -825,7 +825,7 @@ public class VariantContextUtils {
         }
     }
 
-    private static void mergeGenotypes(GenotypeCollection mergedGenotypes, Set<String> addedSamples, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
+    private static void mergeGenotypes(GenotypesContext mergedGenotypes, Set<String> addedSamples, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
         for ( Genotype g : oneVC.getGenotypes() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
             if ( ! addedSamples.contains(name) ) {
@@ -866,7 +866,7 @@ public class VariantContextUtils {
         }
 
         // create new Genotype objects
-        GenotypeCollection newGenotypes = GenotypeCollection.create(vc.getNSamples());
+        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
             List<Allele> newAlleles = new ArrayList<Allele>();
             for ( Allele allele : genotype.getAlleles() ) {
@@ -886,7 +886,7 @@ public class VariantContextUtils {
         if ( allowedAttributes == null )
             return vc;
 
-        GenotypeCollection newGenotypes = GenotypeCollection.create(vc.getNSamples());
+        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
             Map<String, Object> attrs = new HashMap<String, Object>();
             for ( Map.Entry<String, Object> attr : genotype.getAttributes().entrySet() ) {

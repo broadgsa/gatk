@@ -14,7 +14,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.HashMap;
@@ -92,13 +92,13 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
 
         Set<String> allSamples = new HashSet<String>();
 
-        GenotypeCollection compSampGenotypes = null;
+        GenotypesContext compSampGenotypes = null;
         if (isRelevantToPhasing(comp)) {
             allSamples.addAll(comp.getSampleNames());
             compSampGenotypes = comp.getGenotypes();
         }
 
-        GenotypeCollection evalSampGenotypes = null;
+        GenotypesContext evalSampGenotypes = null;
         if (isRelevantToPhasing(eval)) {
             allSamples.addAll(eval.getSampleNames());
             evalSampGenotypes = eval.getGenotypes();

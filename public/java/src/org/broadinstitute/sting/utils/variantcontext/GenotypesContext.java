@@ -29,9 +29,9 @@ import java.util.*;
 /**
  *
  */
-public class GenotypeCollection implements List<Genotype> {
-    public final static GenotypeCollection NO_GENOTYPES =
-            new GenotypeCollection(new ArrayList<Genotype>(0), new HashMap<String, Integer>(0), new HashSet<String>(0), true);
+public class GenotypesContext implements List<Genotype> {
+    public final static GenotypesContext NO_GENOTYPES =
+            new GenotypesContext(new ArrayList<Genotype>(0), new HashMap<String, Integer>(0), new HashSet<String>(0), true);
 
     Set<String> sampleNamesInOrder = null;
     Map<String, Integer> sampleNameToOffset = null;
@@ -45,25 +45,25 @@ public class GenotypeCollection implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
-    private GenotypeCollection() {
+    private GenotypesContext() {
         this(10, false);
     }
 
-    private GenotypeCollection(final int n, final boolean immutable) {
+    private GenotypesContext(final int n, final boolean immutable) {
         this(new ArrayList<Genotype>(n), immutable);
     }
 
-    private GenotypeCollection(final ArrayList<Genotype> genotypes, final boolean immutable) {
+    private GenotypesContext(final ArrayList<Genotype> genotypes, final boolean immutable) {
         this.genotypes = genotypes;
         this.immutable = immutable;
         this.sampleNameToOffset = null;
         this.cacheIsInvalid = true;
     }
 
-    private GenotypeCollection(final ArrayList<Genotype> genotypes,
-                               final Map<String, Integer> sampleNameToOffset,
-                               final Set<String> sampleNamesInOrder,
-                               final boolean immutable) {
+    private GenotypesContext(final ArrayList<Genotype> genotypes,
+                             final Map<String, Integer> sampleNameToOffset,
+                             final Set<String> sampleNamesInOrder,
+                             final boolean immutable) {
         this.genotypes = genotypes;
         this.immutable = immutable;
         this.sampleNameToOffset = sampleNameToOffset;
@@ -77,27 +77,27 @@ public class GenotypeCollection implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
-    public static final GenotypeCollection create() {
-        return new GenotypeCollection();
+    public static final GenotypesContext create() {
+        return new GenotypesContext();
     }
 
-    public static final GenotypeCollection create(final int nGenotypes) {
-        return new GenotypeCollection(nGenotypes, false);
+    public static final GenotypesContext create(final int nGenotypes) {
+        return new GenotypesContext(nGenotypes, false);
     }
 
-    public static final GenotypeCollection create(final ArrayList<Genotype> genotypes) {
-        return genotypes == null ? NO_GENOTYPES : new GenotypeCollection(genotypes, false);
+    public static final GenotypesContext create(final ArrayList<Genotype> genotypes) {
+        return genotypes == null ? NO_GENOTYPES : new GenotypesContext(genotypes, false);
     }
 
-    public static final GenotypeCollection create(final Genotype... genotypes) {
-        return new GenotypeCollection(new ArrayList<Genotype>(Arrays.asList(genotypes)), false);
+    public static final GenotypesContext create(final Genotype... genotypes) {
+        return new GenotypesContext(new ArrayList<Genotype>(Arrays.asList(genotypes)), false);
     }
 
-    public static final GenotypeCollection copy(final GenotypeCollection toCopy) {
+    public static final GenotypesContext copy(final GenotypesContext toCopy) {
         return create(new ArrayList<Genotype>(toCopy.genotypes));
     }
 
-    public static final GenotypeCollection copy(final Collection<Genotype> toCopy) {
+    public static final GenotypesContext copy(final Collection<Genotype> toCopy) {
         return toCopy == null ? NO_GENOTYPES : create(new ArrayList<Genotype>(toCopy));
     }
 
@@ -123,7 +123,7 @@ public class GenotypeCollection implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
-    public final GenotypeCollection immutable() {
+    public final GenotypesContext immutable() {
         this.genotypes = Collections.unmodifiableList(genotypes);
         immutable = true;
         return this;
@@ -369,17 +369,17 @@ public class GenotypeCollection implements List<Genotype> {
         return getSampleNames().containsAll(samples);
     }
 
-    public GenotypeCollection subsetToSamples( final Collection<String> samples ) {
+    public GenotypesContext subsetToSamples( final Collection<String> samples ) {
         return subsetToSamples(new HashSet<String>(samples));
     }
 
-    public GenotypeCollection subsetToSamples( final Set<String> samples ) {
+    public GenotypesContext subsetToSamples( final Set<String> samples ) {
         if ( samples.size() == genotypes.size() )
             return this;
         else if ( samples.isEmpty() )
             return NO_GENOTYPES;
         else {
-            GenotypeCollection subset = create(samples.size());
+            GenotypesContext subset = create(samples.size());
             for ( final Genotype g : genotypes ) {
                 if ( samples.contains(g.getSampleName()) ) {
                     subset.add(g);

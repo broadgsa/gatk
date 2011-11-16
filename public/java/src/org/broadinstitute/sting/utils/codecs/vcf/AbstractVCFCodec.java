@@ -11,7 +11,7 @@ import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
@@ -76,7 +76,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @param pos position
      * @return a mapping of sample name to genotype object
      */
-    public abstract GenotypeCollection createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
+    public abstract GenotypesContext createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
 
 
     /**

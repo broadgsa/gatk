@@ -36,7 +36,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -129,7 +129,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
             return null;
 
         VariantContext variantVC = null;
-        GenotypeCollection genotypes = GenotypeCollection.create();
+        GenotypesContext genotypes = GenotypesContext.create();
         for ( VariantContext vc : VCs ) {
             if ( variantVC == null && vc.isVariant() )
                 variantVC = vc;
@@ -143,8 +143,8 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         return new VariantContext("VCwithGLs", VCFConstants.EMPTY_ID_FIELD, variantVC.getChr(), variantVC.getStart(), variantVC.getEnd(), variantVC.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
-    private static GenotypeCollection getGenotypesWithGLs(GenotypeCollection genotypes) {
-        GenotypeCollection genotypesWithGLs = GenotypeCollection.create(genotypes.size());
+    private static GenotypesContext getGenotypesWithGLs(GenotypesContext genotypes) {
+        GenotypesContext genotypesWithGLs = GenotypesContext.create(genotypes.size());
         for ( final Genotype g : genotypes ) {
             if ( g.hasLikelihoods() && g.getLikelihoods().getAsVector() != null )
                 genotypesWithGLs.add(g);

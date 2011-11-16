@@ -10,8 +10,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -195,7 +193,7 @@ public class VariantContextAdaptors {
                     return null; // we weren't given enough reference context to create the VariantContext
                 Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
-                GenotypeCollection genotypes = null;
+                GenotypesContext genotypes = null;
                 VariantContext vc = new VariantContext(name, dbsnp.getRsID(), dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
                 return vc;
             } else
@@ -316,7 +314,7 @@ public class VariantContextAdaptors {
             String[] samples = hapmap.getSampleIDs();
             String[] genotypeStrings = hapmap.getGenotypes();
 
-            GenotypeCollection genotypes = GenotypeCollection.create(samples.length);
+            GenotypesContext genotypes = GenotypesContext.create(samples.length);
             for ( int i = 0; i < samples.length; i++ ) {
                 // ignore bad genotypes
                 if ( genotypeStrings[i].contains("N") )

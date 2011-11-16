@@ -352,7 +352,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         UnfinishedVariantContext uvc = uvr.unfinishedVariant;
 
         // Perform per-sample phasing:
-        GenotypeCollection sampGenotypes = vc.getGenotypes();
+        GenotypesContext sampGenotypes = vc.getGenotypes();
         Map<String, PhaseCounts> samplePhaseStats = new TreeMap<String, PhaseCounts>();
         for (final Genotype gt : sampGenotypes) {
             String samp = gt.getSampleName();
@@ -1122,7 +1122,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private int start;
         private int stop;
         private Collection<Allele> alleles;
-        private GenotypeCollection genotypes;
+        private GenotypesContext genotypes;
         private double negLog10PError;
         private Set<String> filters;
         private Map<String, Object> attributes;
@@ -1135,7 +1135,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.start = vc.getStart();
             this.stop = vc.getEnd();
             this.alleles = vc.getAlleles();
-            this.genotypes = GenotypeCollection.copy(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
+            this.genotypes = GenotypesContext.copy(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
             this.negLog10PError = vc.getNegLog10PError();
             this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());

@@ -34,7 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -225,11 +225,11 @@ public class VariantAnnotatorEngine {
         }
     }
 
-    private GenotypeCollection annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    private GenotypesContext annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( requestedGenotypeAnnotations.size() == 0 )
             return vc.getGenotypes();
 
-        GenotypeCollection genotypes = GenotypeCollection.create(vc.getNSamples());
+        GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
             AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null ) {

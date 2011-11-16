@@ -187,7 +187,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         byte refByte = ref.getBase();
 
         // make new Genotypes based on Beagle results
-        GenotypeCollection genotypes = GenotypeCollection.create(vc_input.getGenotypes().size());
+        GenotypesContext genotypes = GenotypesContext.create(vc_input.getGenotypes().size());
 
         // for each genotype, create a new object with Beagle information on it
 
@@ -196,7 +196,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         Double alleleFrequencyH = 0.0;
         int beagleVarCounts = 0;
 
-        GenotypeCollection hapmapGenotypes = null;
+        GenotypesContext hapmapGenotypes = null;
 
         if (vc_comp != null) {
             hapmapGenotypes = vc_comp.getGenotypes();

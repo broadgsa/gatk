@@ -242,8 +242,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         }
         if ( markers != null ) markers.append("\n");
 
-        GenotypeCollection preferredGenotypes = preferredVC.getGenotypes();
-        GenotypeCollection otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
+        GenotypesContext preferredGenotypes = preferredVC.getGenotypes();
+        GenotypesContext otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
         for ( String sample : samples ) {
             boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getSample(sample).getGender() == Gender.MALE;
 

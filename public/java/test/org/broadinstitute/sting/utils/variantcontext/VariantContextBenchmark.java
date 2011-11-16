@@ -226,7 +226,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                         List<VariantContext> toMerge = new ArrayList<VariantContext>();
 
                         for ( int i = 0; i < dupsToMerge; i++ ) {
-                            GenotypeCollection gc = GenotypeCollection.create(vc.getNSamples());
+                            GenotypesContext gc = GenotypesContext.create(vc.getNSamples());
                             for ( final Genotype g : vc.getGenotypes() ) {
                                 gc.add(new Genotype(g.getSampleName()+"_"+i, g));
                             }

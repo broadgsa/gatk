@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -33,7 +33,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        final GenotypeCollection genotypes = vc.getGenotypes();
+        final GenotypesContext genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
             return null;
 

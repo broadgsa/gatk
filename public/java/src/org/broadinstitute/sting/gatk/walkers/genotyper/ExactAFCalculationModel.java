@@ -31,7 +31,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeCollection;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -50,7 +50,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public void getLog10PNonRef(GenotypeCollection GLs, List<Allele> alleles,
+    public void getLog10PNonRef(GenotypesContext GLs, List<Allele> alleles,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();
@@ -94,7 +94,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    private static final ArrayList<double[]> getGLs(GenotypeCollection GLs) {
+    private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
         ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();
 
         genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
@@ -154,7 +154,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    public int linearExact(GenotypeCollection GLs,
+    public int linearExact(GenotypesContext GLs,
                            double[] log10AlleleFrequencyPriors,
                            double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
@@ -267,14 +267,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
      *
      * @return calls
      */
-    public GenotypeCollection assignGenotypes(VariantContext vc,
+    public GenotypesContext assignGenotypes(VariantContext vc,
                                        double[] log10AlleleFrequencyPosteriors,
                                        int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
 
-        GenotypeCollection GLs = vc.getGenotypes();
+        GenotypesContext GLs = vc.getGenotypes();
         double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
         int[][] tracebackArray = new int[GLs.size()+1][AFofMaxLikelihood+1];
 
@@ -341,7 +341,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
         }
 
-        GenotypeCollection calls = GenotypeCollection.create();
+        GenotypesContext calls = GenotypesContext.create();
 
         int startIdx = AFofMaxLikelihood;
         for (int k = sampleIdx; k > 0; k--) {
