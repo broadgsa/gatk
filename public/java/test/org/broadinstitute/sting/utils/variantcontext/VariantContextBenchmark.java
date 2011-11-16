@@ -27,8 +27,14 @@ package org.broadinstitute.sting.utils.variantcontext;
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import com.google.caliper.runner.CaliperMain;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import org.broad.tribble.Feature;
+import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.*;
 import java.util.*;
@@ -46,24 +52,39 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     @Param({"100"})
     int nSamplesToTake; // set automatically by framework
 
-    @Param({"READ", "READ_SUBSET"})
-    Operation operation; // set automatically by framework
+    @Param({"10"})
+    int dupsToMerge; // set automatically by framework
 
-    @Param({"OF_SAMPLES"})
-    SubContextOp subContextOp; // set automatically by framework
+    @Param
+    Operation operation; // set automatically by framework
 
     private String INPUT_STRING;
 
     public enum Operation {
         READ,
-        READ_SUBSET
+        SUBSET_TO_SAMPLES,
+        GET_TYPE,
+        GET_ID,
+        GET_GENOTYPES,
+        GET_ATTRIBUTE_STRING,
+        GET_ATTRIBUTE_INT,
+        GET_N_SAMPLES,
+        GET_GENOTYPES_FOR_SAMPLES,
+        GET_GENOTYPES_IN_ORDER_OF_NAME,
+        CALC_GENOTYPE_COUNTS,
+        MERGE
     }
 
-    public enum SubContextOp {
-        OF_SAMPLES
-    }
+    private GenomeLocParser b37GenomeLocParser;
 
     @Override protected void setUp() {
+        try {
+            ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.b37KGReference));
+            b37GenomeLocParser = new GenomeLocParser(seq);
+        } catch ( FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
         // read it into a String so that we don't try to benchmark IO issues
         try {
             FileInputStream s = new FileInputStream(new File(vcfFile));
@@ -83,52 +104,266 @@ public class VariantContextBenchmark extends SimpleBenchmark {
         }
     }
 
-    private void parseGenotypes(VCFCodec codec, Operation op, SubContextOp subop ) {
+    private interface FunctionToBenchmark<T extends Feature> {
+        public void run(T vc);
+    }
+
+    private <T extends Feature> void runBenchmark(FeatureCodec<T> codec, FunctionToBenchmark<T> func) {
         try {
             InputStream is = new ByteArrayInputStream(INPUT_STRING.getBytes());
             AsciiLineReader lineReader = new AsciiLineReader(is);
             codec.readHeader(lineReader);
 
             int counter = 0;
-            Set<String> samples = null;
             while (counter++ < linesToRead ) {
                 String line = lineReader.readLine();
                 if ( line == null )
                     break;
 
-                VariantContext vc = (VariantContext)codec.decode(line);
-                if ( samples == null ) {
-                    samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
-                }
-
-                if ( op == Operation.READ_SUBSET)
-                    processOneVC(vc, samples, subop);
+                T vc = codec.decode(line);
+                func.run(vc);
             }
         } catch (Exception e) {
             System.out.println("Benchmarking run failure because of " + e.getMessage());
         }
     }
 
-    public void timeMe(int rep) {
-        for ( int i = 0; i < rep; i++ )
-            parseGenotypes(new VCFCodec(), operation, subContextOp);
+    public void timeV14(int rep) {
+        for ( int i = 0; i < rep; i++ ) {
+            FunctionToBenchmark<VariantContext> func = getV14FunctionToBenchmark();
+            FeatureCodec<VariantContext> codec = new VCFCodec();
+            runBenchmark(codec, func);
+        }
+    }
+
+    public FunctionToBenchmark<VariantContext> getV14FunctionToBenchmark() {
+        switch ( operation ) {
+            case READ:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        ; // empty operation
+                    }
+                };
+            case SUBSET_TO_SAMPLES:
+                return new FunctionToBenchmark<VariantContext>() {
+                    Set<String> samples;
+                    public void run(final VariantContext vc) {
+                        if ( samples == null )
+                            samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
+                        VariantContext sub = vc.subContextFromSamples(samples);
+                        sub.getNSamples();
+                    }
+                };
+            case GET_TYPE:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getType();
+                    }
+                };
+            case GET_ID:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getID();
+                    }
+                };
+            case GET_GENOTYPES:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getGenotypes().size();
+                    }
+                };
+
+            case GET_GENOTYPES_FOR_SAMPLES:
+                return new FunctionToBenchmark<VariantContext>() {
+                    Set<String> samples;
+                    public void run(final VariantContext vc) {
+                        if ( samples == null )
+                            samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
+                        vc.getGenotypes(samples).size();
+                    }
+                };
+
+            case GET_ATTRIBUTE_STRING:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getAttribute("AN", null);
+                    }
+                };
+
+            case GET_ATTRIBUTE_INT:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getAttributeAsInt("AC", 0);
+                    }
+                };
+
+            case GET_N_SAMPLES:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getNSamples();
+                    }
+                };
+
+            case GET_GENOTYPES_IN_ORDER_OF_NAME:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        ; // TODO - TEST IS BROKEN
+//                        int n = 0;
+//                        for ( final Genotype g: vc.getGenotypesSortedByName() ) n++;
+                    }
+                };
+
+            case CALC_GENOTYPE_COUNTS:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        vc.getHetCount();
+                    }
+                };
+
+            case MERGE:
+                return new FunctionToBenchmark<VariantContext>() {
+                    public void run(final VariantContext vc) {
+                        List<VariantContext> toMerge = new ArrayList<VariantContext>();
+
+                        for ( int i = 0; i < dupsToMerge; i++ ) {
+                            GenotypeCollection gc = GenotypeCollection.create(vc.getNSamples());
+                            for ( final Genotype g : vc.getGenotypes() ) {
+                                gc.add(new Genotype(g.getSampleName()+"_"+i, g));
+                            }
+                            toMerge.add(VariantContext.modifyGenotypes(vc, gc));
+                        }
+
+                        VariantContextUtils.simpleMerge(b37GenomeLocParser, toMerge, null,
+                                VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                                VariantContextUtils.GenotypeMergeType.UNSORTED,
+                                true, false, "set", false, true);
+                    }
+                };
+
+            default: throw new IllegalArgumentException("Unexpected operation " + operation);
+        }
+    }
+
+    public void timeV13(int rep) {
+        for ( int i = 0; i < rep; i++ ) {
+            FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext> func = getV13FunctionToBenchmark();
+            FeatureCodec<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext> codec = new org.broadinstitute.sting.utils.variantcontext.v13.VCFCodec();
+            runBenchmark(codec, func);
+        }
+    }
+
+    public FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext> getV13FunctionToBenchmark() {
+        switch ( operation ) {
+            case READ:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        ; // empty operation
+                    }
+                };
+            case SUBSET_TO_SAMPLES:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    List<String> samples;
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        if ( samples == null )
+                            samples = new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake);
+                        org.broadinstitute.sting.utils.variantcontext.v13.VariantContext sub = vc.subContextFromGenotypes(vc.getGenotypes(samples).values());
+                        sub.getNSamples();
+                    }
+                };
+
+            case GET_TYPE:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getType();
+                    }
+                };
+            case GET_ID:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getID();
+                    }
+                };
+            case GET_GENOTYPES:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getGenotypes().size();
+                    }
+                };
+
+            case GET_GENOTYPES_FOR_SAMPLES:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    Set<String> samples;
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        if ( samples == null )
+                            samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
+                        vc.getGenotypes(samples).size();
+                    }
+                };
+
+            case GET_ATTRIBUTE_STRING:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getAttribute("AN", null);
+                    }
+                };
+
+            case GET_ATTRIBUTE_INT:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getAttributeAsInt("AC", 0);
+                    }
+                };
+
+            case GET_N_SAMPLES:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getNSamples();
+                    }
+                };
+
+            case GET_GENOTYPES_IN_ORDER_OF_NAME:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        ; // TODO - TEST IS BROKEN
+                        //vc.getGenotypesSortedByName();
+                    }
+                };
+
+            case CALC_GENOTYPE_COUNTS:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        vc.getHetCount();
+                    }
+                };
+
+            case MERGE:
+                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
+                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
+                        List<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext> toMerge = new ArrayList<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>();
+
+                        for ( int i = 0; i < dupsToMerge; i++ ) {
+                            Map<String, org.broadinstitute.sting.utils.variantcontext.v13.Genotype> gc = new HashMap<String, org.broadinstitute.sting.utils.variantcontext.v13.Genotype>();
+                            for ( final org.broadinstitute.sting.utils.variantcontext.v13.Genotype g : vc.getGenotypes().values() ) {
+                                String name = g.getSampleName()+"_"+i;
+                                gc.put(name, new org.broadinstitute.sting.utils.variantcontext.v13.Genotype(name,
+                                        g.getAlleles(), g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased(), g.getLikelihoods().getAsVector()));
+                                toMerge.add(org.broadinstitute.sting.utils.variantcontext.v13.VariantContext.modifyGenotypes(vc, gc));
+                            }
+                        }
+
+                        org.broadinstitute.sting.utils.variantcontext.v13.VariantContextUtils.simpleMerge(b37GenomeLocParser,
+                                toMerge, null,
+                                org.broadinstitute.sting.utils.variantcontext.v13.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                                org.broadinstitute.sting.utils.variantcontext.v13.VariantContextUtils.GenotypeMergeType.UNSORTED,
+                                true, false, "set", false, true);
+                    }
+                };
+
+            default: throw new IllegalArgumentException("Unexpected operation " + operation);
+        }
     }
 
     public static void main(String[] args) {
         CaliperMain.main(VariantContextBenchmark.class, args);
-    }
-
-    private static final void processOneVC(VariantContext vc, Set<String> samples, SubContextOp subop) {
-        VariantContext sub;
-
-        switch ( subop ) {
-            case OF_SAMPLES:
-                sub = vc.subContextFromSamples(samples, vc.getAlleles());
-                break;
-            default:
-                throw new RuntimeException("Unexpected op: " + subop);
-        }
-
-        sub.getNSamples();
     }
 }
