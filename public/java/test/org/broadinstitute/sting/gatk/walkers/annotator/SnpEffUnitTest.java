@@ -33,7 +33,7 @@ public class SnpEffUnitTest {
     @Test
     public void testParseWellFormedEffect() {
         String effectName = "NON_SYNONYMOUS_CODING";
-        String[] effectMetadata = { "MODERATE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829" };
+        String[] effectMetadata = { "MODERATE", "MISSENSE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829" };
 
         SnpEffEffect effect = new SnpEffEffect(effectName, effectMetadata);
         Assert.assertTrue( effect.isWellFormed() && effect.isCoding() );
@@ -42,7 +42,7 @@ public class SnpEffUnitTest {
     @Test
     public void testParseInvalidEffectNameEffect() {
         String effectName = "MADE_UP_EFFECT";
-        String[] effectMetadata = { "MODERATE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829" };
+        String[] effectMetadata = { "MODERATE", "MISSENSE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829" };
 
         SnpEffEffect effect = new SnpEffEffect(effectName, effectMetadata);
         Assert.assertFalse(effect.isWellFormed());
@@ -51,7 +51,7 @@ public class SnpEffUnitTest {
     @Test
     public void testParseInvalidEffectImpactEffect() {
         String effectName = "NON_SYNONYMOUS_CODING";
-        String[] effectMetadata = { "MEDIUM", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829" };
+        String[] effectMetadata = { "MEDIUM", "MISSENSE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829" };
 
         SnpEffEffect effect = new SnpEffEffect(effectName, effectMetadata);
         Assert.assertFalse(effect.isWellFormed());
@@ -60,27 +60,27 @@ public class SnpEffUnitTest {
     @Test
     public void testParseWrongNumberOfMetadataFieldsEffect() {
         String effectName = "NON_SYNONYMOUS_CODING";
-        String[] effectMetadata = { "MODERATE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990" };
+        String[] effectMetadata = { "MODERATE", "MISSENSE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990" };
 
         SnpEffEffect effect = new SnpEffEffect(effectName, effectMetadata);
         Assert.assertFalse(effect.isWellFormed());
     }
 
     @Test
-    public void testParseSnpEffWarningEffect() {
+    public void testParseSnpEffOneWarningOrErrorEffect() {
         String effectName = "NON_SYNONYMOUS_CODING";
-        String[] effectMetadata = { "MODERATE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829", "SNPEFF_WARNING" };
+        String[] effectMetadata = { "MODERATE", "MISSENSE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829", "SNPEFF_WARNING_OR_ERROR_TEXT" };
 
         SnpEffEffect effect = new SnpEffEffect(effectName, effectMetadata);
-        Assert.assertTrue( ! effect.isWellFormed() && effect.getParseError().equals("SnpEff issued the following warning: SNPEFF_WARNING") );
+        Assert.assertTrue( ! effect.isWellFormed() && effect.getParseError().equals("SnpEff issued the following warning or error: \"SNPEFF_WARNING_OR_ERROR_TEXT\"") );
     }
 
     @Test
-    public void testParseSnpEffErrorEffect() {
+    public void testParseSnpEffBothWarningAndErrorEffect() {
         String effectName = "NON_SYNONYMOUS_CODING";
-        String[] effectMetadata = { "MODERATE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829", "", "SNPEFF_ERROR" };
+        String[] effectMetadata = { "MODERATE", "MISSENSE", "Aca/Gca", "T/A", "OR4F5", "protein_coding", "CODING", "ENST00000534990", "exon_1_69037_69829", "SNPEFF_WARNING_TEXT", "SNPEFF_ERROR_TEXT" };
 
         SnpEffEffect effect = new SnpEffEffect(effectName, effectMetadata);
-        Assert.assertTrue( ! effect.isWellFormed() && effect.getParseError().equals("SnpEff issued the following error: SNPEFF_ERROR") );
+        Assert.assertTrue( ! effect.isWellFormed() && effect.getParseError().equals("SnpEff issued the following warning: \"SNPEFF_WARNING_TEXT\", and the following error: \"SNPEFF_ERROR_TEXT\"") );
     }
 }

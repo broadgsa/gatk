@@ -41,11 +41,6 @@ public class SimpleTimerUnitTest extends BaseTest {
         double t6 = t.getElapsedTime();
         Assert.assertTrue(t5 >= t4, "Restarted timer elapsed time should be after elapsed time preceding the restart");
         Assert.assertTrue(t6 >= t5, "Second elapsed time not after the first in restarted timer");
-
-        t.stop().start();
-        Assert.assertTrue(t.isRunning(), "second started timer isn't running");
-        Assert.assertTrue(t.getElapsedTime() >= 0.0, "elapsed time should have been reset");
-        Assert.assertTrue(t.getElapsedTime() < t6, "elapsed time isn't less than time before start call"); // we should have effective no elapsed time
     }
 
     private final static void idleLoop() {
