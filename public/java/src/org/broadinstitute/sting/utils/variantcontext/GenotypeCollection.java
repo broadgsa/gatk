@@ -30,11 +30,13 @@ import java.util.*;
  *
  */
 public class GenotypeCollection implements List<Genotype> {
-    public final static GenotypeCollection NO_GENOTYPES = new GenotypeCollection();
+    public final static GenotypeCollection NO_GENOTYPES =
+            new GenotypeCollection(new ArrayList<Genotype>(0), new HashMap<String, Integer>(0), new HashSet<String>(0), true);
 
+    Set<String> sampleNamesInOrder = null;
     Map<String, Integer> sampleNameToOffset = null;
     boolean cacheIsInvalid = true;
-    final ArrayList<Genotype> genotypes;
+    List<Genotype> genotypes;
     boolean immutable = false;
 
     // ---------------------------------------------------------------------------
@@ -54,6 +56,19 @@ public class GenotypeCollection implements List<Genotype> {
     private GenotypeCollection(final ArrayList<Genotype> genotypes, final boolean immutable) {
         this.genotypes = genotypes;
         this.immutable = immutable;
+        this.sampleNameToOffset = null;
+        this.cacheIsInvalid = true;
+    }
+
+    private GenotypeCollection(final ArrayList<Genotype> genotypes,
+                               final Map<String, Integer> sampleNameToOffset,
+                               final Set<String> sampleNamesInOrder,
+                               final boolean immutable) {
+        this.genotypes = genotypes;
+        this.immutable = immutable;
+        this.sampleNameToOffset = sampleNameToOffset;
+        this.sampleNamesInOrder = sampleNamesInOrder;
+        this.cacheIsInvalid = false;
     }
 
     // ---------------------------------------------------------------------------
@@ -108,12 +123,8 @@ public class GenotypeCollection implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
-    public final GenotypeCollection mutable() {
-        immutable = false;
-        return this;
-    }
-
     public final GenotypeCollection immutable() {
+        this.genotypes = Collections.unmodifiableList(genotypes);
         immutable = true;
         return this;
     }
@@ -135,17 +146,20 @@ public class GenotypeCollection implements List<Genotype> {
 
     private void invalidateCaches() {
         cacheIsInvalid = true;
-        if ( sampleNameToOffset != null ) sampleNameToOffset.clear();
+        sampleNamesInOrder = null;
+        sampleNameToOffset = null;
     }
 
     private void buildCache() {
         cacheIsInvalid = false;
+        sampleNamesInOrder = new TreeSet<String>();
+        sampleNameToOffset = new HashMap<String, Integer>(genotypes.size());
 
-        if ( sampleNameToOffset == null )
-            sampleNameToOffset = new HashMap<String, Integer>(genotypes.size());
-
-        for ( int i = 0; i < genotypes.size(); i++ )
-            sampleNameToOffset.put(genotypes.get(i).getSampleName(), i);
+        for ( int i = 0; i < genotypes.size(); i++ ) {
+            final Genotype g = genotypes.get(i);
+            sampleNamesInOrder.add(g.getSampleName());
+            sampleNameToOffset.put(g.getSampleName(), i);
+        }
     }
 
 
@@ -341,7 +355,8 @@ public class GenotypeCollection implements List<Genotype> {
     }
 
     public Set<String> getSampleNamesOrderedByName() {
-        return new TreeSet<String>(getSampleNames());
+        buildCache();
+        return sampleNamesInOrder;
     }
 
     public boolean containsSample(final String sample) {
@@ -365,10 +380,41 @@ public class GenotypeCollection implements List<Genotype> {
             return NO_GENOTYPES;
         else {
             GenotypeCollection subset = create(samples.size());
-            for ( final Genotype g : genotypes )
-                if ( samples.contains(g.getSampleName()) )
+            for ( final Genotype g : genotypes ) {
+                if ( samples.contains(g.getSampleName()) ) {
                     subset.add(g);
+                }
+            }
             return subset;
+        }
+    }
+
+    @Override
+    public String toString() {
+        final List<String> gS = new ArrayList<String>();
+        for ( final Genotype g : this.iterateInSampleNameOrder() )
+            gS.add(g.toString());
+        return "[" + join(",", gS) + "]";
+    }
+
+    // copied from Utils
+    private static <T> String join(final String separator, final Collection<T> objects) {
+        if (objects.isEmpty()) { // fast path for empty collection
+            return "";
+        } else {
+            final Iterator<T> iter = objects.iterator();
+            final T first = iter.next();
+
+            if ( ! iter.hasNext() ) // fast path for singleton collections
+                return first.toString();
+            else { // full path for 2+ collection that actually need a join
+                final StringBuilder ret = new StringBuilder(first.toString());
+                while(iter.hasNext()) {
+                    ret.append(separator);
+                    ret.append(iter.next().toString());
+                }
+                return ret.toString();
+            }
         }
     }
 }

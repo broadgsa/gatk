@@ -654,7 +654,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
+//        logger.info("Genotypes in full  vc: " + vc.getGenotypes());
+//        logger.info("My own sub           : " + vc.getGenotypes().subsetToSamples(samples));
         VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
+//        logger.info("Genotypes in sub   vc: " + sub.getGenotypes());
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
@@ -691,6 +694,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         sub = VariantContext.modifyAttributes(sub, attributes);
 
+//        logger.info("Genotypes in final vc: " + sub.getGenotypes());
         return sub;
     }
 

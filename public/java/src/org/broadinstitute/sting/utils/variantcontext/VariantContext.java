@@ -411,7 +411,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         // we need to make this a LinkedHashSet in case the user prefers a given ordering of alleles
         this.alleles = makeAlleles(alleles);
 
-        if ( genotypes == null ) {
+        if ( genotypes == null || genotypes == NO_GENOTYPES ) {
             this.genotypes = NO_GENOTYPES;
         } else {
             this.genotypes = genotypes.immutable();
@@ -543,8 +543,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 //    }
 
     public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
+        loadGenotypes();
+        GenotypeCollection newGenotypes = genotypes.subsetToSamples(sampleNames);
         return new VariantContext(getSource(), getID(), contig, start, stop, alleles,
-                genotypes.subsetToSamples(sampleNames),
+                newGenotypes,
                 getNegLog10PError(),
                 filtersWereApplied() ? getFilters() : null,
                 getAttributes(),
@@ -552,6 +554,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public VariantContext subContextFromSamples(Set<String> sampleNames) {
+        loadGenotypes();
         GenotypeCollection newGenotypes = genotypes.subsetToSamples(sampleNames);
         return new VariantContext(getSource(), getID(), contig, start, stop, allelesOfGenotypes(newGenotypes),
                 newGenotypes,
@@ -562,7 +565,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public VariantContext subContextFromSample(String sampleName) {
-        return subContextFromSamples(new HashSet<String>(Arrays.asList(sampleName)));
+        return subContextFromSamples(Collections.singleton(sampleName));
     }
 
     /**
@@ -1460,7 +1463,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public String toString() {
         return String.format("[VC %s @ %s of type=%s alleles=%s attr=%s GT=%s",
                 getSource(), contig + ":" + (start - stop == 0 ? start : start + "-" + stop), this.getType(),
-                ParsingUtils.sortList(this.getAlleles()), ParsingUtils.sortedString(this.getAttributes()), this.getGenotypesSortedByName());
+                ParsingUtils.sortList(this.getAlleles()),
+                ParsingUtils.sortedString(this.getAttributes()),
+                this.getGenotypes());
     }
 
     // protected basic manipulation routines
