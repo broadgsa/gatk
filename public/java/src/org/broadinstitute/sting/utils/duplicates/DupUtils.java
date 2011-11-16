@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.utils.duplicates;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -35,27 +34,28 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class DupUtils {
-    private static SAMRecord tmpCopyRead(SAMRecord read) {
+    private static GATKSAMRecord tmpCopyRead(GATKSAMRecord read) {
         try {
-            return (SAMRecord)read.clone();
+            return (GATKSAMRecord)read.clone();
         } catch ( CloneNotSupportedException e ) {
             throw new ReviewedStingException("Unexpected Clone failure!");
         }
     }
 
-    public static SAMRecord combineDuplicates(GenomeLocParser genomeLocParser,List<SAMRecord> duplicates, int maxQScore) {
+    public static GATKSAMRecord combineDuplicates(GenomeLocParser genomeLocParser,List<GATKSAMRecord> duplicates, int maxQScore) {
         if ( duplicates.size() == 0 )
             return null;
 
         // make the combined read by copying the first read and setting the
         // bases and quals to new arrays
-        SAMRecord comb = tmpCopyRead(duplicates.get(0));
-        //SAMRecord comb = tmpCopyRead(duplicates.get(0));
+        GATKSAMRecord comb = tmpCopyRead(duplicates.get(0));
+        //GATKSAMRecord comb = tmpCopyRead(duplicates.get(0));
         comb.setDuplicateReadFlag(false);
         int readLen = comb.getReadBases().length;
         byte[] bases = new byte[readLen];
@@ -63,7 +63,7 @@ public class DupUtils {
 
         for ( int i = 0; i < readLen; i++ ) {
             //System.out.printf("I is %d%n", i);
-            //for ( SAMRecord read : duplicates ) {
+            //for ( GATKSAMRecord read : duplicates ) {
             //    System.out.printf("dup base %c %d%n", (char)read.getReadBases()[i], read.getBaseQualities()[i]);
             //}
             Pair<Byte, Byte> baseAndQual = combineBaseProbs(genomeLocParser,duplicates, i, maxQScore);
@@ -117,7 +117,7 @@ public class DupUtils {
         System.out.printf("%n");
     }
 
-    private static Pair<Byte, Byte> combineBaseProbs(GenomeLocParser genomeLocParser,List<SAMRecord> duplicates, int readOffset, int maxQScore) {
+    private static Pair<Byte, Byte> combineBaseProbs(GenomeLocParser genomeLocParser,List<GATKSAMRecord> duplicates, int readOffset, int maxQScore) {
         GenomeLoc loc = genomeLocParser.createGenomeLoc(duplicates.get(0));
         ReadBackedPileup pileup = new ReadBackedPileupImpl(loc, duplicates, readOffset);
 

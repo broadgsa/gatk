@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
 
@@ -92,12 +93,13 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
 
     /**
      * Aligns a read to the given reference.
+     *
      * @param ref Reference over the read.  Read will most likely be unmapped, so ref will be null.
      * @param read Read to align.
      * @return Number of alignments found for this read.
      */
     @Override
-    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         SAMRecord alignedRead = aligner.align(read,header);
         out.addAlignment(alignedRead);
         return 1;

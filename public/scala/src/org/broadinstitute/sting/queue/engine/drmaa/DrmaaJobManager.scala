@@ -56,6 +56,6 @@ class DrmaaJobManager extends CommandLineJobManager[DrmaaJobRunner] {
     updatedRunners
   }
   override def tryStop(runners: Set[DrmaaJobRunner]) {
-    runners.filterNot(_.jobId == null).foreach(_.tryStop())
+    runners.foreach(_.tryStop())
   }
 }

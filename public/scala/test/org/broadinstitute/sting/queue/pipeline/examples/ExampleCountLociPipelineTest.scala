@@ -36,8 +36,8 @@ class ExampleCountLociPipelineTest {
     spec.name = "countloci"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountLoci.scala",
-      " -R " + BaseTest.hg18Reference,
-      " -I " + BaseTest.validationDataLocation + "small_bam_for_countloci.bam",
+      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.testDir + "exampleBAM.bam",
       " -o " + testOut).mkString
     spec.fileMD5s += testOut -> "67823e4722495eb10a5e4c42c267b3a6"
     PipelineTest.executeTest(spec)

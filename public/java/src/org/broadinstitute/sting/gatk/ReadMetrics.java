@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Holds a bunch of basic information about the traversal.
@@ -102,8 +103,12 @@ public class ReadMetrics implements Cloneable {
         counter.put(filter.getClass(), c + 1L);
     }
 
-    public Map<Class,Long> getCountsByFilter() {
-        return Collections.unmodifiableMap(counter);
+    public Map<String,Long> getCountsByFilter() {
+        final TreeMap<String, Long> sortedCounts = new TreeMap<String, Long>();
+        for(Map.Entry<Class,Long> counterEntry: counter.entrySet()) {
+            sortedCounts.put(counterEntry.getKey().getSimpleName(),counterEntry.getValue());
+        }
+        return sortedCounts;
     }
 
     /**

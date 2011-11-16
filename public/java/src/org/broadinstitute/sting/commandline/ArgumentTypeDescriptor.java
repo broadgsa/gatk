@@ -336,6 +336,28 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
+        return parse(parsingEngine, source, type, matches, false);
+    }
+
+    /**
+     * The actual argument parsing method.
+     *
+     * IMPORTANT NOTE: the createIntervalBinding argument is a bit of a hack, but after discussions with SE we've decided
+     *   that it's the best way to proceed for now.  IntervalBindings can either be proper RodBindings (hence the use of
+     *   this parse() method) or can be Strings (representing raw intervals or the files containing them).  If createIntervalBinding
+     *   is true, we do not call parsingEngine.addRodBinding() because we don't want walkers to assume that these are the
+     *   usual set of RodBindings.  It also allows us in the future to be smart about tagging rods as intervals.  One other
+     *   side point is that we want to continue to allow the usage of non-Feature intervals so that users can theoretically
+     *   continue to input them out of order (whereas Tribble Features are ordered).
+     *
+     * @param parsingEngine      parsing engine
+     * @param source             source
+     * @param type               type to check
+     * @param matches            matches
+     * @param createIntervalBinding should we attempt to create an IntervalBinding instead of a RodBinding?
+     * @return the RodBinding/IntervalBinding object depending on the value of createIntervalBinding.
+     */
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches, boolean createIntervalBinding) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         Class<? extends Feature> parameterType = JVMUtils.getParameterizedTypeClass(type);
@@ -348,7 +370,7 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             if ( tags.getPositionalTags().size() > 2 ) {
                 throw new UserException.CommandLineException(
                         String.format("Unexpected number of positional tags for argument %s : %s. " +
-                                "Rod bindings only suport -X:type and -X:name,type argument styles",
+                                "Rod bindings only support -X:type and -X:name,type argument styles",
                                 value, source.field.getName()));
             } if ( tags.getPositionalTags().size() == 2 ) {
                 // -X:name,type style
@@ -378,7 +400,12 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                         }
                     }
 
-                    if ( tribbleType == null )
+                    if ( tribbleType == null ) {
+                        // IntervalBindings allow streaming conversion of Strings
+                        if ( createIntervalBinding ) {
+                            return new IntervalBinding(value);
+                        }
+
                         if ( ! file.exists() ) {
                             throw new UserException.CouldNotReadInputFile(file, "file does not exist");
                         } else if ( ! file.canRead() || ! file.isFile() ) {
@@ -389,13 +416,20 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                                             "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
                                             manager.userFriendlyListOfAvailableFeatures(parameterType)));
                         }
+                    }
                 }
             }
 
             Constructor ctor = (makeRawTypeIfNecessary(type)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
-            RodBinding result = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
-            parsingEngine.addTags(result,tags);
-            parsingEngine.addRodBinding(result);
+            Object result;
+            if ( createIntervalBinding ) {
+                result = ctor.newInstance(parameterType, name, value, tribbleType, tags);
+            } else {
+                RodBinding rbind = (RodBinding)ctor.newInstance(parameterType, name, value, tribbleType, tags);
+                parsingEngine.addTags(rbind, tags);
+                parsingEngine.addRodBinding(rbind);
+                result = rbind;
+            }
             return result;
         } catch (InvocationTargetException e) {
             throw new UserException.CommandLineException(
@@ -410,13 +444,46 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 }
 
 /**
+ * Parser for RodBinding objects
+ */
+class IntervalBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+    /**
+     * We only want IntervalBinding class objects
+     * @param type The type to check.
+     * @return true if the provided class is an IntervalBinding.class
+     */
+    @Override
+    public boolean supports( Class type ) {
+        return isIntervalBinding(type);
+    }
+
+    public static boolean isIntervalBinding( Class type ) {
+        return IntervalBinding.class.isAssignableFrom(type);
+    }
+
+    /**
+     * See note from RodBindingArgumentTypeDescriptor.parse().
+     *
+     * @param parsingEngine      parsing engine
+     * @param source             source
+     * @param type               type to check
+     * @param matches            matches
+     * @return the IntervalBinding object.
+     */
+    @Override
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
+        return new RodBindingArgumentTypeDescriptor().parse(parsingEngine, source, type, matches, true);
+    }
+}
+
+/**
  * Parse simple argument types: java primitives, wrapper classes, and anything that has
  * a simple String constructor.
  */
 class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public boolean supports( Class type ) {
-        if ( RodBindingArgumentTypeDescriptor.isRodBinding(type) ) return false;
+        if ( RodBindingArgumentTypeDescriptor.isRodBinding(type) || IntervalBindingArgumentTypeDescriptor.isIntervalBinding(type) ) return false;
         if ( type.isPrimitive() ) return true;
         if ( type.isEnum() ) return true;
         if ( primitiveToWrapperMap.containsValue(type) ) return true;

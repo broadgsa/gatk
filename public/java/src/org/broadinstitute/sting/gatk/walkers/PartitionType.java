@@ -35,6 +35,12 @@ public enum PartitionType {
     NONE,
 
     /**
+     * The walker inputs can be chunked down to individual
+     * reads.
+     */
+    READ,
+
+    /**
      * The walker inputs can be chunked down to the
      * per-locus level.
      */

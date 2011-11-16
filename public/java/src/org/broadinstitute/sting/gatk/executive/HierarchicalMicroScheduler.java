@@ -85,12 +85,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      */
     protected HierarchicalMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
         super(engine, walker, reads, reference, rods);
-
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
-
-        if (engine.getArguments().processingTrackerFile != null) {
-            throw new UserException.BadArgumentValue("-C", "Distributed GATK calculations currently not supported in multi-threaded mode.  Complain to Mark depristo@broadinstitute.org to implement and test this code path");
-        }
     }
 
     public Object execute( Walker walker, ShardStrategy shardStrategy ) {

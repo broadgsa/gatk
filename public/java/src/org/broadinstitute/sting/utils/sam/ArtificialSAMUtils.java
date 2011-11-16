@@ -2,11 +2,14 @@ package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author aaron
@@ -29,7 +32,7 @@ public class ArtificialSAMUtils {
         File outFile = new File(filename);
 
         SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(header, true, outFile);
-        
+
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
             for (int readNumber = 1; readNumber < readsPerChomosome; readNumber++) {
                 out.addAlignment(createArtificialRead(header, "Read_" + readNumber, x - startingChromosome, readNumber, DEFAULT_READ_LENGTH));
@@ -134,6 +137,7 @@ public class ArtificialSAMUtils {
     /**
      * Create an artificial read based on the parameters.  The cigar string will be *M, where * is the length of the read
      *
+     *
      * @param header         the SAM header to associate the read with
      * @param name           the name of the read
      * @param refIndex       the reference index, i.e. what chromosome to associate it with
@@ -142,11 +146,11 @@ public class ArtificialSAMUtils {
      *
      * @return the artificial read
      */
-    public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
+    public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, int length) {
         if( (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
-            (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
+                (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
             throw new ReviewedStingException("Invalid alignment start for artificial read, start = " + alignmentStart);
-        SAMRecord record = new SAMRecord(header);
+        GATKSAMRecord record = new GATKSAMRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
         record.setAlignmentStart(alignmentStart);
@@ -166,6 +170,7 @@ public class ArtificialSAMUtils {
         if (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
             record.setReadUnmappedFlag(true);
         }
+
         return record;
     }
 
@@ -181,17 +186,49 @@ public class ArtificialSAMUtils {
      *
      * @return the artificial read
      */
-    public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual ) {
+    public static GATKSAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual ) {
         if (bases.length != qual.length) {
             throw new ReviewedStingException("Passed in read string is different length then the quality array");
         }
-        SAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
+        GATKSAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);
         rec.setBaseQualities(qual);
         if (refIndex == -1) {
             rec.setReadUnmappedFlag(true);
         }
+
         return rec;
+    }
+
+    public final static List<GATKSAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
+        GATKSAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
+        GATKSAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);
+
+        left.setReadPairedFlag(true);
+        right.setReadPairedFlag(true);
+
+        left.setProperPairFlag(true);
+        right.setProperPairFlag(true);
+
+        left.setFirstOfPairFlag(leftIsFirst);
+        right.setFirstOfPairFlag(! leftIsFirst);
+
+        left.setReadNegativeStrandFlag(leftIsNegative);
+        left.setMateNegativeStrandFlag(!leftIsNegative);
+        right.setReadNegativeStrandFlag(!leftIsNegative);
+        right.setMateNegativeStrandFlag(leftIsNegative);
+
+        left.setMateAlignmentStart(right.getAlignmentStart());
+        right.setMateAlignmentStart(left.getAlignmentStart());
+
+        left.setMateReferenceIndex(0);
+        right.setMateReferenceIndex(0);
+
+        int isize = rightStart + readLen - leftStart;
+        left.setInferredInsertSize(isize);
+        right.setInferredInsertSize(-isize);
+
+        return Arrays.asList(left, right);
     }
 
     /**
@@ -254,5 +291,53 @@ public class ArtificialSAMUtils {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
+    }
+
+    private final static int ranIntInclusive(Random ran, int start, int stop) {
+        final int range = stop - start;
+        return ran.nextInt(range) + start;
+    }
+
+    /**
+     * Creates a read backed pileup containing up to pileupSize reads at refID 0 from header at loc with
+     * reads created that have readLen bases.  Pairs are sampled from a gaussian distribution with mean insert
+     * size of insertSize and variation of insertSize / 10.  The first read will be in the pileup, and the second
+     * may be, depending on where this sampled insertSize puts it.
+     * @param header
+     * @param loc
+     * @param readLen
+     * @param insertSize
+     * @param pileupSize
+     * @return
+     */
+    public static ReadBackedPileup createReadBackedPileup(final SAMFileHeader header, final GenomeLoc loc, final int readLen, final int insertSize, final int pileupSize) {
+        final Random ran = new Random();
+        final boolean leftIsFirst = true;
+        final boolean leftIsNegative = false;
+        final int insertSizeVariation = insertSize / 10;
+        final int pos = loc.getStart();
+
+        final List<PileupElement> pileupElements = new ArrayList<PileupElement>();
+        for ( int i = 0; i < pileupSize / 2; i++ ) {
+            final String readName = "read" + i;
+            final int leftStart = ranIntInclusive(ran, 1, pos);
+            final int fragmentSize = (int)(ran.nextGaussian() * insertSizeVariation + insertSize);
+            final int rightStart = leftStart + fragmentSize - readLen;
+
+            if ( rightStart <= 0 ) continue;
+
+            List<GATKSAMRecord> pair = createPair(header, readName, readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
+            final GATKSAMRecord left = pair.get(0);
+            final GATKSAMRecord right = pair.get(1);
+
+            pileupElements.add(new PileupElement(left, pos - leftStart));
+
+            if ( pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd() ) {
+                pileupElements.add(new PileupElement(right, pos - rightStart));
+            }
+        }
+
+        Collections.sort(pileupElements);
+        return new ReadBackedPileupImpl(loc, pileupElements);
     }
 }

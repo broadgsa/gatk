@@ -43,6 +43,7 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -57,6 +58,8 @@ import java.util.*;
  * Converts shards to SAM iterators over the specified region
  */
 public class SAMDataSource {
+    final private static GATKSamRecordFactory factory = new GATKSamRecordFactory();
+
     /** Backing support for reads. */
     protected final ReadProperties readProperties;
 
@@ -235,6 +238,12 @@ public class SAMDataSource {
         for(SAMFileReader reader: readers.values()) {
             // Get the sort order, forcing it to coordinate if unsorted.
             SAMFileHeader header = reader.getFileHeader();
+
+            if ( header.getReadGroups().isEmpty() ) {
+                throw new UserException.MalformedBAM(readers.getReaderID(reader).samFile,
+                        "SAM file doesn't have any read groups defined in the header.  The GATK no longer supports SAM files without read groups");
+            }
+
             SAMFileHeader.SortOrder sortOrder = header.getSortOrder() != SAMFileHeader.SortOrder.unsorted ? header.getSortOrder() : SAMFileHeader.SortOrder.coordinate;
 
             // Validate that all input files are sorted in the same order.
@@ -638,7 +647,9 @@ public class SAMDataSource {
                                                         BAQ.QualityMode qmode,
                                                         IndexedFastaSequenceFile refReader,
                                                         byte defaultBaseQualities) {
-        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
+        if ( useOriginalBaseQualities || defaultBaseQualities >= 0 )
+            // only wrap if we are replacing the original qualitiies or using a default base quality
+            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
@@ -750,6 +761,7 @@ public class SAMDataSource {
         public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
             for(SAMReaderID readerID: readerIDs) {
                 SAMFileReader reader = new SAMFileReader(readerID.samFile);
+                reader.setSAMRecordFactory(factory);
                 reader.enableFileSource(true);
                 reader.enableIndexMemoryMapping(false);
                 if(!enableLowMemorySharding)

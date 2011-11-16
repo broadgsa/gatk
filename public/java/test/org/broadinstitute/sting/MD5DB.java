@@ -129,7 +129,7 @@ public class MD5DB {
                 System.out.printf("##### Skipping update, cannot write file %s%n", dbFile);
             }
         } else {
-            System.out.printf("##### MD5 file is up to date: %s%n", dbFile.getPath());
+            //System.out.printf("##### MD5 file is up to date: %s%n", dbFile.getPath());
         }
     }
 
@@ -170,6 +170,18 @@ public class MD5DB {
         return bytes;
     }
 
+    public static class MD5Match {
+        final String md5;
+        final String failMessage;
+        boolean failed;
+
+        public MD5Match(final String md5, final String failMessage, final boolean failed) {
+            this.md5 = md5;
+            this.failMessage = failMessage;
+            this.failed = failed;
+        }
+    }
+
     /**
      * Tests a file MD5 against an expected value, returning the MD5.  NOTE: This function WILL throw an exception if the MD5s are different.
      * @param name Name of the test.
@@ -178,18 +190,21 @@ public class MD5DB {
      * @param parameterize If true or if expectedMD5 is an empty string, will print out the calculated MD5 instead of error text.
      * @return The calculated MD5.
      */
-    public static String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
-        String filemd5sum = testFileMD5(name, resultsFile, expectedMD5, parameterize);
+    public static MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
+        final String filemd5sum = testFileMD5(name, resultsFile, expectedMD5, parameterize);
+        String failMessage = null;
+        boolean failed = false;
 
         if (parameterize || expectedMD5.equals("")) {
             // Don't assert
         } else if ( filemd5sum.equals(expectedMD5) ) {
-            System.out.println(String.format("  => %s PASSED", name));
+            System.out.println(String.format("  => %s PASSED (expected=%s)", name, expectedMD5));
         } else {
-            Assert.fail(String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, filemd5sum));
+            failed = true;
+            failMessage = String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, filemd5sum);
         }
 
-        return filemd5sum;
+        return new MD5Match(filemd5sum, failMessage, failed);
     }
 
 
@@ -218,8 +233,8 @@ public class MD5DB {
                 System.out.println(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
                         name, resultsFile, filemd5sum, expectedMD5, filemd5sum.equals(expectedMD5)));
             } else {
-                System.out.println(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
-                System.out.flush();
+                //System.out.println(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
+                //System.out.flush();
 
                 if ( ! expectedMD5.equals(filemd5sum) ) {
                     // we are going to fail for real in assertEquals (so we are counted by the testing framework).

@@ -37,7 +37,7 @@ public class PhasingRead extends BaseArray {
     public PhasingRead(int length, int mappingQual) {
         super(length);
 
-        this.mappingProb = new PreciseNonNegativeDouble(QualityUtils.qualToProb(mappingQual));
+        this.mappingProb = new PreciseNonNegativeDouble(QualityUtils.qualToProb((byte)mappingQual));
 
         this.baseProbs = new PreciseNonNegativeDouble[length];
         Arrays.fill(this.baseProbs, null);

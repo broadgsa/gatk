@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 
 /**
  * Created by IntelliJ IDEA.
@@ -41,22 +42,29 @@ public class RecalibrationArgumentCollection {
     //////////////////////////////////
     // Shared Command Line Arguments
     //////////////////////////////////
+    @Hidden
     @Argument(fullName="default_read_group", shortName="dRG", required=false, doc="If a read has no read group then default to the provided String.")
     public String DEFAULT_READ_GROUP = null;
+    @Hidden
     @Argument(fullName="default_platform", shortName="dP", required=false, doc="If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
     public String DEFAULT_PLATFORM = null;
+    @Hidden
     @Argument(fullName="force_read_group", shortName="fRG", required=false, doc="If provided, the read group ID of EVERY read will be forced to be the provided String. This is useful to collapse all data into a single read group.")
     public String FORCE_READ_GROUP = null;
+    @Hidden
     @Argument(fullName="force_platform", shortName="fP", required=false, doc="If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
+    @Hidden
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="The window size used by MinimumNQSCovariate for its calculation", required=false)
     public int WINDOW_SIZE = 5;
 
     /**
      * This window size tells the module in how big of a neighborhood around the current base it should look for the minimum base quality score.
      */
+    @Hidden
     @Argument(fullName = "homopolymer_nback", shortName="nback", doc="The number of previous bases to look at in HomopolymerCovariate", required=false)
     public int HOMOPOLYMER_NBACK = 7;
+    @Hidden
     @Argument(fullName = "exception_if_no_tile", shortName="throwTileException", doc="If provided, TileCovariate will throw an exception when no tile can be found. The default behavior is to use tile = -1", required=false)
     public boolean EXCEPTION_IF_NO_TILE = false;
 

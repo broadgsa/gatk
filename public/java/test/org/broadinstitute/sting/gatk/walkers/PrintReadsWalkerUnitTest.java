@@ -10,6 +10,8 @@ import net.sf.samtools.SAMFileHeader;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -94,8 +96,8 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
         walker.out = writer;
 
         SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
-        SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
-        SAMRecord ret = walker.map(bases, rec,null);
+        GATKSAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
+        SAMRecord ret = walker.map(bases, rec, null);
         assertTrue(ret == rec);
         assertTrue(ret.getReadName().equals(rec.getReadName()));
     }

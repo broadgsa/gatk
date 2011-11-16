@@ -1,10 +1,5 @@
 package org.broadinstitute.sting.utils;
 
-import com.google.java.contract.Ensures;
-import com.google.java.contract.Invariant;
-import com.google.java.contract.Requires;
-
-import java.io.PrintStream;
 
 /**
  * A useful simple system for timing code.  This code is not thread safe!
@@ -13,11 +8,6 @@ import java.io.PrintStream;
  * Date: Dec 10, 2010
  * Time: 9:07:44 AM
  */
-@Invariant({
-        "elapsed >= 0",
-        "startTime >= 0",
-        "name != null",
-        "! running || startTime > 0"})
 public class SimpleTimer {
     final private String name;
     private long elapsed = 0l;
@@ -27,7 +17,6 @@ public class SimpleTimer {
     /**
      * Creates an anonymous simple timer
      */
-    @Ensures("name != null && name.equals(\"Anonymous\")")
     public SimpleTimer() {
         this("Anonymous");
     }
@@ -36,8 +25,6 @@ public class SimpleTimer {
      * Creates a simple timer named name
      * @param name of the timer, must not be null
      */
-    @Requires("name != null")
-    @Ensures("this.name != null && this.name.equals(name)")
     public SimpleTimer(String name) {
         this.name = name;
     }
@@ -45,7 +32,6 @@ public class SimpleTimer {
     /**
      * @return the name associated with this timer
      */
-    @Ensures("result != null")
     public synchronized String getName() {
         return name;
     }
@@ -56,8 +42,6 @@ public class SimpleTimer {
      *
      * @return this object, for programming convenience
      */
-    @Requires("running == false")
-    @Ensures({"result != null", "elapsed == 0l"})
     public synchronized SimpleTimer start() {
         elapsed = 0l;
         restart();
@@ -71,8 +55,6 @@ public class SimpleTimer {
      *
      * @return this object, for programming convenience
      */
-    @Requires("running == false")
-    @Ensures("result != null")
     public synchronized SimpleTimer restart() {
         running = true;
         startTime = currentTime();
@@ -99,8 +81,6 @@ public class SimpleTimer {
      *
      * @return this object, for programming convenience
      */
-    @Requires("running == true")
-    @Ensures({"result != null", "elapsed >= old(elapsed)", "running == false"})
     public synchronized SimpleTimer stop() {
         running = false;
         elapsed += currentTime() - startTime;
@@ -113,9 +93,6 @@ public class SimpleTimer {
      *
      * @return this time, in seconds
      */
-    @Ensures({
-            "result >= (elapsed/1000.0)",
-            "result >= 0"})
     public synchronized double getElapsedTime() {
         return (running ? (currentTime() - startTime + elapsed) : elapsed) / 1000.0;
     }

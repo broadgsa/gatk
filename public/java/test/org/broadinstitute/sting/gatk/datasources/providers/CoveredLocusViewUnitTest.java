@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 /**
@@ -41,7 +41,7 @@ public class CoveredLocusViewUnitTest extends LocusViewTemplate {
      * @param reads
      */
     @Override
-    protected void testReadsInContext( LocusView view, List<GenomeLoc> range, List<SAMRecord> reads ) {
+    protected void testReadsInContext( LocusView view, List<GenomeLoc> range, List<GATKSAMRecord> reads ) {
         CoveredLocusView coveredLocusView = (CoveredLocusView)view;
 
         // TODO: Should skip over loci not in the given range.
@@ -53,7 +53,7 @@ public class CoveredLocusViewUnitTest extends LocusViewTemplate {
             GenomeLoc site = genomeLocParser.createGenomeLoc("chr1",i);
 
             int expectedReadsAtSite = 0;
-            for( SAMRecord read: reads ) {
+            for( GATKSAMRecord read: reads ) {
                 if( genomeLocParser.createGenomeLoc(read).containsP(site) )
                     expectedReadsAtSite++;
             }
@@ -67,7 +67,7 @@ public class CoveredLocusViewUnitTest extends LocusViewTemplate {
             Assert.assertEquals(locusContext.getLocation(), site, "Target locus context location is incorrect");
             Assert.assertEquals(locusContext.getReads().size(), expectedReadsAtSite, "Found wrong number of reads at site");
 
-            for( SAMRecord read: reads ) {
+            for( GATKSAMRecord read: reads ) {
                 if(genomeLocParser.createGenomeLoc(read).containsP(locusContext.getLocation()))
                     Assert.assertTrue(locusContext.getReads().contains(read),"Target locus context does not contain reads");
             }

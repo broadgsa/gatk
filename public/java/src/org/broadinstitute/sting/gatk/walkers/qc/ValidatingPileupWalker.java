@@ -78,7 +78,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
             }
         }
 
-        return pileup.size();
+        return pileup.getNumberOfElements();
     }
 
     private static String maybeSorted( final String x, boolean sortMe )
@@ -94,7 +94,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
 
     public String pileupDiff(final ReadBackedPileup a, final SAMPileupFeature b, boolean orderDependent)
     {
-        if ( a.size() != b.size() )
+        if ( a.getNumberOfElements() != b.size() )
             return "Sizes not equal";
         GenomeLoc featureLocation = getToolkit().getGenomeLocParser().createGenomeLoc(b.getChr(),b.getStart(),b.getEnd());
         if ( a.getLocation().compareTo(featureLocation) != 0 )

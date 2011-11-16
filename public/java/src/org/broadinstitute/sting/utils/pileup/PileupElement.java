@@ -2,9 +2,8 @@ package org.broadinstitute.sting.utils.pileup;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,7 +11,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  * Date: Apr 14, 2009
  * Time: 8:54:05 AM
  */
-public class PileupElement {
+public class PileupElement implements Comparable<PileupElement> {
     public static final byte DELETION_BASE = BaseUtils.D;
     public static final byte DELETION_QUAL = (byte) 16;
     public static final byte A_FOLLOWED_BY_INSERTION_BASE = (byte) 87;
@@ -20,14 +19,14 @@ public class PileupElement {
     public static final byte T_FOLLOWED_BY_INSERTION_BASE = (byte) 89;
     public static final byte G_FOLLOWED_BY_INSERTION_BASE = (byte) 90;
 
-    protected final SAMRecord read;
+    protected final GATKSAMRecord read;
     protected final int offset;
 
     @Requires({
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement( SAMRecord read, int offset ) {
+    public PileupElement( GATKSAMRecord read, int offset ) {
         this.read = read;
         this.offset = offset;
     }
@@ -37,7 +36,7 @@ public class PileupElement {
     }
 
     @Ensures("result != null")
-    public SAMRecord getRead() { return read; }
+    public GATKSAMRecord getRead() { return read; }
 
     @Ensures("result == offset")
     public int getOffset() { return offset; }
@@ -75,26 +74,32 @@ public class PileupElement {
         return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
     }
 
+    @Override
+    public int compareTo(final PileupElement pileupElement) {
+        if ( offset < pileupElement.offset )
+            return -1;
+        else if ( offset > pileupElement.offset )
+            return 1;
+        else if ( read.getAlignmentStart() < pileupElement.read.getAlignmentStart() )
+            return -1;
+        else if ( read.getAlignmentStart() > pileupElement.read.getAlignmentStart() )
+            return 1;
+        else
+            return 0;
+    }
+
     // --------------------------------------------------------------------------
     //
     // Reduced read accessors
     //
     // --------------------------------------------------------------------------
 
-    private Integer getReducedReadQualityTagValue() {
-        return getRead().getIntegerAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
-    }
-
     public boolean isReducedRead() {
-        return getReducedReadQualityTagValue() != null;
+        return ((GATKSAMRecord)read).isReducedRead();
     }
 
-    public int getReducedCount() {
-        return (int)getQual();
-    }
-
-    public byte getReducedQual() {
-        return (byte)(int)getReducedReadQualityTagValue();
+    public int getRepresentativeCount() {
+        return isReducedRead() ? ((GATKSAMRecord)read).getReducedCount(offset) : 1;
     }
 
 }

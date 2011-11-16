@@ -53,8 +53,8 @@ class GATKIntervalsUnitTest {
     val gi = new GATKIntervals(hg18Reference, List("chr1:1-1", "chr2:2-3", "chr3:3-5"))
     Assert.assertEquals(gi.locs.toList, List(chr1, chr2, chr3))
     Assert.assertEquals(gi.contigs, List("chr1", "chr2", "chr3"))
-    Assert.assertEquals(gi.getSplits(2).toList, List(2, 3))
-    Assert.assertEquals(gi.getSplits(3).toList, List(1, 2, 3))
+//    Assert.assertEquals(gi.getSplits(2).toList, List(2, 3))
+//    Assert.assertEquals(gi.getSplits(3).toList, List(1, 2, 3))
   }
 
   @Test(timeOut = 30000)
@@ -65,7 +65,7 @@ class GATKIntervalsUnitTest {
     //   for(Item item: javaConvertedScalaList)
     // This for loop is actually an O(N^2) operation as the iterator calls the
     // O(N) javaConvertedScalaList.size() for each iteration of the loop.
-    Assert.assertEquals(gi.getSplits(gi.locs.size).size, 189894)
+    //Assert.assertEquals(gi.getSplits(gi.locs.size).size, 189894)
     Assert.assertEquals(gi.contigs.size, 24)
   }
 
@@ -74,8 +74,8 @@ class GATKIntervalsUnitTest {
     val gi = new GATKIntervals(hg18Reference, Nil)
     Assert.assertEquals(gi.locs, hg18ReferenceLocs)
     Assert.assertEquals(gi.contigs.size, hg18ReferenceLocs.size)
-    Assert.assertEquals(gi.getSplits(2).toList, List(10, 45))
-    Assert.assertEquals(gi.getSplits(4).toList, List(5, 10, 16, 45))
+//    Assert.assertEquals(gi.getSplits(2).toList, List(10, 45))
+//    Assert.assertEquals(gi.getSplits(4).toList, List(5, 10, 16, 45))
   }
 
   @Test

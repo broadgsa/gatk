@@ -42,12 +42,12 @@ import java.util.List;
  *
  * <h2>Input</h2>
  * <p>
- * One or more BAM files.
+ *  A reference file
  * </p>
  *
  * <h2>Output</h2>
  * <p>
- * GC content calculations per interval.
+ *  GC content calculations per interval.
  * </p>
  *
  * <h2>Examples</h2>
@@ -56,7 +56,6 @@ import java.util.List;
  *   -R ref.fasta \
  *   -T GCContentByInterval \
  *   -o output.txt \
- *   -I input.bam \
  *   -L input.intervals
  * </pre>
  *

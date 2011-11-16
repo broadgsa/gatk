@@ -5,20 +5,20 @@ package org.broadinstitute.sting.utils.variantcontext;
 // the imports for unit testing.
 
 
-import org.testng.Assert;
+import org.broadinstitute.sting.BaseTest;
 import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.BeforeTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.testng.Assert;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
-/**
- * Basic unit test for RecalData
- */
-public class VariantContextUnitTest {
-    Allele A, Aref, T, Tref;
+public class VariantContextUnitTest extends BaseTest {
+    Allele A, Aref, C, T, Tref;
     Allele del, delRef, ATC, ATCref;
 
     // A [ref] / T at 10
@@ -47,6 +47,7 @@ public class VariantContextUnitTest {
         delRef = Allele.create("-", true);
 
         A = Allele.create("A");
+        C = Allele.create("C");
         Aref = Allele.create("A", true);
         T = Allele.create("T");
         Tref = Allele.create("T", true);
@@ -132,6 +133,16 @@ public class VariantContextUnitTest {
         alleles = Arrays.asList(Tref, symbolic);
         vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
         Assert.assertEquals(vc.getType(), VariantContext.Type.SYMBOLIC);
+    }
+
+    @Test
+    public void testMultipleSNPAlleleOrdering() {
+        final List<Allele> allelesNaturalOrder = Arrays.asList(Aref, C, T);
+        final List<Allele> allelesUnnaturalOrder = Arrays.asList(Aref, T, C);
+        VariantContext naturalVC = new VariantContext("natural", snpLoc, snpLocStart, snpLocStop, allelesNaturalOrder);
+        VariantContext unnaturalVC = new VariantContext("unnatural", snpLoc, snpLocStart, snpLocStop, allelesUnnaturalOrder);
+        Assert.assertEquals(new ArrayList<Allele>(naturalVC.getAlleles()), allelesNaturalOrder);
+        Assert.assertEquals(new ArrayList<Allele>(unnaturalVC.getAlleles()), allelesUnnaturalOrder);
     }
 
     @Test
@@ -241,6 +252,29 @@ public class VariantContextUnitTest {
         Assert.assertEquals(vc.getSampleNames().size(), 0);
     }
 
+    @Test
+    public void testCreatingPartiallyCalledGenotype() {
+        List<Allele> alleles = Arrays.asList(Aref, C);
+        Genotype g = new Genotype("foo", Arrays.asList(C, Allele.NO_CALL), 10);
+        VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, alleles, Arrays.asList(g));
+
+        Assert.assertTrue(vc.isSNP());
+        Assert.assertEquals(vc.getNAlleles(), 2);
+        Assert.assertTrue(vc.hasGenotypes());
+        Assert.assertFalse(vc.isMonomorphic());
+        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertEquals(vc.getGenotype("foo"), g);
+        Assert.assertEquals(vc.getChromosomeCount(), 2); // we know that there are 2 chromosomes, even though one isn't called
+        Assert.assertEquals(vc.getChromosomeCount(Aref), 0);
+        Assert.assertEquals(vc.getChromosomeCount(C), 1);
+        Assert.assertFalse(vc.getGenotype("foo").isHet());
+        Assert.assertFalse(vc.getGenotype("foo").isHom());
+        Assert.assertFalse(vc.getGenotype("foo").isNoCall());
+        Assert.assertFalse(vc.getGenotype("foo").isHom());
+        Assert.assertTrue(vc.getGenotype("foo").isMixed());
+        Assert.assertEquals(vc.getGenotype("foo").getType(), Genotype.Type.MIXED);
+    }
+
     @Test (expectedExceptions = IllegalArgumentException.class)
     public void testBadConstructorArgs1() {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATCref));
@@ -251,9 +285,14 @@ public class VariantContextUnitTest {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, del));
     }
 
-    @Test (expectedExceptions = IllegalStateException.class)
+    @Test (expectedExceptions = IllegalArgumentException.class)
     public void testBadConstructorArgs3() {
         new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(del));
+    }
+
+    @Test (expectedExceptions = IllegalArgumentException.class)
+    public void testBadConstructorArgs4() {
+        new VariantContext("test", insLoc, insLocStart, insLocStop, Collections.<Allele>emptyList());
     }
 
     @Test (expectedExceptions = IllegalArgumentException.class)
@@ -445,14 +484,70 @@ public class VariantContextUnitTest {
         Assert.assertEquals(0, vc5.getChromosomeCount(Aref));
     }
 
+    // --------------------------------------------------------------------------------
+    //
+    // Test allele merging
+    //
+    // --------------------------------------------------------------------------------
 
-    @Test
-    public void testManipulatingAlleles() {
-        // todo -- add tests that call add/set/remove
+    private class GetAllelesTest extends TestDataProvider {
+        List<Allele> alleles;
+
+        private GetAllelesTest(String name, Allele... arg) {
+            super(GetAllelesTest.class, name);
+            this.alleles = Arrays.asList(arg);
+        }
+
+        public String toString() {
+            return String.format("%s input=%s", super.toString(), alleles);
+        }
     }
 
-    @Test
-    public void testManipulatingGenotypes() {
-        // todo -- add tests that call add/set/remove
+    @DataProvider(name = "getAlleles")
+    public Object[][] mergeAllelesData() {
+        new GetAllelesTest("A*",   Aref);
+        new GetAllelesTest("-*",   delRef);
+        new GetAllelesTest("A*/C", Aref, C);
+        new GetAllelesTest("A*/C/T", Aref, C, T);
+        new GetAllelesTest("A*/T/C", Aref, T, C);
+        new GetAllelesTest("A*/C/T/-", Aref, C, T, del);
+        new GetAllelesTest("A*/T/C/-", Aref, T, C, del);
+        new GetAllelesTest("A*/-/T/C", Aref, del, T, C);
+
+        return GetAllelesTest.getTests(GetAllelesTest.class);
+    }
+
+    @Test(dataProvider = "getAlleles")
+    public void testMergeAlleles(GetAllelesTest cfg) {
+        final List<Allele> altAlleles = cfg.alleles.subList(1, cfg.alleles.size());
+        final VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+
+        Assert.assertEquals(vc.getAlleles(), cfg.alleles, "VC alleles not the same as input alleles");
+        Assert.assertEquals(vc.getNAlleles(), cfg.alleles.size(), "VC getNAlleles not the same as input alleles size");
+        Assert.assertEquals(vc.getAlternateAlleles(), altAlleles, "VC alt alleles not the same as input alt alleles");
+
+
+        for ( int i = 0; i < cfg.alleles.size(); i++ ) {
+            final Allele inputAllele = cfg.alleles.get(i);
+
+            Assert.assertTrue(vc.hasAllele(inputAllele));
+            if ( inputAllele.isReference() ) {
+                final Allele nonRefVersion = Allele.create(inputAllele.getBases(), false);
+                Assert.assertTrue(vc.hasAllele(nonRefVersion, true));
+                Assert.assertFalse(vc.hasAllele(nonRefVersion, false));
+            }
+
+            Assert.assertEquals(inputAllele, vc.getAllele(inputAllele.getBaseString()));
+            Assert.assertEquals(inputAllele, vc.getAllele(inputAllele.getBases()));
+
+            if ( i > 0 ) { // it's an alt allele
+                Assert.assertEquals(inputAllele, vc.getAlternateAllele(i-1));
+            }
+        }
+
+        final Allele missingAllele = Allele.create("AACCGGTT"); // does not exist
+        Assert.assertNull(vc.getAllele(missingAllele.getBases()));
+        Assert.assertFalse(vc.hasAllele(missingAllele));
+        Assert.assertFalse(vc.hasAllele(missingAllele, true));
     }
 }

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -65,12 +66,14 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A table deliminated file containing the values of the requested fields in the VCF file
+ * A tab-delimited file containing the values of the requested fields in the VCF file
  * </p>
  *
  * <h2>Examples</h2>
  * <pre>
- *     -T $WalkerName \
+ *     java -jar GenomeAnalysisTK.jar \
+ *     -R reference.fasta
+ *     -T VariantsToTable \
  *     -V file.vcf \
  *     -F CHROM -F POS -F ID -F QUAL -F AC \
  *     -o results.table
@@ -103,7 +106,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * By default this tool only emits values for fields where the FILTER field is either PASS or . (unfiltered).
-     * Throwing this flag will cause $WalkerName to emit values regardless of the FILTER field value.
+     * Throwing this flag will cause VariantsToTable to emit values regardless of the FILTER field value.
      */
     @Advanced
     @Argument(fullName="showFiltered", shortName="raw", doc="If provided, field values from filtered records will be included in the output", required=false)
@@ -133,7 +136,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * By default, this tool throws a UserException when it encounters a field without a value in some record.  This
-     * is generally useful when you mistype -F CHRMO, so that you get a friendly warning about CHRMO not being
+     * is generally useful when you mistype -F CHROM, so that you get a friendly warning about CHROM not being
      * found before the tool runs through 40M 1000G records.  However, in some cases you genuinely want to allow such
      * fields (e.g., AC not being calculated for filtered records, if included).  When provided, this argument
      * will cause VariantsToTable to write out NA values for missing fields instead of throwing an error.
@@ -192,7 +195,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             if ( getters.containsKey(field) ) {
                 val = getters.get(field).get(vc);
             } else if ( vc.hasAttribute(field) ) {
-                val = vc.getAttributeAsString(field);
+                val = vc.getAttributeAsString(field, null);
             } else if ( isWildCard(field) ) {
                 Set<String> wildVals = new HashSet<String>();
                 for ( Map.Entry<String,Object> elt : vc.getAttributes().entrySet()) {
@@ -294,6 +297,14 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 return x.toString();
             }
         });
+        getters.put("EVENTLENGTH", new Getter() { public String get(VariantContext vc) {
+            int maxLength = 0;
+            for ( final Allele a : vc.getAlternateAlleles() ) {
+                final int length = a.length() - vc.getReference().length();
+                if( Math.abs(length) > Math.abs(maxLength) ) { maxLength = length; }
+            }
+            return Integer.toString(maxLength);
+        }});
         getters.put("QUAL", new Getter() { public String get(VariantContext vc) { return Double.toString(vc.getPhredScaledQual()); } });
         getters.put("TRANSITION", new Getter() { public String get(VariantContext vc) {
             if ( vc.isSNP() && vc.isBiallelic() )
@@ -304,11 +315,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("FILTER", new Getter() { public String get(VariantContext vc) {
             return vc.isNotFiltered() ? "PASS" : Utils.join(",", vc.getFilters()); }
         });
-
+        getters.put("ID", new Getter() { public String get(VariantContext vc) { return vc.hasID() ? vc.getID() : "."; } });
         getters.put("HET", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHetCount()); } });
         getters.put("HOM-REF", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomRefCount()); } });
         getters.put("HOM-VAR", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomVarCount()); } });
         getters.put("NO-CALL", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNoCallCount()); } });
+        getters.put("TYPE", new Getter() { public String get(VariantContext vc) { return vc.getType().toString(); } });
         getters.put("VAR", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHetCount() + vc.getHomVarCount()); } });
         getters.put("NSAMPLES", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples()); } });
         getters.put("NCALLED", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples() - vc.getNoCallCount()); } });

@@ -364,8 +364,8 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
         // count up the number of skipped reads by summing over all filters
         long nSkippedReads = 0L;
-        for ( Map.Entry<Class, Long> countsByFilter: cumulativeMetrics.getCountsByFilter().entrySet())
-            nSkippedReads += countsByFilter.getValue();
+        for ( final long countsByFilter : cumulativeMetrics.getCountsByFilter().values())
+            nSkippedReads += countsByFilter;
 
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours", elapsed, elapsed / 60, elapsed / 3600));
         if ( cumulativeMetrics.getNumReadsSeen() > 0 )
@@ -373,10 +373,10 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                     nSkippedReads,
                     cumulativeMetrics.getNumReadsSeen(),
                     100.0 * MathUtils.ratio(nSkippedReads,cumulativeMetrics.getNumReadsSeen())));
-        for ( Map.Entry<Class, Long> filterCounts : cumulativeMetrics.getCountsByFilter().entrySet() ) {
+        for ( Map.Entry<String, Long> filterCounts : cumulativeMetrics.getCountsByFilter().entrySet() ) {
             long count = filterCounts.getValue();
             logger.info(String.format("  -> %d reads (%.2f%% of total) failing %s",
-                    count, 100.0 * MathUtils.ratio(count,cumulativeMetrics.getNumReadsSeen()), Utils.getClassName(filterCounts.getKey())));
+                    count, 100.0 * MathUtils.ratio(count,cumulativeMetrics.getNumReadsSeen()), filterCounts.getKey()));
         }
 
         if ( performanceLog != null ) performanceLog.close();

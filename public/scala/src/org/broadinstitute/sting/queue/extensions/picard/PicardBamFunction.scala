@@ -50,8 +50,8 @@ trait PicardBamFunction extends JavaCommandLineFunction {
   abstract override def commandLine = super.commandLine +
     Array(
       repeat(" INPUT=", inputBams),
-      " OUTPUT=" + outputBam,
       " TMP_DIR=" + jobTempDir,
+      optional(" OUTPUT=", outputBam),
       optional(" COMPRESSION_LEVEL=", compressionLevel),
       optional(" VALIDATION_STRINGENCY=", validationStringency),
       optional(" SO=", sortOrder),

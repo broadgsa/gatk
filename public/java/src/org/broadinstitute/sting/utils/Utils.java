@@ -58,33 +58,6 @@ public class Utils {
         return (int)(maxElements / JAVA_DEFAULT_HASH_LOAD_FACTOR) + 2;
     }
 
-    public static String getClassName(Class c) {
-        String FQClassName = c.getName();
-        int firstChar;
-        firstChar = FQClassName.lastIndexOf ('.') + 1;
-        if ( firstChar > 0 ) {
-            FQClassName = FQClassName.substring ( firstChar );
-        }
-        return FQClassName;
-    }
-
-
-    // returns package and class name
-    public static String getFullClassName(Class c) {
-        return  c.getName();
-    }
-
-    // returns the package without the classname, empty string if
-    // there is no package
-    public static String getPackageName(Class c) {
-        String fullyQualifiedName = c.getName();
-        int lastDot = fullyQualifiedName.lastIndexOf ('.');
-        if (lastDot==-1){ return ""; }
-        return fullyQualifiedName.substring (0, lastDot);
-    }
-
-
-
     /**
      * Compares two objects, either of which might be null.
      *
@@ -107,20 +80,24 @@ public class Utils {
     }
 
     public static void warnUser(final String msg) {
+        warnUser(logger, msg);
+    }
+    
+    public static void warnUser(final Logger logger, final String msg) {
         logger.warn(String.format("********************************************************************************"));
         logger.warn(String.format("* WARNING:"));
         logger.warn(String.format("*"));
-        prettyPrintWarningMessage(msg);
+        prettyPrintWarningMessage(logger, msg);
         logger.warn(String.format("********************************************************************************"));
     }
-    
 
     /**
      * pretty print the warning message supplied
      *
+     * @param logger logger for the message
      * @param message the message
      */
-    private static void prettyPrintWarningMessage(String message) {
+    private static void prettyPrintWarningMessage(Logger logger, String message) {
         StringBuilder builder = new StringBuilder(message);
         while (builder.length() > 70) {
             int space = builder.lastIndexOf(" ", 70);
@@ -607,6 +584,12 @@ public class Utils {
         }
 
         return rcbases;
+    }
+
+    static public final <T> List<T> reverse(final List<T> l) {
+        final List<T> newL = new ArrayList<T>(l);
+        Collections.reverse(newL);
+        return newL;
     }
 
     /**

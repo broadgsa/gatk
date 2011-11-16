@@ -179,13 +179,19 @@
       </xsl:when>
     </xsl:choose>
   </xsl:for-each>
-    <xsl:for-each select="dir">
-        <fileset dir="{$staging.dir}">
-            <xsl:attribute name="includes">
-                <xsl:value-of select="concat(@name,'/**')"/>
-            </xsl:attribute>
-        </fileset>
-    </xsl:for-each>
+  <xsl:for-each select="dir">
+    <xsl:variable name="includes">
+      <xsl:choose>
+        <xsl:when test="@includes = ''">
+          <xsl:value-of select="concat(@name,'/**')"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="concat(@name,'/',@includes)"/>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:variable>
+    <fileset dir="{$staging.dir}" includes="{$includes}"/>
+  </xsl:for-each>
 </xsl:template>
 
 <!-- Determine the short name (filename w/o directory structure of the given filename -->

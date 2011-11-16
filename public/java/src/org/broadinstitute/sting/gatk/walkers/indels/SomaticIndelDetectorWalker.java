@@ -26,22 +26,16 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.Tags;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -51,16 +45,19 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
+import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -134,17 +131,9 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    boolean FORMAT_VCF = false;
 
     @Hidden
-    @Argument(fullName = "genotype_intervals", shortName = "genotype",
+    @Input(fullName = "genotype_intervals", shortName = "genotype",
         doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or not", required = false)
-    public String genotypeIntervalsFile = null;
-
-    @Hidden
-    @Argument(fullName="genotypeIntervalsAreNotSorted", shortName="giNotSorted", required=false,
-        doc="This tool assumes that the genotyping interval list (--genotype_intervals) is sorted; "+
-            "if the list turns out to be unsorted, it will throw an exception.  "+
-            "Use this argument when your interval list is not sorted to instruct the IndelGenotyper "+
-            "to sort and keep it in memory (increases memory usage!).")
-    protected boolean GENOTYPE_NOT_SORTED = false;
+    public IntervalBinding<Feature> genotypeIntervalsFile = null;
 
     @Hidden
     @Argument(fullName="unpaired", shortName="unpaired",
@@ -265,7 +254,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // first, the basic info
-        headerInfo.add(new VCFHeaderLine("source", "IndelGenotyperV2"));
+        headerInfo.add(new VCFHeaderLine("source", "SomaticIndelDetector"));
         headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
         // FORMAT and INFO fields
@@ -283,10 +272,10 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         args.addAll(getToolkit().getFilters());
         Map<String,String> commandLineArgs = getToolkit().getApproximateCommandLineArguments(args);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
-            headerInfo.add(new VCFHeaderLine(String.format("IGv2_%s", commandLineArg.getKey()), commandLineArg.getValue()));
+            headerInfo.add(new VCFHeaderLine(String.format("SID_%s", commandLineArg.getKey()), commandLineArg.getValue()));
         // also, the list of input bams
         for ( String fileName : getToolkit().getArguments().samFiles )
-            headerInfo.add(new VCFHeaderLine("IGv2_bam_file_used", fileName));
+            headerInfo.add(new VCFHeaderLine("SID_bam_file_used", fileName));
 
         return headerInfo;
     }
@@ -366,16 +355,9 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             }
             if ( genotypeIntervalsFile != null ) {
 
-                if ( ! GENOTYPE_NOT_SORTED && IntervalUtils.isIntervalFile(genotypeIntervalsFile)) {
-                    // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-                    genotypeIntervalIterator = new IntervalFileMergingIterator(getToolkit().getGenomeLocParser(),
-                        new java.io.File(genotypeIntervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
-                } else {
-                    // read in the whole list of intervals for cleaning
-                    GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
-                        IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(genotypeIntervalsFile),true), IntervalMergingRule.OVERLAPPING_ONLY);
-                    genotypeIntervalIterator = locs.iterator();
-                }
+                // read in the whole list of intervals for cleaning
+                GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(), genotypeIntervalsFile.getIntervals(getToolkit()), IntervalMergingRule.OVERLAPPING_ONLY);
+                genotypeIntervalIterator = locs.iterator();
 
                 // wrap intervals requested for genotyping inside overlapping iterator, so that we actually
                 // genotype only on the intersections of the requested intervals with the -L intervals
@@ -392,7 +374,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 		location = getToolkit().getGenomeLocParser().createGenomeLoc(getToolkit().getSAMFileHeader().getSequence(0).getSequenceName(),1);
 
-        normalSamples = getToolkit().getSamplesByReaders().get(0);
+        normalSamples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeaders().get(0));
 
         try {
             // we already checked that bedOutput and output_file are not set simultaneously
@@ -413,7 +395,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 
 	@Override
-	public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+	public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
     //        if ( read.getReadName().equals("428EFAAXX090610:2:36:1384:639#0") ) System.out.println("GOT READ");
 

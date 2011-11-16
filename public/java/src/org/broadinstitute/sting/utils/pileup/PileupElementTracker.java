@@ -24,8 +24,6 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-
 import java.util.*;
 
 /**
@@ -60,52 +58,35 @@ class UnifiedPileupElementTracker<PE extends PileupElement> extends PileupElemen
 }
 
 class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElementTracker<PE> {
-    private final Map<Sample,PileupElementTracker<PE>> pileup;
-    private final Map<String, Sample> sampleNames = new HashMap<String, Sample>();
+    private final Map<String,PileupElementTracker<PE>> pileup;
     private int size = 0;
 
     public PerSamplePileupElementTracker() {
-        pileup = new HashMap<Sample,PileupElementTracker<PE>>();
-    }
-
-    public PerSamplePileupElementTracker(Map<Sample,AbstractReadBackedPileup<?,PE>> pileupsBySample) {
-        pileup = new HashMap<Sample,PileupElementTracker<PE>>();
-        for(Map.Entry<Sample,AbstractReadBackedPileup<?,PE>> entry: pileupsBySample.entrySet()) {
-            Sample sample = entry.getKey();
-            AbstractReadBackedPileup<?,PE> pileupBySample = entry.getValue();
-            pileup.put(sample,pileupBySample.pileupElementTracker);
-            sampleNames.put(sample.getId(), sample);
-        }
+        pileup = new HashMap<String,PileupElementTracker<PE>>();
     }
 
     /**
      * Gets a list of all the samples stored in this pileup.
      * @return List of samples in this pileup.
      */
-    public Collection<Sample> getSamples() {
+    public Collection<String> getSamples() {
         return pileup.keySet();
     }
 
-    public PileupElementTracker<PE> getElements(final Sample sample) {
+    public PileupElementTracker<PE> getElements(final String sample) {
         return pileup.get(sample);
-    }
-
-    public PileupElementTracker<PE> getElements(final String sampleName) {
-        return pileup.get(sampleNames.get(sampleName));
     }
 
     public PileupElementTracker<PE> getElements(final Collection<String> selectSampleNames) {
         PerSamplePileupElementTracker<PE> result = new PerSamplePileupElementTracker<PE>();
-        for (String sample :  selectSampleNames) {
-            Sample sampleObject = sampleNames.get(sample);
-            result.addElements(sampleObject, pileup.get(sampleObject));
+        for (final String sample :  selectSampleNames) {
+            result.addElements(sample, pileup.get(sample));
         }
         return result;
     }
 
-    public void addElements(final Sample sample, PileupElementTracker<PE> elements) {
+    public void addElements(final String sample, PileupElementTracker<PE> elements) {
         pileup.put(sample,elements);
-        sampleNames.put(sample.getId(), sample);
         size += elements.size();
     }
 

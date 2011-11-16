@@ -50,6 +50,7 @@ public abstract class BaseTest {
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
     public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
+    //public static final String b37KGReference = "/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta";
     public static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
     public static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
     public static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
@@ -80,7 +81,8 @@ public abstract class BaseTest {
     public static final String networkTempDir = "/broad/shptmp/";
     public static final File networkTempDirFile = new File(networkTempDir);
 
-    public static final String testDir = "public/testdata/";
+    public static final File testDirFile = new File("public/testdata/");
+    public static final String testDir = testDirFile.getAbsolutePath() + "/";
 
     /** before the class starts up */
     static {
@@ -98,10 +100,10 @@ public abstract class BaseTest {
         logger.setLevel(Level.WARN);
 
         // find our file sources
-        if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
-            logger.fatal("We can't locate the reference directories.  Aborting!");
-            throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
-        }
+//        if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
+//            logger.fatal("We can't locate the reference directories.  Aborting!");
+//            throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
+//        }
     }
 
     /**
@@ -132,15 +134,21 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
+        private final String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C
          * @param c
          */
-        public TestDataProvider(Class c) {
+        public TestDataProvider(Class c, String name) {
             if ( ! tests.containsKey(c) )
                 tests.put(c, new ArrayList<Object>());
             tests.get(c).add(this);
+            this.name = name;
+        }
+
+        public TestDataProvider(Class c) {
+            this(c, "");
         }
 
         /**
@@ -152,6 +160,11 @@ public abstract class BaseTest {
             List<Object[]> params2 = new ArrayList<Object[]>();
             for ( Object x : tests.get(c) ) params2.add(new Object[]{x});
             return params2.toArray(new Object[][]{});
+        }
+
+        @Override
+        public String toString() {
+            return "TestDataProvider("+name+")";
         }
     }
 

@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue.extensions.gatk
 import org.broadinstitute.sting.utils.interval.IntervalUtils
 import java.io.File
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.util.IOUtils
+import org.broadinstitute.sting.utils.io.IOUtils
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterFunction}
 import org.broadinstitute.sting.commandline.Output
 
@@ -53,13 +53,10 @@ trait GATKScatterFunction extends ScatterFunction {
   /** Whether the last scatter job should also include any unmapped reads. */
   protected var includeUnmapped: Boolean = _
 
-  /** The total number of clone jobs that will be created. */
-  override def scatterCount = if (intervalFilesExist) super.scatterCount min this.maxIntervals else super.scatterCount
-
   override def init() {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
     this.referenceSequence = this.originalGATK.reference_sequence
-    if (this.originalGATK.intervals.isEmpty && this.originalGATK.intervalsString.isEmpty) {
+    if (this.originalGATK.intervals.isEmpty && (this.originalGATK.intervalsString == null || this.originalGATK.intervalsString.isEmpty)) {
       this.intervals ++= GATKScatterFunction.getGATKIntervals(this.referenceSequence, List.empty[String]).contigs
     } else {
       this.intervals ++= this.originalGATK.intervals.map(_.toString)
@@ -69,8 +66,6 @@ trait GATKScatterFunction extends ScatterFunction {
   }
 
   override def isScatterGatherable = {
-    if (this.originalGATK.BTI != null && this.originalGATK.BTIMR == null)
-      throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
     this.originalGATK.reference_sequence != null
   }
 

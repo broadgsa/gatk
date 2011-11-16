@@ -5,6 +5,10 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -174,6 +178,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         return new GenomeLoc[] { new GenomeLoc(getContig(),contigIndex,getStart(),splitPoint-1), new GenomeLoc(getContig(),contigIndex,splitPoint,getStop()) };
     }
 
+    public GenomeLoc union( GenomeLoc that ) { return merge(that); }
+
     @Requires("that != null")
     @Ensures("result != null")
     public GenomeLoc intersect( GenomeLoc that ) throws ReviewedStingException {
@@ -193,6 +199,79 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     @Requires("that != null")
+    public final List<GenomeLoc> subtract( final GenomeLoc that ) {
+        if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
+            if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
+                throw new ReviewedStingException("Tried to intersect a mapped and an unmapped genome loc");
+            return Arrays.asList(UNMAPPED);
+        }
+
+        if (!(this.overlapsP(that))) {
+            throw new ReviewedStingException("GenomeLoc::minus(): The two genome loc's need to overlap");
+        }
+
+        if (equals(that)) {
+            return Collections.emptyList();
+        } else if (containsP(that)) {
+            List<GenomeLoc> l = new ArrayList<GenomeLoc>(2);
+
+            /**
+             * we have to create two new region, one for the before part, one for the after
+             * The old region:
+             * |----------------- old region (g) -------------|
+             *        |----- to delete (e) ------|
+             *
+             * product (two new regions):
+             * |------|  + |--------|
+             *
+             */
+            int afterStop = this.getStop(), afterStart = that.getStop() + 1;
+            int beforeStop = that.getStart() - 1, beforeStart = this.getStart();
+            if (afterStop - afterStart >= 0) {
+                GenomeLoc after = new GenomeLoc(this.getContig(), getContigIndex(), afterStart, afterStop);
+                l.add(after);
+            }
+            if (beforeStop - beforeStart >= 0) {
+                GenomeLoc before = new GenomeLoc(this.getContig(), getContigIndex(), beforeStart, beforeStop);
+                l.add(before);
+            }
+
+            return l;
+        } else if (that.containsP(this)) {
+            /**
+             * e completely contains g, delete g, but keep looking, there may be more regions
+             * i.e.:
+             *   |--------------------- e --------------------|
+             *       |--- g ---|    |---- others ----|
+             */
+            return Collections.emptyList();   // don't need to do anything
+        } else {
+            /**
+             * otherwise e overlaps some part of g
+             *
+             * figure out which region occurs first on the genome.  I.e., is it:
+             * |------------- g ----------|
+             *       |------------- e ----------|
+             *
+             * or:
+             *       |------------- g ----------|
+             * |------------ e -----------|
+             *
+             */
+
+            GenomeLoc n;
+            if (that.getStart() < this.getStart()) {
+                n = new GenomeLoc(this.getContig(), getContigIndex(), that.getStop() + 1, this.getStop());
+            } else {
+                n = new GenomeLoc(this.getContig(), getContigIndex(), this.getStart(), that.getStart() - 1);
+            }
+
+            // replace g with the new region
+            return Arrays.asList(n);
+        }
+    }
+
+    @Requires("that != null")
     public final boolean containsP(GenomeLoc that) {
         return onSameContig(that) && getStart() <= that.getStart() && getStop() >= that.getStop();
     }
@@ -203,18 +282,13 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     @Requires("that != null")
-    public final int minus( final GenomeLoc that ) {
+    @Ensures("result >= 0")
+    public final int distance( final GenomeLoc that ) {
         if ( this.onSameContig(that) )
-            return this.getStart() - that.getStart();
+            return Math.abs(this.getStart() - that.getStart());
         else
             return Integer.MAX_VALUE;
     }
-
-    @Requires("that != null")
-    @Ensures("result >= 0")
-    public final int distance( final GenomeLoc that ) {
-        return Math.abs(minus(that));
-    }    
 
     @Requires({"left != null", "right != null"})
     public final boolean isBetween( final GenomeLoc left, final GenomeLoc right ) {
@@ -306,7 +380,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     
     @Override
     public int hashCode() {
-        return (int)( start << 16 + stop << 4 + contigIndex );
+        return start << 16 | stop << 4 | contigIndex;
     }
 
 

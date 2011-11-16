@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils;
 
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -28,7 +29,7 @@ public class ReservoirDownsamplerUnitTest {
 
     @Test
     public void testOneElementWithPoolSizeOne() {
-        List<SAMRecord> reads = Collections.singletonList(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
+        List<GATKSAMRecord> reads = Collections.singletonList(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
         downsampler.addAll(reads);
 
@@ -40,7 +41,7 @@ public class ReservoirDownsamplerUnitTest {
 
     @Test
     public void testOneElementWithPoolSizeGreaterThanOne() {
-        List<SAMRecord> reads = Collections.singletonList(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
+        List<GATKSAMRecord> reads = Collections.singletonList(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 

@@ -28,7 +28,7 @@ public class FunctionalClass extends VariantStratifier {
     }
 
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("all");
@@ -38,7 +38,7 @@ public class FunctionalClass extends VariantStratifier {
 
             if (eval.hasAttribute("refseq.functionalClass")) {
                 try {
-                    type = FunctionalType.valueOf(eval.getAttributeAsString("refseq.functionalClass"));
+                    type = FunctionalType.valueOf(eval.getAttributeAsString("refseq.functionalClass", null));
                 } catch ( Exception e ) {} // don't error out if the type isn't supported
             } else if (eval.hasAttribute("refseq.functionalClass_1")) {
                 int annotationId = 1;
@@ -47,7 +47,7 @@ public class FunctionalClass extends VariantStratifier {
                 do {
                     key = String.format("refseq.functionalClass_%d", annotationId);
 
-                    String newtypeStr = eval.getAttributeAsString(key);
+                    String newtypeStr = eval.getAttributeAsString(key, null);
                     if ( newtypeStr != null && !newtypeStr.equalsIgnoreCase("null") ) {
                         try {
                             FunctionalType newType = FunctionalType.valueOf(newtypeStr);

@@ -25,7 +25,6 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -37,6 +36,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
 import java.util.Arrays;
@@ -72,7 +72,7 @@ public class ReadClippingStatsWalker extends ReadWalker<ReadClippingStatsWalker.
         int readLength, nClippingEvents, nClippedBases;
     }
 
-    public ReadClippingInfo map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public ReadClippingInfo map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY)
             return null;
 

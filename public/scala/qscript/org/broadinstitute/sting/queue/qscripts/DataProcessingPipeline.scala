@@ -12,20 +12,18 @@ import net.sf.samtools.SAMFileHeader.SortOrder
 
 import org.broadinstitute.sting.queue.util.QScriptUtils
 import org.broadinstitute.sting.queue.function.ListWriterFunction
+import org.broadinstitute.sting.commandline.Hidden
 
 class DataProcessingPipeline extends QScript {
   qscript =>
 
   /****************************************************************************
-  * Required Parameters (if default values are not good for you)
+  * Required Parameters
   ****************************************************************************/
 
 
   @Input(doc="input BAM file - or list of BAM files", fullName="input", shortName="i", required=true)
   var input: File = _
-
-  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
-  var R: String = _
 
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
   var reference: File = _
@@ -64,6 +62,9 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Decompose input BAM file and fully realign it using BWA and assume Pair Ended reads", fullName="use_bwa_pair_ended", shortName="bwape", required=false)
   var useBWApe: Boolean = false
 
+  @Input(doc="Decompose input BAM file and fully realign it using BWA SW", fullName="use_bwa_sw", shortName="bwasw", required=false)
+  var useBWAsw: Boolean = false
+
   @Input(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
   var bwaThreads: Int = 1
 
@@ -72,11 +73,23 @@ class DataProcessingPipeline extends QScript {
 
 
   /****************************************************************************
+  * Hidden Parameters
+  ****************************************************************************/
+  @Hidden
+  @Input(doc="How many ways to scatter/gather", fullName="scatter_gather", shortName="sg", required=false)
+  var nContigs: Int = -1
+
+  @Hidden
+  @Input(doc="Define the default platform for Count Covariates -- useful for techdev purposes only.", fullName="default_platform", shortName="dp", required=false)
+  var defaultPlatform: String = ""
+
+
+  /****************************************************************************
   * Global Variables
   ****************************************************************************/
 
   val queueLogDir: String = ".qlog/"  // Gracefully hide Queue's output
-  var nContigs: Int = 0               // Use the number of contigs for scatter gathering jobs
+
   var cleanModelEnum: ConsensusDeterminationModel = ConsensusDeterminationModel.USE_READS
 
 
@@ -149,22 +162,28 @@ class DataProcessingPipeline extends QScript {
     var index = 1
     for (bam <- bams) {
       // first revert the BAM file to the original qualities
-      val revertedBAM = revertBAM(bam, true)
-      val readSortedBam = swapExt(revertedBAM, ".bam", "." + index + ".sorted.bam" )
       val saiFile1 = swapExt(bam, ".bam", "." + index + ".1.sai")
       val saiFile2 = swapExt(bam, ".bam", "." + index + ".2.sai")
       val realignedSamFile = swapExt(bam, ".bam", "." + index + ".realigned.sam")
       val realignedBamFile = swapExt(bam, ".bam", "." + index + ".realigned.bam")
       val rgRealignedBamFile = swapExt(bam, ".bam", "." + index + ".realigned.rg.bam")
+
       if (useBWAse) {
+        val revertedBAM = revertBAM(bam, true)
         add(bwa_aln_se(revertedBAM, saiFile1),
             bwa_sam_se(revertedBAM, saiFile1, realignedSamFile))
       }
-      else {
-        add(sortSam(revertedBAM, readSortedBam, SortOrder.queryname),
-            bwa_aln_pe(readSortedBam, saiFile1, 1),
-            bwa_aln_pe(readSortedBam, saiFile2, 2),
-            bwa_sam_pe(readSortedBam, saiFile1, saiFile2, realignedSamFile))
+      else if (useBWApe) {
+        val revertedBAM = revertBAM(bam, true)
+        add(bwa_aln_pe(revertedBAM, saiFile1, 1),
+            bwa_aln_pe(revertedBAM, saiFile2, 2),
+            bwa_sam_pe(revertedBAM, saiFile1, saiFile2, realignedSamFile))
+      }
+      else if (useBWAsw) {
+        val revertedBAM = revertBAM(bam, false)
+        val fastQ = swapExt(revertedBAM, ".bam", ".fq")
+        add(convertToFastQ(revertedBAM, fastQ),
+            bwa_sw(fastQ, realignedSamFile))
       }
       add(sortSam(realignedSamFile, realignedBamFile, SortOrder.coordinate))
       addReadGroups(realignedBamFile, rgRealignedBamFile, new SAMFileReader(bam))
@@ -210,9 +229,10 @@ class DataProcessingPipeline extends QScript {
 
     // keep a record of the number of contigs in the first bam file in the list
     val bams = QScriptUtils.createListFromFile(input)
-    nContigs = QScriptUtils.getNumberOfContigs(bams(0))
+    if (nContigs < 0)
+     nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
-    val realignedBAMs = if (useBWApe || useBWAse) {performAlignment(bams)} else {revertBams(bams, false)}
+    val realignedBAMs = if (useBWApe || useBWAse  || useBWAsw) {performAlignment(bams)} else {revertBams(bams, false)}
 
     // generate a BAM file per sample joining all per lane files if necessary
     val sampleBAMFiles: Map[String, List[File]] = createSampleFiles(bams, realignedBAMs)
@@ -325,6 +345,7 @@ class DataProcessingPipeline extends QScript {
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
+    if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.scatterCount = nContigs
@@ -353,7 +374,6 @@ class DataProcessingPipeline extends QScript {
 
 
   case class analyzeCovariates (inRecalFile: File, outPath: File) extends AnalyzeCovariates {
-    this.resources = qscript.R
     this.recal_file = inRecalFile
     this.output_dir = outPath.toString
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
@@ -412,9 +432,16 @@ class DataProcessingPipeline extends QScript {
     this.output = outBam
     this.input :+= inBam
     this.removeAlignmentInformation = removeAlignmentInfo;
+    this.sortOrder = if (removeAlignmentInfo) {SortOrder.queryname} else {SortOrder.coordinate}
     this.analysisName = queueLogDir + outBam + "revert"
     this.jobName = queueLogDir + outBam + ".revert"
+  }
 
+  case class convertToFastQ (inBam: File, outFQ: File) extends SamToFastq with ExternalCommonArgs {
+    this.input :+= inBam
+    this.fastq = outFQ
+    this.analysisName = queueLogDir + outFQ + "convert_to_fastq"
+    this.jobName = queueLogDir + outFQ + ".convert_to_fastq"
   }
 
   case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction with ExternalCommonArgs {
@@ -452,6 +479,14 @@ class DataProcessingPipeline extends QScript {
     this.memoryLimit = 6
     this.analysisName = queueLogDir + outBam + ".bwa_sam_pe"
     this.jobName = queueLogDir + outBam + ".bwa_sam_pe"
+  }
+
+  case class bwa_sw (inFastQ: File, outBam: File) extends CommandLineFunction with ExternalCommonArgs {
+    @Input(doc="fastq file to be aligned") var fq = inFastQ
+    @Output(doc="output bam file") var bam = outBam
+    def commandLine = bwaPath + " bwasw -t " + bwaThreads + " " + reference + " " + fq + " > " + bam
+    this.analysisName = queueLogDir + outBam + ".bwasw"
+    this.jobName = queueLogDir + outBam + ".bwasw"
   }
 
   case class writeList(inBams: List[File], outBamList: File) extends ListWriterFunction {
