@@ -25,7 +25,13 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.jgrapht.util.MathUtil;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 public class GenotypeLikelihoods {
     public static final boolean CAP_PLS = false;
@@ -92,6 +98,48 @@ public class GenotypeLikelihoods {
         }
 
         return likelihoodsAsString_PLs;
+    }
+
+    //Return genotype likelihoods as an EnumMap with Genotypes as keys and likelihoods as values
+    //Returns null in case of missing likelihoods
+    public EnumMap<Genotype.Type,Double> getAsMap(boolean normalizeFromLog10){
+        //Make sure that the log10likelihoods are set
+        double[] likelihoods = normalizeFromLog10 ? MathUtils.normalizeFromLog10(getAsVector()) : getAsVector();
+        if(likelihoods == null)
+            return null;
+        EnumMap<Genotype.Type,Double> likelihoodsMap = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
+        likelihoodsMap.put(Genotype.Type.HOM_REF,likelihoods[Genotype.Type.HOM_REF.ordinal()-1]);
+        likelihoodsMap.put(Genotype.Type.HET,likelihoods[Genotype.Type.HET.ordinal()-1]);
+        likelihoodsMap.put(Genotype.Type.HOM_VAR, likelihoods[Genotype.Type.HOM_VAR.ordinal() - 1]);
+        return likelihoodsMap;
+    }
+
+    //Return the neg log10 Genotype Quality (GQ) for the given genotype
+    //Returns Double.NEGATIVE_INFINITY in case of missing genotype
+    public double getNegLog10GQ(Genotype.Type genotype){
+
+        double qual = Double.NEGATIVE_INFINITY;
+        EnumMap<Genotype.Type,Double> likelihoods = getAsMap(false);
+        if(likelihoods == null)
+            return qual;
+        for(Map.Entry<Genotype.Type,Double> likelihood : likelihoods.entrySet()){
+            if(likelihood.getKey() == genotype)
+                continue;
+            if(likelihood.getValue() > qual)
+                qual = likelihood.getValue();
+
+        }
+
+        //Quality of the most likely genotype = likelihood(most likely) - likelihood (2nd best)
+        qual = likelihoods.get(genotype) - qual;
+
+        //Quality of other genotypes 1-P(G)
+        if (qual < 0) {
+            double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
+            double chosenGenotype = normalized[genotype.ordinal()-1];
+            qual = -1.0 * Math.log10(1.0 - chosenGenotype);
+        }
+        return qual;
     }
 
     private final static double[] parsePLsIntoLikelihoods(String likelihoodsAsString_PLs) {

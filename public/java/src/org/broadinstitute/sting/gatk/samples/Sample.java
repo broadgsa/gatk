@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.samples;
 
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -108,6 +109,17 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
      */
     public Sample getFather() {
         return infoDB.getSample(paternalID);
+    }
+
+    public ArrayList<Sample> getParents(){
+        ArrayList<Sample> parents = new ArrayList<Sample>(2);
+        Sample parent = getMother();
+        if(parent != null)
+            parents.add(parent);
+        parent = getFather();
+        if(parent != null)
+            parents.add(parent);
+        return parents;
     }
 
     /**
