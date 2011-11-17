@@ -302,7 +302,7 @@ public class VariantContextUtils {
         }
 
         return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(),
-                vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
+                vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes, vc.getReferenceBaseForIndel());
     }
 
     public enum GenotypeMergeType {
