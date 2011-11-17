@@ -98,7 +98,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();
 
         genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
-        for ( Genotype sample : GLs ) {
+        for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
@@ -290,12 +290,12 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // todo = can't deal with optimal dynamic programming solution with multiallelic records
         if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-            sampleIndices.addAll(GLs.getSampleNames());
+            sampleIndices.addAll(GLs.getSampleNamesOrderedByName());
             sampleIdx = GLs.size();
         }
         else {
 
-            for ( final Genotype genotype : GLs ) {
+            for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
                 if ( !genotype.hasLikelihoods() )
                     continue;
 
@@ -419,7 +419,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         }
 
-        for ( final Genotype genotype : GLs ) {
+        for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
             if ( !genotype.hasLikelihoods() )
                 continue;
             Genotype g = GLs.get(genotype.getSampleName());
