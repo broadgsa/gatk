@@ -383,8 +383,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         this.stop = stop;
 
         // intern for efficiency.  equals calls will generate NPE if ID is inappropriately passed in as null
+        if ( ID == null || ID.equals("") ) throw new IllegalArgumentException("ID field cannot be the null or the empty string");
         this.ID = ID.equals(VCFConstants.EMPTY_ID_FIELD) ? VCFConstants.EMPTY_ID_FIELD : ID;
-        if ( this.ID.equals("") ) throw new IllegalArgumentException("ID field cannot be the empty string");
 
         if ( !genotypesAreUnparsed && attributes != null ) {
             if ( attributes.containsKey(UNPARSED_GENOTYPE_MAP_KEY) ) {
