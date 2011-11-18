@@ -16,7 +16,8 @@ public class ReadUtilsUnitTest extends BaseTest {
     GATKSAMRecord read, reducedRead;
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?";
-    final private static byte[] REDUCED_READ_COUNTS = new byte[]{10, 20, 30, 40};
+    final private static byte[] REDUCED_READ_COUNTS =     new byte[]{10, 20, 30, 40};
+    final private static byte[] REDUCED_READ_COUNTS_TAG = new byte[]{10, 10, 20, 30};  // just the offsets
 
     @BeforeTest
     public void init() {
@@ -29,7 +30,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead = ArtificialSAMUtils.createArtificialRead(header, "reducedRead", 0, 1, BASES.length());
         reducedRead.setReadBases(BASES.getBytes());
         reducedRead.setBaseQualityString(QUALS);
-        reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG, REDUCED_READ_COUNTS);
+        reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG, REDUCED_READ_COUNTS_TAG);
     }
 
     private void testReadBasesAndQuals(GATKSAMRecord read, int expectedStart, int expectedStop) {

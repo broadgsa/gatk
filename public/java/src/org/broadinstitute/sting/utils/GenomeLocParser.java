@@ -554,4 +554,54 @@ public class GenomeLocParser {
         return createGenomeLoc(contigName,contig.getSequenceIndex(),1,contig.getSequenceLength(), true);
     }
 
+    /**
+     * Creates a loc to the left (starting at the loc start + 1) of maxBasePairs size.
+     * @param loc The original loc
+     * @param maxBasePairs The maximum number of basePairs
+     * @return The contiguous loc of up to maxBasePairs length or null if the loc is already at the start of the contig.
+     */
+    @Requires({"loc != null", "maxBasePairs > 0"})
+    public GenomeLoc createGenomeLocAtStart(GenomeLoc loc, int maxBasePairs) {
+        if (GenomeLoc.isUnmapped(loc))
+            return null;
+        String contigName = loc.getContig();
+        SAMSequenceRecord contig = contigInfo.getSequence(contigName);
+        int contigIndex = contig.getSequenceIndex();
+
+        int start = loc.getStart() - maxBasePairs;
+        int stop = loc.getStart() - 1;
+
+        if (start < 1)
+            start = 1;
+        if (stop < 1)
+            return null;
+
+        return createGenomeLoc(contigName, contigIndex, start, stop, true);
+    }
+
+    /**
+     * Creates a loc to the right (starting at the loc stop + 1) of maxBasePairs size.
+     * @param loc The original loc
+     * @param maxBasePairs The maximum number of basePairs
+     * @return The contiguous loc of up to maxBasePairs length or null if the loc is already at the end of the contig.
+     */
+    @Requires({"loc != null", "maxBasePairs > 0"})
+    public GenomeLoc createGenomeLocAtStop(GenomeLoc loc, int maxBasePairs) {
+        if (GenomeLoc.isUnmapped(loc))
+            return null;
+        String contigName = loc.getContig();
+        SAMSequenceRecord contig = contigInfo.getSequence(contigName);
+        int contigIndex = contig.getSequenceIndex();
+        int contigLength = contig.getSequenceLength();
+
+        int start = loc.getStop() + 1;
+        int stop = loc.getStop() + maxBasePairs;
+
+        if (start > contigLength)
+            return null;
+        if (stop > contigLength)
+            stop = contigLength;
+
+        return createGenomeLoc(contigName, contigIndex, start, stop, true);
+    }
 }

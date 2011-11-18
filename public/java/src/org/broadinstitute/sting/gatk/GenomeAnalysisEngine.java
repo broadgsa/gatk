@@ -480,7 +480,7 @@ public class GenomeAnalysisEngine {
             }
         } else if (walker instanceof ReadPairWalker) {
             if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
-                throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");
+                throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers are exceptions in that they cannot be run on coordinate-sorted BAMs but instead require query name-sorted files.  You will need to resort your input BAM file in query name order to use this walker.");
             if(intervals != null && !intervals.isEmpty())
                 throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
 
