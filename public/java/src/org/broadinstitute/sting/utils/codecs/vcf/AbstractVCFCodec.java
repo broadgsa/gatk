@@ -296,6 +296,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         if (parts.length > NUM_STANDARD_FIELDS) {
             builder.attribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, new String(parts[8]));
             builder.attribute(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY, this);
+            builder.genotypesAreUnparsed();
         }
 
         VariantContext vc = null;

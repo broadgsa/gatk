@@ -24,19 +24,41 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
+
 import java.util.*;
 
 /**
- *
+ * Represents an ordered collection of Genotype objects
  */
 public class GenotypesContext implements List<Genotype> {
+    /**
+     * static constant value for an empty GenotypesContext.  Useful since so many VariantContexts have no genotypes
+     */
     public final static GenotypesContext NO_GENOTYPES =
             new GenotypesContext(new ArrayList<Genotype>(0), new HashMap<String, Integer>(0), Collections.<String>emptyList(), true);
 
+    /**
+     *sampleNamesInOrder a list of sample names, one for each genotype in genotypes, sorted in alphabetical order
+     */
     List<String> sampleNamesInOrder = null;
+
+    /**
+     * a map optimized for efficient lookup.  Each genotype in genotypes must have its
+     * sample name in sampleNameToOffset, with a corresponding integer value that indicates the offset of that
+     * genotype in the vector of genotypes
+     */
     Map<String, Integer> sampleNameToOffset = null;
+
+    /** if true, then we need to reinitialize sampleNamesInOrder and sampleNameToOffset before we use them /*/
     boolean cacheIsInvalid = true;
+
+    /** An ArrayList of genotypes contained in this context */
     List<Genotype> genotypes;
+
+    /** Are we allowing users to modify the list? */
     boolean immutable = false;
 
     // ---------------------------------------------------------------------------
@@ -45,14 +67,25 @@ public class GenotypesContext implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
+    /**
+     * Create an empty GenotypeContext
+     */
     private GenotypesContext() {
         this(10, false);
     }
 
+    /**
+     * Create an empty GenotypeContext, with initial capacity for n elements
+     */
+    @Requires("n >= 0")
     private GenotypesContext(final int n, final boolean immutable) {
         this(new ArrayList<Genotype>(n), immutable);
     }
 
+    /**
+     * Create an GenotypeContext containing genotypes
+     */
+    @Requires("genotypes != null")
     private GenotypesContext(final ArrayList<Genotype> genotypes, final boolean immutable) {
         this.genotypes = genotypes;
         this.immutable = immutable;
@@ -60,6 +93,23 @@ public class GenotypesContext implements List<Genotype> {
         this.cacheIsInvalid = true;
     }
 
+    /**
+     * Create a fully resolved GenotypeContext containing genotypes, sample lookup table,
+     * and sorted sample names
+     *
+     * @param genotypes our genotypes in arbitrary
+     * @param sampleNameToOffset map optimized for efficient lookup.  Each genotype in genotypes must have its
+     * sample name in sampleNameToOffset, with a corresponding integer value that indicates the offset of that
+     * genotype in the vector of genotypes
+     * @param sampleNamesInOrder a list of sample names, one for each genotype in genotypes, sorted in alphabetical
+     * order.
+     * @param immutable
+     */
+    @Requires({"genotypes != null",
+            "sampleNameToOffset != null",
+            "sampleNamesInOrder != null",
+            "genotypes.size() == sampleNameToOffset.size()",
+            "genotypes.size() == sampleNamesInOrder.size()"})
     private GenotypesContext(final ArrayList<Genotype> genotypes,
                              final Map<String, Integer> sampleNameToOffset,
                              final List<String> sampleNamesInOrder,
@@ -77,53 +127,97 @@ public class GenotypesContext implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
+    /**
+     * Basic creation routine
+     * @return an empty, mutable GenotypeContext
+     */
+    @Ensures({"result != null"})
     public static final GenotypesContext create() {
         return new GenotypesContext();
     }
 
+    /**
+     * Basic creation routine
+     * @return an empty, mutable GenotypeContext with initial capacity for nGenotypes
+     */
+    @Requires("nGenotypes >= 0")
+    @Ensures({"result != null"})
     public static final GenotypesContext create(final int nGenotypes) {
         return new GenotypesContext(nGenotypes, false);
     }
 
+    /**
+     * Create a fully resolved GenotypeContext containing genotypes, sample lookup table,
+     * and sorted sample names
+     *
+     * @param genotypes our genotypes in arbitrary
+     * @param sampleNameToOffset map optimized for efficient lookup.  Each genotype in genotypes must have its
+     * sample name in sampleNameToOffset, with a corresponding integer value that indicates the offset of that
+     * genotype in the vector of genotypes
+     * @param sampleNamesInOrder a list of sample names, one for each genotype in genotypes, sorted in alphabetical
+     * order.
+     * @return an mutable GenotypeContext containing genotypes with already present lookup data
+     */
+    @Requires({"genotypes != null",
+            "sampleNameToOffset != null",
+            "sampleNamesInOrder != null",
+            "sameSamples(genotypes, sampleNamesInOrder)",
+            "sameSamples(genotypes, sampleNameToOffset.keySet())"})
+    @Ensures({"result != null"})
     public static final GenotypesContext create(final ArrayList<Genotype> genotypes,
                                                 final Map<String, Integer> sampleNameToOffset,
                                                 final List<String> sampleNamesInOrder) {
         return new GenotypesContext(genotypes, sampleNameToOffset, sampleNamesInOrder, false);
     }
 
+    /**
+     * Create a fully resolved GenotypeContext containing genotypes
+     *
+     * @param genotypes our genotypes in arbitrary
+     * @return an mutable GenotypeContext containing genotypes
+     */
+    @Requires({"genotypes != null"})
+    @Ensures({"result != null"})
     public static final GenotypesContext create(final ArrayList<Genotype> genotypes) {
         return genotypes == null ? NO_GENOTYPES : new GenotypesContext(genotypes, false);
     }
 
+    /**
+     * Create a fully resolved GenotypeContext containing genotypes
+     *
+     * @param genotypes our genotypes in arbitrary
+     * @return an mutable GenotypeContext containing genotypes
+     */
+    @Requires({"genotypes != null"})
+    @Ensures({"result != null"})
     public static final GenotypesContext create(final Genotype... genotypes) {
         return new GenotypesContext(new ArrayList<Genotype>(Arrays.asList(genotypes)), false);
     }
 
+    /**
+     * Create a freshly allocated GenotypeContext containing the genotypes in toCopy
+     *
+     * @param toCopy the GenotypesContext to copy
+     * @return an mutable GenotypeContext containing genotypes
+     */
+    @Requires({"toCopy != null"})
+    @Ensures({"result != null"})
     public static final GenotypesContext copy(final GenotypesContext toCopy) {
         return create(new ArrayList<Genotype>(toCopy.genotypes));
     }
 
+    /**
+     * Create a GenotypesContext containing the genotypes in iteration order contained
+     * in toCopy
+     *
+     * @param toCopy the collection of genotypes
+     * @return an mutable GenotypeContext containing genotypes
+     */
+    @Requires({"toCopy != null"})
+    @Ensures({"result != null"})
     public static final GenotypesContext copy(final Collection<Genotype> toCopy) {
         return toCopy == null ? NO_GENOTYPES : create(new ArrayList<Genotype>(toCopy));
     }
-
-
-
-//    public static final GenotypeMap create(final Collection<Genotype> genotypes) {
-//        if ( genotypes == null )
-//            return null; // todo -- really should return an empty map
-//        else {
-//            GenotypeMap genotypeMap = new GenotypeMap(genotypes.size(), false);
-//            for ( final Genotype g : genotypes ) {
-//                if ( genotypeMap.containsKey(g.getSampleName() ) )
-//                    throw new IllegalArgumentException("Duplicate genotype added to VariantContext: " + g);
-//                genotypeMap.put(g.getSampleName(), g);
-//            }
-//
-//            //return genotypeMap.immutable();  // todo enable when we have time to dive into mutability issue
-//            return genotypeMap;
-//        }
-//    }
 
     // ---------------------------------------------------------------------------
     //
@@ -152,23 +246,31 @@ public class GenotypesContext implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
+    @Ensures({"cacheIsInvalid = true"})
     private void invalidateCaches() {
         cacheIsInvalid = true;
         sampleNamesInOrder = null;
         sampleNameToOffset = null;
     }
 
+    @Ensures({"cacheIsInvalid = false",
+            "sampleNamesInOrder != null",
+            "sampleNameToOffset != null",
+            "sameSamples(genotypes, sampleNamesInOrder)",
+            "sameSamples(genotypes, sampleNameToOffset.keySet())"})
     private void buildCache() {
-        cacheIsInvalid = false;
-        sampleNamesInOrder = new ArrayList<String>(genotypes.size());
-        sampleNameToOffset = new HashMap<String, Integer>(genotypes.size());
+        if ( cacheIsInvalid ) {
+            cacheIsInvalid = false;
+            sampleNamesInOrder = new ArrayList<String>(genotypes.size());
+            sampleNameToOffset = new HashMap<String, Integer>(genotypes.size());
 
-        for ( int i = 0; i < genotypes.size(); i++ ) {
-            final Genotype g = genotypes.get(i);
-            sampleNamesInOrder.add(g.getSampleName());
-            sampleNameToOffset.put(g.getSampleName(), i);
+            for ( int i = 0; i < genotypes.size(); i++ ) {
+                final Genotype g = genotypes.get(i);
+                sampleNamesInOrder.add(g.getSampleName());
+                sampleNameToOffset.put(g.getSampleName(), i);
+            }
+            Collections.sort(sampleNamesInOrder);
         }
-        Collections.sort(sampleNamesInOrder);
     }
 
 
@@ -195,12 +297,14 @@ public class GenotypesContext implements List<Genotype> {
     }
 
     @Override
+    @Requires("genotype != null")
     public boolean add(final Genotype genotype) {
         checkImmutability();
         invalidateCaches();
         return genotypes.add(genotype);
     }
 
+    @Requires("genotype != null")
     public boolean add(final Genotype ... genotype) {
         checkImmutability();
         invalidateCaches();
@@ -263,13 +367,15 @@ public class GenotypesContext implements List<Genotype> {
     @Override
     public ListIterator<Genotype> listIterator() {
         // todo -- must be immutable
-        return genotypes.listIterator();
+        throw new UnsupportedOperationException();
+//        return genotypes.listIterator();
     }
 
     @Override
     public ListIterator<Genotype> listIterator(final int i) {
         // todo -- must be immutable
-        return genotypes.listIterator(i);
+        throw new UnsupportedOperationException();
+//        return genotypes.listIterator(i);
     }
 
     @Override
@@ -322,6 +428,14 @@ public class GenotypesContext implements List<Genotype> {
         return genotypes.toArray(ts);
     }
 
+    /**
+     * Iterate over the Genotypes in this context in the order specified by sampleNamesInOrder
+     *
+     * @param sampleNamesInOrder a Iterable of String, containing exactly one entry for each Genotype sample name in
+     * this context
+     * @return a Iterable over the genotypes in this context.
+     */
+    @Requires("sampleNamesInOrder != null")
     public Iterable<Genotype> iterateInSampleNameOrder(final Iterable<String> sampleNamesInOrder) {
         return new Iterable<Genotype>() {
             @Override
@@ -331,6 +445,11 @@ public class GenotypesContext implements List<Genotype> {
         };
     }
 
+    /**
+     * Iterate over the Genotypes in this context in their sample name order (A, B, C)
+     * regardless of the underlying order in the vector of genotypes
+     * @return a Iterable over the genotypes in this context.
+     */
     public Iterable<Genotype> iterateInSampleNameOrder() {
         return iterateInSampleNameOrder(getSampleNamesOrderedByName());
     }
@@ -358,30 +477,57 @@ public class GenotypesContext implements List<Genotype> {
         }
     }
 
+    /**
+     * @return The set of sample names for all genotypes in this context, in arbitrary order
+     */
+    @Ensures("result != null")
     public Set<String> getSampleNames() {
         buildCache();
         return sampleNameToOffset.keySet();
     }
 
+    /**
+     * @return The set of sample names for all genotypes in this context, in their natural ordering (A, B, C)
+     */
+    @Ensures("result != null")
     public List<String> getSampleNamesOrderedByName() {
         buildCache();
         return sampleNamesInOrder;
     }
 
+    @Requires("sample != null")
     public boolean containsSample(final String sample) {
         buildCache();
         return sampleNameToOffset.containsKey(sample);
     }
 
+    @Requires("samples != null")
     public boolean containsSamples(final Collection<String> samples) {
         buildCache();
         return getSampleNames().containsAll(samples);
     }
 
+    /**
+     * Return a freshly allocated subcontext of this context containing only the samples
+     * listed in samples.  Note that samples can contain names not in this context, they
+     * will just be ignored.
+     *
+     * @param samples
+     * @return
+     */
+    @Requires("samples != null")
+    @Ensures("result != null")
     public GenotypesContext subsetToSamples( final Collection<String> samples ) {
         return subsetToSamples(new HashSet<String>(samples));
     }
 
+    /**
+     * {@link #subsetToSamples(java.util.Collection)}
+     * @param samples
+     * @return
+     */
+    @Requires("samples != null")
+    @Ensures("result != null")
     public GenotypesContext subsetToSamples( final Set<String> samples ) {
         if ( samples.size() == genotypes.size() )
             return this;
@@ -425,5 +571,19 @@ public class GenotypesContext implements List<Genotype> {
                 return ret.toString();
             }
         }
+    }
+
+    private final static boolean sameSamples(List<Genotype> genotypes, Collection<String> sampleNamesInOrder) {
+        Set<String> names = new HashSet<String>(sampleNamesInOrder);
+        if ( names.size() != sampleNamesInOrder.size() )
+            return false;
+        if ( genotypes.size() != names.size() )
+            return false;
+
+        for ( final Genotype g : genotypes )
+            if ( ! names.contains(g.getSampleName()) )
+                return false;
+
+        return true;
     }
 }

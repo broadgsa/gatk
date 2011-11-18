@@ -37,6 +37,25 @@ import java.util.*;
 /**
  * Builder class for VariantContext
  *
+ * Some basic assumptions here:
+ *
+ * 1 -- data isn't protectively copied.  If you provide an attribute map to
+ * the build, and modify it later, the builder will see this and so will any
+ * resulting variant contexts.  It's best not to modify collections provided
+ * to a builder.
+ *
+ * 2 -- the system uses the standard builder model, allowing the simple construction idiom:
+ *
+ *   builder.source("a").genotypes(gc).id("x").make() => VariantContext
+ *
+ * 3 -- The best way to copy a VariantContext is:
+ *
+ *   new VariantContextBuilder(vc).make() => a copy of VC
+ *
+ * 4 -- validation of arguments is done at the during the final make() call, so a
+ * VariantContextBuilder can exist in an inconsistent state as long as those issues
+ * are resolved before the call to make() is issued.
+ *
  * @author depristo
  */
 public class VariantContextBuilder {
@@ -60,10 +79,19 @@ public class VariantContextBuilder {
     /** enum of what must be validated */
     final private EnumSet<VariantContext.Validation> toValidate = EnumSet.noneOf(VariantContext.Validation.class);
 
-    public VariantContextBuilder() {
+    /**
+     * Create an empty VariantContextBuilder where all values adopt their default values.  Note that
+     * source, chr, start, stop, and alleles must eventually be filled in, or the resulting VariantContext
+     * will throw an error.
+     */
+    public VariantContextBuilder() {}
 
-    }
-
+    /**
+     * Create an empty VariantContextBuilder where all values adopt their default values, but the bare min.
+     * of info (source, chr, start, stop, and alleles) have been provided to start.
+     */
+    @Requires({"source != null", "contig != null", "start >= 0", "stop >= 0",
+            "alleles != null && !alleles.isEmpty()"})
     public VariantContextBuilder(String source, String contig, long start, long stop, Collection<Allele> alleles) {
         this.source = source;
         this.contig = contig;
@@ -95,6 +123,12 @@ public class VariantContextBuilder {
         this.stop = parent.getEnd();
     }
 
+    /**
+     * Tells this builder to use this collection of alleles for the resulting VariantContext
+     *
+     * @param alleles
+     * @return this builder
+     */
     @Requires({"alleles != null", "!alleles.isEmpty()"})
     public VariantContextBuilder alleles(final Collection<Allele> alleles) {
         this.alleles = alleles;
@@ -103,6 +137,8 @@ public class VariantContextBuilder {
     }
 
     /**
+     * Tells this builder to use this map of attributes alleles for the resulting VariantContext
+     *
      * Attributes can be null -> meaning there are no attributes.  After
      * calling this routine the builder assumes it can modify the attributes
      * object here, if subsequent calls are made to set attribute values
@@ -114,6 +150,14 @@ public class VariantContextBuilder {
         return this;
     }
 
+    /**
+     * Puts the key -> value mapping into this builder's attributes
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    @Requires({"key != null"})
     public VariantContextBuilder attribute(final String key, final Object value) {
         if ( ! attributesCanBeModified ) {
             this.attributesCanBeModified = true;
@@ -124,6 +168,8 @@ public class VariantContextBuilder {
     }
 
     /**
+     * This builder's filters are set to this value
+     *
      * filters can be null -> meaning there are no filters
      * @param filters
      */
@@ -132,22 +178,41 @@ public class VariantContextBuilder {
         return this;
     }
 
+    /**
+     * {@link #filters}
+     *
+     * @param filters
+     * @return
+     */
     public VariantContextBuilder filters(final String ... filters) {
         filters(new HashSet<String>(Arrays.asList(filters)));
         return this;
     }
 
+    /**
+     * Tells this builder that the resulting VariantContext should have PASS filters
+     *
+     * @return
+     */
     public VariantContextBuilder passFilters() {
         return filters(VariantContext.PASSES_FILTERS);
     }
 
+    /**
+     * Tells this builder that the resulting VariantContext be unfiltered
+     *
+     * @return
+     */
     public VariantContextBuilder unfiltered() {
         this.filters = null;
         return this;
     }
 
     /**
-     * genotypes can be null -> meaning there are no genotypes
+     * Tells this builder that the resulting VariantContext should use this genotypes GenotypeContext
+     *
+     * Note that genotypes can be null -> meaning there are no genotypes
+     *
      * @param genotypes
      */
     public VariantContextBuilder genotypes(final GenotypesContext genotypes) {
@@ -157,41 +222,74 @@ public class VariantContextBuilder {
         return this;
     }
 
+    /**
+     * Tells this builder that the resulting VariantContext should use a GenotypeContext containing genotypes
+     *
+     * Note that genotypes can be null -> meaning there are no genotypes
+     *
+     * @param genotypes
+     */
     public VariantContextBuilder genotypes(final Collection<Genotype> genotypes) {
         return genotypes(GenotypesContext.copy(genotypes));
     }
 
+    /**
+     * Tells this builder that the resulting VariantContext should use a GenotypeContext containing genotypes
+     * @param genotypes
+     */
     public VariantContextBuilder genotypes(final Genotype ... genotypes) {
         return genotypes(GenotypesContext.copy(Arrays.asList(genotypes)));
     }
 
+    /**
+     * Tells this builder that the resulting VariantContext should not contain any GenotypeContext
+     */
     public VariantContextBuilder noGenotypes() {
         this.genotypes = null;
         return this;
     }
 
-    public VariantContextBuilder genotypesAreUnparsed(final boolean genotypesAreUnparsed) {
-        this.genotypesAreUnparsed = genotypesAreUnparsed;
+    /**
+     * ADVANCED! tells us that the genotypes data is stored as an unparsed attribute
+     * @return
+     */
+    public VariantContextBuilder genotypesAreUnparsed() {
+        this.genotypesAreUnparsed = true;
         return this;
     }
 
+    /**
+     * Tells us that the resulting VariantContext should have ID
+     * @param ID
+     * @return
+     */
     @Requires("ID != null")
     public VariantContextBuilder id(final String ID) {
         this.ID = ID;
         return this;
     }
 
+    /**
+     * Tells us that the resulting VariantContext should not have an ID
+     * @return
+     */
     public VariantContextBuilder noID() {
         return id(VCFConstants.EMPTY_ID_FIELD);
     }
 
-    @Requires("negLog10PError <= 0")
+    /**
+     * Tells us that the resulting VariantContext should have negLog10PError
+     * @param negLog10PError
+     * @return
+     */
+    @Requires("negLog10PError <= 0 || negLog10PError == VariantContext.NO_NEG_LOG_10PERROR")
     public VariantContextBuilder negLog10PError(final double negLog10PError) {
         this.negLog10PError = negLog10PError;
         return this;
     }
 
     /**
+     * Tells us that the resulting VariantContext should use this byte for the reference base
      * Null means no refBase is available
      * @param referenceBaseForIndel
      */
@@ -201,12 +299,24 @@ public class VariantContextBuilder {
         return this;
     }
 
+    /**
+     * Tells us that the resulting VariantContext should have source field set to source
+     * @param source
+     * @return
+     */
     @Requires("source != null")
     public VariantContextBuilder source(final String source) {
         this.source = source;
         return this;
     }
 
+    /**
+     * Tells us that the resulting VariantContext should have the specified location
+     * @param contig
+     * @param start
+     * @param stop
+     * @return
+     */
     @Requires({"contig != null", "start >= 0", "stop >= 0"})
     public VariantContextBuilder loc(final String contig, final long start, final long stop) {
         this.contig = contig;
@@ -217,12 +327,22 @@ public class VariantContextBuilder {
         return this;
     }
 
-    @Requires({"contig != null", "start >= 0", "stop >= 0"})
+    /**
+     * Tells us that the resulting VariantContext should have the specified contig chr
+     * @param contig
+     * @return
+     */
+    @Requires({"contig != null"})
     public VariantContextBuilder chr(final String contig) {
         this.contig = contig;
         return this;
     }
 
+    /**
+     * Tells us that the resulting VariantContext should have the specified contig start
+     * @param start
+     * @return
+     */
     @Requires({"start >= 0"})
     public VariantContextBuilder start(final long start) {
         this.start = start;
@@ -231,12 +351,26 @@ public class VariantContextBuilder {
         return this;
     }
 
+    /**
+     * Tells us that the resulting VariantContext should have the specified contig stop
+     * @param stop
+     * @return
+     */
     @Requires({"stop >= 0"})
     public VariantContextBuilder stop(final long stop) {
         this.stop = stop;
         return this;
     }
 
+    /**
+     * Takes all of the builder data provided up to this point, and instantiates
+     * a freshly allocated VariantContext with all of the builder data.  This
+     * VariantContext is validated as appropriate and if not failing QC (and
+     * throwing an exception) is returned.
+     *
+     * Note that this function can be called multiple times to create multiple
+     * VariantContexts from the same builder.
+     */
     public VariantContext make() {
         return new VariantContext(source, ID, contig, start, stop, alleles,
                 genotypes, negLog10PError, filters, attributes,
