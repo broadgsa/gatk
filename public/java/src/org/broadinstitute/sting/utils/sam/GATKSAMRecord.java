@@ -261,7 +261,7 @@ public class GATKSAMRecord extends BAMRecord {
      * @return true if the read has no bases
      */
     public boolean isEmpty() {
-        return this.getReadLength() == 0;
+        return super.getReadBases() == null || super.getReadLength() == 0;
     }
 
     /**
