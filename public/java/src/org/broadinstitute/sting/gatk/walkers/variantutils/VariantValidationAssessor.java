@@ -233,17 +233,17 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
         numRecords++;
 
         // add the info fields
-        builder.attribute("NoCallPct", String.format("%.1f", 100.0*noCallProp));
-        builder.attribute("HomRefPct", String.format("%.1f", 100.0*homRefProp));
-        builder.attribute("HomVarPct", String.format("%.1f", 100.0*homVarProp));
-        builder.attribute("HetPct", String.format("%.1f", 100.0*hetProp));
+        builder.attribute("NoCallPct", String.format("%.1f", 100.0 * noCallProp));
+        builder.attribute("HomRefPct", String.format("%.1f", 100.0 * homRefProp));
+        builder.attribute("HomVarPct", String.format("%.1f", 100.0 * homVarProp));
+        builder.attribute("HetPct", String.format("%.1f", 100.0 * hetProp));
         builder.attribute("HW", String.format("%.2f", hwScore));
         Collection<Allele> altAlleles = vContext.getAlternateAlleles();
-        int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getChromosomeCount(altAlleles.iterator().next());
+        int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getCalledChrCount(altAlleles.iterator().next());
         if ( !isViolation && altAlleleCount > 0 )
             numTrueVariants++;
         builder.attribute(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
-        builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
+        builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getCalledChrCount()));
 
         return builder.make();
     }

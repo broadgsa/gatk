@@ -85,6 +85,12 @@ public class GenotypesContext implements List<Genotype> {
         return new GenotypesContext(nGenotypes, false);
     }
 
+    public static final GenotypesContext create(final ArrayList<Genotype> genotypes,
+                                                final Map<String, Integer> sampleNameToOffset,
+                                                final List<String> sampleNamesInOrder) {
+        return new GenotypesContext(genotypes, sampleNameToOffset, sampleNamesInOrder, false);
+    }
+
     public static final GenotypesContext create(final ArrayList<Genotype> genotypes) {
         return genotypes == null ? NO_GENOTYPES : new GenotypesContext(genotypes, false);
     }
@@ -100,6 +106,8 @@ public class GenotypesContext implements List<Genotype> {
     public static final GenotypesContext copy(final Collection<Genotype> toCopy) {
         return toCopy == null ? NO_GENOTYPES : create(new ArrayList<Genotype>(toCopy));
     }
+
+
 
 //    public static final GenotypeMap create(final Collection<Genotype> genotypes) {
 //        if ( genotypes == null )

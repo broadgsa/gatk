@@ -12,7 +12,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 
@@ -260,12 +259,12 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertTrue(vc.isSNP());
         Assert.assertEquals(vc.getNAlleles(), 2);
         Assert.assertTrue(vc.hasGenotypes());
-        Assert.assertFalse(vc.isMonomorphic());
-        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertFalse(vc.isMonomorphicInSamples());
+        Assert.assertTrue(vc.isPolymorphicInSamples());
         Assert.assertEquals(vc.getGenotype("foo"), g);
-        Assert.assertEquals(vc.getChromosomeCount(), 1); // we only have 1 called chromosomes, we exclude the NO_CALL one isn't called
-        Assert.assertEquals(vc.getChromosomeCount(Aref), 0);
-        Assert.assertEquals(vc.getChromosomeCount(C), 1);
+        Assert.assertEquals(vc.getCalledChrCount(), 1); // we only have 1 called chromosomes, we exclude the NO_CALL one isn't called
+        Assert.assertEquals(vc.getCalledChrCount(Aref), 0);
+        Assert.assertEquals(vc.getCalledChrCount(C), 1);
         Assert.assertFalse(vc.getGenotype("foo").isHet());
         Assert.assertFalse(vc.getGenotype("foo").isHom());
         Assert.assertFalse(vc.getGenotype("foo").isNoCall());
@@ -332,8 +331,8 @@ public class VariantContextUnitTest extends BaseTest {
                 .genotypes(g1, g2, g3).make();
 
         Assert.assertTrue(vc.hasGenotypes());
-        Assert.assertFalse(vc.isMonomorphic());
-        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertFalse(vc.isMonomorphicInSamples());
+        Assert.assertTrue(vc.isPolymorphicInSamples());
         Assert.assertEquals(vc.getSampleNames().size(), 3);
 
         Assert.assertEquals(vc.getGenotypes().size(), 3);
@@ -352,9 +351,9 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertFalse(vc.hasGenotype("at"));
         Assert.assertFalse(vc.hasGenotype("tt"));
 
-        Assert.assertEquals(vc.getChromosomeCount(), 6);
-        Assert.assertEquals(vc.getChromosomeCount(Aref), 3);
-        Assert.assertEquals(vc.getChromosomeCount(T), 3);
+        Assert.assertEquals(vc.getCalledChrCount(), 6);
+        Assert.assertEquals(vc.getCalledChrCount(Aref), 3);
+        Assert.assertEquals(vc.getCalledChrCount(T), 3);
     }
 
     @Test
@@ -372,17 +371,17 @@ public class VariantContextUnitTest extends BaseTest {
                 .genotypes(g1, g2, g3, g4, g5, g6).make();
 
         Assert.assertTrue(vc.hasGenotypes());
-        Assert.assertFalse(vc.isMonomorphic());
-        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertFalse(vc.isMonomorphicInSamples());
+        Assert.assertTrue(vc.isPolymorphicInSamples());
         Assert.assertEquals(vc.getGenotypes().size(), 6);
 
         Assert.assertEquals(3, vc.getGenotypes(Arrays.asList("AA", "Td", "dd")).size());
 
-        Assert.assertEquals(10, vc.getChromosomeCount());
-        Assert.assertEquals(3, vc.getChromosomeCount(Aref));
-        Assert.assertEquals(4, vc.getChromosomeCount(T));
-        Assert.assertEquals(3, vc.getChromosomeCount(del));
-        Assert.assertEquals(2, vc.getChromosomeCount(Allele.NO_CALL));
+        Assert.assertEquals(10, vc.getCalledChrCount());
+        Assert.assertEquals(3, vc.getCalledChrCount(Aref));
+        Assert.assertEquals(4, vc.getCalledChrCount(T));
+        Assert.assertEquals(3, vc.getCalledChrCount(del));
+        Assert.assertEquals(2, vc.getCalledChrCount(Allele.NO_CALL));
     }
 
     @Test
@@ -398,14 +397,14 @@ public class VariantContextUnitTest extends BaseTest {
                     .genotypes(g1, g2, g3).make();
 
             Assert.assertTrue(vc.hasGenotypes());
-            Assert.assertTrue(vc.isMonomorphic());
-            Assert.assertFalse(vc.isPolymorphic());
+            Assert.assertTrue(vc.isMonomorphicInSamples());
+            Assert.assertFalse(vc.isPolymorphicInSamples());
             Assert.assertEquals(vc.getGenotypes().size(), 3);
 
-            Assert.assertEquals(4, vc.getChromosomeCount());
-            Assert.assertEquals(4, vc.getChromosomeCount(Aref));
-            Assert.assertEquals(0, vc.getChromosomeCount(T));
-            Assert.assertEquals(2, vc.getChromosomeCount(Allele.NO_CALL));
+            Assert.assertEquals(4, vc.getCalledChrCount());
+            Assert.assertEquals(4, vc.getCalledChrCount(Aref));
+            Assert.assertEquals(0, vc.getCalledChrCount(T));
+            Assert.assertEquals(2, vc.getCalledChrCount(Allele.NO_CALL));
         }
     }
 
@@ -452,12 +451,12 @@ public class VariantContextUnitTest extends BaseTest {
         VariantContext vc14 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName(), g4.getSampleName())));
         VariantContext vc5 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g5.getSampleName())));
 
-        Assert.assertTrue(vc12.isPolymorphic());
-        Assert.assertTrue(vc23.isPolymorphic());
-        Assert.assertTrue(vc1.isMonomorphic());
-        Assert.assertTrue(vc4.isMonomorphic());
-        Assert.assertTrue(vc14.isMonomorphic());
-        Assert.assertTrue(vc5.isPolymorphic());
+        Assert.assertTrue(vc12.isPolymorphicInSamples());
+        Assert.assertTrue(vc23.isPolymorphicInSamples());
+        Assert.assertTrue(vc1.isMonomorphicInSamples());
+        Assert.assertTrue(vc4.isMonomorphicInSamples());
+        Assert.assertTrue(vc14.isMonomorphicInSamples());
+        Assert.assertTrue(vc5.isPolymorphicInSamples());
 
         Assert.assertTrue(vc12.isSNP());
         Assert.assertTrue(vc12.isVariant());
@@ -484,12 +483,12 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertTrue(vc5.isVariant());
         Assert.assertTrue(vc5.isBiallelic());
 
-        Assert.assertEquals(3, vc12.getChromosomeCount(Aref));
-        Assert.assertEquals(1, vc23.getChromosomeCount(Aref));
-        Assert.assertEquals(2, vc1.getChromosomeCount(Aref));
-        Assert.assertEquals(0, vc4.getChromosomeCount(Aref));
-        Assert.assertEquals(2, vc14.getChromosomeCount(Aref));
-        Assert.assertEquals(0, vc5.getChromosomeCount(Aref));
+        Assert.assertEquals(3, vc12.getCalledChrCount(Aref));
+        Assert.assertEquals(1, vc23.getCalledChrCount(Aref));
+        Assert.assertEquals(2, vc1.getCalledChrCount(Aref));
+        Assert.assertEquals(0, vc4.getCalledChrCount(Aref));
+        Assert.assertEquals(2, vc14.getCalledChrCount(Aref));
+        Assert.assertEquals(0, vc5.getCalledChrCount(Aref));
     }
 
     public void testGetGenotypeMethods() {
@@ -827,14 +826,14 @@ public class VariantContextUnitTest extends BaseTest {
             VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
             Assert.assertEquals(vc.getNSamples(), nSamples);
             if ( nSamples > 0 ) {
-                Assert.assertEquals(vc.isPolymorphic(), nT > 0);
-                Assert.assertEquals(vc.isMonomorphic(), nT == 0);
+                Assert.assertEquals(vc.isPolymorphicInSamples(), nT > 0);
+                Assert.assertEquals(vc.isMonomorphicInSamples(), nT == 0);
             }
-            Assert.assertEquals(vc.getChromosomeCount(), nA + nT);
+            Assert.assertEquals(vc.getCalledChrCount(), nA + nT);
 
-            Assert.assertEquals(vc.getChromosomeCount(Allele.NO_CALL), nNoCallAlleles);
-            Assert.assertEquals(vc.getChromosomeCount(Aref), nA);
-            Assert.assertEquals(vc.getChromosomeCount(T), nT);
+            Assert.assertEquals(vc.getCalledChrCount(Allele.NO_CALL), nNoCallAlleles);
+            Assert.assertEquals(vc.getCalledChrCount(Aref), nA);
+            Assert.assertEquals(vc.getCalledChrCount(T), nT);
 
             Assert.assertEquals(vc.getNoCallCount(), nNoCall);
             Assert.assertEquals(vc.getHomRefCount(), nHomRef);

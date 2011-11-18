@@ -37,7 +37,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
     }
 
     public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (vc == null || !vc.isSNP() || !vc.hasGenotypes() || vc.isMonomorphic()) {
+        if (vc == null || !vc.isSNP() || !vc.hasGenotypes() || vc.isMonomorphicInSamples()) {
             return null; //no interesting sites
         }
 

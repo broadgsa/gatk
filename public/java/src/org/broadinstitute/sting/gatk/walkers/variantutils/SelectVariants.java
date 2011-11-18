@@ -488,7 +488,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                         if (outMVFile != null)
                             outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
                                 "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
-                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getChromosomeCount(vc.getAlternateAllele(0)),
+                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
                                 mv.getSampleMom(), mv.getSampleDad(), mv.getSampleChild(),
                                 vc.getGenotype(mv.getSampleMom()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
                                 vc.getGenotype(mv.getSampleDad()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
@@ -520,7 +520,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 continue;
 
             VariantContext sub = subsetRecord(vc, samples);
-            if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+            if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
                         return 0;
@@ -677,11 +677,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
             if ( sub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-                builder.attribute("AC_Orig",sub.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+                builder.attribute("AC_Orig", sub.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
             if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                builder.attribute("AF_Orig",sub.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+                builder.attribute("AF_Orig", sub.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
             if ( sub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
-                builder.attribute("AN_Orig",sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
+                builder.attribute("AN_Orig", sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
 
         Map<String, Object> attributes = new HashMap<String, Object>(builder.make().getAttributes());

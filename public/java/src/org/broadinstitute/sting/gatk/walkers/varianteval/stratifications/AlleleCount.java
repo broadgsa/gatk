@@ -47,7 +47,7 @@ public class AlleleCount extends VariantStratifier {
                 AC = eval.getAttributeAsInt("AC", 0);
             } else if ( eval.isVariant() ) {
                 for (Allele allele : eval.getAlternateAlleles())
-                    AC = Math.max(AC, eval.getChromosomeCount(allele));
+                    AC = Math.max(AC, eval.getCalledChrCount(allele));
             } else
                 // by default, the site is considered monomorphic
                 AC = 0;

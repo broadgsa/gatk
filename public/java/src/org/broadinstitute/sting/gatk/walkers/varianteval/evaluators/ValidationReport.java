@@ -11,7 +11,6 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Collection;
-import java.util.Set;
 
 /**
  * The Broad Institute
@@ -118,8 +117,8 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     public SiteStatus calcSiteStatus(VariantContext vc) {
         if ( vc == null ) return SiteStatus.NO_CALL;
         if ( vc.isFiltered() ) return SiteStatus.FILTERED;
-        if ( vc.isMonomorphic() ) return SiteStatus.MONO;
-        if ( vc.hasGenotypes() ) return SiteStatus.POLY;  // must be polymorphic if isMonomorphic was false and there are genotypes
+        if ( vc.isMonomorphicInSamples() ) return SiteStatus.MONO;
+        if ( vc.hasGenotypes() ) return SiteStatus.POLY;  // must be polymorphic if isMonomorphicInSamples was false and there are genotypes
 
         if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
             int ac = 0;

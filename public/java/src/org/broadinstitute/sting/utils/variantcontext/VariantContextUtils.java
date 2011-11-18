@@ -63,7 +63,7 @@ public class VariantContextUtils {
      */
     public static void calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
         // if everyone is a no-call, remove the old attributes if requested
-        if ( vc.getChromosomeCount() == 0 && removeStaleValues ) {
+        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
             if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
                 attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
             if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
@@ -74,15 +74,15 @@ public class VariantContextUtils {
         }
 
         if ( vc.hasGenotypes() ) {
-            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
+            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
 
             // if there are alternate alleles, record the relevant tags
             if ( vc.getAlternateAlleles().size() > 0 ) {
                 ArrayList<String> alleleFreqs = new ArrayList<String>();
                 ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-                double totalChromosomes = (double)vc.getChromosomeCount();
+                double totalChromosomes = (double)vc.getCalledChrCount();
                 for ( Allele allele : vc.getAlternateAlleles() ) {
-                    int altChromosomes = vc.getChromosomeCount(allele);
+                    int altChromosomes = vc.getCalledChrCount(allele);
                     alleleCounts.add(altChromosomes);
                     String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
                     alleleFreqs.add(freq);
@@ -320,7 +320,7 @@ public class VariantContextUtils {
     }
 
     public static double computeHardyWeinbergPvalue(VariantContext vc) {
-        if ( vc.getChromosomeCount() == 0 )
+        if ( vc.getCalledChrCount() == 0 )
             return 0.0;
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }

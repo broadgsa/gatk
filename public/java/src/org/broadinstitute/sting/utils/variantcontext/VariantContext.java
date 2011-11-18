@@ -131,17 +131,17 @@ import java.util.*;
  *
  * <pre>
  * vc.hasGenotypes()
- * vc.isMonomorphic()
- * vc.isPolymorphic()
+ * vc.isMonomorphicInSamples()
+ * vc.isPolymorphicInSamples()
  * vc.getSamples().size()
  *
  * vc.getGenotypes()
  * vc.getGenotypes().get("g1")
  * vc.hasGenotype("g1")
  *
- * vc.getChromosomeCount()
- * vc.getChromosomeCount(Aref)
- * vc.getChromosomeCount(T)
+ * vc.getCalledChrCount()
+ * vc.getCalledChrCount(Aref)
+ * vc.getCalledChrCount(T)
  * </pre>
  *
  * === NO_CALL alleles ===
@@ -374,72 +374,17 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     //
     // ---------------------------------------------------------------------------------------------------------
 
-//    /**
-//     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotype
-//     * genotype and alleles in genotype.  This is the right way to test if a single genotype is actually
-//     * variant or not.
-//     *
-//     * @param genotype genotype
-//     * @return vc subcontext
-//     * @deprecated  replaced by {@link #subContextFromSample(String)}
-//     */
-//    public VariantContext subContextFromGenotypes(Genotype genotype) {
-//        return subContextFromGenotypes(Arrays.asList(genotype));
-//    }
-//
-//
-//    /**
-//     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotypes
-//     * genotypes and alleles in these genotypes.  This is the right way to test if a single genotype is actually
-//     * variant or not.
-//     *
-//     * @param genotypes genotypes
-//     * @return vc subcontext
-//     * @deprecated  replaced by {@link #subContextFromSamples(java.util.Collection)}
-//     */
-//    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes) {
-//        return subContextFromGenotypes(genotypes, allelesOfGenotypes(genotypes)) ;
-//    }
-//
-//    /**
-//     * Returns a context identical to this (i.e., filter, qual are all the same) but containing only the Genotypes
-//     * genotypes.  Also, the resulting variant context will contain the alleles provided, not only those found in genotypes
-//     *
-//     * @param genotypes genotypes
-//     * @param alleles the set of allele segregating alleles at this site.  Must include those in genotypes, but may be more
-//     * @return vc subcontext
-//     * @deprecated  replaced by {@link #subContextFromSamples(java.util.Collection, java.util.Collection)}
-//     */
-//    @Deprecated
-//    public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Collection<Allele> alleles) {
-//        return new VariantContext(getSource(), contig, start, stop, alleles,
-//                GenotypeCollection.create(genotypes),
-//                getNegLog10PError(),
-//                filtersWereApplied() ? getFilters() : null,
-//                getAttributes(),
-//                getReferenceBaseForIndel());
-//    }
-
     public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
         loadGenotypes();
-        GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
-        return new VariantContext(getSource(), getID(), contig, start, stop, alleles,
-                newGenotypes,
-                getNegLog10PError(),
-                filtersWereApplied() ? getFilters() : null,
-                getAttributes(),
-                getReferenceBaseForIndel());
+        VariantContextBuilder builder = new VariantContextBuilder(this);
+        return builder.genotypes(genotypes.subsetToSamples(sampleNames)).make();
     }
 
     public VariantContext subContextFromSamples(Set<String> sampleNames) {
         loadGenotypes();
+        VariantContextBuilder builder = new VariantContextBuilder(this);
         GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
-        return new VariantContext(getSource(), getID(), contig, start, stop, allelesOfGenotypes(newGenotypes),
-                newGenotypes,
-                getNegLog10PError(),
-                filtersWereApplied() ? getFilters() : null,
-                getAttributes(),
-                getReferenceBaseForIndel());
+        return builder.genotypes(newGenotypes).alleles(allelesOfGenotypes(newGenotypes)).make();
     }
 
     public VariantContext subContextFromSample(String sampleName) {
@@ -451,12 +396,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param genotypes genotypes
      * @return allele set
      */
-    private Set<Allele> allelesOfGenotypes(Collection<Genotype> genotypes) {
-        Set<Allele> alleles = new HashSet<Allele>();
+    private final Set<Allele> allelesOfGenotypes(Collection<Genotype> genotypes) {
+        final Set<Allele> alleles = new HashSet<Allele>();
 
         boolean addedref = false;
-        for ( Genotype g : genotypes ) {
-            for ( Allele a : g.getAlleles() ) {
+        for ( final Genotype g : genotypes ) {
+            for ( final Allele a : g.getAlleles() ) {
                 addedref = addedref || a.isReference();
                 if ( a.isCalled() )
                     alleles.add(a);
@@ -938,7 +883,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * @return chromosome count
      */
-    public int getChromosomeCount() {
+    public int getCalledChrCount() {
         int n = 0;
 
         for ( final Genotype g : getGenotypes() ) {
@@ -955,7 +900,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param a allele
      * @return chromosome count
      */
-    public int getChromosomeCount(Allele a) {
+    public int getCalledChrCount(Allele a) {
         int n = 0;
 
         for ( final Genotype g : getGenotypes() ) {
@@ -971,9 +916,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * @return true if it's monomorphic
      */
-    public boolean isMonomorphic() {
+    public boolean isMonomorphicInSamples() {
         if ( monomorphic == null )
-            monomorphic = ! isVariant() || (hasGenotypes() && getChromosomeCount(getReference()) == getChromosomeCount());
+            monomorphic = ! isVariant() || (hasGenotypes() && getCalledChrCount(getReference()) == getCalledChrCount());
         return monomorphic;
     }
 
@@ -983,8 +928,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * @return true if it's polymorphic
      */
-    public boolean isPolymorphic() {
-        return ! isMonomorphic();
+    public boolean isPolymorphicInSamples() {
+        return ! isMonomorphicInSamples();
     }
 
     private void calculateGenotypeCounts() {
@@ -1119,19 +1064,28 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public void validateChromosomeCounts() {
-        Map<String, Object> observedAttrs = calculateChromosomeCounts();
-
         // AN
         if ( hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) ) {
             int reportedAN = Integer.valueOf(getAttribute(VCFConstants.ALLELE_NUMBER_KEY).toString());
-            int observedAN = (Integer)observedAttrs.get(VCFConstants.ALLELE_NUMBER_KEY);
+            int observedAN = getCalledChrCount();
             if ( reportedAN != observedAN )
                 throw new TribbleException.InternalCodecException(String.format("the Allele Number (AN) tag is incorrect for the record at position %s:%d, %d vs. %d", getChr(), getStart(), reportedAN, observedAN));
         }
 
         // AC
         if ( hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
-            List<Integer> observedACs = (List<Integer>)observedAttrs.get(VCFConstants.ALLELE_COUNT_KEY);
+            ArrayList<Integer> observedACs = new ArrayList<Integer>();
+
+            // if there are alternate alleles, record the relevant tags
+            if ( getAlternateAlleles().size() > 0 ) {
+                for ( Allele allele : getAlternateAlleles() ) {
+                    observedACs.add(getCalledChrCount(allele));
+                }
+            }
+            else { // otherwise, set them to 0
+                observedACs.add(0);
+            }
+
             if ( getAttribute(VCFConstants.ALLELE_COUNT_KEY) instanceof List ) {
                 Collections.sort(observedACs);
                 List reportedACs = (List)getAttribute(VCFConstants.ALLELE_COUNT_KEY);
@@ -1150,31 +1104,6 @@ public class VariantContext implements Feature { // to enable tribble intergrati
                     throw new TribbleException.InternalCodecException(String.format("the Allele Count (AC) tag is incorrect for the record at position %s:%d, %d vs. %d", getChr(), getStart(), reportedAC, observedACs.get(0)));
             }
         }
-    }
-
-    private Map<String, Object> calculateChromosomeCounts() {
-        Map<String, Object> attributes = new HashMap<String, Object>();
-
-        attributes.put(VCFConstants.ALLELE_NUMBER_KEY, getChromosomeCount());
-        ArrayList<Double> alleleFreqs = new ArrayList<Double>();
-        ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-
-        // if there are alternate alleles, record the relevant tags
-        if ( getAlternateAlleles().size() > 0 ) {
-            for ( Allele allele : getAlternateAlleles() ) {
-                alleleCounts.add(getChromosomeCount(allele));
-                alleleFreqs.add((double)getChromosomeCount(allele) / (double)getChromosomeCount());
-            }
-        }
-        // otherwise, set them to 0
-        else {
-            alleleCounts.add(0);
-            alleleFreqs.add(0.0);
-        }
-
-        attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
-        attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
-        return attributes;
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -1399,7 +1328,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         Allele best = null;
         int maxAC1 = 0;
         for (Allele a:this.getAlternateAlleles()) {
-            int ac = this.getChromosomeCount(a);
+            int ac = this.getCalledChrCount(a);
             if (ac >=maxAC1) {
                 maxAC1 = ac;
                 best = a;

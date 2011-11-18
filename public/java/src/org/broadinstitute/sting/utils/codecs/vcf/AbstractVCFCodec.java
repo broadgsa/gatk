@@ -98,7 +98,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         headerStrings.add(line);
 
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
-        Set<String> auxTags = new LinkedHashSet<String>();
+        Set<String> sampleNames = new LinkedHashSet<String>();
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
             if ( !str.startsWith(VCFHeader.METADATA_INDICATOR) ) {
@@ -126,9 +126,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                 }
 
                 while ( arrayIndex < strings.length )
-                    auxTags.add(strings[arrayIndex++]);
+                    sampleNames.add(strings[arrayIndex++]);
 
-                if ( sawFormatTag && auxTags.size() == 0 )
+                if ( sawFormatTag && sampleNames.size() == 0 )
                     throw new UserException.MalformedVCFHeader("The FORMAT field was provided but there is no genotype/sample data");
 
             } else {
@@ -152,7 +152,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             }
         }
 
-        header = new VCFHeader(metaData, auxTags);
+        header = new VCFHeader(metaData, sampleNames);
+        header.buildVCFReaderMaps(new ArrayList<String>(sampleNames));
         return header;
     }
 

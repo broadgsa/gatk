@@ -91,7 +91,7 @@ public class IndelLengthHistogram extends VariantEvaluator {
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        if ( vc1.isIndel() && vc1.isPolymorphic() ) {
+        if ( vc1.isIndel() && vc1.isPolymorphicInSamples() ) {
 
             if ( ! vc1.isBiallelic() ) {
                 //veWalker.getLogger().warn("[IndelLengthHistogram] Non-biallelic indel at "+ref.getLocus()+" ignored.");

@@ -151,7 +151,7 @@ public class VCFCodec extends AbstractVCFCodec {
 
         int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
 
-        GenotypesContext genotypes = GenotypesContext.create(nParts);
+        ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nParts);
 
         // get the format keys
         int nGTKeys = ParsingUtils.split(genotypeParts[0], genotypeKeyArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
@@ -215,7 +215,7 @@ public class VCFCodec extends AbstractVCFCodec {
             }
         }
 
-        return genotypes;
+        return GenotypesContext.create(genotypes, header.sampleNameToOffset, header.sampleNamesInOrder);
     }
 
     @Override
