@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
-import com.google.java.contract.Requires;
+import com.google.java.contract.*;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
@@ -158,10 +158,11 @@ public class VariantContextBuilder {
      * @return
      */
     @Requires({"key != null"})
+    @Ensures({"this.attributes.size() == old(this.attributes.size()) || this.attributes.size() == old(this.attributes.size()+1)"})
     public VariantContextBuilder attribute(final String key, final Object value) {
         if ( ! attributesCanBeModified ) {
             this.attributesCanBeModified = true;
-            this.attributes = new HashMap<String, Object>();
+            this.attributes = new HashMap<String, Object>(attributes);
         }
         attributes.put(key, value);
         return this;
@@ -282,7 +283,7 @@ public class VariantContextBuilder {
      * @param negLog10PError
      * @return
      */
-    @Requires("negLog10PError <= 0 || negLog10PError == VariantContext.NO_NEG_LOG_10PERROR")
+    @Requires("negLog10PError >= 0 || negLog10PError == VariantContext.NO_NEG_LOG_10PERROR")
     public VariantContextBuilder negLog10PError(final double negLog10PError) {
         this.negLog10PError = negLog10PError;
         return this;

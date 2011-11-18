@@ -213,7 +213,6 @@ public class GenotypesContext implements List<Genotype> {
      * @param toCopy the collection of genotypes
      * @return an mutable GenotypeContext containing genotypes
      */
-    @Requires({"toCopy != null"})
     @Ensures({"result != null"})
     public static final GenotypesContext copy(final Collection<Genotype> toCopy) {
         return toCopy == null ? NO_GENOTYPES : create(new ArrayList<Genotype>(toCopy));
