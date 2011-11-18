@@ -209,7 +209,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                     public void run(final VariantContext vc) {
                         ; // TODO - TEST IS BROKEN
 //                        int n = 0;
-//                        for ( final Genotype g: vc.getGenotypesSortedByName() ) n++;
+//                        for ( final Genotype g: vc.getGenotypesOrderedByName() ) n++;
                     }
                 };
 
@@ -335,7 +335,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
 //                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
 //                        ; // TODO - TEST IS BROKEN
-//                        //vc.getGenotypesSortedByName();
+//                        //vc.getGenotypesOrderedByName();
 //                    }
 //                };
 //

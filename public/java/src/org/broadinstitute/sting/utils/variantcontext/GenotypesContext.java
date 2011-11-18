@@ -31,9 +31,9 @@ import java.util.*;
  */
 public class GenotypesContext implements List<Genotype> {
     public final static GenotypesContext NO_GENOTYPES =
-            new GenotypesContext(new ArrayList<Genotype>(0), new HashMap<String, Integer>(0), new HashSet<String>(0), true);
+            new GenotypesContext(new ArrayList<Genotype>(0), new HashMap<String, Integer>(0), Collections.<String>emptyList(), true);
 
-    Set<String> sampleNamesInOrder = null;
+    List<String> sampleNamesInOrder = null;
     Map<String, Integer> sampleNameToOffset = null;
     boolean cacheIsInvalid = true;
     List<Genotype> genotypes;
@@ -62,7 +62,7 @@ public class GenotypesContext implements List<Genotype> {
 
     private GenotypesContext(final ArrayList<Genotype> genotypes,
                              final Map<String, Integer> sampleNameToOffset,
-                             final Set<String> sampleNamesInOrder,
+                             final List<String> sampleNamesInOrder,
                              final boolean immutable) {
         this.genotypes = genotypes;
         this.immutable = immutable;
@@ -152,7 +152,7 @@ public class GenotypesContext implements List<Genotype> {
 
     private void buildCache() {
         cacheIsInvalid = false;
-        sampleNamesInOrder = new TreeSet<String>();
+        sampleNamesInOrder = new ArrayList<String>(genotypes.size());
         sampleNameToOffset = new HashMap<String, Integer>(genotypes.size());
 
         for ( int i = 0; i < genotypes.size(); i++ ) {
@@ -160,6 +160,7 @@ public class GenotypesContext implements List<Genotype> {
             sampleNamesInOrder.add(g.getSampleName());
             sampleNameToOffset.put(g.getSampleName(), i);
         }
+        Collections.sort(sampleNamesInOrder);
     }
 
 
@@ -354,7 +355,7 @@ public class GenotypesContext implements List<Genotype> {
         return sampleNameToOffset.keySet();
     }
 
-    public Set<String> getSampleNamesOrderedByName() {
+    public List<String> getSampleNamesOrderedByName() {
         buildCache();
         return sampleNamesInOrder;
     }

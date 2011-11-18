@@ -51,7 +51,7 @@ public class SampleList extends InfoFieldAnnotation {
             return null;
 
         StringBuffer samples = new StringBuffer();
-        for ( Genotype genotype : vc.getGenotypesSortedByName() ) {
+        for ( Genotype genotype : vc.getGenotypesOrderedByName() ) {
             if ( genotype.isCalled() && !genotype.isHomRef() ){
                 if ( samples.length() > 0 )
                     samples.append(",");

@@ -263,7 +263,7 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertFalse(vc.isMonomorphic());
         Assert.assertTrue(vc.isPolymorphic());
         Assert.assertEquals(vc.getGenotype("foo"), g);
-        Assert.assertEquals(vc.getChromosomeCount(), 2); // we know that there are 2 chromosomes, even though one isn't called
+        Assert.assertEquals(vc.getChromosomeCount(), 1); // we only have 1 called chromosomes, we exclude the NO_CALL one isn't called
         Assert.assertEquals(vc.getChromosomeCount(Aref), 0);
         Assert.assertEquals(vc.getChromosomeCount(C), 1);
         Assert.assertFalse(vc.getGenotype("foo").isHet());
@@ -690,9 +690,6 @@ public class VariantContextUnitTest extends BaseTest {
         return SubContextTest.getTests(SubContextTest.class);
     }
 
-    private final static void SubContextTest() {
-    }
-
     @Test(dataProvider = "SubContextTest")
     public void runSubContextTest(SubContextTest cfg) {
         Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
@@ -733,5 +730,118 @@ public class VariantContextUnitTest extends BaseTest {
 
         // same sample names => success
         Assert.assertEquals(sub.getGenotypes().getSampleNames(), expectedGC.getSampleNames());
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test sample name functions
+    //
+    // --------------------------------------------------------------------------------
+    private class SampleNamesTest extends TestDataProvider {
+        List<String> sampleNames;
+        List<String> sampleNamesInOrder;
+
+        private SampleNamesTest(List<String> sampleNames, List<String> sampleNamesInOrder) {
+            super(SampleNamesTest.class);
+            this.sampleNamesInOrder = sampleNamesInOrder;
+            this.sampleNames = sampleNames;
+        }
+
+        public String toString() {
+            return String.format("%s samples=%s order=%s", super.toString(), sampleNames, sampleNamesInOrder);
+        }
+    }
+
+    @DataProvider(name = "SampleNamesTest")
+    public Object[][] MakeSampleNamesTest() {
+        new SampleNamesTest(Arrays.asList("1"), Arrays.asList("1"));
+        new SampleNamesTest(Arrays.asList("2", "1"), Arrays.asList("1", "2"));
+        new SampleNamesTest(Arrays.asList("1", "2"), Arrays.asList("1", "2"));
+        new SampleNamesTest(Arrays.asList("1", "2", "3"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("2", "1", "3"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("2", "3", "1"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("3", "1", "2"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("3", "2", "1"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("NA2", "NA1"), Arrays.asList("NA1", "NA2"));
+        return SampleNamesTest.getTests(SampleNamesTest.class);
+    }
+
+    private final static void assertGenotypesAreInOrder(Iterable<Genotype> gIt, List<String> names) {
+        int i = 0;
+        for ( final Genotype g : gIt ) {
+            Assert.assertEquals(g.getSampleName(), names.get(i), "Unexpected genotype ordering");
+            i++;
+        }
+    }
+
+
+    @Test(dataProvider = "SampleNamesTest")
+    public void runSampleNamesTest(SampleNamesTest cfg) {
+        GenotypesContext gc = GenotypesContext.create(cfg.sampleNames.size());
+        for ( final String name : cfg.sampleNames ) {
+            gc.add(new Genotype(name, Arrays.asList(Aref, T)));
+        }
+
+        VariantContext vc = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc,
+                snpLocStart, snpLocStop, Arrays.asList(Aref, T), gc);
+
+        // same sample names => success
+        Assert.assertEquals(vc.getSampleNames(), new HashSet<String>(cfg.sampleNames), "vc.getSampleNames() = " + vc.getSampleNames());
+        Assert.assertEquals(vc.getSampleNamesOrderedByName(), cfg.sampleNamesInOrder, "vc.getSampleNamesOrderedByName() = " + vc.getSampleNamesOrderedByName());
+
+        assertGenotypesAreInOrder(vc.getGenotypesOrderedByName(), cfg.sampleNamesInOrder);
+        assertGenotypesAreInOrder(vc.getGenotypesOrderedBy(cfg.sampleNames), cfg.sampleNames);
+    }
+
+    @Test
+    public void testGenotypeCounting() {
+        Genotype noCall = new Genotype("nocall", Arrays.asList(Allele.NO_CALL));
+        Genotype mixed  = new Genotype("mixed", Arrays.asList(Aref, Allele.NO_CALL));
+        Genotype homRef = new Genotype("homRef", Arrays.asList(Aref, Aref));
+        Genotype het    = new Genotype("het", Arrays.asList(Aref, T));
+        Genotype homVar = new Genotype("homVar", Arrays.asList(T, T));
+
+        List<Genotype> allGenotypes = Arrays.asList(noCall, mixed, homRef, het, homVar);
+        final int nCycles = allGenotypes.size() * 10;
+
+        for ( int i = 0; i < nCycles; i++ ) {
+            int nNoCall = 0, nNoCallAlleles = 0, nA = 0, nT = 0, nMixed = 0, nHomRef = 0, nHet = 0, nHomVar = 0;
+            int nSamples = 0;
+            GenotypesContext gc = GenotypesContext.create();
+            for ( int j = 0; j < i; j++ ) {
+                nSamples++;
+                Genotype g = allGenotypes.get(j % allGenotypes.size());
+                gc.add(g);
+                switch ( g.getType() ) {
+                    case NO_CALL: nNoCall++; nNoCallAlleles++; break;
+                    case HOM_REF: nA += 2; nHomRef++; break;
+                    case HET: nA++; nT++; nHet++; break;
+                    case HOM_VAR: nT += 2; nHomVar++; break;
+                    case MIXED: nA++; nNoCallAlleles++; nMixed++; break;
+                    default: throw new RuntimeException("Unexpected genotype type " + g.getType());
+                }
+
+            }
+
+            VariantContext vc = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc,
+                    snpLocStart, snpLocStop, Arrays.asList(Aref, T), gc);
+
+            Assert.assertEquals(vc.getNSamples(), nSamples);
+            if ( nSamples > 0 ) {
+                Assert.assertEquals(vc.isPolymorphic(), nT > 0);
+                Assert.assertEquals(vc.isMonomorphic(), nT == 0);
+            }
+            Assert.assertEquals(vc.getChromosomeCount(), nA + nT);
+
+            Assert.assertEquals(vc.getChromosomeCount(Allele.NO_CALL), nNoCallAlleles);
+            Assert.assertEquals(vc.getChromosomeCount(Aref), nA);
+            Assert.assertEquals(vc.getChromosomeCount(T), nT);
+
+            Assert.assertEquals(vc.getNoCallCount(), nNoCall);
+            Assert.assertEquals(vc.getHomRefCount(), nHomRef);
+            Assert.assertEquals(vc.getHetCount(), nHet);
+            Assert.assertEquals(vc.getHomVarCount(), nHomVar);
+            Assert.assertEquals(vc.getMixedCount(), nMixed);
+        }
     }
 }

@@ -985,9 +985,14 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return genotypes;
     }
 
-    public Iterable<Genotype> getGenotypesSortedByName() {
+    public Iterable<Genotype> getGenotypesOrderedByName() {
         loadGenotypes();
         return genotypes.iterateInSampleNameOrder();
+    }
+
+    public Iterable<Genotype> getGenotypesOrderedBy(Iterable<String> sampleOrdering) {
+        loadGenotypes();
+        return genotypes.iterateInSampleNameOrder(sampleOrdering);
     }
 
     /**
@@ -1026,7 +1031,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return getGenotypes().getSampleNames();
     }
 
-    public Set<String> getSampleNamesOrderedByName() {
+    public List<String> getSampleNamesOrderedByName() {
         return getGenotypes().getSampleNamesOrderedByName();
     }
 
@@ -1049,7 +1054,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
 
     /**
-     * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS
+     * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS)
      *
      * @return chromosome count
      */
@@ -1057,7 +1062,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         int n = 0;
 
         for ( final Genotype g : getGenotypes() ) {
-            n += g.isNoCall() ? 0 : g.getPloidy();
+            for ( final Allele a : g.getAlleles() )
+                n += a.isNoCall() ? 0 : 1;
         }
 
         return n;
@@ -1086,7 +1092,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return true if it's monomorphic
      */
     public boolean isMonomorphic() {
-        return ! isVariant() || (hasGenotypes() && getHomRefCount() + getNoCallCount() == getNSamples());
+        return ! isVariant() || (hasGenotypes() && getChromosomeCount(getReference()) == getChromosomeCount());
     }
 
     /**
@@ -1104,16 +1110,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
             genotypeCounts = new int[Genotype.Type.values().length];
 
             for ( final Genotype g : getGenotypes() ) {
-                if ( g.isNoCall() )
-                    genotypeCounts[Genotype.Type.NO_CALL.ordinal()]++;
-                else if ( g.isHomRef() )
-                    genotypeCounts[Genotype.Type.HOM_REF.ordinal()]++;
-                else if ( g.isHet() )
-                    genotypeCounts[Genotype.Type.HET.ordinal()]++;
-                else if ( g.isHomVar() )
-                    genotypeCounts[Genotype.Type.HOM_VAR.ordinal()]++;
-                else
-                    genotypeCounts[Genotype.Type.MIXED.ordinal()]++;
+                genotypeCounts[g.getType().ordinal()]++;
             }
         }
     }
