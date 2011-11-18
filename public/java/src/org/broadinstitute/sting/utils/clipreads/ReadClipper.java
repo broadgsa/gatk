@@ -121,7 +121,7 @@ public class ReadClipper {
 
     public GATKSAMRecord hardClipSoftClippedBases () {
         if (read.isEmpty())
-            return read;
+            return new GATKSAMRecord(read.getHeader());
 
         int readIndex = 0;
         int cutLeft = -1;            // first position to hard clip (inclusive)
@@ -171,6 +171,9 @@ public class ReadClipper {
                     clippedRead = op.apply(algorithm, clippedRead);
                 }
                 wasClipped = true;
+                ops.clear();
+                if ( clippedRead.isEmpty() )
+                    return new GATKSAMRecord( clippedRead.getHeader() );
                 return clippedRead;
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e); // this should never happen
