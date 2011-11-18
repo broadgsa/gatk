@@ -121,7 +121,7 @@ public class ReadClipper {
 
     public GATKSAMRecord hardClipSoftClippedBases () {
         if (read.isEmpty())
-            return new GATKSAMRecord(read.getHeader());
+            return read;
 
         int readIndex = 0;
         int cutLeft = -1;            // first position to hard clip (inclusive)
