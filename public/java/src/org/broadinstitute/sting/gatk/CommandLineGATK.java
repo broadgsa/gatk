@@ -99,8 +99,8 @@ public class CommandLineGATK extends CommandLineExecutable {
         } catch (net.sf.samtools.SAMException e) {
             // Let's try this out and see how it is received by our users
             exitSystemWithSamError(e);
-        } catch (Exception e) {
-            exitSystemWithError(e);
+        } catch (Throwable t) {
+            exitSystemWithError(t);
         }
     }
 

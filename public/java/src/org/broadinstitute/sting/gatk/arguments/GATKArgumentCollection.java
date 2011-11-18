@@ -194,10 +194,14 @@ public class GATKArgumentCollection {
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
-    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis", required = false)
-    public int numberOfThreads = 1;
+    /** How many threads should be allocated to this analysis. */
+    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
+    public Integer numberOfThreads = 1;
 
-    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line", required = false)
+    @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="The total number of BAM file handles to keep open simultaneously", required=false)
+    public Integer numberOfBAMFileHandles = null;
+
+    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -292,9 +296,6 @@ public class GATKArgumentCollection {
     @Hidden
     public boolean allowIntervalsWithUnindexedBAM = false;
 
-    @Argument(fullName="disable_experimental_low_memory_sharding",doc="Disable experimental low-memory sharding functionality",required=false)
-    public boolean disableLowMemorySharding = false;
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // methods
@@ -365,7 +366,11 @@ public class GATKArgumentCollection {
                 (other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage))) {
             return false;
         }
-        if (other.numberOfThreads != this.numberOfThreads) {
+        if (!other.numberOfThreads.equals(this.numberOfThreads)) {
+            return false;
+        }
+        if ((other.numberOfBAMFileHandles == null && this.numberOfBAMFileHandles != null) ||
+                (other.numberOfBAMFileHandles != null && !other.numberOfBAMFileHandles.equals(this.numberOfBAMFileHandles))) {
             return false;
         }
         if (other.intervalMerging != this.intervalMerging) {
@@ -387,9 +392,6 @@ public class GATKArgumentCollection {
             return false;
 
         if (allowIntervalsWithUnindexedBAM != other.allowIntervalsWithUnindexedBAM)
-            return false;
-
-        if (disableLowMemorySharding != other.disableLowMemorySharding)
             return false;
 
         return true;

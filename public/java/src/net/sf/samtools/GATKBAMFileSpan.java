@@ -25,6 +25,7 @@
 package net.sf.samtools;
 
 import net.sf.picard.util.PeekableIterator;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +46,18 @@ public class GATKBAMFileSpan extends BAMFileSpan {
      */
     public GATKBAMFileSpan() {
         super();
+    }
+
+    /**
+     * Create a new GATKBAMFileSpan from an existing BAMFileSpan.
+     * @param sourceFileSpan
+     */
+    public GATKBAMFileSpan(SAMFileSpan sourceFileSpan) {
+        if(!(sourceFileSpan instanceof BAMFileSpan))
+            throw new SAMException("Unable to create GATKBAMFileSpan from a SAMFileSpan. Please submit a BAMFileSpan instead");
+        BAMFileSpan sourceBAMFileSpan = (BAMFileSpan)sourceFileSpan;
+        for(Chunk chunk: sourceBAMFileSpan.getChunks())
+            add(chunk instanceof GATKChunk ? chunk : new GATKChunk(chunk));
     }
 
     /**
