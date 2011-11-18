@@ -246,19 +246,19 @@ public class GenotypesContext implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
-    @Ensures({"cacheIsInvalid = true"})
-    private void invalidateCaches() {
+    @Ensures({"cacheIsInvalid == true"})
+    private synchronized void invalidateCaches() {
         cacheIsInvalid = true;
         sampleNamesInOrder = null;
         sampleNameToOffset = null;
     }
 
-    @Ensures({"cacheIsInvalid = false",
+    @Ensures({"cacheIsInvalid == false",
             "sampleNamesInOrder != null",
             "sampleNameToOffset != null",
             "sameSamples(genotypes, sampleNamesInOrder)",
             "sameSamples(genotypes, sampleNameToOffset.keySet())"})
-    private void buildCache() {
+    private synchronized void buildCache() {
         if ( cacheIsInvalid ) {
             cacheIsInvalid = false;
             sampleNamesInOrder = new ArrayList<String>(genotypes.size());
