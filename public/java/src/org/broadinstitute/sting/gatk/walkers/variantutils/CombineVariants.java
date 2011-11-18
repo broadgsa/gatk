@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.util.*;
@@ -252,7 +253,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             HashMap<String, Object> attributes = new HashMap<String, Object>(mergedVC.getAttributes());
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(mergedVC, attributes, false);
-            VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
+            VariantContext annotatedMergedVC = new VariantContextBuilder(mergedVC).attributes(attributes).make();
             if ( minimalVCF )
                 annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, Arrays.asList(SET_KEY));
             vcfWriter.add(annotatedMergedVC);

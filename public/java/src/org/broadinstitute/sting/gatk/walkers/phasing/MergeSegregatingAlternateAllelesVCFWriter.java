@@ -33,10 +33,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -186,7 +183,7 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
 
                         Map<String, Object> addedAttribs = vcMergeRule.addToMergedAttributes(vcfrWaitingToMerge.vc, vc);
                         addedAttribs.putAll(mergedVc.getAttributes());
-                        mergedVc = VariantContext.modifyAttributes(mergedVc, addedAttribs);
+                        mergedVc = new VariantContextBuilder(mergedVc).attributes(addedAttribs).make();
 
                         vcfrWaitingToMerge = new VCFRecord(mergedVc, true);
                         numMergedRecords++;

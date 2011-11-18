@@ -121,22 +121,22 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
         for ( VariantContext vc : contexts ) {
+            VariantContextBuilder builder = new VariantContextBuilder(vc);
             if ( rsID != null && vc.emptyID() ) {
-                vc = VariantContext.modifyID(vc, rsID);
+                builder.id(rsID).make();
             }
 
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
                 Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
-                GenotypesContext genotypes = GenotypesContext.create(g);
-                vc = VariantContext.modifyGenotypes(vc, genotypes);
+                builder.genotypes(g);
             }
 
             if ( fixReferenceBase ) {
-                vc = VariantContext.modifyReferencePadding(vc, ref.getBase());
+                builder.referenceBaseForIndel(ref.getBase());
             }
 
-            writeRecord(vc, tracker, ref.getLocus());
+            writeRecord(builder.make(), tracker, ref.getLocus());
         }
 
         return 1;

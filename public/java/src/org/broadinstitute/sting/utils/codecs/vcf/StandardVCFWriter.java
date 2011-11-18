@@ -25,18 +25,10 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import org.broad.tribble.Tribble;
 import org.broad.tribble.TribbleException;
-import org.broad.tribble.index.DynamicIndexCreator;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broad.tribble.util.ParsingUtils;
-import org.broad.tribble.util.PositionalStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.lang.reflect.Array;
@@ -164,10 +156,10 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             throw new IllegalStateException("The VCF Header must be written before records can be added: " + getStreamName());
 
         if ( doNotWriteGenotypes )
-            vc = VariantContext.modifyGenotypes(vc, null);
+            vc = new VariantContextBuilder(vc).noGenotypes().make();
 
         try {
-            vc = VariantContext.createVariantContextWithPaddedAlleles(vc, false);
+            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, false);
             super.add(vc);
 
             Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());

@@ -38,10 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -161,7 +158,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         // update if necessary and write
         if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {
             int difference = originalIndex - newCigar.getCigarElement(0).getLength();
-            VariantContext newVC = VariantContext.modifyLocation(vc, vc.getChr(), vc.getStart()-difference, vc.getEnd()-difference);
+            VariantContext newVC = new VariantContextBuilder(vc).start(vc.getStart()-difference).stop(vc.getEnd()-difference).make();
             //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + vc.getChr()+":"+(vc.getStart()-difference));
 
             int indelIndex = originalIndex-difference;

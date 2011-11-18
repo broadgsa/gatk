@@ -13,6 +13,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.io.*;
 import java.util.*;
@@ -252,29 +253,30 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @return a variant context object
      */
     private VariantContext parseVCFLine(String[] parts) {
+        VariantContextBuilder builder = new VariantContextBuilder();
         // increment the line count
         lineNo++;
 
         // parse out the required fields
-        String contig = getCachedString(parts[0]);
+        builder.chr(getCachedString(parts[0]));
         int pos = Integer.valueOf(parts[1]);
-        String id = null;
+        builder.start(pos);
+
         if ( parts[2].length() == 0 )
             generateException("The VCF specification requires a valid ID field");
         else if ( parts[2].equals(VCFConstants.EMPTY_ID_FIELD) )
-            id = VCFConstants.EMPTY_ID_FIELD;
+            builder.noID();
         else
-            id = parts[2];
+            builder.id(parts[2]);
+
         String ref = getCachedString(parts[3].toUpperCase());
         String alts = getCachedString(parts[4].toUpperCase());
-        Double qual = parseQual(parts[5]);
-        String filter = getCachedString(parts[6]);
-        String info = new String(parts[7]);
+        builder.negLog10PError(parseQual(parts[5]));
+        builder.filters(parseFilters(getCachedString(parts[6])));
+        builder.attributes(parseInfo(parts[7]));
 
         // get our alleles, filters, and setup an attribute map
         List<Allele> alleles = parseAlleles(ref, alts, lineNo);
-        Set<String> filters = parseFilters(filter);
-        Map<String, Object> attributes = parseInfo(info);
 
         // find out our current location, and clip the alleles down to their minimum length
         int loc = pos;
@@ -286,16 +288,19 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             loc = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
             alleles = newAlleles;
         }
+        builder.stop(loc);
+        builder.alleles(alleles);
 
         // do we have genotyping data
         if (parts.length > NUM_STANDARD_FIELDS) {
-            attributes.put(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, new String(parts[8]));
-            attributes.put(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY, this);
+            builder.attribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, new String(parts[8]));
+            builder.attribute(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY, this);
         }
 
         VariantContext vc = null;
         try {
-            vc =  new VariantContext(name, id, contig, pos, loc, alleles, qual, filters, attributes, ref.getBytes()[0]);
+            builder.referenceBaseForIndel(ref.getBytes()[0]);
+            vc = builder.make();
         } catch (Exception e) {
             generateException(e.getMessage());
         }

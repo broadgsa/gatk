@@ -229,8 +229,7 @@ public class UnifiedGenotyperEngine {
             VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, rawContext.getLocation(), false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
-            vc = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles(), VariantContext.NO_NEG_LOG_10PERROR, null, null, ref.getBase());
-
+            vc = new VariantContextBuilder(vcInput).source("UG_call").noID().referenceBaseForIndel(ref.getBase()).make();
         } else {
             // deal with bad/non-standard reference bases
             if ( !Allele.acceptableAlleleBases(new byte[]{ref.getBase()}) )
@@ -238,7 +237,7 @@ public class UnifiedGenotyperEngine {
 
             Set<Allele> alleles = new HashSet<Allele>();
             alleles.add(Allele.create(ref.getBase(), true));
-            vc = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles);
+            vc = new VariantContextBuilder("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles).make();
         }
         
         if ( annotationEngine != null ) {

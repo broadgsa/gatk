@@ -116,6 +116,82 @@ public class VariantContextUtils {
         return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
+    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
+        // see if we need to pad common reference base from all alleles
+        boolean padVC;
+
+        // We need to pad a VC with a common base if the length of the reference allele is less than the length of the VariantContext.
+        // This happens because the position of e.g. an indel is always one before the actual event (as per VCF convention).
+        long locLength = (inputVC.getEnd() - inputVC.getStart()) + 1;
+        if (inputVC.hasSymbolicAlleles())
+            padVC = true;
+        else if (inputVC.getReference().length() == locLength)
+            padVC = false;
+        else if (inputVC.getReference().length() == locLength-1)
+            padVC = true;
+        else throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
+                    " in contig " + inputVC.getChr() + ". Reference length must be at most one base shorter than location size");
+
+        // nothing to do if we don't need to pad bases
+        if (padVC) {
+            if ( !inputVC.hasReferenceBaseForIndel() )
+                throw new ReviewedStingException("Badly formed variant context at location " + inputVC.getChr() + ":" + inputVC.getStart() + "; no padded reference base is available.");
+
+            Byte refByte = inputVC.getReferenceBaseForIndel();
+
+            List<Allele> alleles = new ArrayList<Allele>();
+
+            for (Allele a : inputVC.getAlleles()) {
+                // get bases for current allele and create a new one with trimmed bases
+                if (a.isSymbolic()) {
+                    alleles.add(a);
+                } else {
+                    String newBases;
+                    if ( refBaseShouldBeAppliedToEndOfAlleles )
+                        newBases = a.getBaseString() + new String(new byte[]{refByte});
+                    else
+                        newBases = new String(new byte[]{refByte}) + a.getBaseString();
+                    alleles.add(Allele.create(newBases,a.isReference()));
+                }
+            }
+
+            // now we can recreate new genotypes with trimmed alleles
+            GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
+            for (final Genotype g : inputVC.getGenotypes() ) {
+                List<Allele> inAlleles = g.getAlleles();
+                List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
+                for (Allele a : inAlleles) {
+                    if (a.isCalled()) {
+                        if (a.isSymbolic()) {
+                            newGenotypeAlleles.add(a);
+                        } else {
+                            String newBases;
+                            if ( refBaseShouldBeAppliedToEndOfAlleles )
+                                newBases = a.getBaseString() + new String(new byte[]{refByte});
+                            else
+                                newBases = new String(new byte[]{refByte}) + a.getBaseString();
+                            newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
+                        }
+                    }
+                    else {
+                        // add no-call allele
+                        newGenotypeAlleles.add(Allele.NO_CALL);
+                    }
+                }
+                genotypes.add(new Genotype(g.getSampleName(), newGenotypeAlleles, g.getNegLog10PError(),
+                        g.getFilters(), g.getAttributes(), g.isPhased()));
+
+            }
+
+            // Do not change the filter state if filters were not applied to this context
+            Set<String> inputVCFilters = inputVC.getFiltersMaybeNull();
+            return new VariantContext(inputVC.getSource(), inputVC.getID(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVCFilters, inputVC.getAttributes(),refByte);
+        }
+        else
+            return inputVC;
+
+    }
+
     /**
      * A simple but common wrapper for matching VariantContext objects using JEXL expressions
      */
@@ -257,7 +333,7 @@ public class VariantContextUtils {
     @Requires("vc != null")
     @Ensures("result != null")
     public static VariantContext sitesOnlyVariantContext(VariantContext vc) {
-        return VariantContext.modifyGenotypes(vc, null);
+        return new VariantContextBuilder(vc).noGenotypes().make();
     }
 
     /**
@@ -378,7 +454,7 @@ public class VariantContextUtils {
         for (VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc, false));
+                VCs.add(createVariantContextWithPaddedAlleles(vc, false));
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;
@@ -896,7 +972,7 @@ public class VariantContextUtils {
             newGenotypes.add(Genotype.modifyAttributes(genotype, attrs));
         }
 
-        return VariantContext.modifyGenotypes(vc, newGenotypes);
+        return new VariantContextBuilder(vc).genotypes(newGenotypes).make();
     }
 
     public static BaseUtils.BaseSubstitutionType getSNPSubstitutionType(VariantContext context) {

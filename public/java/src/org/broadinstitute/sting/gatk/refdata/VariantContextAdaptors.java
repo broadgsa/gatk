@@ -255,7 +255,7 @@ public class VariantContextAdaptors {
                 genotypes.add(call);
                 alleles.add(refAllele);
                 GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart());
-                return new VariantContext(name, VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
+                return new VariantContextBuilder(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles).genotypes(genotypes).negLog10PError(geli.getLODBestToReference()).attributes(attributes).make();
             } else
                 return null; // can't handle anything else
         }

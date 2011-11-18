@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.lang.reflect.Field;
@@ -289,7 +290,7 @@ public class VariantEvalUtils {
         }
 
         VariantContextUtils.calculateChromosomeCounts(vcsub, newAts, true);
-        vcsub = VariantContext.modifyAttributes(vcsub, newAts);
+        vcsub = new VariantContextBuilder(vcsub).attributes(newAts).make();
 
         //VariantEvalWalker.logger.debug(String.format("VC %s subset to %s AC%n", vc.getSource(), vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
 

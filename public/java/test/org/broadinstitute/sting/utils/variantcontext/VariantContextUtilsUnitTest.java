@@ -250,7 +250,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         final List<VariantContext> inputs = new ArrayList<VariantContext>();
 
         for ( final String id : cfg.inputs ) {
-            inputs.add(VariantContext.modifyID(snpVC1, id));
+            inputs.add(new VariantContextBuilder(snpVC1).id(id).make());
         }
 
         final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,

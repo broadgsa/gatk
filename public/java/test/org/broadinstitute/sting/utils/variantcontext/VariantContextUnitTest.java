@@ -255,7 +255,7 @@ public class VariantContextUnitTest extends BaseTest {
     public void testCreatingPartiallyCalledGenotype() {
         List<Allele> alleles = Arrays.asList(Aref, C);
         Genotype g = new Genotype("foo", Arrays.asList(C, Allele.NO_CALL), 10);
-        VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc, snpLocStart, snpLocStop, alleles, Arrays.asList(g));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g).make();
 
         Assert.assertTrue(vc.isSNP());
         Assert.assertEquals(vc.getNAlleles(), 2);
@@ -328,7 +328,8 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
 
-        VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1, g2, g3));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles)
+                .genotypes(g1, g2, g3).make();
 
         Assert.assertTrue(vc.hasGenotypes());
         Assert.assertFalse(vc.isMonomorphic());
@@ -367,7 +368,8 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g5 = new Genotype("dd", Arrays.asList(del, del), 10);
         Genotype g6 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
 
-        VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1, g2, g3, g4, g5, g6));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles)
+                .genotypes(g1, g2, g3, g4, g5, g6).make();
 
         Assert.assertTrue(vc.hasGenotypes());
         Assert.assertFalse(vc.isMonomorphic());
@@ -392,7 +394,8 @@ public class VariantContextUnitTest extends BaseTest {
             Genotype g1 = new Genotype("AA1", Arrays.asList(Aref, Aref), 10);
             Genotype g2 = new Genotype("AA2", Arrays.asList(Aref, Aref), 10);
             Genotype g3 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
-            VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1, g2, g3));
+            VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles)
+                    .genotypes(g1, g2, g3).make();
 
             Assert.assertTrue(vc.hasGenotypes());
             Assert.assertTrue(vc.isMonomorphic());
@@ -412,21 +415,20 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
 
-        VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1, g2).make();
 
         Assert.assertTrue(vc.isNotFiltered());
         Assert.assertFalse(vc.isFiltered());
         Assert.assertEquals(0, vc.getFilters().size());
 
-        Set<String> filters = new HashSet<String>(Arrays.asList("BAD_SNP_BAD!"));
-        vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2), VariantContext.NO_NEG_LOG_10PERROR, filters, null);
+        vc = new VariantContextBuilder(vc).filters("BAD_SNP_BAD!").make();
 
         Assert.assertFalse(vc.isNotFiltered());
         Assert.assertTrue(vc.isFiltered());
         Assert.assertEquals(1, vc.getFilters().size());
 
-        filters = new HashSet<String>(Arrays.asList("BAD_SNP_BAD!", "REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
-        vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2), VariantContext.NO_NEG_LOG_10PERROR, filters, null);
+        Set<String> filters = new HashSet<String>(Arrays.asList("BAD_SNP_BAD!", "REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
+        vc = new VariantContextBuilder(vc).filters(filters).make();
 
         Assert.assertFalse(vc.isNotFiltered());
         Assert.assertTrue(vc.isFiltered());
@@ -441,7 +443,7 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
         Genotype g4 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
         Genotype g5 = new Genotype("--", Arrays.asList(del, del), 10);
-        VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc,snpLocStart, snpLocStop , alleles, Arrays.asList(g1,g2,g3,g4,g5));
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
 
         VariantContext vc12 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName(), g2.getSampleName())));
         VariantContext vc1 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName())));
@@ -495,7 +497,7 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
         GenotypesContext gc = GenotypesContext.create(g1, g2, g3);
-        VariantContext vc = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T), gc);
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
 
         Assert.assertEquals(vc.getGenotype("AA"), g1);
         Assert.assertEquals(vc.getGenotype("AT"), g2);
@@ -586,7 +588,7 @@ public class VariantContextUnitTest extends BaseTest {
         private SitesAndGenotypesVC(String name, VariantContext original) {
             super(SitesAndGenotypesVC.class, name);
             this.vc = original;
-            this.copy = new VariantContext(original);
+            this.copy = new VariantContextBuilder(original).make();
         }
 
         public String toString() {
@@ -600,8 +602,8 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
 
-        VariantContext sites = new VariantContext("sites", VCFConstants.EMPTY_ID_FIELD, snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T));
-        VariantContext genotypes = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T), Arrays.asList(g1, g2, g3));
+        VariantContext sites = new VariantContextBuilder("sites", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).make();
+        VariantContext genotypes = new VariantContextBuilder(sites).source("genotypes").genotypes(g1, g2, g3).make();
 
         new SitesAndGenotypesVC("sites", sites);
         new SitesAndGenotypesVC("genotypes", genotypes);
@@ -616,32 +618,32 @@ public class VariantContextUnitTest extends BaseTest {
     // --------------------------------------------------------------------------------
     @Test(dataProvider = "SitesAndGenotypesVC")
     public void runModifyVCTests(SitesAndGenotypesVC cfg) {
-        VariantContext modified = VariantContext.modifyLocation(cfg.vc, "chr2", 123, 123);
+        VariantContext modified = new VariantContextBuilder(cfg.vc).loc("chr2", 123, 123).make();
         Assert.assertEquals(modified.getChr(), "chr2");
         Assert.assertEquals(modified.getStart(), 123);
         Assert.assertEquals(modified.getEnd(), 123);
 
-        modified = VariantContext.modifyID(cfg.vc, "newID");
+        modified = new VariantContextBuilder(cfg.vc).id("newID").make();
         Assert.assertEquals(modified.getID(), "newID");
 
         Set<String> newFilters = Collections.singleton("newFilter");
-        modified = VariantContext.modifyFilters(cfg.vc, newFilters);
+        modified = new VariantContextBuilder(cfg.vc).filters(newFilters).make();
         Assert.assertEquals(modified.getFilters(), newFilters);
 
-        modified = VariantContext.modifyAttribute(cfg.vc, "AC", 1);
+        modified = new VariantContextBuilder(cfg.vc).attribute("AC", 1).make();
         Assert.assertEquals(modified.getAttribute("AC"), 1);
-        modified = VariantContext.modifyAttribute(modified, "AC", 2);
+        modified = new VariantContextBuilder(modified).attribute("AC", 2).make();
         Assert.assertEquals(modified.getAttribute("AC"), 2);
-        modified = VariantContext.modifyAttributes(modified, null);
+        modified = new VariantContextBuilder(modified).attributes(null).make();
         Assert.assertTrue(modified.getAttributes().isEmpty());
 
         Genotype g1 = new Genotype("AA2", Arrays.asList(Aref, Aref), 10);
         Genotype g2 = new Genotype("AT2", Arrays.asList(Aref, T), 10);
         Genotype g3 = new Genotype("TT2", Arrays.asList(T, T), 10);
         GenotypesContext gc = GenotypesContext.create(g1,g2,g3);
-        modified = VariantContext.modifyGenotypes(cfg.vc, gc);
+        modified = new VariantContextBuilder(cfg.vc).genotypes(gc).make();
         Assert.assertEquals(modified.getGenotypes(), gc);
-        modified = VariantContext.modifyGenotypes(cfg.vc, null);
+        modified = new VariantContextBuilder(cfg.vc).noGenotypes().make();
         Assert.assertTrue(modified.getGenotypes().isEmpty());
 
         // test that original hasn't changed
@@ -697,7 +699,7 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
 
         GenotypesContext gc = GenotypesContext.create(g1, g2, g3);
-        VariantContext vc = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T), gc);
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
         VariantContext sub = cfg.updateAlleles ? vc.subContextFromSamples(cfg.samples) : vc.subContextFromSamples(cfg.samples, vc.getAlleles());
 
         // unchanged attributes should be the same
@@ -782,8 +784,7 @@ public class VariantContextUnitTest extends BaseTest {
             gc.add(new Genotype(name, Arrays.asList(Aref, T)));
         }
 
-        VariantContext vc = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc,
-                snpLocStart, snpLocStop, Arrays.asList(Aref, T), gc);
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
 
         // same sample names => success
         Assert.assertEquals(vc.getSampleNames(), new HashSet<String>(cfg.sampleNames), "vc.getSampleNames() = " + vc.getSampleNames());
@@ -823,9 +824,7 @@ public class VariantContextUnitTest extends BaseTest {
 
             }
 
-            VariantContext vc = new VariantContext("genotypes", VCFConstants.EMPTY_ID_FIELD, snpLoc,
-                    snpLocStart, snpLocStop, Arrays.asList(Aref, T), gc);
-
+            VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
             Assert.assertEquals(vc.getNSamples(), nSamples);
             if ( nSamples > 0 ) {
                 Assert.assertEquals(vc.isPolymorphic(), nT > 0);

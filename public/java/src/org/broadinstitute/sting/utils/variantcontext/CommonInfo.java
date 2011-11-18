@@ -14,12 +14,12 @@ import java.util.*;
 final class CommonInfo {
     public static final double NO_NEG_LOG_10PERROR = -1.0;
 
-    private static Set<String> NO_FILTERS = Collections.unmodifiableSet(new HashSet<String>());
+    private static Set<String> NO_FILTERS = Collections.emptySet();
     private static Map<String, Object> NO_ATTRIBUTES = Collections.unmodifiableMap(new HashMap<String, Object>());
 
     private double negLog10PError = NO_NEG_LOG_10PERROR;
     private String name = null;
-    private Set<String> filters = NO_FILTERS;
+    private Set<String> filters = null;
     private Map<String, Object> attributes = NO_ATTRIBUTES;
 
     public CommonInfo(String name, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
@@ -56,12 +56,20 @@ final class CommonInfo {
     //
     // ---------------------------------------------------------------------------------------------------------
 
+    public Set<String> getFiltersMaybeNull() {
+        return filters;
+    }
+
     public Set<String> getFilters() {
-        return Collections.unmodifiableSet(filters);
+        return filters == null ? NO_FILTERS : Collections.unmodifiableSet(filters);
+    }
+
+    public boolean filtersWereApplied() {
+        return filters != null;
     }
 
     public boolean isFiltered() {
-        return filters.size() > 0;
+        return filters == null ? false : filters.size() > 0;
     }
 
     public boolean isNotFiltered() {
@@ -69,8 +77,8 @@ final class CommonInfo {
     }
 
     public void addFilter(String filter) {
-        if ( filters == NO_FILTERS ) // immutable -> mutable
-            filters = new HashSet<String>(filters);
+        if ( filters == null ) // immutable -> mutable
+            filters = new HashSet<String>();
 
         if ( filter == null ) throw new IllegalArgumentException("BUG: Attempting to add null filter " + this);
         if ( getFilters().contains(filter) ) throw new IllegalArgumentException("BUG: Attempting to add duplicate filter " + filter + " at " + this);
@@ -81,15 +89,6 @@ final class CommonInfo {
         if ( filters == null ) throw new IllegalArgumentException("BUG: Attempting to add null filters at" + this);
         for ( String f : filters )
             addFilter(f);
-    }
-
-    public void clearFilters() {
-        filters = new HashSet<String>();
-    }
-
-    public void setFilters(Collection<String> filters) {
-        clearFilters();
-        addFilters(filters);
     }
 
     // ---------------------------------------------------------------------------------------------------------

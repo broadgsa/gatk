@@ -35,10 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -111,7 +108,7 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         try {
             Map<String, Object> attrs = new HashMap<String, Object>(value.getAttributes());
             VariantContextUtils.calculateChromosomeCounts(value, attrs, true);
-            writer.add(VariantContext.modifyAttributes(value, attrs));
+            writer.add(new VariantContextBuilder(value).attributes(attrs).make());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

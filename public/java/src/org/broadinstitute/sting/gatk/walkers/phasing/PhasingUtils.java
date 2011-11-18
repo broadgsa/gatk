@@ -135,7 +135,7 @@ class PhasingUtils {
 
         mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
         VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);
-        mergedVc = VariantContext.modifyAttributes(mergedVc, mergedAttribs);
+        mergedVc = new VariantContextBuilder(mergedVc).attributes(mergedAttribs).make();
 
         return mergedVc;
     }

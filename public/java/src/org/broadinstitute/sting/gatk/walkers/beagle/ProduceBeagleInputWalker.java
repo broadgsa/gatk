@@ -201,7 +201,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             logger.debug(String.format("boot: %d, test: %d, total: %d", bootstrapSetSize, testSetSize, bootstrapSetSize+testSetSize+1));
             if ( (bootstrapSetSize+1.0)/(1.0+bootstrapSetSize+testSetSize) <= bootstrap ) {
                 if ( bootstrapVCFOutput != null ) {
-                    bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER));
+                    bootstrapVCFOutput.add(new VariantContextBuilder(validation).filters(BOOTSTRAP_FILTER).make());
                 }
                 bootstrapSetSize++;
                 return true;

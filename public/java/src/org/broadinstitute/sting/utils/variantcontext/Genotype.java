@@ -23,7 +23,6 @@ public class Genotype {
     protected Type type = null;
 
     protected boolean isPhased = false;
-    protected boolean filtersWereAppliedToContext;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased) {
         this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
@@ -35,7 +34,6 @@ public class Genotype {
         commonInfo = new CommonInfo(sampleName, negLog10PError, filters, attributes);
         if ( log10Likelihoods != null )
             commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
-        filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
         validate();
     }
@@ -333,9 +331,10 @@ public class Genotype {
     // ---------------------------------------------------------------------------------------------------------
     public String getSampleName()       { return commonInfo.getName(); }
     public Set<String> getFilters()     { return commonInfo.getFilters(); }
+    public Set<String> getFiltersMaybeNull()    { return commonInfo.getFiltersMaybeNull(); }
     public boolean isFiltered()         { return commonInfo.isFiltered(); }
     public boolean isNotFiltered()      { return commonInfo.isNotFiltered(); }
-    public boolean filtersWereApplied() { return filtersWereAppliedToContext; }
+    public boolean filtersWereApplied() { return commonInfo.filtersWereApplied(); }
     public boolean hasNegLog10PError()  { return commonInfo.hasNegLog10PError(); }
     public double getNegLog10PError()   { return commonInfo.getNegLog10PError(); }
     public double getPhredScaledQual()  { return commonInfo.getPhredScaledQual(); }

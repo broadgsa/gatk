@@ -654,16 +654,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
-//        logger.info("Genotypes in full  vc: " + vc.getGenotypes());
-//        logger.info("My own sub           : " + vc.getGenotypes().subsetToSamples(samples));
-        VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
-//        logger.info("Genotypes in sub   vc: " + sub.getGenotypes());
+        final VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
+        VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-            sub = VariantContext.modifyGenotypes(sub, VariantContextUtils.stripPLs(vc.getGenotypes()));
-
-        HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
+            builder.genotypes(VariantContextUtils.stripPLs(vc.getGenotypes()));
 
         int depth = 0;
         for (String sample : sub.getSampleNames()) {
@@ -680,22 +676,19 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
-                attributes.put("AC_Orig",attributes.get(VCFConstants.ALLELE_COUNT_KEY));
-            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                attributes.put("AF_Orig",attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY));
-            if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
-                attributes.put("AN_Orig",attributes.get(VCFConstants.ALLELE_NUMBER_KEY));
-
+            if ( sub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+                builder.attribute("AC_Orig",sub.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+            if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                builder.attribute("AF_Orig",sub.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+            if ( sub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
+                builder.attribute("AN_Orig",sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
 
-        VariantContextUtils.calculateChromosomeCounts(sub,attributes,false);
+        Map<String, Object> attributes = new HashMap<String, Object>(builder.make().getAttributes());
+        VariantContextUtils.calculateChromosomeCounts(sub, attributes, false);
         attributes.put("DP", depth);
 
-        sub = VariantContext.modifyAttributes(sub, attributes);
-
-//        logger.info("Genotypes in final vc: " + sub.getGenotypes());
-        return sub;
+        return new VariantContextBuilder(builder.make()).attributes(attributes).make();
     }
 
     private void randomlyAddVariant(int rank, VariantContext vc, byte refBase) {

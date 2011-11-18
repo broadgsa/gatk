@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.util.*;
 
@@ -179,10 +180,10 @@ public class VariantAnnotatorEngine {
         }
 
         // generate a new annotated VC
-        final VariantContext annotatedVC = VariantContext.modifyAttributes(vc, infoAnnotations);
+        VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
 
         // annotate genotypes, creating another new VC in the process
-        return VariantContext.modifyGenotypes(annotatedVC, annotateGenotypes(tracker, ref, stratifiedContexts, vc));
+        return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc)).make();
     }
 
     private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
@@ -192,7 +193,7 @@ public class VariantAnnotatorEngine {
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
                 // annotate dbsnp id if available and not already there
                 if ( rsID != null && vc.emptyID() )
-                    vc = VariantContext.modifyID(vc, rsID);
+                    vc = new VariantContextBuilder(vc).id(rsID).make();
             } else {
                 boolean overlapsComp = false;
                 for ( VariantContext comp : tracker.getValues(dbSet.getKey(), ref.getLocus()) ) {

@@ -230,7 +230,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                             for ( final Genotype g : vc.getGenotypes() ) {
                                 gc.add(new Genotype(g.getSampleName()+"_"+i, g));
                             }
-                            toMerge.add(VariantContext.modifyGenotypes(vc, gc));
+                            toMerge.add(new VariantContextBuilder(vc).genotypes(gc).make());
                         }
 
                         VariantContextUtils.simpleMerge(b37GenomeLocParser, toMerge, null,

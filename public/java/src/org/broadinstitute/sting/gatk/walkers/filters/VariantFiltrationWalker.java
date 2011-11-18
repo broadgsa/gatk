@@ -36,10 +36,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -225,7 +222,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                  (vc.getFilters() == null || !vc.getFilters().contains(MASK_NAME)) ) { // the filter hasn't already been applied
                 Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
                 filters.add(MASK_NAME);
-                vc = VariantContext.modifyFilters(vc, filters);
+                vc = new VariantContextBuilder(vc).filters(filters).make();
             }
 
             FiltrationContext varContext = new FiltrationContext(ref, vc);
@@ -268,7 +265,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
              (vc.getFilters() == null || !vc.getFilters().contains(MASK_NAME)) ) { // the filter hasn't already been applied
             Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
             filters.add(MASK_NAME);
-            vc = VariantContext.modifyFilters(vc, filters);
+            vc = new VariantContextBuilder(vc).filters(filters).make();
         }
 
         return vc;
@@ -325,7 +322,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         VariantContext filteredVC;
         if ( genotypes == null )
-            filteredVC = VariantContext.modifyFilters(vc, filters);
+            filteredVC = new VariantContextBuilder(vc).filters(filters).make();
         else
             filteredVC = new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
