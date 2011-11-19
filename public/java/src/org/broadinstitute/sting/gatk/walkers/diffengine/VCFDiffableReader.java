@@ -99,7 +99,7 @@ public class VCFDiffableReader implements DiffableReader {
                 vcRoot.add("ID", vc.getID());
                 vcRoot.add("REF", vc.getReference());
                 vcRoot.add("ALT", vc.getAlternateAlleles());
-                vcRoot.add("QUAL", vc.hasNegLog10PError() ? vc.getNegLog10PError() * 10 : VCFConstants.MISSING_VALUE_v4);
+                vcRoot.add("QUAL", vc.hasLog10PError() ? vc.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4);
                 vcRoot.add("FILTER", vc.getFilters());
 
                 // add info fields
@@ -111,7 +111,7 @@ public class VCFDiffableReader implements DiffableReader {
                 for (Genotype g : vc.getGenotypes() ) {
                     DiffNode gRoot = DiffNode.empty(g.getSampleName(), vcRoot);
                     gRoot.add("GT", g.getGenotypeString());
-                    gRoot.add("GQ", g.hasNegLog10PError() ? g.getNegLog10PError() * 10 : VCFConstants.MISSING_VALUE_v4 );
+                    gRoot.add("GQ", g.hasLog10PError() ? g.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4 );
 
                     for (Map.Entry<String, Object> attribute : g.getAttributes().entrySet()) {
                         if ( ! attribute.getKey().startsWith("_") )

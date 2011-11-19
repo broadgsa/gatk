@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -193,9 +192,12 @@ public class VariantContextAdaptors {
                     return null; // we weren't given enough reference context to create the VariantContext
                 Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
-                GenotypesContext genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getRsID(), dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
-                return vc;
+                final VariantContextBuilder builder = new VariantContextBuilder();
+                builder.source(name).id(dbsnp.getRsID());
+                builder.loc(dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0));
+                builder.alleles(alleles);
+                builder.referenceBaseForIndel(refBaseForIndel);
+                return builder.make();
             } else
                 return null; // can't handle anything else
         }
@@ -255,7 +257,7 @@ public class VariantContextAdaptors {
                 genotypes.add(call);
                 alleles.add(refAllele);
                 GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart());
-                return new VariantContextBuilder(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles).genotypes(genotypes).negLog10PError(geli.getLODBestToReference()).attributes(attributes).make();
+                return new VariantContextBuilder(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles).genotypes(genotypes).log10PError(-1 * geli.getLODBestToReference()).attributes(attributes).make();
             } else
                 return null; // can't handle anything else
         }
@@ -349,7 +351,7 @@ public class VariantContextAdaptors {
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
                 end += deletionLength;
-            VariantContext vc = new VariantContext(name, hapmap.getName(), hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null, refBaseForIndel);
+            VariantContext vc = new VariantContextBuilder(name, hapmap.getChr(), hapmap.getStart(), end, alleles).id(hapmap.getName()).genotypes(genotypes).referenceBaseForIndel(refBaseForIndel).make();
             return vc;
        }
     }

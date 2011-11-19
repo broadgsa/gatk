@@ -272,7 +272,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
         String ref = getCachedString(parts[3].toUpperCase());
         String alts = getCachedString(parts[4].toUpperCase());
-        builder.negLog10PError(parseQual(parts[5]));
+        builder.log10PError(parseQual(parts[5]));
         builder.filters(parseFilters(getCachedString(parts[6])));
         builder.attributes(parseInfo(parts[7]));
 
@@ -448,16 +448,16 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     protected static Double parseQual(String qualString) {
         // if we're the VCF 4 missing char, return immediately
         if ( qualString.equals(VCFConstants.MISSING_VALUE_v4))
-            return VariantContext.NO_NEG_LOG_10PERROR;
+            return VariantContext.NO_LOG10_PERROR;
 
         Double val = Double.valueOf(qualString);
 
         // check to see if they encoded the missing qual score in VCF 3 style, with either the -1 or -1.0.  check for val < 0 to save some CPU cycles
         if ((val < 0) && (Math.abs(val - VCFConstants.MISSING_QUALITY_v3_DOUBLE) < VCFConstants.VCF_ENCODING_EPSILON))
-            return VariantContext.NO_NEG_LOG_10PERROR;
+            return VariantContext.NO_LOG10_PERROR;
 
         // scale and return the value
-        return val / 10.0;
+        return val / -10.0;
     }
 
     /**

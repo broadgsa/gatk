@@ -51,7 +51,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         if ( depth == 0 )
             return null;
 
-        double QD = 10.0 * vc.getNegLog10PError() / (double)depth;
+        double QD = -10.0 * vc.getLog10PError() / (double)depth;
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", QD));

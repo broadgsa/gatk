@@ -361,7 +361,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (isUnfilteredCalledDiploidGenotype(gt)) {
                 if (gt.isHom()) { // Note that this Genotype may be replaced later to contain the PQ of a downstream het site that was phased relative to a het site lying upstream of this hom site:
                     // true <-> can trivially phase a hom site relative to ANY previous site:
-                    Genotype phasedGt = new Genotype(gt.getSampleName(), gt.getAlleles(), gt.getNegLog10PError(), gt.getFilters(), gt.getAttributes(), true);
+                    Genotype phasedGt = new Genotype(gt.getSampleName(), gt.getAlleles(), gt.getLog10PError(), gt.getFilters(), gt.getAttributes(), true);
                     uvc.setGenotype(samp, phasedGt);
                 }
                 else if (gt.isHet()) { // Attempt to phase this het genotype relative to the previous het genotype
@@ -397,7 +397,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                             ensurePhasing(allelePair, prevAllelePair, pr.haplotype);
                             Map<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
                             gtAttribs.put(PQ_KEY, pr.phaseQuality);
-                            Genotype phasedGt = new Genotype(gt.getSampleName(), allelePair.getAllelesAsList(), gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
+                            Genotype phasedGt = new Genotype(gt.getSampleName(), allelePair.getAllelesAsList(), gt.getLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
                             uvc.setGenotype(samp, phasedGt);
                         }
 
@@ -417,7 +417,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                             if (genotypesArePhased) {
                                 Map<String, Object> handledGtAttribs = new HashMap<String, Object>(handledGt.getAttributes());
                                 handledGtAttribs.put(PQ_KEY, pr.phaseQuality);
-                                Genotype phasedHomGt = new Genotype(handledGt.getSampleName(), handledGt.getAlleles(), handledGt.getNegLog10PError(), handledGt.getFilters(), handledGtAttribs, genotypesArePhased);
+                                Genotype phasedHomGt = new Genotype(handledGt.getSampleName(), handledGt.getAlleles(), handledGt.getLog10PError(), handledGt.getFilters(), handledGtAttribs, genotypesArePhased);
                                 interiorUvc.setGenotype(samp, phasedHomGt);
                             }
                         }
@@ -1123,7 +1123,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private int stop;
         private Collection<Allele> alleles;
         private GenotypesContext genotypes;
-        private double negLog10PError;
+        private double log10PError;
         private Set<String> filters;
         private Map<String, Object> attributes;
         private String id;
@@ -1136,13 +1136,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.stop = vc.getEnd();
             this.alleles = vc.getAlleles();
             this.genotypes = GenotypesContext.copy(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
-            this.negLog10PError = vc.getNegLog10PError();
+            this.log10PError = vc.getLog10PError();
             this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());
         }
 
         public VariantContext toVariantContext() {
-            return new VariantContext(name, id, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes);
+            return new VariantContextBuilder(name, contig, start, stop, alleles).id(id)
+                    .genotypes(genotypes).log10PError(log10PError).filters(filters).attributes(attributes).make();
         }
 
         public GenomeLoc getLocation() {

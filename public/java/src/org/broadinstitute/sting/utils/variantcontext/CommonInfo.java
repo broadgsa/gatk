@@ -12,19 +12,19 @@ import java.util.*;
  * @author depristo
  */
 final class CommonInfo {
-    public static final double NO_NEG_LOG_10PERROR = -1.0;
+    public static final double NO_LOG10_PERROR = 1.0;
 
     private static Set<String> NO_FILTERS = Collections.emptySet();
     private static Map<String, Object> NO_ATTRIBUTES = Collections.unmodifiableMap(new HashMap<String, Object>());
 
-    private double negLog10PError = NO_NEG_LOG_10PERROR;
+    private double log10PError = NO_LOG10_PERROR;
     private String name = null;
     private Set<String> filters = null;
     private Map<String, Object> attributes = NO_ATTRIBUTES;
 
-    public CommonInfo(String name, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
+    public CommonInfo(String name, double log10PError, Set<String> filters, Map<String, Object> attributes) {
         this.name = name;
-        setNegLog10PError(negLog10PError);
+        setLog10PError(log10PError);
         if ( filters != null && ! filters.isEmpty() )
             this.filters = filters;
         if ( attributes != null && ! attributes.isEmpty() ) {
@@ -97,22 +97,21 @@ final class CommonInfo {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public boolean hasNegLog10PError() {
-        return getNegLog10PError() != NO_NEG_LOG_10PERROR;
+    public boolean hasLog10PError() {
+        return getLog10PError() != NO_LOG10_PERROR;
     }
 
     /**
      * @return the -1 * log10-based error estimate
      */
-    public double getNegLog10PError() { return negLog10PError; }
-    public double getPhredScaledQual() { return getNegLog10PError() * 10; }
+    public double getLog10PError() { return log10PError; }
+    public double getPhredScaledQual() { return getLog10PError() * -10; }
 
-    public void setNegLog10PError(double negLog10PError) {
-        if ( negLog10PError < 0 && negLog10PError != NO_NEG_LOG_10PERROR ) throw new IllegalArgumentException("BUG: negLog10PError cannot be < than 0 : " + negLog10PError);
-        if ( Double.isInfinite(negLog10PError) ) throw new IllegalArgumentException("BUG: negLog10PError should not be Infinity");
-        if ( Double.isNaN(negLog10PError) ) throw new IllegalArgumentException("BUG: negLog10PError should not be NaN");
-
-        this.negLog10PError = negLog10PError;
+    public void setLog10PError(double log10PError) {
+        if ( this.log10PError > 0 && this.log10PError != NO_LOG10_PERROR) throw new IllegalArgumentException("BUG: log10PError cannot be > 0 : " + this.log10PError);
+        if ( Double.isInfinite(this.log10PError) ) throw new IllegalArgumentException("BUG: log10PError should not be Infinity");
+        if ( Double.isNaN(this.log10PError) ) throw new IllegalArgumentException("BUG: log10PError should not be NaN");
+        this.log10PError = log10PError;
     }
 
     // ---------------------------------------------------------------------------------------------------------

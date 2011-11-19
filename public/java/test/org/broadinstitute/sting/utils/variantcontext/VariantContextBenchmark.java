@@ -356,7 +356,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //                            for ( final org.broadinstitute.sting.utils.variantcontext.v13.Genotype g : vc.getGenotypes().values() ) {
 //                                String name = g.getSampleName()+"_"+i;
 //                                gc.put(name, new org.broadinstitute.sting.utils.variantcontext.v13.Genotype(name,
-//                                        g.getAlleles(), g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased(), g.getLikelihoods().getAsVector()));
+//                                        g.getAlleles(), g.getLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased(), g.getLikelihoods().getAsVector()));
 //                                toMerge.add(org.broadinstitute.sting.utils.variantcontext.v13.VariantContext.modifyGenotypes(vc, gc));
 //                            }
 //                        }

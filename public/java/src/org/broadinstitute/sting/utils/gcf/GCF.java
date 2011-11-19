@@ -27,10 +27,7 @@ package org.broadinstitute.sting.utils.gcf;
 import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -72,7 +69,7 @@ public class GCF {
             alleleOffsets[i+1] = GCFHeaderBuilder.encodeAllele(vc.getAlternateAllele(i));
         }
 
-        qual = (float)vc.getNegLog10PError(); //qualToByte(vc.getPhredScaledQual());
+        qual = (float)vc.getLog10PError(); //qualToByte(vc.getPhredScaledQual());
         info = infoFieldString(vc, GCFHeaderBuilder);
         filterOffset = GCFHeaderBuilder.encodeString(StandardVCFWriter.getFilterString(vc));
 
@@ -142,14 +139,14 @@ public class GCF {
     public VariantContext decode(final String source, final GCFHeader header) {
         final String contig = header.getString(chromOffset);
         alleleMap = header.getAlleles(alleleOffsets);
-        double negLog10PError = qual; // QualityUtils.qualToErrorProb(qual);
-        Set<String> filters = header.getFilters(filterOffset);
-        Map<String, Object> attributes = new HashMap<String, Object>();
-        attributes.put("INFO", info);
-        Byte refPadByte = refPad == 0 ? null : refPad;
-        GenotypesContext genotypes = decodeGenotypes(header);
 
-        return new VariantContext(source, VCFConstants.EMPTY_ID_FIELD, contig, start, stop, alleleMap, genotypes, negLog10PError, filters, attributes, refPadByte);
+        VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, alleleMap);
+        builder.genotypes(decodeGenotypes(header));
+        builder.log10PError(qual);
+        builder.filters(header.getFilters(filterOffset));
+        builder.attribute("INFO", info);
+        builder.referenceBaseForIndel(refPad == 0 ? null : refPad);
+        return builder.make();
     }
 
     private GenotypesContext decodeGenotypes(final GCFHeader header) {

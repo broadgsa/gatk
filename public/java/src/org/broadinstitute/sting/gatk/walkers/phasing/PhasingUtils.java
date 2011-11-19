@@ -108,7 +108,7 @@ class PhasingUtils {
                 mergedAllelesForSample.add(mergedAllele);
             }
 
-            double mergedGQ = Math.max(gt1.getNegLog10PError(), gt2.getNegLog10PError());
+            double mergedGQ = Math.max(gt1.getLog10PError(), gt2.getLog10PError());
             Set<String> mergedGtFilters = new HashSet<String>(); // Since gt1 and gt2 were unfiltered, the Genotype remains unfiltered
 
             Map<String, Object> mergedGtAttribs = new HashMap<String, Object>();
@@ -121,7 +121,7 @@ class PhasingUtils {
         }
 
         String mergedName = mergeVariantContextNames(vc1.getSource(), vc2.getSource());
-        double mergedNegLog10PError = Math.max(vc1.getNegLog10PError(), vc2.getNegLog10PError());
+        double mergedLog10PError = Math.min(vc1.getLog10PError(), vc2.getLog10PError());
         Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
         Map<String, Object> mergedAttribs = mergeVariantContextAttributes(vc1, vc2);
 
@@ -131,7 +131,7 @@ class PhasingUtils {
         if ( vc2.hasID() ) mergedIDs.add(vc2.getID());
         String mergedID = mergedIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(VCFConstants.ID_FIELD_SEPARATOR, mergedIDs);
 
-        VariantContext mergedVc = new VariantContext(mergedName, mergedID, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
+        VariantContext mergedVc = new VariantContextBuilder(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles()).id(mergedID).genotypes(mergedGenotypes).log10PError(mergedLog10PError).filters(mergedFilters).attributes(mergedAttribs).make();
 
         mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
         VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);

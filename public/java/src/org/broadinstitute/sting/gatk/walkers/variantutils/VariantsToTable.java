@@ -326,7 +326,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("NCALLED", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples() - vc.getNoCallCount()); } });
         getters.put("GQ", new Getter() { public String get(VariantContext vc) {
             if ( vc.getNSamples() > 1 ) throw new UserException("Cannot get GQ values for multi-sample VCF");
-            return String.format("%.2f", 10 * vc.getGenotype(0).getNegLog10PError());
+            return String.format("%.2f", -10 * vc.getGenotype(0).getLog10PError());
         }});
     }
 

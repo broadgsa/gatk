@@ -166,7 +166,7 @@ public class VCFCodec extends AbstractVCFCodec {
         for (int genotypeOffset = 1; genotypeOffset < nParts; genotypeOffset++) {
             int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
 
-            double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
+            double GTQual = VariantContext.NO_LOG10_PERROR;
             Set<String> genotypeFilters = null;
             Map<String, Object> gtAttributes = null;
             String sampleName = sampleNameIterator.next();

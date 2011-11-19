@@ -27,7 +27,7 @@ public class HardyWeinberg extends InfoFieldAnnotation implements WorkInProgress
 
     private static final int MIN_SAMPLES = 10;
     private static final int MIN_GENOTYPE_QUALITY = 10;
-    private static final int MIN_NEG_LOG10_PERROR = MIN_GENOTYPE_QUALITY / 10;
+    private static final int MIN_LOG10_PERROR = MIN_GENOTYPE_QUALITY / 10;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
@@ -46,7 +46,7 @@ public class HardyWeinberg extends InfoFieldAnnotation implements WorkInProgress
             // Right now we just ignore genotypes that are not confident, but this throws off
             //  our HW ratios.  More analysis is needed to determine the right thing to do when
             //  the genotyper cannot decide whether a given sample is het or hom var.
-            if ( g.getNegLog10PError() < MIN_NEG_LOG10_PERROR )
+            if ( g.getLog10PError() > MIN_LOG10_PERROR )
                 continue;
 
             if ( g.isHomRef() )

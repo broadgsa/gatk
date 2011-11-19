@@ -132,17 +132,17 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         List<Allele> homRefAlleles = new ArrayList<Allele>();
         homRefAlleles.add(refAllele);
         homRefAlleles.add(refAllele);
-        Genotype homRef = new Genotype(g.getSampleName(), homRefAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
+        Genotype homRef = new Genotype(g.getSampleName(), homRefAlleles, g.getLog10PError(), null, g.getAttributes(), false);
 
         List<Allele> hetAlleles = new ArrayList<Allele>();
         hetAlleles.add(refAllele);
         hetAlleles.add(altAllele);
-        Genotype het = new Genotype(g.getSampleName(), hetAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
+        Genotype het = new Genotype(g.getSampleName(), hetAlleles, g.getLog10PError(), null, g.getAttributes(), false);
 
         List<Allele> homVarAlleles = new ArrayList<Allele>();
         homVarAlleles.add(altAllele);
         homVarAlleles.add(altAllele);
-        Genotype homVar = new Genotype(g.getSampleName(), homVarAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
+        Genotype homVar = new Genotype(g.getSampleName(), homVarAlleles, g.getLog10PError(), null, g.getAttributes(), false);
 
         ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
         genotypes.add(homRef);
@@ -187,7 +187,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 possiblePhasedChildAlleles.add(momAllele);
                 possiblePhasedChildAlleles.add(dadAllele);
 
-                Genotype possiblePhasedChildGenotype = new Genotype(child.getSampleName(), possiblePhasedChildAlleles, child.getNegLog10PError(), child.getFilters(), child.getAttributes(), true);
+                Genotype possiblePhasedChildGenotype = new Genotype(child.getSampleName(), possiblePhasedChildAlleles, child.getLog10PError(), child.getFilters(), child.getAttributes(), true);
 
                 possiblePhasedChildGenotypes.add(possiblePhasedChildGenotype);
             }
@@ -204,7 +204,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 phasedMomAlleles.add(momTransmittedAllele);
                 phasedMomAlleles.add(momUntransmittedAllele);
 
-                Genotype phasedMomGenotype = new Genotype(mom.getSampleName(), phasedMomAlleles, mom.getNegLog10PError(), mom.getFilters(), mom.getAttributes(), true);
+                Genotype phasedMomGenotype = new Genotype(mom.getSampleName(), phasedMomAlleles, mom.getLog10PError(), mom.getFilters(), mom.getAttributes(), true);
 
                 Allele dadTransmittedAllele = phasedChildGenotype.getAllele(1);
                 Allele dadUntransmittedAllele = dad.getAllele(0) != dadTransmittedAllele ? dad.getAllele(0) : dad.getAllele(1);
@@ -213,7 +213,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 phasedDadAlleles.add(dadTransmittedAllele);
                 phasedDadAlleles.add(dadUntransmittedAllele);
 
-                Genotype phasedDadGenotype = new Genotype(dad.getSampleName(), phasedDadAlleles, dad.getNegLog10PError(), dad.getFilters(), dad.getAttributes(), true);
+                Genotype phasedDadGenotype = new Genotype(dad.getSampleName(), phasedDadAlleles, dad.getLog10PError(), dad.getFilters(), dad.getAttributes(), true);
 
                 finalGenotypes.add(phasedMomGenotype);
                 finalGenotypes.add(phasedDadGenotype);

@@ -525,7 +525,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
             Genotype expectedValue = expected.get(value.getSampleName());
 
             Assert.assertEquals(value.alleles, expectedValue.alleles, "Alleles in Genotype aren't equal");
-            Assert.assertEquals(value.getNegLog10PError(), expectedValue.getNegLog10PError(), "GQ values aren't equal");
+            Assert.assertEquals(value.getLog10PError(), expectedValue.getLog10PError(), "GQ values aren't equal");
             Assert.assertEquals(value.hasLikelihoods(), expectedValue.hasLikelihoods(), "Either both have likelihoods or both not");
             if ( value.hasLikelihoods() )
                 Assert.assertEquals(value.getLikelihoods().getAsVector(), expectedValue.getLikelihoods().getAsVector(), "Genotype likelihoods aren't equal");

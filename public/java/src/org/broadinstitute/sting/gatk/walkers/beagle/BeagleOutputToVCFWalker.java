@@ -331,18 +331,16 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             genotypes.add(imputedGenotype);
         }
 
-        VariantContext filteredVC;
-        if ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES )
-            filteredVC = new VariantContext("outputvcf", vc_input.getID(), vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
-        else {
+        final VariantContextBuilder builder = new VariantContextBuilder(vc_input).source("outputvcf").genotypes(genotypes);
+        if ( ! ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES ) ) {
             Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
             removedFilters.add(String.format("BGL_RM_WAS_%s",vc_input.getAlternateAllele(0)));
-            filteredVC = new VariantContext("outputvcf", vc_input.getID(), vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), new HashSet<Allele>(Arrays.asList(vc_input.getReference())), genotypes, vc_input.getNegLog10PError(), removedFilters, vc_input.getAttributes());
+            builder.alleles(new HashSet<Allele>(Arrays.asList(vc_input.getReference()))).filters(removedFilters);
         }
 
-        HashMap<String, Object> attributes = new HashMap<String, Object>(filteredVC.getAttributes());
+        HashMap<String, Object> attributes = new HashMap<String, Object>(vc_input.getAttributes());
         // re-compute chromosome counts
-        VariantContextUtils.calculateChromosomeCounts(filteredVC, attributes, false);
+        VariantContextUtils.calculateChromosomeCounts(vc_input, attributes, false);
 
         // Get Hapmap AC and AF
         if (vc_comp != null) {
@@ -356,13 +354,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         if( !beagleR2Feature.getR2value().equals(Double.NaN) ) {
             attributes.put("R2", beagleR2Feature.getR2value().toString() );
         }
+        builder.attributes(attributes);
 
-
-        vcfWriter.add(new VariantContextBuilder(filteredVC).attributes(attributes).make());
-
+        vcfWriter.add(builder.make());
 
         return 1;
-
     }
 
     public Integer reduceInit() {

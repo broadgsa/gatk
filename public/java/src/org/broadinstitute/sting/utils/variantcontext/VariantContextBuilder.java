@@ -29,8 +29,6 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -69,7 +67,7 @@ public class VariantContextBuilder {
     // optional -> these are set to the appropriate default value
     private String ID = VCFConstants.EMPTY_ID_FIELD;
     private GenotypesContext genotypes = GenotypesContext.NO_GENOTYPES;
-    private double negLog10PError = VariantContext.NO_NEG_LOG_10PERROR;
+    private double log10PError = VariantContext.NO_LOG10_PERROR;
     private Set<String> filters = null;
     private Map<String, Object> attributes = null;
     private boolean attributesCanBeModified = false;
@@ -116,7 +114,7 @@ public class VariantContextBuilder {
         this.genotypes = parent.genotypes;
         this.genotypesAreUnparsed = parent.hasAttribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY);
         this.ID = parent.getID();
-        this.negLog10PError = parent.getNegLog10PError();
+        this.log10PError = parent.getLog10PError();
         this.referenceBaseForIndel = parent.getReferenceBaseForIndel();
         this.source = parent.getSource();
         this.start = parent.getStart();
@@ -279,13 +277,13 @@ public class VariantContextBuilder {
     }
 
     /**
-     * Tells us that the resulting VariantContext should have negLog10PError
-     * @param negLog10PError
+     * Tells us that the resulting VariantContext should have log10PError
+     * @param log10PError
      * @return
      */
-    @Requires("negLog10PError >= 0 || negLog10PError == VariantContext.NO_NEG_LOG_10PERROR")
-    public VariantContextBuilder negLog10PError(final double negLog10PError) {
-        this.negLog10PError = negLog10PError;
+    @Requires("log10PError <= 0 || log10PError == VariantContext.NO_LOG10_PERROR")
+    public VariantContextBuilder log10PError(final double log10PError) {
+        this.log10PError = log10PError;
         return this;
     }
 
@@ -374,7 +372,7 @@ public class VariantContextBuilder {
      */
     public VariantContext make() {
         return new VariantContext(source, ID, contig, start, stop, alleles,
-                genotypes, negLog10PError, filters, attributes,
+                genotypes, log10PError, filters, attributes,
                 referenceBaseForIndel, genotypesAreUnparsed, toValidate);
     }
 }

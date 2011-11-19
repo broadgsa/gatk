@@ -431,7 +431,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
 
-            double qual = Genotype.NO_NEG_LOG_10PERROR;
+            double qual = Genotype.NO_LOG10_PERROR;
             myAlleles.add(Allele.NO_CALL);
             myAlleles.add(Allele.NO_CALL);
             //System.out.println(myAlleles.toString());

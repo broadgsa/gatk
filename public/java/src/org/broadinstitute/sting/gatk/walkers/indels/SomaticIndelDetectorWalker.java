@@ -58,10 +58,7 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -1064,9 +1061,9 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             Map<String,Object> attrs = call.makeStatsAttributes(null);
 
             if ( call.isCall() ) // we made a call - put actual het genotype here:
-                genotypes.add(new Genotype(sample,alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrs,false));
+                genotypes.add(new Genotype(sample,alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
             else // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all) 
-                genotypes.add(new Genotype(sample, homref_alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrs,false));
+                genotypes.add(new Genotype(sample, homref_alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
 
         }
         Set<String> filters = null;
@@ -1074,8 +1071,8 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             filters = new HashSet<String>();
             filters.add("NoCall");
         }
-        VariantContext vc = new VariantContext("IGv2_Indel_call", VCFConstants.EMPTY_ID_FIELD, refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */,  filters, null, refBases[(int)start-1]);
+        VariantContext vc = new VariantContextBuilder("IGv2_Indel_call", refName, start, stop, alleles)
+                .genotypes(genotypes).filters(filters).referenceBaseForIndel(refBases[(int)start-1]).make();
         vcf.add(vc);
     }
 
@@ -1150,11 +1147,11 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         GenotypesContext genotypes = GenotypesContext.create();
 
         for ( String sample : normalSamples ) {
-            genotypes.add(new Genotype(sample, homRefN ? homRefAlleles : alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrsNormal,false));
+            genotypes.add(new Genotype(sample, homRefN ? homRefAlleles : alleles,Genotype.NO_LOG10_PERROR,null,attrsNormal,false));
         }
 
         for ( String sample : tumorSamples ) {
-            genotypes.add(new Genotype(sample, homRefT ? homRefAlleles : alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrsTumor,false) );
+            genotypes.add(new Genotype(sample, homRefT ? homRefAlleles : alleles,Genotype.NO_LOG10_PERROR,null,attrsTumor,false) );
         }
 
         Set<String> filters = null;
@@ -1171,8 +1168,8 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             filters.add("TCov");
         }
 
-        VariantContext vc = new VariantContext("IGv2_Indel_call", VCFConstants.EMPTY_ID_FIELD, refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */, filters, attrs, refBases[(int)start-1]);
+        VariantContext vc = new VariantContextBuilder("IGv2_Indel_call", refName, start, stop, alleles)
+                .genotypes(genotypes).filters(filters).attributes(attrs).referenceBaseForIndel(refBases[(int)start-1]).make();
         vcf.add(vc);
     }
 

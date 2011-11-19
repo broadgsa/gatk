@@ -244,7 +244,7 @@ public class VariantAnnotatorEngine {
                 if ( result != null )
                     genotypeAnnotations.putAll(result);
             }
-            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
+            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
         }
 
         return genotypes;

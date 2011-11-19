@@ -204,7 +204,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // QUAL
-            if ( !vc.hasNegLog10PError() )
+            if ( !vc.hasLog10PError() )
                 mWriter.write(VCFConstants.MISSING_VALUE_v4);
             else
                 mWriter.write(getQualValue(vc.getPhredScaledQual()));
@@ -353,7 +353,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
 
                 // some exceptions
                 if ( key.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
-                    if ( Math.abs(g.getNegLog10PError() - Genotype.NO_NEG_LOG_10PERROR) < 1e-6)
+                    if ( Math.abs(g.getLog10PError() + Genotype.NO_LOG10_PERROR) < 1e-6)
                         val = VCFConstants.MISSING_VALUE_v4;
                     else {
                         val = getQualValue(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
@@ -447,7 +447,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             keys.addAll(g.getAttributes().keySet());
             if ( g.isAvailable() )
                 sawGoodGT = true;
-            if ( g.hasNegLog10PError() )
+            if ( g.hasLog10PError() )
                 sawGoodQual = true;
             if (g.isFiltered() && g.isCalled())
                 sawGenotypeFilter = true;

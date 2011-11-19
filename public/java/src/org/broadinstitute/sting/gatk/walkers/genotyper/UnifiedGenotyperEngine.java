@@ -280,22 +280,13 @@ public class UnifiedGenotyperEngine {
             attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
             attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
 
-            genotypes.add(new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
+            genotypes.add(new Genotype(GL.getSample(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
         }
 
         GenomeLoc loc = refContext.getLocus();
         int endLoc = calculateEndPos(alleles, refAllele, loc);
 
-        return new VariantContext("UG_call",
-                VCFConstants.EMPTY_ID_FIELD, loc.getContig(),
-                loc.getStart(),
-                endLoc,
-                alleles,
-                genotypes,
-                VariantContext.NO_NEG_LOG_10PERROR,
-                null,
-                null,
-                refContext.getBase());
+        return new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleles).genotypes(genotypes).referenceBaseForIndel(refContext.getBase()).make();
     }
 
     // private method called by both UnifiedGenotyper and UGCallVariants entry points into the engine
@@ -419,8 +410,14 @@ public class UnifiedGenotyperEngine {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
-        VariantContext vcCall = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, refContext.getBase());
+
+        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, myAlleles);
+        builder.genotypes(genotypes);
+        builder.log10PError(phredScaledConfidence/-10.0);
+        if ( ! passesCallThreshold(phredScaledConfidence) ) builder.filters(filter);
+        builder.attributes(attributes);
+        builder.referenceBaseForIndel(refContext.getBase());
+        VariantContext vcCall = builder.make();
 
         if ( annotationEngine != null ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
@@ -503,10 +500,15 @@ public class UnifiedGenotyperEngine {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
-        VariantContext vcCall = new VariantContext("UG_call", VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, vc.getReferenceBaseForIndel());
 
-        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
+        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, myAlleles);
+        builder.genotypes(genotypes);
+        builder.log10PError(phredScaledConfidence/-10.0);
+        if ( ! passesCallThreshold(phredScaledConfidence) ) builder.filters(filter);
+        builder.attributes(attributes);
+        builder.referenceBaseForIndel(vc.getReferenceBaseForIndel());
+
+        return new VariantCallContext(builder.make(), confidentlyCalled(phredScaledConfidence, PofF));
     }
 
     private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {

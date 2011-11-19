@@ -113,7 +113,7 @@ public class VariantContextUtils {
         Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
         attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
         attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
     public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
@@ -178,14 +178,12 @@ public class VariantContextUtils {
                         newGenotypeAlleles.add(Allele.NO_CALL);
                     }
                 }
-                genotypes.add(new Genotype(g.getSampleName(), newGenotypeAlleles, g.getNegLog10PError(),
+                genotypes.add(new Genotype(g.getSampleName(), newGenotypeAlleles, g.getLog10PError(),
                         g.getFilters(), g.getAttributes(), g.isPhased()));
 
             }
 
-            // Do not change the filter state if filters were not applied to this context
-            Set<String> inputVCFilters = inputVC.getFiltersMaybeNull();
-            return new VariantContext(inputVC.getSource(), inputVC.getID(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVCFilters, inputVC.getAttributes(),refByte);
+            return new VariantContextBuilder(inputVC).alleles(alleles).genotypes(genotypes).make();
         }
         else
             return inputVC;
@@ -373,12 +371,12 @@ public class VariantContextUtils {
         final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype g : vc.getGenotypes() ) {
             Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
-            genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(),
+            genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.getFilters(),
                     genotypeAttributes, g.isPhased()));
         }
 
         return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(),
-                vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes, vc.getReferenceBaseForIndel());
+                vc.getAlleles(), genotypes, vc.getLog10PError(), vc.getFilters(), attributes, vc.getReferenceBaseForIndel());
     }
 
     public enum GenotypeMergeType {
@@ -475,7 +473,7 @@ public class VariantContextUtils {
         int depth = 0;
         int maxAC = -1;
         final Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
-        double negLog10PError = -1;
+        double log10PError = 1;
         VariantContext vcWithMaxAC = null;
         Set<String> addedSamples = new HashSet<String>(first.getNSamples());
         GenotypesContext genotypes = GenotypesContext.create();
@@ -504,7 +502,7 @@ public class VariantContextUtils {
 
             mergeGenotypes(genotypes, addedSamples, vc, alleleMapping, genotypeMergeOptions == GenotypeMergeType.UNIQUIFY);
 
-            negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
+            log10PError = Math.min(log10PError, vc.isVariant() ? vc.getLog10PError() : 1);
 
             filters.addAll(vc.getFilters());
 
@@ -610,10 +608,15 @@ public class VariantContextUtils {
 
         final String ID = rsIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(",", rsIDs);
 
-        VariantContext merged = new VariantContext(name, ID, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
-        // Trim the padded bases of all alleles if necessary
-        merged = createVariantContextWithTrimmedAlleles(merged);
+        final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID);
+        builder.loc(loc.getContig(), loc.getStart(), loc.getStop());
+        builder.alleles(alleles);
+        builder.genotypes(genotypes);
+        builder.log10PError(log10PError);
+        builder.filters(filters).attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
 
+        // Trim the padded bases of all alleles if necessary
+        VariantContext merged = createVariantContextWithTrimmedAlleles(builder.make());
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -648,6 +651,7 @@ public class VariantContextUtils {
 
         return true;
     }
+
     public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
         // see if we need to trim common reference base from all alleles
         boolean trimVC;
@@ -713,8 +717,9 @@ public class VariantContextUtils {
                 genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
 
             }
-            return new VariantContext(inputVC.getSource(), inputVC.getID(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
 
+            final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
+            return builder.alleles(alleles).genotypes(genotypes).attributes(attributes).referenceBaseForIndel(new Byte(inputVC.getReference().getBases()[0])).make();
         }
 
         return inputVC;
@@ -910,7 +915,7 @@ public class VariantContextUtils {
 
                 if ( uniqifySamples || alleleMapping.needsRemapping() ) {
                     final List<Allele> alleles = alleleMapping.needsRemapping() ? alleleMapping.remap(g.getAlleles()) : g.getAlleles();
-                    newG = new Genotype(name, alleles, g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased());
+                    newG = new Genotype(name, alleles, g.getLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased());
                 }
 
                 mergedGenotypes.add(newG);
@@ -954,8 +959,7 @@ public class VariantContextUtils {
             newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
         }
 
-        return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
-
+        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).make();
     }
 
     public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {

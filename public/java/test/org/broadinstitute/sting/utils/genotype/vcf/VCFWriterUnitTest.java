@@ -2,10 +2,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.Tribble;
 import org.broad.tribble.readers.AsciiLineReader;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
@@ -136,9 +133,8 @@ public class VCFWriterUnitTest extends BaseTest {
             genotypes.add(gt);
             
         }
-        return new VariantContext("RANDOM", VCFConstants.EMPTY_ID_FIELD, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, 0, filters, attributes, (byte)'A');
-
-
+        return new VariantContextBuilder("RANDOM", loc.getContig(), loc.getStart(), loc.getStop(), alleles)
+                .genotypes(genotypes).attributes(attributes).referenceBaseForIndel((byte)'A').make();
     }
 
 

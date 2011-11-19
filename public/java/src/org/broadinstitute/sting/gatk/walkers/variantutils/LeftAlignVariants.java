@@ -220,6 +220,6 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
         }
 
-        return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes(), refBaseForIndel);
+        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).referenceBaseForIndel(refBaseForIndel).make();
     }
 }

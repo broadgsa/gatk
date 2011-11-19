@@ -164,7 +164,7 @@ import java.util.*;
  */
 public class VariantContext implements Feature { // to enable tribble intergration
     protected CommonInfo commonInfo = null;
-    public final static double NO_NEG_LOG_10PERROR = CommonInfo.NO_NEG_LOG_10PERROR;
+    public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
     public final static String UNPARSED_GENOTYPE_MAP_KEY = "_UNPARSED_GENOTYPE_MAP_";
     public final static String UNPARSED_GENOTYPE_PARSER_KEY = "_UNPARSED_GENOTYPE_PARSER_";
 
@@ -235,7 +235,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param stop            the stop reference base (one based)
      * @param alleles         alleles
      * @param genotypes       genotypes map
-     * @param negLog10PError  qual
+     * @param log10PError     qual
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
@@ -243,29 +243,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @deprecated  replaced by {@link VariantContextBuilder}
      */
     @Deprecated
-    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
-        this(source, ID, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, referenceBaseForIndel, false, ALL_VALIDATION);
-    }
-
-
-    /**
-     * the complete constructor.  Makes a complete VariantContext from its arguments
-     *
-     * @param source          source
-     * @param contig          the contig
-     * @param start           the start base (one based)
-     * @param stop            the stop reference base (one based)
-     * @param alleles         alleles
-     * @param genotypes       genotypes map
-     * @param negLog10PError  qual
-     * @param filters         filters: use null for unfiltered and empty set for passes filters
-     * @param attributes      attributes
-     *
-     * @deprecated  replaced by {@link VariantContextBuilder}
-     */
-    @Deprecated
-    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double negLog10PError, Set<String> filters, Map<String, Object> attributes) {
-        this(source, ID, contig, start, stop, alleles, genotypes, negLog10PError, filters, attributes, null, false, ALL_VALIDATION);
+    protected VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double log10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
+        this(source, ID, contig, start, stop, alleles, genotypes, log10PError, filters, attributes, referenceBaseForIndel, false, ALL_VALIDATION);
     }
 
     /**
@@ -281,7 +260,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      */
     @Deprecated
     public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles) {
-        this(source, ID, contig, start, stop, alleles, NO_GENOTYPES, CommonInfo.NO_NEG_LOG_10PERROR, null, null, null, false, ALL_VALIDATION);
+        this(source, ID, contig, start, stop, alleles, NO_GENOTYPES, CommonInfo.NO_LOG10_PERROR, null, null, null, false, ALL_VALIDATION);
     }
 
     /**
@@ -290,7 +269,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param other the VariantContext to copy
      */
     protected VariantContext(VariantContext other) {
-        this(other.getSource(), other.getID(), other.getChr(), other.getStart(), other.getEnd() , other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.filtersWereApplied() ? other.getFilters() : null, other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL, false, NO_VALIDATION);
+        this(other.getSource(), other.getID(), other.getChr(), other.getStart(), other.getEnd() , other.getAlleles(), other.getGenotypes(), other.getLog10PError(), other.filtersWereApplied() ? other.getFilters() : null, other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL, false, NO_VALIDATION);
     }
 
     /**
@@ -302,7 +281,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param stop            the stop reference base (one based)
      * @param alleles         alleles
      * @param genotypes       genotypes map
-     * @param negLog10PError  qual
+     * @param log10PError  qual
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
@@ -312,7 +291,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     protected VariantContext(String source, String ID,
                            String contig, long start, long stop,
                            Collection<Allele> alleles, GenotypesContext genotypes,
-                           double negLog10PError, Set<String> filters, Map<String, Object> attributes,
+                           double log10PError, Set<String> filters, Map<String, Object> attributes,
                            Byte referenceBaseForIndel, boolean genotypesAreUnparsed,
                            EnumSet<Validation> validationToPerform ) {
         if ( contig == null ) { throw new IllegalArgumentException("Contig cannot be null"); }
@@ -335,7 +314,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
             }
         }
 
-        this.commonInfo = new CommonInfo(source, negLog10PError, filters, attributes);
+        this.commonInfo = new CommonInfo(source, log10PError, filters, attributes);
         REFERENCE_BASE_FOR_INDEL = referenceBaseForIndel;
 
         // todo -- remove me when this check is no longer necessary
@@ -600,8 +579,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public boolean isFiltered()                 { return commonInfo.isFiltered(); }
     public boolean isNotFiltered()              { return commonInfo.isNotFiltered(); }
     public boolean filtersWereApplied()         { return commonInfo.filtersWereApplied(); }
-    public boolean hasNegLog10PError()          { return commonInfo.hasNegLog10PError(); }
-    public double getNegLog10PError()           { return commonInfo.getNegLog10PError(); }
+    public boolean hasLog10PError()             { return commonInfo.hasLog10PError(); }
+    public double getLog10PError()              { return commonInfo.getLog10PError(); }
     public double getPhredScaledQual()          { return commonInfo.getPhredScaledQual(); }
 
     public Map<String, Object>  getAttributes() { return commonInfo.getAttributes(); }
