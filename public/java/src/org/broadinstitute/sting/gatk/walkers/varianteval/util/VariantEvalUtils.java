@@ -279,22 +279,17 @@ public class VariantEvalUtils {
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
         VariantContext vcsub = vc.subContextFromSamples(sampleNames, vc.getAlleles());
+        VariantContextBuilder builder = new VariantContextBuilder(vcsub);
 
-        HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());
-
-        int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
-        int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
+        final int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
+        final int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
 
         if (originalAlleleCount == newAlleleCount && newAlleleCount == 1) {
-            newAts.put("ISSINGLETON", true);
+            builder.attribute("ISSINGLETON", true);
         }
 
-        VariantContextUtils.calculateChromosomeCounts(vcsub, newAts, true);
-        vcsub = new VariantContextBuilder(vcsub).attributes(newAts).make();
-
-        //VariantEvalWalker.logger.debug(String.format("VC %s subset to %s AC%n", vc.getSource(), vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
-
-        return vcsub;
+        VariantContextUtils.calculateChromosomeCounts(builder, true);
+        return builder.make();
     }
 
     /**

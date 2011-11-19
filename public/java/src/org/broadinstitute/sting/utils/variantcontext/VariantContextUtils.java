@@ -55,13 +55,15 @@ public class VariantContextUtils {
     }
 
     /**
-     * Update the attributes of the attributes map given the VariantContext to reflect the proper chromosome-based VCF tags
+     * Update the attributes of the attributes map given the VariantContext to reflect the
+     * proper chromosome-based VCF tags
      *
      * @param vc          the VariantContext
      * @param attributes  the attributes map to populate; must not be null; may contain old values
      * @param removeStaleValues should we remove stale values from the mapping?
+     * @return the attributes map provided as input, returned for programming convenience
      */
-    public static void calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
+    public static Map<String, Object> calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
         // if everyone is a no-call, remove the old attributes if requested
         if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
             if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
@@ -70,7 +72,7 @@ public class VariantContextUtils {
                 attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
             if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
                 attributes.remove(VCFConstants.ALLELE_NUMBER_KEY);
-            return;
+            return attributes;
         }
 
         if ( vc.hasGenotypes() ) {
@@ -94,6 +96,54 @@ public class VariantContextUtils {
             else {
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
                 attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
+            }
+        }
+
+        return attributes;
+    }
+
+    /**
+     * Update the attributes of the attributes map in the VariantContextBuilder to reflect the proper
+     * chromosome-based VCF tags based on the current VC produced by builder.make()
+     *
+     * @param builder     the VariantContextBuilder we are updating
+     * @param removeStaleValues should we remove stale values from the mapping?
+     */
+    public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues) {
+        final VariantContext vc = builder.make();
+
+        // if everyone is a no-call, remove the old attributes if requested
+        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
+            if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+                builder.rmAttribute(VCFConstants.ALLELE_COUNT_KEY);
+            if ( vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                builder.rmAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
+            if ( vc.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
+                builder.rmAttribute(VCFConstants.ALLELE_NUMBER_KEY);
+            return;
+        }
+
+        if ( vc.hasGenotypes() ) {
+            builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
+
+            // if there are alternate alleles, record the relevant tags
+            if ( vc.getAlternateAlleles().size() > 0 ) {
+                ArrayList<String> alleleFreqs = new ArrayList<String>();
+                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+                double totalChromosomes = (double)vc.getCalledChrCount();
+                for ( Allele allele : vc.getAlternateAlleles() ) {
+                    int altChromosomes = vc.getCalledChrCount(allele);
+                    alleleCounts.add(altChromosomes);
+                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
+                    alleleFreqs.add(freq);
+                }
+
+                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
+                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
+            }
+            else {
+                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, 0);
+                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
             }
         }
     }
@@ -348,10 +398,6 @@ public class VariantContextUtils {
         return r;
     }
 
-    public static VariantContext pruneVariantContext(VariantContext vc) {
-        return pruneVariantContext(vc, null);
-    }
-
     private final static Map<String, Object> subsetAttributes(final CommonInfo igc, final Collection<String> keysToPreserve) {
         Map<String, Object> attributes = new HashMap<String, Object>(keysToPreserve.size());
         for ( final String key : keysToPreserve  ) {
@@ -361,7 +407,19 @@ public class VariantContextUtils {
         return attributes;
     }
 
+    /**
+     * @deprecated use variant context builder version instead
+     * @param vc
+     * @param keysToPreserve
+     * @return
+     */
+    @Deprecated
     public static VariantContext pruneVariantContext(final VariantContext vc, Collection<String> keysToPreserve ) {
+        return pruneVariantContext(new VariantContextBuilder(vc), keysToPreserve).make();
+    }
+
+    public static VariantContextBuilder pruneVariantContext(final VariantContextBuilder builder, Collection<String> keysToPreserve ) {
+        final VariantContext vc = builder.make();
         if ( keysToPreserve == null ) keysToPreserve = Collections.emptyList();
 
         // VC info
@@ -375,7 +433,7 @@ public class VariantContextUtils {
                     genotypeAttributes, g.isPhased()));
         }
 
-        return new VariantContextBuilder(vc).genotypes(genotypes).attributes(attributes).make();
+        return builder.genotypes(genotypes).attributes(attributes);
     }
 
     public enum GenotypeMergeType {

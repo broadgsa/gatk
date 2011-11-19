@@ -338,23 +338,21 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             builder.alleles(new HashSet<Allele>(Arrays.asList(vc_input.getReference()))).filters(removedFilters);
         }
 
-        HashMap<String, Object> attributes = new HashMap<String, Object>(vc_input.getAttributes());
         // re-compute chromosome counts
-        VariantContextUtils.calculateChromosomeCounts(vc_input, attributes, false);
+        VariantContextUtils.calculateChromosomeCounts(builder, false);
 
         // Get Hapmap AC and AF
         if (vc_comp != null) {
-            attributes.put("ACH", alleleCountH.toString() );
-            attributes.put("ANH", chrCountH.toString() );
-            attributes.put("AFH", String.format("%4.2f", (double)alleleCountH/chrCountH) );
+            builder.attribute("ACH", alleleCountH.toString() );
+            builder.attribute("ANH", chrCountH.toString() );
+            builder.attribute("AFH", String.format("%4.2f", (double)alleleCountH/chrCountH) );
 
         }
 
-        attributes.put("NumGenotypesChanged", numGenotypesChangedByBeagle );
+        builder.attribute("NumGenotypesChanged", numGenotypesChangedByBeagle );
         if( !beagleR2Feature.getR2value().equals(Double.NaN) ) {
-            attributes.put("R2", beagleR2Feature.getR2value().toString() );
+            builder.attribute("R2", beagleR2Feature.getR2value().toString() );
         }
-        builder.attributes(attributes);
 
         vcfWriter.add(builder.make());
 

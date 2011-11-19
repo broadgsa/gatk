@@ -158,12 +158,34 @@ public class VariantContextBuilder {
     @Requires({"key != null"})
     @Ensures({"this.attributes.size() == old(this.attributes.size()) || this.attributes.size() == old(this.attributes.size()+1)"})
     public VariantContextBuilder attribute(final String key, final Object value) {
+        makeAttributesModifiable();
+        attributes.put(key, value);
+        return this;
+    }
+
+    /**
+     * Removes key if present in the attributes
+     *
+     * @param key
+     * @return
+     */
+    @Requires({"key != null"})
+    @Ensures({"this.attributes.size() == old(this.attributes.size()) || this.attributes.size() == old(this.attributes.size()-1)"})
+    public VariantContextBuilder rmAttribute(final String key) {
+        makeAttributesModifiable();
+        attributes.remove(key);
+        return this;
+    }
+
+    /**
+     * Makes the attributes field modifiable.  In many cases attributes is just a pointer to an immutable
+     * collection, so methods that want to add / remove records require the attributes to be copied first
+     */
+    private void makeAttributesModifiable() {
         if ( ! attributesCanBeModified ) {
             this.attributesCanBeModified = true;
             this.attributes = new HashMap<String, Object>(attributes);
         }
-        attributes.put(key, value);
-        return this;
     }
 
     /**

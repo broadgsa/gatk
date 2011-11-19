@@ -131,13 +131,9 @@ class PhasingUtils {
         if ( vc2.hasID() ) mergedIDs.add(vc2.getID());
         String mergedID = mergedIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(VCFConstants.ID_FIELD_SEPARATOR, mergedIDs);
 
-        VariantContext mergedVc = new VariantContextBuilder(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles()).id(mergedID).genotypes(mergedGenotypes).log10PError(mergedLog10PError).filters(mergedFilters).attributes(mergedAttribs).make();
-
-        mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
-        VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);
-        mergedVc = new VariantContextBuilder(mergedVc).attributes(mergedAttribs).make();
-
-        return mergedVc;
+        VariantContextBuilder mergedBuilder = new VariantContextBuilder(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles()).id(mergedID).genotypes(mergedGenotypes).log10PError(mergedLog10PError).filters(mergedFilters).attributes(mergedAttribs);
+        VariantContextUtils.calculateChromosomeCounts(mergedBuilder, true);
+        return mergedBuilder.make();
     }
 
     static String mergeVariantContextNames(String name1, String name2) {

@@ -106,9 +106,9 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
             return sum;
 
         try {
-            Map<String, Object> attrs = new HashMap<String, Object>(value.getAttributes());
-            VariantContextUtils.calculateChromosomeCounts(value, attrs, true);
-            writer.add(new VariantContextBuilder(value).attributes(attrs).make());
+            VariantContextBuilder builder = new VariantContextBuilder(value);
+            VariantContextUtils.calculateChromosomeCounts(builder, true);
+            writer.add(builder.make());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

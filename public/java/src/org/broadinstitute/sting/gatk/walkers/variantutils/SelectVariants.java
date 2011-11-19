@@ -684,11 +684,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 builder.attribute("AN_Orig", sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
 
-        Map<String, Object> attributes = new HashMap<String, Object>(builder.make().getAttributes());
-        VariantContextUtils.calculateChromosomeCounts(sub, attributes, false);
-        attributes.put("DP", depth);
+        VariantContextUtils.calculateChromosomeCounts(builder, false);
+        builder.attribute("DP", depth);
 
-        return new VariantContextBuilder(builder.make()).attributes(attributes).make();
+        return builder.make();
     }
 
     private void randomlyAddVariant(int rank, VariantContext vc) {
