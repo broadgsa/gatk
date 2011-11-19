@@ -9,6 +9,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -58,7 +59,7 @@ public class VariantContextUnitTest extends BaseTest {
         ATCref = Allele.create("ATC", true);
     }
 
-    @BeforeTest
+    @BeforeMethod
     public void beforeTest() {
         basicBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
         snpBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
