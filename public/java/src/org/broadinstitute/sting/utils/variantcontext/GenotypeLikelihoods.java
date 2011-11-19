@@ -117,28 +117,34 @@ public class GenotypeLikelihoods {
     //Return the neg log10 Genotype Quality (GQ) for the given genotype
     //Returns Double.NEGATIVE_INFINITY in case of missing genotype
     public double getLog10GQ(Genotype.Type genotype){
-        EnumMap<Genotype.Type,Double> likelihoods = getAsMap(false);
+        return getQualFromLikelihoods(genotype.ordinal() - 1 /* NO_CALL IS FIRST */, getAsVector());
+    }
+
+    public static double getQualFromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){
         if(likelihoods == null)
             return Double.NEGATIVE_INFINITY;
 
         double qual = Double.NEGATIVE_INFINITY;
-        for(Map.Entry<Genotype.Type,Double> likelihood : likelihoods.entrySet()){
-            if(likelihood.getKey() == genotype)
+        for (int i=0; i < likelihoods.length; i++) {
+            if (i==iOfChoosenGenotype)
                 continue;
-            if(likelihood.getValue() > qual)
-                qual = likelihood.getValue();
+            if (likelihoods[i] >= qual)
+                qual = likelihoods[i];
         }
 
-        //Quality of the most likely genotype = likelihood(most likely) - likelihood (2nd best)
-        qual = likelihoods.get(genotype) - qual;
+        // qual contains now max(likelihoods[k]) for all k != bestGTguess
+        qual = likelihoods[iOfChoosenGenotype] - qual;
 
-        //Quality of other genotypes 1-P(G)
         if (qual < 0) {
-            double[] normalized = MathUtils.normalizeFromLog10(getAsVector());
-            double chosenGenotype = normalized[genotype.ordinal()-1];
-            qual = Math.log10(1.0 - chosenGenotype);
+            // QUAL can be negative if the chosen genotype is not the most likely one individually.
+            // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen one
+            double[] normalized = MathUtils.normalizeFromLog10(likelihoods);
+            double chosenGenotype = normalized[iOfChoosenGenotype];
+            return Math.log10(1.0 - chosenGenotype);
+        } else {
+            // invert the size, as this is the probability of making an error
+            return -1 * qual;
         }
-        return -1 * qual;
     }
 
     private final static double[] parsePLsIntoLikelihoods(String likelihoodsAsString_PLs) {

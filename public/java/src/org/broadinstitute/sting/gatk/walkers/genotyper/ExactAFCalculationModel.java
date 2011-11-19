@@ -29,10 +29,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -354,31 +351,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             // and will add no-call genotype to GL's in a second pass
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
 
-            double qual = Double.NEGATIVE_INFINITY;
             double[] likelihoods = g.getLikelihoods().getAsVector();
 
             if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-                bestGTguess = Utils.findIndexOfMaxEntry(g.getLikelihoods().getAsVector());
+                bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
             }
             else {
                 int newIdx = tracebackArray[k][startIdx];;
                 bestGTguess = startIdx - newIdx;
                 startIdx = newIdx;
             }
-
-            /*           System.out.format("Sample: %s GL:",sample);
-                    for (int i=0; i < likelihoods.length; i++)
-                        System.out.format("%1.4f, ",likelihoods[i]);
-            */
-
-            for (int i=0; i < likelihoods.length; i++) {
-                if (i==bestGTguess)
-                    continue;
-                if (likelihoods[i] >= qual)
-                    qual = likelihoods[i];
-            }
-            // qual contains now max(likelihoods[k]) for all k != bestGTguess
-            qual = likelihoods[bestGTguess] - qual;
 
             // likelihoods are stored row-wise in lower triangular matrix. IE
             // for 2 alleles they have ordering AA,AB,BB
@@ -407,16 +389,9 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     break;
             }
 
-            if (qual < 0) {
-                // QUAL can be negative if the chosen genotype is not the most likely one individually.
-                // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen on
-                double[] normalized = MathUtils.normalizeFromLog10(likelihoods);
-                double chosenGenotype = normalized[bestGTguess];
-                qual = -1.0 * Math.log10(1.0 - chosenGenotype);
-            }
+            final double qual = GenotypeLikelihoods.getQualFromLikelihoods(bestGTguess, likelihoods);
             //System.out.println(myAlleles.toString());
             calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
-
         }
 
         for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
