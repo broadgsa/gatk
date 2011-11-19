@@ -409,44 +409,44 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     @DataProvider(name = "mergeGenotypes")
     public Object[][] mergeGenotypesData() {
         new MergeGenotypesTest("TakeGenotypeByPriority-1,2", "1,2",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)));
 
         new MergeGenotypesTest("TakeGenotypeByPriority-1,2-nocall", "1,2",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, 1)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, -1)));
 
         new MergeGenotypesTest("TakeGenotypeByPriority-2,1", "2,1",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2)));
 
         new MergeGenotypesTest("NonOverlappingGenotypes", "1,2",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s2", Aref, T, 2)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1), makeG("s2", Aref, T, 2)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s2", Aref, T, -2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1), makeG("s2", Aref, T, -2)));
 
         new MergeGenotypesTest("PreserveNoCall", "1,2",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s2", Aref, T, 2)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, 1), makeG("s2", Aref, T, 2)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s2", Aref, T, -2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Allele.NO_CALL, Allele.NO_CALL, -1), makeG("s2", Aref, T, -2)));
 
         new MergeGenotypesTest("PerserveAlleles", "1,2",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
-                makeVC("2", Arrays.asList(Aref, C), makeG("s2", Aref, C, 2)),
-                makeVC("3", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1), makeG("s2", Aref, C, 2)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)),
+                makeVC("2", Arrays.asList(Aref, C), makeG("s2", Aref, C, -2)),
+                makeVC("3", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, -1), makeG("s2", Aref, C, -2)));
 
         new MergeGenotypesTest("TakeGenotypePartialOverlap-1,2", "1,2",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1), makeG("s3", Aref, T, 3)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2), makeG("s3", Aref, T, -3)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1), makeG("s3", Aref, T, -3)));
 
         new MergeGenotypesTest("TakeGenotypePartialOverlap-2,1", "2,1",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2), makeG("s3", Aref, T, 3)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2), makeG("s3", Aref, T, -3)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2), makeG("s3", Aref, T, -3)));
 
         //
         // merging genothpes with PLs
@@ -454,41 +454,41 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         // first, do no harm
         new MergeGenotypesTest("OrderedPLs", "1",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1, 1, 2, 3)),
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1, 1, 2, 3)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1, 1, 2, 3)),
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1, 1, 2, 3)));
 
         // first, do no harm
         new MergeGenotypesTest("OrderedPLs-3Alleles", "1",
-                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)),
-                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)));
+                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, -1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, T, -1, 1, 2, 3, 4, 5, 6)));
 
         // first, do no harm
         new MergeGenotypesTest("OrderedPLs-3Alleles-2", "1",
-                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)),
-                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)));
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, -1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, -1, 1, 2, 3, 4, 5, 6)));
 
         // first, do no harm
         new MergeGenotypesTest("OrderedPLs-3Alleles-2", "1",
-                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6)),
-                makeVC("1", Arrays.asList(Aref, T, C), makeG("s2", Aref, C, 1, 1, 2, 3, 4, 5, 6)),
-                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, 1, 1, 2, 3, 4, 5, 6), makeG("s2", Aref, C, 1, 1, 2, 3, 4, 5, 6)));
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, -1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s2", Aref, C, -1, 1, 2, 3, 4, 5, 6)),
+                makeVC("1", Arrays.asList(Aref, T, C), makeG("s1", Aref, T, -1, 1, 2, 3, 4, 5, 6), makeG("s2", Aref, C, -1, 1, 2, 3, 4, 5, 6)));
 
         new MergeGenotypesTest("TakeGenotypePartialOverlapWithPLs-2,1", "2,1",
-                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1,5,0,3)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)),
-                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)));
+                makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1,5,0,3)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2,4,0,2), makeG("s3", Aref, T, -3,3,0,2)),
+                makeVC("3", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2,4,0,2), makeG("s3", Aref, T, -3,3,0,2)));
 
         new MergeGenotypesTest("TakeGenotypePartialOverlapWithPLs-1,2", "1,2",
-                makeVC("1", Arrays.asList(Aref,ATC), makeG("s1", Aref, ATC, 1,5,0,3)),
-                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2,4,0,2), makeG("s3", Aref, T, 3,3,0,2)),
+                makeVC("1", Arrays.asList(Aref,ATC), makeG("s1", Aref, ATC, -1,5,0,3)),
+                makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2,4,0,2), makeG("s3", Aref, T, -3,3,0,2)),
                 // no likelihoods on result since type changes to mixed multiallelic
-                makeVC("3", Arrays.asList(Aref, ATC, T), makeG("s1", Aref, ATC, 1), makeG("s3", Aref, T, 3)));
+                makeVC("3", Arrays.asList(Aref, ATC, T), makeG("s1", Aref, ATC, -1), makeG("s3", Aref, T, -3)));
 
         new MergeGenotypesTest("MultipleSamplePLsDifferentOrder", "1,2",
-                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, C, 1, 1, 2, 3, 4, 5, 6)),
-                makeVC("2", Arrays.asList(Aref, T, C), makeG("s2", Aref, T, 2, 6, 5, 4, 3, 2, 1)),
+                makeVC("1", Arrays.asList(Aref, C, T), makeG("s1", Aref, C, -1, 1, 2, 3, 4, 5, 6)),
+                makeVC("2", Arrays.asList(Aref, T, C), makeG("s2", Aref, T, -2, 6, 5, 4, 3, 2, 1)),
                 // no likelihoods on result since type changes to mixed multiallelic
-                makeVC("3", Arrays.asList(Aref, C, T), makeG("s1", Aref, C, 1), makeG("s2", Aref, T, 2)));
+                makeVC("3", Arrays.asList(Aref, C, T), makeG("s1", Aref, C, -1), makeG("s2", Aref, T, -2)));
 
         return MergeGenotypesTest.getTests(MergeGenotypesTest.class);
     }
@@ -533,8 +533,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     @Test
     public void testMergeGenotypesUniquify() {
-        final VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1));
-        final VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2));
+        final VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1));
+        final VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2));
 
         final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,
                 Arrays.asList(vc1, vc2), null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
@@ -546,8 +546,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     @Test(expectedExceptions = UserException.class)
     public void testMergeGenotypesRequireUnique() {
-        final VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, 1));
-        final VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, 2));
+        final VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1));
+        final VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2));
 
         final VariantContext merged = VariantContextUtils.simpleMerge(genomeLocParser,
                 Arrays.asList(vc1, vc2), null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,

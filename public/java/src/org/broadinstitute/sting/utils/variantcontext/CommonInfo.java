@@ -107,9 +107,12 @@ final class CommonInfo {
     public double getPhredScaledQual() { return getLog10PError() * -10; }
 
     public void setLog10PError(double log10PError) {
-        if ( this.log10PError > 0 && this.log10PError != NO_LOG10_PERROR) throw new IllegalArgumentException("BUG: log10PError cannot be > 0 : " + this.log10PError);
-        if ( Double.isInfinite(this.log10PError) ) throw new IllegalArgumentException("BUG: log10PError should not be Infinity");
-        if ( Double.isNaN(this.log10PError) ) throw new IllegalArgumentException("BUG: log10PError should not be NaN");
+        if ( log10PError > 0 && log10PError != NO_LOG10_PERROR)
+            throw new IllegalArgumentException("BUG: log10PError cannot be > 0 : " + this.log10PError);
+        if ( Double.isInfinite(this.log10PError) )
+            throw new IllegalArgumentException("BUG: log10PError should not be Infinity");
+        if ( Double.isNaN(this.log10PError) )
+            throw new IllegalArgumentException("BUG: log10PError should not be NaN");
         this.log10PError = log10PError;
     }
 
