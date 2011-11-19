@@ -270,8 +270,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
     /**
-     * Variants are kept in memory to guarantee that exactly n variants will be chosen randomly, so use it only for a reasonable
-     * number of variants.  Use --select_random_fraction for larger numbers of variants.
+     * Variants are kept in memory to guarantee that exactly n variants will be chosen randomly, so make sure you supply the program with enough memory
+     * given your input set.  This option will NOT work well for large callsets; use --select_random_fraction for sets with a large numbers of variants.
      */
     @Argument(fullName="select_random_number", shortName="number", doc="Selects a number of variants at random from the variant track", required=false)
     private int numRandom = 0;
@@ -527,7 +527,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     }
                 }
                 if (SELECT_RANDOM_NUMBER) {
-                    randomlyAddVariant(++variantNumber, sub, ref.getBase());
+                    randomlyAddVariant(++variantNumber, sub);
                 }
                 else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
                     vcfWriter.add(sub);
@@ -691,7 +691,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         return new VariantContextBuilder(builder.make()).attributes(attributes).make();
     }
 
-    private void randomlyAddVariant(int rank, VariantContext vc, byte refBase) {
+    private void randomlyAddVariant(int rank, VariantContext vc) {
         if (nVariantsAdded < numRandom)
             variantArray[nVariantsAdded++] = new RandomVariantStructure(vc);
 

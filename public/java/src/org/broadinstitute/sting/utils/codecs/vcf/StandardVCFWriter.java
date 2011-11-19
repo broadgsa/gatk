@@ -353,7 +353,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
 
                 // some exceptions
                 if ( key.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
-                    if ( Math.abs(g.getLog10PError() + Genotype.NO_LOG10_PERROR) < 1e-6)
+                    if ( ! g.hasLog10PError() )
                         val = VCFConstants.MISSING_VALUE_v4;
                     else {
                         val = getQualValue(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,29 +22,27 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.sting.queue.extensions.gatk
 
-import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.sting.commandline.{Output, Argument, Input}
+import java.io.File
+import org.broadinstitute.sting.utils.interval.IntervalUtils
 
-import java.util.List;
-import java.util.Collections;
+class WriteFlankingIntervalsFunction extends InProcessFunction {
+  @Input(doc="The reference sequence")
+  var reference : File = _
 
-/**
- * A mock locus shard, usable for infrastructure that requires a shard to behave properly.
- *
- * @author mhanna
- * @version 0.1
- */
-public class MockLocusShard extends LocusShard {
-    public MockLocusShard(final GenomeLocParser genomeLocParser,final List<GenomeLoc> intervals) {
-        super(  genomeLocParser,
-                new SAMDataSource(Collections.<SAMReaderID>emptyList(),new ThreadAllocation(),null,genomeLocParser),
-                intervals,
-                null);
-    }
+  @Input(doc="The interval list to flank")
+  var inputIntervals : File = _
+
+  @Output(doc="The output intervals file to write to")
+  var outputIntervals: File = _
+
+  @Argument(doc="Number of base pair to flank the input intervals")
+  var flankSize : Int = _
+
+  def run() {
+    IntervalUtils.writeFlankingIntervals(reference, inputIntervals, outputIntervals, flankSize)
+  }
 }

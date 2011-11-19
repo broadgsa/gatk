@@ -171,6 +171,9 @@ public class ReadClipper {
                     clippedRead = op.apply(algorithm, clippedRead);
                 }
                 wasClipped = true;
+                ops.clear();
+                if ( clippedRead.isEmpty() )
+                    return new GATKSAMRecord( clippedRead.getHeader() );
                 return clippedRead;
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e); // this should never happen

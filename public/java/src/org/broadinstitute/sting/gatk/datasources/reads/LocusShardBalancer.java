@@ -22,30 +22,34 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package net.sf.samtools;
+package org.broadinstitute.sting.gatk.datasources.reads;
 
-import java.util.BitSet;
+import java.util.Iterator;
 
 /**
- * A temporary solution to work around Java access rights issues:
- * override chunk and make it public.
- * TODO: Eliminate once we determine the final fate of the BAM index reading code.
+ * Batch granular file pointers into potentially larger shards.
  */
-public class GATKBinList extends BinList {
+public class LocusShardBalancer extends ShardBalancer {
     /**
-     * Create a new BinList over sequenceCount sequences, consisting of the given bins.
-     * @param referenceSequence Reference sequence to which these bins are relevant.
-     * @param bins The given bins to include.
+     * Convert iterators of file pointers into balanced iterators of shards.
+     * @return An iterator over balanced shards.
      */
-    public GATKBinList(final int referenceSequence, final BitSet bins) {
-        super(referenceSequence,bins);
-    }
+    public Iterator<Shard> iterator() {
+        return new Iterator<Shard>() {
+            public boolean hasNext() {
+                return filePointers.hasNext();
+            }
 
-    /**
-     * Retrieves the bins stored in this list.
-     * @return A bitset where a bin is present in the list if the bit is true.
-     */
-    public BitSet getBins() {
-        return super.getBins();
+            public Shard next() {
+                FilePointer current = filePointers.next();
+                while(filePointers.hasNext() && current.minus(filePointers.peek()) == 0)
+                    current = current.combine(parser,filePointers.next());
+                return new LocusShard(parser,readsDataSource,current.getLocations(),current.fileSpans);
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException("Unable to remove from shard balancing iterator");
+            }
+        };
     }
 }

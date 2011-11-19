@@ -25,8 +25,7 @@ final class CommonInfo {
     public CommonInfo(String name, double log10PError, Set<String> filters, Map<String, Object> attributes) {
         this.name = name;
         setLog10PError(log10PError);
-        if ( filters != null && ! filters.isEmpty() )
-            this.filters = filters;
+        this.filters = filters;
         if ( attributes != null && ! attributes.isEmpty() ) {
             this.attributes = attributes;
         }

@@ -318,7 +318,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
         loadGenotypes();
         VariantContextBuilder builder = new VariantContextBuilder(this);
-        return builder.genotypes(genotypes.subsetToSamples(sampleNames)).make();
+        return builder.genotypes(genotypes.subsetToSamples(sampleNames)).alleles(alleles).make();
     }
 
     public VariantContext subContextFromSamples(Set<String> sampleNames) {

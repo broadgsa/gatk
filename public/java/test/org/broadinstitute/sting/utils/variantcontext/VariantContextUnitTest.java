@@ -8,6 +8,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -55,7 +56,10 @@ public class VariantContextUnitTest extends BaseTest {
 
         ATC = Allele.create("ATC");
         ATCref = Allele.create("ATC", true);
+    }
 
+    @BeforeTest
+    public void beforeTest() {
         basicBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
         snpBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
         insBuilder = new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATC)).referenceBaseForIndel((byte)'A');
@@ -75,16 +79,16 @@ public class VariantContextUnitTest extends BaseTest {
 
         // test REF
         List<Allele> alleles = Arrays.asList(Tref);
-        VariantContext vc = snpBuilder.alleles(alleles).make();
+        VariantContext vc = snpBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.NO_VARIATION);
 
         // test SNPs
         alleles = Arrays.asList(Tref, A);
-        vc = snpBuilder.alleles(alleles).make();
+        vc = snpBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
 
         alleles = Arrays.asList(Tref, A, C);
-        vc = snpBuilder.alleles(alleles).make();
+        vc = snpBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
 
         // test MNPs
@@ -98,7 +102,7 @@ public class VariantContextUnitTest extends BaseTest {
 
         // test INDELs
         alleles = Arrays.asList(Aref, ATC);
-        vc = basicBuilder.alleles(alleles).make();
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A);
@@ -106,7 +110,7 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(Tref, TA, TC);
-        vc = basicBuilder.alleles(alleles).make();
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, AC);
@@ -131,12 +135,12 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(Aref, T, symbolic);
-        vc = basicBuilder.alleles(alleles).make();
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         // test SYMBOLIC
         alleles = Arrays.asList(Tref, symbolic);
-        vc = basicBuilder.alleles(alleles).stop(snpLocStop+2).make();
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.SYMBOLIC);
     }
 
@@ -280,50 +284,50 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(vc.getGenotype("foo").getType(), Genotype.Type.MIXED);
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgs1() {
         new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATCref)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgs2() {
         new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, del)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgs3() {
         new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(del)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Throwable.class)
     public void testBadConstructorArgs4() {
         new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Collections.<Allele>emptyList()).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgsDuplicateAlleles1() {
         new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(Aref, T, T)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgsDuplicateAlleles2() {
         new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(Aref, A)).make();
     }
 
-    @Test (expectedExceptions = IllegalStateException.class)
+    @Test (expectedExceptions = Throwable.class)
     public void testBadLoc1() {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
         new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Throwable.class)
     public void testBadID1() {
         new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, Arrays.asList(Aref, T)).id(null).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadID2() {
-        new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, Arrays.asList(Aref, T)).id("");
+        new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, Arrays.asList(Aref, T)).id("").make();
     }
 
     @Test
@@ -557,7 +561,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test(dataProvider = "getAlleles")
     public void testMergeAlleles(GetAllelesTest cfg) {
         final List<Allele> altAlleles = cfg.alleles.subList(1, cfg.alleles.size());
-        final VariantContext vc = snpBuilder.alleles(cfg.alleles).make();
+        final VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles).referenceBaseForIndel((byte)'A').make();
 
         Assert.assertEquals(vc.getAlleles(), cfg.alleles, "VC alleles not the same as input alleles");
         Assert.assertEquals(vc.getNAlleles(), cfg.alleles.size(), "VC getNAlleles not the same as input alleles size");
