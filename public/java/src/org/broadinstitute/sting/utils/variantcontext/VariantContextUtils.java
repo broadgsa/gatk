@@ -375,8 +375,7 @@ public class VariantContextUtils {
                     genotypeAttributes, g.isPhased()));
         }
 
-        return new VariantContext(vc.getSource(), vc.getID(), vc.getChr(), vc.getStart(), vc.getEnd(),
-                vc.getAlleles(), genotypes, vc.getLog10PError(), vc.getFilters(), attributes, vc.getReferenceBaseForIndel());
+        return new VariantContextBuilder(vc).genotypes(genotypes).attributes(attributes).make();
     }
 
     public enum GenotypeMergeType {

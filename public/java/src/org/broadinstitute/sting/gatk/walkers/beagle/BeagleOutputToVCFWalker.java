@@ -122,7 +122,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     protected static String line = null;
 
     private final double MIN_PROB_ERROR = 0.000001;
-    private final double MAX_GENOTYPE_QUALITY = 6.0;
+    private final double MAX_GENOTYPE_QUALITY = -6.0;
 
     public void initialize() {
 
@@ -292,7 +292,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             if (probWrongGenotype < MIN_PROB_ERROR)
                 genotypeQuality = MAX_GENOTYPE_QUALITY;
             else
-                genotypeQuality = -log10(probWrongGenotype);
+                genotypeQuality = log10(probWrongGenotype);
 
             HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getAttributes());
 

@@ -226,44 +226,6 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     // ---------------------------------------------------------------------------------------------------------
 
     /**
-     * the complete constructor.  Makes a complete VariantContext from its arguments
-     * This is the only constructor that is able to create indels! DO NOT USE THE OTHER ONES.
-     *
-     * @param source          source
-     * @param contig          the contig
-     * @param start           the start base (one based)
-     * @param stop            the stop reference base (one based)
-     * @param alleles         alleles
-     * @param genotypes       genotypes map
-     * @param log10PError     qual
-     * @param filters         filters: use null for unfiltered and empty set for passes filters
-     * @param attributes      attributes
-     * @param referenceBaseForIndel   padded reference base
-     *
-     * @deprecated  replaced by {@link VariantContextBuilder}
-     */
-    @Deprecated
-    protected VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles, GenotypesContext genotypes, double log10PError, Set<String> filters, Map<String, Object> attributes, Byte referenceBaseForIndel) {
-        this(source, ID, contig, start, stop, alleles, genotypes, log10PError, filters, attributes, referenceBaseForIndel, false, ALL_VALIDATION);
-    }
-
-    /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     *
-     * @param source          source
-     * @param contig          the contig
-     * @param start           the start base (one based)
-     * @param stop            the stop reference base (one based)
-     * @param alleles alleles
-     *
-     * @deprecated  replaced by {@link VariantContextBuilder}
-     */
-    @Deprecated
-    public VariantContext(String source, String ID, String contig, long start, long stop, Collection<Allele> alleles) {
-        this(source, ID, contig, start, stop, alleles, NO_GENOTYPES, CommonInfo.NO_LOG10_PERROR, null, null, null, false, ALL_VALIDATION);
-    }
-
-    /**
      * Copy constructor
      *
      * @param other the VariantContext to copy

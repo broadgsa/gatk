@@ -66,9 +66,9 @@ public class RefMetaDataTrackerUnitTest {
         C = Allele.create("C");
         G = Allele.create("G");
         T = Allele.create("T");
-        AC_SNP = new VariantContext("x", VCFConstants.EMPTY_ID_FIELD, "chr1", START_POS, START_POS, Arrays.asList(A, C));
-        AG_SNP = new VariantContext("x", VCFConstants.EMPTY_ID_FIELD, "chr1", START_POS, START_POS, Arrays.asList(A, G));
-        AT_SNP = new VariantContext("x", VCFConstants.EMPTY_ID_FIELD, "chr1", START_POS, START_POS, Arrays.asList(A, T));
+        AC_SNP = new VariantContextBuilder("x", "chr1", START_POS, START_POS, Arrays.asList(A, C).make());
+        AG_SNP = new VariantContextBuilder("x", "chr1", START_POS, START_POS, Arrays.asList(A, G).make());
+        AT_SNP = new VariantContextBuilder("x", "chr1", START_POS, START_POS, Arrays.asList(A, T).make());
         span10_10 = makeSpan(10, 10);
         span1_20 = makeSpan(1, 20);
         span10_20 = makeSpan(10, 20);

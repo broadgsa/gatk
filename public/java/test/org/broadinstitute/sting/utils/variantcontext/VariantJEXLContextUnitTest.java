@@ -144,7 +144,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     private JEXLMap getVarContext() {
         List<Allele> alleles = Arrays.asList(Aref, T);
 
-        VariantContext vc = new VariantContext("test", VCFConstants.EMPTY_ID_FIELD, snpLoc.getContig(), snpLoc.getStart(), snpLoc.getStop(), alleles);
+        VariantContext vc = new VariantContextBuilder("test", snpLoc.getContig(), snpLoc.getStart(), snpLoc.getStop(), alleles).make();
         return new JEXLMap(Arrays.asList(exp),vc);
     }
 
