@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 
 import java.util.ArrayList;
@@ -32,44 +34,55 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * [Short one sentence description of this walker]
- * <p/>
- * <p>
- * [Functionality of this walker]
- * </p>
- * <p/>
- * <h2>Input</h2>
- * <p>
- * [Input description]
- * </p>
- * <p/>
- * <h2>Output</h2>
- * <p>
- * [Output description]
- * </p>
- * <p/>
- * <h2>Examples</h2>
- * <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T $WalkerName
- *  </pre>
- *
- * @author Your Name
- * @since Date created
+ * Lazy-loading GenotypesContext.  A lazy-loading context has access to the
+ * VCFParser and a unparsed string of genotype data.  If the user attempts to manipulate
+ * the genotypes contained in this context, we decode the data and become a full blown
+ * GenotypesContext.  However, if the user never does this we are spared a lot of expense
+ * decoding the genotypes unnecessarily.
  */
 public class LazyGenotypesContext extends GenotypesContext {
+    /** parser the VCF parser we'll use to decode unparsedGenotypeData if necessary */
     final VCFParser parser;
+
+    /** a string containing the unparsed VCF genotypes */
     String unparsedGenotypeData;
+
+    /** alleles the current list of alleles at the site (known already in the parser) */
     final List<Allele> alleles;
+
+    /** contig the current contig (known already in the parser) */
     final String contig;
+
+    /** the current start position (known already in the parser) */
     final int start;
+
+    /**
+     * nUnparsedGenotypes the number of genotypes contained in the unparsedGenotypes data
+     * (known already in the parser).  Useful for isEmpty and size() optimizations
+     */
     final int nUnparsedGenotypes;
 
+    /**
+     * True if we've already decoded the values in unparsedGenotypeData
+     */
     boolean loaded = false;
 
     private final static ArrayList<Genotype> EMPTY = new ArrayList<Genotype>(0);
 
+    /**
+     * Creates a new lazy loading genotypes context
+     *
+     * @param parser the VCF parser we'll use to decode unparsedGenotypeData if necessary
+     * @param unparsedGenotypeData a string containing the unparsed VCF genotypes
+     * @param contig the current contig (known already in the parser)
+     * @param start the current start position (known already in the parser)
+     * @param alleles the current list of alleles at the site (known already in the parser)
+     * @param nUnparsedGenotypes the number of genotypes contained in the unparsedGenotypes data
+     *      (known already in the parser).  Useful for isEmpty and size() optimizations
+     */
+    @Requires({"parser != null", "unparsedGenotypeData != null",
+            "contig != null", "start >= 0", "alleles != null && alleles.size() > 0",
+            "nUnparsedGenotypes > 0"})
     public LazyGenotypesContext(final VCFParser parser, final String unparsedGenotypeData,
                                 final String contig, final int start, final List<Allele> alleles,
                                 int nUnparsedGenotypes ) {
@@ -82,7 +95,16 @@ public class LazyGenotypesContext extends GenotypesContext {
         this.nUnparsedGenotypes = nUnparsedGenotypes;
     }
 
+    /**
+     * Overrides the genotypes accessor.  If we haven't already, decode the genotypes data
+     * and store the decoded results in the appropriate variables.  Otherwise we just
+     * returned the decoded result directly.  Note some care needs to be taken here as
+     * the value in notToBeDirectlyAccessedGenotypes may diverge from what would be produced
+     * by decode, if after the first decode the genotypes themselves are replaced
+     * @return
+     */
     @Override
+    @Ensures("result != null")
     protected ArrayList<Genotype> getGenotypes() {
         if ( ! loaded ) {
             //System.out.printf("Loading genotypes... %s:%d%n", contig, start);
@@ -90,9 +112,9 @@ public class LazyGenotypesContext extends GenotypesContext {
             notToBeDirectlyAccessedGenotypes = subcontext.notToBeDirectlyAccessedGenotypes;
             sampleNamesInOrder = subcontext.sampleNamesInOrder;
             sampleNameToOffset = subcontext.sampleNameToOffset;
-            cacheIsInvalid = false;
+            cacheIsInvalid = false;      // these values build the cache
             loaded = true;
-            unparsedGenotypeData = null;
+            unparsedGenotypeData = null; // don't hold the unparsed data any longer
 
             // warning -- this path allows us to create a VariantContext that doesn't run validateGenotypes()
             // That said, it's not such an important routine -- it's just checking that the genotypes
@@ -102,9 +124,19 @@ public class LazyGenotypesContext extends GenotypesContext {
         return notToBeDirectlyAccessedGenotypes;
     }
 
+    /**
+     * Overrides the buildCache functionality.  If the data hasn't been loaded
+     * yet and we want to build the cache, just decode it and we're done.  If we've
+     * already decoded the data, though, go through the super class
+     */
+    @Override
     protected synchronized void buildCache() {
         if ( cacheIsInvalid ) {
-            getGenotypes(); // will load up all of the necessary data
+            if ( ! loaded ) {
+                getGenotypes(); // will load up all of the necessary data
+            } else {
+                super.buildCache();
+            }
         }
     }
 
