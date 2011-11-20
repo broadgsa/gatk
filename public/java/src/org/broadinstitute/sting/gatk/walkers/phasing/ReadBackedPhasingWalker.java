@@ -1122,7 +1122,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private int start;
         private int stop;
         private Collection<Allele> alleles;
-        private GenotypesContext genotypes;
+        private Map<String,Genotype> genotypes;
         private double log10PError;
         private Set<String> filters;
         private Map<String, Object> attributes;
@@ -1135,15 +1135,21 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.start = vc.getStart();
             this.stop = vc.getEnd();
             this.alleles = vc.getAlleles();
-            this.genotypes = GenotypesContext.copy(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
+
+            this.genotypes = new HashMap<String, Genotype>();
+            for ( final Genotype g : vc.getGenotypes() ) {
+                this.genotypes.put(g.getSampleName(), g);
+            }
+
             this.log10PError = vc.getLog10PError();
             this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());
         }
 
         public VariantContext toVariantContext() {
+            GenotypesContext gc = GenotypesContext.copy(this.genotypes.values());
             return new VariantContextBuilder(name, contig, start, stop, alleles).id(id)
-                    .genotypes(genotypes).log10PError(log10PError).filters(filters).attributes(attributes).make();
+                    .genotypes(gc).log10PError(log10PError).filters(filters).attributes(attributes).make();
         }
 
         public GenomeLoc getLocation() {
@@ -1155,7 +1161,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public void setGenotype(String sample, Genotype newGt) {
-            genotypes.add(newGt);
+            this.genotypes.put(sample, newGt);
         }
 
         public void setPhasingInconsistent() {
