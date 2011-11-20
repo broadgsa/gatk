@@ -1065,4 +1065,11 @@ public class VariantContextUtils {
     public static final GenomeLoc getLocation(GenomeLocParser genomeLocParser,VariantContext vc) {
         return genomeLocParser.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd(), true);
     }
+
+    public static final Set<String> genotypeNames(final Collection<Genotype> genotypes) {
+        final Set<String> names = new HashSet<String>(genotypes.size());
+        for ( final Genotype g : genotypes )
+            names.add(g.getSampleName());
+        return names;
+    }
 }
