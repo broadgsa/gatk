@@ -12,7 +12,7 @@ import java.util.*;
  *
  * @author Mark DePristo
  */
-public class Genotype {
+public class Genotype implements Comparable<Genotype> {
 
     public final static String PHASED_ALLELE_SEPARATOR = "|";
     public final static String UNPHASED_ALLELE_SEPARATOR = "/";
@@ -351,4 +351,14 @@ public class Genotype {
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
+
+    /**
+     * comparable genotypes -> compareTo on the sample names
+     * @param genotype
+     * @return
+     */
+    @Override
+    public int compareTo(final Genotype genotype) {
+        return getSampleName().compareTo(genotype.getSampleName());
+    }
 }
