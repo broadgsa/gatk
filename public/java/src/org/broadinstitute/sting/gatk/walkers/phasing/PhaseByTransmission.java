@@ -746,11 +746,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
         if (tracker != null) {
             VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
+            VariantContextBuilder builder = new VariantContextBuilder(vc);
 
-            GenotypesContext genotypeMap = vc.getGenotypes();
-
-            int mvCount;
-
+            GenotypesContext genotypesContext = GenotypesContext.copy(vc.getGenotypes());
             for (Sample sample : trios) {
                 Genotype mother = vc.getGenotype(sample.getMaternalID());
                 Genotype father = vc.getGenotype(sample.getPaternalID());
@@ -761,18 +759,18 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     continue;
 
                 ArrayList<Genotype> trioGenotypes = new ArrayList<Genotype>(3);
-                mvCount = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child,trioGenotypes);
+                final int mvCount = phaseTrioGenotypes(vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), mother, father, child,trioGenotypes);
 
                 Genotype phasedMother = trioGenotypes.get(0);
                 Genotype phasedFather = trioGenotypes.get(1);
                 Genotype phasedChild = trioGenotypes.get(2);
 
                 //Fill the genotype map with the new genotypes and increment metrics counters
-                genotypeMap.add(phasedChild);
+                genotypesContext.replace(phasedChild);
                 if(mother != null){
-                    genotypeMap.add(phasedMother);
+                    genotypesContext.replace(phasedMother);
                     if(father != null){
-                        genotypeMap.add(phasedFather);
+                        genotypesContext.replace(phasedFather);
                         updateTrioMetricsCounters(phasedMother,phasedFather,phasedChild,mvCount,metricsCounters);
                         mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoods().toString(),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoods().toString(),phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoods().toString());
                         if(!(phasedMother.getType()==mother.getType() && phasedFather.getType()==father.getType() && phasedChild.getType()==child.getType()))
@@ -786,7 +784,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     }
                 }
                 else{
-                    genotypeMap.add(phasedFather);
+                    genotypesContext.replace(phasedFather);
                     updatePairMetricsCounters(phasedFather,phasedChild,mvCount,metricsCounters);
                     if(!(phasedFather.getType()==father.getType() && phasedChild.getType()==child.getType()))
                         metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
@@ -797,10 +795,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 //TODO: ADAPT FOR PAIRS TOO!!
                 if(mvCount>0 && mvFile != null)
                     mvFile.println(mvfLine);
-
             }
 
-            vcfWriter.add(new VariantContextBuilder(vc).genotypes(genotypeMap).make());
+            builder.genotypes(genotypesContext);
+            vcfWriter.add(builder.make());
         }
         return metricsCounters;
     }

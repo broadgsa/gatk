@@ -55,8 +55,14 @@ public class GenotypesContext implements List<Genotype> {
     /** if true, then we need to reinitialize sampleNamesInOrder and sampleNameToOffset before we use them /*/
     boolean cacheIsInvalid = true;
 
-    /** An ArrayList of genotypes contained in this context */
-    List<Genotype> genotypes;
+    /**
+     * An ArrayList of genotypes contained in this context
+     *
+     * WARNING: TO ENABLE THE LAZY VERSION OF THIS CLASS, NO METHODS SHOULD DIRECTLY
+     * ACCESS THIS VARIABLE.  USE getGenotypes() INSTEAD.
+     *
+     */
+    ArrayList<Genotype> notToBeDirectlyAccessedGenotypes;
 
     /** Are we allowing users to modify the list? */
     boolean immutable = false;
@@ -70,7 +76,7 @@ public class GenotypesContext implements List<Genotype> {
     /**
      * Create an empty GenotypeContext
      */
-    private GenotypesContext() {
+    protected GenotypesContext() {
         this(10, false);
     }
 
@@ -78,7 +84,7 @@ public class GenotypesContext implements List<Genotype> {
      * Create an empty GenotypeContext, with initial capacity for n elements
      */
     @Requires("n >= 0")
-    private GenotypesContext(final int n, final boolean immutable) {
+    protected GenotypesContext(final int n, final boolean immutable) {
         this(new ArrayList<Genotype>(n), immutable);
     }
 
@@ -86,8 +92,8 @@ public class GenotypesContext implements List<Genotype> {
      * Create an GenotypeContext containing genotypes
      */
     @Requires("genotypes != null")
-    private GenotypesContext(final ArrayList<Genotype> genotypes, final boolean immutable) {
-        this.genotypes = genotypes;
+    protected GenotypesContext(final ArrayList<Genotype> genotypes, final boolean immutable) {
+        this.notToBeDirectlyAccessedGenotypes = genotypes;
         this.immutable = immutable;
         this.sampleNameToOffset = null;
         this.cacheIsInvalid = true;
@@ -110,11 +116,11 @@ public class GenotypesContext implements List<Genotype> {
             "sampleNamesInOrder != null",
             "genotypes.size() == sampleNameToOffset.size()",
             "genotypes.size() == sampleNamesInOrder.size()"})
-    private GenotypesContext(final ArrayList<Genotype> genotypes,
+    protected GenotypesContext(final ArrayList<Genotype> genotypes,
                              final Map<String, Integer> sampleNameToOffset,
                              final List<String> sampleNamesInOrder,
                              final boolean immutable) {
-        this.genotypes = genotypes;
+        this.notToBeDirectlyAccessedGenotypes = genotypes;
         this.immutable = immutable;
         this.sampleNameToOffset = sampleNameToOffset;
         this.sampleNamesInOrder = sampleNamesInOrder;
@@ -203,7 +209,7 @@ public class GenotypesContext implements List<Genotype> {
     @Requires({"toCopy != null"})
     @Ensures({"result != null"})
     public static final GenotypesContext copy(final GenotypesContext toCopy) {
-        return create(new ArrayList<Genotype>(toCopy.genotypes));
+        return create(new ArrayList<Genotype>(toCopy.getGenotypes()));
     }
 
     /**
@@ -225,7 +231,6 @@ public class GenotypesContext implements List<Genotype> {
     // ---------------------------------------------------------------------------
 
     public final GenotypesContext immutable() {
-        this.genotypes = Collections.unmodifiableList(genotypes);
         immutable = true;
         return this;
     }
@@ -255,16 +260,16 @@ public class GenotypesContext implements List<Genotype> {
     @Ensures({"cacheIsInvalid == false",
             "sampleNamesInOrder != null",
             "sampleNameToOffset != null",
-            "sameSamples(genotypes, sampleNamesInOrder)",
-            "sameSamples(genotypes, sampleNameToOffset.keySet())"})
-    private synchronized void buildCache() {
+            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNamesInOrder)",
+            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNameToOffset.keySet())"})
+    protected synchronized void buildCache() {
         if ( cacheIsInvalid ) {
             cacheIsInvalid = false;
-            sampleNamesInOrder = new ArrayList<String>(genotypes.size());
-            sampleNameToOffset = new HashMap<String, Integer>(genotypes.size());
+            sampleNamesInOrder = new ArrayList<String>(size());
+            sampleNameToOffset = new HashMap<String, Integer>(size());
 
-            for ( int i = 0; i < genotypes.size(); i++ ) {
-                final Genotype g = genotypes.get(i);
+            for ( int i = 0; i < size(); i++ ) {
+                final Genotype g = getGenotypes().get(i);
                 sampleNamesInOrder.add(g.getSampleName());
                 sampleNameToOffset.put(g.getSampleName(), i);
             }
@@ -279,20 +284,24 @@ public class GenotypesContext implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
+    protected ArrayList<Genotype> getGenotypes() {
+        return notToBeDirectlyAccessedGenotypes;
+    }
+
     @Override
     public void clear() {
         checkImmutability();
-        genotypes.clear();
+        getGenotypes().clear();
     }
 
     @Override
     public int size() {
-        return genotypes.size();
+        return getGenotypes().size();
     }
 
     @Override
     public boolean isEmpty() {
-        return genotypes.isEmpty();
+        return getGenotypes().isEmpty();
     }
 
     @Override
@@ -300,14 +309,14 @@ public class GenotypesContext implements List<Genotype> {
     public boolean add(final Genotype genotype) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.add(genotype);
+        return getGenotypes().add(genotype);
     }
 
     @Requires("genotype != null")
     public boolean add(final Genotype ... genotype) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.addAll(Arrays.asList(genotype));
+        return getGenotypes().addAll(Arrays.asList(genotype));
     }
 
     @Override
@@ -319,7 +328,7 @@ public class GenotypesContext implements List<Genotype> {
     public boolean addAll(final Collection<? extends Genotype> genotypes) {
         checkImmutability();
         invalidateCaches();
-        return this.genotypes.addAll(genotypes);
+        return getGenotypes().addAll(genotypes);
     }
 
     @Override
@@ -329,38 +338,43 @@ public class GenotypesContext implements List<Genotype> {
 
     @Override
     public boolean contains(final Object o) {
-        return this.genotypes.contains(o);
+        return getGenotypes().contains(o);
     }
 
     @Override
     public boolean containsAll(final Collection<?> objects) {
-        return this.genotypes.containsAll(objects);
+        return getGenotypes().containsAll(objects);
     }
 
     @Override
     public Genotype get(final int i) {
-        return genotypes.get(i);
+        return getGenotypes().get(i);
     }
 
     public Genotype get(final String sampleName) {
         buildCache();
-        Integer offset = sampleNameToOffset.get(sampleName);
-        return offset == null ? null : genotypes.get(offset);
+        Integer offset = getSampleI(sampleName);
+        return offset == null ? null : getGenotypes().get(offset);
+    }
+
+    private Integer getSampleI(final String sampleName) {
+        buildCache();
+        return sampleNameToOffset.get(sampleName);
     }
 
     @Override
     public int indexOf(final Object o) {
-        return genotypes.indexOf(o);
+        return getGenotypes().indexOf(o);
     }
 
     @Override
     public Iterator<Genotype> iterator() {
-        return genotypes.iterator();
+        return getGenotypes().iterator();
     }
 
     @Override
     public int lastIndexOf(final Object o) {
-        return genotypes.lastIndexOf(o);
+        return getGenotypes().lastIndexOf(o);
     }
 
     @Override
@@ -381,50 +395,67 @@ public class GenotypesContext implements List<Genotype> {
     public Genotype remove(final int i) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.remove(i);
+        return getGenotypes().remove(i);
     }
 
     @Override
     public boolean remove(final Object o) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.remove(o);
+        return getGenotypes().remove(o);
     }
 
     @Override
     public boolean removeAll(final Collection<?> objects) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.removeAll(objects);
+        return getGenotypes().removeAll(objects);
     }
 
     @Override
     public boolean retainAll(final Collection<?> objects) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.retainAll(objects);
+        return getGenotypes().retainAll(objects);
     }
 
     @Override
     public Genotype set(final int i, final Genotype genotype) {
         checkImmutability();
         invalidateCaches();
-        return genotypes.set(i, genotype);
+        return getGenotypes().set(i, genotype);
+    }
+
+    /**
+     * Replaces the genotype in this context -- note for efficiency
+     * reasons we do not add the genotype if it's not present.  The
+     * return value will be null indicating this happened.
+     * @param genotype a non null genotype to bind in this context
+     * @return null if genotype was not added, otherwise returns the previous genotype
+     */
+    @Requires("genotype != null")
+    public Genotype replace(final Genotype genotype) {
+        checkImmutability();
+        Integer offset = getSampleI(genotype.getSampleName());
+        if ( offset == null )
+            return null;
+        else
+            return getGenotypes().set(offset, genotype);
     }
 
     @Override
     public List<Genotype> subList(final int i, final int i1) {
-        return genotypes.subList(i, i1);
+        return getGenotypes().subList(i, i1);
     }
 
     @Override
     public Object[] toArray() {
-        return genotypes.toArray();
+        return getGenotypes().toArray();
     }
 
     @Override
     public <T> T[] toArray(final T[] ts) {
-        return genotypes.toArray(ts);
+        return getGenotypes().toArray(ts);
     }
 
     /**
@@ -528,13 +559,13 @@ public class GenotypesContext implements List<Genotype> {
     @Requires("samples != null")
     @Ensures("result != null")
     public GenotypesContext subsetToSamples( final Set<String> samples ) {
-        if ( samples.size() == genotypes.size() )
+        if ( samples.size() == size() )
             return this;
         else if ( samples.isEmpty() )
             return NO_GENOTYPES;
         else {
             GenotypesContext subset = create(samples.size());
-            for ( final Genotype g : genotypes ) {
+            for ( final Genotype g : getGenotypes() ) {
                 if ( samples.contains(g.getSampleName()) ) {
                     subset.add(g);
                 }

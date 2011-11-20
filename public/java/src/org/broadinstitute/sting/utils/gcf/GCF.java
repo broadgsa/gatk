@@ -191,8 +191,6 @@ public class GCF {
         boolean first = true;
         for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
             String key = field.getKey();
-            if ( key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
-                continue;
             int stringIndex = GCFHeaderBuilder.encodeString(key);
             String outputValue = StandardVCFWriter.formatVCFField(field.getValue());
             if ( outputValue != null ) {

@@ -219,9 +219,6 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
-                if ( key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
-                    continue;
-
                 String outputValue = formatVCFField(field.getValue());
                 if ( outputValue != null )
                     infoFields.put(key, outputValue);
@@ -229,9 +226,10 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             writeInfoString(infoFields);
 
             // FORMAT
-            if ( vc.hasAttribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) ) {
+            final GenotypesContext gc = vc.getGenotypes();
+            if ( gc instanceof LazyGenotypesContext && ((LazyGenotypesContext)gc).getUnparsedGenotypeData() != null) {
                 mWriter.write(VCFConstants.FIELD_SEPARATOR);
-                mWriter.write(vc.getAttributeAsString(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, ""));
+                mWriter.write(((LazyGenotypesContext)gc).getUnparsedGenotypeData());
             } else {
                 List<String> genotypeAttributeKeys = new ArrayList<String>();
                 if ( vc.hasGenotypes() ) {

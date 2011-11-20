@@ -72,7 +72,6 @@ public class VariantContextBuilder {
     private Map<String, Object> attributes = null;
     private boolean attributesCanBeModified = false;
     private Byte referenceBaseForIndel = null;
-    private boolean genotypesAreUnparsed = false;
 
     /** enum of what must be validated */
     final private EnumSet<VariantContext.Validation> toValidate = EnumSet.noneOf(VariantContext.Validation.class);
@@ -112,7 +111,6 @@ public class VariantContextBuilder {
         this.contig = parent.contig;
         this.filters = parent.getFiltersMaybeNull();
         this.genotypes = parent.genotypes;
-        this.genotypesAreUnparsed = parent.hasAttribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY);
         this.ID = parent.getID();
         this.log10PError = parent.getLog10PError();
         this.referenceBaseForIndel = parent.getReferenceBaseForIndel();
@@ -179,7 +177,7 @@ public class VariantContextBuilder {
 
     /**
      * Makes the attributes field modifiable.  In many cases attributes is just a pointer to an immutable
-     * collection, so methods that want to add / remove records require the attributes to be copied first
+     * collection, so methods that want to add / remove records require the attributes to be copied to a
      */
     private void makeAttributesModifiable() {
         if ( ! attributesCanBeModified ) {
@@ -243,6 +241,11 @@ public class VariantContextBuilder {
         return this;
     }
 
+    public VariantContextBuilder genotypesNoValidation(final GenotypesContext genotypes) {
+        this.genotypes = genotypes;
+        return this;
+    }
+
     /**
      * Tells this builder that the resulting VariantContext should use a GenotypeContext containing genotypes
      *
@@ -267,15 +270,6 @@ public class VariantContextBuilder {
      */
     public VariantContextBuilder noGenotypes() {
         this.genotypes = null;
-        return this;
-    }
-
-    /**
-     * ADVANCED! tells us that the genotypes data is stored as an unparsed attribute
-     * @return
-     */
-    public VariantContextBuilder genotypesAreUnparsed() {
-        this.genotypesAreUnparsed = true;
         return this;
     }
 
@@ -395,6 +389,6 @@ public class VariantContextBuilder {
     public VariantContext make() {
         return new VariantContext(source, ID, contig, start, stop, alleles,
                 genotypes, log10PError, filters, attributes,
-                referenceBaseForIndel, genotypesAreUnparsed, toValidate);
+                referenceBaseForIndel, toValidate);
     }
 }

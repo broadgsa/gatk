@@ -10,10 +10,7 @@ import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -255,11 +252,14 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      */
     private VariantContext parseVCFLine(String[] parts) {
         VariantContextBuilder builder = new VariantContextBuilder();
+        builder.source(getName());
+
         // increment the line count
         lineNo++;
 
         // parse out the required fields
-        builder.chr(getCachedString(parts[0]));
+        final String chr = getCachedString(parts[0]);
+        builder.chr(chr);
         int pos = Integer.valueOf(parts[1]);
         builder.start(pos);
 
@@ -294,9 +294,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
         // do we have genotyping data
         if (parts.length > NUM_STANDARD_FIELDS) {
-            builder.attribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, new String(parts[8]));
-            builder.attribute(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY, this);
-            builder.genotypesAreUnparsed();
+            LazyGenotypesContext lazy = new LazyGenotypesContext(this, parts[8], chr, pos, alleles, header.getGenotypeSamples().size());
+            builder.genotypesNoValidation(lazy);
         }
 
         VariantContext vc = null;

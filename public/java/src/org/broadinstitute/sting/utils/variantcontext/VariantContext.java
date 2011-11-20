@@ -165,8 +165,6 @@ import java.util.*;
 public class VariantContext implements Feature { // to enable tribble intergration
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
-    public final static String UNPARSED_GENOTYPE_MAP_KEY = "_UNPARSED_GENOTYPE_MAP_";
-    public final static String UNPARSED_GENOTYPE_PARSER_KEY = "_UNPARSED_GENOTYPE_PARSER_";
 
     @Deprecated // ID is no longer stored in the attributes map
     private final static String ID_KEY = "ID";
@@ -231,7 +229,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param other the VariantContext to copy
      */
     protected VariantContext(VariantContext other) {
-        this(other.getSource(), other.getID(), other.getChr(), other.getStart(), other.getEnd() , other.getAlleles(), other.getGenotypes(), other.getLog10PError(), other.filtersWereApplied() ? other.getFilters() : null, other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL, false, NO_VALIDATION);
+        this(other.getSource(), other.getID(), other.getChr(), other.getStart(), other.getEnd(),
+                other.getAlleles(), other.getGenotypes(), other.getLog10PError(),
+                other.getFiltersMaybeNull(),
+                other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL,
+                NO_VALIDATION);
     }
 
     /**
@@ -247,14 +249,13 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
      * @param referenceBaseForIndel   padded reference base
-     * @param genotypesAreUnparsed    true if the genotypes have not yet been parsed
      * @param validationToPerform     set of validation steps to take
      */
     protected VariantContext(String source, String ID,
                            String contig, long start, long stop,
                            Collection<Allele> alleles, GenotypesContext genotypes,
                            double log10PError, Set<String> filters, Map<String, Object> attributes,
-                           Byte referenceBaseForIndel, boolean genotypesAreUnparsed,
+                           Byte referenceBaseForIndel,
                            EnumSet<Validation> validationToPerform ) {
         if ( contig == null ) { throw new IllegalArgumentException("Contig cannot be null"); }
         this.contig = contig;
@@ -264,17 +265,6 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         // intern for efficiency.  equals calls will generate NPE if ID is inappropriately passed in as null
         if ( ID == null || ID.equals("") ) throw new IllegalArgumentException("ID field cannot be the null or the empty string");
         this.ID = ID.equals(VCFConstants.EMPTY_ID_FIELD) ? VCFConstants.EMPTY_ID_FIELD : ID;
-
-        if ( !genotypesAreUnparsed && attributes != null ) {
-            if ( attributes.containsKey(UNPARSED_GENOTYPE_MAP_KEY) ) {
-                attributes = new HashMap<String, Object>(attributes);
-                attributes.remove(UNPARSED_GENOTYPE_MAP_KEY);
-            }
-            if ( attributes.containsKey(UNPARSED_GENOTYPE_PARSER_KEY) ) {
-                attributes = new HashMap<String, Object>(attributes);
-                attributes.remove(UNPARSED_GENOTYPE_PARSER_KEY);
-            }
-        }
 
         this.commonInfo = new CommonInfo(source, log10PError, filters, attributes);
         REFERENCE_BASE_FOR_INDEL = referenceBaseForIndel;
@@ -316,13 +306,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     // ---------------------------------------------------------------------------------------------------------
 
     public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
-        loadGenotypes();
         VariantContextBuilder builder = new VariantContextBuilder(this);
         return builder.genotypes(genotypes.subsetToSamples(sampleNames)).alleles(alleles).make();
     }
 
     public VariantContext subContextFromSamples(Set<String> sampleNames) {
-        loadGenotypes();
         VariantContextBuilder builder = new VariantContextBuilder(this);
         GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
         return builder.genotypes(newGenotypes).alleles(allelesOfGenotypes(newGenotypes)).make();
@@ -698,35 +686,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    private void loadGenotypes() {
-        if ( !hasAttribute(UNPARSED_GENOTYPE_MAP_KEY) ) {
-            if ( genotypes == null )
-                genotypes = NO_GENOTYPES;
-            return;
-        }
-
-        Object parserObj = getAttribute(UNPARSED_GENOTYPE_PARSER_KEY);
-        if ( parserObj == null || !(parserObj instanceof VCFParser) )
-            throw new IllegalStateException("There is no VCF parser stored to unparse the genotype data");
-        VCFParser parser = (VCFParser)parserObj;
-
-        Object mapObj = getAttribute(UNPARSED_GENOTYPE_MAP_KEY);
-        if ( mapObj == null )
-            throw new IllegalStateException("There is no mapping string stored to unparse the genotype data");
-
-        genotypes = parser.createGenotypeMap(mapObj.toString(), new ArrayList<Allele>(alleles), getChr(), getStart());
-
-        commonInfo.removeAttribute(UNPARSED_GENOTYPE_MAP_KEY);
-        commonInfo.removeAttribute(UNPARSED_GENOTYPE_PARSER_KEY);
-
-        validateGenotypes();
-    }
-
     /**
      * @return the number of samples in the context
      */
     public int getNSamples() {
-        loadGenotypes();
         return genotypes.size();
     }
 
@@ -734,12 +697,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return true if the context has associated genotypes
      */
     public boolean hasGenotypes() {
-        loadGenotypes();
         return ! genotypes.isEmpty();
     }
 
     public boolean hasGenotypes(Collection<String> sampleNames) {
-        loadGenotypes();
         return genotypes.containsSamples(sampleNames);
     }
 
@@ -747,17 +708,14 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return set of all Genotypes associated with this context
      */
     public GenotypesContext getGenotypes() {
-        loadGenotypes();
         return genotypes;
     }
 
     public Iterable<Genotype> getGenotypesOrderedByName() {
-        loadGenotypes();
         return genotypes.iterateInSampleNameOrder();
     }
 
     public Iterable<Genotype> getGenotypesOrderedBy(Iterable<String> sampleOrdering) {
-        loadGenotypes();
         return genotypes.iterateInSampleNameOrder(sampleOrdering);
     }
 
