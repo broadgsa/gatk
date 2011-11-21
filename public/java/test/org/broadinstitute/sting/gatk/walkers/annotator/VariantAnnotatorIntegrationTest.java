@@ -58,7 +58,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         // they don't get reordered.  It's a good test of the genotype ordering system.
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("0cc0ec59f0328792e6413b6ff3f71780"));
+                Arrays.asList("f2ddfa8105c290b1f34b7a261a02a1ac"));
         executeTest("test file doesn't have annotations, not asking for annotations, #2", spec);
     }
 

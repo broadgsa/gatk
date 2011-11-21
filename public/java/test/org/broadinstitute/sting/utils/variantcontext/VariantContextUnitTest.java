@@ -834,7 +834,8 @@ public class VariantContextUnitTest extends BaseTest {
             for ( int j = 0; j < i; j++ ) {
                 nSamples++;
                 Genotype g = allGenotypes.get(j % allGenotypes.size());
-                gc.add(g);
+                final String name = String.format("%s_%d%d", g.getSampleName(), i, j);
+                gc.add(new Genotype(name, g.getAlleles()));
                 switch ( g.getType() ) {
                     case NO_CALL: nNoCall++; nNoCallAlleles++; break;
                     case HOM_REF: nA += 2; nHomRef++; break;

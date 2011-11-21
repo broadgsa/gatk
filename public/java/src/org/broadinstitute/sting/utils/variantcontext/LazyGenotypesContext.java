@@ -73,7 +73,7 @@ public class LazyGenotypesContext extends GenotypesContext {
     /**
      * Returns the data used in the full GenotypesContext constructor
      *
-     * {@link GenotypesContext#GenotypesContext(java.util.ArrayList, java.util.Map, java.util.List, boolean)}
+     * {@link GenotypesContext#GenotypesContext(java.util.ArrayList, java.util.Map, java.util.List)}
      */
     public static class LazyData {
         final ArrayList<Genotype> genotypes;
@@ -102,7 +102,7 @@ public class LazyGenotypesContext extends GenotypesContext {
      */
     @Requires({"parser != null", "unparsedGenotypeData != null", "nUnparsedGenotypes >= 0"})
     public LazyGenotypesContext(final LazyParser parser, final Object unparsedGenotypeData, final int nUnparsedGenotypes) {
-        super(EMPTY, false);
+        super(EMPTY);
         this.parser = parser;
         this.unparsedGenotypeData = unparsedGenotypeData;
         this.nUnparsedGenotypes = nUnparsedGenotypes;

@@ -77,6 +77,11 @@ public class GenotypesContextUnitTest extends BaseTest {
         public GenotypesContext make(final List<Genotype> initialSamples) {
             return GenotypesContext.copy(initialSamples);
         }
+
+        @Override
+        public String toString() {
+            return "GenotypesContext";
+        }
     };
 
     private final class lazyMaker implements LazyGenotypesContext.LazyParser, ContextMaker {
@@ -91,6 +96,11 @@ public class GenotypesContextUnitTest extends BaseTest {
         public GenotypesContext make(final List<Genotype> initialSamples) {
             return new LazyGenotypesContext(this, initialSamples, initialSamples.size());
         }
+
+        @Override
+        public String toString() {
+            return "LazyGenotypesContext";
+        }
     }
 
     private Collection<ContextMaker> allMakers = Arrays.asList(baseMaker, new lazyMaker());
@@ -100,7 +110,7 @@ public class GenotypesContextUnitTest extends BaseTest {
         final List<Genotype> initialSamples;
 
         private GenotypesContextProvider(ContextMaker maker, List<Genotype> initialSamples) {
-            super(GenotypesContextProvider.class);
+            super(GenotypesContextProvider.class, String.format("%s with %d samples", maker.toString(), initialSamples.size()));
             this.maker = maker;
             this.initialSamples = initialSamples;
         }
