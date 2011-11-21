@@ -26,10 +26,8 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,20 +39,10 @@ import java.util.Map;
  * decoding the genotypes unnecessarily.
  */
 public class LazyGenotypesContext extends GenotypesContext {
-    /** parser the VCF parser we'll use to decode unparsedGenotypeData if necessary */
-    final VCFParser parser;
+    /** The LazyParser we'll use to decode unparsedGenotypeData if necessary */
+    final LazyParser parser;
 
-    /** a string containing the unparsed VCF genotypes */
-    String unparsedGenotypeData;
-
-    /** alleles the current list of alleles at the site (known already in the parser) */
-    final List<Allele> alleles;
-
-    /** contig the current contig (known already in the parser) */
-    final String contig;
-
-    /** the current start position (known already in the parser) */
-    final int start;
+    Object unparsedGenotypeData;
 
     /**
      * nUnparsedGenotypes the number of genotypes contained in the unparsedGenotypes data
@@ -70,28 +58,48 @@ public class LazyGenotypesContext extends GenotypesContext {
     private final static ArrayList<Genotype> EMPTY = new ArrayList<Genotype>(0);
 
     /**
-     * Creates a new lazy loading genotypes context
-     *
-     * @param parser the VCF parser we'll use to decode unparsedGenotypeData if necessary
-     * @param unparsedGenotypeData a string containing the unparsed VCF genotypes
-     * @param contig the current contig (known already in the parser)
-     * @param start the current start position (known already in the parser)
-     * @param alleles the current list of alleles at the site (known already in the parser)
-     * @param nUnparsedGenotypes the number of genotypes contained in the unparsedGenotypes data
-     *      (known already in the parser).  Useful for isEmpty and size() optimizations
+     * Simple lazy parser interface.  Provide an object implementing this
+     * interface to LazyGenotypesContext, and it's parse method will be called
+     * when the use of the lazy context requires the underlying genotypes data
+     * be parsed into Genotype objects.  The data argument is the data provided
+     * to the LazyGenotypesContext holding encoded genotypes data
      */
-    @Requires({"parser != null", "unparsedGenotypeData != null",
-            "contig != null", "start >= 0", "alleles != null && alleles.size() > 0",
-            "nUnparsedGenotypes > 0"})
-    public LazyGenotypesContext(final VCFParser parser, final String unparsedGenotypeData,
-                                final String contig, final int start, final List<Allele> alleles,
-                                int nUnparsedGenotypes ) {
+    public interface LazyParser {
+        public LazyData parse(Object data);
+    }
+
+    /**
+     * Returns the data used in the full GenotypesContext constructor
+     *
+     * {@link GenotypesContext#GenotypesContext(java.util.ArrayList, java.util.Map, java.util.List, boolean)}
+     */
+    public static class LazyData {
+        final ArrayList<Genotype> genotypes;
+        final Map<String, Integer> sampleNameToOffset;
+        final List<String> sampleNamesInOrder;
+
+        public LazyData(final ArrayList<Genotype> genotypes,
+                        final List<String> sampleNamesInOrder,
+                        final Map<String, Integer> sampleNameToOffset) {
+            this.genotypes = genotypes;
+            this.sampleNamesInOrder = sampleNamesInOrder;
+            this.sampleNameToOffset = sampleNameToOffset;
+        }
+    }
+
+    /**
+     * Creates a new lazy loading genotypes context using the LazyParser to create
+     * genotypes data on demand.
+     *
+     * @param parser the parser to be used to load on-demand genotypes data
+     * @param unparsedGenotypeData the encoded genotypes data that we will decode if necessary
+     * @param nUnparsedGenotypes the number of genotypes that will be produced if / when we actually decode the genotypes data
+     */
+    @Requires({"parser != null", "unparsedGenotypeData != null", "nUnparsedGenotypes >= 0"})
+    public LazyGenotypesContext(final LazyParser parser, final Object unparsedGenotypeData, final int nUnparsedGenotypes) {
         super(EMPTY, false);
-        this.unparsedGenotypeData = unparsedGenotypeData;
-        this.start = start;
         this.parser = parser;
-        this.contig = contig;
-        this.alleles = alleles;
+        this.unparsedGenotypeData = unparsedGenotypeData;
         this.nUnparsedGenotypes = nUnparsedGenotypes;
     }
 
@@ -108,10 +116,10 @@ public class LazyGenotypesContext extends GenotypesContext {
     protected ArrayList<Genotype> getGenotypes() {
         if ( ! loaded ) {
             //System.out.printf("Loading genotypes... %s:%d%n", contig, start);
-            GenotypesContext subcontext = parser.createGenotypeMap(unparsedGenotypeData, alleles, contig, start);
-            notToBeDirectlyAccessedGenotypes = subcontext.notToBeDirectlyAccessedGenotypes;
-            sampleNamesInOrder = subcontext.sampleNamesInOrder;
-            sampleNameToOffset = subcontext.sampleNameToOffset;
+            LazyData parsed = parser.parse(unparsedGenotypeData);
+            notToBeDirectlyAccessedGenotypes = parsed.genotypes;
+            sampleNamesInOrder = parsed.sampleNamesInOrder;
+            sampleNameToOffset = parsed.sampleNameToOffset;
             cacheIsInvalid = false;      // these values build the cache
             loaded = true;
             unparsedGenotypeData = null; // don't hold the unparsed data any longer
@@ -141,6 +149,13 @@ public class LazyGenotypesContext extends GenotypesContext {
     }
 
     @Override
+    protected void invalidateCaches() {
+        // if the cache is invalidated, and we haven't loaded our data yet, do so
+        if ( ! loaded ) getGenotypes();
+        super.invalidateCaches();
+    }
+
+    @Override
     public boolean isEmpty() {
         // optimization -- we know the number of samples in the unparsed data, so use it here to
         // avoid parsing just to know if the genotypes context is empty
@@ -154,7 +169,7 @@ public class LazyGenotypesContext extends GenotypesContext {
         return loaded ? super.size() : nUnparsedGenotypes;
     }
 
-    public String getUnparsedGenotypeData() {
+    public Object getUnparsedGenotypeData() {
         return unparsedGenotypeData;
     }
 }

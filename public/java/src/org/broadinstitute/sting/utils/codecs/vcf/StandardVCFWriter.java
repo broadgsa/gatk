@@ -229,7 +229,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             final GenotypesContext gc = vc.getGenotypes();
             if ( gc instanceof LazyGenotypesContext && ((LazyGenotypesContext)gc).getUnparsedGenotypeData() != null) {
                 mWriter.write(VCFConstants.FIELD_SEPARATOR);
-                mWriter.write(((LazyGenotypesContext)gc).getUnparsedGenotypeData());
+                mWriter.write(((LazyGenotypesContext)gc).getUnparsedGenotypeData().toString());
             } else {
                 List<String> genotypeAttributeKeys = new ArrayList<String>();
                 if ( vc.hasGenotypes() ) {

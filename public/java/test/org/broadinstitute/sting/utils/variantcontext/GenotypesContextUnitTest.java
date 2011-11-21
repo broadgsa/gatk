@@ -79,8 +79,21 @@ public class GenotypesContextUnitTest extends BaseTest {
         }
     };
 
-    private Collection<ContextMaker> allMakers =
-            Arrays.asList(baseMaker);
+    private final class lazyMaker implements LazyGenotypesContext.LazyParser, ContextMaker {
+        @Override
+        public LazyGenotypesContext.LazyData parse(final Object data) {
+            GenotypesContext gc = GenotypesContext.copy((List<Genotype>)data);
+            gc.buildCache();
+            return new LazyGenotypesContext.LazyData(gc.notToBeDirectlyAccessedGenotypes, gc.sampleNamesInOrder, gc.sampleNameToOffset);
+        }
+
+        @Override
+        public GenotypesContext make(final List<Genotype> initialSamples) {
+            return new LazyGenotypesContext(this, initialSamples, initialSamples.size());
+        }
+    }
+
+    private Collection<ContextMaker> allMakers = Arrays.asList(baseMaker, new lazyMaker());
 
     private class GenotypesContextProvider extends TestDataProvider {
         ContextMaker maker;
@@ -163,7 +176,7 @@ public class GenotypesContextUnitTest extends BaseTest {
         Assert.assertFalse(gc.containsSamples(withMissing));
     }
 
-    @Test(dataProvider = "GenotypesContextProvider")
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider")
     public void testImmutable(GenotypesContextProvider cfg) {
         GenotypesContext gc = cfg.makeContext();
         Assert.assertEquals(gc.isMutable(), true);
@@ -171,14 +184,14 @@ public class GenotypesContextUnitTest extends BaseTest {
         Assert.assertEquals(gc.isMutable(), false);
     }
 
-    @Test(dataProvider = "GenotypesContextProvider", expectedExceptions = Throwable.class )
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider", expectedExceptions = Throwable.class )
     public void testImmutableCall1(GenotypesContextProvider cfg) {
         GenotypesContext gc = cfg.makeContext();
         gc.immutable();
         gc.add(MISSING);
     }
 
-    @Test(dataProvider = "GenotypesContextProvider")
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider")
     public void testClear(GenotypesContextProvider cfg) {
         GenotypesContext gc = cfg.makeContext();
         gc.clear();
@@ -197,7 +210,7 @@ public class GenotypesContextUnitTest extends BaseTest {
         return l;
     }
 
-    @Test(dataProvider = "GenotypesContextProvider")
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider")
     public void testAdds(GenotypesContextProvider cfg) {
         Genotype add1 = new Genotype("add1", Arrays.asList(Aref, Aref));
         Genotype add2 = new Genotype("add2", Arrays.asList(Aref, Aref));
@@ -220,7 +233,7 @@ public class GenotypesContextUnitTest extends BaseTest {
         testGenotypesContextContainsExpectedSamples(gc, with(cfg.initialSamples, add1, add2));
     }
 
-    @Test(dataProvider = "GenotypesContextProvider")
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider")
     public void testRemoves(GenotypesContextProvider cfg) {
         Genotype rm1 = AA;
         Genotype rm2 = AC;
@@ -257,7 +270,7 @@ public class GenotypesContextUnitTest extends BaseTest {
         testGenotypesContextContainsExpectedSamples(gc, gc.getGenotypes());
     }
 
-    @Test(dataProvider = "GenotypesContextProvider")
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider")
     public void testSet(GenotypesContextProvider cfg) {
         Genotype set = new Genotype("replace", Arrays.asList(Aref, Aref));
         int n = cfg.makeContext().size();
@@ -271,7 +284,7 @@ public class GenotypesContextUnitTest extends BaseTest {
         }
     }
 
-    @Test(dataProvider = "GenotypesContextProvider")
+    @Test(enabled = true, dataProvider = "GenotypesContextProvider")
     public void testReplace(GenotypesContextProvider cfg) {
         int n = cfg.makeContext().size();
         for ( int i = 0; i < n; i++ ) {

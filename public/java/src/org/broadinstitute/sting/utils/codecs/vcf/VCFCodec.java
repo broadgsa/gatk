@@ -3,10 +3,7 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -141,11 +138,12 @@ public class VCFCodec extends AbstractVCFCodec {
 
     /**
      * create a genotype map
+     *
      * @param str the string
      * @param alleles the list of alleles
      * @return a mapping of sample name to genotype object
      */
-    public GenotypesContext createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
+    public LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
         if (genotypeParts == null)
             genotypeParts = new String[header.getColumnCount() - NUM_STANDARD_FIELDS];
 
@@ -215,7 +213,7 @@ public class VCFCodec extends AbstractVCFCodec {
             }
         }
 
-        return GenotypesContext.create(genotypes, header.sampleNameToOffset, header.sampleNamesInOrder);
+        return new LazyGenotypesContext.LazyData(genotypes, header.sampleNamesInOrder, header.sampleNameToOffset);
     }
 
     @Override

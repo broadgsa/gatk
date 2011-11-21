@@ -251,7 +251,7 @@ public class GenotypesContext implements List<Genotype> {
     // ---------------------------------------------------------------------------
 
     @Ensures({"cacheIsInvalid == true"})
-    private synchronized void invalidateCaches() {
+    protected void invalidateCaches() {
         cacheIsInvalid = true;
         sampleNamesInOrder = null;
         sampleNameToOffset = null;
@@ -262,7 +262,7 @@ public class GenotypesContext implements List<Genotype> {
             "sampleNameToOffset != null",
             "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNamesInOrder)",
             "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNameToOffset.keySet())"})
-    protected synchronized void buildCache() {
+    protected void buildCache() {
         if ( cacheIsInvalid ) {
             cacheIsInvalid = false;
             sampleNamesInOrder = new ArrayList<String>(size());
@@ -291,6 +291,7 @@ public class GenotypesContext implements List<Genotype> {
     @Override
     public void clear() {
         checkImmutability();
+        invalidateCaches();
         getGenotypes().clear();
     }
 

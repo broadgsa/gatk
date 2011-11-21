@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 
-public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser {
+public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
@@ -59,6 +59,29 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
     protected Map<String, String> stringCache = new HashMap<String, String>();
 
+    /**
+     * Creates a LazyParser for a LazyGenotypesContext to use to decode
+     * our genotypes only when necessary.  We do this instead of eagarly
+     * decoding the genotypes just to turn around and reencode in the frequent
+     * case where we don't actually want to manipulate the genotypes
+     */
+    class LazyVCFGenotypesParser implements LazyGenotypesContext.LazyParser {
+        final List<Allele> alleles;
+        final String contig;
+        final int start;
+
+        LazyVCFGenotypesParser(final List<Allele> alleles, final String contig, final int start) {
+            this.alleles = alleles;
+            this.contig = contig;
+            this.start = start;
+        }
+
+        @Override
+        public LazyGenotypesContext.LazyData parse(final Object data) {
+            //System.out.printf("Loading genotypes... %s:%d%n", contig, start);
+            return createGenotypeMap((String) data, alleles, contig, start);
+        }
+    }
 
     /**
      * @param reader the line reader to take header lines from
@@ -68,13 +91,14 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
     /**
      * create a genotype map
+     *
      * @param str the string
      * @param alleles the list of alleles
      * @param chr chrom
      * @param pos position
      * @return a mapping of sample name to genotype object
      */
-    public abstract GenotypesContext createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
+    public abstract LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
 
 
     /**
@@ -294,7 +318,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
         // do we have genotyping data
         if (parts.length > NUM_STANDARD_FIELDS) {
-            LazyGenotypesContext lazy = new LazyGenotypesContext(this, parts[8], chr, pos, alleles, header.getGenotypeSamples().size());
+            final LazyGenotypesContext.LazyParser lazyParser = new LazyVCFGenotypesParser(alleles, chr, pos);
+            final int nGenotypes = header.getGenotypeSamples().size();
+            LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, parts[8], nGenotypes);
             builder.genotypesNoValidation(lazy);
         }
 

@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
-import org.apache.commons.lang.Validate;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
