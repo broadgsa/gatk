@@ -56,28 +56,30 @@ public class IntervalUtils {
     public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, String arg) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
 
-        // separate argument on semicolon first
-        for (String fileOrInterval : arg.split(";")) {
-            // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
-            if (isUnmapped(fileOrInterval))
-                rawIntervals.add(GenomeLoc.UNMAPPED);
-            // if it's a file, add items to raw interval list
-            else if (isIntervalFile(fileOrInterval)) {
-                try {
-                    rawIntervals.addAll(intervalFileToList(parser, fileOrInterval));
-                }
-                catch ( UserException.MalformedGenomeLoc e ) {
-                    throw e;
-                }
-                catch ( Exception e ) {
-                    throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in any supported format.", e);
-                }
-            }
+        if ( arg.indexOf(';') != -1 ) {
+            throw new UserException.BadArgumentValue("-L " + arg, "The legacy -L \"interval1;interval2\" syntax " +
+                                                     "is no longer supported. Please use one -L argument for each " +
+                                                     "interval or an interval file instead.");
+        }
 
-                // otherwise treat as an interval -> parse and add to raw interval list
-            else {
-                rawIntervals.add(parser.parseGenomeLoc(fileOrInterval));
+        // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
+        if (isUnmapped(arg))
+            rawIntervals.add(GenomeLoc.UNMAPPED);
+        // if it's a file, add items to raw interval list
+        else if (isIntervalFile(arg)) {
+            try {
+                rawIntervals.addAll(intervalFileToList(parser, arg));
             }
+            catch ( UserException.MalformedGenomeLoc e ) {
+                throw e;
+            }
+            catch ( Exception e ) {
+                throw new UserException.MalformedFile(arg, "Interval file could not be parsed in any supported format.", e);
+            }
+        }
+        // otherwise treat as an interval -> parse and add to raw interval list
+        else {
+            rawIntervals.add(parser.parseGenomeLoc(arg));
         }
 
         return rawIntervals;
