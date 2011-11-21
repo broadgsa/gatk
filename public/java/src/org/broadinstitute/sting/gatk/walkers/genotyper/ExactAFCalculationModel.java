@@ -42,6 +42,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
     private final boolean SIMPLE_GREEDY_GENOTYPER = false;
     private final static double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
+    private final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
@@ -265,8 +266,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
      * @return calls
      */
     public GenotypesContext assignGenotypes(VariantContext vc,
-                                       double[] log10AlleleFrequencyPosteriors,
-                                       int AFofMaxLikelihood) {
+                                            double[] log10AlleleFrequencyPosteriors,
+                                            int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
@@ -338,8 +339,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
         }
 
-        GenotypesContext calls = GenotypesContext.create();
-
+        final GenotypesContext calls = GenotypesContext.create();
         int startIdx = AFofMaxLikelihood;
         for (int k = sampleIdx; k > 0; k--) {
             int bestGTguess;
@@ -353,65 +353,51 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             double[] likelihoods = g.getLikelihoods().getAsVector();
 
-            if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-                bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
-            }
-            else {
-                int newIdx = tracebackArray[k][startIdx];;
-                bestGTguess = startIdx - newIdx;
-                startIdx = newIdx;
-            }
-
-            // likelihoods are stored row-wise in lower triangular matrix. IE
-            // for 2 alleles they have ordering AA,AB,BB
-            // for 3 alleles they are ordered AA,AB,BB,AC,BC,CC
-            // Get now alleles corresponding to best index
-            int kk=0;
-            boolean done = false;
-            for (int j=0; j < vc.getNAlleles(); j++) {
-                for (int i=0; i <= j; i++){
-                    if (kk++ == bestGTguess) {
-                        if (i==0)
-                            myAlleles.add(vc.getReference());
-                        else
-                            myAlleles.add(vc.getAlternateAllele(i-1));
-
-                        if (j==0)
-                            myAlleles.add(vc.getReference());
-                        else
-                            myAlleles.add(vc.getAlternateAllele(j-1));
-                        done = true;
-                        break;
-                    }
-
+            if (MathUtils.sum(likelihoods) <= SUM_GL_THRESH_NOCALL) {
+                if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
+                    bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
                 }
-                if (done)
-                    break;
+                else {
+                    int newIdx = tracebackArray[k][startIdx];;
+                    bestGTguess = startIdx - newIdx;
+                    startIdx = newIdx;
+                }
+
+                // likelihoods are stored row-wise in lower triangular matrix. IE
+                // for 2 alleles they have ordering AA,AB,BB
+                // for 3 alleles they are ordered AA,AB,BB,AC,BC,CC
+                // Get now alleles corresponding to best index
+                int kk=0;
+                boolean done = false;
+                for (int j=0; j < vc.getNAlleles(); j++) {
+                    for (int i=0; i <= j; i++){
+                        if (kk++ == bestGTguess) {
+                            if (i==0)
+                                myAlleles.add(vc.getReference());
+                            else
+                                myAlleles.add(vc.getAlternateAllele(i-1));
+
+                            if (j==0)
+                                myAlleles.add(vc.getReference());
+                            else
+                                myAlleles.add(vc.getAlternateAllele(j-1));
+                            done = true;
+                            break;
+                        }
+
+                    }
+                    if (done)
+                        break;
+                }
+
+                final double qual = GenotypeLikelihoods.getQualFromLikelihoods(bestGTguess, likelihoods);
+                calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
+            } else {
+                final double qual = Genotype.NO_LOG10_PERROR;
+                calls.add(new Genotype(sample, NO_CALL_ALLELES, qual, null, g.getAttributes(), false));
             }
-
-            final double qual = GenotypeLikelihoods.getQualFromLikelihoods(bestGTguess, likelihoods);
-            //System.out.println(myAlleles.toString());
-            calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
         }
 
-        for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
-            if ( !genotype.hasLikelihoods() )
-                continue;
-            Genotype g = GLs.get(genotype.getSampleName());
-
-            double[] likelihoods = genotype.getLikelihoods().getAsVector();
-
-            if (MathUtils.sum(likelihoods) <= SUM_GL_THRESH_NOCALL)
-                continue; // regular likelihoods
-
-            ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-
-            double qual = Genotype.NO_LOG10_PERROR;
-            myAlleles.add(Allele.NO_CALL);
-            myAlleles.add(Allele.NO_CALL);
-            //System.out.println(myAlleles.toString());
-            calls.add(new Genotype(genotype.getSampleName(), myAlleles, qual, null, g.getAttributes(), false));
-        }
         return calls;
     }
 
