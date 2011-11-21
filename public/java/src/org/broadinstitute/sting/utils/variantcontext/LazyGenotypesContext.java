@@ -65,6 +65,8 @@ public class LazyGenotypesContext extends GenotypesContext {
      * to the LazyGenotypesContext holding encoded genotypes data
      */
     public interface LazyParser {
+        @Requires("data != null")
+        @Ensures("result != null")
         public LazyData parse(Object data);
     }
 
@@ -78,6 +80,9 @@ public class LazyGenotypesContext extends GenotypesContext {
         final Map<String, Integer> sampleNameToOffset;
         final List<String> sampleNamesInOrder;
 
+        @Requires({"genotypes != null", "sampleNamesInOrder != null", "sampleNameToOffset != null",
+            "sameSamples(genotypes, sampleNamesInOrder)",
+            "sameSamples(genotypes, sampleNameToOffset.keySet())"})
         public LazyData(final ArrayList<Genotype> genotypes,
                         final List<String> sampleNamesInOrder,
                         final Map<String, Integer> sampleNameToOffset) {

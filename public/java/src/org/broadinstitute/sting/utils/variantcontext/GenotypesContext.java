@@ -604,7 +604,7 @@ public class GenotypesContext implements List<Genotype> {
         }
     }
 
-    private final static boolean sameSamples(List<Genotype> genotypes, Collection<String> sampleNamesInOrder) {
+    protected final static boolean sameSamples(List<Genotype> genotypes, Collection<String> sampleNamesInOrder) {
         Set<String> names = new HashSet<String>(sampleNamesInOrder);
         if ( names.size() != sampleNamesInOrder.size() )
             return false;
