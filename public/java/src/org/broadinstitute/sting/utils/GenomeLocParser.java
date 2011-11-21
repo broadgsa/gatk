@@ -87,12 +87,12 @@ public class GenomeLocParser {
 
         @Requires("contig != null")
         public synchronized boolean hasContig(final String contig) {
-            return lastContig == contig || dict.getSequence(contig) != null;
+            return contig.equals(lastContig) || dict.getSequence(contig) != null;
         }
 
         @Requires("index >= 0")
         public synchronized boolean hasContig(final int index) {
-            return lastIndex == index|| dict.getSequence(index) != null;
+            return lastIndex == index || dict.getSequence(index) != null;
         }
 
         @Requires("contig != null")
