@@ -45,7 +45,7 @@ import java.util.*;
  *
  * The IntervalBinding<T> is a formal GATK argument that bridges between a walker and
  * the engine to construct intervals for traversal at runtime.  The IntervalBinding can
- * either be a RodBinding<T>, a string of one or more intervals, or a file with interval strings.
+ * either be a RodBinding<T>, a string of one interval, or a file with interval strings.
  * The GATK Engine takes care of initializing the binding when appropriate and determining intervals from it.
  *
  * Note that this class is immutable.
