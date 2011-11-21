@@ -178,8 +178,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         // ignore places where we don't have a variant
         if ( beagleR2Feature == null || beagleProbsFeature == null ||  beaglePhasedFeature == null)
         {
-           vcfWriter.add(vc_input);
-           return 1;
+            vcfWriter.add(vc_input);
+            return 1;
         }
 
 
@@ -249,9 +249,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             Allele bglAlleleA, bglAlleleB;
 
             if (alleleA.matches(refString))
-               bglAlleleA = Allele.create(alleleA,true);
+                bglAlleleA = Allele.create(alleleA,true);
             else
-               bglAlleleA = Allele.create(alleleA,false);
+                bglAlleleA = Allele.create(alleleA,false);
 
             if (alleleB.matches(refString))
                 bglAlleleB = Allele.create(alleleB,true);
@@ -280,7 +280,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             // deal with numerical errors coming from limited formatting value on Beagle output files
             if (probWrongGenotype > 1 - MIN_PROB_ERROR)
                 probWrongGenotype = 1 - MIN_PROB_ERROR;
-            
+
             if (1-probWrongGenotype < noCallThreshold) {
                 // quality is bad: don't call genotype
                 alleles.clear();

@@ -177,4 +177,11 @@ public class LazyGenotypesContext extends GenotypesContext {
     public Object getUnparsedGenotypeData() {
         return unparsedGenotypeData;
     }
+
+    /**
+     * Force us to decode the genotypes
+     */
+    public void decode() {
+        buildCache();
+    }
 }

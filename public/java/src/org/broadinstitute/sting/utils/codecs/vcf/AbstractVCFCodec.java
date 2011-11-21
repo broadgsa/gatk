@@ -321,6 +321,11 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             final LazyGenotypesContext.LazyParser lazyParser = new LazyVCFGenotypesParser(alleles, chr, pos);
             final int nGenotypes = header.getGenotypeSamples().size();
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, parts[8], nGenotypes);
+
+            // did we resort the sample names?  If so, we need to load the genotype data
+            if ( !header.samplesWereAlreadySorted() )
+                lazy.decode();
+
             builder.genotypesNoValidation(lazy);
         }
 
@@ -332,9 +337,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             generateException(e.getMessage());
         }
 
-        // did we resort the sample names?  If so, we need to load the genotype data
-        if ( !header.samplesWereAlreadySorted() )
-            vc.getGenotypes();
 
         return vc;
     }
