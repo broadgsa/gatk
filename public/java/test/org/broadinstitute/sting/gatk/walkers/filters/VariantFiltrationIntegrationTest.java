@@ -14,12 +14,9 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
 
     @Test
     public void testNoAction() {
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("b7b7c218e219cd923ce5b6eefc5b7171"));
+                Arrays.asList("8a105fa5eebdfffe7326bc5b3d8ffd1c"));
         executeTest("test no action", spec);
     }
 
@@ -27,73 +24,55 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testClusteredSnps() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -window 10 --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("6d45a19e4066e7de6ff6a61f43ffad2b"));
+                Arrays.asList("27b13f179bb4920615dff3a32730d845"));
         executeTest("test clustered SNPs", spec);
     }
 
     @Test
     public void testMask1() {
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo --mask:VCF3 " + validationDataLocation + "vcfexample2.vcf --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("65b5006bf3ee9d9d08a36d6b854773f2"));
+                Arrays.asList("578f9e774784c25871678e6464fd212b"));
         executeTest("test mask all", spec1);
     }
 
     @Test
     public void testMask2() {
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo --mask:VCF " + validationDataLocation + "vcfMask.vcf --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("a275d36baca81a1ce03dbb528e95a069"));
+                Arrays.asList("bfa86a674aefca1b13d341cb14ab3c4f"));
         executeTest("test mask some", spec2);
     }
 
     @Test
     public void testMask3() {
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
         WalkerTestSpec spec3 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo -maskExtend 10 --mask:VCF " + validationDataLocation + "vcfMask.vcf --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("c9489e1c1342817c36ab4f0770609bdb"));
+                Arrays.asList("5939f80d14b32d88587373532d7b90e5"));
         executeTest("test mask extend", spec3);
     }
 
     @Test
     public void testFilter1() {
         WalkerTestSpec spec = new WalkerTestSpec(
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
                 baseTestString() + " -filter 'DoC < 20 || FisherStrand > 20.0' -filterName foo --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("327a611bf82c6c4ae77fbb6d06359f9d"));
+                Arrays.asList("45219dbcfb6f81bba2ea0c35f5bfd368"));
         executeTest("test filter #1", spec);
     }
 
     @Test
     public void testFilter2() {
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -filter 'AlleleBalance < 70.0 && FisherStrand == 1.4' -filterName bar --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("7612b3460575402ad78fa4173178bdcc"));
+                Arrays.asList("c95845e817da7352b9b72bc9794f18fb"));
         executeTest("test filter #2", spec);
     }
 
     @Test
     public void testFilterWithSeparateNames() {
-        // note that this input if slightly malformed, but with the new properly
-        // only when really needed genotype loading of VCF files we don't actually
-        // fix the file in the output
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --filterName ABF -filter 'AlleleBalance < 0.7' --filterName FSF -filter 'FisherStrand == 1.4' --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("dce33441f58b284ac9ab94f8e64b84e3"));
+                Arrays.asList("b8cdd7f44ff1a395e0a9b06a87e1e530"));
         executeTest("test filter with separate names #2", spec);
     }
 

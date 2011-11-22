@@ -398,15 +398,15 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
             if ( !genotype.hasLikelihoods() )
                 continue;
-            Genotype g = GLs.get(genotype.getSampleName());
 
-            double[] likelihoods = genotype.getLikelihoods().getAsVector();
+            final Genotype g = GLs.get(genotype.getSampleName());
+            final double[] likelihoods = genotype.getLikelihoods().getAsVector();
 
             if (MathUtils.sum(likelihoods) <= SUM_GL_THRESH_NOCALL)
                 continue; // regular likelihoods
 
             final double qual = Genotype.NO_LOG10_PERROR;
-            calls.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, qual, null, g.getAttributes(), false));
+            calls.replace(new Genotype(g.getSampleName(), NO_CALL_ALLELES, qual, null, g.getAttributes(), false));
         }
 
         return calls;
