@@ -392,7 +392,7 @@ public abstract class CommandLineProgram {
     /**
      * used to indicate an error occured
      *
-     * @param e the exception occured
+     * @param t the exception that occurred
      */
     public static void exitSystemWithError(Throwable t) {
         exitSystemWithError(t.getMessage(), t);
