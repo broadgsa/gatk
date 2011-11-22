@@ -555,41 +555,48 @@ public class PairHMMIndelErrorModel {
                         // cut haplotype bases
                         long indStart = start - haplotype.getStartPosition();
                         long indStop =  stop - haplotype.getStartPosition();
-
-                        final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
-                                (int)indStart, (int)indStop);
-
                         double readLikelihood;
-                        if (matchMetricArray == null) {
-                            final int X_METRIC_LENGTH = readBases.length+1;
-                            final int Y_METRIC_LENGTH = haplotypeBases.length+1;
 
-                            matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-                            XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-                            YMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-                        }
-                        final double[] currentContextGOP = Arrays.copyOfRange(gapOpenProbabilityMap.get(a), (int)indStart, (int)indStop);
-                        final double[] currentContextGCP = Arrays.copyOfRange(gapContProbabilityMap.get(a), (int)indStart, (int)indStop);
-                        if (previousHaplotypeSeen == null)
-                            startIdx = 0;
-                        else {
-                            final int s1 = computeFirstDifferingPosition(haplotypeBases, previousHaplotypeSeen);
-                            final int s2 = computeFirstDifferingPosition(currentContextGOP, previousGOP);
-                            final int s3 = computeFirstDifferingPosition(currentContextGCP, previousGCP);
-                            startIdx = Math.min(Math.min(s1, s2), s3);
-                        }
-                        previousHaplotypeSeen = haplotypeBases.clone();
-                        previousGOP = currentContextGOP.clone();
-                        previousGCP = currentContextGCP.clone();
+                        if (indStart < 0 || indStop >= haplotype.getBasesAsBytes().length) {
+                            // read spanned more than allowed reference context: we currently can't deal with this
+                            readLikelihood =0;
+                        } else
+                        {
+                            final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
+                                    (int)indStart, (int)indStop);
+
+                            if (matchMetricArray == null) {
+                                final int X_METRIC_LENGTH = readBases.length+1;
+                                final int Y_METRIC_LENGTH = haplotypeBases.length+1;
+
+                                matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+                                XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+                                YMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+                            }
+                            final double[] currentContextGOP = Arrays.copyOfRange(gapOpenProbabilityMap.get(a), (int)indStart, (int)indStop);
+                            final double[] currentContextGCP = Arrays.copyOfRange(gapContProbabilityMap.get(a), (int)indStart, (int)indStop);
+                            if (previousHaplotypeSeen == null)
+                                startIdx = 0;
+                            else {
+                                final int s1 = computeFirstDifferingPosition(haplotypeBases, previousHaplotypeSeen);
+                                final int s2 = computeFirstDifferingPosition(currentContextGOP, previousGOP);
+                                final int s3 = computeFirstDifferingPosition(currentContextGCP, previousGCP);
+                                startIdx = Math.min(Math.min(s1, s2), s3);
+                            }
+                            previousHaplotypeSeen = haplotypeBases.clone();
+                            previousGOP = currentContextGOP.clone();
+                            previousGCP = currentContextGCP.clone();
 
 
-                        readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals,
-                                currentContextGOP, currentContextGCP, startIdx, matchMetricArray, XMetricArray, YMetricArray);
-                        if (DEBUG) {
-                            System.out.println("H:"+new String(haplotypeBases));
-                            System.out.println("R:"+new String(readBases));
-                            System.out.format("L:%4.2f\n",readLikelihood);
-                            System.out.format("StPos:%d\n", startIdx);
+                            readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals,
+                                    currentContextGOP, currentContextGCP, startIdx, matchMetricArray, XMetricArray, YMetricArray);
+
+                            if (DEBUG) {
+                                System.out.println("H:"+new String(haplotypeBases));
+                                System.out.println("R:"+new String(readBases));
+                                System.out.format("L:%4.2f\n",readLikelihood);
+                                System.out.format("StPos:%d\n", startIdx);
+                            }
                         }
                         readEl.put(a,readLikelihood);
                         readLikelihoods[readIdx][j++] = readLikelihood;
