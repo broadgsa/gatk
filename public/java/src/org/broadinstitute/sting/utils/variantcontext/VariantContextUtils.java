@@ -965,7 +965,7 @@ public class VariantContextUtils {
     private static void mergeGenotypes(GenotypesContext mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
         for ( Genotype g : oneVC.getGenotypes() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
-            if ( mergedGenotypes.containsSample(name) ) {
+            if ( ! mergedGenotypes.containsSample(name) ) {
                 // only add if the name is new
                 Genotype newG = g;
 
