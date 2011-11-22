@@ -81,8 +81,8 @@ public class LazyGenotypesContext extends GenotypesContext {
         final List<String> sampleNamesInOrder;
 
         @Requires({"genotypes != null", "sampleNamesInOrder != null", "sampleNameToOffset != null",
-            "sameSamples(genotypes, sampleNamesInOrder)",
-            "sameSamples(genotypes, sampleNameToOffset.keySet())"})
+                "sameSamples(genotypes, sampleNamesInOrder)",
+                "sameSamples(genotypes, sampleNameToOffset.keySet())"})
         public LazyData(final ArrayList<Genotype> genotypes,
                         final List<String> sampleNamesInOrder,
                         final Map<String, Integer> sampleNameToOffset) {
@@ -119,13 +119,20 @@ public class LazyGenotypesContext extends GenotypesContext {
     @Override
     @Ensures("result != null")
     protected ArrayList<Genotype> getGenotypes() {
+        decode();
+        return notToBeDirectlyAccessedGenotypes;
+    }
+
+    /**
+     * Force us to decode the genotypes, if not already done
+     */
+    public void decode() {
         if ( ! loaded ) {
             //System.out.printf("Loading genotypes... %s:%d%n", contig, start);
             LazyData parsed = parser.parse(unparsedGenotypeData);
             notToBeDirectlyAccessedGenotypes = parsed.genotypes;
             sampleNamesInOrder = parsed.sampleNamesInOrder;
             sampleNameToOffset = parsed.sampleNameToOffset;
-            cacheIsInvalid = false;      // these values build the cache
             loaded = true;
             unparsedGenotypeData = null; // don't hold the unparsed data any longer
 
@@ -133,31 +140,43 @@ public class LazyGenotypesContext extends GenotypesContext {
             // That said, it's not such an important routine -- it's just checking that the genotypes
             // are well formed w.r.t. the alleles list, but this will be enforced within the VCFCodec
         }
-
-        return notToBeDirectlyAccessedGenotypes;
     }
 
     /**
-     * Overrides the buildCache functionality.  If the data hasn't been loaded
+     * Overrides the ensure* functionality.  If the data hasn't been loaded
      * yet and we want to build the cache, just decode it and we're done.  If we've
      * already decoded the data, though, go through the super class
      */
     @Override
-    protected synchronized void buildCache() {
-        if ( cacheIsInvalid ) {
-            if ( ! loaded ) {
-                getGenotypes(); // will load up all of the necessary data
-            } else {
-                super.buildCache();
-            }
+    protected synchronized void ensureSampleNameMap() {
+        if ( ! loaded ) {
+            decode(); // will load up all of the necessary data
+        } else {
+            super.ensureSampleNameMap();
         }
     }
 
     @Override
-    protected void invalidateCaches() {
+    protected synchronized void ensureSampleOrdering() {
+        if ( ! loaded ) {
+            decode(); // will load up all of the necessary data
+        } else {
+            super.ensureSampleOrdering();
+        }
+    }
+
+    @Override
+    protected void invalidateSampleNameMap() {
         // if the cache is invalidated, and we haven't loaded our data yet, do so
-        if ( ! loaded ) getGenotypes();
-        super.invalidateCaches();
+        if ( ! loaded ) decode();
+        super.invalidateSampleNameMap();
+    }
+
+    @Override
+    protected void invalidateSampleOrdering() {
+        // if the cache is invalidated, and we haven't loaded our data yet, do so
+        if ( ! loaded ) decode();
+        super.invalidateSampleOrdering();
     }
 
     @Override
@@ -176,12 +195,5 @@ public class LazyGenotypesContext extends GenotypesContext {
 
     public Object getUnparsedGenotypeData() {
         return unparsedGenotypeData;
-    }
-
-    /**
-     * Force us to decode the genotypes
-     */
-    public void decode() {
-        buildCache();
     }
 }

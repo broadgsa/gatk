@@ -52,9 +52,6 @@ public class GenotypesContext implements List<Genotype> {
      */
     Map<String, Integer> sampleNameToOffset = null;
 
-    /** if true, then we need to reinitialize sampleNamesInOrder and sampleNameToOffset before we use them /*/
-    boolean cacheIsInvalid = true;
-
     /**
      * An ArrayList of genotypes contained in this context
      *
@@ -95,7 +92,6 @@ public class GenotypesContext implements List<Genotype> {
     protected GenotypesContext(final ArrayList<Genotype> genotypes) {
         this.notToBeDirectlyAccessedGenotypes = genotypes;
         this.sampleNameToOffset = null;
-        this.cacheIsInvalid = true;
     }
 
     /**
@@ -120,7 +116,6 @@ public class GenotypesContext implements List<Genotype> {
         this.notToBeDirectlyAccessedGenotypes = genotypes;
         this.sampleNameToOffset = sampleNameToOffset;
         this.sampleNamesInOrder = sampleNamesInOrder;
-        this.cacheIsInvalid = false;
     }
 
     // ---------------------------------------------------------------------------
@@ -246,33 +241,46 @@ public class GenotypesContext implements List<Genotype> {
     //
     // ---------------------------------------------------------------------------
 
-    @Ensures({"cacheIsInvalid == true"})
-    protected void invalidateCaches() {
-        cacheIsInvalid = true;
-        sampleNamesInOrder = null;
+    @Ensures({"sampleNameToOffset == null"})
+    protected void invalidateSampleNameMap() {
         sampleNameToOffset = null;
     }
 
-    @Ensures({"cacheIsInvalid == false",
-            "sampleNamesInOrder != null",
-            "sampleNameToOffset != null",
-            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNamesInOrder)",
-            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNameToOffset.keySet())"})
-    protected void buildCache() {
-        if ( cacheIsInvalid ) {
-            cacheIsInvalid = false;
+    @Ensures({"sampleNamesInOrder == null"})
+    protected void invalidateSampleOrdering() {
+        sampleNamesInOrder = null;
+    }
+
+    @Ensures({"sampleNamesInOrder != null",
+            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNamesInOrder)"})
+    protected void ensureSampleOrdering() {
+        if ( sampleNamesInOrder == null ) {
             sampleNamesInOrder = new ArrayList<String>(size());
-            sampleNameToOffset = new HashMap<String, Integer>(size());
 
             for ( int i = 0; i < size(); i++ ) {
-                final Genotype g = getGenotypes().get(i);
-                sampleNamesInOrder.add(g.getSampleName());
-                sampleNameToOffset.put(g.getSampleName(), i);
+                sampleNamesInOrder.add(getGenotypes().get(i).getSampleName());
             }
             Collections.sort(sampleNamesInOrder);
         }
     }
 
+    @Ensures({"sampleNameToOffset != null",
+            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNameToOffset.keySet())"})
+    protected void ensureSampleNameMap() {
+        if ( sampleNameToOffset == null ) {
+            sampleNameToOffset = new HashMap<String, Integer>(size());
+
+            for ( int i = 0; i < size(); i++ ) {
+                sampleNameToOffset.put(getGenotypes().get(i).getSampleName(), i);
+            }
+        }
+    }
+
+    // for testing purposes
+    protected void ensureAll() {
+        ensureSampleNameMap();
+        ensureSampleOrdering();
+    }
 
     // ---------------------------------------------------------------------------
     //
@@ -287,7 +295,8 @@ public class GenotypesContext implements List<Genotype> {
     @Override
     public void clear() {
         checkImmutability();
-        invalidateCaches();
+        invalidateSampleNameMap();
+        invalidateSampleOrdering();
         getGenotypes().clear();
     }
 
@@ -301,21 +310,43 @@ public class GenotypesContext implements List<Genotype> {
         return getGenotypes().isEmpty();
     }
 
+    /**
+     * Adds a single genotype to this context.
+     *
+     * There are many constraints on this input, and important
+     * impacts on the performance of other functions provided by this
+     * context.
+     *
+     * First, the sample name of genotype must be unique within this
+     * context.  However, this is not enforced in the code itself, through
+     * you will invalid the contract on this context if you add duplicate
+     * samples and are running with CoFoJa enabled.
+     *
+     * Second, adding genotype also updates the sample name -> index map,
+     * so add() followed by containsSample and related function is an efficient
+     * series of operations.
+     *
+     * Third, adding the genotype invalidates the sorted list of sample names, to
+     * add() followed by any of the SampleNamesInOrder operations is inefficient, as
+     * each SampleNamesInOrder must rebuild the sorted list of sample names at
+     * an O(n log n) cost.
+     *
+     * @param genotype
+     * @return
+     */
     @Override
     @Requires({"genotype != null", "get(genotype.getSampleName()) == null"})
     @Ensures("noDups(getGenotypes())")
     public boolean add(final Genotype genotype) {
         checkImmutability();
-        invalidateCaches();
-        return getGenotypes().add(genotype);
-    }
+        invalidateSampleOrdering();
 
-    @Requires({"genotype != null", "! containsAny(Arrays.asList(genotype))"})
-    @Ensures("noDups(getGenotypes())")
-    public boolean add(final Genotype ... genotype) {
-        checkImmutability();
-        invalidateCaches();
-        return getGenotypes().addAll(Arrays.asList(genotype));
+        if ( sampleNameToOffset != null ) {
+            // update the name map by adding entries
+            sampleNameToOffset.put(genotype.getSampleName(), size());
+        }
+
+        return getGenotypes().add(genotype);
     }
 
     @Override
@@ -325,12 +356,30 @@ public class GenotypesContext implements List<Genotype> {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Adds all of the genotypes to this context
+     *
+     * See {@link #add(Genotype)} for important information about this functions
+     * constraints and performance costs
+     *
+     * @param genotypes
+     * @return
+     */
     @Override
     @Requires("! containsAny(genotypes)")
     @Ensures("noDups(getGenotypes())")
     public boolean addAll(final Collection<? extends Genotype> genotypes) {
         checkImmutability();
-        invalidateCaches();
+        invalidateSampleOrdering();
+
+        if ( sampleNameToOffset != null ) {
+            // update the name map by adding entries
+            int pos = size();
+            for ( final Genotype g : genotypes ) {
+                sampleNameToOffset.put(g.getSampleName(), pos++);
+            }
+        }
+
         return getGenotypes().addAll(genotypes);
     }
 
@@ -362,13 +411,12 @@ public class GenotypesContext implements List<Genotype> {
     }
 
     public Genotype get(final String sampleName) {
-        buildCache();
         Integer offset = getSampleI(sampleName);
         return offset == null ? null : getGenotypes().get(offset);
     }
 
     private Integer getSampleI(final String sampleName) {
-        buildCache();
+        ensureSampleNameMap();
         return sampleNameToOffset.get(sampleName);
     }
 
@@ -401,31 +449,58 @@ public class GenotypesContext implements List<Genotype> {
 //        return genotypes.listIterator(i);
     }
 
+    /**
+     * Note that remove requires us to invalidate our sample -> index
+     * cache.  The loop:
+     *
+     * GenotypesContext gc = ...
+     * for ( sample in samples )
+     *   if ( gc.containsSample(sample) )
+     *     gc.remove(sample)
+     *
+     * is extremely inefficient, as each call to remove invalidates the cache
+     * and containsSample requires us to rebuild it, an O(n) operation.
+     *
+     * If you must remove many samples from the GC, use either removeAll or retainAll
+     * to avoid this O(n * m) operation.
+     *
+     * @param i
+     * @return
+     */
     @Override
     public Genotype remove(final int i) {
         checkImmutability();
-        invalidateCaches();
+        invalidateSampleNameMap();
+        invalidateSampleOrdering();
         return getGenotypes().remove(i);
     }
 
+    /**
+     * See for important warning {@link this.remove(Integer)}
+     * @param o
+     * @return
+     */
     @Override
     public boolean remove(final Object o) {
         checkImmutability();
-        invalidateCaches();
+        invalidateSampleNameMap();
+        invalidateSampleOrdering();
         return getGenotypes().remove(o);
     }
 
     @Override
     public boolean removeAll(final Collection<?> objects) {
         checkImmutability();
-        invalidateCaches();
+        invalidateSampleNameMap();
+        invalidateSampleOrdering();
         return getGenotypes().removeAll(objects);
     }
 
     @Override
     public boolean retainAll(final Collection<?> objects) {
         checkImmutability();
-        invalidateCaches();
+        invalidateSampleNameMap();
+        invalidateSampleOrdering();
         return getGenotypes().retainAll(objects);
     }
 
@@ -433,14 +508,28 @@ public class GenotypesContext implements List<Genotype> {
     @Ensures("noDups(getGenotypes())")
     public Genotype set(final int i, final Genotype genotype) {
         checkImmutability();
-        invalidateCaches();
-        return getGenotypes().set(i, genotype);
+        final Genotype prev = getGenotypes().set(i, genotype);
+
+        invalidateSampleOrdering();
+        if ( sampleNameToOffset != null ) {
+            // update the name map by removing the old entry and replacing it with the new one
+            sampleNameToOffset.remove(prev.getSampleName());
+            sampleNameToOffset.put(genotype.getSampleName(), i);
+        }
+
+        return prev;
     }
 
     /**
      * Replaces the genotype in this context -- note for efficiency
      * reasons we do not add the genotype if it's not present.  The
      * return value will be null indicating this happened.
+     *
+     * Note this operation is preserves the map cache Sample -> Offset but
+     * invalidates the sorted list of samples.  Using replace within a loop
+     * containing any of the SampleNameInOrder operation requires an O(n log n)
+     * resorting after each replace operation.
+     *
      * @param genotype a non null genotype to bind in this context
      * @return null if genotype was not added, otherwise returns the previous genotype
      */
@@ -451,7 +540,7 @@ public class GenotypesContext implements List<Genotype> {
         if ( offset == null )
             return null;
         else
-            return getGenotypes().set(offset, genotype);
+            return set(offset, genotype);
     }
 
     @Override
@@ -523,7 +612,7 @@ public class GenotypesContext implements List<Genotype> {
      */
     @Ensures("result != null")
     public Set<String> getSampleNames() {
-        buildCache();
+        ensureSampleNameMap();
         return sampleNameToOffset.keySet();
     }
 
@@ -532,19 +621,18 @@ public class GenotypesContext implements List<Genotype> {
      */
     @Ensures("result != null")
     public List<String> getSampleNamesOrderedByName() {
-        buildCache();
+        ensureSampleOrdering();
         return sampleNamesInOrder;
     }
 
     @Requires("sample != null")
     public boolean containsSample(final String sample) {
-        buildCache();
+        ensureSampleNameMap();
         return sampleNameToOffset.containsKey(sample);
     }
 
     @Requires("samples != null")
     public boolean containsSamples(final Collection<String> samples) {
-        buildCache();
         return getSampleNames().containsAll(samples);
     }
 

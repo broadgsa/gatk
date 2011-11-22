@@ -88,7 +88,8 @@ public class GenotypesContextUnitTest extends BaseTest {
         @Override
         public LazyGenotypesContext.LazyData parse(final Object data) {
             GenotypesContext gc = GenotypesContext.copy((List<Genotype>)data);
-            gc.buildCache();
+            gc.ensureSampleNameMap();
+            gc.ensureSampleOrdering();
             return new LazyGenotypesContext.LazyData(gc.notToBeDirectlyAccessedGenotypes, gc.sampleNamesInOrder, gc.sampleNameToOffset);
         }
 
@@ -232,10 +233,6 @@ public class GenotypesContextUnitTest extends BaseTest {
         gc = cfg.makeContext();
         gc.add(add1);
         gc.add(add2);
-        testGenotypesContextContainsExpectedSamples(gc, with(cfg.initialSamples, add1, add2));
-
-        gc = cfg.makeContext();
-        gc.add(add1, add2);
         testGenotypesContextContainsExpectedSamples(gc, with(cfg.initialSamples, add1, add2));
 
         gc = cfg.makeContext();
