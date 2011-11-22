@@ -3,7 +3,10 @@ package org.broadinstitute.sting.utils.interval;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.SAMFileHeader;
 import org.apache.commons.io.FileUtils;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.commandline.IntervalBinding;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.testng.Assert;
@@ -982,5 +985,15 @@ public class IntervalUtilsUnitTest extends BaseTest {
         String description = String.format("%n      name: %s%n  original: %s%n    actual: %s%n  expected: %s%n",
                 data.toString(), data.original, actual, data.expected);
         Assert.assertEquals(actual, data.expected, description);
+    }
+
+    @Test(expectedExceptions=UserException.BadArgumentValue.class)
+    public void testExceptionUponLegacyIntervalSyntax() throws Exception {
+        GenomeAnalysisEngine toolkit = new GenomeAnalysisEngine();
+        toolkit.setGenomeLocParser(new GenomeLocParser(new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference))));
+
+        // Attempting to use the legacy -L "interval1;interval2" syntax should produce an exception:
+        IntervalBinding<Feature> binding = new IntervalBinding<Feature>("1;2");
+        List<GenomeLoc> intervals = binding.getIntervals(toolkit);
     }
 }
