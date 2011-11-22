@@ -86,6 +86,7 @@ public class VariantContextUtils {
                 for ( Allele allele : vc.getAlternateAlleles() ) {
                     int altChromosomes = vc.getCalledChrCount(allele);
                     alleleCounts.add(altChromosomes);
+                    // todo -- this is a performance problem
                     String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
                     alleleFreqs.add(freq);
                 }

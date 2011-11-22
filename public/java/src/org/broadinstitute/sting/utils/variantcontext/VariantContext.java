@@ -726,19 +726,21 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @throws IllegalArgumentException if sampleName isn't bound to a genotype
      */
     public GenotypesContext getGenotypes(String sampleName) {
-        return getGenotypes(Arrays.asList(sampleName));
+        return getGenotypes(Collections.singleton(sampleName));
     }
 
     /**
      * Returns a map from sampleName -> Genotype for each sampleName in sampleNames.  Returns a map
      * for consistency with the multi-get function.
      *
+     * For testing convenience only
+     *
      * @param sampleNames a unique list of sample names
      * @return
      * @throws IllegalArgumentException if sampleName isn't bound to a genotype
      */
-    public GenotypesContext getGenotypes(Collection<String> sampleNames) {
-        return getGenotypes().subsetToSamples(sampleNames);
+    protected GenotypesContext getGenotypes(Collection<String> sampleNames) {
+        return getGenotypes().subsetToSamples(new HashSet<String>(sampleNames));
     }
 
     public GenotypesContext getGenotypes(Set<String> sampleNames) {

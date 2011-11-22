@@ -267,7 +267,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested sample
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
-        return getSubsetOfVariantContext(vc, new HashSet<String>(Arrays.asList(sampleName)));
+        return getSubsetOfVariantContext(vc, Collections.singleton(sampleName));
     }
 
     /**

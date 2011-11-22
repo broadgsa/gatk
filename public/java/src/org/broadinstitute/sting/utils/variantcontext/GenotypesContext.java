@@ -646,28 +646,18 @@ public class GenotypesContext implements List<Genotype> {
      */
     @Requires("samples != null")
     @Ensures("result != null")
-    public GenotypesContext subsetToSamples( final Collection<String> samples ) {
-        return subsetToSamples(new HashSet<String>(samples));
-    }
-
-    /**
-     * {@link #subsetToSamples(java.util.Collection)}
-     * @param samples
-     * @return
-     */
-    @Requires("samples != null")
-    @Ensures("result != null")
     public GenotypesContext subsetToSamples( final Set<String> samples ) {
-        if ( samples.size() == size() )
+        final int nSamples = samples.size();
+        final int nGenotypes = size();
+
+        if ( nSamples == nGenotypes )
             return this;
-        else if ( samples.isEmpty() )
+        else if ( nSamples == 0 )
             return NO_GENOTYPES;
-        else {
-            GenotypesContext subset = create(samples.size());
-            for ( final Genotype g : getGenotypes() ) {
-                if ( samples.contains(g.getSampleName()) ) {
-                    subset.add(g);
-                }
+        else { // nGenotypes < nSamples
+            final GenotypesContext subset = create(samples.size());
+            for ( final String sample : samples ) {
+                subset.add(get(sample));
             }
             return subset;
         }
