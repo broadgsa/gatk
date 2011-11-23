@@ -108,4 +108,8 @@ public final class IntervalBinding<T extends Feature> {
 
         return intervals;
     }
+
+    public String toString() {
+        return getSource();
+    }
 }
