@@ -312,16 +312,17 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
 
             //      --------- track ---------           sample  - VariantContexts -
-            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
-            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
 
             // for each eval track
             for ( final RodBinding<VariantContext> evalRod : evals ) {
-                final HashMap<String, Set<VariantContext>> evalSet = evalVCs.containsKey(evalRod) ? evalVCs.get(evalRod) : new HashMap<String, Set<VariantContext>>(0);
+                final Map<String, Collection<VariantContext>> emptyEvalMap = Collections.emptyMap();
+                final Map<String, Collection<VariantContext>> evalSet = evalVCs.containsKey(evalRod) ? evalVCs.get(evalRod) : emptyEvalMap;
 
                 // for each sample stratifier
                 for ( final String sampleName : sampleNamesForStratification ) {
-                    Set<VariantContext> evalSetBySample = evalSet.get(sampleName);
+                    Collection<VariantContext> evalSetBySample = evalSet.get(sampleName);
                     if ( evalSetBySample == null ) {
                         evalSetBySample = new HashSet<VariantContext>(1);
                         evalSetBySample.add(null);
@@ -337,8 +338,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         // for each comp track
                         for ( final RodBinding<VariantContext> compRod : comps ) {
                             // no sample stratification for comps
-                            final HashMap<String, Set<VariantContext>> compSetHash = compVCs.get(compRod);
-                            final Set<VariantContext> compSet = (compSetHash == null || compSetHash.size() == 0) ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
+                            final HashMap<String, Collection<VariantContext>> compSetHash = compVCs.get(compRod);
+                            final Collection<VariantContext> compSet = (compSetHash == null || compSetHash.size() == 0) ? Collections.<VariantContext>emptyList() : compVCs.get(compRod).values().iterator().next();
 
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
@@ -382,7 +383,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return null;
     }
 
-    private VariantContext findMatchingComp(final VariantContext eval, final Set<VariantContext> comps) {
+    private VariantContext findMatchingComp(final VariantContext eval, final Collection<VariantContext> comps) {
         // if no comps, return null
         if ( comps == null || comps.isEmpty() )
             return null;
@@ -447,11 +448,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             TableType t = (TableType) field.get(ve);
 
                             String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
-                            String subTableDesc = datamap.get(field).description();
+                            final DataPoint dataPointAnn = datamap.get(field);
 
                             GATKReportTable table;
                             if (!report.hasTable(subTableName)) {
-                                report.addTable(subTableName, subTableDesc);
+                                report.addTable(subTableName, dataPointAnn.description());
                                 table = report.getTable(subTableName);
 
                                 table.addPrimaryKey("entry", false);

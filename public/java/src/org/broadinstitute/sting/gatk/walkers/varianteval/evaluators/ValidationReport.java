@@ -30,10 +30,10 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "FN") int FN = 0;
     @DataPoint(description = "TN") int TN = 0;
 
-    @DataPoint(description = "Sensitivity") double sensitivity = 0;
-    @DataPoint(description = "Specificity") double specificity = 0;
-    @DataPoint(description = "PPV") double PPV = 0;
-    @DataPoint(description = "FDR") double FDR = 0;
+    @DataPoint(description = "Sensitivity", format = "%.2f") double sensitivity = 0;
+    @DataPoint(description = "Specificity", format = "%.2f") double specificity = 0;
+    @DataPoint(description = "PPV", format = "%.2f") double PPV = 0;
+    @DataPoint(description = "FDR", format = "%.2f") double FDR = 0;
 
     @DataPoint(description = "CompMonoEvalNoCall") int CompMonoEvalNoCall = 0;
     @DataPoint(description = "CompMonoEvalFiltered") int CompMonoEvalFiltered = 0;

@@ -62,17 +62,17 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nHomDerived = 0;
 
     // calculations that get set in the finalizeEvaluation method
-    @DataPoint(description = "heterozygosity per locus rate")
+    @DataPoint(description = "heterozygosity per locus rate", format = "%.2e")
     public double heterozygosity = 0;
-    @DataPoint(description = "heterozygosity per base pair")
+    @DataPoint(description = "heterozygosity per base pair", format = "%.2f")
     public double heterozygosityPerBp = 0;
-    @DataPoint(description = "heterozygosity to homozygosity ratio")
+    @DataPoint(description = "heterozygosity to homozygosity ratio", format = "%.2f")
     public double hetHomRatio = 0;
-    @DataPoint(description = "indel rate (insertion count + deletion count)")
+    @DataPoint(description = "indel rate (insertion count + deletion count)", format = "%.2e")
     public double indelRate = 0;
-    @DataPoint(description = "indel rate per base pair")
+    @DataPoint(description = "indel rate per base pair", format = "%.2f")
     public double indelRatePerBp = 0;
-    @DataPoint(description = "deletion to insertion ratio")
+    @DataPoint(description = "deletion to insertion ratio", format = "%.2f")
     public double deletionInsertionRatio = 0;
     
     private double perLocusRate(long n) {
