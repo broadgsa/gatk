@@ -556,8 +556,11 @@ public class PairHMMIndelErrorModel {
                         long indStart = start - haplotype.getStartPosition();
                         long indStop =  stop - haplotype.getStartPosition();
                         double readLikelihood;
+                        if (DEBUG)
+                            System.out.format("indStart: %d indStop: %d WinStart:%d WinStop:%d start: %d stop: %d readLength: %d C:%s\n",
+                                    indStart, indStop, ref.getWindow().getStart(), ref.getWindow().getStop(), start, stop, read.getReadLength(), read.getCigar().toString());
 
-                        if (indStart < 0 || indStop >= haplotype.getBasesAsBytes().length) {
+                        if (indStart < 0 || indStop >= haplotype.getBasesAsBytes().length || indStart > indStop) {
                             // read spanned more than allowed reference context: we currently can't deal with this
                             readLikelihood =0;
                         } else
