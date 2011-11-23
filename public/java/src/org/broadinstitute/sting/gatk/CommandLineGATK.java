@@ -106,7 +106,7 @@ public class CommandLineGATK extends CommandLineExecutable {
 
     private static void checkForTooManyOpenFilesProblem(String message) {
         // Special case the "Too many open files" error because it's a common User Error for which we know what to do
-        if ( message.indexOf("Too many open files") != -1 )
+        if ( message != null && message.indexOf("Too many open files") != -1 )
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
     }
 
