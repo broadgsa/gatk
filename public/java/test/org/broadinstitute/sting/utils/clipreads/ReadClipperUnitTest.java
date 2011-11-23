@@ -25,15 +25,16 @@
 
 package org.broadinstitute.sting.utils.clipreads;
 
-import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -44,7 +45,7 @@ import java.util.List;
  */
 public class ReadClipperUnitTest extends BaseTest {
 
-    // TODO: Add error messages on failed tests
+    // TODO: exception testing, make cases that should fail will fail
 
     //int debug = 0;
 
@@ -53,11 +54,25 @@ public class ReadClipperUnitTest extends BaseTest {
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?"; //ASCII values = 33,43,53,63
 
+    private void testBaseQualCigar(GATKSAMRecord read, byte[] readBases, byte[] baseQuals, String cigar) {
+        // Because quals to char start at 33 for visibility
+        baseQuals = subtractToArray(baseQuals, 33);
 
-    public void testIfEqual( GATKSAMRecord read, byte[] readBases, String baseQuals, String cigar) {
         Assert.assertEquals(read.getReadBases(), readBases);
-        Assert.assertEquals(read.getBaseQualityString(), baseQuals);
+        Assert.assertEquals(read.getBaseQualities(), baseQuals);
         Assert.assertEquals(read.getCigarString(), cigar);
+    }
+
+    private void testBaseQual(GATKSAMRecord read, byte[] readBases, byte[] baseQuals) {
+        // Because quals to chars start at 33 for visibility
+        baseQuals = subtractToArray(baseQuals, 33);
+
+        if ( readBases.length > 0 && baseQuals.length > 0 ) {
+            Assert.assertEquals(read.getReadBases(), readBases);
+            Assert.assertEquals(read.getBaseQualities(), baseQuals);
+        }
+        else
+            Assert.assertTrue(read.isEmpty());
     }
 
     public class testParameter {
@@ -74,6 +89,18 @@ public class ReadClipperUnitTest extends BaseTest {
             substringStop = SubstringStop;
             cigar = Cigar;
             }
+    }
+
+    private byte[] subtractToArray (byte[] array, int n ) {
+        if ( array == null)
+            return null;
+
+        byte[] output = new byte[array.length];
+
+        for ( int i = 0; i < array.length; i++)
+            output[i] = (byte) ( array[i] - n );
+
+        return output;
     }
 
     // What the test read looks like
@@ -127,10 +154,10 @@ public class ReadClipperUnitTest extends BaseTest {
         for ( testParameter p : testList ) {
             init();
             //logger.warn("Testing Parameters: " + p.inputStart+","+p.inputStop+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testIfEqual( readClipper.hardClipByReadCoordinates(p.inputStart, p.inputStop),
-                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
-                    QUALS.substring(p.substringStart,p.substringStop),
-                    p.cigar );
+            testBaseQualCigar(readClipper.hardClipByReadCoordinates(p.inputStart, p.inputStop),
+                    BASES.substring(p.substringStart, p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart, p.substringStop).getBytes(),
+                    p.cigar);
         }
 
     }
@@ -151,10 +178,10 @@ public class ReadClipperUnitTest extends BaseTest {
         for ( testParameter p : testList ) {
             init();
             //logger.warn("Testing Parameters: " + p.inputStart+","+p.inputStop+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testIfEqual( readClipper.hardClipByReferenceCoordinates(p.inputStart,p.inputStop),
-                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
-                    QUALS.substring(p.substringStart,p.substringStop),
-                    p.cigar );
+            testBaseQualCigar(readClipper.hardClipByReferenceCoordinates(p.inputStart, p.inputStop),
+                    BASES.substring(p.substringStart, p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart, p.substringStop).getBytes(),
+                    p.cigar);
         }
 
     }
@@ -174,10 +201,10 @@ public class ReadClipperUnitTest extends BaseTest {
         for ( testParameter p : testList ) {
             init();
             //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testIfEqual( readClipper.hardClipByReferenceCoordinatesLeftTail(p.inputStart),
-                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
-                    QUALS.substring(p.substringStart,p.substringStop),
-                    p.cigar );
+            testBaseQualCigar(readClipper.hardClipByReferenceCoordinatesLeftTail(p.inputStart),
+                    BASES.substring(p.substringStart, p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart, p.substringStop).getBytes(),
+                    p.cigar);
         }
 
     }
@@ -197,17 +224,17 @@ public class ReadClipperUnitTest extends BaseTest {
         for ( testParameter p : testList ) {
             init();
             //logger.warn("Testing Parameters: " + p.inputStop+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testIfEqual( readClipper.hardClipByReferenceCoordinatesRightTail(p.inputStop),
-                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
-                    QUALS.substring(p.substringStart,p.substringStop),
-                    p.cigar );
+            testBaseQualCigar(readClipper.hardClipByReferenceCoordinatesRightTail(p.inputStop),
+                    BASES.substring(p.substringStart, p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart, p.substringStop).getBytes(),
+                    p.cigar);
         }
 
     }
 
-    @Test ( enabled = true )  // TODO This function is returning null reads
+    @Test ( enabled = true )
     public void testHardClipLowQualEnds() {
-
+        // Needs a thorough redesign
         logger.warn("Executing testHardClipByReferenceCoordinates");
 
         //Clip whole read
@@ -220,10 +247,10 @@ public class ReadClipperUnitTest extends BaseTest {
         for ( testParameter p : testList ) {
             init();
             //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testIfEqual( readClipper.hardClipLowQualEnds( (byte)p.inputStart ),
-                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
-                    QUALS.substring(p.substringStart,p.substringStop),
-                    p.cigar );
+            testBaseQualCigar(readClipper.hardClipLowQualEnds((byte) p.inputStart),
+                    BASES.substring(p.substringStart, p.substringStop).getBytes(),
+                    QUALS.substring(p.substringStart, p.substringStop).getBytes(),
+                    p.cigar);
         }
      /*      todo find a better way to test lowqual tail clipping on both sides
         // Reverse Quals sequence
@@ -237,7 +264,7 @@ public class ReadClipperUnitTest extends BaseTest {
             init();
             readClipper.getRead().setBaseQualityString("?5+!"); // 63,53,43,33
             //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testIfEqual( readClipper.hardClipLowQualEnds( (byte)p.inputStart ),
+            testBaseQualCigar( readClipper.hardClipLowQualEnds( (byte)p.inputStart ),
                     BASES.substring(p.substringStart,p.substringStop).getBytes(),
                     QUALS.substring(p.substringStart,p.substringStop),
                     p.cigar );
@@ -245,15 +272,194 @@ public class ReadClipperUnitTest extends BaseTest {
         */
     }
 
-    public class CigarReadMaker  {
+  //  public class ReadMaker  {
+    //Should have functions that can
+    //    make basic read
+    // make reads by cigar,
+    // and by quals,
+    // package in a readclipper
+    // This has been already done in the current class
+    //    GATKSAMRecord read;
+    //    ReadClipper readClipper;
+
+    public String cycleString ( String string, int length ) {
+        String output = "";
+        int cycles = ( length / string.length() ) + 1;
+
+        for ( int i = 1; i < cycles; i++ )
+            output += string;
+
+        for ( int j = 0; output.length() < length; j++ )
+            output += string.charAt( j % string.length() );
+
+        return output;
 
     }
 
-    @Test ( enabled = false )
+    private void makeFromCigar( Cigar cigar ) {
+        readClipper = null;
+        read = null;
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
+        read = ArtificialSAMUtils.createArtificialRead(header, "read1", 0, 1, cigar.getReadLength());
+        read.setReadBases(cycleString(BASES, cigar.getReadLength()).getBytes());
+        read.setBaseQualityString( cycleString(QUALS, cigar.getReadLength() ));
+        read.setCigar(cigar);
+        readClipper = new ReadClipper(read);
+     }
+
+ //   }
+
+    private Set<Cigar> generateCigars() {
+
+        // This function generates every permutation of cigar strings we need.
+
+        LinkedHashSet<Cigar> output = new LinkedHashSet<Cigar>();
+
+        List<Cigar> clippingOptionsStart = new LinkedList<Cigar>();
+        clippingOptionsStart.add( new Cigar() );
+        clippingOptionsStart.add( TextCigarCodec.getSingleton().decode("1H1S") );
+        clippingOptionsStart.add( TextCigarCodec.getSingleton().decode("1S") );
+        clippingOptionsStart.add( TextCigarCodec.getSingleton().decode("1H") );
+
+        LinkedList<Cigar> clippingOptionsEnd = new LinkedList<Cigar>();
+        clippingOptionsEnd.add( new Cigar() );
+        clippingOptionsEnd.add( TextCigarCodec.getSingleton().decode("1S1H") );
+        clippingOptionsEnd.add( TextCigarCodec.getSingleton().decode("1S"));
+        clippingOptionsEnd.add( TextCigarCodec.getSingleton().decode("1H"));
+
+
+        LinkedList<Cigar> indelOptions = new LinkedList<Cigar>();
+        indelOptions.add( new Cigar() );
+        //indelOptions.add( TextCigarCodec.getSingleton().decode("1I1D"));
+        //indelOptions.add( TextCigarCodec.getSingleton().decode("1D1I") );
+        indelOptions.add( TextCigarCodec.getSingleton().decode("1I") );
+        indelOptions.add( TextCigarCodec.getSingleton().decode("1D") );
+
+        // Start With M as base CigarElements, M,
+
+        LinkedList<Cigar> base = new LinkedList<Cigar>();
+        base.add( TextCigarCodec.getSingleton().decode("1M"));
+        base.add( TextCigarCodec.getSingleton().decode("5M"));
+        base.add( TextCigarCodec.getSingleton().decode("25M"));
+        // Should indel be added as a base?
+
+        // Nested loops W00t!
+        for ( Cigar Base : base) {
+            for ( Cigar indelStart: indelOptions) {
+                for ( Cigar indelEnd: indelOptions) {
+                    for ( Cigar clipStart: clippingOptionsStart) {
+                        for ( Cigar clipEnd: clippingOptionsEnd) {
+                            // Create a list of Cigar Elements and construct Cigar
+                            List<CigarElement> CigarBuilder = new ArrayList<CigarElement>();
+                            CigarBuilder.addAll(Base.getCigarElements());
+                            CigarBuilder.addAll(indelStart.getCigarElements());
+                            CigarBuilder.addAll(Base.getCigarElements());
+                            CigarBuilder.addAll(indelEnd.getCigarElements());
+                            CigarBuilder.addAll(clipEnd.getCigarElements());
+                            //CigarBuilder.addAll(0, indelStart.getCigarElements());
+                            CigarBuilder.addAll(0, clipStart.getCigarElements());
+                            //System.out.println( new Cigar( removeConsecutiveElements(CigarBuilder) ).toString() );
+                            output.add( new Cigar( removeConsecutiveElements(CigarBuilder) ) );
+
+                        }
+                    }
+                }
+            }
+        }
+
+        return output;
+    }
+
+    private List<CigarElement> removeConsecutiveElements(List<CigarElement> cigarBuilder) {
+        LinkedList<CigarElement> output = new LinkedList<CigarElement>();
+        for ( CigarElement E: cigarBuilder ) {
+            if ( output.isEmpty() || output.getLast().getOperator() != E.getOperator())
+                output.add(E);
+        }
+        return output;
+    }
+
+    @Test ( enabled = true )
     public void testHardClipSoftClippedBases() {
 
         // Generate a list of cigars to test
+        for ( Cigar cigar: generateCigars() ) {
+            //logger.warn("Testing Cigar: "+cigar.toString());
+            makeFromCigar( cigar );
+
+
+            try {
+                readClipper.hardClipLeadingInsertions();
+            }
+            catch ( ReviewedStingException e ) {}
+
+
+            int clipStart = 0;
+            int clipEnd = 0;
+            boolean expectEmptyRead = false;
+
+            List<CigarElement> cigarElements = cigar.getCigarElements();
+            int CigarListLength = cigarElements.size();
+
+
+            // It will know what needs to be clipped based on the start and end of the string, hardclips and softclips
+            // are added to the amount to clip
+            if ( cigarElements.get(0).getOperator() == CigarOperator.HARD_CLIP ) {
+                //clipStart += cigarElements.get(0).getLength();
+                if ( cigarElements.get(1).getOperator() == CigarOperator.SOFT_CLIP ) {
+                    clipStart += cigarElements.get(1).getLength();
+                    // Check for leading indel
+                    if ( cigarElements.get(2).getOperator() == CigarOperator.INSERTION ) {
+                        expectEmptyRead = true;
+                    }
+                }
+                // Check for leading indel
+                else if ( cigarElements.get(1).getOperator() == CigarOperator.INSERTION ) {
+                    expectEmptyRead = true;
+                }
+            }
+            else if ( cigarElements.get(0).getOperator() == CigarOperator.SOFT_CLIP ) {
+                clipStart += cigarElements.get(0).getLength();
+                // Check for leading indel
+                if ( cigarElements.get(1).getOperator() == CigarOperator.INSERTION ) {
+                    expectEmptyRead = true;
+                }
+            }
+            //Check for leading indel
+            else if ( cigarElements.get(0).getOperator() == CigarOperator.INSERTION ) {
+                    expectEmptyRead = true;
+                }
+
+            if ( cigarElements.get(CigarListLength - 1).getOperator() == CigarOperator.HARD_CLIP ) {
+                //clipEnd += cigarElements.get(CigarListLength - 1).getLength();
+                if ( cigarElements.get(CigarListLength - 2).getOperator() == CigarOperator.SOFT_CLIP )
+                    clipEnd += cigarElements.get(CigarListLength - 2).getLength();
+            }
+            else if ( cigarElements.get(CigarListLength - 1).getOperator() == CigarOperator.SOFT_CLIP )
+                clipEnd += cigarElements.get(CigarListLength - 1).getLength();
+
+            String readBases = readClipper.read.getReadString();
+            String baseQuals = readClipper.read.getBaseQualityString();
+
+            // "*" is the default empty-sequence-string and for our test it needs to be changed to  ""
+            if (readBases.equals("*"))
+                readBases = "";
+            if (baseQuals.equals("*"))
+                baseQuals = "";
+
+            logger.warn(String.format("Testing cigar %s, expecting Base: %s and Qual: %s",
+                    cigar.toString(), readBases.substring( clipStart, readBases.length() - clipEnd ),
+                    baseQuals.substring( clipStart, baseQuals.length() - clipEnd ) ) );
+            //if (expectEmptyRead)
+            //    testBaseQual( readClipper.hardClipSoftClippedBases(), new byte[0], new byte[0] );
+            //else
+                testBaseQual(readClipper.hardClipSoftClippedBases(),
+                    readBases.substring( clipStart, readBases.length() - clipEnd ).getBytes(),
+                    baseQuals.substring( clipStart, baseQuals.length() - clipEnd ).getBytes());
+            logger.warn("Cigar: "+cigar.toString()+" PASSED!");
+        }
         // We will use testParameter in the following way
         // Right tail, left tail,
+
     }
 }
