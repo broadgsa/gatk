@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 
 
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
 
 import java.util.*;
 
@@ -38,6 +39,10 @@ public class VCFHeader {
     // were the input samples sorted originally (or are we sorting them)?
     private boolean samplesWereAlreadySorted = true;
 
+    // cache for efficient conversion of VCF -> VariantContext
+    protected ArrayList<String> sampleNamesInOrder = null;
+    protected HashMap<String, Integer> sampleNameToOffset = null;
+
 
     /**
      * create a VCF header, given a list of meta data and auxillary tags
@@ -68,6 +73,27 @@ public class VCFHeader {
 
         samplesWereAlreadySorted = ParsingUtils.isSorted(genotypeSampleNames);
     }
+
+    /**
+     * Tell this VCF header to use pre-calculated sample name ordering and the
+     * sample name -> offset map.  This assumes that all VariantContext created
+     * using this header (i.e., read by the VCFCodec) will have genotypes
+     * occurring in the same order
+     *
+     */
+
+    protected void buildVCFReaderMaps(List<String> genotypeSampleNamesInAppearenceOrder) {
+        sampleNamesInOrder = new ArrayList<String>(genotypeSampleNamesInAppearenceOrder.size());
+        sampleNameToOffset = new HashMap<String, Integer>(genotypeSampleNamesInAppearenceOrder.size());
+
+        int i = 0;
+        for ( final String name : genotypeSampleNamesInAppearenceOrder ) {
+            sampleNamesInOrder.add(name);
+            sampleNameToOffset.put(name, i++);
+        }
+        Collections.sort(sampleNamesInOrder);
+    }
+
 
     /**
      * Adds a header line to the header metadata.

@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.lang.reflect.Field;
@@ -266,7 +267,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested sample
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
-        return getSubsetOfVariantContext(vc, Arrays.asList(sampleName));
+        return getSubsetOfVariantContext(vc, Collections.singleton(sampleName));
     }
 
     /**
@@ -276,24 +277,19 @@ public class VariantEvalUtils {
      * @param sampleNames the samples to pull out of the VariantContext
      * @return a new VariantContext with just the requested samples
      */
-    public VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values(), vc.getAlleles());
+    public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
+        VariantContext vcsub = vc.subContextFromSamples(sampleNames, vc.getAlleles());
+        VariantContextBuilder builder = new VariantContextBuilder(vcsub);
 
-        HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());
-
-        int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
-        int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
+        final int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
+        final int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
 
         if (originalAlleleCount == newAlleleCount && newAlleleCount == 1) {
-            newAts.put("ISSINGLETON", true);
+            builder.attribute("ISSINGLETON", true);
         }
 
-        VariantContextUtils.calculateChromosomeCounts(vcsub, newAts, true);
-        vcsub = VariantContext.modifyAttributes(vcsub, newAts);
-
-        //VariantEvalWalker.logger.debug(String.format("VC %s subset to %s AC%n", vc.getSource(), vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
-
-        return vcsub;
+        VariantContextUtils.calculateChromosomeCounts(builder, true);
+        return builder.make();
     }
 
     /**

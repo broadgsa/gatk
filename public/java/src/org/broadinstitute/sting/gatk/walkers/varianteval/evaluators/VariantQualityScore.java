@@ -232,14 +232,14 @@ public class VariantQualityScore extends VariantEvaluator {
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         final String interesting = null;
 
-        if( eval != null && eval.isSNP() && eval.isBiallelic() && eval.isPolymorphic() ) { //BUGBUG: only counting biallelic sites (revisit what to do with triallelic sites)
+        if( eval != null && eval.isSNP() && eval.isBiallelic() && eval.isPolymorphicInSamples() ) { //BUGBUG: only counting biallelic sites (revisit what to do with triallelic sites)
             if( titvStats == null ) { titvStats = new TiTvStats(); }
             titvStats.incrValue(eval.getPhredScaledQual(), VariantContextUtils.isTransition(eval));
 
             if( alleleCountStats == null ) { alleleCountStats = new AlleleCountStats(); }
             int alternateAlleleCount = 0;
             for (final Allele a : eval.getAlternateAlleles()) {
-                alternateAlleleCount += eval.getChromosomeCount(a);
+                alternateAlleleCount += eval.getCalledChrCount(a);
             }
             alleleCountStats.incrValue(eval.getPhredScaledQual(), alternateAlleleCount);
         }

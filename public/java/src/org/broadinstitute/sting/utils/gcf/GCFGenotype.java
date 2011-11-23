@@ -84,14 +84,14 @@ public class GCFGenotype {
 
     public Genotype decode(final String sampleName, final GCFHeader header, GCF GCF, List<Allele> alleleIndex) {
         final List<Allele> alleles = decodeAlleles(gt, alleleIndex);
-        final double negLog10PError = gq / 10.0;
+        final double log10PError = gq / -10.0;
         final Set<String> filters = Collections.emptySet();
         final Map<String, Object> attributes = new HashMap<String, Object>();
         attributes.put("DP", dp);
         attributes.put("AD", ad);
         attributes.put("PL", pl);
 
-        return new Genotype(sampleName, alleles, negLog10PError, filters, attributes, false);
+        return new Genotype(sampleName, alleles, log10PError, filters, attributes, false);
     }
 
     private static int encodeAlleles(List<Allele> gtList, List<Allele> allAlleles) {

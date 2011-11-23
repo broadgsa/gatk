@@ -32,7 +32,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("9beb795536e95954f810835c6058f2ad"));
+                Arrays.asList("fbb656369eaa48153d127bd12db59d8f"));
         executeTest("test file has annotations, asking for annotations, #1", spec);
     }
 
@@ -54,6 +54,8 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testNoAnnotsNotAsking2() {
+        // this genotype annotations in this file are actually out of order.  If you don't parse the genotypes
+        // they don't get reordered.  It's a good test of the genotype ordering system.
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
                 Arrays.asList("f2ddfa8105c290b1f34b7a261a02a1ac"));
@@ -64,7 +66,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("49d989f467b8d6d8f98f7c1b67cd4a05"));
+                Arrays.asList("42dd979a0a931c18dc9be40308bac321"));
         executeTest("test file doesn't have annotations, asking for annotations, #1", spec);
     }
 
@@ -80,7 +82,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testExcludeAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard -XA FisherStrand -XA ReadPosRankSumTest --variant:VCF3 " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("33062eccd6eb73bc49440365430454c4"));
+                Arrays.asList("477eac07989593b58bb361f3429c085a"));
         executeTest("test exclude annotations", spec);
     }
 

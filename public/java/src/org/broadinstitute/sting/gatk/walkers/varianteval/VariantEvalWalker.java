@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
@@ -186,7 +187,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * File containing tribble-readable features for the IntervalStratificiation
      */
     @Input(fullName="stratIntervals", shortName="stratIntervals", doc="File containing tribble-readable features for the IntervalStratificiation", required=false)
-    protected IntervalBinding<Feature> intervalsFile = null;
+    public IntervalBinding<Feature> intervalsFile = null;
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
@@ -330,9 +331,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     for ( VariantContext eval : evalSetBySample ) {
                         // deal with ancestral alleles if requested
                         if ( eval != null && aastr != null ) {
-                            HashMap<String, Object> newAts = new HashMap<String, Object>(eval.getAttributes());
-                            newAts.put("ANCESTRALALLELE", aastr);
-                            eval = VariantContext.modifyAttributes(eval, newAts);
+                            eval = new VariantContextBuilder(eval).attribute("ANCESTRALALLELE", aastr).make();
                         }
 
                         // for each comp track

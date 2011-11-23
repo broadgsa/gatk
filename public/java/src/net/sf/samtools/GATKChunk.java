@@ -69,6 +69,22 @@ public class GATKChunk extends Chunk {
         super.setChunkEnd(value);
     }
 
+    public long getBlockStart() {
+        return getChunkStart() >>> 16;
+    }
+
+    public int getBlockOffsetStart() {
+        return (int)(getChunkStart() & 0xFFFF);
+    }
+
+    public long getBlockEnd() {
+        return getChunkEnd() >>> 16;
+    }
+
+    public int getBlockOffsetEnd() {
+        return ((int)getChunkEnd() & 0xFFFF);
+    }
+
     /**
      * Computes an approximation of the uncompressed size of the
      * chunk, in bytes.  Can be used to determine relative weights

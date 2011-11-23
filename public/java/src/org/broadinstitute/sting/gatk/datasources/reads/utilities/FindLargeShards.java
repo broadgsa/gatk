@@ -30,10 +30,12 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.datasources.reads.BAMScheduler;
 import org.broadinstitute.sting.gatk.datasources.reads.FilePointer;
-import org.broadinstitute.sting.gatk.datasources.reads.LowMemoryIntervalSharder;
+import org.broadinstitute.sting.gatk.datasources.reads.IntervalSharder;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
@@ -92,7 +94,7 @@ public class FindLargeShards extends CommandLineProgram {
 
         // initialize reads
         List<SAMReaderID> bamReaders = ListFileUtils.unpackBAMFileList(samFiles,parser);
-        SAMDataSource dataSource = new SAMDataSource(bamReaders,genomeLocParser);
+        SAMDataSource dataSource = new SAMDataSource(bamReaders,new ThreadAllocation(),null,genomeLocParser);
 
         // intervals
         GenomeLocSortedSet intervalSortedSet = null;
@@ -106,7 +108,7 @@ public class FindLargeShards extends CommandLineProgram {
 
         logger.info(String.format("PROGRESS: Calculating mean and variance: Contig\tRegion.Start\tRegion.Stop\tSize"));        
 
-        LowMemoryIntervalSharder sharder = new LowMemoryIntervalSharder(dataSource,intervalSortedSet);
+        IntervalSharder sharder = IntervalSharder.shardOverIntervals(dataSource,intervalSortedSet);
         while(sharder.hasNext()) {
             FilePointer filePointer = sharder.next();
 
@@ -135,7 +137,7 @@ public class FindLargeShards extends CommandLineProgram {
         logger.warn(String.format("PROGRESS: Searching for large shards: Contig\tRegion.Start\tRegion.Stop\tSize"));
         out.printf("Contig\tRegion.Start\tRegion.Stop\tSize%n");
 
-        sharder = new LowMemoryIntervalSharder(dataSource,intervalSortedSet);
+        sharder =  IntervalSharder.shardOverIntervals(dataSource,intervalSortedSet);
         while(sharder.hasNext()) {
             FilePointer filePointer = sharder.next();
 

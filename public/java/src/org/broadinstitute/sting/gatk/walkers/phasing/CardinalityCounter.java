@@ -30,7 +30,7 @@ import java.util.Iterator;
 /*
 * CardinalityCounter object allows user to iterate over all assignment of arbitrary-cardinality variables.
  */
-public class CardinalityCounter implements Iterator<int[]>, Iterable<int[]> {
+class CardinalityCounter implements Iterator<int[]>, Iterable<int[]> {
     private int[] cards;
     private int[] valList;
     private boolean hasNext;

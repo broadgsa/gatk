@@ -11,33 +11,24 @@ import java.util.*;
  *
  * @author depristo
  */
-public final class InferredGeneticContext {
-    public static final double NO_NEG_LOG_10PERROR = -1.0;
+final class CommonInfo {
+    public static final double NO_LOG10_PERROR = 1.0;
 
-    private static Set<String> NO_FILTERS = Collections.unmodifiableSet(new HashSet<String>());
+    private static Set<String> NO_FILTERS = Collections.emptySet();
     private static Map<String, Object> NO_ATTRIBUTES = Collections.unmodifiableMap(new HashMap<String, Object>());
 
-    private double negLog10PError = NO_NEG_LOG_10PERROR;
+    private double log10PError = NO_LOG10_PERROR;
     private String name = null;
-    private Set<String> filters = NO_FILTERS;
+    private Set<String> filters = null;
     private Map<String, Object> attributes = NO_ATTRIBUTES;
 
-//    public InferredGeneticContext(String name) {
-//        this.name = name;
-//    }
-//
-//    public InferredGeneticContext(String name, double negLog10PError) {
-//        this(name);
-//        setNegLog10PError(negLog10PError);
-//    }
-
-    public InferredGeneticContext(String name, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public CommonInfo(String name, double log10PError, Set<String> filters, Map<String, Object> attributes) {
         this.name = name;
-        setNegLog10PError(negLog10PError);
-        if ( filters != null )
-            setFilters(filters);
-        if ( attributes != null )
-            setAttributes(attributes);
+        setLog10PError(log10PError);
+        this.filters = filters;
+        if ( attributes != null && ! attributes.isEmpty() ) {
+            this.attributes = attributes;
+        }
     }
 
     /**
@@ -64,12 +55,20 @@ public final class InferredGeneticContext {
     //
     // ---------------------------------------------------------------------------------------------------------
 
+    public Set<String> getFiltersMaybeNull() {
+        return filters;
+    }
+
     public Set<String> getFilters() {
-        return Collections.unmodifiableSet(filters);
+        return filters == null ? NO_FILTERS : Collections.unmodifiableSet(filters);
+    }
+
+    public boolean filtersWereApplied() {
+        return filters != null;
     }
 
     public boolean isFiltered() {
-        return filters.size() > 0;
+        return filters == null ? false : filters.size() > 0;
     }
 
     public boolean isNotFiltered() {
@@ -77,8 +76,8 @@ public final class InferredGeneticContext {
     }
 
     public void addFilter(String filter) {
-        if ( filters == NO_FILTERS ) // immutable -> mutable
-            filters = new HashSet<String>(filters);
+        if ( filters == null ) // immutable -> mutable
+            filters = new HashSet<String>();
 
         if ( filter == null ) throw new IllegalArgumentException("BUG: Attempting to add null filter " + this);
         if ( getFilters().contains(filter) ) throw new IllegalArgumentException("BUG: Attempting to add duplicate filter " + filter + " at " + this);
@@ -91,37 +90,30 @@ public final class InferredGeneticContext {
             addFilter(f);
     }
 
-    public void clearFilters() {
-        filters = new HashSet<String>();
-    }
-
-    public void setFilters(Collection<String> filters) {
-        clearFilters();
-        addFilters(filters);
-    }
-
     // ---------------------------------------------------------------------------------------------------------
     //
     // Working with log error rates
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public boolean hasNegLog10PError() {
-        return getNegLog10PError() != NO_NEG_LOG_10PERROR;
+    public boolean hasLog10PError() {
+        return getLog10PError() != NO_LOG10_PERROR;
     }
 
     /**
      * @return the -1 * log10-based error estimate
      */
-    public double getNegLog10PError() { return negLog10PError; }
-    public double getPhredScaledQual() { return getNegLog10PError() * 10; }
+    public double getLog10PError() { return log10PError; }
+    public double getPhredScaledQual() { return getLog10PError() * -10; }
 
-    public void setNegLog10PError(double negLog10PError) {
-        if ( negLog10PError < 0 && negLog10PError != NO_NEG_LOG_10PERROR ) throw new IllegalArgumentException("BUG: negLog10PError cannot be < than 0 : " + negLog10PError);
-        if ( Double.isInfinite(negLog10PError) ) throw new IllegalArgumentException("BUG: negLog10PError should not be Infinity");
-        if ( Double.isNaN(negLog10PError) ) throw new IllegalArgumentException("BUG: negLog10PError should not be NaN");
-
-        this.negLog10PError = negLog10PError;
+    public void setLog10PError(double log10PError) {
+        if ( log10PError > 0 && log10PError != NO_LOG10_PERROR)
+            throw new IllegalArgumentException("BUG: log10PError cannot be > 0 : " + this.log10PError);
+        if ( Double.isInfinite(this.log10PError) )
+            throw new IllegalArgumentException("BUG: log10PError should not be Infinity");
+        if ( Double.isNaN(this.log10PError) )
+            throw new IllegalArgumentException("BUG: log10PError should not be NaN");
+        this.log10PError = log10PError;
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -157,7 +149,7 @@ public final class InferredGeneticContext {
 
         if ( attributes == NO_ATTRIBUTES ) // immutable -> mutable
             attributes = new HashMap<String, Object>();
-        
+
         attributes.put(key, value);
     }
 

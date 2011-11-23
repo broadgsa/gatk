@@ -26,16 +26,12 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -47,8 +43,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
     public enum Model {
         /** The default model with the best performance in all cases */
         EXACT,
-        /** For posterity we have kept around the older GRID_SEARCH model, but this gives inferior results and shouldn't be used. */
-        GRID_SEARCH
     }
 
     protected int N;
@@ -73,7 +67,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @param log10AlleleFrequencyPriors      priors
      * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
      */
-    protected abstract void getLog10PNonRef(Map<String, Genotype> GLs,  List<Allele> Alleles,
+    protected abstract void getLog10PNonRef(GenotypesContext GLs,  List<Allele> Alleles,
                                             double[] log10AlleleFrequencyPriors,
                                             double[] log10AlleleFrequencyPosteriors);
 
@@ -85,7 +79,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    protected abstract Map<String, Genotype> assignGenotypes(VariantContext vc,
-                                                             double[] log10AlleleFrequencyPosteriors,
-                                                             int AFofMaxLikelihood);
+    protected abstract GenotypesContext assignGenotypes(VariantContext vc,
+                                                   double[] log10AlleleFrequencyPosteriors,
+                                                   int AFofMaxLikelihood);
 }

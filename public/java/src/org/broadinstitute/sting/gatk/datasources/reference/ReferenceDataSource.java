@@ -29,6 +29,14 @@ import net.sf.picard.reference.FastaSequenceIndex;
 import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.sam.CreateSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.gatk.datasources.reads.FilePointer;
+import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -36,13 +44,17 @@ import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Loads reference data from fasta file
  * Looks for fai and dict files, and tries to create them if they don't exist
  */
 public class ReferenceDataSource {
-    private IndexedFastaSequenceFile index;
+    private IndexedFastaSequenceFile reference;
 
     /** our log, which we want to capture anything from this class */
     protected static org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ReferenceDataSource.class);
@@ -173,7 +185,7 @@ public class ReferenceDataSource {
                 logger.info("Treating existing index file as complete.");
             }
 
-            index = new CachingIndexedFastaSequenceFile(fastaFile);
+            reference = new CachingIndexedFastaSequenceFile(fastaFile);
 
         } catch (IllegalArgumentException e) {
             throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read reference sequence.  The FASTA must have either a .fasta or .fa extension", e);
@@ -192,6 +204,52 @@ public class ReferenceDataSource {
      * @return IndexedFastaSequenceFile that was created from file
      */
     public IndexedFastaSequenceFile getReference() {
-        return this.index;
+        return this.reference;
+    }
+
+    /**
+     * Creates an iterator for processing the entire reference.
+     * @param readsDataSource the reads datasource to embed in the locus shard.
+     * @param parser used to generate/regenerate intervals.  TODO: decouple the creation of the shards themselves from the creation of the driving iterator so that datasources need not be passed to datasources.
+     * @param maxShardSize The maximum shard size which can be used to create this list.
+     * @return Creates a schedule for performing a traversal over the entire reference.
+     */
+    public Iterable<Shard> createShardsOverEntireReference(final SAMDataSource readsDataSource, final GenomeLocParser parser, final int maxShardSize) {
+        List<Shard> shards = new ArrayList<Shard>();
+        for(SAMSequenceRecord refSequenceRecord: reference.getSequenceDictionary().getSequences()) {
+            for(int shardStart = 1; shardStart <= refSequenceRecord.getSequenceLength(); shardStart += maxShardSize) {
+                final int shardStop = Math.min(shardStart+maxShardSize-1, refSequenceRecord.getSequenceLength());
+                shards.add(new LocusShard(parser,
+                                          readsDataSource,
+                                          Collections.singletonList(parser.createGenomeLoc(refSequenceRecord.getSequenceName(),shardStart,shardStop)),
+                                          null));
+            }
+        }
+        return shards;
+    }
+
+    /**
+     * Creates an iterator for processing the entire reference.
+     * @param readsDataSource the reads datasource to embed in the locus shard.  TODO: decouple the creation of the shards themselves from the creation of the driving iterator so that datasources need not be passed to datasources.
+     * @param intervals the list of intervals to use when processing the reference.
+     * @param maxShardSize The maximum shard size which can be used to create this list.
+     * @return Creates a schedule for performing a traversal over the entire reference.
+     */
+    public Iterable<Shard> createShardsOverIntervals(final SAMDataSource readsDataSource, final GenomeLocSortedSet intervals, final int maxShardSize) {
+        List<Shard> shards = new ArrayList<Shard>();
+        for(GenomeLoc interval: intervals) {
+            while(interval.size() > maxShardSize) {
+                shards.add(new LocusShard(intervals.getGenomeLocParser(),
+                        readsDataSource,
+                        Collections.singletonList(intervals.getGenomeLocParser().createGenomeLoc(interval.getContig(),interval.getStart(),interval.getStart()+maxShardSize-1)),
+                        null));
+                interval = intervals.getGenomeLocParser().createGenomeLoc(interval.getContig(),interval.getStart()+maxShardSize,interval.getStop());
+            }
+            shards.add(new LocusShard(intervals.getGenomeLocParser(),
+                    readsDataSource,
+                    Collections.singletonList(interval),
+                    null));
+        }
+        return shards;
     }
 }

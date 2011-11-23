@@ -64,7 +64,7 @@ class VariantJEXLContext implements JexlContext {
         x.put("CHROM",   new AttributeGetter() { public Object get(VariantContext vc) { return vc.getChr(); }});
         x.put("POS",     new AttributeGetter() { public Object get(VariantContext vc) { return vc.getStart(); }});
         x.put("TYPE",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.getType().toString(); }});
-        x.put("QUAL",    new AttributeGetter() { public Object get(VariantContext vc) { return 10 * vc.getNegLog10PError(); }});
+        x.put("QUAL",    new AttributeGetter() { public Object get(VariantContext vc) { return -10 * vc.getLog10PError(); }});
         x.put("ALLELES", new AttributeGetter() { public Object get(VariantContext vc) { return vc.getAlleles(); }});
         x.put("N_ALLELES", new AttributeGetter() { public Object get(VariantContext vc) { return vc.getNAlleles(); }});
         x.put("FILTER",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.isFiltered() ? "1" : "0"; }});

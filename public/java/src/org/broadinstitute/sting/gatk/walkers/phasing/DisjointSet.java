@@ -21,13 +21,13 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class DisjointSet {
+class DisjointSet {
     private ItemNode[] nodes;
 
     public DisjointSet(int numItems) {

@@ -27,7 +27,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
 
-public class Haplotype extends BaseArray implements Cloneable {
+class Haplotype extends BaseArray implements Cloneable {
     public Haplotype(byte[] bases) {
         super(bases);
     }

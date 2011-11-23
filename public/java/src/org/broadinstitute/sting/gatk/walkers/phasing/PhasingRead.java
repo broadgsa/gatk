@@ -29,7 +29,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
 
-public class PhasingRead extends BaseArray {
+class PhasingRead extends BaseArray {
     private PreciseNonNegativeDouble mappingProb; // the probability that this read is mapped correctly
     private PreciseNonNegativeDouble[] baseProbs; // the probabilities that the base identities are CORRECT
     private PreciseNonNegativeDouble[] baseErrorProbs; // the probabilities that the base identities are INCORRECT

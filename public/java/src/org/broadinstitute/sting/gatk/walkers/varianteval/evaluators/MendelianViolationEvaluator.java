@@ -147,7 +147,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     }
 
     private boolean includeGenotype(Genotype g) {
-        return g.getNegLog10PError() > getQThreshold() && g.isCalled();
+        return g.getLog10PError() > getQThreshold() && g.isCalled();
     }
 
     public static boolean isViolation(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG) {

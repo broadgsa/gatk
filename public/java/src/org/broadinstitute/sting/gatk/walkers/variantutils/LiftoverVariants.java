@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
@@ -117,16 +118,15 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                 vc = VariantContextUtils.reverseComplement(vc);
             }
 
-            vc = VariantContext.modifyLocation(vc, toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length);
+            vc = new VariantContextBuilder(vc).loc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length).make();
 
             if ( RECORD_ORIGINAL_LOCATION ) {
-                HashMap<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                attrs.put("OriginalChr", fromInterval.getSequence());
-                attrs.put("OriginalStart", fromInterval.getStart());
-                vc = VariantContext.modifyAttributes(vc, attrs);
+                vc = new VariantContextBuilder(vc)
+                        .attribute("OriginalChr", fromInterval.getSequence())
+                        .attribute("OriginalStart", fromInterval.getStart()).make();
             }
 
-            VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, false);
+            VariantContext newVC = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, false);
             if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
                         originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),

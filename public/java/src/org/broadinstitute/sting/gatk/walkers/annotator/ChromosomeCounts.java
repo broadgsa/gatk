@@ -59,10 +59,8 @@ public class ChromosomeCounts extends InfoFieldAnnotation implements StandardAnn
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( ! vc.hasGenotypes() )
             return null;
-        
-        Map<String, Object> map = new HashMap<String, Object>();
-        VariantContextUtils.calculateChromosomeCounts(vc, map, true);
-        return map;
+
+        return VariantContextUtils.calculateChromosomeCounts(vc, new HashMap<String, Object>(), true);
     }
 
     public List<String> getKeyNames() {

@@ -6,10 +6,9 @@ import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.OldDbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -187,28 +186,21 @@ public class VariantContextAdaptors {
                 }
 
                 Map<String, Object> attributes = new HashMap<String, Object>();
-                attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
 
                 int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
                 if ( index < 0 )
                     return null; // we weren't given enough reference context to create the VariantContext
                 Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
-                Map<String, Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes, refBaseForIndel);
-                return vc;
+                final VariantContextBuilder builder = new VariantContextBuilder();
+                builder.source(name).id(dbsnp.getRsID());
+                builder.loc(dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0));
+                builder.alleles(alleles);
+                builder.referenceBaseForIndel(refBaseForIndel);
+                return builder.make();
             } else
                 return null; // can't handle anything else
         }
-    }
-
-    public static VCFHeader createVCFHeader(Set<VCFHeaderLine> hInfo, VariantContext vc) {
-        HashSet<String> names = new LinkedHashSet<String>();
-        for ( Genotype g : vc.getGenotypesSortedByName() ) {
-            names.add(g.getSampleName());
-        }
-
-        return new VCFHeader(hInfo == null ? new HashSet<VCFHeaderLine>() : hInfo, names);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -257,20 +249,15 @@ public class VariantContextAdaptors {
                     else genotypeAlleles.add(refAllele);
                 }
 
-                Map<String, String> attributes = new HashMap<String, String>();
+                Map<String, Object> attributes = new HashMap<String, Object>();
                 Collection<Genotype> genotypes = new ArrayList<Genotype>();
-                MutableGenotype call = new MutableGenotype(name, genotypeAlleles);
-
-                // set the likelihoods, depth, and RMS mapping quality values
-                //call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY,geli.getLikelihoods());
-                //call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY,geli.getMaximumMappingQual());
-                //call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY,geli.getDepthOfCoverage());
+                Genotype call = new Genotype(name, genotypeAlleles);
 
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
                 alleles.add(refAllele);
-                VariantContext vc = VariantContextUtils.toVC(name, ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
-                return vc;
+                GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart());
+                return new VariantContextBuilder(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles).genotypes(genotypes).log10PError(-1 * geli.getLODBestToReference()).attributes(attributes).make();
             } else
                 return null; // can't handle anything else
         }
@@ -329,7 +316,7 @@ public class VariantContextAdaptors {
             String[] samples = hapmap.getSampleIDs();
             String[] genotypeStrings = hapmap.getGenotypes();
 
-            Map<String, Genotype> genotypes = new HashMap<String, Genotype>(samples.length);
+            GenotypesContext genotypes = GenotypesContext.create(samples.length);
             for ( int i = 0; i < samples.length; i++ ) {
                 // ignore bad genotypes
                 if ( genotypeStrings[i].contains("N") )
@@ -358,16 +345,13 @@ public class VariantContextAdaptors {
                 }
 
                 Genotype g = new Genotype(samples[i], myAlleles);
-                genotypes.put(samples[i], g);
+                genotypes.add(g);
             }
-
-            HashMap<String, Object> attrs = new HashMap<String, Object>(1);
-            attrs.put(VariantContext.ID_KEY, hapmap.getName());
 
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
                 end += deletionLength;
-            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs, refBaseForIndel);
+            VariantContext vc = new VariantContextBuilder(name, hapmap.getChr(), hapmap.getStart(), end, alleles).id(hapmap.getName()).genotypes(genotypes).referenceBaseForIndel(refBaseForIndel).make();
             return vc;
        }
     }

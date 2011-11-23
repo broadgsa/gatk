@@ -28,7 +28,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-public class ReadBasesAtPosition implements Iterable<ReadBase> {
+class ReadBasesAtPosition implements Iterable<ReadBase> {
     // list of: <read name, base>
     private LinkedList<ReadBase> bases;
 

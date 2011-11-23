@@ -7,7 +7,7 @@ import org.testng.annotations.Test;
 
 import static java.lang.Math.log10;
 
-public class GenotypeLikelihoodsUnitTest extends BaseTest {
+public class GenotypePriorsUnitTest extends BaseTest {
     private final static double DELTA = 1e-8;
 
     @Test

@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.util.*;
@@ -227,24 +228,24 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
             numHomVarViolations++;
             isViolation = true;
         }
-        vContext = VariantContext.modifyFilters(vContext, filters);
+
+        VariantContextBuilder builder = new VariantContextBuilder(vContext).filters(filters);
         numRecords++;
 
         // add the info fields
-        HashMap<String, Object> infoMap = new HashMap<String, Object>();
-        infoMap.put("NoCallPct", String.format("%.1f", 100.0*noCallProp));
-        infoMap.put("HomRefPct", String.format("%.1f", 100.0*homRefProp));
-        infoMap.put("HomVarPct", String.format("%.1f", 100.0*homVarProp));
-        infoMap.put("HetPct", String.format("%.1f", 100.0*hetProp));
-        infoMap.put("HW", String.format("%.2f", hwScore));
+        builder.attribute("NoCallPct", String.format("%.1f", 100.0 * noCallProp));
+        builder.attribute("HomRefPct", String.format("%.1f", 100.0 * homRefProp));
+        builder.attribute("HomVarPct", String.format("%.1f", 100.0 * homVarProp));
+        builder.attribute("HetPct", String.format("%.1f", 100.0 * hetProp));
+        builder.attribute("HW", String.format("%.2f", hwScore));
         Collection<Allele> altAlleles = vContext.getAlternateAlleles();
-        int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getChromosomeCount(altAlleles.iterator().next());
+        int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getCalledChrCount(altAlleles.iterator().next());
         if ( !isViolation && altAlleleCount > 0 )
             numTrueVariants++;
-        infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
-        infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
+        builder.attribute(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
+        builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getCalledChrCount()));
 
-        return VariantContext.modifyAttributes(vContext, infoMap);
+        return builder.make();
     }
 
     private double hardyWeinbergCalculation(VariantContext vc) {

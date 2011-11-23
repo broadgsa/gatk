@@ -31,7 +31,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -39,9 +39,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -491,7 +488,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                         if (outMVFile != null)
                             outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
                                 "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
-                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getChromosomeCount(vc.getAlternateAllele(0)),
+                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
                                 mv.getSampleMom(), mv.getSampleDad(), mv.getSampleChild(),
                                 vc.getGenotype(mv.getSampleMom()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
                                 vc.getGenotype(mv.getSampleDad()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
@@ -523,7 +520,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 continue;
 
             VariantContext sub = subsetRecord(vc, samples);
-            if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+            if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
                         return 0;
@@ -559,8 +556,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return (compVCs == null || compVCs.isEmpty());
 
         // check if we find it in the variant rod
-        Map<String, Genotype> genotypes = vc.getGenotypes(samples);
-        for (Genotype g : genotypes.values()) {
+        GenotypesContext genotypes = vc.getGenotypes(samples);
+        for (final Genotype g : genotypes) {
             if (sampleHasVariant(g)) {
                 // There is a variant called (or filtered with not exclude filtered option set) that is not HomRef for at least one of the samples.
                 if (compVCs == null)
@@ -657,19 +654,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
-        ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
-        for ( Map.Entry<String, Genotype> genotypePair : vc.getGenotypes().entrySet() ) {
-            if ( samples.contains(genotypePair.getKey()) )
-                genotypes.add(genotypePair.getValue());
-        }
-
-        VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
+        final VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
+        VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-            sub = VariantContext.modifyGenotypes(sub, VariantContextUtils.stripPLs(vc.getGenotypes()));
-
-        HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
+            builder.genotypes(VariantContextUtils.stripPLs(vc.getGenotypes()));
 
         int depth = 0;
         for (String sample : sub.getSampleNames()) {
@@ -686,21 +676,18 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
-                attributes.put("AC_Orig",attributes.get(VCFConstants.ALLELE_COUNT_KEY));
-            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                attributes.put("AF_Orig",attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY));
-            if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
-                attributes.put("AN_Orig",attributes.get(VCFConstants.ALLELE_NUMBER_KEY));
-
+            if ( sub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+                builder.attribute("AC_Orig", sub.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+            if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                builder.attribute("AF_Orig", sub.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+            if ( sub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
+                builder.attribute("AN_Orig", sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
 
-        VariantContextUtils.calculateChromosomeCounts(sub,attributes,false);
-        attributes.put("DP", depth);
+        VariantContextUtils.calculateChromosomeCounts(builder, false);
+        builder.attribute("DP", depth);
 
-        sub = VariantContext.modifyAttributes(sub, attributes);
-
-        return sub;
+        return builder.make();
     }
 
     private void randomlyAddVariant(int rank, VariantContext vc) {

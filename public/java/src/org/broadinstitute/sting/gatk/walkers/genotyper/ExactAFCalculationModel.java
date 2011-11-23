@@ -26,14 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -46,12 +42,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
     private final boolean SIMPLE_GREEDY_GENOTYPER = false;
     private final static double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
+    private final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public void getLog10PNonRef(Map<String, Genotype> GLs, List<Allele> alleles,
+    public void getLog10PNonRef(GenotypesContext GLs, List<Allele> alleles,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();
@@ -95,11 +92,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    private static final ArrayList<double[]> getGLs(Map<String, Genotype> GLs) {
+    private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
         ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();
 
         genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
-        for ( Genotype sample : GLs.values() ) {
+        for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
@@ -155,7 +152,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    public int linearExact(Map<String, Genotype> GLs,
+    public int linearExact(GenotypesContext GLs,
                            double[] log10AlleleFrequencyPriors,
                            double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
@@ -268,14 +265,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
      *
      * @return calls
      */
-    public Map<String, Genotype> assignGenotypes(VariantContext vc,
-                                                 double[] log10AlleleFrequencyPosteriors,
-                                                 int AFofMaxLikelihood) {
+    public GenotypesContext assignGenotypes(VariantContext vc,
+                                            double[] log10AlleleFrequencyPosteriors,
+                                            int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
 
-        Map<String, Genotype> GLs = vc.getGenotypes();
+        GenotypesContext GLs = vc.getGenotypes();
         double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
         int[][] tracebackArray = new int[GLs.size()+1][AFofMaxLikelihood+1];
 
@@ -291,16 +288,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // todo = can't deal with optimal dynamic programming solution with multiallelic records
         if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-            sampleIndices.addAll(GLs.keySet());
+            sampleIndices.addAll(GLs.getSampleNamesOrderedByName());
             sampleIdx = GLs.size();
         }
         else {
 
-            for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
-                if ( !sample.getValue().hasLikelihoods() )
+            for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
+                if ( !genotype.hasLikelihoods() )
                     continue;
 
-                double[] likelihoods = sample.getValue().getLikelihoods().getAsVector();
+                double[] likelihoods = genotype.getLikelihoods().getAsVector();
 
                 if (MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL)     {
                     //System.out.print(sample.getKey()+":");
@@ -312,7 +309,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     continue;
                 }
 
-                sampleIndices.add(sample.getKey());
+                sampleIndices.add(genotype.getSampleName());
 
                 for (int k=0; k <= AFofMaxLikelihood; k++) {
 
@@ -342,7 +339,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
         }
 
-        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+        GenotypesContext calls = GenotypesContext.create();
 
         int startIdx = AFofMaxLikelihood;
         for (int k = sampleIdx; k > 0; k--) {
@@ -355,31 +352,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             // and will add no-call genotype to GL's in a second pass
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
 
-            double qual = Double.NEGATIVE_INFINITY;
             double[] likelihoods = g.getLikelihoods().getAsVector();
 
             if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-                bestGTguess = Utils.findIndexOfMaxEntry(g.getLikelihoods().getAsVector());
+                bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
             }
             else {
                 int newIdx = tracebackArray[k][startIdx];;
                 bestGTguess = startIdx - newIdx;
                 startIdx = newIdx;
             }
-
-            /*           System.out.format("Sample: %s GL:",sample);
-                    for (int i=0; i < likelihoods.length; i++)
-                        System.out.format("%1.4f, ",likelihoods[i]);
-            */
-
-            for (int i=0; i < likelihoods.length; i++) {
-                if (i==bestGTguess)
-                    continue;
-                if (likelihoods[i] >= qual)
-                    qual = likelihoods[i];
-            }
-            // qual contains now max(likelihoods[k]) for all k != bestGTguess
-            qual = likelihoods[bestGTguess] - qual;
 
             // likelihoods are stored row-wise in lower triangular matrix. IE
             // for 2 alleles they have ordering AA,AB,BB
@@ -408,37 +390,25 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     break;
             }
 
-            if (qual < 0) {
-                // QUAL can be negative if the chosen genotype is not the most likely one individually.
-                // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen on
-                double[] normalized = MathUtils.normalizeFromLog10(likelihoods);
-                double chosenGenotype = normalized[bestGTguess];
-                qual = -1.0 * Math.log10(1.0 - chosenGenotype);
-            }
+            final double qual = GenotypeLikelihoods.getQualFromLikelihoods(bestGTguess, likelihoods);
             //System.out.println(myAlleles.toString());
-            calls.put(sample, new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
-
+            calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
         }
 
-        for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
-
-            if ( !sample.getValue().hasLikelihoods() )
+        for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
+            if ( !genotype.hasLikelihoods() )
                 continue;
-            Genotype g = GLs.get(sample.getKey());
 
-            double[] likelihoods = sample.getValue().getLikelihoods().getAsVector();
+            final Genotype g = GLs.get(genotype.getSampleName());
+            final double[] likelihoods = genotype.getLikelihoods().getAsVector();
 
             if (MathUtils.sum(likelihoods) <= SUM_GL_THRESH_NOCALL)
                 continue; // regular likelihoods
 
-            ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-
-            double qual = Genotype.NO_NEG_LOG_10PERROR;
-            myAlleles.add(Allele.NO_CALL);
-            myAlleles.add(Allele.NO_CALL);
-            //System.out.println(myAlleles.toString());
-            calls.put(sample.getKey(), new Genotype(sample.getKey(), myAlleles, qual, null, g.getAttributes(), false));
+            final double qual = Genotype.NO_LOG10_PERROR;
+            calls.replace(new Genotype(g.getSampleName(), NO_CALL_ALLELES, qual, null, g.getAttributes(), false));
         }
+
         return calls;
     }
 

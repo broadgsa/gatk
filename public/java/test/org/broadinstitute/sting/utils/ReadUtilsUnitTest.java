@@ -16,8 +16,8 @@ public class ReadUtilsUnitTest extends BaseTest {
     GATKSAMRecord read, reducedRead;
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?";
-    final private static byte[] REDUCED_READ_COUNTS =     new byte[]{10, 20, 30, 40};
-    final private static byte[] REDUCED_READ_COUNTS_TAG = new byte[]{10, 10, 20, 30};  // just the offsets
+    final private static byte[] REDUCED_READ_COUNTS =     new byte[]{10, 20, 30, 40, 1};
+    final private static byte[] REDUCED_READ_COUNTS_TAG = new byte[]{10, 10, 20, 30, -9};  // just the offsets
 
     @BeforeTest
     public void init() {

@@ -188,6 +188,10 @@ public class MathUtils {
         return ! Double.isInfinite(val) && ! Double.isNaN(val);
     }
 
+    public static double bound(double value, double minBoundary, double maxBoundary) {
+        return Math.max(Math.min(value,  maxBoundary), minBoundary);
+    }
+
     public static boolean isBounded(double val, double lower, double upper) {
         return val >= lower && val <= upper;
     }

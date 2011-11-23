@@ -30,7 +30,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -51,21 +50,21 @@ public class G1KPhaseITable extends VariantEvaluator {
     @DataPoint(description = "Number of SNPs")
     public long nSNPs = 0;
     @DataPoint(description = "SNP Novelty Rate")
-    public double SNPNoveltyRate = 0;
+    public String SNPNoveltyRate = "NA";
     @DataPoint(description = "Mean number of SNPs per individual")
     public long nSNPsPerSample = 0;
 
     @DataPoint(description = "Number of Indels")
     public long nIndels = 0;
     @DataPoint(description = "Indel Novelty Rate")
-    public double IndelNoveltyRate = 0;
+    public String IndelNoveltyRate = "NA";
     @DataPoint(description = "Mean number of Indels per individual")
     public long nIndelsPerSample = 0;
 
     @DataPoint(description = "Number of SVs")
     public long nSVs = 0;
     @DataPoint(description = "SV Novelty Rate")
-    public double SVNoveltyRate = 0;
+    public String SVNoveltyRate = "NA";
     @DataPoint(description = "Mean number of SVs per individual")
     public long nSVsPerSample = 0;
 
@@ -103,12 +102,9 @@ public class G1KPhaseITable extends VariantEvaluator {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( eval == null || eval.isMonomorphic() ) return null;
+        if ( eval == null || eval.isMonomorphicInSamples() ) return null;
 
         switch (eval.getType()) {
-//            case NO_VARIATION:
-//                // shouldn't get here
-//                break;
             case SNP:
             case INDEL:
             case SYMBOLIC:
@@ -121,7 +117,7 @@ public class G1KPhaseITable extends VariantEvaluator {
         }
 
         // count variants per sample
-        for (final Genotype g : eval.getGenotypes().values()) {
+        for (final Genotype g : eval.getGenotypes()) {
             if ( ! g.isNoCall() && ! g.isHomRef() ) {
                 int count = countsPerSample.get(g.getSampleName()).get(eval.getType());
                 countsPerSample.get(g.getSampleName()).put(eval.getType(), count + 1);
@@ -139,11 +135,12 @@ public class G1KPhaseITable extends VariantEvaluator {
         return (int)(Math.round(sum / (1.0 * countsPerSample.size())));
     }
 
-    private final double noveltyRate(VariantContext.Type type) {
+    private final String noveltyRate(VariantContext.Type type) {
         int all = allVariantCounts.get(type);
         int known = knownVariantCounts.get(type);
         int novel = all - known;
-        return (novel / (1.0 * all));
+        double rate = (novel / (1.0 * all));
+        return all == 0 ? "NA" : String.format("%.2f", rate);
     }
 
     public void finalizeEvaluation() {

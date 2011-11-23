@@ -23,12 +23,10 @@
  */
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.broadinstitute.sting.utils.DisjointSet;
-
 import java.util.*;
 
 // Represents an undirected graph with no self-edges:
-public class PhasingGraph implements Iterable<PhasingGraphEdge> {
+class PhasingGraph implements Iterable<PhasingGraphEdge> {
     private Neighbors[] adj;
 
     public PhasingGraph(int numVertices) {
