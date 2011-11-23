@@ -26,7 +26,6 @@ package org.broadinstitute.sting.queue
 
 import function.QFunction
 import java.io.File
-import java.util.Arrays
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.engine.{QGraphSettings, QGraph}
@@ -34,6 +33,9 @@ import collection.JavaConversions._
 import org.broadinstitute.sting.utils.classloader.PluginManager
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.utils.io.IOUtils
+import org.broadinstitute.sting.utils.help.ApplicationDetails
+import java.util.{ResourceBundle, Arrays}
+import org.broadinstitute.sting.utils.text.TextFormattingUtils
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -174,6 +176,42 @@ class QCommandLine extends CommandLineProgram with Logging {
    */
   override def getArgumentTypeDescriptors =
     Arrays.asList(new ScalaCompoundArgumentTypeDescriptor)
+
+  override def getApplicationDetails : ApplicationDetails = {
+    new ApplicationDetails(createQueueHeader(),
+                           List.empty[String],
+                           ApplicationDetails.createDefaultRunningInstructions(getClass.asInstanceOf[Class[CommandLineProgram]]),
+                           "")
+  }
+
+  private def createQueueHeader() : List[String] = {
+    List(String.format("Queue v%s, Compiled %s", getQueueVersion, getBuildTimestamp),
+         "Copyright (c) 2011 The Broad Institute",
+         "Please view our documentation at http://www.broadinstitute.org/gsa/wiki",
+         "For support, please view our support site at http://getsatisfaction.com/gsa")
+  }
+
+  private def getQueueVersion : String = {
+    var stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
+
+    if ( stingResources.containsKey("org.broadinstitute.sting.queue.QueueVersion.version") ) {
+      stingResources.getString("org.broadinstitute.sting.queue.QueueVersion.version")
+    }
+    else {
+      "<unknown>"
+    }
+  }
+
+  private def getBuildTimestamp : String = {
+    var stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
+
+    if ( stingResources.containsKey("build.timestamp") ) {
+      stingResources.getString("build.timestamp")
+    }
+    else {
+      "<unknown>"
+    }
+  }
 
   def shutdown() = {
     shuttingDown = true
