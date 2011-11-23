@@ -250,13 +250,12 @@ public class GATKReportTable {
      * @param defaultValue  the default value for the column
      */
     public void addColumn(String columnName, Object defaultValue) {
-        if (!isValidName(columnName)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
-        }
-
-        addColumn(columnName, defaultValue, true);
+        addColumn(columnName, defaultValue, null);
     }
 
+    public void addColumn(String columnName, Object defaultValue, String format) {
+        addColumn(columnName, defaultValue, true, format);
+    }
     /**
      * Add a column to the report, specify the default column value, and specify whether the column should be displayed in the final output (useful when intermediate columns are necessary for later calculations, but are not required to be in the output file.
      *
@@ -265,7 +264,14 @@ public class GATKReportTable {
      * @param display  if true - the column will be displayed; if false - the column will be hidden
      */
     public void addColumn(String columnName, Object defaultValue, boolean display) {
-        columns.put(columnName, new GATKReportColumn(columnName, defaultValue, display));
+        addColumn(columnName, defaultValue, display, null);
+    }
+
+    public void addColumn(String columnName, Object defaultValue, boolean display, String format) {
+        if (!isValidName(columnName)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+        columns.put(columnName, new GATKReportColumn(columnName, defaultValue, display, format));
     }
 
     /**
