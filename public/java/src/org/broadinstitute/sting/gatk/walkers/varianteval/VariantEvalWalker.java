@@ -265,9 +265,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
         for ( VariantStratifier vs : getStratificationObjects() ) {
-            if ( vs.getClass().getSimpleName().equals("Filter") )
+            if ( vs.getName().equals("Filter") )
                 byFilterIsEnabled = true;
-            else if ( vs.getClass().getSimpleName().equals("Sample") )
+            else if ( vs.getName().equals("Sample") )
                 perSampleIsEnabled = true;
         }
 
@@ -458,9 +458,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 table.addColumn(subTableName, subTableName);
 
                                 for ( VariantStratifier vs : stratificationObjects ) {
-                                    String columnName = vs.getClass().getSimpleName();
-
-                                    table.addColumn(columnName, "unknown");
+                                    table.addColumn(vs.getName(), "unknown");
                                 }
 
                                 table.addColumn("row", "unknown");
@@ -484,9 +482,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 String r = (String) t.getRowKeys()[row];
 
                                 for ( VariantStratifier vs : stratificationObjects ) {
-                                    String columnName = vs.getClass().getSimpleName();
-
-                                    table.set(stateKey.toString() + r, columnName, stateKey.get(vs.getClass().getSimpleName()));
+                                    final String columnName = vs.getName();
+                                    table.set(stateKey.toString() + r, columnName, stateKey.get(columnName));
                                 }
 
                                 for (int col = 0; col < t.getColumnKeys().length; col++) {
@@ -507,9 +504,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
 
                             for ( VariantStratifier vs : stratificationObjects ) {
-                                String columnName = vs.getClass().getSimpleName();
+                                String columnName = vs.getName();
 
-                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getClass().getSimpleName()));
+                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getName()));
                             }
 
                             table.set(stateKey.toString(), field.getName(), field.get(ve));

@@ -196,7 +196,7 @@ public class VariantEvalUtils {
             for (VariantStratifier vs : ec.keySet()) {
                 String state = ec.get(vs);
 
-                stateKey.put(vs.getClass().getSimpleName(), state);
+                stateKey.put(vs.getName(), state);
             }
 
             ec.addEvaluationClassList(variantEvalWalker, stateKey, evaluationObjects);
@@ -230,7 +230,7 @@ public class VariantEvalUtils {
             table.addColumn(tableName, tableName);
 
             for (VariantStratifier vs : stratificationObjects) {
-                String columnName = vs.getClass().getSimpleName();
+                String columnName = vs.getName();
 
                 table.addColumn(columnName, "unknown");
             }
@@ -410,7 +410,7 @@ public class VariantEvalUtils {
                     newStateKey.putAll(stateKey);
                 }
 
-                newStateKey.put(vs.getClass().getSimpleName(), state);
+                newStateKey.put(vs.getName(), state);
 
                 initializeStateKeys(stateMap, newStateStack, newStateKey, stateKeys);
             }
