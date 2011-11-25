@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.lang.reflect.Field;
@@ -195,7 +196,7 @@ public class VariantEvalUtils {
             for (VariantStratifier vs : ec.keySet()) {
                 String state = ec.get(vs);
 
-                stateKey.put(vs.getClass().getSimpleName(), state);
+                stateKey.put(vs.getName(), state);
             }
 
             ec.addEvaluationClassList(variantEvalWalker, stateKey, evaluationObjects);
@@ -229,7 +230,7 @@ public class VariantEvalUtils {
             table.addColumn(tableName, tableName);
 
             for (VariantStratifier vs : stratificationObjects) {
-                String columnName = vs.getClass().getSimpleName();
+                String columnName = vs.getName();
 
                 table.addColumn(columnName, "unknown");
             }
@@ -245,7 +246,7 @@ public class VariantEvalUtils {
                     field.setAccessible(true);
 
                     if (!(field.get(vei) instanceof TableType)) {
-                        table.addColumn(field.getName(), 0.0);
+                        table.addColumn(field.getName(), 0.0, datamap.get(field).format());
                     }
                 }
             } catch (InstantiationException e) {
@@ -266,7 +267,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested sample
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
-        return getSubsetOfVariantContext(vc, Arrays.asList(sampleName));
+        return getSubsetOfVariantContext(vc, Collections.singleton(sampleName));
     }
 
     /**
@@ -276,30 +277,26 @@ public class VariantEvalUtils {
      * @param sampleNames the samples to pull out of the VariantContext
      * @return a new VariantContext with just the requested samples
      */
-    public VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values(), vc.getAlleles());
+    public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
+        VariantContext vcsub = vc.subContextFromSamples(sampleNames, vc.getAlleles());
+        VariantContextBuilder builder = new VariantContextBuilder(vcsub);
 
-        HashMap<String, Object> newAts = new HashMap<String, Object>(vcsub.getAttributes());
-
-        int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
-        int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
+        final int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
+        final int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
 
         if (originalAlleleCount == newAlleleCount && newAlleleCount == 1) {
-            newAts.put("ISSINGLETON", true);
+            builder.attribute("ISSINGLETON", true);
         }
 
-        VariantContextUtils.calculateChromosomeCounts(vcsub, newAts, true);
-        vcsub = VariantContext.modifyAttributes(vcsub, newAts);
-
-        //VariantEvalWalker.logger.debug(String.format("VC %s subset to %s AC%n", vc.getSource(), vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
-
-        return vcsub;
+        VariantContextUtils.calculateChromosomeCounts(builder, true);
+        return builder.make();
     }
 
     /**
      * For a list of track names, bind the variant contexts to a trackName->sampleName->VariantContext mapping.
      * Additional variant contexts per sample are automatically generated and added to the map unless the sample name
      * matches the ALL_SAMPLE_NAME constant.
+     *
      *
      * @param tracker        the metadata tracker
      * @param ref            the reference context
@@ -312,7 +309,7 @@ public class VariantEvalUtils {
      *
      * @return the mapping of track to VC list that should be populated
      */
-    public HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>>
+    public HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>>
         bindVariantContexts(RefMetaDataTracker tracker,
                             ReferenceContext ref,
                             List<RodBinding<VariantContext>> tracks,
@@ -323,11 +320,11 @@ public class VariantEvalUtils {
         if ( tracker == null )
             return null;
 
-        HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> bindings = new HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>>();
+        HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> bindings = new HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>>();
 
         RodBinding<VariantContext> firstTrack = tracks.isEmpty() ? null : tracks.get(0);
         for ( RodBinding<VariantContext> track : tracks ) {
-            HashMap<String, Set<VariantContext>> mapping = new HashMap<String, Set<VariantContext>>();
+            HashMap<String, Collection<VariantContext>> mapping = new HashMap<String, Collection<VariantContext>>();
 
             for ( VariantContext vc : tracker.getValues(track, ref.getLocus()) ) {
 
@@ -356,9 +353,9 @@ public class VariantEvalUtils {
 
             if ( mergeTracks && bindings.containsKey(firstTrack) ) {
                 // go through each binding of sample -> value and add all of the bindings from this entry
-                HashMap<String, Set<VariantContext>> firstMapping = bindings.get(firstTrack);
-                for ( Map.Entry<String, Set<VariantContext>> elt : mapping.entrySet() ) {
-                    Set<VariantContext> firstMappingSet = firstMapping.get(elt.getKey());
+                HashMap<String, Collection<VariantContext>> firstMapping = bindings.get(firstTrack);
+                for ( Map.Entry<String, Collection<VariantContext>> elt : mapping.entrySet() ) {
+                    Collection<VariantContext> firstMappingSet = firstMapping.get(elt.getKey());
                     if ( firstMappingSet != null ) {
                         firstMappingSet.addAll(elt.getValue());
                     } else {
@@ -373,9 +370,9 @@ public class VariantEvalUtils {
         return bindings;
     }
 
-    private void addMapping(HashMap<String, Set<VariantContext>> mappings, String sample, VariantContext vc) {
+    private void addMapping(HashMap<String, Collection<VariantContext>> mappings, String sample, VariantContext vc) {
         if ( !mappings.containsKey(sample) )
-            mappings.put(sample, new LinkedHashSet<VariantContext>());
+            mappings.put(sample, new ArrayList<VariantContext>(1));
         mappings.get(sample).add(vc);
     }
 
@@ -414,7 +411,7 @@ public class VariantEvalUtils {
                     newStateKey.putAll(stateKey);
                 }
 
-                newStateKey.put(vs.getClass().getSimpleName(), state);
+                newStateKey.put(vs.getName(), state);
 
                 initializeStateKeys(stateMap, newStateStack, newStateKey, stateKeys);
             }

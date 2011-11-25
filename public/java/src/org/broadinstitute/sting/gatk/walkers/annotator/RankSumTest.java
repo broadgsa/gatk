@@ -13,6 +13,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         if ( stratifiedContexts.size() == 0 )
             return null;
          
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypesContext genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
@@ -42,8 +43,8 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
 
         if (vc.isSNP() && vc.isBiallelic()) {
             // todo - no current support for multiallelic snps
-            for ( final Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-                final AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
+                final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
                 if ( context == null ) {
                     continue;
                 }
@@ -52,8 +53,8 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         }
         else if (vc.isIndel() || vc.isMixed()) {
 
-            for ( final Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-                final AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
+                final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
                 if ( context == null ) {
                     continue;
                 }

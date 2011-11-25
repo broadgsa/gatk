@@ -34,7 +34,9 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.util.*;
 
@@ -49,20 +51,20 @@ public class VariantAnnotatorEngine {
     private AnnotatorCompatibleWalker walker;
     private GenomeAnalysisEngine toolkit;
 
-    private static class VAExpression {
+    protected static class VAExpression {
 
         public String fullName, fieldName;
         public RodBinding<VariantContext> binding;
 
-        public VAExpression(String fullEpression, List<RodBinding<VariantContext>> bindings) {
-            int indexOfDot = fullEpression.lastIndexOf(".");
+        public VAExpression(String fullExpression, List<RodBinding<VariantContext>> bindings) {
+            int indexOfDot = fullExpression.lastIndexOf(".");
             if ( indexOfDot == -1 )
-                throw new UserException.BadArgumentValue(fullEpression, "it should be in rodname.value format");
+                throw new UserException.BadArgumentValue(fullExpression, "it should be in rodname.value format");
 
-            fullName = fullEpression;
-            fieldName = fullEpression.substring(indexOfDot+1);
+            fullName = fullExpression;
+            fieldName = fullExpression.substring(indexOfDot+1);
 
-            String bindingName = fullEpression.substring(0, indexOfDot);
+            String bindingName = fullExpression.substring(0, indexOfDot);
             for ( RodBinding<VariantContext> rod : bindings ) {
                 if ( rod.getName().equals(bindingName) ) {
                     binding = rod;
@@ -96,6 +98,8 @@ public class VariantAnnotatorEngine {
         for ( String expression : expressionsToUse )
             requestedExpressions.add(new VAExpression(expression, walker.getResourceRodBindings()));
     }
+
+    protected List<VAExpression> getRequestedExpressions() { return requestedExpressions; }
 
     private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude) {
         AnnotationInterfaceManager.validateAnnotations(annotationGroupsToUse, annotationsToUse);
@@ -160,11 +164,10 @@ public class VariantAnnotatorEngine {
     }
 
     public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
-        annotateDBs(tracker, ref, vc, infoAnnotations);
+        vc = annotateDBs(tracker, ref, vc, infoAnnotations);
 
         // annotate expressions where available
         annotateExpressions(tracker, ref, infoAnnotations);
@@ -177,20 +180,20 @@ public class VariantAnnotatorEngine {
         }
 
         // generate a new annotated VC
-        final VariantContext annotatedVC = VariantContext.modifyAttributes(vc, infoAnnotations);
+        VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
 
         // annotate genotypes, creating another new VC in the process
-        return VariantContext.modifyGenotypes(annotatedVC, annotateGenotypes(tracker, ref, stratifiedContexts, vc));
+        return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc)).make();
     }
 
-    private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
+    private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
                 String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
                 // annotate dbsnp id if available and not already there
-                if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )
-                    infoAnnotations.put(VariantContext.ID_KEY, rsID);
+                if ( rsID != null && vc.emptyID() )
+                    vc = new VariantContextBuilder(vc).id(rsID).make();
             } else {
                 boolean overlapsComp = false;
                 for ( VariantContext comp : tracker.getValues(dbSet.getKey(), ref.getLocus()) ) {
@@ -202,6 +205,8 @@ public class VariantAnnotatorEngine {
                 infoAnnotations.put(dbSet.getValue(), overlapsComp);
             }
         }
+
+        return vc;
     }
 
     private void annotateExpressions(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, Object> infoAnnotations) {
@@ -211,21 +216,25 @@ public class VariantAnnotatorEngine {
                 continue;
 
             VariantContext vc = VCs.iterator().next();
-            if ( vc.hasAttribute(expression.fieldName) )
+            // special-case the ID field
+            if ( expression.fieldName.equals("ID") ) {
+                if ( vc.hasID() )
+                    infoAnnotations.put(expression.fullName, vc.getID());
+            } else if ( vc.hasAttribute(expression.fieldName) ) {
                 infoAnnotations.put(expression.fullName, vc.getAttribute(expression.fieldName));
+            }
         }
     }
 
-    private Map<String, Genotype> annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    private GenotypesContext annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( requestedGenotypeAnnotations.size() == 0 )
             return vc.getGenotypes();
 
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> g : vc.getGenotypes().entrySet() ) {
-            Genotype genotype = g.getValue();
-            AlignmentContext context = stratifiedContexts.get(g.getKey());
+        GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype genotype : vc.getGenotypes() ) {
+            AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null ) {
-                genotypes.put(g.getKey(), genotype);
+                genotypes.add(genotype);
                 continue;
             }
 
@@ -235,7 +244,7 @@ public class VariantAnnotatorEngine {
                 if ( result != null )
                     genotypeAnnotations.putAll(result);
             }
-            genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
+            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
         }
 
         return genotypes;

@@ -35,9 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -108,9 +106,9 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
             return sum;
 
         try {
-            Map<String, Object> attrs = new HashMap<String, Object>(value.getAttributes());
-            VariantContextUtils.calculateChromosomeCounts(value, attrs, true);
-            writer.add(VariantContext.modifyAttributes(value, attrs));
+            VariantContextBuilder builder = new VariantContextBuilder(value);
+            VariantContextUtils.calculateChromosomeCounts(builder, true);
+            writer.add(builder.make());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }
@@ -128,27 +126,27 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
             return null;
 
         VariantContext variantVC = null;
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        GenotypesContext genotypes = GenotypesContext.create();
         for ( VariantContext vc : VCs ) {
             if ( variantVC == null && vc.isVariant() )
                 variantVC = vc;
-            genotypes.putAll(getGenotypesWithGLs(vc.getGenotypes()));
+            genotypes.addAll(getGenotypesWithGLs(vc.getGenotypes()));
         }
 
         if ( variantVC == null ) {
             VariantContext vc = VCs.get(0);
             throw new UserException("There is no ALT allele in any of the VCF records passed in at " + vc.getChr() + ":" + vc.getStart());
         }
-        return new VariantContext("VCwithGLs", variantVC.getChr(), variantVC.getStart(), variantVC.getEnd(), variantVC.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
+
+        return new VariantContextBuilder(variantVC).source("VCwithGLs").genotypes(genotypes).make();
     }
 
-    private static Map<String, Genotype> getGenotypesWithGLs(Map<String, Genotype> genotypes) {
-        Map<String, Genotype> genotypesWithGLs = new HashMap<String, Genotype>();
-        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            if ( g.getValue().hasLikelihoods() && g.getValue().getLikelihoods().getAsVector() != null )
-                genotypesWithGLs.put(g.getKey(), g.getValue());
+    private static GenotypesContext getGenotypesWithGLs(GenotypesContext genotypes) {
+        GenotypesContext genotypesWithGLs = GenotypesContext.create(genotypes.size());
+        for ( final Genotype g : genotypes ) {
+            if ( g.hasLikelihoods() && g.getLikelihoods().getAsVector() != null )
+                genotypesWithGLs.add(g);
         }
-
         return genotypesWithGLs;
     }
 }

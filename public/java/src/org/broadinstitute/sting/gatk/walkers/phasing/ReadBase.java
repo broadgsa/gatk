@@ -23,7 +23,7 @@
  */
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-public class ReadBase {
+class ReadBase {
     public String readName;
     public byte base;
     public int mappingQual;

@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnota
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -28,19 +29,19 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         if ( stratifiedContexts.size() == 0 )
             return null;
 
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypesContext genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
         int depth = 0;
 
-        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
+        for ( final Genotype genotype : genotypes ) {
 
             // we care only about variant calls with likelihoods
-            if ( genotype.getValue().isHomRef() )
+            if ( genotype.isHomRef() )
                 continue;
 
-            AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null )
                 continue;
 
@@ -50,7 +51,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         if ( depth == 0 )
             return null;
 
-        double QD = 10.0 * vc.getNegLog10PError() / (double)depth;
+        double QD = -10.0 * vc.getLog10PError() / (double)depth;
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", QD));

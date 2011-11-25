@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -32,7 +33,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypesContext genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
             return null;
 
@@ -51,8 +52,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
         double hetCount = 0.0;
         double homCount = 0.0;
         int N = 0; // number of samples that have likelihoods
-        for ( final Map.Entry<String, Genotype> genotypeMap : genotypes.entrySet() ) {
-            Genotype g = genotypeMap.getValue();
+        for ( final Genotype g : genotypes ) {
             if ( g.isNoCall() || !g.hasLikelihoods() )
                 continue;
 

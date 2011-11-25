@@ -260,7 +260,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
                 }
             }
         } else /* (mask != null && validate == null ) */ {
-            if ( ! mask.isSNP() && ! mask.isFiltered() && ( ! filterMonomorphic || ! mask.isMonomorphic() )) {
+            if ( ! mask.isSNP() && ! mask.isFiltered() && ( ! filterMonomorphic || ! mask.isMonomorphicInSamples() )) {
                 logger.warn("Mask Variant Context on the following warning line is not a SNP. Currently we can only mask out SNPs. This probe will not be designed.");
                 logger.warn(String.format("%s:%d-%d\t%s\t%s",mask.getChr(),mask.getStart(),mask.getEnd(),mask.isSimpleInsertion() ? "INS" : "DEL", Utils.join(",",mask.getAlleles())));
                 sequenceInvalid = true;
@@ -281,7 +281,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
                 sequence.append('N');
                 indelCounter--;
                 rawSequence.append(Character.toUpperCase((char)ref.getBase()));
-            } else if ( ! mask.isFiltered() && ( ! filterMonomorphic || ! mask.isMonomorphic() )){
+            } else if ( ! mask.isFiltered() && ( ! filterMonomorphic || ! mask.isMonomorphicInSamples() )){
                 logger.debug("SNP in mask found at " + ref.getLocus().toString());
 
                 if ( lowerCaseSNPs ) {

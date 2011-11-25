@@ -28,7 +28,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 
-public class SNPallelePair extends AllelePair {
+class SNPallelePair extends AllelePair {
 
     public SNPallelePair(Genotype gt) {
         super(gt);

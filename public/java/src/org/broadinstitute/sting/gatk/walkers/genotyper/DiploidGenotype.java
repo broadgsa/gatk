@@ -34,7 +34,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
  * Time: 6:46:09 PM
  * To change this template use File | Settings | File Templates.
  */
-enum DiploidGenotype {
+public enum DiploidGenotype {
     AA ('A', 'A'),
     AC ('A', 'C'),
     AG ('A', 'G'),

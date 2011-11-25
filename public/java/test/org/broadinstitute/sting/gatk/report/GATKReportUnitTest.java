@@ -44,12 +44,5 @@ public class GATKReportUnitTest extends BaseTest {
         Assert.assertEquals(validationReport.getVersion(), GATKReportVersion.V0_1);
         Object validationReportPK = countVariants.getPrimaryKey("none.eval.none.known");
         Assert.assertEquals(validationReport.get(validationReportPK, "sensitivity"), "NaN");
-
-        GATKReportTable simpleMetricsByAC = report.getTable("SimpleMetricsByAC.metrics");
-        Assert.assertEquals(simpleMetricsByAC.getVersion(), GATKReportVersion.V0_1);
-        Object simpleMetricsByACPK = simpleMetricsByAC.getPrimaryKey("none.eval.none.novel.ac2");
-        Assert.assertEquals(simpleMetricsByAC.get(simpleMetricsByACPK, "AC"), "2");
-
-        Assert.assertFalse(simpleMetricsByAC.containsPrimaryKey("none.eval.none.novel.ac2.bad"));
     }
 }

@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
@@ -186,7 +187,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * File containing tribble-readable features for the IntervalStratificiation
      */
     @Input(fullName="stratIntervals", shortName="stratIntervals", doc="File containing tribble-readable features for the IntervalStratificiation", required=false)
-    protected IntervalBinding<Feature> intervalsFile = null;
+    public IntervalBinding<Feature> intervalsFile = null;
 
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
@@ -264,9 +265,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
         for ( VariantStratifier vs : getStratificationObjects() ) {
-            if ( vs.getClass().getSimpleName().equals("Filter") )
+            if ( vs.getName().equals("Filter") )
                 byFilterIsEnabled = true;
-            else if ( vs.getClass().getSimpleName().equals("Sample") )
+            else if ( vs.getName().equals("Sample") )
                 perSampleIsEnabled = true;
         }
 
@@ -311,16 +312,17 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
 
             //      --------- track ---------           sample  - VariantContexts -
-            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
-            HashMap<RodBinding<VariantContext>, HashMap<String, Set<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
 
             // for each eval track
             for ( final RodBinding<VariantContext> evalRod : evals ) {
-                final HashMap<String, Set<VariantContext>> evalSet = evalVCs.containsKey(evalRod) ? evalVCs.get(evalRod) : new HashMap<String, Set<VariantContext>>(0);
+                final Map<String, Collection<VariantContext>> emptyEvalMap = Collections.emptyMap();
+                final Map<String, Collection<VariantContext>> evalSet = evalVCs.containsKey(evalRod) ? evalVCs.get(evalRod) : emptyEvalMap;
 
                 // for each sample stratifier
                 for ( final String sampleName : sampleNamesForStratification ) {
-                    Set<VariantContext> evalSetBySample = evalSet.get(sampleName);
+                    Collection<VariantContext> evalSetBySample = evalSet.get(sampleName);
                     if ( evalSetBySample == null ) {
                         evalSetBySample = new HashSet<VariantContext>(1);
                         evalSetBySample.add(null);
@@ -330,16 +332,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     for ( VariantContext eval : evalSetBySample ) {
                         // deal with ancestral alleles if requested
                         if ( eval != null && aastr != null ) {
-                            HashMap<String, Object> newAts = new HashMap<String, Object>(eval.getAttributes());
-                            newAts.put("ANCESTRALALLELE", aastr);
-                            eval = VariantContext.modifyAttributes(eval, newAts);
+                            eval = new VariantContextBuilder(eval).attribute("ANCESTRALALLELE", aastr).make();
                         }
 
                         // for each comp track
                         for ( final RodBinding<VariantContext> compRod : comps ) {
                             // no sample stratification for comps
-                            final HashMap<String, Set<VariantContext>> compSetHash = compVCs.get(compRod);
-                            final Set<VariantContext> compSet = (compSetHash == null || compSetHash.size() == 0) ? new HashSet<VariantContext>(0) : compVCs.get(compRod).values().iterator().next();
+                            final HashMap<String, Collection<VariantContext>> compSetHash = compVCs.get(compRod);
+                            final Collection<VariantContext> compSet = (compSetHash == null || compSetHash.size() == 0) ? Collections.<VariantContext>emptyList() : compVCs.get(compRod).values().iterator().next();
 
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
@@ -383,7 +383,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return null;
     }
 
-    private VariantContext findMatchingComp(final VariantContext eval, final Set<VariantContext> comps) {
+    private VariantContext findMatchingComp(final VariantContext eval, final Collection<VariantContext> comps) {
         // if no comps, return null
         if ( comps == null || comps.isEmpty() )
             return null;
@@ -448,20 +448,18 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             TableType t = (TableType) field.get(ve);
 
                             String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
-                            String subTableDesc = datamap.get(field).description();
+                            final DataPoint dataPointAnn = datamap.get(field);
 
                             GATKReportTable table;
                             if (!report.hasTable(subTableName)) {
-                                report.addTable(subTableName, subTableDesc);
+                                report.addTable(subTableName, dataPointAnn.description());
                                 table = report.getTable(subTableName);
 
                                 table.addPrimaryKey("entry", false);
                                 table.addColumn(subTableName, subTableName);
 
                                 for ( VariantStratifier vs : stratificationObjects ) {
-                                    String columnName = vs.getClass().getSimpleName();
-
-                                    table.addColumn(columnName, "unknown");
+                                    table.addColumn(vs.getName(), "unknown");
                                 }
 
                                 table.addColumn("row", "unknown");
@@ -485,9 +483,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 String r = (String) t.getRowKeys()[row];
 
                                 for ( VariantStratifier vs : stratificationObjects ) {
-                                    String columnName = vs.getClass().getSimpleName();
-
-                                    table.set(stateKey.toString() + r, columnName, stateKey.get(vs.getClass().getSimpleName()));
+                                    final String columnName = vs.getName();
+                                    table.set(stateKey.toString() + r, columnName, stateKey.get(columnName));
                                 }
 
                                 for (int col = 0; col < t.getColumnKeys().length; col++) {
@@ -508,9 +505,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
 
                             for ( VariantStratifier vs : stratificationObjects ) {
-                                String columnName = vs.getClass().getSimpleName();
+                                String columnName = vs.getName();
 
-                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getClass().getSimpleName()));
+                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getName()));
                             }
 
                             table.set(stateKey.toString(), field.getName(), field.get(ve));

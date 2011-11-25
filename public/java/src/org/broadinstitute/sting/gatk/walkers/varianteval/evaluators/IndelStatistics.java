@@ -8,11 +8,9 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 import org.broadinstitute.sting.utils.IndelUtils;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -270,7 +268,7 @@ public class IndelStatistics extends VariantEvaluator {
 
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        if (eval != null && eval.isPolymorphic()) {
+        if (eval != null && eval.isPolymorphicInSamples()) {
             if ( indelStats == null ) {
                 indelStats = new IndelStats(eval);
             }

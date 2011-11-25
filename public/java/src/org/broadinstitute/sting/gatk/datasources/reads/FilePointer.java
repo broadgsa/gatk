@@ -29,6 +29,7 @@ import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.SAMFileSpan;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -40,28 +41,25 @@ import java.util.*;
  */
 public class FilePointer {
     protected final SortedMap<SAMReaderID,SAMFileSpan> fileSpans = new TreeMap<SAMReaderID,SAMFileSpan>();
-    protected final BAMOverlap overlap;
-    protected final List<GenomeLoc> locations;
+    protected final List<GenomeLoc> locations = new ArrayList<GenomeLoc>();
 
     /**
      * Does this file pointer point into an unmapped region?
      */
     protected final boolean isRegionUnmapped;
 
-    public FilePointer() {
-        this((BAMOverlap)null);
-    }
-
-    public FilePointer(final GenomeLoc location) {
-        this.overlap = null;
-        this.locations = Collections.singletonList(location);
-        this.isRegionUnmapped = GenomeLoc.isUnmapped(location);
-    }
-
-    public FilePointer(final BAMOverlap overlap) {
-        this.overlap = overlap;
-        this.locations = new ArrayList<GenomeLoc>();
-        this.isRegionUnmapped = false;
+    public FilePointer(final GenomeLoc... locations) {
+        this.locations.addAll(Arrays.asList(locations));
+        boolean foundMapped = false, foundUnmapped = false;
+        for(GenomeLoc location: locations) {
+            if(GenomeLoc.isUnmapped(location))
+                foundUnmapped = true;
+            else
+                foundMapped = true;
+        }
+        if(foundMapped && foundUnmapped)
+            throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
+        this.isRegionUnmapped = foundUnmapped;
     }
 
     /**
@@ -216,5 +214,21 @@ public class FilePointer {
         for(int i = 1; i < iterators.length; i++)
             fileSpan = fileSpan.union((GATKBAMFileSpan)iterators[i].next().getValue());
         combined.addFileSpans(initialElement.getKey(),fileSpan);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("FilePointer:%n");
+        builder.append("\tlocations = {");
+        builder.append(Utils.join(";",locations));
+        builder.append("}%n\tregions = %n");
+        for(Map.Entry<SAMReaderID,SAMFileSpan> entry: fileSpans.entrySet()) {
+            builder.append(entry.getKey());
+            builder.append("= {");
+            builder.append(entry.getValue());
+            builder.append("}");
+        }
+        return builder.toString();
     }
 }

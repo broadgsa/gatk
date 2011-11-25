@@ -36,10 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -125,7 +122,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     protected static String line = null;
 
     private final double MIN_PROB_ERROR = 0.000001;
-    private final double MAX_GENOTYPE_QUALITY = 6.0;
+    private final double MAX_GENOTYPE_QUALITY = -6.0;
 
     public void initialize() {
 
@@ -181,8 +178,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         // ignore places where we don't have a variant
         if ( beagleR2Feature == null || beagleProbsFeature == null ||  beaglePhasedFeature == null)
         {
-           vcfWriter.add(vc_input);
-           return 1;
+            vcfWriter.add(vc_input);
+            return 1;
         }
 
 
@@ -190,8 +187,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         byte refByte = ref.getBase();
 
         // make new Genotypes based on Beagle results
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc_input.getGenotypes().size());
-
+        GenotypesContext genotypes = GenotypesContext.create(vc_input.getGenotypes().size());
 
         // for each genotype, create a new object with Beagle information on it
 
@@ -200,15 +196,13 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         Double alleleFrequencyH = 0.0;
         int beagleVarCounts = 0;
 
-        Map<String,Genotype> hapmapGenotypes = null;
+        GenotypesContext hapmapGenotypes = null;
 
         if (vc_comp != null) {
             hapmapGenotypes = vc_comp.getGenotypes();
         }
 
-        for ( Map.Entry<String, Genotype> originalGenotypes : vc_input.getGenotypes().entrySet() ) {
-
-            Genotype g = originalGenotypes.getValue();
+        for ( final Genotype g : vc_input.getGenotypes() ) {
             Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
             boolean genotypeIsPhased = true;
@@ -218,7 +212,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             // use sample as key into genotypes structure
             if (vc_comp != null) {
 
-                if (vc_input.getGenotypes().containsKey(sample) && hapmapGenotypes.containsKey(sample))  {
+                if (vc_input.getGenotypes().containsSample(sample) && hapmapGenotypes.containsSample(sample))  {
 
                     Genotype hapmapGenotype = hapmapGenotypes.get(sample);
                     if (hapmapGenotype.isCalled()){
@@ -255,9 +249,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             Allele bglAlleleA, bglAlleleB;
 
             if (alleleA.matches(refString))
-               bglAlleleA = Allele.create(alleleA,true);
+                bglAlleleA = Allele.create(alleleA,true);
             else
-               bglAlleleA = Allele.create(alleleA,false);
+                bglAlleleA = Allele.create(alleleA,false);
 
             if (alleleB.matches(refString))
                 bglAlleleB = Allele.create(alleleB,true);
@@ -286,7 +280,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             // deal with numerical errors coming from limited formatting value on Beagle output files
             if (probWrongGenotype > 1 - MIN_PROB_ERROR)
                 probWrongGenotype = 1 - MIN_PROB_ERROR;
-            
+
             if (1-probWrongGenotype < noCallThreshold) {
                 // quality is bad: don't call genotype
                 alleles.clear();
@@ -298,7 +292,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             if (probWrongGenotype < MIN_PROB_ERROR)
                 genotypeQuality = MAX_GENOTYPE_QUALITY;
             else
-                genotypeQuality = -log10(probWrongGenotype);
+                genotypeQuality = log10(probWrongGenotype);
 
             HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getAttributes());
 
@@ -329,47 +323,40 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             else {
                 originalAttributes.put("OG",".");
             }
-            Genotype imputedGenotype = new Genotype(originalGenotypes.getKey(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
+            Genotype imputedGenotype = new Genotype(g.getSampleName(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
             if ( imputedGenotype.isHet() || imputedGenotype.isHomVar() ) {
                 beagleVarCounts++;
             }
 
-            genotypes.put(originalGenotypes.getKey(), imputedGenotype);
-
+            genotypes.add(imputedGenotype);
         }
 
-        VariantContext filteredVC;
-        if ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES )
-            filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
-        else {
+        final VariantContextBuilder builder = new VariantContextBuilder(vc_input).source("outputvcf").genotypes(genotypes);
+        if ( ! ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES ) ) {
             Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
             removedFilters.add(String.format("BGL_RM_WAS_%s",vc_input.getAlternateAllele(0)));
-            filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), new HashSet<Allele>(Arrays.asList(vc_input.getReference())), genotypes, vc_input.getNegLog10PError(), removedFilters, vc_input.getAttributes());
+            builder.alleles(new HashSet<Allele>(Arrays.asList(vc_input.getReference()))).filters(removedFilters);
         }
 
-        HashMap<String, Object> attributes = new HashMap<String, Object>(filteredVC.getAttributes());
         // re-compute chromosome counts
-        VariantContextUtils.calculateChromosomeCounts(filteredVC, attributes, false);
+        VariantContextUtils.calculateChromosomeCounts(builder, false);
 
         // Get Hapmap AC and AF
         if (vc_comp != null) {
-            attributes.put("ACH", alleleCountH.toString() );
-            attributes.put("ANH", chrCountH.toString() );
-            attributes.put("AFH", String.format("%4.2f", (double)alleleCountH/chrCountH) );
+            builder.attribute("ACH", alleleCountH.toString() );
+            builder.attribute("ANH", chrCountH.toString() );
+            builder.attribute("AFH", String.format("%4.2f", (double)alleleCountH/chrCountH) );
 
         }
 
-        attributes.put("NumGenotypesChanged", numGenotypesChangedByBeagle );
+        builder.attribute("NumGenotypesChanged", numGenotypesChangedByBeagle );
         if( !beagleR2Feature.getR2value().equals(Double.NaN) ) {
-            attributes.put("R2", beagleR2Feature.getR2value().toString() );
+            builder.attribute("R2", beagleR2Feature.getR2value().toString() );
         }
 
-
-        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes));
-
+        vcfWriter.add(builder.make());
 
         return 1;
-
     }
 
     public Integer reduceInit() {

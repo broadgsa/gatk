@@ -6,9 +6,10 @@ import java.util.TreeMap;
  * Holds values for a column in a GATK report table
  */
 public class GATKReportColumn extends TreeMap<Object, Object> {
-    private String columnName;
-    private Object defaultValue;
-    private boolean display;
+    final private String columnName;
+    final private Object defaultValue;
+    final private String format;
+    final private boolean display;
 
     /**
      * Construct the column object, specifying the column name, default value, and whether or not the column should be displayed
@@ -18,10 +19,16 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
      * @param display  if true, the column will be displayed in the final output
      */
     public GATKReportColumn(String columnName, Object defaultValue, boolean display) {
+        this(columnName, defaultValue, display, null);
+    }
+
+    public GATKReportColumn(String columnName, Object defaultValue, boolean display, String format) {
         this.columnName = columnName;
         this.defaultValue = defaultValue;
         this.display = display;
+        this.format = format == null ? null : (format.equals("") ? null : format);
     }
+
 
     /**
      * Initialize an element in the column with a default value
@@ -55,7 +62,7 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
      * @return  the string value at the specified position in the column, or the default value if the element is not set
      */
     public String getStringValue(Object primaryKey) {
-        return toString(getWithoutSideEffects(primaryKey));
+        return formatValue(getWithoutSideEffects(primaryKey));
     }
 
     /**
@@ -77,7 +84,7 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
 
         for (Object obj : this.values()) {
             if (obj != null) {
-                int width = toString(obj).length();
+                int width = formatValue(obj).length();
 
                 if (width > maxWidth) {
                     maxWidth = width;
@@ -93,10 +100,12 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
      * @param obj The object to convert to a string
      * @return The string representation of the column
      */
-    private static String toString(Object obj) {
+    private String formatValue(Object obj) {
         String value;
         if (obj == null) {
             value = "null";
+        } else if ( format != null ) {
+            value = String.format(format, obj);
         } else if (obj instanceof Float) {
             value = String.format("%.8f", (Float) obj);
         } else if (obj instanceof Double) {

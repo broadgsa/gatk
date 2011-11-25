@@ -62,17 +62,17 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nHomDerived = 0;
 
     // calculations that get set in the finalizeEvaluation method
-    @DataPoint(description = "heterozygosity per locus rate")
+    @DataPoint(description = "heterozygosity per locus rate", format = "%.2e")
     public double heterozygosity = 0;
-    @DataPoint(description = "heterozygosity per base pair")
+    @DataPoint(description = "heterozygosity per base pair", format = "%.2f")
     public double heterozygosityPerBp = 0;
-    @DataPoint(description = "heterozygosity to homozygosity ratio")
+    @DataPoint(description = "heterozygosity to homozygosity ratio", format = "%.2f")
     public double hetHomRatio = 0;
-    @DataPoint(description = "indel rate (insertion count + deletion count)")
+    @DataPoint(description = "indel rate (insertion count + deletion count)", format = "%.2e")
     public double indelRate = 0;
-    @DataPoint(description = "indel rate per base pair")
+    @DataPoint(description = "indel rate per base pair", format = "%.2f")
     public double indelRatePerBp = 0;
-    @DataPoint(description = "deletion to insertion ratio")
+    @DataPoint(description = "deletion to insertion ratio", format = "%.2f")
     public double deletionInsertionRatio = 0;
     
     private double perLocusRate(long n) {
@@ -103,7 +103,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
         // added in a proxy check for monomorphic status here.
         // Protect against case when vc only as no-calls too - can happen if we strafity by sample and sample as a single no-call.
-       if ( vc1.isMonomorphic() ) {
+       if ( vc1.isMonomorphicInSamples() ) {
             nRefLoci++;
         } else {
              switch (vc1.getType()) {
@@ -157,8 +157,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // A    C   A
         // A    C   C
 
-        for (Genotype g : vc1.getGenotypes().values()) {
-            String altStr = vc1.getAlternateAlleles().size() > 0 ? vc1.getAlternateAllele(0).getBaseString().toUpperCase() : null;
+        for (final Genotype g : vc1.getGenotypes()) {
+            final String altStr = vc1.getAlternateAlleles().size() > 0 ? vc1.getAlternateAllele(0).getBaseString().toUpperCase() : null;
 
             switch (g.getType()) {
                 case NO_CALL:

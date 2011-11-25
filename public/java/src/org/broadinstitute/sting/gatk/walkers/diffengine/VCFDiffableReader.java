@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -46,6 +47,8 @@ import java.util.Map;
  * Class implementing diffnode reader for VCF
  */
 public class VCFDiffableReader implements DiffableReader {
+    private static Logger logger = Logger.getLogger(VCFDiffableReader.class);
+
     @Override
     public String getName() { return "VCF"; }
 
@@ -68,7 +71,10 @@ public class VCFDiffableReader implements DiffableReader {
                 String key = headerLine.getKey();
                 if ( headerLine instanceof VCFNamedHeaderLine )
                     key += "_" + ((VCFNamedHeaderLine) headerLine).getName();
-                root.add(key, headerLine.toString());
+                if ( root.hasElement(key) )
+                    logger.warn("Skipping duplicate header line: file=" + file + " line=" + headerLine.toString());
+                else
+                    root.add(key, headerLine.toString());
             }
 
             String line = lineReader.readLine();
@@ -90,22 +96,22 @@ public class VCFDiffableReader implements DiffableReader {
                 // add fields
                 vcRoot.add("CHROM", vc.getChr());
                 vcRoot.add("POS", vc.getStart());
-                vcRoot.add("ID", vc.hasID() ? vc.getID() : VCFConstants.MISSING_VALUE_v4);
+                vcRoot.add("ID", vc.getID());
                 vcRoot.add("REF", vc.getReference());
                 vcRoot.add("ALT", vc.getAlternateAlleles());
-                vcRoot.add("QUAL", vc.hasNegLog10PError() ? vc.getNegLog10PError() * 10 : VCFConstants.MISSING_VALUE_v4);
+                vcRoot.add("QUAL", vc.hasLog10PError() ? vc.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4);
                 vcRoot.add("FILTER", vc.getFilters());
 
                 // add info fields
                 for (Map.Entry<String, Object> attribute : vc.getAttributes().entrySet()) {
-                    if ( ! attribute.getKey().startsWith("_") && ! attribute.getKey().equals(VariantContext.ID_KEY))
+                    if ( ! attribute.getKey().startsWith("_") )
                         vcRoot.add(attribute.getKey(), attribute.getValue());
                 }
 
-                for (Genotype g : vc.getGenotypes().values() ) {
+                for (Genotype g : vc.getGenotypes() ) {
                     DiffNode gRoot = DiffNode.empty(g.getSampleName(), vcRoot);
                     gRoot.add("GT", g.getGenotypeString());
-                    gRoot.add("GQ", g.hasNegLog10PError() ? g.getNegLog10PError() * 10 : VCFConstants.MISSING_VALUE_v4 );
+                    gRoot.add("GQ", g.hasLog10PError() ? g.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4 );
 
                     for (Map.Entry<String, Object> attribute : g.getAttributes().entrySet()) {
                         if ( ! attribute.getKey().startsWith("_") )

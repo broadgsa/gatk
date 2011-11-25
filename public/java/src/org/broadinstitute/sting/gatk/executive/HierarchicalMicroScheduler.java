@@ -5,7 +5,6 @@ import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
@@ -88,7 +87,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
     }
 
-    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
+    public Object execute( Walker walker, Iterable<Shard> shardStrategy ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");

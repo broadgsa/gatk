@@ -21,7 +21,7 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
         String value = "";
 
         for ( VariantStratifier key : this.keySet() ) {
-            value += "\t" + key.getClass().getSimpleName() + ":" + this.get(key) + "\n";
+            value += "\t" + key.getName() + ":" + this.get(key) + "\n";
         }
 
         return value;

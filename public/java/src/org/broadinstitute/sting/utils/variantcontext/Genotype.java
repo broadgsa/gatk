@@ -12,30 +12,28 @@ import java.util.*;
  *
  * @author Mark DePristo
  */
-public class Genotype {
+public class Genotype implements Comparable<Genotype> {
 
     public final static String PHASED_ALLELE_SEPARATOR = "|";
     public final static String UNPHASED_ALLELE_SEPARATOR = "/";
 
-    protected InferredGeneticContext commonInfo;
-    public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
+    protected CommonInfo commonInfo;
+    public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
     protected List<Allele> alleles = null; // new ArrayList<Allele>();
     protected Type type = null;
 
     protected boolean isPhased = false;
-    protected boolean filtersWereAppliedToContext;
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
-        this(sampleName, alleles, negLog10PError, filters, attributes, isPhased, null);
+    public Genotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased) {
+        this(sampleName, alleles, log10PError, filters, attributes, isPhased, null);
     }
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
+    public Genotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
         if ( alleles != null )
             this.alleles = Collections.unmodifiableList(alleles);
-        commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        commonInfo = new CommonInfo(sampleName, log10PError, filters, attributes);
         if ( log10Likelihoods != null )
             commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
-        filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
         validate();
     }
@@ -44,20 +42,25 @@ public class Genotype {
      * Creates a new Genotype for sampleName with genotype according to alleles.
      * @param sampleName
      * @param alleles
-     * @param negLog10PError the confidence in these alleles
+     * @param log10PError the confidence in these alleles
      * @param log10Likelihoods a log10 likelihoods for each of the genotype combinations possible for alleles, in the standard VCF ordering, or null if not known
      */
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, double[] log10Likelihoods) {
-        this(sampleName, alleles, negLog10PError, null, null, false, log10Likelihoods);
+    public Genotype(String sampleName, List<Allele> alleles, double log10PError, double[] log10Likelihoods) {
+        this(sampleName, alleles, log10PError, null, null, false, log10Likelihoods);
     }
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError) {
-        this(sampleName, alleles, negLog10PError, null, null, false);
+    public Genotype(String sampleName, List<Allele> alleles, double log10PError) {
+        this(sampleName, alleles, log10PError, null, null, false);
     }
 
     public Genotype(String sampleName, List<Allele> alleles) {
-        this(sampleName, alleles, NO_NEG_LOG_10PERROR, null, null, false);
+        this(sampleName, alleles, NO_LOG10_PERROR, null, null, false);
     }
+
+    public Genotype(String sampleName, Genotype parent) {
+        this(sampleName, parent.getAlleles(), parent.getLog10PError(), parent.getFilters(), parent.getAttributes(), parent.isPhased());
+    }
+
 
 
     // ---------------------------------------------------------------------------------------------------------
@@ -67,15 +70,15 @@ public class Genotype {
     // ---------------------------------------------------------------------------------------------------------
 
     public static Genotype modifyName(Genotype g, String name) {
-        return new Genotype(name, g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
+        return new Genotype(name, g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
     }
 
     public static Genotype modifyAttributes(Genotype g, Map<String, Object> attributes) {
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.isPhased());
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.isPhased());
     }
 
     public static Genotype modifyAlleles(Genotype g, List<Allele> alleles) {
-        return new Genotype(g.getSampleName(), alleles, g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
+        return new Genotype(g.getSampleName(), alleles, g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
     }
 
     /**
@@ -328,11 +331,12 @@ public class Genotype {
     // ---------------------------------------------------------------------------------------------------------
     public String getSampleName()       { return commonInfo.getName(); }
     public Set<String> getFilters()     { return commonInfo.getFilters(); }
+    public Set<String> getFiltersMaybeNull()    { return commonInfo.getFiltersMaybeNull(); }
     public boolean isFiltered()         { return commonInfo.isFiltered(); }
     public boolean isNotFiltered()      { return commonInfo.isNotFiltered(); }
-    public boolean filtersWereApplied() { return filtersWereAppliedToContext; }
-    public boolean hasNegLog10PError()  { return commonInfo.hasNegLog10PError(); }
-    public double getNegLog10PError()   { return commonInfo.getNegLog10PError(); }
+    public boolean filtersWereApplied() { return commonInfo.filtersWereApplied(); }
+    public boolean hasLog10PError()     { return commonInfo.hasLog10PError(); }
+    public double getLog10PError()      { return commonInfo.getLog10PError(); }
     public double getPhredScaledQual()  { return commonInfo.getPhredScaledQual(); }
 
     public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
@@ -347,4 +351,14 @@ public class Genotype {
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
+
+    /**
+     * comparable genotypes -> compareTo on the sample names
+     * @param genotype
+     * @return
+     */
+    @Override
+    public int compareTo(final Genotype genotype) {
+        return getSampleName().compareTo(genotype.getSampleName());
+    }
 }

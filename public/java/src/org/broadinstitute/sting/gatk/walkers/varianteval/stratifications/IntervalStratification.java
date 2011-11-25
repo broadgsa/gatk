@@ -63,8 +63,8 @@ public class IntervalStratification extends VariantStratifier {
         if ( locs.isEmpty() )
             throw new UserException.BadArgumentValue("stratIntervals", "Contains no intervals.  Perhaps the file is malformed or empty?");
 
-        logger.info(String.format("Creating IntervalStratification containing %d intervals covering %d bp",
-                locs.size(), IntervalUtils.intervalSize(locs)));
+        logger.info(String.format("Creating IntervalStratification %s containing %d intervals covering %d bp",
+                getVariantEvalWalker().intervalsFile.getSource(), locs.size(), IntervalUtils.intervalSize(locs)));
 
         // set up the map from contig -> interval tree
         for ( final String contig : getVariantEvalWalker().getContigNames() )

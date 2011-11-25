@@ -52,7 +52,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     
     @Test
     public void testCallableLociWalker2() {
-        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-10,000,100;1:10,000,110-10,000,120 -summary %s";
+        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-10,000,100 -L 1:10,000,110-10,000,120 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
                 Arrays.asList("c671f65712d9575b8b3e1f1dbedc146e", "d287510eac04acf5a56f5cde2cba0e4a"));
         executeTest("formatBed by interval", spec);

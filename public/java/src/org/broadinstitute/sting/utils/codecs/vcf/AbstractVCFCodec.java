@@ -10,16 +10,14 @@ import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 
-public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, VCFParser {
+public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
@@ -61,6 +59,29 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
     protected Map<String, String> stringCache = new HashMap<String, String>();
 
+    /**
+     * Creates a LazyParser for a LazyGenotypesContext to use to decode
+     * our genotypes only when necessary.  We do this instead of eagarly
+     * decoding the genotypes just to turn around and reencode in the frequent
+     * case where we don't actually want to manipulate the genotypes
+     */
+    class LazyVCFGenotypesParser implements LazyGenotypesContext.LazyParser {
+        final List<Allele> alleles;
+        final String contig;
+        final int start;
+
+        LazyVCFGenotypesParser(final List<Allele> alleles, final String contig, final int start) {
+            this.alleles = alleles;
+            this.contig = contig;
+            this.start = start;
+        }
+
+        @Override
+        public LazyGenotypesContext.LazyData parse(final Object data) {
+            //System.out.printf("Loading genotypes... %s:%d%n", contig, start);
+            return createGenotypeMap((String) data, alleles, contig, start);
+        }
+    }
 
     /**
      * @param reader the line reader to take header lines from
@@ -70,13 +91,14 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
 
     /**
      * create a genotype map
+     *
      * @param str the string
      * @param alleles the list of alleles
      * @param chr chrom
      * @param pos position
      * @return a mapping of sample name to genotype object
      */
-    public abstract Map<String, Genotype> createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
+    public abstract LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
 
 
     /**
@@ -97,7 +119,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         headerStrings.add(line);
 
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
-        Set<String> auxTags = new LinkedHashSet<String>();
+        Set<String> sampleNames = new LinkedHashSet<String>();
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
             if ( !str.startsWith(VCFHeader.METADATA_INDICATOR) ) {
@@ -125,9 +147,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                 }
 
                 while ( arrayIndex < strings.length )
-                    auxTags.add(strings[arrayIndex++]);
+                    sampleNames.add(strings[arrayIndex++]);
 
-                if ( sawFormatTag && auxTags.size() == 0 )
+                if ( sawFormatTag && sampleNames.size() == 0 )
                     throw new UserException.MalformedVCFHeader("The FORMAT field was provided but there is no genotype/sample data");
 
             } else {
@@ -151,7 +173,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             }
         }
 
-        header = new VCFHeader(metaData, auxTags);
+        header = new VCFHeader(metaData, sampleNames);
+        header.buildVCFReaderMaps(new ArrayList<String>(sampleNames));
         return header;
     }
 
@@ -252,29 +275,33 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @return a variant context object
      */
     private VariantContext parseVCFLine(String[] parts) {
+        VariantContextBuilder builder = new VariantContextBuilder();
+        builder.source(getName());
+
         // increment the line count
         lineNo++;
 
         // parse out the required fields
-        String contig = getCachedString(parts[0]);
+        final String chr = getCachedString(parts[0]);
+        builder.chr(chr);
         int pos = Integer.valueOf(parts[1]);
-        String id = null;
+        builder.start(pos);
+
         if ( parts[2].length() == 0 )
             generateException("The VCF specification requires a valid ID field");
         else if ( parts[2].equals(VCFConstants.EMPTY_ID_FIELD) )
-            id = VCFConstants.EMPTY_ID_FIELD;
+            builder.noID();
         else
-            id = new String(parts[2]);
+            builder.id(parts[2]);
+
         String ref = getCachedString(parts[3].toUpperCase());
         String alts = getCachedString(parts[4].toUpperCase());
-        Double qual = parseQual(parts[5]);
-        String filter = getCachedString(parts[6]);
-        String info = new String(parts[7]);
+        builder.log10PError(parseQual(parts[5]));
+        builder.filters(parseFilters(getCachedString(parts[6])));
+        builder.attributes(parseInfo(parts[7]));
 
         // get our alleles, filters, and setup an attribute map
         List<Allele> alleles = parseAlleles(ref, alts, lineNo);
-        Set<String> filters = parseFilters(filter);
-        Map<String, Object> attributes = parseInfo(info, id);
 
         // find out our current location, and clip the alleles down to their minimum length
         int loc = pos;
@@ -286,23 +313,30 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             loc = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
             alleles = newAlleles;
         }
+        builder.stop(loc);
+        builder.alleles(alleles);
 
         // do we have genotyping data
         if (parts.length > NUM_STANDARD_FIELDS) {
-            attributes.put(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, new String(parts[8]));
-            attributes.put(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY, this);
+            final LazyGenotypesContext.LazyParser lazyParser = new LazyVCFGenotypesParser(alleles, chr, pos);
+            final int nGenotypes = header.getGenotypeSamples().size();
+            LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, parts[8], nGenotypes);
+
+            // did we resort the sample names?  If so, we need to load the genotype data
+            if ( !header.samplesWereAlreadySorted() )
+                lazy.decode();
+
+            builder.genotypesNoValidation(lazy);
         }
 
         VariantContext vc = null;
         try {
-            vc =  new VariantContext(name, contig, pos, loc, alleles, qual, filters, attributes, ref.getBytes()[0]);
+            builder.referenceBaseForIndel(ref.getBytes()[0]);
+            vc = builder.make();
         } catch (Exception e) {
             generateException(e.getMessage());
         }
 
-        // did we resort the sample names?  If so, we need to load the genotype data
-        if ( !header.samplesWereAlreadySorted() )
-            vc.getGenotypes();
 
         return vc;
     }
@@ -349,10 +383,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     /**
      * parse out the info fields
      * @param infoField the fields
-     * @param id the indentifier
      * @return a mapping of keys to objects
      */
-    private Map<String, Object> parseInfo(String infoField, String id) {
+    private Map<String, Object> parseInfo(String infoField) {
         Map<String, Object> attributes = new HashMap<String, Object>();
 
         if ( infoField.length() == 0 )
@@ -391,8 +424,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             }
         }
 
-        if ( ! id.equals(VCFConstants.EMPTY_ID_FIELD) )
-            attributes.put(VariantContext.ID_KEY, id);
         return attributes;
     }
 
@@ -444,16 +475,16 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     protected static Double parseQual(String qualString) {
         // if we're the VCF 4 missing char, return immediately
         if ( qualString.equals(VCFConstants.MISSING_VALUE_v4))
-            return VariantContext.NO_NEG_LOG_10PERROR;
+            return VariantContext.NO_LOG10_PERROR;
 
         Double val = Double.valueOf(qualString);
 
         // check to see if they encoded the missing qual score in VCF 3 style, with either the -1 or -1.0.  check for val < 0 to save some CPU cycles
         if ((val < 0) && (Math.abs(val - VCFConstants.MISSING_QUALITY_v3_DOUBLE) < VCFConstants.VCF_ENCODING_EPSILON))
-            return VariantContext.NO_NEG_LOG_10PERROR;
+            return VariantContext.NO_LOG10_PERROR;
 
         // scale and return the value
-        return val / 10.0;
+        return val / -10.0;
     }
 
     /**

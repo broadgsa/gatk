@@ -229,8 +229,7 @@ public class UnifiedGenotyperEngine {
             VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, rawContext.getLocation(), false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
-            vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles(), InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, ref.getBase());
-
+            vc = new VariantContextBuilder(vcInput).source("UG_call").noID().referenceBaseForIndel(ref.getBase()).make();
         } else {
             // deal with bad/non-standard reference bases
             if ( !Allele.acceptableAlleleBases(new byte[]{ref.getBase()}) )
@@ -238,7 +237,7 @@ public class UnifiedGenotyperEngine {
 
             Set<Allele> alleles = new HashSet<Allele>();
             alleles.add(Allele.create(ref.getBase(), true));
-            vc = new VariantContext("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles);
+            vc = new VariantContextBuilder("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles).make();
         }
         
         if ( annotationEngine != null ) {
@@ -265,7 +264,7 @@ public class UnifiedGenotyperEngine {
         alleles.add(refAllele);
         boolean addedAltAlleles = false;
 
-        HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        GenotypesContext genotypes = GenotypesContext.create();
         for ( MultiallelicGenotypeLikelihoods GL : GLs.values() ) {
             if ( !addedAltAlleles ) {
                 addedAltAlleles = true;
@@ -281,22 +280,13 @@ public class UnifiedGenotyperEngine {
             attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
             attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
 
-            genotypes.put(GL.getSample(), new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
+            genotypes.add(new Genotype(GL.getSample(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
         }
 
         GenomeLoc loc = refContext.getLocus();
         int endLoc = calculateEndPos(alleles, refAllele, loc);
 
-        return new VariantContext("UG_call",
-                loc.getContig(),
-                loc.getStart(),
-                endLoc,
-                alleles,
-                genotypes,
-                VariantContext.NO_NEG_LOG_10PERROR,
-                null,
-                null,
-                refContext.getBase());
+        return new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleles).genotypes(genotypes).referenceBaseForIndel(refContext.getBase()).make();
     }
 
     // private method called by both UnifiedGenotyper and UGCallVariants entry points into the engine
@@ -354,7 +344,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        Map<String, Genotype> genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
+        GenotypesContext genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
 
         // print out stats if we have a writer
         if ( verboseWriter != null )
@@ -420,8 +410,14 @@ public class UnifiedGenotyperEngine {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
-        VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, refContext.getBase());
+
+        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, myAlleles);
+        builder.genotypes(genotypes);
+        builder.log10PError(phredScaledConfidence/-10.0);
+        if ( ! passesCallThreshold(phredScaledConfidence) ) builder.filters(filter);
+        builder.attributes(attributes);
+        builder.referenceBaseForIndel(refContext.getBase());
+        VariantContext vcCall = builder.make();
 
         if ( annotationEngine != null ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
@@ -491,7 +487,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        Map<String, Genotype> genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
+        GenotypesContext genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -504,10 +500,15 @@ public class UnifiedGenotyperEngine {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
-        VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes, vc.getReferenceBaseForIndel());
 
-        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
+        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, myAlleles);
+        builder.genotypes(genotypes);
+        builder.log10PError(phredScaledConfidence/-10.0);
+        if ( ! passesCallThreshold(phredScaledConfidence) ) builder.filters(filter);
+        builder.attributes(attributes);
+        builder.referenceBaseForIndel(vc.getReferenceBaseForIndel());
+
+        return new VariantCallContext(builder.make(), confidentlyCalled(phredScaledConfidence, PofF));
     }
 
     private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
@@ -810,9 +811,6 @@ public class UnifiedGenotyperEngine {
         switch ( UAC.AFmodel ) {
             case EXACT:
                 afcm = new ExactAFCalculationModel(UAC, N, logger, verboseWriter);
-                break;
-            case GRID_SEARCH:
-                afcm = new GridSearchAFEstimation(UAC, N, logger, verboseWriter);
                 break;
             default: throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
         }

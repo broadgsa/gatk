@@ -30,7 +30,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -97,11 +96,18 @@ public class CommandLineGATK extends CommandLineExecutable {
             //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
         } catch (net.sf.samtools.SAMException e) {
-            // Let's try this out and see how it is received by our users
+            checkForTooManyOpenFilesProblem(e.getMessage());
             exitSystemWithSamError(e);
-        } catch (Exception e) {
-            exitSystemWithError(e);
+        } catch (Throwable t) {
+            checkForTooManyOpenFilesProblem(t.getMessage());
+            exitSystemWithError(t);
         }
+    }
+
+    private static void checkForTooManyOpenFilesProblem(String message) {
+        // Special case the "Too many open files" error because it's a common User Error for which we know what to do
+        if ( message != null && message.indexOf("Too many open files") != -1 )
+            exitSystemWithUserError(new UserException.TooManyOpenFiles());
     }
 
     /**

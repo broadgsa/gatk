@@ -7,7 +7,6 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
@@ -44,7 +43,7 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param walker    Computation to perform over dataset.
      * @param shardStrategy A strategy for sharding the data.
      */
-    public Object execute(Walker walker, ShardStrategy shardStrategy) {
+    public Object execute(Walker walker, Iterable<Shard> shardStrategy) {
         walker.initialize();
         Accumulator accumulator = Accumulator.create(engine,walker);
 
