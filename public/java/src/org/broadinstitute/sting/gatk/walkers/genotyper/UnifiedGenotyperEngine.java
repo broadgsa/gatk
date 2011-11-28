@@ -50,11 +50,12 @@ public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 
     public enum OUTPUT_MODE {
-        /** the default */
+        /** produces calls only at variant sites */
         EMIT_VARIANTS_ONLY,
-        /** include confident reference sites */
+        /** produces calls at variant sites and confident reference sites */
         EMIT_ALL_CONFIDENT_SITES,
-        /** any callable site regardless of confidence */
+        /** produces calls at any callable site regardless of confidence; this argument is intended for point
+         * mutations (SNPs) only and while some indel calls may be produced they are by no means comprehensive */
         EMIT_ALL_SITES
     }
 
