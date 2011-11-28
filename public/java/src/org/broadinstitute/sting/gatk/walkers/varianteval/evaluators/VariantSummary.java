@@ -131,7 +131,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                     n++;
                 }
             }
-            return Math.round(sum / (1.0 * n));
+            return sum / (1.0 * n);
         }
     }
 
