@@ -161,13 +161,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
 
-    /**
-     * This argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined.
-     */
-    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations", required=false)
-    protected String FAMILY_STRUCTURE;
-
-    @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
+    @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation. Default is 50.", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
@@ -528,8 +522,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public int getNumSamples() { return numSamples; }
 
     public double getMinPhaseQuality() { return MIN_PHASE_QUALITY; }
-
-    public String getFamilyStructure() { return FAMILY_STRUCTURE; }
 
     public double getMendelianViolationQualThreshold() { return MENDELIAN_VIOLATION_QUAL_THRESHOLD; }
 
