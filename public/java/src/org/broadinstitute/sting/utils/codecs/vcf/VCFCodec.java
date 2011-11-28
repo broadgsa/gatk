@@ -5,7 +5,6 @@ import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -217,7 +216,7 @@ public class VCFCodec extends AbstractVCFCodec {
     }
 
     @Override
-    public boolean canDecode(final File potentialInput) {
+    public boolean canDecode(final String potentialInput) {
         return canDecodeFile(potentialInput, VCF4_MAGIC_HEADER);
     }
 }

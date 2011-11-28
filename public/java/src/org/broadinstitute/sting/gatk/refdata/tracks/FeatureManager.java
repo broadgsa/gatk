@@ -155,7 +155,7 @@ public class FeatureManager  {
     public FeatureDescriptor getByFiletype(File file) {
         List<FeatureDescriptor> canParse = new ArrayList<FeatureDescriptor>();
         for ( FeatureDescriptor descriptor : featureDescriptors )
-            if ( descriptor.getCodec().canDecode(file) ) {
+            if ( descriptor.getCodec().canDecode(file.getPath()) ) {
                 canParse.add(descriptor);
             }
 

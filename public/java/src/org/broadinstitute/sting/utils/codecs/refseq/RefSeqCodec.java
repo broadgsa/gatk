@@ -9,7 +9,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -140,6 +139,6 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         return RefSeqFeature.class;
     }
 
-    public boolean canDecode(final File potentialInput) { return false; }
+    public boolean canDecode(final String potentialInput) { return false; }
 
 }

@@ -33,7 +33,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map;
 
@@ -135,6 +134,6 @@ public class VCFDiffableReader implements DiffableReader {
 
     @Override
     public boolean canRead(File file) {
-        return AbstractVCFCodec.canDecodeFile(file, VCFCodec.VCF4_MAGIC_HEADER);
+        return AbstractVCFCodec.canDecodeFile(file.getPath(), VCFCodec.VCF4_MAGIC_HEADER);
     }
 }
