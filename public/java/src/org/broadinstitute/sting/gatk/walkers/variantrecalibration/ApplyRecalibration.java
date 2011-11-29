@@ -76,7 +76,7 @@ import java.util.*;
  * java -Xmx3g -jar GenomeAnalysisTK.jar \
  *   -T ApplyRecalibration \
  *   -R reference/human_g1k_v37.fasta \
- *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf \
+ *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.subset.b37.vcf \
  *   --ts_filter_level 99.0 \
  *   -tranchesFile path/to/output.tranches \
  *   -recalFile path/to/output.recal \
