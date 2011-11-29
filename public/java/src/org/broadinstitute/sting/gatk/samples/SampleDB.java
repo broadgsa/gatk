@@ -156,7 +156,7 @@ public class SampleDB {
         final Map<String, Set<Sample>> families = new TreeMap<String, Set<Sample>>();
 
         for ( final Sample sample : samples.values() ) {
-            if(sampleIds != null && sampleIds.contains(sample.getID())){
+            if(sampleIds == null || sampleIds.contains(sample.getID())){
                 final String famID = sample.getFamilyID();
                 if ( famID != null ) {
                     if ( ! families.containsKey(famID) )
