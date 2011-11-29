@@ -66,12 +66,14 @@ import java.util.*;
  * the log odds ratio of being a true variant versus being false under the trained Gaussian mixture model.
  *
  * <p>
+ * NOTE: Please see our <a href="http://www.broadinstitute.org/gsa/wiki/index.php/Best_Practice_Variant_Detection_with_the_GATK_v3">best practices wiki page</a> for our recommendations on which annotations to use for specific project designs.
+ *
+ * <p>
  * NOTE: In order to create the model reporting plots Rscript needs to be in your environment PATH (this is the scripting version of R, not the interactive version).
  * See <a target="r-project" href="http://www.r-project.org">http://www.r-project.org</a> for more info on how to download and install R.
  *
  * <p>
- * See the GATK wiki for a tutorial and example recalibration accuracy plots.
- * http://www.broadinstitute.org/gsa/wiki/index.php/Variant_quality_score_recalibration
+ * See <a href="http://www.broadinstitute.org/gsa/wiki/index.php/Variant_quality_score_recalibration">the GATK wiki for a tutorial and example recalibration accuracy plots.</a>
  *
  * <h2>Input</h2>
  * <p>
@@ -83,18 +85,18 @@ import java.util.*;
  * <p>
  * A recalibration table file in CSV format that is used by the ApplyRecalibration walker.
  * <p>
- * A tranches file which shows various metrics of the recalibration callset as a function of making several slices through the data.  
+ * A tranches file which shows various metrics of the recalibration callset as a function of making several slices through the data.
  *
  * <h2>Example</h2>
  * <pre>
  * java -Xmx4g -jar GenomeAnalysisTK.jar \
  *   -T VariantRecalibrator \
  *   -R reference/human_g1k_v37.fasta \
- *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.hg19.subset.vcf \
+ *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf \
  *   -resource:hapmap,known=false,training=true,truth=true,prior=15.0 hapmap_3.3.b37.sites.vcf \
  *   -resource:omni,known=false,training=true,truth=false,prior=12.0 1000G_omni2.5.b37.sites.vcf \
  *   -resource:dbsnp,known=true,training=false,truth=false,prior=8.0 dbsnp_132.b37.vcf \
- *   -an QD -an HaplotypeScore -an MQRankSum -an ReadPosRankSum -an FS -an MQ \
+ *   -an QD -an HaplotypeScore -an MQRankSum -an ReadPosRankSum -an MQ \
  *   -recalFile path/to/output.recal \
  *   -tranchesFile path/to/output.tranches \
  *   -rscriptFile path/to/output.plots.R

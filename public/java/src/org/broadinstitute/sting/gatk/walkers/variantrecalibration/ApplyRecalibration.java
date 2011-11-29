@@ -58,8 +58,7 @@ import java.util.*;
  * slightly lower quality level.
  *
  * <p>
- * See the GATK wiki for a tutorial and example recalibration accuracy plots.
- * http://www.broadinstitute.org/gsa/wiki/index.php/Variant_quality_score_recalibration
+ * See <a href="http://www.broadinstitute.org/gsa/wiki/index.php/Variant_quality_score_recalibration">the GATK wiki for a tutorial and example recalibration accuracy plots.</a>
  *
  * <h2>Input</h2>
  * <p>
@@ -78,7 +77,7 @@ import java.util.*;
  * java -Xmx3g -jar GenomeAnalysisTK.jar \
  *   -T ApplyRecalibration \
  *   -R reference/human_g1k_v37.fasta \
- *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.hg19.subset.vcf \
+ *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf \
  *   --ts_filter_level 99.0 \
  *   -tranchesFile path/to/output.tranches \
  *   -recalFile path/to/output.recal \
