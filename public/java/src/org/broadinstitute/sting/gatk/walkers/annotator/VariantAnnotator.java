@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -194,6 +195,11 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             System.out.println("\t" + c.getSimpleName());
         System.out.println();
         System.exit(0);
+    }
+
+    @Override
+    public SampleDB getSampleDB() {
+        return super.getSampleDB();
     }
 
     /**

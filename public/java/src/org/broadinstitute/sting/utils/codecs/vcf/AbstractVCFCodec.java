@@ -638,7 +638,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         return position+Math.max(refLength - 1,0);
     }
 
-    public final static boolean canDecodeFile(final File potentialInput, final String MAGIC_HEADER_LINE) {
+    public final static boolean canDecodeFile(final String potentialInput, final String MAGIC_HEADER_LINE) {
         try {
             return isVCFStream(new FileInputStream(potentialInput), MAGIC_HEADER_LINE) ||
                     isVCFStream(new GZIPInputStream(new FileInputStream(potentialInput)), MAGIC_HEADER_LINE) ||

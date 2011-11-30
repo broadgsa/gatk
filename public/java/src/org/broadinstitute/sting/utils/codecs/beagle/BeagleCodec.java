@@ -249,6 +249,6 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
         return bglFeature;
     }
 
-    public boolean canDecode(final File potentialInput) { return false; }
+    public boolean canDecode(final String potentialInput) { return false; }
 
 }

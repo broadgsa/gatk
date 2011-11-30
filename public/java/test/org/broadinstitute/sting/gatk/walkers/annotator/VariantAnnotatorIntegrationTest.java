@@ -168,4 +168,15 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         );
         executeTest("Testing SnpEff annotations (unsupported version)", spec);
     }
+
+    @Test
+    public void testTDTAnnotation() {
+        final String MD5 = "9fe37b61aab695ad47ce3c587148e91f";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T VariantAnnotator -R " + b37KGReference + " -A TransmissionDisequilibriumTest --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                Arrays.asList(MD5));
+        executeTest("Testing TDT annotation", spec);
+    }
+
 }
