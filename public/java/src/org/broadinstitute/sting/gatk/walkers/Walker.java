@@ -88,7 +88,7 @@ public abstract class Walker<MapType, ReduceType> {
         return getToolkit().getMasterSequenceDictionary();
     }
 
-    protected SampleDB getSampleDB() {
+    public SampleDB getSampleDB() {
         return getToolkit().getSampleDB();
     }
 

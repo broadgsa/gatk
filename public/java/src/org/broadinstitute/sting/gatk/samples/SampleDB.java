@@ -142,17 +142,29 @@ public class SampleDB {
      * @return
      */
     public final Map<String, Set<Sample>> getFamilies() {
+        return getFamilies(null);
+    }
+
+    /**
+     * Returns a map from family ID -> set of family members for all samples in sampleIds with
+     * non-null family ids
+     *
+     * @param sampleIds - all samples to include. If null is passed then all samples are returned.
+     * @return
+     */
+    public final Map<String, Set<Sample>> getFamilies(Collection<String> sampleIds) {
         final Map<String, Set<Sample>> families = new TreeMap<String, Set<Sample>>();
 
         for ( final Sample sample : samples.values() ) {
-            final String famID = sample.getFamilyID();
-            if ( famID != null ) {
-                if ( ! families.containsKey(famID) )
-                    families.put(famID, new TreeSet<Sample>());
-                families.get(famID).add(sample);
+            if(sampleIds == null || sampleIds.contains(sample.getID())){
+                final String famID = sample.getFamilyID();
+                if ( famID != null ) {
+                    if ( ! families.containsKey(famID) )
+                        families.put(famID, new TreeSet<Sample>());
+                    families.get(famID).add(sample);
+                }
             }
         }
-
         return families;
     }
 
