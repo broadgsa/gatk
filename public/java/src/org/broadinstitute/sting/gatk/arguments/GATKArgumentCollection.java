@@ -198,6 +198,17 @@ public class GATKArgumentCollection {
     @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public Integer numberOfThreads = 1;
 
+    /**
+     * The following two arguments (num_cpu_threads, num_io_threads are TEMPORARY since Queue cannot currently support arbitrary tagged data types.
+     * TODO: Kill this when I can do a tagged integer in Queue.
+     */
+    @Argument(fullName="num_cpu_threads", shortName = "nct", doc="How many of the given threads should be allocated to the CPU", required = false)
+    @Hidden
+    public Integer numberOfCPUThreads = null;
+    @Argument(fullName="num_io_threads", shortName = "nit", doc="How many of the given threads should be allocated to IO", required = false)
+    @Hidden
+    public Integer numberOfIOThreads = null;
+
     @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="The total number of BAM file handles to keep open simultaneously", required=false)
     public Integer numberOfBAMFileHandles = null;
 
@@ -367,6 +378,14 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.numberOfThreads.equals(this.numberOfThreads)) {
+            return false;
+        }
+        if ((this.numberOfCPUThreads == null && other.numberOfCPUThreads != null) ||
+             this.numberOfCPUThreads.equals(other.numberOfCPUThreads) ) {
+            return false;
+        }
+        if ((this.numberOfIOThreads == null && other.numberOfIOThreads != null) ||
+             this.numberOfIOThreads.equals(other.numberOfIOThreads) ) {
             return false;
         }
         if ((other.numberOfBAMFileHandles == null && this.numberOfBAMFileHandles != null) ||

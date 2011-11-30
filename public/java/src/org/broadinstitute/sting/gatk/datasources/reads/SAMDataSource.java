@@ -242,8 +242,10 @@ public class SAMDataSource {
 
         this.threadAllocation = threadAllocation;
         // TODO: Consider a borrowed-thread dispatcher implementation.
-        if(this.threadAllocation.getNumIOThreads() > 0)
+        if(this.threadAllocation.getNumIOThreads() > 0) {
+            logger.info("Running in asynchronous I/O mode; number of threads = " + this.threadAllocation.getNumIOThreads());
             dispatcher = new BGZFBlockLoadingDispatcher(this.threadAllocation.getNumIOThreads(), numFileHandles != null ? numFileHandles : 1);
+        }
         else
             dispatcher = null;
 
