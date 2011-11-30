@@ -168,6 +168,47 @@ public class SampleDB {
         return families;
     }
 
+
+    /**
+     * Returns the set of all children that have both of their parents.
+     * Note that if a family is composed of more than 1 child, each child is
+     * returned.
+     * @return - all the children that have both of their parents
+     */
+    public final Set<Sample> getChildrenWithParents(){
+        return getChildrenWithParents(false);
+    }
+
+    /**
+     * Returns the set of all children that have both of their parents.
+     * Note that if triosOnly = false, a family is composed of more than 1 child, each child is
+     * returned.
+     *
+     * This method can be used wherever trios are needed
+     *
+     * @param triosOnly - if set to true, only strict trios are returned
+     * @return - all the children that have both of their parents
+     */
+    public final Set<Sample> getChildrenWithParents(boolean triosOnly) {
+
+        Map<String, Set<Sample>> families = getFamilies();
+        final Set<Sample> childrenWithParents = new HashSet<Sample>();
+        Iterator<Sample> sampleIterator;
+
+        for ( Set<Sample> familyMembers: families.values() ) {
+            if(triosOnly && familyMembers.size() != 3)
+                continue;
+
+            sampleIterator = familyMembers.iterator();
+            for(Sample sample = sampleIterator.next(); sampleIterator.hasNext(); sample = sampleIterator.next()){
+                if(sample.getParents().size() == 2 && familyMembers.containsAll(sample.getParents()))
+                    childrenWithParents.add(sample);
+            }
+
+        }
+        return childrenWithParents;
+    }
+
     /**
      * Return all samples with a given family ID
      * @param familyId
