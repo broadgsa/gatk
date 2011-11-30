@@ -77,7 +77,7 @@ public class MendelianViolation {
     /**
      * An alternative to the more general constructor if you want to get the Sample information from the engine yourself.
      * @param sample - the sample object extracted from the sample metadata YAML file given to the engine.
-     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
+     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to assess mendelian violation
      */
     public MendelianViolation(Sample sample, double minGenotypeQualityP) {
         sampleMom = sample.getMother().getID();

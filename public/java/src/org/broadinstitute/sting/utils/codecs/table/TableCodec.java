@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,6 +108,6 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
         return header;
     }
 
-    public boolean canDecode(final File potentialInput) { return false; }
+    public boolean canDecode(final String potentialInput) { return false; }
 
 }
