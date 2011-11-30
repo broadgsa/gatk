@@ -54,25 +54,22 @@ import java.util.*;
  */
 public class IntervalStratification extends VariantStratifier {
     final protected static Logger logger = Logger.getLogger(IntervalStratification.class);
-    final Map<String, IntervalTree<Boolean>> intervalTreeByContig = new HashMap<String, IntervalTree<Boolean>>();
+    Map<String, IntervalTree<GenomeLoc>> intervalTreeByContig = null;
 
     @Override
     public void initialize() {
-        final List<GenomeLoc> locs = getVariantEvalWalker().getIntervals();
+        if ( getVariantEvalWalker().intervalsFile == null )
+            throw new UserException.MissingArgument("stratIntervals", "Must be provided when IntervalStratification is enabled");
+
+        final List<GenomeLoc> locs = getVariantEvalWalker().intervalsFile.getIntervals(getVariantEvalWalker().getToolkit());
 
         if ( locs.isEmpty() )
             throw new UserException.BadArgumentValue("stratIntervals", "Contains no intervals.  Perhaps the file is malformed or empty?");
 
+        intervalTreeByContig = getVariantEvalWalker().createIntervalTreeByContig(getVariantEvalWalker().intervalsFile);
+
         logger.info(String.format("Creating IntervalStratification %s containing %d intervals covering %d bp",
                 getVariantEvalWalker().intervalsFile.getSource(), locs.size(), IntervalUtils.intervalSize(locs)));
-
-        // set up the map from contig -> interval tree
-        for ( final String contig : getVariantEvalWalker().getContigNames() )
-            intervalTreeByContig.put(contig, new IntervalTree<Boolean>());
-
-        for ( final GenomeLoc loc : locs ) {
-            intervalTreeByContig.get(loc.getContig()).put(loc.getStart(), loc.getStop(), true);
-        }
 
         states = new ArrayList<String>(Arrays.asList("all", "overlaps.intervals", "outside.intervals"));
     }
@@ -82,8 +79,8 @@ public class IntervalStratification extends VariantStratifier {
 
         if (eval != null) {
             final GenomeLoc loc = getVariantEvalWalker().getGenomeLocParser().createGenomeLoc(eval, true);
-            IntervalTree<Boolean> intervalTree = intervalTreeByContig.get(loc.getContig());
-            IntervalTree.Node<Boolean> node = intervalTree.minOverlapper(loc.getStart(), loc.getStop());
+            IntervalTree<GenomeLoc> intervalTree = intervalTreeByContig.get(loc.getContig());
+            IntervalTree.Node<GenomeLoc> node = intervalTree.minOverlapper(loc.getStart(), loc.getStop());
             //logger.info(String.format("Overlap %s found %s", loc, node));
             relevantStates.add( node != null ? "overlaps.intervals" : "outside.intervals");
         }

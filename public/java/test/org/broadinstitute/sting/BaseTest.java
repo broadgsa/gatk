@@ -134,7 +134,7 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
-        private final String name;
+        private String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C
@@ -149,6 +149,10 @@ public abstract class BaseTest {
 
         public TestDataProvider(Class c) {
             this(c, "");
+        }
+
+        public void setName(final String name) {
+            this.name = name;
         }
 
         /**
