@@ -317,11 +317,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    public int linearExactMultiAllelic(GenotypesContext GLs,
-                                       int numAlternateAlleles,
-                                       double[] log10AlleleFrequencyPriors,
-                                       double[] log10AlleleFrequencyPosteriors,
-                                       boolean preserveData) {
+    static public int linearExactMultiAllelic(GenotypesContext GLs,
+                                              int numAlternateAlleles,
+                                              double[] log10AlleleFrequencyPriors,
+                                              double[] log10AlleleFrequencyPosteriors,
+                                              boolean preserveData) {
 
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
         final int numSamples = genotypeLikelihoods.size()-1;
@@ -350,8 +350,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             maxLog10L = Math.max(maxLog10L, log10LofKs);
         }
 
-        // TODO -- finish me
-
+        // TODO -- why do we need to return anything here?
         return 0;
     }
 
@@ -471,7 +470,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     log10ConformationLikelihoods[0] = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
 
                 // deal with the other possible conformations now
-                if ( totalK < 2*j ) {
+                if ( totalK <= 2*j ) { // skip impossible conformations
                     int conformationIndex = 1;
                     for ( Map.Entry<Integer, Integer> mapping : set.ACsetIndexToPLIndex.entrySet() )
                         log10ConformationLikelihoods[conformationIndex++] =
