@@ -284,11 +284,21 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     // This class represents a column in the Exact AC calculation matrix
     private static final class ExactACset {
+
+        // the counts of the various alternate alleles which this column represents
         final int[] ACcounts;
+
+        // the column of the matrix
         final double[] log10Likelihoods;
+
+        // mapping of column index for those columns upon which this one depends to the index into the PLs which is used as the transition to this column;
+        // for example, in the biallelic case, the transition from k=0 to k=1 would be AB while the transition to k=2 would be BB.
         final HashMap<Integer, Integer> ACsetIndexToPLIndex = new HashMap<Integer, Integer>();
+
+        // to minimize memory consumption, we know we can delete any sets in this list because no further sets will depend on them
         final ArrayList<Integer> dependentACsetsToDelete = new ArrayList<Integer>();
 
+        // index used to represent this set in the global hashmap: (numSamples^0 * allele_1) + (numSamples^1 * allele_2) + (numSamples^2 * allele_3) + ...
         private int index = -1;
 
         public ExactACset(int size, int[] ACcounts) {
@@ -309,6 +319,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             return index;
         }
 
+        // sum of all the non-reference alleles
         public int getACsum() {
             int sum = 0;
             for ( int count : ACcounts )
@@ -361,8 +372,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                            final boolean preserveData,
                                                            final Queue<ExactACset> ACqueue,
                                                            final HashMap<Integer, ExactACset> indexesToACset,
-                                                           double[] log10AlleleFrequencyPriors,
-                                                           double[] log10AlleleFrequencyPosteriors) {
+                                                           final double[] log10AlleleFrequencyPriors,
+                                                           final double[] log10AlleleFrequencyPosteriors) {
 
         // compute the log10Likelihoods
         computeLofK(set, genotypeLikelihoods, indexesToACset, log10AlleleFrequencyPosteriors, log10AlleleFrequencyPriors);
@@ -383,16 +394,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // iterate over higher frequencies if possible
         int ACwiggle = numChr - set.getACsum();
-        if ( ACwiggle == 0 ) // all alternate alleles already sum to 2N
+        if ( ACwiggle == 0 ) // all alternate alleles already sum to 2N so we cannot possibly go to higher frequencies
             return log10LofK;
 
-        ExactACset lastSet = null;
+        ExactACset lastSet = null; // keep track of the last set placed in the queue so that we can tell it to clean us up when done processing
         int numAltAlleles = set.ACcounts.length;
 
-        // genotype log10Likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
-        // So e.g. with 2 alt alleles the log10Likelihoods are AA,AB,AC,BB,BC,CC and with 3 alt alleles they are AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
+        // genotype likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
+        // so e.g. with 2 alt alleles the likelihoods are AA,AB,AC,BB,BC,CC and with 3 alt alleles they are AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
 
-        // do it for the k+1 case
+        // add conformations for the k+1 case
         int PLindex = 0;
         for ( int allele = 0; allele < numAltAlleles; allele++ ) {
             int[] ACcountsClone = set.ACcounts.clone();
@@ -400,7 +411,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             lastSet = updateACset(ACcountsClone, numChr, set.getIndex(), ++PLindex, ACqueue, indexesToACset);
         }
 
-        // do it for the k+2 case if it makes sense; note that the 2 alleles may be the same or different
+        // add conformations for the k+2 case if it makes sense; note that the 2 new alleles may be the same or different
         if ( ACwiggle > 1 ) {
             for ( int allele_i = 0; allele_i < numAltAlleles; allele_i++ ) {
                 for ( int allele_j = allele_i; allele_j < numAltAlleles; allele_j++ ) {
@@ -419,6 +430,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return log10LofK;
     }
 
+    // adds the ExactACset represented by the ACcounts to the ACqueue if not already there (creating it if needed) and
+    // also adds it as a dependency to the given callingSetIndex.
     private static ExactACset updateACset(int[] ACcounts,
                                           int numChr,
                                           final int callingSetIndex,
@@ -462,6 +475,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 final double[] gl = genotypeLikelihoods.get(j);
                 final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
 
+                // initialize
                 for ( int i = 0; i < numPaths; i++ )
                     log10ConformationLikelihoods[i] = Double.NEGATIVE_INFINITY;
 
