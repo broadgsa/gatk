@@ -72,7 +72,7 @@ trait JavaCommandLineFunction extends CommandLineFunction {
       null
   }
 
-  def javaOpts = required("-Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m", spaceSeparated=false) +
+  def javaOpts = optional("-Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m", spaceSeparated=false) +
                  required("-Djava.io.tmpdir=", jobTempDir, spaceSeparated=false)
 
   def commandLine = required("java") +
