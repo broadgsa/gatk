@@ -73,11 +73,14 @@ public class UnifiedGenotyperEngine {
     private ThreadLocal<AlleleFrequencyCalculationModel> afcm = new ThreadLocal<AlleleFrequencyCalculationModel>();
 
     // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
-    private final double[] log10AlleleFrequencyPriorsSNPs;
-    private final double[] log10AlleleFrequencyPriorsIndels;
+    private final double[][] log10AlleleFrequencyPriorsSNPs;
+    private final double[][] log10AlleleFrequencyPriorsIndels;
 
     // the allele frequency likelihoods (allocated once as an optimization)
     private ThreadLocal<double[][]> log10AlleleFrequencyPosteriors = new ThreadLocal<double[][]>();
+
+    // the maximum number of alternate alleles for genotyping supported by the genotyper; we fix this here so that the AF priors and posteriors can be initialized at startup
+    private static final int MAX_NUMBER_OF_ALTERNATE_ALLELES = 5;
 
     // the priors object
     private final GenotypePriors genotypePriorsSNPs;
@@ -122,10 +125,10 @@ public class UnifiedGenotyperEngine {
         this.annotationEngine = engine;
 
         N = 2 * this.samples.size();
-        log10AlleleFrequencyPriorsSNPs = new double[N+1];
-        log10AlleleFrequencyPriorsIndels = new double[N+1];
-        computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, GenotypeLikelihoodsCalculationModel.Model.SNP);
-        computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsIndels, GenotypeLikelihoodsCalculationModel.Model.INDEL);
+        log10AlleleFrequencyPriorsSNPs = new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1];
+        log10AlleleFrequencyPriorsIndels = new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1];
+        computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, UAC.heterozygosity);
+        computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsIndels, UAC.INDEL_HETEROZYGOSITY);
         genotypePriorsSNPs = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.SNP);
         genotypePriorsIndels = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.INDEL);
         
@@ -295,7 +298,7 @@ public class UnifiedGenotyperEngine {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
-            log10AlleleFrequencyPosteriors.set(new double[1][N+1]);
+            log10AlleleFrequencyPosteriors.set(new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1]);
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
         }
 
@@ -440,7 +443,7 @@ public class UnifiedGenotyperEngine {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
-            log10AlleleFrequencyPosteriors.set(new double[1][N+1]);
+            log10AlleleFrequencyPosteriors.set(new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1]);
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
         }
 
@@ -747,27 +750,25 @@ public class UnifiedGenotyperEngine {
         return null;
     }
 
-    protected void computeAlleleFrequencyPriors(int N, final double[] priors, final GenotypeLikelihoodsCalculationModel.Model model) {
-        // calculate the allele frequency priors for 1-N
-        double sum = 0.0;
-        double heterozygosity;
+    protected static void computeAlleleFrequencyPriors(final int N, final double[][] priors, final double theta) {
 
-        if (model == GenotypeLikelihoodsCalculationModel.Model.INDEL)
-            heterozygosity = UAC.INDEL_HETEROZYGOSITY;
-        else
-            heterozygosity = UAC.heterozygosity;
-        
-        for (int i = 1; i <= N; i++) {
-            double value = heterozygosity / (double)i;
-            priors[i] = Math.log10(value);
-            sum += value;
+        // the dimension here is the number of alternate alleles; with e.g. 2 alternate alleles the prior will be theta^2 / i
+        for (int alleles = 1; alleles <= priors.length; alleles++) {
+            double sum = 0.0;
+
+            // for each i
+            for (int i = 1; i <= N; i++) {
+                double value = Math.pow(theta, alleles) / (double)i;
+                priors[alleles-1][i] = Math.log10(value);
+                sum += value;
+            }
+
+            // null frequency for AF=0 is (1 - sum(all other frequencies))
+            priors[alleles-1][0] = Math.log10(1.0 - sum);
         }
-
-        // null frequency for AF=0 is (1 - sum(all other frequencies))
-        priors[0] = Math.log10(1.0 - sum);
     }
 
-    protected double[] getAlleleFrequencyPriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
+    protected double[][] getAlleleFrequencyPriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
         switch( model ) {
             case SNP:
                 return log10AlleleFrequencyPriorsSNPs;

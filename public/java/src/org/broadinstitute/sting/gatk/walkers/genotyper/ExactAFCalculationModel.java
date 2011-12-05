@@ -55,14 +55,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
     public void getLog10PNonRef(GenotypesContext GLs, List<Allele> alleles,
-                                double[] log10AlleleFrequencyPriors,
+                                double[][] log10AlleleFrequencyPriors,
                                 double[][] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();
 
         if ( USE_MULTI_ALLELIC_CALCULATION )
             linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors, false);
         else
-            linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors);
+            linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyPosteriors);
     }
 
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
@@ -266,7 +266,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // index used to represent this set in the global hashmap: (numSamples^0 * allele_1) + (numSamples^1 * allele_2) + (numSamples^2 * allele_3) + ...
         private int index = -1;
 
-        public ExactACset(int size, int[] ACcounts) {
+        public ExactACset(final int size, final int[] ACcounts) {
             this.ACcounts = ACcounts;
             log10Likelihoods = new double[size];
         }
@@ -277,7 +277,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             return index;
         }
 
-        public static int generateIndex(int[] ACcounts, int multiplier) {
+        public static int generateIndex(final int[] ACcounts, final int multiplier) {
             int index = 0;
             for ( int i = 0; i < ACcounts.length; i++ )
                 index += Math.pow(multiplier, i) * ACcounts[i];
@@ -293,11 +293,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    public static void linearExactMultiAllelic(GenotypesContext GLs,
-                                               int numAlternateAlleles,
-                                               double[] log10AlleleFrequencyPriors,
-                                               double[][] log10AlleleFrequencyPosteriors,
-                                               boolean preserveData) {
+    public static void linearExactMultiAllelic(final GenotypesContext GLs,
+                                               final int numAlternateAlleles,
+                                               final double[][] log10AlleleFrequencyPriors,
+                                               final double[][] log10AlleleFrequencyPosteriors,
+                                               final boolean preserveData) {
 
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
         final int numSamples = genotypeLikelihoods.size()-1;
@@ -334,7 +334,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                            final boolean preserveData,
                                                            final Queue<ExactACset> ACqueue,
                                                            final HashMap<Integer, ExactACset> indexesToACset,
-                                                           final double[] log10AlleleFrequencyPriors,
+                                                           final double[][] log10AlleleFrequencyPriors,
                                                            final double[][] log10AlleleFrequencyPosteriors) {
 
         // compute the log10Likelihoods
@@ -355,12 +355,12 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         // iterate over higher frequencies if possible
-        int ACwiggle = numChr - set.getACsum();
+        final int ACwiggle = numChr - set.getACsum();
         if ( ACwiggle == 0 ) // all alternate alleles already sum to 2N so we cannot possibly go to higher frequencies
             return log10LofK;
 
         ExactACset lastSet = null; // keep track of the last set placed in the queue so that we can tell it to clean us up when done processing
-        int numAltAlleles = set.ACcounts.length;
+        final int numAltAlleles = set.ACcounts.length;
 
         // genotype likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
         // so e.g. with 2 alt alleles the likelihoods are AA,AB,AC,BB,BC,CC and with 3 alt alleles they are AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
@@ -368,7 +368,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // add conformations for the k+1 case
         int PLindex = 0;
         for ( int allele = 0; allele < numAltAlleles; allele++ ) {
-            int[] ACcountsClone = set.ACcounts.clone();
+            final int[] ACcountsClone = set.ACcounts.clone();
             ACcountsClone[allele]++;
             lastSet = updateACset(ACcountsClone, numChr, set.getIndex(), ++PLindex, ACqueue, indexesToACset);
         }
@@ -377,7 +377,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( ACwiggle > 1 ) {
             for ( int allele_i = 0; allele_i < numAltAlleles; allele_i++ ) {
                 for ( int allele_j = allele_i; allele_j < numAltAlleles; allele_j++ ) {
-                    int[] ACcountsClone = set.ACcounts.clone();
+                    final int[] ACcountsClone = set.ACcounts.clone();
                     ACcountsClone[allele_i]++;
                     ACcountsClone[allele_j]++;
                     lastSet = updateACset(ACcountsClone, numChr,set.getIndex(), ++PLindex , ACqueue, indexesToACset);
@@ -394,8 +394,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     // adds the ExactACset represented by the ACcounts to the ACqueue if not already there (creating it if needed) and
     // also adds it as a dependency to the given callingSetIndex.
-    private static ExactACset updateACset(int[] ACcounts,
-                                          int numChr,
+    private static ExactACset updateACset(final int[] ACcounts,
+                                          final int numChr,
                                           final int callingSetIndex,
                                           final int PLsetIndex,
                                           final Queue<ExactACset> ACqueue,
@@ -408,19 +408,19 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         // add the given dependency to the set
-        ExactACset set = indexesToACset.get(index);
+        final ExactACset set = indexesToACset.get(index);
         set.ACsetIndexToPLIndex.put(callingSetIndex, PLsetIndex);
         return set;
     }
 
-    private static void computeLofK(ExactACset set,
-                                    ArrayList<double[]> genotypeLikelihoods,
+    private static void computeLofK(final ExactACset set,
+                                    final ArrayList<double[]> genotypeLikelihoods,
                                     final HashMap<Integer, ExactACset> indexesToACset,
-                                    double[] log10AlleleFrequencyPriors,
-                                    double[][] log10AlleleFrequencyPosteriors) {
+                                    final double[][] log10AlleleFrequencyPriors,
+                                    final double[][] log10AlleleFrequencyPosteriors) {
 
         set.log10Likelihoods[0] = 0.0; // the zero case
-        int totalK = set.getACsum();
+        final int totalK = set.getACsum();
 
         // special case for k = 0 over all k
         if ( set.getIndex() == AC_ZERO_INDEX ) {
@@ -450,10 +450,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     int conformationIndex = 1;
                     for ( Map.Entry<Integer, Integer> mapping : set.ACsetIndexToPLIndex.entrySet() )
                         log10ConformationLikelihoods[conformationIndex++] =
-                                determineCoefficient(mapping.getValue(), j, totalK) + indexesToACset.get(mapping.getKey()).log10Likelihoods[j-1] + gl[mapping.getValue()];
+                                determineCoefficient(mapping.getValue(), j, set.ACcounts, totalK) + indexesToACset.get(mapping.getKey()).log10Likelihoods[j-1] + gl[mapping.getValue()];
                 }
 
-                double log10Max = approximateLog10SumLog10(log10ConformationLikelihoods);
+                final double log10Max = approximateLog10SumLog10(log10ConformationLikelihoods);
 
                 // finally, update the L(j,k) value
                 set.log10Likelihoods[j] = log10Max - logDenominator;
@@ -469,27 +469,53 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if ( set.ACcounts[i] > 0 )
                 nonRefAlleles++;
         }
-        if ( nonRefAlleles == 0 ) // for k=0 we still want to use a power of 1
-            nonRefAlleles++;
 
         // update the posteriors vector which is a collapsed view of each of the various ACs
         for ( int i = 0; i < set.ACcounts.length; i++ ) {
-            // TODO -- double check the math and then cache these values for efficiency
-            double prior = Math.pow(log10AlleleFrequencyPriors[totalK], nonRefAlleles);
+            // for k=0 we still want to use theta
+            final double prior = (nonRefAlleles == 0) ? log10AlleleFrequencyPriors[0][0] : log10AlleleFrequencyPriors[nonRefAlleles-1][set.ACcounts[i]];
             log10AlleleFrequencyPosteriors[i][set.ACcounts[i]] = approximateLog10SumLog10(log10AlleleFrequencyPosteriors[i][set.ACcounts[i]], log10LofK + prior);
         }
     }
 
-    private static double determineCoefficient(int PLindex, int j, int totalK) {
+    private static double determineCoefficient(int PLindex, final int j, final int[] ACcounts, final int totalK) {
 
-        // TODO -- the math here needs to be fixed and checked; hard-coding in the biallelic case
-        //AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
+        // the closed form representation generalized for multiple alleles is as follows:
+        // AA: (2j - totalK) * (2j - totalK - 1)
+        // AB: 2k_b * (2j - totalK)
+        // AC: 2k_c * (2j - totalK)
+        // BB: k_b * (k_b - 1)
+        // BC: 2 * k_b * k_c
+        // CC: k_c * (k_c - 1)
 
-        double coeff;
-        if ( PLindex == 1 )
-            coeff = MathUtils.log10Cache[2*totalK] + MathUtils.log10Cache[2*j-totalK];
-        else
-            coeff = MathUtils.log10Cache[totalK] + MathUtils.log10Cache[totalK-1];
+        final int numAltAlleles = ACcounts.length;
+
+        // the AX het case
+        if ( PLindex <= numAltAlleles )
+            return MathUtils.log10Cache[2*ACcounts[PLindex-1]] + MathUtils.log10Cache[2*j-totalK];
+
+        int subtractor = numAltAlleles+1;
+        int subtractions = 0;
+        do {
+            PLindex -= subtractor;
+            subtractor--;
+            subtractions++;
+        }
+        while ( PLindex >= subtractor );
+
+        final int k_i = ACcounts[subtractions-1];
+
+        // the hom var case (e.g. BB, CC, DD)
+        final double coeff;
+        if ( PLindex == 0 ) {
+            coeff = MathUtils.log10Cache[k_i] + MathUtils.log10Cache[k_i - 1];
+        }
+        // the het non-ref case (e.g. BC, BD, CD)
+        else {
+            final int k_j = ACcounts[subtractions+PLindex-1];
+            coeff = MathUtils.log10Cache[2] + MathUtils.log10Cache[k_i] + MathUtils.log10Cache[k_j];
+        }
+
         return coeff;
     }
 

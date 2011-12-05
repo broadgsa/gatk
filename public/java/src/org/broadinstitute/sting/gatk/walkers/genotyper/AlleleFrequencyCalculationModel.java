@@ -68,7 +68,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
      */
     protected abstract void getLog10PNonRef(GenotypesContext GLs,  List<Allele> Alleles,
-                                            double[] log10AlleleFrequencyPriors,
+                                            double[][] log10AlleleFrequencyPriors,
                                             double[][] log10AlleleFrequencyPosteriors);
 
     /**
