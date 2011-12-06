@@ -52,10 +52,10 @@ class RevertSam extends org.broadinstitute.sting.queue.function.JavaCommandLineF
   override def outputBam = output
   this.createIndex = Some(true)
   override def commandLine = super.commandLine +
-       conditionalParameter(!restoreOriginalQualities, " RESTORE_ORIGINAL_QUALITIES=false") +
-       conditionalParameter(!removeDuplicateInformation, " REMOVE_DUPLICATE_INFORMATION=false") +
-       conditionalParameter(!removeAlignmentInformation, " REMOVE_ALIGNMENT_INFORMATION=false") +
-       conditionalParameter(!attributesToClear.isEmpty, repeat(" ATTRIBUTE_TO_CLEAR=", attributesToClear)) +
-       conditionalParameter(sampleAlias != null, " SAMPLE_ALIAS=" + sampleAlias) +
-       conditionalParameter(libraryName != null, " LIBRARY_NAME=" + libraryName)
+                             conditional(!restoreOriginalQualities, "RESTORE_ORIGINAL_QUALITIES=false") +
+                             conditional(!removeDuplicateInformation, "REMOVE_DUPLICATE_INFORMATION=false") +
+                             conditional(!removeAlignmentInformation, "REMOVE_ALIGNMENT_INFORMATION=false") +
+                             repeat("ATTRIBUTE_TO_CLEAR=", attributesToClear, spaceSeparated=false) +   // repeat() returns "" for null/empty list
+                             conditional(sampleAlias != null, "SAMPLE_ALIAS=" + sampleAlias) +
+                             conditional(libraryName != null, "LIBRARY_NAME=" + libraryName)
 }

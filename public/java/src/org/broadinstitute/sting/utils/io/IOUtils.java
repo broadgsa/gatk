@@ -362,4 +362,27 @@ public class IOUtils {
             org.apache.commons.io.IOUtils.closeQuietly(outputStream);
         }
     }
+
+    /**
+     * Returns a file throwing a UserException if the file cannot be read.
+     * @param path File path
+     * @return LineIterator
+     */
+    public static LineIterator lineIterator(String path) {
+        return lineIterator(new File(path));
+    }
+
+    /**
+     * Returns a file throwing a UserException if the file cannot be read.
+     * @param file File
+     * @return LineIterator
+     */
+    public static LineIterator lineIterator(File file) {
+        try {
+            return FileUtils.lineIterator(file);
+        } catch (IOException e) {
+            throw new UserException.CouldNotReadInputFile(file, e);
+        }
+
+    }
 }

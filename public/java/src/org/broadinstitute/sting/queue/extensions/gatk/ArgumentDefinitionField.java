@@ -83,10 +83,10 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     getShortFieldSetter());
     }
 
-    protected static final String REQUIRED_TEMPLATE = " + \" %1$s \" + %2$s.format(%3$s)";
-    protected static final String REPEAT_TEMPLATE = " + repeat(\" %1$s \", %3$s, format=formatValue(%2$s))";
-    protected static final String OPTIONAL_TEMPLATE = " + optional(\" %1$s \", %3$s, format=formatValue(%2$s))";
-    protected static final String FLAG_TEMPLATE = " + (if (%3$s) \" %1$s\" else \"\")";
+    protected static final String REQUIRED_TEMPLATE = " + required(\"%1$s\", %3$s, spaceSeparated=true, escape=true, format=%2$s)";
+    protected static final String REPEAT_TEMPLATE = " + repeat(\"%1$s\", %3$s, spaceSeparated=true, escape=true, format=%2$s)";
+    protected static final String OPTIONAL_TEMPLATE = " + optional(\"%1$s\", %3$s, spaceSeparated=true, escape=true, format=%2$s)";
+    protected static final String FLAG_TEMPLATE = " + conditional(%3$s, \"%1$s\", escape=true, format=%2$s)";
 
     public final String getCommandLineAddition() {
         return String.format(getCommandLineTemplate(), getCommandLineParam(), getCommandLineFormat(), getFieldName());
@@ -136,7 +136,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     new IntervalStringArgumentField(argumentDefinition));
 
         // ROD Bindings are set by the RodBindField
-        } else if (RodBindField.ROD_BIND_FIELD.equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
+        } else if (RodBindArgumentField.ROD_BIND_FIELD.equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             // TODO: Once everyone is using @Allows and @Requires correctly, we can stop blindly allowing Triplets
             return Arrays.asList(new RodBindArgumentField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, Tribble.STANDARD_INDEX_EXTENSION));
             //return Collections.<ArgumentField>emptyList();
@@ -337,6 +337,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
     // Allows the user to specify the track name, track type, and the file.
     public static class RodBindArgumentField extends ArgumentDefinitionField {
+        public static final String ROD_BIND_FIELD = "rodBind";
+
         public RodBindArgumentField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
         }
@@ -344,7 +346,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getFieldType() { return "List[RodBind]"; }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override protected String getCommandLineTemplate() {
-            return " + repeat(\"\", %3$s, format=RodBind.formatCommandLine(\"%1$s\"))";
+            return " + repeat(\"%1$s\", %3$s, formatPrefix=RodBind.formatCommandLineParameter, spaceSeparated=true, escape=true, format=%2$s)";
         }
     }
 
@@ -358,11 +360,11 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getDefaultValue() { return argumentDefinition.isMultiValued ? "Nil" : "_"; }
         @Override protected String getCommandLineTemplate() {
             if (argumentDefinition.isMultiValued) {
-                return " + repeat(\"\", %3$s, format=TaggedFile.formatCommandLine(\"%1$s\"))";
+                return " + repeat(\"%1$s\", %3$s, formatPrefix=TaggedFile.formatCommandLineParameter, spaceSeparated=true, escape=true, format=%2$s)";
             } else if (!argumentDefinition.required) {
-                return " + optional(\"\", %3$s, format=TaggedFile.formatCommandLine(\"%1$s\"))";
+                return " + optional(TaggedFile.formatCommandLineParameter(\"%1$s\", %3$s), %3$s, spaceSeparated=true, escape=true, format=%2$s)";
             } else {
-                return " + TaggedFile.formatCommandLine(\"%1$s\")(\"\", %3$s, \"\")";
+                return " + required(TaggedFile.formatCommandLineParameter(\"%1$s\", %3$s), %3$s, spaceSeparated=true, escape=true, format=%2$s)";
             }
         }
     }

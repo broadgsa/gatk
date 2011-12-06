@@ -374,6 +374,9 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         if (isGather)
             importSet.add("import org.broadinstitute.sting.commandline.Gather");
 
+        // Needed for ShellUtils.escapeShellArgument()
+        importSet.add("import org.broadinstitute.sting.queue.util.ShellUtils");
+
         // Sort the imports so that the are always in the same order.
         List<String> sortedImports = new ArrayList<String>(importSet);
         Collections.sort(sortedImports);

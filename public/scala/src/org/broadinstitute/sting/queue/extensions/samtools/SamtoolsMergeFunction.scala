@@ -55,7 +55,9 @@ class SamtoolsMergeFunction extends SamtoolsCommandLineFunction {
       ))
   }
 
-  def commandLine = "%s merge%s %s%s".format(
-    samtools, optional(" -R ", region),
-    outputBam, repeat(" ", inputBams))
+  def commandLine = required(samtools) +
+                    required("merge") +
+                    optional("-R", region) +
+                    required(outputBam) +
+                    repeat(inputBams)
 }

@@ -42,7 +42,7 @@ class ReorderSam extends org.broadinstitute.sting.queue.function.JavaCommandLine
   this.createIndex = Some(true)
   this.sortOrder = null
   override def commandLine = super.commandLine +
-    " REFERENCE=" + sortReference +
-    optional(" ALLOW_INCOMPLETE_DICT_CONCORDANCE=", ALLOW_INCOMPLETE_DICT_CONCORDANCE)
-    optional(" ALLOW_CONTIG_LENGTH_DISCORDANCE=", ALLOW_CONTIG_LENGTH_DISCORDANCE)
+                             required("REFERENCE=" + sortReference) +
+                             optional("ALLOW_INCOMPLETE_DICT_CONCORDANCE=", ALLOW_INCOMPLETE_DICT_CONCORDANCE, spaceSeparated=false)
+                             optional("ALLOW_CONTIG_LENGTH_DISCORDANCE=", ALLOW_CONTIG_LENGTH_DISCORDANCE, spaceSeparated=false)
 }

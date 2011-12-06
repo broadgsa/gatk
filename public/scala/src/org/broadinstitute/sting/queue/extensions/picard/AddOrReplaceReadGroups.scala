@@ -55,11 +55,11 @@ class AddOrReplaceReadGroups extends org.broadinstitute.sting.queue.function.Jav
   override def outputBam = output
   this.createIndex = Some(true)
   override def commandLine = super.commandLine +
-       " RGID=" + RGID +
-       " RGLB=" + RGLB +
-       " RGPL=" + RGPL +
-       " RGPU=" + RGPU +
-       " RGSM=" + RGSM +
-       conditionalParameter(RGCN != null && !RGCN.isEmpty, " RGCN=" + RGCN) +
-       conditionalParameter(RGDS != null && !RGDS.isEmpty, " RGDS=" + RGDS)
+                             required("RGID=" + RGID) +
+                             required("RGLB=" + RGLB) +
+                             required("RGPL=" + RGPL) +
+                             required("RGPU=" + RGPU) +
+                             required("RGSM=" + RGSM) +
+                             conditional(RGCN != null && !RGCN.isEmpty, "RGCN=" + RGCN) +
+                             conditional(RGDS != null && !RGDS.isEmpty, "RGDS=" + RGDS)
 }
