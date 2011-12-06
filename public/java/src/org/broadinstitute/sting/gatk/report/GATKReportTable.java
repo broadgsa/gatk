@@ -608,12 +608,9 @@ public class GATKReportTable {
      */
     public void write(PrintStream out) {
         // Get the column widths for everything
-        HashMap<String, String> columnWidths = new HashMap<String, String>();
+        HashMap<String, GATKReportColumnFormat> columnFormats = new HashMap<String, GATKReportColumnFormat>();
         for (String columnName : columns.keySet()) {
-            int width = columns.get(columnName).getColumnWidth();
-            String format = "%-" + String.valueOf(width) + "s";
-
-            columnWidths.put(columnName, format);
+            columnFormats.put(columnName, columns.get(columnName).getColumnFormat());
         }
         String primaryKeyFormat = "%-" + getPrimaryKeyColumnWidth() + "s";
 
@@ -630,7 +627,7 @@ public class GATKReportTable {
         for (String columnName : columns.keySet()) {
             if (columns.get(columnName).isDisplayable()) {
                 if (needsPadding) { out.printf("  "); }
-                out.printf(columnWidths.get(columnName), columnName);
+                out.printf(columnFormats.get(columnName).getNameFormat(), columnName);
 
                 needsPadding = true;
             }
@@ -650,7 +647,7 @@ public class GATKReportTable {
                 if (columns.get(columnName).isDisplayable()) {
                     if (needsPadding) { out.printf("  "); }
                     String value = columns.get(columnName).getStringValue(primaryKey);
-                    out.printf(columnWidths.get(columnName), value);
+                    out.printf(columnFormats.get(columnName).getValueFormat(), value);
 
                     needsPadding = true;
                 }

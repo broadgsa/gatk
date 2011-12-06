@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Map;
 
 
 /**
@@ -68,7 +67,8 @@ public class GATKReportDiffableReader implements DiffableReader {
         for ( GATKReportColumn column : table.getColumns().values() ) {
             DiffNode columnRoot = DiffNode.empty(column.getColumnName(), tableRoot);
 
-            columnRoot.add("Width", column.getColumnWidth());
+            columnRoot.add("Width", column.getColumnFormat().getWidth());
+            // NOTE: as the values are trimmed during parsing left/right alignment is not currently preserved
             columnRoot.add("Displayable", column.isDisplayable());
 
             int n = 1;
