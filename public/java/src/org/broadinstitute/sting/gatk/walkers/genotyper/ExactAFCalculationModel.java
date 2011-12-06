@@ -263,7 +263,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // to minimize memory consumption, we know we can delete any sets in this list because no further sets will depend on them
         final ArrayList<Integer> dependentACsetsToDelete = new ArrayList<Integer>();
 
-        // index used to represent this set in the global hashmap: (numSamples^0 * allele_1) + (numSamples^1 * allele_2) + (numSamples^2 * allele_3) + ...
+        // index used to represent this set in the global hashmap: (numChr^0 * allele_1) + (numChr^1 * allele_2) + (numChr^2 * allele_3) + ...
         private int index = -1;
 
         public ExactACset(final int size, final int[] ACcounts) {
@@ -273,7 +273,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         public int getIndex() {
             if ( index == -1 )
-                index = generateIndex(ACcounts, log10Likelihoods.length);
+                index = generateIndex(ACcounts, 2 * log10Likelihoods.length - 1);
             return index;
         }
 
@@ -350,7 +350,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // can we abort early because the log10Likelihoods are so small?
         if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
-            if ( DEBUG ) System.out.printf(" *** breaking early ks=%d log10L=%.2f maxLog10L=%.2f%n", set.index, log10LofK, maxLog10L);
+            if ( DEBUG )
+                System.out.printf(" *** breaking early ks=%d log10L=%.2f maxLog10L=%.2f%n", set.index, log10LofK, maxLog10L);
+
+            // no reason to keep this data around because nothing depends on it
+            if ( !preserveData )
+                indexesToACset.put(set.getIndex(), null);
+
             return log10LofK;
         }
 

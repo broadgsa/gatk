@@ -284,7 +284,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testWithIndelAllelesPassedIn3() {
 
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
+                baseCommandIndels + " --multiallelic --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,080,000", 1,
                 Arrays.asList("f93f8a35b47bcf96594ada55e2312c73"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
@@ -293,7 +293,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testWithIndelAllelesPassedIn4() {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
-                baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
+                baseCommandIndelsb37 + " --multiallelic --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
                 Arrays.asList("9be28cb208d8b0314d2bc2696e2fd8d4"));
         executeTest("test MultiSample 1000G Phase1 indels with complicated records emitting all sites", spec4);
