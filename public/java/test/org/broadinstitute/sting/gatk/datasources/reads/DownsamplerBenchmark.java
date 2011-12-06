@@ -72,7 +72,6 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                reader.getFileHeader(),
                                                                false,
                                                                SAMFileReader.ValidationStringency.SILENT,
-                                                               0,
                                                                downsampling.create(),
                                                                new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
                                                                Collections.<ReadFilter>emptyList(),

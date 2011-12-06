@@ -38,7 +38,7 @@ public class ReadShard extends Shard {
     /**
      * What is the maximum number of reads which should go into a read shard.
      */
-    public static final int MAX_READS = 10000;
+    public static int MAX_READS = 10000;
 
     /**
      * The reads making up this shard.
@@ -47,6 +47,15 @@ public class ReadShard extends Shard {
 
     public ReadShard(GenomeLocParser parser, SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> loci, boolean isUnmapped) {
         super(parser, ShardType.READ, loci, readsDataSource, fileSpans, isUnmapped);
+    }
+
+    /**
+     * Sets the maximum number of reads buffered in a read shard.  Implemented as a weirdly static interface
+     * until we know what effect tuning this parameter has.
+     * @param bufferSize New maximum number
+     */
+    static void setReadBufferSize(final int bufferSize) {
+        MAX_READS = bufferSize;
     }
 
     /**
