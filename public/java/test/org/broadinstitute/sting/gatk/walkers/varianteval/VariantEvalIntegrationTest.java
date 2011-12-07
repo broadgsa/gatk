@@ -277,7 +277,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
                 " --comp:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                1, Arrays.asList("6fa6e77f149de3d13c31d410a98043a0"));
+                1, Arrays.asList("4f60acc8a4b21c4b4ccb51ad9071449c"));
         executeTestParallel("testSelect1", spec);
     }
 
@@ -294,7 +294,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("aeff16bb43be03a2a7e5b9d0108b4999"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("fa13eb59892892c07711c6ffe31bf870"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
 
@@ -324,7 +324,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " --dbsnp " + b37dbSNP132 +
                            " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("38ed9d216bd43f1cceceea24146fae38"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("190e1a171132832bf92fbca56a9c40bb"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -336,7 +336,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " --eval:evalBC " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("453c6b1f7165913e8b1787e22bac1281"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("08586d443fdcf3b7f63b8f9e3a943c62"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 

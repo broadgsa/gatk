@@ -144,7 +144,8 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                     n++;
                 }
             }
-            return sum / (1.0 * n);
+
+            return n > 0 ? sum / (1.0 * n) : 0.0;
         }
     }
 
