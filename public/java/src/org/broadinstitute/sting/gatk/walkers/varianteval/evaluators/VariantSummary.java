@@ -184,7 +184,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                 return Type.SNP;
             case INDEL:
                 for ( int l : vc.getIndelLengths() )
-                    if ( l > MAX_INDEL_LENGTH )
+                    if ( Math.abs(l) > MAX_INDEL_LENGTH )
                         return Type.CNV;
                 return Type.INDEL;
             case SYMBOLIC:
