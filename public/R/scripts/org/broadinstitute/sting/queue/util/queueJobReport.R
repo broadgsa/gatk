@@ -165,7 +165,7 @@ plotTimeByHost <- function(gatkReportData) {
   
   plotMe <- function(name, vis) {
     p = ggplot(data=runtimes, aes(x=exechosts, y=runtime, group=exechosts, color=exechosts))
-    p = p + facet_grid(analysisName ~ .)
+    p = p + facet_grid(analysisName ~ ., scale="free")
     p = p + vis()
     p = p + xlab("Job execution host")
     p = p + opts(title = paste(name, "of job runtimes by analysis name and execution host"))
