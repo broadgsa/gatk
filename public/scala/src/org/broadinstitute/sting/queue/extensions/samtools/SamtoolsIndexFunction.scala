@@ -48,7 +48,10 @@ class SamtoolsIndexFunction extends SamtoolsCommandLineFunction {
       bamFileIndex = new File(bamFile.getPath + ".bai")
   }
 
-  def commandLine = "%s index %s %s".format(samtools, bamFile, bamFileIndex)
+  def commandLine = required(samtools) +
+                    required("index") +
+                    required(bamFile) +
+                    required(bamFileIndex)
 
   override def dotString = "Index: %s".format(bamFile.getName)
 }

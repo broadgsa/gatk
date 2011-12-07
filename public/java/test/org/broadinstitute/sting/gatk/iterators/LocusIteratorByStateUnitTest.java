@@ -301,7 +301,6 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 false,
                 SAMFileReader.ValidationStringency.STRICT,
                 null,
-                null,
                 new ValidationExclusion(),
                 Collections.<ReadFilter>emptyList(),
                 false,

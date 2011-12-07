@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,31 +22,41 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.yaml;
-
-import org.yaml.snakeyaml.introspector.Property;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+package org.broadinstitute.sting.gatk.report;
 
 /**
- * Orders properties based on the order of the fields in the Java Bean.
+ * Column width and left/right alignment.
  */
-class FieldOrderComparator implements Comparator<Property> {
-    private final List<String> propertyOrder;
+public class GATKReportColumnFormat {
+    public static enum Alignment { LEFT, RIGHT }
+    public int width;
+    public Alignment alignment;
 
-    public FieldOrderComparator(Class<?> clazz) {
-        propertyOrder = new ArrayList<String>();
-        for (Field field : clazz.getDeclaredFields())
-            propertyOrder.add(field.getName());
+    public GATKReportColumnFormat(int width, Alignment alignment) {
+        this.width = width;
+        this.alignment = alignment;
     }
 
-    @Override
-    public int compare(Property one, Property two) {
-        Integer index1 = propertyOrder.indexOf(one.getName());
-        Integer index2 = propertyOrder.indexOf(two.getName());
-        return index1.compareTo(index2);
+    public int getWidth() {
+        return width;
+    }
+
+    public Alignment getAlignment() {
+        return alignment;
+    }
+
+    public String getNameFormat() {
+        return "%-" + width + "s";
+    }
+
+    public String getValueFormat() {
+        switch (alignment) {
+            case LEFT:
+                return "%-" + width + "s";
+            case RIGHT:
+                return "%" + width + "s";
+            default:
+                throw new UnsupportedOperationException("Unknown alignment: " + alignment);
+        }
     }
 }

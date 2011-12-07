@@ -242,12 +242,17 @@ public class SAMDataSource {
 
         this.threadAllocation = threadAllocation;
         // TODO: Consider a borrowed-thread dispatcher implementation.
-        if(this.threadAllocation.getNumIOThreads() > 0)
+        if(this.threadAllocation.getNumIOThreads() > 0) {
+            logger.info("Running in asynchronous I/O mode; number of threads = " + this.threadAllocation.getNumIOThreads());
             dispatcher = new BGZFBlockLoadingDispatcher(this.threadAllocation.getNumIOThreads(), numFileHandles != null ? numFileHandles : 1);
+        }
         else
             dispatcher = null;
 
         validationStringency = strictness;
+        if(readBufferSize != null)
+            ReadShard.setReadBufferSize(readBufferSize);
+
         for (SAMReaderID readerID : samFiles) {
             if (!readerID.samFile.canRead())
                 throw new UserException.CouldNotReadInputFile(readerID.samFile,"file is not present or user does not have appropriate permissions.  " +
@@ -291,7 +296,6 @@ public class SAMDataSource {
                 mergedHeader,
                 useOriginalBaseQualities,
                 strictness,
-                readBufferSize,
                 downsamplingMethod,
                 exclusionList,
                 supplementalFilters,
@@ -549,8 +553,6 @@ public class SAMDataSource {
                 inputStream.submitAccessPlan(new SAMReaderPosition(id,inputStream,(GATKBAMFileSpan)shard.getFileSpans().get(id)));
             }
             iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
-            if(readProperties.getReadBufferSize() != null)
-                iterator = new BufferingReadIterator(iterator,readProperties.getReadBufferSize());
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
             mergingIterator.addIterator(readers.getReader(id),iterator);

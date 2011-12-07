@@ -49,18 +49,6 @@ trait JavaCommandLineFunction extends CommandLineFunction {
    */
   var javaMemoryLimit: Option[Double] = None
 
-  /**
-   * Returns the java executable to run.
-   */
-  def javaExecutable: String = {
-    if (jarFile != null)
-      "-jar " + jarFile
-    else if (javaMainClass != null)
-      "-cp \"%s\" %s".format(javaClasspath.mkString(File.pathSeparator), javaMainClass)
-    else
-      null
-  }
-
   override def freezeFieldValues() {
     super.freezeFieldValues()
 
@@ -71,11 +59,25 @@ trait JavaCommandLineFunction extends CommandLineFunction {
       javaClasspath = JavaCommandLineFunction.currentClasspath
   }
 
-  def javaOpts = "%s -Djava.io.tmpdir=%s"
-    .format(optional(" -Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m"), jobTempDir)
+  /**
+   * Returns the java executable to run.
+   */
+  def javaExecutable: String = {
+    if (jarFile != null)
+      required("-jar", jarFile)
+    else if (javaMainClass != null)
+      required("-cp", javaClasspath.mkString(File.pathSeparator)) +
+      required(javaMainClass)
+    else
+      null
+  }
 
-  def commandLine = "java%s %s"
-    .format(javaOpts, javaExecutable)
+  def javaOpts = optional("-Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m", spaceSeparated=false) +
+                 required("-Djava.io.tmpdir=", jobTempDir, spaceSeparated=false)
+
+  def commandLine = required("java") +
+                    javaOpts +
+                    javaExecutable
 }
 
 object JavaCommandLineFunction {

@@ -28,21 +28,14 @@ object RodBind {
   def apply(trackName: String, trackType: String, file: File, tag: String) = new RodBind(trackName, trackType, file, tag)
   def apply(trackName: String, trackType: String, file: File) = new RodBind(trackName, trackType, file, null)
 
-  /**
-   * Formats the rod binding on the command line.
-   * Used for optional and repeat.
-   * @param cmdLineParam command line parameter, ex: -B
-   * @param prefix unused
-   * @param value RodBind to add.
-   * @param suffix unused
-   * @return The command line addition.
-   */
-  def formatCommandLine(cmdLineParam: String)(prefix: String, value: Any, suffix: String) = {
+  def formatCommandLineParameter( cmdLineParam: String, value: Any ) = {
     value match {
       case rodBind: RodBind if (rodBind.tag != null) =>
-        " %s:%s,%s,%s %s".format(cmdLineParam, rodBind.trackName, rodBind.trackType, rodBind.tag, rodBind.getPath)
+        "%s:%s,%s,%s".format(cmdLineParam, rodBind.trackName, rodBind.trackType, rodBind.tag)
       case rodBind: RodBind =>
-        " %s:%s,%s %s".format(cmdLineParam, rodBind.trackName, rodBind.trackType, rodBind.getPath)
+        "%s:%s,%s".format(cmdLineParam, rodBind.trackName, rodBind.trackType)
+      case x =>
+        ""
     }
   }
 }

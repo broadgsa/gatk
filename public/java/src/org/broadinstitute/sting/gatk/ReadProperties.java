@@ -30,7 +30,6 @@ public class ReadProperties {
     private Collection<SAMReaderID> readers = null;
     private SAMFileHeader header = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
-    private Integer readBufferSize = null;
     private DownsamplingMethod downsamplingMethod = null;
     private ValidationExclusion exclusionList = null;
     private Collection<ReadFilter> supplementalFilters = null;
@@ -92,14 +91,6 @@ public class ReadProperties {
     }
 
     /**
-     * Gets a list of the total number of reads that the sharding system should buffer per BAM file.
-     * @return
-     */
-    public Integer getReadBufferSize() {
-        return readBufferSize;
-    }
-
-    /**
      * Gets the method and parameters used when downsampling reads.
      * @return Downsample fraction.
      */
@@ -150,7 +141,6 @@ public class ReadProperties {
      * @param header sam file header.
      * @param useOriginalBaseQualities True if original base qualities should be used.
      * @param strictness Stringency of reads file parsing.
-     * @param readBufferSize Number of reads to hold in memory per BAM.
      * @param downsamplingMethod Method for downsampling reads at a given locus.
      * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
@@ -169,7 +159,6 @@ public class ReadProperties {
            SAMFileHeader header,
            boolean useOriginalBaseQualities,
            SAMFileReader.ValidationStringency strictness,
-           Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
            Collection<ReadFilter> supplementalFilters,
@@ -181,7 +170,6 @@ public class ReadProperties {
            byte defaultBaseQualities) {
         this.readers = samFiles;
         this.header = header;
-        this.readBufferSize = readBufferSize;
         this.validationStringency = strictness;
         this.downsamplingMethod = downsamplingMethod == null ? DownsamplingMethod.NONE : downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;

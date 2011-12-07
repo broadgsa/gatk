@@ -44,9 +44,7 @@ class MergeSamFiles extends org.broadinstitute.sting.queue.function.JavaCommandL
   override def outputBam = output
   this.createIndex = Some(true)
   override def commandLine = super.commandLine +
-       conditionalParameter(MERGE_SEQUENCE_DICTIONARIES, " MERGE_SEQUENCE_DICTIONARIES=true") +
-       conditionalParameter(USE_THREADING, " USE_THREADING=true") +
-       conditionalParameter(COMMENT != null && !COMMENT.isEmpty, " COMMENT=" + COMMENT)
-
-
+                             conditional(MERGE_SEQUENCE_DICTIONARIES, "MERGE_SEQUENCE_DICTIONARIES=true") +
+                             conditional(USE_THREADING, "USE_THREADING=true") +
+                             conditional(COMMENT != null && !COMMENT.isEmpty, "COMMENT=" + COMMENT)
 }

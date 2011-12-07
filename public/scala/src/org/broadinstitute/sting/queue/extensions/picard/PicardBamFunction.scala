@@ -48,14 +48,13 @@ trait PicardBamFunction extends JavaCommandLineFunction {
   protected def outputBam: File
 
   abstract override def commandLine = super.commandLine +
-    Array(
-      repeat(" INPUT=", inputBams),
-      " TMP_DIR=" + jobTempDir,
-      optional(" OUTPUT=", outputBam),
-      optional(" COMPRESSION_LEVEL=", compressionLevel),
-      optional(" VALIDATION_STRINGENCY=", validationStringency),
-      optional(" SO=", sortOrder),
-      optional(" MAX_RECORDS_IN_RAM=", maxRecordsInRam),
-      optional(" ASSUME_SORTED=", assumeSorted),
-      optional(" CREATE_INDEX=", createIndex)).mkString
+                                      repeat("INPUT=", inputBams, spaceSeparated=false) +
+                                      required("TMP_DIR=" + jobTempDir) +
+                                      optional("OUTPUT=", outputBam, spaceSeparated=false) +
+                                      optional("COMPRESSION_LEVEL=", compressionLevel, spaceSeparated=false) +
+                                      optional("VALIDATION_STRINGENCY=", validationStringency, spaceSeparated=false) +
+                                      optional("SO=", sortOrder, spaceSeparated=false) +
+                                      optional("MAX_RECORDS_IN_RAM=", maxRecordsInRam, spaceSeparated=false) +
+                                      optional("ASSUME_SORTED=", assumeSorted, spaceSeparated=false) +
+                                      optional("CREATE_INDEX=", createIndex, spaceSeparated=false)
 }
