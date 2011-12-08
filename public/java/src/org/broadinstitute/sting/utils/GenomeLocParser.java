@@ -287,7 +287,7 @@ public class GenomeLocParser {
             return vglHelper(exceptOnError, String.format("Unknown contig %s", contig));
 
         if (stop < start)
-            return vglHelper(exceptOnError, String.format("The stop position %d is less than start %d", stop, start));
+            return vglHelper(exceptOnError, String.format("The stop position %d is less than start %d in contig %s", stop, start, contig));
 
         if (contigIndex < 0)
             return vglHelper(exceptOnError, String.format("The contig index %d is less than 0", contigIndex));
