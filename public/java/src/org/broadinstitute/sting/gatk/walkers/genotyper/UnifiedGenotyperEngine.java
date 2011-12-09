@@ -80,9 +80,6 @@ public class UnifiedGenotyperEngine {
     // the allele frequency likelihoods (allocated once as an optimization)
     private ThreadLocal<double[][]> log10AlleleFrequencyPosteriors = new ThreadLocal<double[][]>();
 
-    // the maximum number of alternate alleles for genotyping supported by the genotyper; we fix this here so that the AF priors and posteriors can be initialized at startup
-    private static final int MAX_NUMBER_OF_ALTERNATE_ALLELES = 10;
-
     // the priors object
     private final GenotypePriors genotypePriorsSNPs;
     private final GenotypePriors genotypePriorsIndels;
@@ -126,8 +123,8 @@ public class UnifiedGenotyperEngine {
         this.annotationEngine = engine;
 
         N = 2 * this.samples.size();
-        log10AlleleFrequencyPriorsSNPs = new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1];
-        log10AlleleFrequencyPriorsIndels = new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1];
+        log10AlleleFrequencyPriorsSNPs = new double[UAC.MAX_ALTERNATE_ALLELES][N+1];
+        log10AlleleFrequencyPriorsIndels = new double[UAC.MAX_ALTERNATE_ALLELES][N+1];
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, UAC.heterozygosity);
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsIndels, UAC.INDEL_HETEROZYGOSITY);
         genotypePriorsSNPs = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.SNP);
@@ -155,6 +152,7 @@ public class UnifiedGenotyperEngine {
             return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
         }
         
+        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
 
         if ( vc == null )
