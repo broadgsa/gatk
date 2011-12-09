@@ -588,12 +588,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     /**
      * Can be overridden by concrete subclasses
      * @param vc                   variant context with genotype likelihoods
+     * @param log10AlleleFrequencyLikelihoods likelihoods
      * @param AFofMaxLikelihood    allele frequency of max likelihood
      *
      * @return calls
      */
     public GenotypesContext assignGenotypes(VariantContext vc,
-                                            double[][] log10AlleleFrequencyPosteriors,
+                                            double[][] log10AlleleFrequencyLikelihoods,
                                             int AFofMaxLikelihood) {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
