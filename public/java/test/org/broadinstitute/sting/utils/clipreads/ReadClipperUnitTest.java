@@ -268,7 +268,7 @@ public class ReadClipperUnitTest extends BaseTest {
         */
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testHardClipSoftClippedBases() {
 
         // Generate a list of cigars to test
