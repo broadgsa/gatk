@@ -42,7 +42,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
     private final static double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
-    private static final boolean SIMPLE_GREEDY_GENOTYPER = false;
     private static final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     private final boolean USE_MULTI_ALLELIC_CALCULATION;
@@ -592,10 +591,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         GenotypesContext GLs = vc.getGenotypes();
         double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
-        int[][] tracebackArray = new int[GLs.size()+1][AFofMaxLikelihood+1];
 
         ArrayList<String> sampleIndices = new ArrayList<String>();
-        int sampleIdx = 0;
 
         // todo - optimize initialization
         for (int k=0; k <= AFofMaxLikelihood; k++)
@@ -604,82 +601,28 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         pathMetricArray[0][0] = 0.0;
 
-        // todo = can't deal with optimal dynamic programming solution with multiallelic records
-        if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-            sampleIndices.addAll(GLs.getSampleNamesOrderedByName());
-            sampleIdx = GLs.size();
-        }
-        else {
-
-            for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
-                if ( !genotype.hasLikelihoods() )
-                    continue;
-
-                double[] likelihoods = genotype.getLikelihoods().getAsVector();
-
-                if (MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL)     {
-                    //System.out.print(sample.getKey()+":");
-                    //for (int k=0; k < likelihoods.length; k++)
-                    //   System.out.format("%4.2f ",likelihoods[k]);
-                    //System.out.println();
-                    // all likelihoods are essentially the same: skip this sample and will later on force no call.
-                    //sampleIdx++;
-                    continue;
-                }
-
-                sampleIndices.add(genotype.getSampleName());
-
-                for (int k=0; k <= AFofMaxLikelihood; k++) {
-
-                    double bestMetric = pathMetricArray[sampleIdx][k] + likelihoods[0];
-                    int bestIndex = k;
-
-                    if (k>0) {
-                        double m2 =  pathMetricArray[sampleIdx][k-1] + likelihoods[1];
-                        if (m2 > bestMetric) {
-                            bestMetric = m2;
-                            bestIndex  = k-1;
-                        }
-                    }
-
-                    if (k>1) {
-                        double m2 =  pathMetricArray[sampleIdx][k-2] + likelihoods[2];
-                        if (m2 > bestMetric) {
-                            bestMetric = m2;
-                            bestIndex  = k-2;
-                        }
-                    }
-
-                    pathMetricArray[sampleIdx+1][k] = bestMetric;
-                    tracebackArray[sampleIdx+1][k] = bestIndex;
-                }
-                sampleIdx++;
-            }
-        }
+        sampleIndices.addAll(GLs.getSampleNamesOrderedByName());
 
         GenotypesContext calls = GenotypesContext.create();
 
-        int startIdx = AFofMaxLikelihood;
-        for (int k = sampleIdx; k > 0; k--) {
+        for (int k = GLs.size(); k > 0; k--) {
             int bestGTguess;
             String sample = sampleIndices.get(k-1);
             Genotype g = GLs.get(sample);
             if ( !g.hasLikelihoods() )
                 continue;
-            // if all likelihoods are essentially the same: we want to force no-call. In this case, we skip this sample for now,
-            // and will add no-call genotype to GL's in a second pass
+
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
 
             double[] likelihoods = g.getLikelihoods().getAsVector();
 
-            if (SIMPLE_GREEDY_GENOTYPER || !vc.isBiallelic()) {
-                bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
+            // if there is no mass on the likelihoods, then just no-call the sample
+            if ( MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL ) {
+                calls.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
+                continue;
             }
-            else {
-                int newIdx = tracebackArray[k][startIdx];;
-                bestGTguess = startIdx - newIdx;
-                startIdx = newIdx;
-            }
+
+            bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
 
             // likelihoods are stored row-wise in lower triangular matrix. IE
             // for 2 alleles they have ordering AA,AB,BB
@@ -709,33 +652,9 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
 
             final double qual = GenotypeLikelihoods.getQualFromLikelihoods(bestGTguess, likelihoods);
-            //System.out.println(myAlleles.toString());
             calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
         }
 
-        for ( final Genotype genotype : GLs.iterateInSampleNameOrder() ) {
-            if ( !genotype.hasLikelihoods() )
-                continue;
-
-            final Genotype g = GLs.get(genotype.getSampleName());
-            final double[] likelihoods = genotype.getLikelihoods().getAsVector();
-
-            if (MathUtils.sum(likelihoods) <= SUM_GL_THRESH_NOCALL)
-                continue; // regular likelihoods
-
-            final double qual = Genotype.NO_LOG10_PERROR;
-            calls.replace(new Genotype(g.getSampleName(), NO_CALL_ALLELES, qual, null, g.getAttributes(), false));
-        }
-
         return calls;
-    }
-
-    private final static void printLikelihoods(int numChr, double[][] logYMatrix, double[] log10AlleleFrequencyPriors) {
-        int j = logYMatrix.length - 1;
-        System.out.printf("-----------------------------------%n");
-        for (int k=0; k <= numChr; k++) {
-            double posterior = logYMatrix[j][k] + log10AlleleFrequencyPriors[k];
-            System.out.printf("  %4d\t%8.2f\t%8.2f\t%8.2f%n", k, logYMatrix[j][k], log10AlleleFrequencyPriors[k], posterior);
-        }
     }
 }
