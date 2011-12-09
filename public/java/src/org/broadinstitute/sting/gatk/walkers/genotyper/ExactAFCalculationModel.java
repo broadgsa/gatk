@@ -27,9 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
@@ -40,9 +38,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private final static boolean DEBUG = false;
 
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
-    private final static double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
-
-    private static final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     private final boolean USE_MULTI_ALLELIC_CALCULATION;
 
@@ -73,7 +68,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
-                if (MathUtils.sum(gls) < SUM_GL_THRESH_NOCALL)
+                if ( MathUtils.sum(gls) < UnifiedGenotyperEngine.SUM_GL_THRESH_NOCALL )
                     genotypeLikelihoods.add(gls);
             }
         }
@@ -583,88 +578,5 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         return coeff;
-    }
-
-    /**
-     * Can be overridden by concrete subclasses
-     * @param vc                   variant context with genotype likelihoods
-     * @param log10AlleleFrequencyLikelihoods likelihoods
-     * @param AFofMaxLikelihood    allele frequency of max likelihood
-     *
-     * @return calls
-     */
-    public GenotypesContext assignGenotypes(VariantContext vc,
-                                            double[][] log10AlleleFrequencyLikelihoods,
-                                            int AFofMaxLikelihood) {
-        if ( !vc.isVariant() )
-            throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
-
-        GenotypesContext GLs = vc.getGenotypes();
-        double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
-
-        ArrayList<String> sampleIndices = new ArrayList<String>();
-
-        // todo - optimize initialization
-        for (int k=0; k <= AFofMaxLikelihood; k++)
-            for (int j=0; j <= GLs.size(); j++)
-                pathMetricArray[j][k] = -1e30;
-
-        pathMetricArray[0][0] = 0.0;
-
-        sampleIndices.addAll(GLs.getSampleNamesOrderedByName());
-
-        GenotypesContext calls = GenotypesContext.create();
-
-        for (int k = GLs.size(); k > 0; k--) {
-            int bestGTguess;
-            String sample = sampleIndices.get(k-1);
-            Genotype g = GLs.get(sample);
-            if ( !g.hasLikelihoods() )
-                continue;
-
-            ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-
-            double[] likelihoods = g.getLikelihoods().getAsVector();
-
-            // if there is no mass on the likelihoods, then just no-call the sample
-            if ( MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL ) {
-                calls.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
-                continue;
-            }
-
-            bestGTguess = Utils.findIndexOfMaxEntry(likelihoods);
-
-            // likelihoods are stored row-wise in lower triangular matrix. IE
-            // for 2 alleles they have ordering AA,AB,BB
-            // for 3 alleles they are ordered AA,AB,BB,AC,BC,CC
-            // Get now alleles corresponding to best index
-            int kk=0;
-            boolean done = false;
-            for (int j=0; j < vc.getNAlleles(); j++) {
-                for (int i=0; i <= j; i++){
-                    if (kk++ == bestGTguess) {
-                        if (i==0)
-                            myAlleles.add(vc.getReference());
-                        else
-                            myAlleles.add(vc.getAlternateAllele(i-1));
-
-                        if (j==0)
-                            myAlleles.add(vc.getReference());
-                        else
-                            myAlleles.add(vc.getAlternateAllele(j-1));
-                        done = true;
-                        break;
-                    }
-
-                }
-                if (done)
-                    break;
-            }
-
-            final double qual = GenotypeLikelihoods.getQualFromLikelihoods(bestGTguess, likelihoods);
-            calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
-        }
-
-        return calls;
     }
 }

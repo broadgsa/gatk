@@ -59,6 +59,9 @@ public class UnifiedGenotyperEngine {
         EMIT_ALL_SITES
     }
 
+    protected static final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+    protected static final double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
+
     // the unified argument collection
     private final UnifiedArgumentCollection UAC;
     public UnifiedArgumentCollection getUAC() { return UAC; }
@@ -327,18 +330,21 @@ public class UnifiedGenotyperEngine {
         clearAFarray(log10AlleleFrequencyPosteriors.get());
         afcm.get().getLog10PNonRef(vc.getGenotypes(), vc.getAlleles(), getAlleleFrequencyPriors(model), log10AlleleFrequencyLikelihoods.get(), log10AlleleFrequencyPosteriors.get());
 
-        // find the most likely frequency
-        int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get()[0]);
+        // TODO -- this is not the right thing mathematically to do!  In a case of B=1,C=0 the likelihoods would get added to both AC=0 and AC=1
+        double[] collapsedPosteriors = collapseAFarrays(log10AlleleFrequencyPosteriors.get(), vc.getAlternateAlleles().size());
+
+        // is the most likely frequency conformation AC=0 for all alternate alleles?
+        boolean bestGuessIsRef = MathUtils.maxElementIndex(collapsedPosteriors) == 0;
 
         // calculate p(f>0)
-        double[] normalizedPosteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get()[0]);
+        double[] normalizedPosteriors = MathUtils.normalizeFromLog10(collapsedPosteriors);
         double sum = 0.0;
         for (int i = 1; i <= N; i++)
             sum += normalizedPosteriors[i];
         double PofF = Math.min(sum, 1.0); // deal with precision errors
 
         double phredScaledConfidence;
-        if ( bestAFguess != 0 || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
+        if ( !bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(normalizedPosteriors[0]);
             if ( Double.isInfinite(phredScaledConfidence) )
                 phredScaledConfidence = -10.0 * log10AlleleFrequencyPosteriors.get()[0][0];
@@ -356,21 +362,46 @@ public class UnifiedGenotyperEngine {
         }
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
-        if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestAFguess) ) {
+        if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestGuessIsRef) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
             return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getGenotypePriors(model).getHeterozygosity(), true, 1.0 - PofF);
         }
 
-        // strip out the alternate allele(s) if we're making a ref call
-        Set<Allele> myAlleles = new HashSet<Allele>(vc.getAlleles());
-        if ( bestAFguess == 0 && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
-            myAlleles = new HashSet<Allele>(1);
+        // strip out any alleles that aren't going to be used
+        Set<Allele> myAlleles;
+        boolean[] altAllelesToUse = new boolean[vc.getAlternateAlleles().size()];
+        if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
+            myAlleles = new HashSet<Allele>(vc.getAlleles().size());
             myAlleles.add(vc.getReference());
+
+            // if we're making a reference call then we keep just the ref allele, otherwise we need to determine which ones are okay
+            if ( !bestGuessIsRef ) {
+                for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
+                    if ( MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get()[i]) != 0 ) {
+                        myAlleles.add(vc.getAlternateAllele(i));
+                        altAllelesToUse[i] = true;
+                    }
+                }
+            }
+        } else {
+            // use all of the alleles if we are given them by the user
+            myAlleles = new HashSet<Allele>(vc.getAlleles());
+            for ( int i = 0; i < altAllelesToUse.length; i++ )
+                altAllelesToUse[i] = true;
         }
 
+        // start constructing the resulting VC
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(vc);
+        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), myAlleles);
+        builder.log10PError(phredScaledConfidence/-10.0);
+        if ( ! passesCallThreshold(phredScaledConfidence) )
+            builder.filters(filter);
+        if ( !limitedContext )
+            builder.referenceBaseForIndel(refContext.getBase());
+
         // create the genotypes
-        GenotypesContext genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyLikelihoods.get(), bestAFguess);
+        GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse);
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
@@ -383,7 +414,7 @@ public class UnifiedGenotyperEngine {
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
 
-        if ( UAC.COMPUTE_SLOD && !limitedContext && bestAFguess != 0 ) {
+        if ( UAC.COMPUTE_SLOD && !limitedContext && !bestGuessIsRef ) {
             //final boolean DEBUG_SLOD = false;
 
             // the overall lod
@@ -428,15 +459,9 @@ public class UnifiedGenotyperEngine {
             attributes.put("SB", strandScore);
         }
 
-        GenomeLoc loc = genomeLocParser.createGenomeLoc(vc);
-
-        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), myAlleles);
+        // finish constructing the resulting VC
         builder.genotypes(genotypes);
-        builder.log10PError(phredScaledConfidence/-10.0);
-        if ( ! passesCallThreshold(phredScaledConfidence) ) builder.filters(filter);
         builder.attributes(attributes);
-        if ( !limitedContext )
-            builder.referenceBaseForIndel(refContext.getBase());
         VariantContext vcCall = builder.make();
 
         if ( annotationEngine != null && !limitedContext ) {
@@ -452,6 +477,21 @@ public class UnifiedGenotyperEngine {
         }
 
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
+    }
+
+    private static double[] collapseAFarrays(double[][] original, int numDimensions) {
+        int size = original[0].length;
+        double[] newArray = new double[size];
+        for ( int i = 0; i < size; i++)
+            newArray[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
+
+        for ( int i = 0; i < numDimensions; i++ ) {
+            for ( int j = 0; j < size; j++ ) {
+                newArray[j] = ExactAFCalculationModel.approximateLog10SumLog10(newArray[j], original[i][j]);
+            }
+        }
+
+        return newArray;
     }
 
     private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
@@ -634,8 +674,8 @@ public class UnifiedGenotyperEngine {
         verboseWriter.println();
     }
 
-    protected boolean passesEmitThreshold(double conf, int bestAFguess) {
-        return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || bestAFguess != 0) && conf >= Math.min(UAC.STANDARD_CONFIDENCE_FOR_CALLING, UAC.STANDARD_CONFIDENCE_FOR_EMITTING);
+    protected boolean passesEmitThreshold(double conf, boolean bestGuessIsRef) {
+        return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || !bestGuessIsRef) && conf >= Math.min(UAC.STANDARD_CONFIDENCE_FOR_CALLING, UAC.STANDARD_CONFIDENCE_FOR_EMITTING);
     }
 
     protected boolean passesCallThreshold(double conf) {
@@ -779,5 +819,89 @@ public class UnifiedGenotyperEngine {
         }
 
         return vc;
+    }
+
+    /**
+     * @param vc            variant context with genotype likelihoods
+     * @param allelesToUse  bit vector describing which alternate alleles from the vc are okay to use
+     *
+     * @return genotypes
+     */
+    public GenotypesContext assignGenotypes(VariantContext vc,
+                                            boolean[] allelesToUse) {
+
+        final GenotypesContext GLs = vc.getGenotypes();
+
+        final List<String> sampleIndices = GLs.getSampleNamesOrderedByName();
+
+        final GenotypesContext calls = GenotypesContext.create();
+
+        for ( int k = GLs.size() - 1; k >= 0; k-- ) {
+            final String sample = sampleIndices.get(k);
+            final Genotype g = GLs.get(sample);
+            if ( !g.hasLikelihoods() )
+                continue;
+
+            final double[] likelihoods = g.getLikelihoods().getAsVector();
+
+            // if there is no mass on the likelihoods, then just no-call the sample
+            if ( MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL ) {
+                calls.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
+                continue;
+            }
+
+            // genotype likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
+            // so e.g. with 2 alt alleles the likelihoods are AA,AB,AC,BB,BC,CC and with 3 alt alleles they are AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
+
+            final int numAltAlleles = allelesToUse.length;
+
+            // start with the assumption that the ideal genotype is homozygous reference
+            Allele maxAllele1 = vc.getReference(), maxAllele2 = vc.getReference();
+            double maxLikelihoodSeen = likelihoods[0];
+            int indexOfMax = 0;
+
+            // keep track of some state
+            Allele firstAllele = vc.getReference();
+            int subtractor = numAltAlleles + 1;
+            int subtractionsMade = 0;
+
+            for ( int i = 1, PLindex = 1; i < likelihoods.length; i++, PLindex++ ) {
+                if ( PLindex == subtractor ) {
+                    firstAllele = vc.getAlternateAllele(subtractionsMade);
+                    PLindex -= subtractor;
+                    subtractor--;
+                    subtractionsMade++;
+
+                    // we can skip this allele if it's not usable
+                    if ( !allelesToUse[subtractionsMade-1] ) {
+                        i += subtractor - 1;
+                        PLindex += subtractor - 1;
+                        continue;
+                    }
+                }
+
+                // we don't care about the entry if we've already seen better
+                if ( likelihoods[i] <= maxLikelihoodSeen )
+                    continue;
+
+                // if it's usable then update the alleles
+                int alleleIndex = subtractionsMade + PLindex - 1;
+                if ( allelesToUse[alleleIndex] ) {
+                    maxAllele1 = firstAllele;
+                    maxAllele2 = vc.getAlternateAllele(alleleIndex);
+                    maxLikelihoodSeen = likelihoods[i];
+                    indexOfMax = i;
+                }
+            }
+
+            ArrayList<Allele> myAlleles = new ArrayList<Allele>();
+            myAlleles.add(maxAllele1);
+            myAlleles.add(maxAllele2);
+
+            final double qual = GenotypeLikelihoods.getQualFromLikelihoods(indexOfMax, likelihoods);
+            calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
+        }
+
+        return calls;
     }
 }

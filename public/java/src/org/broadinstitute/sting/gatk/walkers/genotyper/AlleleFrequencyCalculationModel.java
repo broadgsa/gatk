@@ -72,16 +72,4 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
                                             double[][] log10AlleleFrequencyPriors,
                                             double[][] log10AlleleFrequencyLikelihoods,
                                             double[][] log10AlleleFrequencyPosteriors);
-
-    /**
-     * Can be overridden by concrete subclasses
-     * @param vc                   variant context with genotype likelihoods
-     * @param log10AlleleFrequencyLikelihoods    allele frequency results
-     * @param AFofMaxLikelihood    allele frequency of max likelihood
-     *
-     * @return calls
-     */
-    protected abstract GenotypesContext assignGenotypes(VariantContext vc,
-                                                        double[][] log10AlleleFrequencyLikelihoods,
-                                                        int AFofMaxLikelihood);
 }
