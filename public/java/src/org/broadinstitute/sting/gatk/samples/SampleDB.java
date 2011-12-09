@@ -200,7 +200,9 @@ public class SampleDB {
                 continue;
 
             sampleIterator = familyMembers.iterator();
-            for(Sample sample = sampleIterator.next(); sampleIterator.hasNext(); sample = sampleIterator.next()){
+            Sample sample;
+            while(sampleIterator.hasNext()){
+                sample = sampleIterator.next();
                 if(sample.getParents().size() == 2 && familyMembers.containsAll(sample.getParents()))
                     childrenWithParents.add(sample);
             }
