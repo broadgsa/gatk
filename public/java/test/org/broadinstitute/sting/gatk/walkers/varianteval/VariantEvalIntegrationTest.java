@@ -292,6 +292,17 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testVEMendelianViolationEvaluator() {
+        String vcfFile = "/MendelianViolationEval.vcf";
+        String pedFile = "/MendelianViolationEval.ped";
+
+        WalkerTestSpec spec = new WalkerTestSpec("-T VariantEval -R "+b37KGReference+" --eval " + variantEvalTestDataRoot + vcfFile + " -ped "+ variantEvalTestDataRoot + pedFile +" -noEV -EV MendelianViolationEvaluator -L 1:10109-10315 -o %s -mvq 0 -noST",
+                1,
+                Arrays.asList("85a8fc01a1f50839667bfcd04155f735"));
+        executeTestParallel("testVEMendelianViolationEvaluator" + vcfFile, spec);
+    }
+
+    @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("fa13eb59892892c07711c6ffe31bf870"));
