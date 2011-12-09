@@ -83,14 +83,16 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     @Test(dataProvider = "getGLs")
     public void testGLs(GetGLsTest cfg) {
 
+        final double[][] log10AlleleFrequencyLikelihoods = new double[2][2*numSamples+1];
         final double[][] log10AlleleFrequencyPosteriors = new double[2][2*numSamples+1];
         for ( int i = 0; i < 2; i++ ) {
             for ( int j = 0; j < 2*numSamples+1; j++ ) {
+                log10AlleleFrequencyLikelihoods[i][j] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
                 log10AlleleFrequencyPosteriors[i][j] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
             }
         }
 
-        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, log10AlleleFrequencyPosteriors, false);
+        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors, false);
 
         int nameIndex = 1;
         for ( int allele = 0; allele < cfg.numAltAlleles; allele++, nameIndex+=2 ) {
