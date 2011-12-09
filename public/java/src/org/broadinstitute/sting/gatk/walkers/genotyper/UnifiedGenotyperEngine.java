@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -153,8 +152,6 @@ public class UnifiedGenotyperEngine {
         }
         
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
-
         if ( vc == null )
             return null;
 
@@ -297,13 +294,15 @@ public class UnifiedGenotyperEngine {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
-            log10AlleleFrequencyPosteriors.set(new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1]);
+            log10AlleleFrequencyPosteriors.set(new double[UAC.MAX_ALTERNATE_ALLELES][N+1]);
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
         }
 
         // don't try to genotype too many alternate alleles
-        if ( vc.getAlternateAlleles().size() > MAX_NUMBER_OF_ALTERNATE_ALLELES )
-            throw new UserException("the Unified Genotyper is currently not equipped to genotype more than " + MAX_NUMBER_OF_ALTERNATE_ALLELES + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + vc.getAlternateAlleles().size() + " alternate alleles");
+        if ( vc.getAlternateAlleles().size() > UAC.MAX_ALTERNATE_ALLELES ) {
+            logger.warn("the Unified Genotyper is currently set to genotype at most " + UAC.MAX_ALTERNATE_ALLELES + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + vc.getAlternateAlleles().size() + " alternate alleles; see the --max_alternate_alleles argument");
+            return null;
+        }
 
         // estimate our confidence in a reference call and return
         if ( vc.getNSamples() == 0 )
@@ -446,13 +445,15 @@ public class UnifiedGenotyperEngine {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
-            log10AlleleFrequencyPosteriors.set(new double[MAX_NUMBER_OF_ALTERNATE_ALLELES][N+1]);
+            log10AlleleFrequencyPosteriors.set(new double[UAC.MAX_ALTERNATE_ALLELES][N+1]);
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
         }
 
         // don't try to genotype too many alternate alleles
-        if ( vc.getAlternateAlleles().size() > MAX_NUMBER_OF_ALTERNATE_ALLELES )
-            throw new UserException("the Unified Genotyper is currently not equipped to genotype more than " + MAX_NUMBER_OF_ALTERNATE_ALLELES + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + vc.getAlternateAlleles().size() + " alternate alleles");
+        if ( vc.getAlternateAlleles().size() > UAC.MAX_ALTERNATE_ALLELES ) {
+            logger.warn("the Unified Genotyper is currently set to genotype at most " + UAC.MAX_ALTERNATE_ALLELES + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + vc.getAlternateAlleles().size() + " alternate alleles; see the --max_alternate_alleles argument");
+            return null;
+        }
 
         // estimate our confidence in a reference call and return
         if ( vc.getNSamples() == 0 )

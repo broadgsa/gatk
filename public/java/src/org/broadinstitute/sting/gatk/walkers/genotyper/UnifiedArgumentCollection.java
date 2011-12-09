@@ -159,7 +159,7 @@ public class UnifiedArgumentCollection {
 
     /**
      * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
-     * then this site will be skipped and a warning printed.
+     * then this site will be skipped and a warning printed.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
      */
     @Hidden
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
