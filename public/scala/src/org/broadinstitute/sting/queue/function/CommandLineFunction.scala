@@ -110,61 +110,178 @@ trait CommandLineFunction extends QFunction with Logging {
   }
 
   /**
-   * Repeats parameters with a prefix/suffix if they are set otherwise returns "".
-   * Skips null, Nil, None.  Unwraps Some(x) to x.  Everything else is called with x.toString.
-   * @param prefix Command line prefix per parameter.
-   * @param params Traversable parameters.
-   * @param suffix Optional suffix per parameter.
-   * @param separator Optional separator per parameter.
-   * @param format Format function if the value has a value
-   * @return The generated string
+   * Safely construct a full required command-line argument with consistent quoting, whitespace separation, etc.
+   *
+   * @param prefix Prefix to insert before the argument value (eg., "-f")
+   * @param param The argument value itself
+   * @param suffix Suffix to append after the argument value
+   * @param spaceSeparated If true, insert a space between the prefix, param, and suffix
+   * @param escape If true, quote the generated argument to avoid interpretation by the shell
+   * @param format Format String used to convert param to a String
+   * @return The combined and formatted argument, surrounded by whitespace
    */
-  protected def repeat(prefix: String, params: Traversable[_], suffix: String = "", separator: String = "",
-                       format: (String, Any, String) => String = formatValue("%s")) =
-    if (params == null)
-      ""
-    else
-      params.filter(param => hasValue(param)).map(param => format(prefix, param, suffix)).mkString(separator)
+  protected def required( prefix: String, param: Any, suffix: String = "", spaceSeparated: Boolean = true,
+                          escape: Boolean = true, format: String = "%s" ): String = {
+    " %s ".format(formatArgument(prefix, param, suffix, spaceSeparated, escape, format))
+  }
 
   /**
-   * Returns parameter with a prefix/suffix if it is set otherwise returns "".
-   * Does not output null, Nil, None.  Unwraps Some(x) to x.  Everything else is called with x.toString.
-   * @param prefix Command line prefix per parameter.
-   * @param param Parameter to check for a value.
-   * @param suffix Optional suffix per parameter.
-   * @param format Format function if the value has a value
-   * @return The generated string
+   * Safely construct a one-token required command-line argument with quoting
+   *
+   * @param param The command-line argument value
+   * @return The argument value quoted and surrounded by whitespace
    */
-  protected def optional(prefix: String, param: Any, suffix: String = "",
-                         format: (String, Any, String) => String = formatValue("%s")) =
-    if (hasValue(param)) format(prefix, param, suffix) else ""
+  protected def required( param: Any ): String = {
+    required("", param)
+  }
 
   /**
-   * Returns "" if the value is null or an empty collection, otherwise return the value.toString.
-   * @param format Format string if the value has a value
-   * @param prefix Command line prefix per parameter.
-   * @param param Parameter to check for a value.
-   * @param suffix Optional suffix per parameter.
-   * @return "" if the value is null, or "" if the collection is empty, otherwise the value.toString.
+   * Safely construct a one-token required command-line argument, and specify whether you want quoting
+   *
+   * @param param The command-line argument value
+   * @param escape If true, quote the generated argument to avoid interpretation by the shell
+   * @return The argument value, quoted if quoting was requested, and surrounded by whitespace
    */
-  protected def formatValue(format: String)(prefix: String, param: Any, suffix: String): String =
-    if (CollectionUtils.isNullOrEmpty(param))
-      ""
-    else
-      prefix + (param match {
-        case Some(x) => format.format(x)
-        case x => format.format(x)
-      }) + suffix
+  protected def required( param: Any, escape: Boolean ): String = {
+    required("", param, escape=escape)
+  }
 
   /**
-   * Returns the parameter if the condition is true. Useful for long string of parameters
-   * @param condition the condition to validate
-   * @param param the string to be returned in case condition is true
-   * @return param if condition is true, "" otherwise
+   * Safely construct a full optional command-line argument with consistent quoting, whitespace separation, etc.
+   * If the argument has no value, returns an empty String.
+   *
+   * @param prefix Prefix to insert before the argument value (eg., "-f")
+   * @param param The argument value itself (if null/empty, the method returns empty String)
+   * @param suffix Suffix to append after the argument value
+   * @param spaceSeparated If true, insert a space between the prefix, param, and suffix
+   * @param escape If true, quote the generated argument to avoid interpretation by the shell
+   * @param format Format String used to convert param to a String
+   * @return The combined and formatted argument, surrounded by whitespace, or an empty String
+   *         if the argument has no value
    */
-  protected def conditionalParameter(condition: Boolean, param: String): String =
-    if (condition == true)
-      param
-    else
+  protected def optional( prefix: String, param: Any, suffix: String = "", spaceSeparated: Boolean = true,
+                          escape: Boolean = true, format: String = "%s" ): String = {
+    if ( hasValue(param) ) " %s ".format(formatArgument(prefix, param, suffix, spaceSeparated, escape, format)) else ""
+  }
+
+  /**
+   * Safely construct a one-token optional command-line argument with quoting.
+   * If the argument has no value, returns an empty String.
+   *
+   * @param param The command-line argument value
+   * @return The argument value quoted and surrounded by whitespace, or an empty String
+   *         if the argument has no value
+   */
+  protected def optional( param: Any ): String = {
+    optional("", param)
+  }
+
+  /**
+   * Safely construct a one-token conditional command-line argument. If the provided condition
+   * is false, an empty String is returned.
+   *
+   * @param condition The condition to check
+   * @param param The command-line argument value
+   * @param escape If true, quote the generated argument to avoid interpretation by the shell
+   * @param format Format String used to convert param to a String
+   * @return The command-line argument value, quoted if quoting was requested and surrounded
+   *         by whitespace, or an empty String if the argument has no value.
+   */
+  protected def conditional( condition: Boolean, param: Any, escape: Boolean = true, format: String = "%s" ): String = {
+    if ( condition ) {
+      " %s ".format(formatArgument("", param, "", false, escape, format))
+    }
+    else {
       ""
+    }
+  }
+
+  /**
+   * Safely construct a series of full command-line arguments with consistent quoting, whitespace separation, etc.
+   *
+   * Each argument value is preceded by a prefix/suffix if they are set. A function can be provided to vary
+   * each prefix for each argument value (eg., -f:tag1 file1 -f:tag2 file2) -- the default is to use
+   * the same prefix for all arguments.
+   *
+   * @param prefix Prefix to insert before each argument value (eg., "-f")
+   * @param params The collection of argument values
+   * @param suffix Suffix to append after each argument value
+   * @param separator Specifies how to separate the various arguments from each other
+   *                  (eg., what should go between '-f' 'file1' and '-f' 'file2'?)
+   *                  Default is one space character.
+   * @param spaceSeparated If true, insert a space between each individual prefix, param, and suffix
+   * @param escape If true, quote the generated argument to avoid interpretation by the shell
+   * @param format Format String used to convert each individual param within params to a String
+   * @param formatPrefix Function mapping (prefix, argumentValue) pairs to prefixes. Can be used to
+   *                     vary each prefix depending on the argument value (useful for tags, etc.).
+   *                     Default is to use the same prefix for all argument values.
+   * @return The series of command-line arguments, quoted and whitespace-delimited as requested,
+   *         or an empty String if params was null/Nil/None.
+   */
+  protected def repeat(prefix: String, params: Traversable[_], suffix: String = "", separator: String = " ",
+                       spaceSeparated: Boolean = true, escape: Boolean = true, format: String = "%s",
+                       formatPrefix: (String, Any) => String = (prefix, value) => prefix): String = {
+    if (CollectionUtils.isNullOrEmpty(params))
+      ""
+    else
+      " %s ".format(params.filter(param => hasValue(param)).map(param => formatArgument(formatPrefix(prefix, param), param, suffix, spaceSeparated, escape, format)).mkString(separator))
+  }
+
+  /**
+   * Safely construct a series of one-token command-line arguments with quoting and space separation.
+   *
+   * @param params The collection of argument values
+   * @return The argument values quoted and space-delimited, or an empty String if params was null/Nil/None
+   */
+  protected def repeat( params: Traversable[_] ): String = {
+    repeat("", params)
+  }
+
+  /**
+   * Given an (optional) prefix, an argument value, and an (optional) suffix, formats a command-line
+   * argument with the specified level of quoting and space-separation.
+   *
+   * Helper method for required(), optional(), conditional(), and repeat() -- do not use this
+   * method directly!
+   *
+   * @param prefix Prefix to insert before the argument value (eg., "-f"). Ignored if empty/null.
+   * @param param The argument value itself. If this is Some(x), it is unwrapped to x before processing.
+   * @param suffix Suffix to append after the argument value. Ignored if empty/null.
+   * @param spaceSeparated If true, insert a space between the prefix, param, and suffix
+   * @param escape If true, quote the generated argument to avoid interpretation by the shell
+   * @param paramFormat Format string used to convert param to a String
+   * @return The combined and formatted argument, NOT surrounded by any whitespace.
+   *         Returns an empty String if param was null/empty.
+   */
+  protected def formatArgument( prefix: String, param: Any, suffix: String, spaceSeparated: Boolean, escape: Boolean,
+                                paramFormat: String ): String = {
+    if (CollectionUtils.isNullOrEmpty(param)) {
+      return ""
+    }
+
+    // Trim leading and trailing whitespace off our three tokens, and unwrap Some(x) to x for the param
+    val trimmedValues : List[String] = List((if ( prefix != null ) prefix.trim else ""),
+                                            (param match {
+                                              case Some(x) => paramFormat.format(x).trim
+                                              case x => paramFormat.format(x).trim
+                                            }),
+                                            (if ( suffix != null ) suffix.trim else ""))
+    var joinedArgument : String = null
+
+    // If the user requested space-separation, join the tokens with a space, and escape individual
+    // NON-EMPTY tokens if escaping was requested (eg., ("-f", "foo", "") -> "'-f' 'foo'")
+    if ( spaceSeparated ) {
+      joinedArgument = trimmedValues.map(x => if ( x.length > 0 && escape ) ShellUtils.escapeShellArgument(x) else x).mkString(" ").trim()
+    }
+
+    // Otherwise join the tokens without any intervening whitespace, and if quoting was requested
+    // quote the entire concatenated value (eg., ("-Xmx", "4", "G") -> "'-Xmx4G'")
+    else  {
+      joinedArgument = if ( escape ) ShellUtils.escapeShellArgument(trimmedValues.mkString("")) else trimmedValues.mkString("")
+    }
+
+    // If the user requested escaping and we ended up with an empty String after joining, quote the empty
+    // String to preserve the command line token. Otherwise just return the joined argument
+    if ( joinedArgument.length == 0 && escape ) ShellUtils.escapeShellArgument(joinedArgument) else joinedArgument
+  }
 }

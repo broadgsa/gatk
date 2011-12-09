@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.util.IntervalTree;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -30,6 +32,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
@@ -183,6 +186,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Input(fullName="stratIntervals", shortName="stratIntervals", doc="File containing tribble-readable features for the IntervalStratificiation", required=false)
     public IntervalBinding<Feature> intervalsFile = null;
 
+    /**
+     * File containing tribble-readable features containing known CNVs.  For use with VariantSummary table.
+     */
+    @Input(fullName="knownCNVs", shortName="knownCNVs", doc="File containing tribble-readable features describing a known list of copy number variants", required=false)
+    public IntervalBinding<Feature> knownCNVsFile = null;
+    Map<String, IntervalTree<GenomeLoc>> knownCNVsByContig = Collections.emptyMap();
+
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
 
@@ -289,6 +299,28 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                 throw new ReviewedStingException(String.format("The ancestral alignments file, '%s', could not be found", ancestralAlignmentsFile.getAbsolutePath()));
             }
         }
+
+
+        // initialize CNVs
+        if ( knownCNVsFile != null ) {
+            knownCNVsByContig = createIntervalTreeByContig(knownCNVsFile);
+        }
+    }
+
+    public final Map<String, IntervalTree<GenomeLoc>> createIntervalTreeByContig(final IntervalBinding<Feature> intervals) {
+        final Map<String, IntervalTree<GenomeLoc>> byContig = new HashMap<String, IntervalTree<GenomeLoc>>();
+
+        final List<GenomeLoc> locs = intervals.getIntervals(getToolkit());
+
+        // set up the map from contig -> interval tree
+        for ( final String contig : getContigNames() )
+            byContig.put(contig, new IntervalTree<GenomeLoc>());
+
+        for ( final GenomeLoc loc : locs ) {
+            byContig.get(loc.getContig()).put(loc.getStart(), loc.getStop(), loc);
+        }
+
+        return byContig;
     }
 
     /**
@@ -541,14 +573,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
 
-    public List<GenomeLoc> getIntervals() {
-        if ( intervalsFile == null )
-            throw new UserException.MissingArgument("stratIntervals", "Must be provided when IntervalStratification is enabled");
-
-        return intervalsFile.getIntervals(getToolkit());
-    }
-
-
     public Set<String> getContigNames() {
         final TreeSet<String> contigs = new TreeSet<String>();
         for( final SAMSequenceRecord r :  getToolkit().getReferenceDataSource().getReference().getSequenceDictionary().getSequences()) {
@@ -559,5 +583,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public GenomeLocParser getGenomeLocParser() {
         return getToolkit().getGenomeLocParser();
+    }
+
+    public GenomeAnalysisEngine getToolkit() {
+        return super.getToolkit();
     }
 }

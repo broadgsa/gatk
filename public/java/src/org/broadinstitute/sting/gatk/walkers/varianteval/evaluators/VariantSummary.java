@@ -24,25 +24,38 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
+import net.sf.picard.util.IntervalTree;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Analysis(description = "1000 Genomes Phase I summary of variants table")
 public class VariantSummary extends VariantEvaluator implements StandardEval {
+    final protected static Logger logger = Logger.getLogger(VariantSummary.class);
+
+    private final static int MAX_INDEL_LENGTH = 50;
+    private final static double MIN_CNV_OVERLAP = 0.5;
+    private VariantEvalWalker walker;
+
+    public enum Type {
+        SNP, INDEL, CNV
+    }
+
+    Map<String, IntervalTree<GenomeLoc>> knownCNVs = null;
+
     // basic counts on various rates found
     @DataPoint(description = "Number of samples")
     public long nSamples = 0;
@@ -86,10 +99,10 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
     private final static String ALL = "ALL";
 
-    private class TypeSampleMap extends EnumMap<VariantContext.Type, Map<String, Integer>> {
+    private class TypeSampleMap extends EnumMap<Type, Map<String, Integer>> {
         public TypeSampleMap(final Collection<String> samples) {
-            super(VariantContext.Type.class);
-            for ( VariantContext.Type type : VariantContext.Type.values() ) {
+            super(Type.class);
+            for ( Type type : Type.values() ) {
                 Map<String, Integer> bySample = new HashMap<String, Integer>(samples.size());
                 for ( final String sample : samples ) {
                     bySample.put(sample, 0);
@@ -99,16 +112,16 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             }
         }
 
-        public final void inc(final VariantContext.Type type, final String sample) {
+        public final void inc(final Type type, final String sample) {
             final int count = this.get(type).get(sample);
             get(type).put(sample, count + 1);
         }
 
-        public final int all(VariantContext.Type type) {
+        public final int all(Type type) {
             return get(type).get(ALL);
         }
 
-        public final int meanValue(VariantContext.Type type) {
+        public final int meanValue(Type type) {
             long sum = 0;
             int n = 0;
             for ( final Map.Entry<String, Integer> pair : get(type).entrySet() ) {
@@ -120,7 +133,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             return (int)(Math.round(sum / (1.0 * n)));
         }
 
-        public final double ratioValue(VariantContext.Type type, TypeSampleMap denoms, boolean allP) {
+        public final double ratioValue(Type type, TypeSampleMap denoms, boolean allP) {
             double sum = 0;
             int n = 0;
             for ( final String sample : get(type).keySet() ) {
@@ -131,12 +144,15 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                     n++;
                 }
             }
-            return Math.round(sum / (1.0 * n));
+
+            return n > 0 ? sum / (1.0 * n) : 0.0;
         }
     }
 
 
     public void initialize(VariantEvalWalker walker) {
+        this.walker = walker;
+
         nSamples = walker.getSampleNamesForEvaluation().size();
         countsPerSample = new TypeSampleMap(walker.getSampleNamesForEvaluation());
         transitionsPerSample = new TypeSampleMap(walker.getSampleNamesForEvaluation());
@@ -144,6 +160,13 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         allVariantCounts = new TypeSampleMap(walker.getSampleNamesForEvaluation());
         knownVariantCounts = new TypeSampleMap(walker.getSampleNamesForEvaluation());
         depthPerSample = new TypeSampleMap(walker.getSampleNamesForEvaluation());
+
+        if ( walker.knownCNVsFile != null ) {
+            knownCNVs = walker.createIntervalTreeByContig(walker.knownCNVsFile);
+            final List<GenomeLoc> locs = walker.knownCNVsFile.getIntervals(walker.getToolkit());
+            logger.info(String.format("Creating known CNV list %s containing %d intervals covering %d bp",
+                    walker.knownCNVsFile.getSource(), locs.size(), IntervalUtils.intervalSize(locs)));
+        }
     }
 
     @Override public boolean enabled() { return true; }
@@ -156,44 +179,77 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
     }
 
+    private final Type getType(VariantContext vc) {
+        switch (vc.getType()) {
+            case SNP:
+                return Type.SNP;
+            case INDEL:
+                for ( int l : vc.getIndelLengths() )
+                    if ( Math.abs(l) > MAX_INDEL_LENGTH )
+                        return Type.CNV;
+                return Type.INDEL;
+            case SYMBOLIC:
+                return Type.CNV;
+            default:
+                throw new UserException.BadInput("Unexpected variant context type: " + vc);
+        }
+    }
+
+    private final boolean overlapsKnownCNV(VariantContext cnv) {
+        final GenomeLoc loc = walker.getGenomeLocParser().createGenomeLoc(cnv, true);
+        IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
+
+        final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());
+        while ( nodeIt.hasNext() ) {
+            final double overlapP = loc.reciprocialOverlapFraction(nodeIt.next().getValue());
+            if ( overlapP > MIN_CNV_OVERLAP )
+                return true;
+        }
+
+        return false;
+    }
+
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( eval == null || eval.isMonomorphicInSamples() ) return null;
 
+        final Type type = getType(eval);
+
         TypeSampleMap titvTable = null;
 
-        switch (eval.getType()) {
-            case SNP:
-                titvTable = VariantContextUtils.isTransition(eval) ? transitionsPerSample : transversionsPerSample;
-                titvTable.inc(eval.getType(), ALL);
-            case INDEL:
-            case SYMBOLIC:
-                allVariantCounts.inc(eval.getType(), ALL);
-                if ( comp != null )
-                    knownVariantCounts.inc(eval.getType(), ALL);
-                if ( eval.hasAttribute(VCFConstants.DEPTH_KEY) )
-                    depthPerSample.inc(eval.getType(), ALL);
-                break;
-            default:
-                throw new UserException.BadInput("Unexpected variant context type: " + eval);
+        // update DP, if possible
+        if ( eval.hasAttribute(VCFConstants.DEPTH_KEY) )
+            depthPerSample.inc(type, ALL);
+
+        // update counts
+        allVariantCounts.inc(type, ALL);
+
+        // type specific calculations
+        if ( type == Type.SNP ) {
+            titvTable = VariantContextUtils.isTransition(eval) ? transitionsPerSample : transversionsPerSample;
+            titvTable.inc(type, ALL);
         }
+
+        // novelty calculation
+        if ( comp != null || (type == Type.CNV && overlapsKnownCNV(eval)))
+            knownVariantCounts.inc(type, ALL);
 
         // per sample metrics
         for (final Genotype g : eval.getGenotypes()) {
             if ( ! g.isNoCall() && ! g.isHomRef() ) {
-                countsPerSample.inc(eval.getType(), g.getSampleName());
+                countsPerSample.inc(type, g.getSampleName());
 
                 // update transition / transversion ratio
-                if ( titvTable != null ) titvTable.inc(eval.getType(), g.getSampleName());
+                if ( titvTable != null ) titvTable.inc(type, g.getSampleName());
 
                 if ( g.hasAttribute(VCFConstants.DEPTH_KEY) )
-                    depthPerSample.inc(eval.getType(), g.getSampleName());
+                    depthPerSample.inc(type, g.getSampleName());
             }
         }
 
         return null; // we don't capture any interesting sites
     }
 
-    private final String noveltyRate(VariantContext.Type type) {
+    private final String noveltyRate(Type type) {
         final int all = allVariantCounts.all(type);
         final int known = knownVariantCounts.all(type);
         final int novel = all - known;
@@ -202,22 +258,22 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     }
 
     public void finalizeEvaluation() {
-        nSNPs = allVariantCounts.all(VariantContext.Type.SNP);
-        nIndels = allVariantCounts.all(VariantContext.Type.INDEL);
-        nSVs = allVariantCounts.all(VariantContext.Type.SYMBOLIC);
+        nSNPs = allVariantCounts.all(Type.SNP);
+        nIndels = allVariantCounts.all(Type.INDEL);
+        nSVs = allVariantCounts.all(Type.CNV);
 
-        TiTvRatio = transitionsPerSample.ratioValue(VariantContext.Type.SNP, transversionsPerSample, true);
-        TiTvRatioPerSample = transitionsPerSample.ratioValue(VariantContext.Type.SNP, transversionsPerSample, false);
+        TiTvRatio = transitionsPerSample.ratioValue(Type.SNP, transversionsPerSample, true);
+        TiTvRatioPerSample = transitionsPerSample.ratioValue(Type.SNP, transversionsPerSample, false);
 
-        nSNPsPerSample = countsPerSample.meanValue(VariantContext.Type.SNP);
-        nIndelsPerSample = countsPerSample.meanValue(VariantContext.Type.INDEL);
-        nSVsPerSample = countsPerSample.meanValue(VariantContext.Type.SYMBOLIC);
+        nSNPsPerSample = countsPerSample.meanValue(Type.SNP);
+        nIndelsPerSample = countsPerSample.meanValue(Type.INDEL);
+        nSVsPerSample = countsPerSample.meanValue(Type.CNV);
 
-        SNPNoveltyRate = noveltyRate(VariantContext.Type.SNP);
-        IndelNoveltyRate = noveltyRate(VariantContext.Type.INDEL);
-        SVNoveltyRate = noveltyRate(VariantContext.Type.SYMBOLIC);
+        SNPNoveltyRate = noveltyRate(Type.SNP);
+        IndelNoveltyRate = noveltyRate(Type.INDEL);
+        SVNoveltyRate = noveltyRate(Type.CNV);
 
-        SNPDPPerSample = depthPerSample.meanValue(VariantContext.Type.SNP);
-        IndelDPPerSample = depthPerSample.meanValue(VariantContext.Type.INDEL);
+        SNPDPPerSample = depthPerSample.meanValue(Type.SNP);
+        IndelDPPerSample = depthPerSample.meanValue(Type.INDEL);
     }
 }

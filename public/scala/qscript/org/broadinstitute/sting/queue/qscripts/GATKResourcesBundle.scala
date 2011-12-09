@@ -314,7 +314,7 @@ class GATKResourcesBundle extends QScript {
 
   class MakeDBSNP129(@Input dbsnp: File, @Input ref: File, @Output dbsnp129: File) extends SelectVariants with UNIVERSAL_GATK_ARGS {
     this.variant = dbsnp
-    this.select ++= List("\"dbSNPBuildID <= 129\"")
+    this.select ++= List("dbSNPBuildID <= 129")
     this.reference_sequence = ref
     this.out = dbsnp129
   }

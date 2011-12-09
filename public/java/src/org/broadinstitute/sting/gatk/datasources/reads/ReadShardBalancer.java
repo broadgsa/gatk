@@ -89,11 +89,10 @@ public class ReadShardBalancer extends ShardBalancer {
 
                     for(SAMReaderID id: shardPosition.keySet()) {
                         SAMFileSpan fileSpan = new GATKBAMFileSpan(shardPosition.get(id).removeContentsBefore(position.get(id)));
-                        if(!fileSpan.isEmpty())
-                            selectedReaders.put(id,fileSpan);
+                        selectedReaders.put(id,fileSpan);
                     }
 
-                    if(selectedReaders.size() > 0) {
+                    if(!isEmpty(selectedReaders)) {
                         Shard shard = new ReadShard(parser,readsDataSource,selectedReaders,currentFilePointer.locations,currentFilePointer.isRegionUnmapped);
                         readsDataSource.fillShard(shard);
 
@@ -108,6 +107,19 @@ public class ReadShardBalancer extends ShardBalancer {
                 }
 
                 position = readsDataSource.getCurrentPosition();
+            }
+
+            /**
+             * Detects whether the list of file spans contain any read data.
+             * @param selectedSpans Mapping of readers to file spans.
+             * @return True if file spans are completely empty; false otherwise.
+             */
+            private boolean isEmpty(Map<SAMReaderID,SAMFileSpan> selectedSpans) {
+                for(SAMFileSpan fileSpan: selectedSpans.values()) {
+                    if(!fileSpan.isEmpty())
+                        return false;
+                }
+                return true;
             }
         };
     }

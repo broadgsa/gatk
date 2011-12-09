@@ -78,7 +78,7 @@ public abstract class BaseTest {
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
     public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
-    public static final String networkTempDir = "/broad/shptmp/";
+    public static final String networkTempDir = "/broad/shptmp/" + System.getProperty("user.name") + "/";
     public static final File networkTempDirFile = new File(networkTempDir);
 
     public static final File testDirFile = new File("public/testdata/");
@@ -134,7 +134,7 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
-        private final String name;
+        private String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C
@@ -149,6 +149,10 @@ public abstract class BaseTest {
 
         public TestDataProvider(Class c) {
             this(c, "");
+        }
+
+        public void setName(final String name) {
+            this.name = name;
         }
 
         /**
@@ -235,6 +239,7 @@ public abstract class BaseTest {
      */
     public static File createNetworkTempFile(String name, String extension) {
         try {
+            FileUtils.forceMkdir(networkTempDirFile);
             File file = File.createTempFile(name, extension, networkTempDirFile);
             file.deleteOnExit();
             return file;

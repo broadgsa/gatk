@@ -12,7 +12,7 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  inputFileName = "~/Desktop/broadLocal/GATK/unstable/wgs.jobreport.txt"
+  inputFileName = "Q-8271@gsa2.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
@@ -149,6 +149,35 @@ convertUnits <- function(gatkReportData) {
   lapply(gatkReportData, convertGroup)
 }
 
+#
+# Plots runtimes by analysis name and exechosts
+#
+# Useful to understand the performance of analysis jobs by hosts, 
+# and to debug problematic nodes
+# 
+plotTimeByHost <- function(gatkReportData) {
+  fields = c("analysisName", "exechosts", "runtime")
+  
+  runtimes = data.frame()
+  for ( report in gatkReportData ) {
+    runtimes = rbind(runtimes, report[,fields])
+  }
+  
+  plotMe <- function(name, vis) {
+    p = ggplot(data=runtimes, aes(x=exechosts, y=runtime, group=exechosts, color=exechosts))
+    p = p + facet_grid(analysisName ~ ., scale="free")
+    p = p + vis()
+    p = p + xlab("Job execution host")
+    p = p + opts(title = paste(name, "of job runtimes by analysis name and execution host"))
+    p = p + ylab(paste("Distribution of runtimes", RUNTIME_UNITS))
+    p = p + opts(axis.text.x=theme_text(angle=45, hjust=1, vjust=1))
+    print(p)
+  }
+  
+  plotMe("Boxplot", geom_boxplot)
+  plotMe("Jittered points", geom_jitter)
+}
+
   
 # read the table
 gatkReportData <- gsa.read.gatkreport(inputFileName)
@@ -162,6 +191,7 @@ if ( ! is.na(outputPDF) ) {
 plotJobsGantt(gatkReportData, T, F)
 plotJobsGantt(gatkReportData, F, F)
 plotProgressByTime(gatkReportData)
+plotTimeByHost(gatkReportData)
 for ( group in gatkReportData ) {
  plotGroup(group)
 }
