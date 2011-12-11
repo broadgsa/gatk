@@ -15,9 +15,9 @@ import java.util.Map;
 
 public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
-    private final static String baseCommand = "-T UnifiedGenotyper --multiallelic -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndels = "-T UnifiedGenotyper --multiallelic -R " + b36KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper --multiallelic -R " + b37KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
+    private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
 
     // --------------------------------------------------------------------------------------------------------------
     //

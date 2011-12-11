@@ -39,12 +39,9 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
-    private final boolean USE_MULTI_ALLELIC_CALCULATION;
-
 
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
-        USE_MULTI_ALLELIC_CALCULATION = UAC.MULTI_ALLELIC;
     }
 
     public void getLog10PNonRef(final GenotypesContext GLs,
@@ -54,10 +51,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                 final double[][] log10AlleleFrequencyPosteriors) {
         final int numAlleles = alleles.size();
 
-        if ( USE_MULTI_ALLELIC_CALCULATION )
-            linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors, false);
-        else
-            linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
+        //linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
+        linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors, false);
     }
 
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
@@ -77,120 +72,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
 
-    // -------------------------------------------------------------------------------------
-    //
-    // Linearized, ~O(N), implementation.
-    //
-    // -------------------------------------------------------------------------------------
-
-    /**
-     * A simple data structure that holds the current, prev, and prev->prev likelihoods vectors
-     * for the exact model calculation
-     */
-    private final static class ExactACCache {
-        double[] kMinus2, kMinus1, kMinus0;
-
-        private final static double[] create(int n) {
-            return new double[n];
-        }
-
-        public ExactACCache(int n) {
-            kMinus2 = create(n);
-            kMinus1 = create(n);
-            kMinus0 = create(n);
-        }
-
-        final public void rotate() {
-            double[] tmp = kMinus2;
-            kMinus2 = kMinus1;
-            kMinus1 = kMinus0;
-            kMinus0 = tmp;
-        }
-
-        final public double[] getkMinus2() {
-            return kMinus2;
-        }
-
-        final public double[] getkMinus1() {
-            return kMinus1;
-        }
-
-        final public double[] getkMinus0() {
-            return kMinus0;
-        }
-    }
-
-    public int linearExact(GenotypesContext GLs,
-                           double[] log10AlleleFrequencyPriors,
-                           double[][] log10AlleleFrequencyLikelihoods,
-                           double[][] log10AlleleFrequencyPosteriors) {
-        final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
-        final int numSamples = genotypeLikelihoods.size()-1;
-        final int numChr = 2*numSamples;
-
-        final ExactACCache logY = new ExactACCache(numSamples+1);
-        logY.getkMinus0()[0] = 0.0; // the zero case
-
-        double maxLog10L = Double.NEGATIVE_INFINITY;
-        boolean done = false;
-        int lastK = -1;
-
-        for (int k=0; k <= numChr && ! done; k++ ) {
-            final double[] kMinus0 = logY.getkMinus0();
-
-            if ( k == 0 ) { // special case for k = 0
-                for ( int j=1; j <= numSamples; j++ ) {
-                    kMinus0[j] = kMinus0[j-1] + genotypeLikelihoods.get(j)[0];
-                }
-            } else { // k > 0
-                final double[] kMinus1 = logY.getkMinus1();
-                final double[] kMinus2 = logY.getkMinus2();
-
-                for ( int j=1; j <= numSamples; j++ ) {
-                    final double[] gl = genotypeLikelihoods.get(j);
-                    final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
-
-                    double aa = Double.NEGATIVE_INFINITY;
-                    double ab = Double.NEGATIVE_INFINITY;
-                    if (k < 2*j-1)
-                        aa = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + kMinus0[j-1] + gl[0];
-
-                    if (k < 2*j)
-                        ab = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ kMinus1[j-1] + gl[1];
-
-                    double log10Max;
-                    if (k > 1) {
-                        final double bb = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + kMinus2[j-1] + gl[2];
-                        log10Max = approximateLog10SumLog10(aa, ab, bb);
-                    } else {
-                        // we know we aren't considering the BB case, so we can use an optimized log10 function
-                        log10Max = approximateLog10SumLog10(aa, ab);
-                    }
-
-                    // finally, update the L(j,k) value
-                    kMinus0[j] = log10Max - logDenominator;
-                }
-            }
-
-            // update the posteriors vector
-            final double log10LofK = kMinus0[numSamples];
-            log10AlleleFrequencyLikelihoods[0][k] = log10LofK;
-            log10AlleleFrequencyPosteriors[0][k] = log10LofK + log10AlleleFrequencyPriors[k];
-
-            // can we abort early?
-            lastK = k;
-            maxLog10L = Math.max(maxLog10L, log10LofK);
-            if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
-                if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
-                done = true;
-            }
-
-            logY.rotate();
-        }
-
-        return lastK;
-    }
-
     final static double approximateLog10SumLog10(double[] vals) {
         if ( vals.length < 2 )
             throw new ReviewedStingException("Passing array with fewer than 2 values when computing approximateLog10SumLog10");
@@ -199,10 +80,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         for ( int i = 2; i < vals.length; i++ )
             approx = approximateLog10SumLog10(approx, vals[i]);
         return approx;
-    }
-
-    final static double approximateLog10SumLog10(double a, double b, double c) {
-        return approximateLog10SumLog10(approximateLog10SumLog10(a, b), c);
     }
 
     final static double approximateLog10SumLog10(double small, double big) {
@@ -579,4 +456,126 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         return coeff;
     }
+
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Deprecated bi-allelic ~O(N) implementation.  Kept here for posterity.
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * A simple data structure that holds the current, prev, and prev->prev likelihoods vectors
+     * for the exact model calculation
+     */
+/*
+    private final static class ExactACCache {
+        double[] kMinus2, kMinus1, kMinus0;
+
+        private final static double[] create(int n) {
+            return new double[n];
+        }
+
+        public ExactACCache(int n) {
+            kMinus2 = create(n);
+            kMinus1 = create(n);
+            kMinus0 = create(n);
+        }
+
+        final public void rotate() {
+            double[] tmp = kMinus2;
+            kMinus2 = kMinus1;
+            kMinus1 = kMinus0;
+            kMinus0 = tmp;
+        }
+
+        final public double[] getkMinus2() {
+            return kMinus2;
+        }
+
+        final public double[] getkMinus1() {
+            return kMinus1;
+        }
+
+        final public double[] getkMinus0() {
+            return kMinus0;
+        }
+    }
+
+    public int linearExact(GenotypesContext GLs,
+                           double[] log10AlleleFrequencyPriors,
+                           double[][] log10AlleleFrequencyLikelihoods,
+                           double[][] log10AlleleFrequencyPosteriors) {
+        final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
+        final int numSamples = genotypeLikelihoods.size()-1;
+        final int numChr = 2*numSamples;
+
+        final ExactACCache logY = new ExactACCache(numSamples+1);
+        logY.getkMinus0()[0] = 0.0; // the zero case
+
+        double maxLog10L = Double.NEGATIVE_INFINITY;
+        boolean done = false;
+        int lastK = -1;
+
+        for (int k=0; k <= numChr && ! done; k++ ) {
+            final double[] kMinus0 = logY.getkMinus0();
+
+            if ( k == 0 ) { // special case for k = 0
+                for ( int j=1; j <= numSamples; j++ ) {
+                    kMinus0[j] = kMinus0[j-1] + genotypeLikelihoods.get(j)[0];
+                }
+            } else { // k > 0
+                final double[] kMinus1 = logY.getkMinus1();
+                final double[] kMinus2 = logY.getkMinus2();
+
+                for ( int j=1; j <= numSamples; j++ ) {
+                    final double[] gl = genotypeLikelihoods.get(j);
+                    final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
+
+                    double aa = Double.NEGATIVE_INFINITY;
+                    double ab = Double.NEGATIVE_INFINITY;
+                    if (k < 2*j-1)
+                        aa = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + kMinus0[j-1] + gl[0];
+
+                    if (k < 2*j)
+                        ab = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ kMinus1[j-1] + gl[1];
+
+                    double log10Max;
+                    if (k > 1) {
+                        final double bb = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + kMinus2[j-1] + gl[2];
+                        log10Max = approximateLog10SumLog10(aa, ab, bb);
+                    } else {
+                        // we know we aren't considering the BB case, so we can use an optimized log10 function
+                        log10Max = approximateLog10SumLog10(aa, ab);
+                    }
+
+                    // finally, update the L(j,k) value
+                    kMinus0[j] = log10Max - logDenominator;
+                }
+            }
+
+            // update the posteriors vector
+            final double log10LofK = kMinus0[numSamples];
+            log10AlleleFrequencyLikelihoods[0][k] = log10LofK;
+            log10AlleleFrequencyPosteriors[0][k] = log10LofK + log10AlleleFrequencyPriors[k];
+
+            // can we abort early?
+            lastK = k;
+            maxLog10L = Math.max(maxLog10L, log10LofK);
+            if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
+                if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
+                done = true;
+            }
+
+            logY.rotate();
+        }
+
+        return lastK;
+    }
+
+    final static double approximateLog10SumLog10(double a, double b, double c) {
+        return approximateLog10SumLog10(approximateLog10SumLog10(a, b), c);
+    }
+*/
+
 }
