@@ -330,14 +330,38 @@ public class UnifiedGenotyperEngine {
         clearAFarray(log10AlleleFrequencyPosteriors.get());
         afcm.get().getLog10PNonRef(vc.getGenotypes(), vc.getAlleles(), getAlleleFrequencyPriors(model), log10AlleleFrequencyLikelihoods.get(), log10AlleleFrequencyPosteriors.get());
 
-        // TODO -- this is not the right thing mathematically to do!  In a case of B=1,C=0 the likelihoods would get added to both AC=0 and AC=1
-        double[] collapsedPosteriors = collapseAFarrays(log10AlleleFrequencyPosteriors.get(), vc.getAlternateAlleles().size());
-
         // is the most likely frequency conformation AC=0 for all alternate alleles?
-        boolean bestGuessIsRef = MathUtils.maxElementIndex(collapsedPosteriors) == 0;
+        boolean bestGuessIsRef = true;
+
+        // which alternate allele has the highest MLE AC?
+        int indexOfHighestAlt = -1;
+        int alleleCountOfHighestAlt = -1;
+
+        // determine which alternate alleles have AF>0
+        boolean[] altAllelesToUse = new boolean[vc.getAlternateAlleles().size()];
+        for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
+            int indexOfBestAC = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get()[i]);
+
+            // if the most likely AC is not 0, then this is a good alternate allele to use
+            if ( indexOfBestAC != 0 ) {
+                altAllelesToUse[i] = true;
+                bestGuessIsRef = false;
+            }
+            // if in GENOTYPE_GIVEN_ALLELES mode, we still want to allow the use of a poor allele
+            else if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
+                altAllelesToUse[i] = true;
+            }
+
+            // keep track of the "best" alternate allele to use
+            if ( indexOfBestAC > alleleCountOfHighestAlt) {
+                alleleCountOfHighestAlt = indexOfBestAC;
+                indexOfHighestAlt = i;
+            }
+        }
 
         // calculate p(f>0)
-        double[] normalizedPosteriors = MathUtils.normalizeFromLog10(collapsedPosteriors);
+        // TODO -- right now we just calculate it for the alt allele with highest AF, but the likelihoods need to be combined correctly over all AFs
+        double[] normalizedPosteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get()[indexOfHighestAlt]);
         double sum = 0.0;
         for (int i = 1; i <= N; i++)
             sum += normalizedPosteriors[i];
@@ -368,27 +392,18 @@ public class UnifiedGenotyperEngine {
             return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getGenotypePriors(model).getHeterozygosity(), true, 1.0 - PofF);
         }
 
-        // strip out any alleles that aren't going to be used
-        Set<Allele> myAlleles;
-        boolean[] altAllelesToUse = new boolean[vc.getAlternateAlleles().size()];
+        // strip out any alleles that aren't going to be used in the VariantContext
+        List<Allele> myAlleles;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
-            myAlleles = new HashSet<Allele>(vc.getAlleles().size());
+            myAlleles = new ArrayList<Allele>(vc.getAlleles().size());
             myAlleles.add(vc.getReference());
-
-            // if we're making a reference call then we keep just the ref allele, otherwise we need to determine which ones are okay
-            if ( !bestGuessIsRef ) {
-                for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
-                    if ( MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get()[i]) != 0 ) {
-                        myAlleles.add(vc.getAlternateAllele(i));
-                        altAllelesToUse[i] = true;
-                    }
-                }
+            for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
+                if ( altAllelesToUse[i] )
+                    myAlleles.add(vc.getAlternateAllele(i));
             }
         } else {
             // use all of the alleles if we are given them by the user
-            myAlleles = new HashSet<Allele>(vc.getAlleles());
-            for ( int i = 0; i < altAllelesToUse.length; i++ )
-                altAllelesToUse[i] = true;
+            myAlleles = vc.getAlleles();
         }
 
         // start constructing the resulting VC
@@ -477,21 +492,6 @@ public class UnifiedGenotyperEngine {
         }
 
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
-    }
-
-    private static double[] collapseAFarrays(double[][] original, int numDimensions) {
-        int size = original[0].length;
-        double[] newArray = new double[size];
-        for ( int i = 0; i < size; i++)
-            newArray[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
-
-        for ( int i = 0; i < numDimensions; i++ ) {
-            for ( int j = 0; j < size; j++ ) {
-                newArray[j] = ExactAFCalculationModel.approximateLog10SumLog10(newArray[j], original[i][j]);
-            }
-        }
-
-        return newArray;
     }
 
     private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
