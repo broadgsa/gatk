@@ -67,6 +67,7 @@ public class SAMReaderID implements Comparable {
      * @param other The other identifier.
      * @return True iff the two readers point to the same file.
      */
+    @Override
     public boolean equals(Object other) {
         if(other == null) return false;
         if(!(other instanceof SAMReaderID)) return false;
@@ -79,10 +80,20 @@ public class SAMReaderID implements Comparable {
      * Generate a hash code for this object.
      * @return A hash code, based solely on the file name at this point.
      */
+    @Override
     public int hashCode() {
         return samFile.hashCode();
     }
 
+    /**
+     * Best string representation for a SAM file reader is the path of the source file.
+     */
+    @Override
+    public String toString() {
+        return getSamFilePath();
+    }
+
+    @Override
     public int compareTo(Object other) {
         return this.samFile.getAbsolutePath().compareTo(((SAMReaderID)other).samFile.getAbsolutePath());
     }

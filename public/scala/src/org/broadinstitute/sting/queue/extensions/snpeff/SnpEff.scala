@@ -50,11 +50,14 @@ class SnpEff extends JavaCommandLineFunction {
   @Output(doc="snp eff output")
   var outVcf: File = _
 
-  override def commandLine = Array(
-    super.commandLine,
-    " eff",
-    if (verbose) " -v" else "",
-    optional(" -c ", config),
-    " -i vcf -o vcf %s %s > %s".format(genomeVersion, inVcf, outVcf)
-  ).mkString
+  override def commandLine = super.commandLine +
+                             required("eff") +
+                             conditional(verbose, "-v") +
+                             optional("-c", config) +
+                             required("-i", "vcf") +
+                             required("-o", "vcf") +
+                             required(genomeVersion) +
+                             required(inVcf) +
+                             required(">", escape=false) +
+                             required(outVcf)
 }

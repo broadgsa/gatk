@@ -280,8 +280,24 @@ public class GenomeAnalysisEngine {
      */
     private void determineThreadAllocation() {
         Tags tags = parsingEngine.getTags(argCollection.numberOfThreads);
-        Integer numCPUThreads = tags.containsKey("cpu") ? Integer.parseInt(tags.getValue("cpu")) : null;
-        Integer numIOThreads = tags.containsKey("io") ? Integer.parseInt(tags.getValue("io")) : null;
+
+        // TODO: Kill this complicated logic once Queue supports arbitrary tagged parameters.
+        Integer numCPUThreads = null;
+        if(tags.containsKey("cpu") && argCollection.numberOfCPUThreads != null)
+            throw new UserException("Number of CPU threads specified both directly on the command-line and as a tag to the nt argument.  Please specify only one or the other.");
+        else if(tags.containsKey("cpu"))
+            numCPUThreads = Integer.parseInt(tags.getValue("cpu"));
+        else if(argCollection.numberOfCPUThreads != null)
+            numCPUThreads = argCollection.numberOfCPUThreads;
+
+        Integer numIOThreads = null;
+        if(tags.containsKey("io") && argCollection.numberOfIOThreads != null)
+            throw new UserException("Number of IO threads specified both directly on the command-line and as a tag to the nt argument.  Please specify only one or the other.");
+        else if(tags.containsKey("io"))
+            numIOThreads = Integer.parseInt(tags.getValue("io"));
+        else if(argCollection.numberOfIOThreads != null)
+            numIOThreads = argCollection.numberOfIOThreads;
+
         this.threadAllocation = new ThreadAllocation(argCollection.numberOfThreads,numCPUThreads,numIOThreads);
     }
 
@@ -453,7 +469,7 @@ public class GenomeAnalysisEngine {
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
         }
         else {
-            final int SHARD_SIZE = walker instanceof RodWalker ? 100000000 : 100000;
+            final int SHARD_SIZE = walker instanceof RodWalker ? 1000000 : 100000;
             if(intervals == null)
                 return referenceDataSource.createShardsOverEntireReference(readsDataSource,genomeLocParser,SHARD_SIZE);
             else

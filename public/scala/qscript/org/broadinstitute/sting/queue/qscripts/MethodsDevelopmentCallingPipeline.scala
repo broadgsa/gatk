@@ -248,10 +248,10 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.V = t.rawIndelVCF
     this.out = t.filteredIndelVCF
     this.filterName ++= List("IndelQD", "IndelReadPosRankSum", "IndelFS")
-    this.filterExpression ++= List("\"QD < 2.0\"", "\"ReadPosRankSum < -20.0\"", "\"FS > 200.0\"")
+    this.filterExpression ++= List("QD < 2.0", "ReadPosRankSum < -20.0", "FS > 200.0")
     if (t.nSamples >= 10) {
         this.filterName ++= List("IndelInbreedingCoeff")
-        this.filterExpression ++= List("\"InbreedingCoeff < -0.8\"")
+        this.filterExpression ++= List("InbreedingCoeff < -0.8")
     }
     this.analysisName = t.name + "_VF"
     this.jobName =  queueLogDir + t.name + ".indelfilter"

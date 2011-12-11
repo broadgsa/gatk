@@ -9,6 +9,7 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -149,5 +150,65 @@ public class GenomeLocUnitTest extends BaseTest {
         twoUnmappedMixed = IntervalUtils.sortAndMergeIntervals(genomeLocParser,twoUnmappedMixed,IntervalMergingRule.OVERLAPPING_ONLY).toList();
         Assert.assertEquals(twoUnmappedMixed.size(),2,"Wrong number of elements in list.");
         Assert.assertEquals(twoUnmappedMixed,Arrays.asList(chr1,unmapped),"List sorted in wrong order");
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // testing overlap detection
+    //
+    // -------------------------------------------------------------------------------------
+
+    private class ReciprocalOverlapProvider extends TestDataProvider {
+        GenomeLoc gl1, gl2;
+        int overlapSize;
+        double overlapFraction;
+
+        private ReciprocalOverlapProvider(int start1, int stop1, int start2, int stop2) {
+            super(ReciprocalOverlapProvider.class);
+            gl1 = genomeLocParser.createGenomeLoc("chr1", start1, stop1);
+            gl2 = genomeLocParser.createGenomeLoc("chr1", start2, stop2);
+
+            int shared = 0;
+            for ( int i = start1; i <= stop1; i++ ) {
+                if ( i >= start2 && i <= stop2 )
+                    shared++;
+            }
+
+            this.overlapSize = shared;
+            this.overlapFraction = Math.min((1.0*shared)/gl1.size(), (1.0*shared)/gl2.size());
+            super.setName(String.format("%d-%d / %d-%d overlap=%d / %.2f", start1, stop1, start2, stop2, overlapSize, overlapFraction));
+        }
+    }
+
+    @DataProvider(name = "ReciprocalOverlapProvider")
+    public Object[][] makeReciprocalOverlapProvider() {
+        for ( int start1 = 1; start1 <= 10; start1++ ) {
+            for ( int stop1 = start1; stop1 <= 10; stop1++ ) {
+                new ReciprocalOverlapProvider(start1, stop1, 1, 10);
+                new ReciprocalOverlapProvider(start1, stop1, 5, 10);
+                new ReciprocalOverlapProvider(start1, stop1, 5, 7);
+                new ReciprocalOverlapProvider(start1, stop1, 5, 15);
+                new ReciprocalOverlapProvider(start1, stop1, 11, 20);
+
+                new ReciprocalOverlapProvider(1, 10, start1, stop1);
+                new ReciprocalOverlapProvider(5, 10, start1, stop1);
+                new ReciprocalOverlapProvider(5, 7, start1, stop1);
+                new ReciprocalOverlapProvider(5, 15, start1, stop1);
+                new ReciprocalOverlapProvider(11, 20, start1, stop1);
+            }
+        }
+
+        return ReciprocalOverlapProvider.getTests(ReciprocalOverlapProvider.class);
+    }
+
+    @Test(dataProvider = "ReciprocalOverlapProvider")
+    public void testReciprocalOverlapProvider(ReciprocalOverlapProvider cfg) {
+        if ( cfg.overlapSize == 0 ) {
+            Assert.assertFalse(cfg.gl1.overlapsP(cfg.gl2));
+        } else {
+            Assert.assertTrue(cfg.gl1.overlapsP(cfg.gl2));
+            Assert.assertEquals(cfg.gl1.intersect(cfg.gl2).size(), cfg.overlapSize);
+            Assert.assertEquals(cfg.gl1.reciprocialOverlapFraction(cfg.gl2), cfg.overlapFraction);
+        }
     }
 }
