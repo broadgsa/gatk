@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.samples.Sample;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -179,7 +180,7 @@ import java.util.*;
  * </pre>
  *
  */
-public class SelectVariants extends RodWalker<Integer, Integer> {
+public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
@@ -608,6 +609,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     @Override
     public Integer reduce(Integer value, Integer sum) { return value + sum; }
+
+    @Override
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
+    }
 
     public void onTraversalDone(Integer result) {
         logger.info(result + " records processed.");
