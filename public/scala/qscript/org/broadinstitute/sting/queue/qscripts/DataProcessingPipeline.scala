@@ -83,6 +83,10 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Define the default platform for Count Covariates -- useful for techdev purposes only.", fullName="default_platform", shortName="dp", required=false)
   var defaultPlatform: String = ""
 
+  @Hidden
+  @Input(doc="Run the pipeline in test mode only", fullName = "test_mode", shortName = "test", required=false)
+  var testMode: Boolean = false
+
 
   /****************************************************************************
   * Global Variables
@@ -335,6 +339,7 @@ class DataProcessingPipeline extends QScript {
       this.known ++= qscript.indels
     this.consensusDeterminationModel = cleanModelEnum
     this.compress = 0
+    this.noPGTag = qscript.testMode;
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
     this.jobName = queueLogDir + outBam + ".clean"
@@ -360,6 +365,7 @@ class DataProcessingPipeline extends QScript {
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
+    this.no_pg_tag = qscript.testMode
     this.scatterCount = nContigs
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
