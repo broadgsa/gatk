@@ -56,7 +56,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
-        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();
+        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();  // TODO -- initialize with size of GLs
 
         genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
         for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
@@ -364,7 +364,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         else {
             // all possible likelihoods for a given cell from which to choose the max
             final int numPaths = set.ACsetIndexToPLIndex.size() + 1;
-            final double[] log10ConformationLikelihoods = new double[numPaths];
+            final double[] log10ConformationLikelihoods = new double[numPaths]; // TODO can be created just once, since you initialize it
 
             for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
                 final double[] gl = genotypeLikelihoods.get(j);
@@ -372,6 +372,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
                 // initialize
                 for ( int i = 0; i < numPaths; i++ )
+                    // TODO -- Arrays.fill?
+                    // todo -- is this even necessary?  Why not have as else below?
                     log10ConformationLikelihoods[i] = Double.NEGATIVE_INFINITY;
 
                 // deal with the AA case first
@@ -417,6 +419,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
     private static double determineCoefficient(int PLindex, final int j, final int[] ACcounts, final int totalK) {
+        // todo -- arent' there a small number of fixed values that this function can adopt?
+        // todo -- at a minimum it'd be good to partially compute some of these in ACCounts for performance
+        // todo -- need to cache PLIndex -> two alleles, compute looping over each PLIndex.  Note all other operations are efficient
+        // todo -- this can be computed once at the start of the all operations
 
         // the closed form representation generalized for multiple alleles is as follows:
         // AA: (2j - totalK) * (2j - totalK - 1)
