@@ -38,8 +38,9 @@ class PacbioProcessingPipelineTest {
       " -R " + BaseTest.testDir + "exampleFASTA.fasta",
       " -i " + BaseTest.testDir + "exampleBAM.bam",
       " -blasr ",
+      " -test ",
       " -D " + BaseTest.testDir + "exampleDBSNP.vcf").mkString
-    spec.fileMD5s += testOut -> "3a23c96063743ddbc35897331433e205"
+    spec.fileMD5s += testOut -> "f0adce660b55cb91d5f987f9a145471e"
     PipelineTest.executeTest(spec)
   }
 }
