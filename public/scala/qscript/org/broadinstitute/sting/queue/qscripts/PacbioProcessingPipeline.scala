@@ -177,7 +177,6 @@ class PacbioProcessingPipeline extends QScript {
   }
 
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
-    this.resources = R
     this.recal_file = inRecalFile
     this.output_dir = outPath
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
