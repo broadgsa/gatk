@@ -21,9 +21,6 @@ class PacbioProcessingPipeline extends QScript {
   @Input(doc="input FASTA/FASTQ/BAM file - or list of FASTA/FASTQ/BAM files. ", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
-  var R: String = _
-
   @Input(doc="Reference fasta file", shortName="R", required=true)
   var reference: File = _
 
@@ -180,7 +177,6 @@ class PacbioProcessingPipeline extends QScript {
   }
 
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
-    this.resources = R
     this.recal_file = inRecalFile
     this.output_dir = outPath
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"

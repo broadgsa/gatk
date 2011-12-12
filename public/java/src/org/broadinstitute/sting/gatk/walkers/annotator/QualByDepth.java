@@ -38,7 +38,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         for ( final Genotype genotype : genotypes ) {
 
             // we care only about variant calls with likelihoods
-            if ( genotype.isHomRef() )
+            if ( !genotype.isHet() && !genotype.isHomVar() )
                 continue;
 
             AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());

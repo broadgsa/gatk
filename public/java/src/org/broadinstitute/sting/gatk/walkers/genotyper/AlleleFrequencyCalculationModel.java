@@ -52,7 +52,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected enum GenotypeType { AA, AB, BB }
 
-    protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
+    protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
 
     protected AlleleFrequencyCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         this.N = N;
@@ -62,24 +62,14 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     /**
      * Must be overridden by concrete subclasses
-     * @param GLs                             genotype likelihoods
-     * @param Alleles                       Alleles corresponding to GLs
-     * @param log10AlleleFrequencyPriors      priors
-     * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
+     * @param GLs                               genotype likelihoods
+     * @param Alleles                           Alleles corresponding to GLs
+     * @param log10AlleleFrequencyPriors        priors
+     * @param log10AlleleFrequencyLikelihoods   array (pre-allocated) to store likelihoods results
+     * @param log10AlleleFrequencyPosteriors    array (pre-allocated) to store posteriors results
      */
     protected abstract void getLog10PNonRef(GenotypesContext GLs,  List<Allele> Alleles,
-                                            double[] log10AlleleFrequencyPriors,
-                                            double[] log10AlleleFrequencyPosteriors);
-
-    /**
-     * Can be overridden by concrete subclasses
-     * @param vc                   variant context with genotype likelihoods
-     * @param log10AlleleFrequencyPosteriors    allele frequency results
-     * @param AFofMaxLikelihood    allele frequency of max likelihood
-     *
-     * @return calls
-     */
-    protected abstract GenotypesContext assignGenotypes(VariantContext vc,
-                                                   double[] log10AlleleFrequencyPosteriors,
-                                                   int AFofMaxLikelihood);
+                                            double[][] log10AlleleFrequencyPriors,
+                                            double[][] log10AlleleFrequencyLikelihoods,
+                                            double[][] log10AlleleFrequencyPosteriors);
 }
