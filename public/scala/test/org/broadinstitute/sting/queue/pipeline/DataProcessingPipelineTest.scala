@@ -41,7 +41,7 @@ class DataProcessingPipelineTest {
       " -D " + BaseTest.testDir + "exampleDBSNP.vcf",
       " -nv ",
       " -p " + projectName).mkString
-    spec.fileMD5s += testOut -> "69ba216bcf1e2dd9b6bd631ef99efda9"
+    spec.fileMD5s += testOut -> "a9769a85f15e77505835068353ce4788"
     PipelineTest.executeTest(spec)
   }
 
@@ -60,7 +60,7 @@ class DataProcessingPipelineTest {
       " -bwa /home/unix/carneiro/bin/bwa",
       " -bwape ",
       " -p " + projectName).mkString
-    spec.fileMD5s += testOut -> "3134cbeae1561ff8e6b559241f9ed7f5"
+    spec.fileMD5s += testOut -> "fad1fd2e69287c1beb423ce17fa464d6"
     PipelineTest.executeTest(spec)
   }
 

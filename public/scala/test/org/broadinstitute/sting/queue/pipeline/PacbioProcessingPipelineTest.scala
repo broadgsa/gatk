@@ -39,7 +39,7 @@ class PacbioProcessingPipelineTest {
       " -i " + BaseTest.testDir + "exampleBAM.bam",
       " -blasr ",
       " -D " + BaseTest.testDir + "exampleDBSNP.vcf").mkString
-    spec.fileMD5s += testOut -> "91a88b51d00cec40596d6061aa0c9938"
+    spec.fileMD5s += testOut -> "3a23c96063743ddbc35897331433e205"
     PipelineTest.executeTest(spec)
   }
 }
