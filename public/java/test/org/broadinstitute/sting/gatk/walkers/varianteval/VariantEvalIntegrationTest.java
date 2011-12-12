@@ -298,7 +298,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         WalkerTestSpec spec = new WalkerTestSpec("-T VariantEval -R "+b37KGReference+" --eval " + variantEvalTestDataRoot + vcfFile + " -ped "+ variantEvalTestDataRoot + pedFile +" -noEV -EV MendelianViolationEvaluator -L 1:10109-10315 -o %s -mvq 0 -noST",
                 1,
-                Arrays.asList("85a8fc01a1f50839667bfcd04155f735"));
+                Arrays.asList("66e72c887124f40933d32254b2dd44a3"));
         executeTestParallel("testVEMendelianViolationEvaluator" + vcfFile, spec);
     }
 
