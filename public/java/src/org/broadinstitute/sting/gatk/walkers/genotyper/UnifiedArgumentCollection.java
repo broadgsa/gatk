@@ -153,6 +153,18 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
 
+    @Hidden
+    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow multiple alleles in discovery", required = false)
+    public boolean MULTI_ALLELIC = false;
+
+    /**
+     * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
+     * then this site will be skipped and a warning printed.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
+     */
+    @Hidden
+    @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
+    public int MAX_ALTERNATE_ALLELES = 5;
+
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
@@ -176,10 +188,12 @@ public class UnifiedArgumentCollection {
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.alleles = alleles;
+        uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
         uac.BANDED_INDEL_COMPUTATION = BANDED_INDEL_COMPUTATION;
+        uac.MULTI_ALLELIC = MULTI_ALLELIC;
         return uac;
     }
 
