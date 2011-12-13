@@ -371,8 +371,11 @@ public class UnifiedGenotyperEngine {
         builder.log10PError(phredScaledConfidence/-10.0);
         if ( ! passesCallThreshold(phredScaledConfidence) )
             builder.filters(filter);
-        if ( !limitedContext )
+        if ( limitedContext ) {
+            builder.referenceBaseForIndel(vc.getReferenceBaseForIndel());
+        } else {
             builder.referenceBaseForIndel(refContext.getBase());
+        }
 
         // create the genotypes
         GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse);
