@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Map;
 
@@ -79,19 +80,17 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      * @param contexts             stratified alignment contexts
      * @param contextType          stratified context type
      * @param priors               priors to use for GLs
-     * @param GLs                  hash of sample->GL to fill in
      * @param alternateAlleleToUse the alternate allele to use, null if not set
      * @param useBAQedPileup       should we use the BAQed pileup or the raw one?
-     * @return genotype likelihoods per sample for AA, AB, BB
+     * @return variant context where genotypes are no-called but with GLs
      */
-    public abstract Allele getLikelihoods(RefMetaDataTracker tracker,
-                                          ReferenceContext ref,
-                                          Map<String, AlignmentContext> contexts,
-                                          AlignmentContextUtils.ReadOrientation contextType,
-                                          GenotypePriors priors,
-                                          Map<String, MultiallelicGenotypeLikelihoods> GLs,
-                                          Allele alternateAlleleToUse,
-                                          boolean useBAQedPileup);
+    public abstract VariantContext getLikelihoods(RefMetaDataTracker tracker,
+                                                  ReferenceContext ref,
+                                                  Map<String, AlignmentContext> contexts,
+                                                  AlignmentContextUtils.ReadOrientation contextType,
+                                                  GenotypePriors priors,
+                                                  Allele alternateAlleleToUse,
+                                                  boolean useBAQedPileup);
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;
