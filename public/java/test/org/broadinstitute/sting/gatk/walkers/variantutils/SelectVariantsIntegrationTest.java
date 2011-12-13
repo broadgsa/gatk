@@ -115,4 +115,26 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
         executeTest("testUsingDbsnpName--" + testFile, spec);
     }
+
+    @Test
+    public void testParallelization() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        WalkerTestSpec spec;
+
+        spec = new WalkerTestSpec(
+            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
+            1,
+            Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
+        );
+        executeTest("testParallelization (2 threads)--" + testfile, spec);
+
+        spec = new WalkerTestSpec(
+            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
+            1,
+            Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
+        );
+
+        executeTest("testParallelization (4 threads)--" + testfile, spec);
+    }
 }

@@ -711,6 +711,8 @@ public class SAMDataSource {
          * @param validationStringency validation stringency.
          */
         public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
+            int totalNumberOfFiles = readerIDs.size();
+            int readerNumber = 1;
             for(SAMReaderID readerID: readerIDs) {
                 File indexFile = findIndexFile(readerID.samFile);
 
@@ -728,8 +730,7 @@ public class SAMDataSource {
                 reader.enableFileSource(true);
                 reader.setValidationStringency(validationStringency);
 
-                final SAMFileHeader header = reader.getFileHeader();
-                logger.debug(String.format("Sort order is: " + header.getSortOrder()));
+                logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.samFile));
 
                 readers.put(readerID,reader);
             }

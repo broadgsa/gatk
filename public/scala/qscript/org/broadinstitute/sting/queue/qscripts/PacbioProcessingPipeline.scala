@@ -47,6 +47,10 @@ class PacbioProcessingPipeline extends QScript {
   @Input(shortName="bwastring", required=false)
   var bwastring: String = ""
 
+  @Hidden
+  @Input(shortName = "test", fullName = "test_mode", required = false)
+  var testMode: Boolean = false
+
   val queueLogDir: String = ".qlog/"
 
   def script = {
@@ -170,6 +174,7 @@ class PacbioProcessingPipeline extends QScript {
     this.input_file :+= inBam
     this.recal_file = inRecalFile
     this.out = outBam
+    this.no_pg_tag = testMode
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
@@ -177,7 +182,6 @@ class PacbioProcessingPipeline extends QScript {
   }
 
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
-    this.resources = R
     this.recal_file = inRecalFile
     this.output_dir = outPath
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"

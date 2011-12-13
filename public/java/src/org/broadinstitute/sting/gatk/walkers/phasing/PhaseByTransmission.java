@@ -320,17 +320,17 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             if(transmissionProb != NO_TRANSMISSION_PROB)
                 phredScoreTransmission = MathUtils.probabilityToPhredScale(1-(transmissionProb));
 
-            //Handle null, missing and unavailable genotypes
-            //Note that only cases where a null/missing/unavailable genotype was passed in the first place can lead to a null/missing/unavailable
-            //genotype so it is safe to return the original genotype in this case.
-            //In addition, if the phasing confidence is 0, then return the unphased, original genotypes.
-            if(phredScoreTransmission ==0 || genotype == null || !isPhasable(genotype.getType()))
-                return genotype;
+           //Handle null, missing and unavailable genotypes
+           //Note that only cases where a null/missing/unavailable genotype was passed in the first place can lead to a null/missing/unavailable
+           //genotype so it is safe to return the original genotype in this case.
+           //In addition, if the phasing confidence is 0, then return the unphased, original genotypes.
+           if(phredScoreTransmission ==0 || genotype == null || !isPhasable(genotype.getType()))
+               return genotype;
 
-            //Add the transmission probability
-            Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
-            genotypeAttributes.putAll(genotype.getAttributes());
-            if(transmissionProb>NO_TRANSMISSION_PROB)
+           //Add the transmission probability
+           Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
+           genotypeAttributes.putAll(genotype.getAttributes());
+           if(transmissionProb>NO_TRANSMISSION_PROB)
                 genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, phredScoreTransmission);
 
             ArrayList<Allele> phasedAlleles = new ArrayList<Allele>(2);
