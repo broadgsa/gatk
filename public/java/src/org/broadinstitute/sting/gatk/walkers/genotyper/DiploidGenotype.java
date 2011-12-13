@@ -27,13 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
 
-/**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: Aug 4, 2009
- * Time: 6:46:09 PM
- * To change this template use File | Settings | File Templates.
- */
 public enum DiploidGenotype {
     AA ('A', 'A'),
     AC ('A', 'C'),
@@ -108,6 +101,20 @@ public enum DiploidGenotype {
         if ( index2 == -1 )
             throw new IllegalArgumentException(base2 + " is not a valid base character");
         return conversionMatrix[index1][index2];
+    }
+
+    /**
+     * create a diploid genotype, given 2 base indexes which may not necessarily be ordered correctly
+     * @param baseIndex1 base1
+     * @param baseIndex2 base2
+     * @return the diploid genotype
+     */
+    public static DiploidGenotype createDiploidGenotype(int baseIndex1, int baseIndex2) {
+        if ( baseIndex1 == -1 )
+            throw new IllegalArgumentException(baseIndex1 + " does not represent a valid base character");
+        if ( baseIndex2 == -1 )
+            throw new IllegalArgumentException(baseIndex2 + " does not represent a valid base character");
+        return conversionMatrix[baseIndex1][baseIndex2];
     }
 
     private static final DiploidGenotype[][] conversionMatrix = {

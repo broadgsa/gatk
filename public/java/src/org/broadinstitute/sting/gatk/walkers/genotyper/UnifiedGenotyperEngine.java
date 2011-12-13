@@ -219,14 +219,7 @@ public class UnifiedGenotyperEngine {
             glcm.set(getGenotypeLikelihoodsCalculationObject(logger, UAC));
         }
 
-        Map<String, MultiallelicGenotypeLikelihoods> GLs = new HashMap<String, MultiallelicGenotypeLikelihoods>();
-
-        Allele refAllele = glcm.get().get(model).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), GLs, alternateAlleleToUse, useBAQedPileup && BAQEnabledOnCMDLine);
-
-        if ( refAllele != null )
-            return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
-        else
-            return null;
+        return glcm.get().get(model).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), alternateAlleleToUse, useBAQedPileup && BAQEnabledOnCMDLine);
     }
 
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
@@ -259,40 +252,6 @@ public class UnifiedGenotyperEngine {
         }
 
         return new VariantCallContext(vc, false);
-    }
-
-    private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, MultiallelicGenotypeLikelihoods> GLs) {
-        // no-call everyone for now
-        List<Allele> noCall = new ArrayList<Allele>();
-        noCall.add(Allele.NO_CALL);
-
-        Set<Allele> alleles = new LinkedHashSet<Allele>();
-        alleles.add(refAllele);
-        boolean addedAltAlleles = false;
-
-        GenotypesContext genotypes = GenotypesContext.create();
-        for ( MultiallelicGenotypeLikelihoods GL : GLs.values() ) {
-            if ( !addedAltAlleles ) {
-                addedAltAlleles = true;
-                // ordering important to maintain consistency
-                for (Allele a: GL.getAlleles()) {
-                    alleles.add(a);
-                }
-            }
-
-            HashMap<String, Object> attributes = new HashMap<String, Object>();
-            //GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
-            GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(GL.getLikelihoods());
-            attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-
-            genotypes.add(new Genotype(GL.getSample(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
-        }
-
-        GenomeLoc loc = refContext.getLocus();
-        int endLoc = calculateEndPos(alleles, refAllele, loc);
-
-        return new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleles).genotypes(genotypes).referenceBaseForIndel(refContext.getBase()).make();
     }
 
     public VariantCallContext calculateGenotypes(VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model) {
@@ -412,8 +371,11 @@ public class UnifiedGenotyperEngine {
         builder.log10PError(phredScaledConfidence/-10.0);
         if ( ! passesCallThreshold(phredScaledConfidence) )
             builder.filters(filter);
-        if ( !limitedContext )
+        if ( limitedContext ) {
+            builder.referenceBaseForIndel(vc.getReferenceBaseForIndel());
+        } else {
             builder.referenceBaseForIndel(refContext.getBase());
+        }
 
         // create the genotypes
         GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse);
@@ -492,42 +454,6 @@ public class UnifiedGenotyperEngine {
         }
 
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
-    }
-
-    private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
-        // TODO - temp fix until we can deal with extended events properly
-        // for indels, stop location is one more than ref allele length
-        boolean isSNP = true, hasNullAltAllele = false;
-        for (Allele a : alleles){
-            if (a.length() != 1) {
-                isSNP = false;
-                break;
-            }
-        }
-        for (Allele a : alleles){
-            if (a.isNull()) {
-                hasNullAltAllele = true;
-                break;
-            }
-        }
-        // standard deletion: ref allele length = del length. endLoc = startLoc + refAllele.length(), alt allele = null
-        // standard insertion: ref allele length = 0, endLos = startLoc
-        // mixed: want end loc = start Loc for case {A*,AT,T} but say  {ATG*,A,T} : want then end loc = start loc + refAllele.length
-        // So, in general, end loc = startLoc + refAllele.length, except in complex substitutions where it's one less
-        //
-        // todo - this is unnecessarily complicated and is so just because of Tribble's arbitrary vc conventions, should be cleaner/simpler,
-        // the whole vc processing infrastructure seems too brittle and riddled with special case handling
-
-
-        int endLoc = loc.getStart();
-        if ( !isSNP) {
-            endLoc += refAllele.length();
-            if(!hasNullAltAllele)
-                endLoc--;
-
-        }
-
-        return endLoc;
     }
 
     private Map<String, AlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, final GenotypeLikelihoodsCalculationModel.Model model) {

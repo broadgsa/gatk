@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Haplotype;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -41,8 +42,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -243,7 +243,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             // get deletion length
             int dLen = Integer.valueOf(bestAltAllele.substring(1));
             // get ref bases of accurate deletion
-            int startIdxInReference = (int)(1+loc.getStart()-ref.getWindow().getStart());
+            int startIdxInReference = 1+loc.getStart()-ref.getWindow().getStart();
 
             //System.out.println(new String(ref.getBases()));
             byte[] refBases = Arrays.copyOfRange(ref.getBases(),startIdxInReference,startIdxInReference+dLen);
@@ -270,18 +270,16 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     private final static EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.MIXED);
 
-    public Allele getLikelihoods(RefMetaDataTracker tracker,
-                                 ReferenceContext ref,
-                                 Map<String, AlignmentContext> contexts,
-                                 AlignmentContextUtils.ReadOrientation contextType,
-                                 GenotypePriors priors,
-                                 Map<String, MultiallelicGenotypeLikelihoods> GLs,
-                                 Allele alternateAlleleToUse,
-                                 boolean useBAQedPileup) {
+    public VariantContext getLikelihoods(RefMetaDataTracker tracker,
+                                         ReferenceContext ref,
+                                         Map<String, AlignmentContext> contexts,
+                                         AlignmentContextUtils.ReadOrientation contextType,
+                                         GenotypePriors priors,
+                                         Allele alternateAlleleToUse,
+                                         boolean useBAQedPileup) {
 
         if ( tracker == null )
             return null;
-
 
         GenomeLoc loc = ref.getLocus();
         Allele refAllele, altAllele;
@@ -368,10 +366,17 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         haplotypeMap = Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
                 ref, hsize, numPrefBases);
 
+        // start making the VariantContext
+        final int endLoc = calculateEndPos(alleleList, refAllele, loc);
+        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleleList).referenceBaseForIndel(ref.getBase());
+
+        // create the genotypes; no-call everyone for now
+        GenotypesContext genotypes = GenotypesContext.create();
+        final List<Allele> noCall = new ArrayList<Allele>();
+        noCall.add(Allele.NO_CALL);
+
         // For each sample, get genotype likelihoods based on pileup
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
-        // initialize the GenotypeLikelihoods
-        GLs.clear();
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
@@ -384,11 +389,12 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             if (pileup != null ) {
                 final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+                GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(genotypeLikelihoods);
 
-                GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
-                        alleleList,
-                        genotypeLikelihoods,
-                        getFilteredDepth(pileup)));
+                HashMap<String, Object> attributes = new HashMap<String, Object>();
+                attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(pileup));
+                attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
+                genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
 
                 if (DEBUG) {
                     System.out.format("Sample:%s Alleles:%s GL:",sample.getKey(), alleleList.toString());
@@ -399,9 +405,25 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             }
         }
 
-        return refAllele;
+        return builder.genotypes(genotypes).make();
     }
 
+    private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
+        // for indels, stop location is one more than ref allele length
+        boolean hasNullAltAllele = false;
+        for ( Allele a : alleles ) {
+            if ( a.isNull() ) {
+                hasNullAltAllele = true;
+                break;
+            }
+        }
+
+        int endLoc = loc.getStart() + refAllele.length();
+        if( !hasNullAltAllele )
+            endLoc--;
+
+        return endLoc;
+    }
 
     public static HashMap<PileupElement,LinkedHashMap<Allele,Double>> getIndelLikelihoodMap() {
         return indelLikelihoodMap.get();

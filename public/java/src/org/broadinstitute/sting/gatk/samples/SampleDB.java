@@ -142,18 +142,73 @@ public class SampleDB {
      * @return
      */
     public final Map<String, Set<Sample>> getFamilies() {
+        return getFamilies(null);
+    }
+
+    /**
+     * Returns a map from family ID -> set of family members for all samples in sampleIds with
+     * non-null family ids
+     *
+     * @param sampleIds - all samples to include. If null is passed then all samples are returned.
+     * @return
+     */
+    public final Map<String, Set<Sample>> getFamilies(Collection<String> sampleIds) {
         final Map<String, Set<Sample>> families = new TreeMap<String, Set<Sample>>();
 
         for ( final Sample sample : samples.values() ) {
-            final String famID = sample.getFamilyID();
-            if ( famID != null ) {
-                if ( ! families.containsKey(famID) )
-                    families.put(famID, new TreeSet<Sample>());
-                families.get(famID).add(sample);
+            if(sampleIds == null || sampleIds.contains(sample.getID())){
+                final String famID = sample.getFamilyID();
+                if ( famID != null ) {
+                    if ( ! families.containsKey(famID) )
+                        families.put(famID, new TreeSet<Sample>());
+                    families.get(famID).add(sample);
+                }
             }
         }
-
         return families;
+    }
+
+
+    /**
+     * Returns the set of all children that have both of their parents.
+     * Note that if a family is composed of more than 1 child, each child is
+     * returned.
+     * @return - all the children that have both of their parents
+     */
+    public final Set<Sample> getChildrenWithParents(){
+        return getChildrenWithParents(false);
+    }
+
+    /**
+     * Returns the set of all children that have both of their parents.
+     * Note that if triosOnly = false, a family is composed of more than 1 child, each child is
+     * returned.
+     *
+     * This method can be used wherever trios are needed
+     *
+     * @param triosOnly - if set to true, only strict trios are returned
+     * @return - all the children that have both of their parents
+     */
+    public final Set<Sample> getChildrenWithParents(boolean triosOnly) {
+
+        Map<String, Set<Sample>> families = getFamilies();
+        final Set<Sample> childrenWithParents = new HashSet<Sample>();
+        Iterator<Sample> sampleIterator;
+
+        for ( Set<Sample> familyMembers: families.values() ) {
+            if(triosOnly && familyMembers.size() != 3)
+                continue;
+
+            sampleIterator = familyMembers.iterator();
+            Sample sample;
+            while(sampleIterator.hasNext()){
+                sample = sampleIterator.next();
+                if(sample.getParents().size() == 2 && familyMembers.containsAll(sample.getParents()))
+                    childrenWithParents.add(sample);
+            }
+
+        }
+        return childrenWithParents;
     }
 
     /**
