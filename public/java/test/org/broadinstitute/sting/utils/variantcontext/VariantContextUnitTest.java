@@ -704,11 +704,14 @@ public class VariantContextUnitTest extends BaseTest {
     public Object[][] MakeSubContextTest() {
         for ( boolean updateAlleles : Arrays.asList(true, false)) {
             new SubContextTest(Collections.<String>emptySet(), updateAlleles);
+            new SubContextTest(Collections.singleton("MISSING"), updateAlleles);
             new SubContextTest(Collections.singleton("AA"), updateAlleles);
             new SubContextTest(Collections.singleton("AT"), updateAlleles);
             new SubContextTest(Collections.singleton("TT"), updateAlleles);
             new SubContextTest(Arrays.asList("AA", "AT"), updateAlleles);
             new SubContextTest(Arrays.asList("AA", "AT", "TT"), updateAlleles);
+            new SubContextTest(Arrays.asList("AA", "AT", "MISSING"), updateAlleles);
+            new SubContextTest(Arrays.asList("AA", "AT", "TT", "MISSING"), updateAlleles);
         }
 
         return SubContextTest.getTests(SubContextTest.class);
