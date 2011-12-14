@@ -24,6 +24,18 @@ public class ClipReadsTestUtils {
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?"; //ASCII values = 33,43,53,63
 
+    public static void assertEqualReads(GATKSAMRecord actual, GATKSAMRecord expected) {
+        // If they're both not empty, test their contents
+        if(!actual.isEmpty() && !expected.isEmpty()) {
+            Assert.assertEquals(actual.getReadBases(), expected.getReadBases());
+            Assert.assertEquals(actual.getBaseQualities(), expected.getBaseQualities());
+            Assert.assertEquals(actual.getCigarString(), expected.getCigarString());
+        }
+        // Otherwise test if they're both empty
+        else
+            Assert.assertEquals(actual.isEmpty(), expected.isEmpty());
+    }
+
     public static void testBaseQualCigar(GATKSAMRecord read, byte[] readBases, byte[] baseQuals, String cigar) {
         // Because quals to char start at 33 for visibility
         baseQuals = subtractToArray(baseQuals, 33);

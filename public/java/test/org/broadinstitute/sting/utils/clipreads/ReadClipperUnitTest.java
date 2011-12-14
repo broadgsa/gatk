@@ -30,6 +30,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.TextCigarCodec;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
@@ -230,42 +231,25 @@ public class ReadClipperUnitTest extends BaseTest {
 
     @Test(enabled = true)
     public void testHardClipLowQualEnds() {
-        // Needs a thorough redesign
         logger.warn("Executing testHardClipLowQualEnds");
 
-        //Clip whole read
-        Assert.assertEquals(readClipper.hardClipLowQualEnds((byte) 64), new GATKSAMRecord(readClipper.read.getHeader()));
+        // Testing clipping that ends inside an insertion
+        final byte[] BASES = {'A','C','G','T','A','C','G','T'};
+        final byte[] QUALS = {2, 2, 2, 2, 20, 20, 20, 2};
+        final String CIGAR = "1S1M5I1S";
 
-        List<TestParameter> testList = new LinkedList<TestParameter>();
-        testList.add(new TestParameter(1, -1, 1, 4, "1H3M"));//clip 1 base at start
-        testList.add(new TestParameter(11, -1, 2, 4, "2H2M"));//clip 2 bases at start
+        final byte[] CLIPPED_BASES = {};
+        final byte[] CLIPPED_QUALS = {};
+        final String CLIPPED_CIGAR = "";
 
-        for (TestParameter p : testList) {
-            init();
-            //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            ClipReadsTestUtils.testBaseQualCigar(readClipper.hardClipLowQualEnds((byte) p.inputStart),
-                    ClipReadsTestUtils.BASES.substring(p.substringStart, p.substringStop).getBytes(),
-                    ClipReadsTestUtils.QUALS.substring(p.substringStart, p.substringStop).getBytes(),
-                    p.cigar);
-        }
-        /*      todo find a better way to test lowqual tail clipping on both sides
-        // Reverse Quals sequence
-        readClipper.getRead().setBaseQualityString("?5+!"); // 63,53,43,33
 
-        testList = new LinkedList<testParameter>();
-        testList.add(new testParameter(1,-1,0,3,"3M1H"));//clip 1 base at end
-        testList.add(new testParameter(11,-1,0,2,"2M2H"));//clip 2 bases at end
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(BASES, QUALS, CIGAR);
+        GATKSAMRecord expected = ArtificialSAMUtils.createArtificialRead(CLIPPED_BASES, CLIPPED_QUALS, CLIPPED_CIGAR);
 
-        for ( testParameter p : testList ) {
-            init();
-            readClipper.getRead().setBaseQualityString("?5+!"); // 63,53,43,33
-            //logger.warn("Testing Parameters: " + p.inputStart+","+p.substringStart+","+p.substringStop+","+p.cigar);
-            testBaseQualCigar( readClipper.hardClipLowQualEnds( (byte)p.inputStart ),
-                    BASES.substring(p.substringStart,p.substringStop).getBytes(),
-                    QUALS.substring(p.substringStart,p.substringStop),
-                    p.cigar );
-        }
-        */
+        ReadClipper lowQualClipper = new ReadClipper(read);
+        ClipReadsTestUtils.assertEqualReads(lowQualClipper.hardClipLowQualEnds((byte) 2), expected);
+
+
     }
 
     @Test(enabled = false)
