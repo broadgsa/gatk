@@ -817,7 +817,7 @@ public class UnifiedGenotyperEngine {
 
             // create the new likelihoods array from the alleles we are allowed to use
             final double[] originalLikelihoods = g.getLikelihoods().getAsVector();
-            final double[] newLikelihoods;
+            double[] newLikelihoods;
             if ( likelihoodIndexesToUse == null ) {
                 newLikelihoods = originalLikelihoods;
             } else {
@@ -825,6 +825,9 @@ public class UnifiedGenotyperEngine {
                 int newIndex = 0;
                 for ( int oldIndex : likelihoodIndexesToUse )
                     newLikelihoods[newIndex++] = originalLikelihoods[oldIndex];
+
+                // might need to re-normalize
+                newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
             }
 
             // if there is no mass on the (new) likelihoods and we actually have alternate alleles, then just no-call the sample
@@ -846,7 +849,7 @@ public class UnifiedGenotyperEngine {
             if ( numNewAltAlleles == 0 )
                 attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
             else
-                attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, newLikelihoods);
+                attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(newLikelihoods));
             calls.add(new Genotype(sample, myAlleles, qual, null, attrs, false));
         }
 
