@@ -184,7 +184,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
-        lineNo++;
 
         // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
         if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
@@ -279,6 +278,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         builder.source(getName());
 
         // increment the line count
+        // TODO -- because of the way the engine utilizes Tribble, we can parse a line multiple times (especially when
+        // TODO --   the first record is far along the contig) and the line counter can get out of sync
         lineNo++;
 
         // parse out the required fields
