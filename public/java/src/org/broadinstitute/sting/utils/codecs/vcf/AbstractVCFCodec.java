@@ -595,6 +595,11 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                 if ( a.isSymbolic() )
                     continue;
 
+                // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
+                // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
+                if ( a.length() - clipping == 0 )
+                    return clipping - 1;
+
                 if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 )
                     stillClipping = false;
                 else if ( ref.length() == clipping )
