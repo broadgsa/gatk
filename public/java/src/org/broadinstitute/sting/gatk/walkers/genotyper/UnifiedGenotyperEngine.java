@@ -102,6 +102,8 @@ public class UnifiedGenotyperEngine {
     private final GenomeLocParser genomeLocParser;
     private final boolean BAQEnabledOnCMDLine;
 
+    // a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
+    protected static int[][][] PLIndexToAlleleIndex;
 
 
     // ---------------------------------------------------------------------------------------------------------
@@ -135,6 +137,27 @@ public class UnifiedGenotyperEngine {
         genotypePriorsIndels = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.INDEL);
         
         filter.add(LOW_QUAL_FILTER_NAME);
+        calculatePLcache(UAC.MAX_ALTERNATE_ALLELES);
+    }
+
+    protected static void calculatePLcache(int maxAltAlleles) {
+        PLIndexToAlleleIndex = new int[maxAltAlleles+1][][];
+        PLIndexToAlleleIndex[0] = null;
+        int numLikelihoods = 1;
+
+        // for each count of alternate alleles
+        for ( int altAlleles = 1; altAlleles <= maxAltAlleles; altAlleles++ ) {
+            numLikelihoods += altAlleles + 1;
+            PLIndexToAlleleIndex[altAlleles] = new int[numLikelihoods][];
+            int PLindex = 0;
+
+            // for all possible combinations of the 2 alt alleles
+            for ( int allele1 = 0; allele1 <= altAlleles; allele1++ ) {
+                for ( int allele2 = allele1; allele2 <= altAlleles; allele2++ ) {
+                    PLIndexToAlleleIndex[altAlleles][PLindex++] = new int[]{ allele1, allele2 };
+                }
+            }
+        }
     }
 
     /**
@@ -751,8 +774,8 @@ public class UnifiedGenotyperEngine {
      *
      * @return genotypes
      */
-    public GenotypesContext assignGenotypes(VariantContext vc,
-                                            boolean[] allelesToUse) {
+    public GenotypesContext assignGenotypes(final VariantContext vc,
+                                            final boolean[] allelesToUse) {
 
         final GenotypesContext GLs = vc.getGenotypes();
 

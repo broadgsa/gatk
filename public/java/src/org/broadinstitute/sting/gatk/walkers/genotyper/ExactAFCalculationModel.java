@@ -55,7 +55,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
-        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>();  // TODO -- initialize with size of GLs
+        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size());
 
         genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
         for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
@@ -197,6 +197,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                final double[][] log10AlleleFrequencyPriors,
                                                final AlleleFrequencyCalculationResult result,
                                                final boolean preserveData) {
+
+        // make sure the PL cache has been initialized
+        if ( UnifiedGenotyperEngine.PLIndexToAlleleIndex == null )
+            UnifiedGenotyperEngine.calculatePLcache(5);
 
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
         final int numSamples = genotypeLikelihoods.size()-1;
@@ -415,10 +419,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
     private static double determineCoefficient(int PLindex, final int j, final int[] ACcounts, final int totalK) {
-        // todo -- arent' there a small number of fixed values that this function can adopt?
-        // todo -- at a minimum it'd be good to partially compute some of these in ACCounts for performance
-        // todo -- need to cache PLIndex -> two alleles, compute looping over each PLIndex.  Note all other operations are efficient
-        // todo -- this can be computed once at the start of the all operations
 
         // the closed form representation generalized for multiple alleles is as follows:
         // AA: (2j - totalK) * (2j - totalK - 1)
@@ -434,25 +434,19 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( PLindex <= numAltAlleles )
             return MathUtils.log10Cache[2*ACcounts[PLindex-1]] + MathUtils.log10Cache[2*j-totalK];
 
-        int subtractor = numAltAlleles+1;
-        int subtractions = 0;
-        do {
-            PLindex -= subtractor;
-            subtractor--;
-            subtractions++;
-        }
-        while ( PLindex >= subtractor );
+        // find the 2 alternate alleles that are represented by this PL index
+        int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[numAltAlleles][PLindex];
 
-        final int k_i = ACcounts[subtractions-1];
+        final int k_i = ACcounts[alleles[0]-1];  // subtract one because ACcounts doesn't consider the reference allele
 
         // the hom var case (e.g. BB, CC, DD)
         final double coeff;
-        if ( PLindex == 0 ) {
+        if ( alleles[0] == alleles[1] ) {
             coeff = MathUtils.log10Cache[k_i] + MathUtils.log10Cache[k_i - 1];
         }
         // the het non-ref case (e.g. BC, BD, CD)
         else {
-            final int k_j = ACcounts[subtractions+PLindex-1];
+            final int k_j = ACcounts[alleles[1]-1];
             coeff = MathUtils.log10Cache[2] + MathUtils.log10Cache[k_i] + MathUtils.log10Cache[k_j];
         }
 
