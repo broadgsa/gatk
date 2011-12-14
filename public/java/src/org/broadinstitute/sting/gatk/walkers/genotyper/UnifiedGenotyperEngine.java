@@ -103,6 +103,7 @@ public class UnifiedGenotyperEngine {
     private final boolean BAQEnabledOnCMDLine;
 
     // a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
+    // the representation is int[number of alternate alleles][PL index][pair of allele indexes (where reference = 0)]
     protected static int[][][] PLIndexToAlleleIndex;
 
 
@@ -142,7 +143,7 @@ public class UnifiedGenotyperEngine {
 
     protected static void calculatePLcache(int maxAltAlleles) {
         PLIndexToAlleleIndex = new int[maxAltAlleles+1][][];
-        PLIndexToAlleleIndex[0] = null;
+        PLIndexToAlleleIndex[0] = new int[][]{ new int[]{0, 0} };
         int numLikelihoods = 1;
 
         // for each count of alternate alleles
@@ -399,7 +400,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse);
+        GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse, myAlleles);
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
@@ -771,82 +772,82 @@ public class UnifiedGenotyperEngine {
     /**
      * @param vc            variant context with genotype likelihoods
      * @param allelesToUse  bit vector describing which alternate alleles from the vc are okay to use
+     * @param newAlleles    a list of the final new alleles to use
      *
      * @return genotypes
      */
     public GenotypesContext assignGenotypes(final VariantContext vc,
-                                            final boolean[] allelesToUse) {
+                                            final boolean[] allelesToUse,
+                                            final List<Allele> newAlleles) {
 
+        // the no-called genotypes
         final GenotypesContext GLs = vc.getGenotypes();
 
+        // samples
         final List<String> sampleIndices = GLs.getSampleNamesOrderedByName();
 
+        // the new called genotypes to create
         final GenotypesContext calls = GenotypesContext.create();
 
+        // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
+        final int numOriginalAltAlleles = allelesToUse.length;
+        final int numNewAltAlleles = newAlleles.size() - 1;
+        ArrayList<Integer> likelihoodIndexesToUse = null;
+
+        // an optimization: if we are supposed to use all (or none in the case of a ref call) of the alleles,
+        // then we can keep the PLs as is; otherwise, we determine which ones to keep
+        if ( numNewAltAlleles != numOriginalAltAlleles && numNewAltAlleles > 0 ) {
+            likelihoodIndexesToUse = new ArrayList<Integer>(30);
+            final int[][] PLcache = PLIndexToAlleleIndex[numOriginalAltAlleles];
+
+            for ( int PLindex = 0; PLindex < PLcache.length; PLindex++ ) {
+                int[] alleles = PLcache[PLindex];
+                // consider this entry only if both of the alleles are good
+                if ( (alleles[0] == 0 || allelesToUse[alleles[0] - 1]) && (alleles[1] == 0 || allelesToUse[alleles[1] - 1]) )
+                    likelihoodIndexesToUse.add(PLindex);
+            }
+        }
+
+        // create the new genotypes
         for ( int k = GLs.size() - 1; k >= 0; k-- ) {
             final String sample = sampleIndices.get(k);
             final Genotype g = GLs.get(sample);
             if ( !g.hasLikelihoods() )
                 continue;
 
-            final double[] likelihoods = g.getLikelihoods().getAsVector();
+            // create the new likelihoods array from the alleles we are allowed to use
+            final double[] originalLikelihoods = g.getLikelihoods().getAsVector();
+            final double[] newLikelihoods;
+            if ( likelihoodIndexesToUse == null ) {
+                newLikelihoods = originalLikelihoods;
+            } else {
+                newLikelihoods = new double[likelihoodIndexesToUse.size()];
+                int newIndex = 0;
+                for ( int oldIndex : likelihoodIndexesToUse )
+                    newLikelihoods[newIndex++] = originalLikelihoods[oldIndex];
+            }
 
-            // if there is no mass on the likelihoods, then just no-call the sample
-            if ( MathUtils.sum(likelihoods) > SUM_GL_THRESH_NOCALL ) {
+            // if there is no mass on the (new) likelihoods and we actually have alternate alleles, then just no-call the sample
+            if ( MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
                 calls.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
                 continue;
             }
 
-            // genotype likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
-            // so e.g. with 2 alt alleles the likelihoods are AA,AB,AC,BB,BC,CC and with 3 alt alleles they are AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
-
-            final int numAltAlleles = allelesToUse.length;
-
-            // start with the assumption that the ideal genotype is homozygous reference
-            Allele maxAllele1 = vc.getReference(), maxAllele2 = vc.getReference();
-            double maxLikelihoodSeen = likelihoods[0];
-            int indexOfMax = 0;
-
-            // keep track of some state
-            Allele firstAllele = vc.getReference();
-            int subtractor = numAltAlleles + 1;
-            int subtractionsMade = 0;
-
-            for ( int i = 1, PLindex = 1; i < likelihoods.length; i++, PLindex++ ) {
-                if ( PLindex == subtractor ) {
-                    firstAllele = vc.getAlternateAllele(subtractionsMade);
-                    PLindex -= subtractor;
-                    subtractor--;
-                    subtractionsMade++;
-
-                    // we can skip this allele if it's not usable
-                    if ( !allelesToUse[subtractionsMade-1] ) {
-                        i += subtractor - 1;
-                        PLindex += subtractor - 1;
-                        continue;
-                    }
-                }
-
-                // we don't care about the entry if we've already seen better
-                if ( likelihoods[i] <= maxLikelihoodSeen )
-                    continue;
-
-                // if it's usable then update the alleles
-                int alleleIndex = subtractionsMade + PLindex - 1;
-                if ( allelesToUse[alleleIndex] ) {
-                    maxAllele1 = firstAllele;
-                    maxAllele2 = vc.getAlternateAllele(alleleIndex);
-                    maxLikelihoodSeen = likelihoods[i];
-                    indexOfMax = i;
-                }
-            }
+            // find the genotype with maximum likelihoods
+            int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
+            int[] alleles = PLIndexToAlleleIndex[numNewAltAlleles][PLindex];
 
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-            myAlleles.add(maxAllele1);
-            myAlleles.add(maxAllele2);
+            myAlleles.add(newAlleles.get(alleles[0]));
+            myAlleles.add(newAlleles.get(alleles[1]));
 
-            final double qual = GenotypeLikelihoods.getQualFromLikelihoods(indexOfMax, likelihoods);
-            calls.add(new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
+            final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(PLindex, newLikelihoods);
+            Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+            if ( numNewAltAlleles == 0 )
+                attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+            else
+                attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, newLikelihoods);
+            calls.add(new Genotype(sample, myAlleles, qual, null, attrs, false));
         }
 
         return calls;

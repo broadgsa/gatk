@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -95,7 +96,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             determineAlternateAlleles(basesToUse, refBase, contexts, useBAQedPileup);
 
             // how many alternate alleles are we using?
-            int alleleCounter = countSetBits(basesToUse);
+            int alleleCounter = Utils.countSetBits(basesToUse);
 
             // if there are no non-ref alleles...
             if ( alleleCounter == 0 ) {
@@ -109,7 +110,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         }
 
         // create the alternate alleles and the allele ordering (the ordering is crucial for the GLs)
-        final int numAltAlleles = countSetBits(basesToUse);
+        final int numAltAlleles = Utils.countSetBits(basesToUse);
         final int[] alleleOrdering = new int[numAltAlleles + 1];
         alleleOrdering[0] = indexOfRefBase;
         int alleleOrderingIndex = 1;
@@ -159,15 +160,6 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         }
 
         return builder.genotypes(genotypes).make();
-    }
-
-    private int countSetBits(boolean[] array) {
-        int counter = 0;
-        for ( int i = 0; i < array.length; i++ ) {
-            if ( array[i] )
-                counter++;
-        }
-        return counter;
     }
 
     // fills in the allelesToUse array
