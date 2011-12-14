@@ -48,7 +48,7 @@ public class ClipReadsTestUtils {
             Assert.assertTrue(read.isEmpty());
     }
 
-    private static byte[] subtractToArray(byte[] array, int n) {
+    public static byte[] subtractToArray(byte[] array, int n) {
         if (array == null)
             return null;
 

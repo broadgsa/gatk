@@ -231,7 +231,7 @@ public class ReadClipperUnitTest extends BaseTest {
     @Test(enabled = true)
     public void testHardClipLowQualEnds() {
         // Needs a thorough redesign
-        logger.warn("Executing testHardClipByReferenceCoordinates");
+        logger.warn("Executing testHardClipLowQualEnds");
 
         //Clip whole read
         Assert.assertEquals(readClipper.hardClipLowQualEnds((byte) 64), new GATKSAMRecord(readClipper.read.getHeader()));
