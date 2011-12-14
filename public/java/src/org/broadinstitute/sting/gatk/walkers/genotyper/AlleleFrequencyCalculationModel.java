@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -65,11 +64,9 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @param GLs                               genotype likelihoods
      * @param Alleles                           Alleles corresponding to GLs
      * @param log10AlleleFrequencyPriors        priors
-     * @param log10AlleleFrequencyLikelihoods   array (pre-allocated) to store likelihoods results
-     * @param log10AlleleFrequencyPosteriors    array (pre-allocated) to store posteriors results
+     * @param result                            (pre-allocated) object to store likelihoods results
      */
     protected abstract void getLog10PNonRef(GenotypesContext GLs,  List<Allele> Alleles,
                                             double[][] log10AlleleFrequencyPriors,
-                                            double[][] log10AlleleFrequencyLikelihoods,
-                                            double[][] log10AlleleFrequencyPosteriors);
+                                            AlleleFrequencyCalculationResult result);
 }
