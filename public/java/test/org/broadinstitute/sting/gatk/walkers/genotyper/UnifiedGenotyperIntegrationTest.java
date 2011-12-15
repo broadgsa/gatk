@@ -129,8 +129,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testOutputParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "-sites_only", "44f3b5b40e6ad44486cddfdb7e0bfcd8" );
-        e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "94e53320f14c5ff29d62f68d36b46fcd" );
-        e.put( "--output_mode EMIT_ALL_SITES", "73ad1cc41786b12c5f0e6f3e9ec2b728" );
+        e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "274bd9d1b9c7857690fa5f0228ffc6d7" );
+        e.put( "--output_mode EMIT_ALL_SITES", "594c6d3c48bbc73289de7727d768644d" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(

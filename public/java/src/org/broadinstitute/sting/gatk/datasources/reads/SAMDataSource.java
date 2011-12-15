@@ -98,6 +98,11 @@ public class SAMDataSource {
     private final Map<SAMReaderID,GATKBAMFileSpan> readerPositions = new HashMap<SAMReaderID,GATKBAMFileSpan>();
 
     /**
+     * Cached representation of the merged header used to generate a merging iterator.
+     */
+    private final SamFileHeaderMerger headerMerger;
+
+    /**
      * The merged header.
      */
     private final SAMFileHeader mergedHeader;
@@ -287,7 +292,7 @@ public class SAMDataSource {
 
         initializeReaderPositions(readers);
 
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
+        headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
         mergedHeader = headerMerger.getMergedHeader();
         hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
 
@@ -535,8 +540,6 @@ public class SAMDataSource {
      * @return An iterator over the selected data.
      */
     private StingSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
-
         // Set up merging to dynamically merge together multiple BAMs.
         MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
 
