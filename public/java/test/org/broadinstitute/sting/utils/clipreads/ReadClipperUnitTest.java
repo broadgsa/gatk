@@ -252,77 +252,56 @@ public class ReadClipperUnitTest extends BaseTest {
 
     }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testHardClipSoftClippedBases() {
 
         // Generate a list of cigars to test
         for (Cigar cigar : ClipReadsTestUtils.generateCigars()) {
-            //logger.warn("Testing Cigar: "+cigar.toString());
-            readClipper = new ReadClipper(ClipReadsTestUtils.makeReadFromCigar(cigar));
+            GATKSAMRecord read = ClipReadsTestUtils.makeReadFromCigar(cigar);
+            readClipper = new ReadClipper(read);
+            GATKSAMRecord clippedRead = readClipper.hardClipSoftClippedBases();
 
-            int clipStart = 0;
-            int clipEnd = 0;
-            boolean expectEmptyRead = false;
+            int sumHardClips = 0;
+            int sumMatches = 0;
 
-            List<CigarElement> cigarElements = cigar.getCigarElements();
-            int CigarListLength = cigarElements.size();
+            boolean tail = true;
+            for (CigarElement element : read.getCigar().getCigarElements()) {
+                // Assuming cigars are well formed, if we see S or H, it means we're on the tail (left or right)
+                if (element.getOperator() == CigarOperator.HARD_CLIP || element.getOperator() == CigarOperator.SOFT_CLIP)
+                    tail = true;
 
-            // It will know what needs to be clipped based on the start and end of the string, hardclips and softclips
-            // are added to the amount to clip
-            if (cigarElements.get(0).getOperator() == CigarOperator.HARD_CLIP) {
-                //clipStart += cigarElements.get(0).getLength();
-                if (cigarElements.get(1).getOperator() == CigarOperator.SOFT_CLIP) {
-                    clipStart += cigarElements.get(1).getLength();
-                    // Check for leading indel
-                    if (cigarElements.get(2).getOperator() == CigarOperator.INSERTION) {
-                        expectEmptyRead = true;
-                    }
-                }
-                // Check for leading indel
-                else if (cigarElements.get(1).getOperator() == CigarOperator.INSERTION) {
-                    expectEmptyRead = true;
-                }
-            } else if (cigarElements.get(0).getOperator() == CigarOperator.SOFT_CLIP) {
-                clipStart += cigarElements.get(0).getLength();
-                // Check for leading indel
-                if (cigarElements.get(1).getOperator() == CigarOperator.INSERTION) {
-                    expectEmptyRead = true;
-                }
-            }
-            //Check for leading indel
-            else if (cigarElements.get(0).getOperator() == CigarOperator.INSERTION) {
-                expectEmptyRead = true;
+                // Adds all H, S and D's (next to hard/soft clips).
+                // All these should be hard clips after clipping.
+                if (tail && (element.getOperator() == CigarOperator.HARD_CLIP || element.getOperator() == CigarOperator.SOFT_CLIP || element.getOperator() == CigarOperator.DELETION))
+                    sumHardClips += element.getLength();
+
+                // this means we're no longer on the tail (insertions can still potentially be the tail because
+                // of the current contract of clipping out hanging insertions
+                else if (element.getOperator() != CigarOperator.INSERTION)
+                    tail = false;
+
+                // Adds all matches to verify that they remain the same after clipping
+                if (element.getOperator() == CigarOperator.MATCH_OR_MISMATCH)
+                    sumMatches += element.getLength();
             }
 
-            if (cigarElements.get(CigarListLength - 1).getOperator() == CigarOperator.HARD_CLIP) {
-                //clipEnd += cigarElements.get(CigarListLength - 1).getLength();
-                if (cigarElements.get(CigarListLength - 2).getOperator() == CigarOperator.SOFT_CLIP)
-                    clipEnd += cigarElements.get(CigarListLength - 2).getLength();
-            } else if (cigarElements.get(CigarListLength - 1).getOperator() == CigarOperator.SOFT_CLIP)
-                clipEnd += cigarElements.get(CigarListLength - 1).getLength();
+            for (CigarElement element : clippedRead.getCigar().getCigarElements()) {
+                // Test if clipped read has Soft Clips (shouldn't have any!)
+                Assert.assertTrue( element.getOperator() != CigarOperator.SOFT_CLIP, String.format("Cigar %s -> %s -- FAILED (resulting cigar has soft clips)", read.getCigarString(), clippedRead.getCigarString()));
 
-            String readBases = readClipper.read.getReadString();
-            String baseQuals = readClipper.read.getBaseQualityString();
+                // Keep track of the total number of Hard Clips after clipping to make sure everything was accounted for
+                if (element.getOperator() == CigarOperator.HARD_CLIP)
+                    sumHardClips -= element.getLength();
 
-            // "*" is the default empty-sequence-string and for our test it needs to be changed to  ""
-            if (readBases.equals("*"))
-                readBases = "";
-            if (baseQuals.equals("*"))
-                baseQuals = "";
+                // Make sure all matches are still there
+                if (element.getOperator() == CigarOperator.MATCH_OR_MISMATCH)
+                    sumMatches -= element.getLength();
+            }
+            Assert.assertTrue( sumHardClips == 0, String.format("Cigar %s -> %s -- FAILED (number of hard clips mismatched by %d)", read.getCigarString(), clippedRead.getCigarString(), sumHardClips));
+            Assert.assertTrue( sumMatches == 0, String.format("Cigar %s -> %s -- FAILED (number of matches mismatched by %d)", read.getCigarString(), clippedRead.getCigarString(), sumMatches));
 
-            logger.warn(String.format("Testing cigar %s, expecting Base: %s and Qual: %s",
-                    cigar.toString(), readBases.substring(clipStart, readBases.length() - clipEnd),
-                    baseQuals.substring(clipStart, baseQuals.length() - clipEnd)));
-            //if (expectEmptyRead)
-            //    testBaseQual( readClipper.hardClipSoftClippedBases(), new byte[0], new byte[0] );
-            //else
-            ClipReadsTestUtils.testBaseQual(readClipper.hardClipSoftClippedBases(),
-                    readBases.substring(clipStart, readBases.length() - clipEnd).getBytes(),
-                    baseQuals.substring(clipStart, baseQuals.length() - clipEnd).getBytes());
-            logger.warn("Cigar: " + cigar.toString() + " PASSED!");
+
+            logger.warn(String.format("Cigar %s -> %s -- PASSED!", read.getCigarString(), clippedRead.getCigarString()));
         }
-        // We will use testParameter in the following way
-        // Right tail, left tail,
-
     }
 }
