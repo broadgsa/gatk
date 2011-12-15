@@ -654,4 +654,18 @@ public class Utils {
             // handle exception
         }
     }
+
+
+    public static byte [] arrayFromArrayWithLength(byte[] array, int length) {
+        byte [] output = new byte[length];
+        for (int j = 0; j < length; j++)
+            output[j] = array[(j % array.length)];
+        return output;
+    }
+
+    public static void fillArrayWithByte(byte[] array, byte value) {
+        for (int i=0; i<array.length; i++)
+            array[i] = value;
+    }
+
 }

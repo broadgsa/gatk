@@ -172,7 +172,7 @@ public class ReadClipper {
                     //check if the clipped read can still be clipped in the range requested
                     if (op.start < clippedRead.getReadLength()) {
                         ClippingOp fixedOperation = op;
-                        if (op.stop > clippedRead.getReadLength())
+                        if (op.stop >= clippedRead.getReadLength())
                             fixedOperation = new ClippingOp(op.start, clippedRead.getReadLength() - 1);
 
                         clippedRead = fixedOperation.apply(algorithm, clippedRead);
