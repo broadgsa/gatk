@@ -247,7 +247,7 @@ public class ClippingOp {
         return newCigar;
     }
 
-    @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1", "!read.getReadUnmappedFlag()"})
+    @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1"})
     private GATKSAMRecord hardClip (GATKSAMRecord read, int start, int stop) {
         if (start == 0 && stop == read.getReadLength() - 1)
             return new GATKSAMRecord(read.getHeader());
@@ -373,6 +373,10 @@ public class ClippingOp {
             while(cigarElementIterator.hasNext()) {
                 cigarElement = cigarElementIterator.next();
                 alignmentShift += calculateHardClippingAlignmentShift(cigarElement, cigarElement.getLength());
+
+                // if the read had a HardClip operator in the end, combine it with the Hard Clip we are adding
+                if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                    totalHardClipCount += cigarElement.getLength();
             }
             newCigar.add(new CigarElement(totalHardClipCount + alignmentShift, CigarOperator.HARD_CLIP));
         }
