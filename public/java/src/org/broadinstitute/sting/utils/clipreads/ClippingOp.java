@@ -247,7 +247,7 @@ public class ClippingOp {
         return newCigar;
     }
 
-    @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1", "!read.getReadUnmappedFlag()"})
+    @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1"})
     private GATKSAMRecord hardClip (GATKSAMRecord read, int start, int stop) {
         if (start == 0 && stop == read.getReadLength() - 1)
             return new GATKSAMRecord(read.getHeader());
