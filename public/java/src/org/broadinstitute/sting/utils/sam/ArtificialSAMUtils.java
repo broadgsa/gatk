@@ -200,6 +200,48 @@ public class ArtificialSAMUtils {
         return rec;
     }
 
+    /**
+     * Create an artificial read based on the parameters
+     *
+     * @param header         the SAM header to associate the read with
+     * @param name           the name of the read
+     * @param refIndex       the reference index, i.e. what chromosome to associate it with
+     * @param alignmentStart where to start the alignment
+     * @param bases          the sequence of the read
+     * @param qual           the qualities of the read
+     * @param cigar          the cigar string of the read
+     *
+     * @return the artificial read
+     */
+    public static GATKSAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual, String cigar ) {
+        GATKSAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases, qual);
+        rec.setCigarString(cigar);
+        return rec;
+    }
+
+    /**
+     * Create an artificial read with the following default parameters :
+     *    header:
+     *     numberOfChromosomes = 1
+     *     startingChromosome = 1
+     *     chromosomeSize = 1000000
+     *    read:
+     *     name = "default_read"
+     *     refIndex = 0
+     *     alignmentStart = 1
+     *
+     * @param bases          the sequence of the read
+     * @param qual           the qualities of the read
+     * @param cigar          the cigar string of the read
+     *
+     * @return the artificial read
+     */
+    public static GATKSAMRecord createArtificialRead( byte[] bases, byte[] qual, String cigar ) {
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
+        return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 1, bases, qual, cigar);
+    }
+
+
     public final static List<GATKSAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
         GATKSAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
         GATKSAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);

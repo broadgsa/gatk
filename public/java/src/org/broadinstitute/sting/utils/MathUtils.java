@@ -1033,14 +1033,15 @@ public class MathUtils {
     public static final double JACOBIAN_LOG_TABLE_STEP = 0.1;
     public static final double INV_JACOBIAN_LOG_TABLE_STEP = 1.0/JACOBIAN_LOG_TABLE_STEP;
     public static final double MAX_JACOBIAN_TOLERANCE = 10.0;
-    private static final int MAXN = 10000;
+    private static final int MAXN = 11000;
+    private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
     static {
-        log10Cache = new double[2*MAXN];
+        log10Cache = new double[LOG10_CACHE_SIZE];
 	    jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
 
         log10Cache[0] = Double.NEGATIVE_INFINITY;
-        for (int k=1; k < 2*MAXN; k++)
+        for (int k=1; k < LOG10_CACHE_SIZE; k++)
             log10Cache[k] = Math.log10(k);
 
     	for (int k=0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {

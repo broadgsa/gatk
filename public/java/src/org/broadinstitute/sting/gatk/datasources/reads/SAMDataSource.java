@@ -41,6 +41,7 @@ import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -51,6 +52,7 @@ import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * User: aaron
@@ -94,6 +96,11 @@ public class SAMDataSource {
      * How far along is each reader?
      */
     private final Map<SAMReaderID,GATKBAMFileSpan> readerPositions = new HashMap<SAMReaderID,GATKBAMFileSpan>();
+
+    /**
+     * Cached representation of the merged header used to generate a merging iterator.
+     */
+    private final SamFileHeaderMerger headerMerger;
 
     /**
      * The merged header.
@@ -199,7 +206,7 @@ public class SAMDataSource {
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
                 (byte) -1);
-        }
+    }
 
     /**
      * Create a new SAM data source given the supplied read metadata.
@@ -252,11 +259,10 @@ public class SAMDataSource {
         validationStringency = strictness;
         if(readBufferSize != null)
             ReadShard.setReadBufferSize(readBufferSize);
-
-        for (SAMReaderID readerID : samFiles) {
-            if (!readerID.samFile.canRead())
-                throw new UserException.CouldNotReadInputFile(readerID.samFile,"file is not present or user does not have appropriate permissions.  " +
-                                                                               "Please check that the file is present and readable and try again.");
+        else {
+            // Choose a sensible default for the read buffer size.  For the moment, we're picking 1000 reads per BAM per shard (which effectively
+            // will mean per-thread once ReadWalkers are parallelized) with a max cap of 250K reads in memory at once.
+            ReadShard.setReadBufferSize(Math.min(1000*samFiles.size(),250000));
         }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
@@ -264,6 +270,10 @@ public class SAMDataSource {
 
         // Determine the sort order.
         for(SAMReaderID readerID: readerIDs) {
+            if (! readerID.samFile.canRead() )
+                throw new UserException.CouldNotReadInputFile(readerID.samFile,"file is not present or user does not have appropriate permissions.  " +
+                        "Please check that the file is present and readable and try again.");
+
             // Get the sort order, forcing it to coordinate if unsorted.
             SAMFileReader reader = readers.getReader(readerID);
             SAMFileHeader header = reader.getFileHeader();
@@ -287,7 +297,7 @@ public class SAMDataSource {
 
         initializeReaderPositions(readers);
 
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
+        headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
         mergedHeader = headerMerger.getMergedHeader();
         hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
 
@@ -474,10 +484,13 @@ public class SAMDataSource {
         // Cache the most recently viewed read so that we can check whether we've reached the end of a pair.
         SAMRecord read = null;
 
+        Map<SAMFileReader,GATKBAMFileSpan> positionUpdates = new IdentityHashMap<SAMFileReader,GATKBAMFileSpan>();
+
         CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,sortOrder == SAMFileHeader.SortOrder.coordinate);
         while(!shard.isBufferFull() && iterator.hasNext()) {
             read = iterator.next();
-            addReadToBufferingShard(shard,getReaderID(readers,read),read);
+            shard.addRead(read);
+            noteFilePositionUpdate(positionUpdates,read);
         }
 
         // If the reads are sorted in queryname order, ensure that all reads
@@ -487,11 +500,21 @@ public class SAMDataSource {
                 SAMRecord nextRead = iterator.next();
                 if(read == null || !read.getReadName().equals(nextRead.getReadName()))
                     break;
-                addReadToBufferingShard(shard,getReaderID(readers,nextRead),nextRead);
+                shard.addRead(nextRead);
+                noteFilePositionUpdate(positionUpdates,nextRead);
             }
         }
 
         iterator.close();
+
+        // Make the updates specified by the reader.
+        for(Map.Entry<SAMFileReader,GATKBAMFileSpan> positionUpdate: positionUpdates.entrySet())
+            readerPositions.put(readers.getReaderID(positionUpdate.getKey()),positionUpdate.getValue());
+    }
+
+    private void noteFilePositionUpdate(Map<SAMFileReader,GATKBAMFileSpan> positionMapping, SAMRecord read) {
+        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
+        positionMapping.put(read.getFileSource().getReader(),endChunk);
     }
 
     public StingSAMIterator seek(Shard shard) {
@@ -535,8 +558,6 @@ public class SAMDataSource {
      * @return An iterator over the selected data.
      */
     private StingSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
-
         // Set up merging to dynamically merge together multiple BAMs.
         MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
 
@@ -569,18 +590,6 @@ public class SAMDataSource {
                 readProperties.getBAQQualityMode(),
                 readProperties.getRefReader(),
                 readProperties.defaultBaseQualities());
-    }
-
-    /**
-     * Adds this read to the given shard.
-     * @param shard The shard to which to add the read.
-     * @param id The id of the given reader.
-     * @param read The read to add to the shard.
-     */
-    private void addReadToBufferingShard(Shard shard,SAMReaderID id,SAMRecord read) {
-        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
-        shard.addRead(read);
-        readerPositions.put(id,endChunk);
     }
 
     /**
@@ -711,29 +720,68 @@ public class SAMDataSource {
          * @param validationStringency validation stringency.
          */
         public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
+            final int N_THREADS = 8;
             int totalNumberOfFiles = readerIDs.size();
             int readerNumber = 1;
-            for(SAMReaderID readerID: readerIDs) {
-                File indexFile = findIndexFile(readerID.samFile);
 
-                SAMFileReader reader = null;
-
-                if(threadAllocation.getNumIOThreads() > 0) {
-                    BlockInputStream blockInputStream = new BlockInputStream(dispatcher,readerID,false);
-                    reader = new SAMFileReader(blockInputStream,indexFile,false);
-                    inputStreams.put(readerID,blockInputStream);
-                }
-                else
-                    reader = new SAMFileReader(readerID.samFile,indexFile,false);
-                reader.setSAMRecordFactory(factory);
-
-                reader.enableFileSource(true);
-                reader.setValidationStringency(validationStringency);
-
-                logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.samFile));
-
-                readers.put(readerID,reader);
+            ExecutorService executor = Executors.newFixedThreadPool(N_THREADS);
+            final List<ReaderInitializer> inits = new ArrayList<ReaderInitializer>(totalNumberOfFiles);
+            Queue<Future<ReaderInitializer>> futures = new LinkedList<Future<ReaderInitializer>>();
+            for (SAMReaderID readerID: readerIDs) {
+                logger.debug("Enqueuing for initialization: " + readerID.samFile);
+                final ReaderInitializer init = new ReaderInitializer(readerID);
+                inits.add(init);
+                futures.add(executor.submit(init));
             }
+
+            final SimpleTimer timer = new SimpleTimer();
+            try {
+                final int MAX_WAIT = 30 * 1000;
+                final int MIN_WAIT = 1 * 1000;
+
+                timer.start();
+                while ( ! futures.isEmpty() ) {
+                    final int prevSize = futures.size();
+                    final double waitTime = prevSize * (0.5 / N_THREADS); // about 0.5 seconds to load each file
+                    final int waitTimeInMS = Math.min(MAX_WAIT, Math.max((int) (waitTime * 1000), MIN_WAIT));
+                    Thread.sleep(waitTimeInMS);
+
+                    Queue<Future<ReaderInitializer>> pending = new LinkedList<Future<ReaderInitializer>>();
+                    for ( final Future<ReaderInitializer> initFuture : futures ) {
+                        if ( initFuture.isDone() ) {
+                            final ReaderInitializer init = initFuture.get();
+                            if (threadAllocation.getNumIOThreads() > 0) {
+                                inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
+                            }
+                            logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles, init.readerID));
+                            readers.put(init.readerID, init.reader);
+                        } else {
+                            pending.add(initFuture);
+                        }
+                    }
+
+                    final int pendingSize = pending.size();
+                    final int nExecutedInTick = prevSize - pendingSize;
+                    final int nExecutedTotal = totalNumberOfFiles - pendingSize;
+                    final double totalTimeInSeconds = timer.getElapsedTime();
+                    final double nTasksPerSecond = nExecutedTotal / (1.0*totalTimeInSeconds);
+                    final int nRemaining = pendingSize;
+                    final double estTimeToComplete = pendingSize / nTasksPerSecond;
+                    logger.info(String.format("Init %d BAMs in last %d s, %d of %d in %.2f s / %.2f m (%.2f tasks/s).  %d remaining with est. completion in %.2f s / %.2f m",
+                            nExecutedInTick, (int)(waitTimeInMS / 1000.0),
+                            nExecutedTotal, totalNumberOfFiles, totalTimeInSeconds, totalTimeInSeconds / 60, nTasksPerSecond,
+                            nRemaining, estTimeToComplete, estTimeToComplete / 60));
+
+                    futures = pending;
+                }
+            } catch ( InterruptedException e ) {
+                throw new ReviewedStingException("Interrupted SAMReader initialization", e);
+            } catch ( ExecutionException e ) {
+                throw new ReviewedStingException("Execution exception during SAMReader initialization", e);
+            }
+
+            logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
+            executor.shutdown();
         }
 
         /**
@@ -803,6 +851,30 @@ public class SAMDataSource {
             for (SAMFileReader reader : values())
                 headers.add(reader.getFileHeader());
             return headers;
+        }
+    }
+
+    class ReaderInitializer implements Callable<ReaderInitializer> {
+        final SAMReaderID readerID;
+        BlockInputStream blockInputStream = null;
+        SAMFileReader reader;
+
+        public ReaderInitializer(final SAMReaderID readerID) {
+            this.readerID = readerID;
+        }
+
+        public ReaderInitializer call() {
+            final File indexFile = findIndexFile(readerID.samFile);
+            if (threadAllocation.getNumIOThreads() > 0) {
+                blockInputStream = new BlockInputStream(dispatcher,readerID,false);
+                reader = new SAMFileReader(blockInputStream,indexFile,false);
+            }
+            else
+                reader = new SAMFileReader(readerID.samFile,indexFile,false);
+            reader.setSAMRecordFactory(factory);
+            reader.enableFileSource(true);
+            reader.setValidationStringency(validationStringency);
+            return this;
         }
     }
 
@@ -988,12 +1060,12 @@ public class SAMDataSource {
             return
                     // Read ends on a later contig, or...
                     read.getReferenceIndex() > intervalContigIndices[currentBound] ||
-                    // Read ends of this contig...
-                    (read.getReferenceIndex() == intervalContigIndices[currentBound] &&
-                            // either after this location, or...
-                            (read.getAlignmentEnd() >= intervalStarts[currentBound] ||
-                            // read is unmapped but positioned and alignment start is on or after this start point.
-                            (read.getReadUnmappedFlag() && read.getAlignmentStart() >= intervalStarts[currentBound])));
+                            // Read ends of this contig...
+                            (read.getReferenceIndex() == intervalContigIndices[currentBound] &&
+                                    // either after this location, or...
+                                    (read.getAlignmentEnd() >= intervalStarts[currentBound] ||
+                                            // read is unmapped but positioned and alignment start is on or after this start point.
+                                            (read.getReadUnmappedFlag() && read.getAlignmentStart() >= intervalStarts[currentBound])));
         }
 
         /**
@@ -1005,8 +1077,8 @@ public class SAMDataSource {
             return
                     // Read starts on a prior contig, or...
                     read.getReferenceIndex() < intervalContigIndices[currentBound] ||
-                    // Read starts on this contig and the alignment start is registered before this end point.
-                   (read.getReferenceIndex() == intervalContigIndices[currentBound] && read.getAlignmentStart() <= intervalEnds[currentBound]);
+                            // Read starts on this contig and the alignment start is registered before this end point.
+                            (read.getReferenceIndex() == intervalContigIndices[currentBound] && read.getAlignmentStart() <= intervalEnds[currentBound]);
         }
     }
 

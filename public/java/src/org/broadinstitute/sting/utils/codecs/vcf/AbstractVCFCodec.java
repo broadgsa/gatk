@@ -184,7 +184,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
-        lineNo++;
 
         // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
         if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
@@ -279,6 +278,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         builder.source(getName());
 
         // increment the line count
+        // TODO -- because of the way the engine utilizes Tribble, we can parse a line multiple times (especially when
+        // TODO --   the first record is far along the contig) and the line counter can get out of sync
         lineNo++;
 
         // parse out the required fields
@@ -593,6 +594,11 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             for ( Allele a : unclippedAlleles ) {
                 if ( a.isSymbolic() )
                     continue;
+
+                // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
+                // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
+                if ( a.length() - clipping == 0 )
+                    return clipping - 1;
 
                 if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 )
                     stillClipping = false;

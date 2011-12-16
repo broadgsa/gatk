@@ -410,6 +410,12 @@ public class GenotypesContext implements List<Genotype> {
         return getGenotypes().get(i);
     }
 
+    /**
+     * Gets sample associated with this sampleName, or null if none is found
+     *
+     * @param sampleName
+     * @return
+     */
     public Genotype get(final String sampleName) {
         Integer offset = getSampleI(sampleName);
         return offset == null ? null : getGenotypes().get(offset);
@@ -648,16 +654,15 @@ public class GenotypesContext implements List<Genotype> {
     @Ensures("result != null")
     public GenotypesContext subsetToSamples( final Set<String> samples ) {
         final int nSamples = samples.size();
-        final int nGenotypes = size();
 
-        if ( nSamples == nGenotypes )
-            return this;
-        else if ( nSamples == 0 )
+        if ( nSamples == 0 )
             return NO_GENOTYPES;
         else { // nGenotypes < nSamples
             final GenotypesContext subset = create(samples.size());
             for ( final String sample : samples ) {
-                subset.add(get(sample));
+                final Genotype g = get(sample);
+                if ( g != null )
+                    subset.add(g);
             }
             return subset;
         }
