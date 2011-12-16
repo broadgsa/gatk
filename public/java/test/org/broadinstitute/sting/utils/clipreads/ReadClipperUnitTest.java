@@ -110,13 +110,36 @@ public class ReadClipperUnitTest extends BaseTest {
 
     @Test(enabled = true)
     public void testHardClipByReferenceCoordinatesLeftTail() {
+        for (Cigar cigar : cigarList) {
+            GATKSAMRecord read = ClipReadsTestUtils.makeReadFromCigar(cigar);
+            int alnStart = read.getAlignmentStart();
+            int alnEnd = read.getAlignmentEnd();
+            if (ReadUtils.getRefCoordSoftUnclippedStart(read) == alnStart) {                                // we can't test left clipping if the read has hanging soft clips on the left side
+            for (int i=alnStart; i<=alnEnd; i++) {
+                GATKSAMRecord clipLeft = (new ReadClipper(read)).hardClipByReferenceCoordinates(alnStart, i);
+                if (!clipLeft.isEmpty())
+                    Assert.assertTrue(clipLeft.getAlignmentStart() >= i + 1, String.format("Clipped alignment start (%d) is less the expected (%d): %s -> %s", clipLeft.getAlignmentStart(), i + 1, read.getCigarString(), clipLeft.getCigarString()));
+                }
+            }
+        }
         logger.warn("PASSED");
     }
 
     @Test(enabled = true)
     public void testHardClipByReferenceCoordinatesRightTail() {
+        for (Cigar cigar : cigarList) {
+            GATKSAMRecord read = ClipReadsTestUtils.makeReadFromCigar(cigar);
+            int alnStart = read.getAlignmentStart();
+            int alnEnd = read.getAlignmentEnd();
+            if (ReadUtils.getRefCoordSoftUnclippedEnd(read) == alnEnd) {                                        // we can't test right clipping if the read has hanging soft clips on the right side
+                for (int i=alnStart; i<=alnEnd; i++) {
+                    GATKSAMRecord clipRight = (new ReadClipper(read)).hardClipByReferenceCoordinates(i, alnEnd);
+                    if (!clipRight.isEmpty() && clipRight.getAlignmentStart() <= clipRight.getAlignmentEnd())   // alnStart > alnEnd if the entire read is a soft clip now. We can't test those.
+                        Assert.assertTrue(clipRight.getAlignmentEnd() <= i - 1, String.format("Clipped alignment end (%d) is greater than expected (%d): %s -> %s", clipRight.getAlignmentEnd(), i - 1, read.getCigarString(), clipRight.getCigarString()));
+                }
+            }
+        }
         logger.warn("PASSED");
-
     }
 
     @Test(enabled = true)
