@@ -62,7 +62,7 @@ public class JnaSessionIntegrationTest extends BaseTest {
             return;
         }
 
-        File outFile = createNetworkTempFile("JnaSessionIntegrationTest-", ".out");
+        File outFile = createNetworkTempFile("JnaSessionIntegrationTest.out");
         Session session = factory.getSession();
         session.init(null);
         try {

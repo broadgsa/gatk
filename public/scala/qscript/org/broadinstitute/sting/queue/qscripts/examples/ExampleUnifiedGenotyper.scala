@@ -33,7 +33,6 @@ class ExampleUnifiedGenotyper extends QScript {
   @Argument(doc="An optional list of filter expressions.", shortName="filterExpression", required=false)
   var filterExpressions: List[String] = Nil
 
-
   // This trait allows us set the variables below in one place,
   // and then reuse this trait on each CommandLineGATK function below.
   trait UnifiedGenotyperArguments extends CommandLineGATK {
