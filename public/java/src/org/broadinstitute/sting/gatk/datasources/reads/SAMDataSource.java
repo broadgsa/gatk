@@ -63,7 +63,9 @@ import java.util.concurrent.*;
  */
 public class SAMDataSource {
     final private static GATKSamRecordFactory factory = new GATKSamRecordFactory();
-    final private static boolean USE_PARALLEL_LOADING = true;
+
+    /** If true, we will load SAMReaders in parallel */
+    final private static boolean USE_PARALLEL_LOADING = false;
 
     /** Backing support for reads. */
     protected final ReadProperties readProperties;
@@ -721,7 +723,7 @@ public class SAMDataSource {
 
             logger.info("Initializing SAMRecords " + (USE_PARALLEL_LOADING ? "in parallel" : "in serial"));
             if ( ! USE_PARALLEL_LOADING ) {
-                final int tickSize = 10;
+                final int tickSize = 50;
                 int nExecutedTotal = 0;
                 long lastTick = timer.currentTime();
                 for(final SAMReaderID readerID: readerIDs) {
@@ -733,8 +735,9 @@ public class SAMDataSource {
                     logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.samFile));
                     readers.put(init.readerID,init.reader);
                     if ( nExecutedTotal++ % tickSize == 0) {
-                        int tickInMS = (int)((timer.currentTime() - lastTick) / 1000.0);
-                        printReaderPerformance(nExecutedTotal, tickSize, totalNumberOfFiles, timer, tickInMS);
+                        double tickInSec = (timer.currentTime() - lastTick) / 1000.0;
+                        printReaderPerformance(nExecutedTotal, tickSize, totalNumberOfFiles, timer, tickInSec);
+                        lastTick = timer.currentTime();
                     }
                 }
             } else {
@@ -776,7 +779,7 @@ public class SAMDataSource {
 
                         final int nExecutedTotal = totalNumberOfFiles - pending.size();
                         final int nExecutedInTick = prevSize - pending.size();
-                        printReaderPerformance(nExecutedTotal, nExecutedInTick, totalNumberOfFiles, timer, (int)(waitTimeInMS / 1000));
+                        printReaderPerformance(nExecutedTotal, nExecutedInTick, totalNumberOfFiles, timer, waitTimeInMS / 1000.0);
                         futures = pending;
                     }
                 } catch ( InterruptedException e ) {
@@ -794,14 +797,15 @@ public class SAMDataSource {
         final private void printReaderPerformance(final int nExecutedTotal,
                                                   final int nExecutedInTick,
                                                   final int totalNumberOfFiles,
-                                                  final SimpleTimer timer, final int tickDuration) {
+                                                  final SimpleTimer timer,
+                                                  final double tickDurationInSec) {
             final int pendingSize = totalNumberOfFiles - nExecutedTotal;
             final double totalTimeInSeconds = timer.getElapsedTime();
             final double nTasksPerSecond = nExecutedTotal / (1.0*totalTimeInSeconds);
             final int nRemaining = pendingSize;
             final double estTimeToComplete = pendingSize / nTasksPerSecond;
-            logger.info(String.format("Init %d BAMs in last %d s, %d of %d in %.2f s / %.2f m (%.2f tasks/s).  %d remaining with est. completion in %.2f s / %.2f m",
-                    nExecutedInTick, tickDuration,
+            logger.info(String.format("Init %d BAMs in last %.2f s, %d of %d in %.2f s / %.2f m (%.2f tasks/s).  %d remaining with est. completion in %.2f s / %.2f m",
+                    nExecutedInTick, tickDurationInSec,
                     nExecutedTotal, totalNumberOfFiles, totalTimeInSeconds, totalTimeInSeconds / 60, nTasksPerSecond,
                     nRemaining, estTimeToComplete, estTimeToComplete / 60));
 
