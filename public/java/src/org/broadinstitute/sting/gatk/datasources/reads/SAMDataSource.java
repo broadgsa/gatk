@@ -740,7 +740,7 @@ public class SAMDataSource {
 
                     logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.samFile));
                     readers.put(init.readerID,init.reader);
-                    if ( nExecutedTotal++ % tickSize == 0) {
+                    if ( ++nExecutedTotal % tickSize == 0) {
                         double tickInSec = (timer.currentTime() - lastTick) / 1000.0;
                         printReaderPerformance(nExecutedTotal, tickSize, totalNumberOfFiles, timer, tickInSec);
                         lastTick = timer.currentTime();
