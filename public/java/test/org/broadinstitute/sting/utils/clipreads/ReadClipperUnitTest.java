@@ -39,11 +39,8 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
  * User: roger
  * Date: 9/28/11
- * Time: 9:54 PM
- * To change this template use File | Settings | File Templates.
  */
 public class ReadClipperUnitTest extends BaseTest {
 
@@ -57,8 +54,6 @@ public class ReadClipperUnitTest extends BaseTest {
 
     @Test(enabled = true)
     public void testHardClipBothEndsByReferenceCoordinates() {
-        logger.warn("Executing testHardClipBothEndsByReferenceCoordinates");
-
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ClipReadsTestUtils.makeReadFromCigar(cigar);
             int alnStart = read.getAlignmentStart();
@@ -70,18 +65,28 @@ public class ReadClipperUnitTest extends BaseTest {
                 Assert.assertTrue(clippedRead.getAlignmentEnd() <= alnEnd + i, String.format("Clipped alignment end is greater than original read (minus %d): %s -> %s", i, read.getCigarString(), clippedRead.getCigarString()));
             }
         }
-
+        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
     public void testHardClipByReadCoordinates() {
-        logger.warn("Executing testHardClipByReadCoordinates");
+        for (Cigar cigar : cigarList) {
+            GATKSAMRecord read = ClipReadsTestUtils.makeReadFromCigar(cigar);
+            int readLength = read.getReadLength();
+            for (int i=0; i<readLength; i++) {
+                GATKSAMRecord clipLeft = (new ReadClipper(read)).hardClipByReadCoordinates(0, i);
+                Assert.assertTrue(clipLeft.getReadLength() <= readLength - i,  String.format("Clipped read length is greater than original read length (minus %d): %s -> %s", i, read.getCigarString(), clipLeft.getCigarString()));
 
+                GATKSAMRecord clipRight = (new ReadClipper(read)).hardClipByReadCoordinates(i, readLength-1);
+                Assert.assertTrue(clipRight.getReadLength() <= i, String.format("Clipped read length is greater than original read length (minus %d): %s -> %s", i, read.getCigarString(), clipRight.getCigarString()));
+            }
+        }
+        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
     public void testHardClipByReferenceCoordinates() {
-        logger.warn("Executing testHardClipByReferenceCoordinates");
+        logger.warn("PASSED");
 
     }
 
@@ -93,15 +98,12 @@ public class ReadClipperUnitTest extends BaseTest {
 
     @Test(enabled = true)
     public void testHardClipByReferenceCoordinatesRightTail() {
-        init();
-        logger.warn("Executing testHardClipByReferenceCoordinatesRightTail");
+        logger.warn("PASSED");
 
     }
 
     @Test(enabled = true)
     public void testHardClipLowQualEnds() {
-        logger.warn("Executing testHardClipLowQualEnds");
-
         final byte LOW_QUAL = 2;
         final byte HIGH_QUAL = 30;
 
@@ -180,6 +182,8 @@ public class ReadClipperUnitTest extends BaseTest {
 
         ReadClipper lowQualClipper = new ReadClipper(read);
         ClipReadsTestUtils.assertEqualReads(lowQualClipper.hardClipLowQualEnds((byte) 2), expected);
+
+        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
@@ -233,6 +237,8 @@ public class ReadClipperUnitTest extends BaseTest {
 
 //            logger.warn(String.format("Cigar %s -> %s -- PASSED!", read.getCigarString(), clippedRead.getCigarString()));
         }
+
+        logger.warn("PASSED");
     }
 
     private void assertNoLowQualBases(GATKSAMRecord read, byte low_qual) {
