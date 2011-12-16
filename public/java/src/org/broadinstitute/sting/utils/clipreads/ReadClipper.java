@@ -58,6 +58,7 @@ public class ReadClipper {
         return hardClipByReferenceCoordinates(refStart, -1);
     }
 
+    @Requires("!read.getReadUnmappedFlag()")
     protected GATKSAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
@@ -171,7 +172,7 @@ public class ReadClipper {
                     //check if the clipped read can still be clipped in the range requested
                     if (op.start < clippedRead.getReadLength()) {
                         ClippingOp fixedOperation = op;
-                        if (op.stop > clippedRead.getReadLength())
+                        if (op.stop >= clippedRead.getReadLength())
                             fixedOperation = new ClippingOp(op.start, clippedRead.getReadLength() - 1);
 
                         clippedRead = fixedOperation.apply(algorithm, clippedRead);

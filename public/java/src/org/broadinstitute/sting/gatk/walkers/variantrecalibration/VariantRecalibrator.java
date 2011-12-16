@@ -175,7 +175,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     /////////////////////////////
     // Debug Arguments
     /////////////////////////////
-    @Hidden
+    @Advanced
     @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
     protected Boolean TRUST_ALL_POLYMORPHIC = false;
     //@Hidden

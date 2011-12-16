@@ -262,6 +262,11 @@ public class SAMDataSource {
         validationStringency = strictness;
         if(readBufferSize != null)
             ReadShard.setReadBufferSize(readBufferSize);
+        else {
+            // Choose a sensible default for the read buffer size.  For the moment, we're picking 1000 reads per BAM per shard (which effectively
+            // will mean per-thread once ReadWalkers are parallelized) with a max cap of 250K reads in memory at once.
+            ReadShard.setReadBufferSize(Math.min(1000*samFiles.size(),250000));
+        }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
         SAMReaders readers = resourcePool.getAvailableReaders();
@@ -482,10 +487,13 @@ public class SAMDataSource {
         // Cache the most recently viewed read so that we can check whether we've reached the end of a pair.
         SAMRecord read = null;
 
+        Map<SAMFileReader,GATKBAMFileSpan> positionUpdates = new IdentityHashMap<SAMFileReader,GATKBAMFileSpan>();
+
         CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,sortOrder == SAMFileHeader.SortOrder.coordinate);
         while(!shard.isBufferFull() && iterator.hasNext()) {
             read = iterator.next();
-            addReadToBufferingShard(shard,getReaderID(readers,read),read);
+            shard.addRead(read);
+            noteFilePositionUpdate(positionUpdates,read);
         }
 
         // If the reads are sorted in queryname order, ensure that all reads
@@ -495,11 +503,21 @@ public class SAMDataSource {
                 SAMRecord nextRead = iterator.next();
                 if(read == null || !read.getReadName().equals(nextRead.getReadName()))
                     break;
-                addReadToBufferingShard(shard,getReaderID(readers,nextRead),nextRead);
+                shard.addRead(nextRead);
+                noteFilePositionUpdate(positionUpdates,nextRead);
             }
         }
 
         iterator.close();
+
+        // Make the updates specified by the reader.
+        for(Map.Entry<SAMFileReader,GATKBAMFileSpan> positionUpdate: positionUpdates.entrySet())
+            readerPositions.put(readers.getReaderID(positionUpdate.getKey()),positionUpdate.getValue());
+    }
+
+    private void noteFilePositionUpdate(Map<SAMFileReader,GATKBAMFileSpan> positionMapping, SAMRecord read) {
+        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
+        positionMapping.put(read.getFileSource().getReader(),endChunk);
     }
 
     public StingSAMIterator seek(Shard shard) {
@@ -575,18 +593,6 @@ public class SAMDataSource {
                 readProperties.getBAQQualityMode(),
                 readProperties.getRefReader(),
                 readProperties.defaultBaseQualities());
-    }
-
-    /**
-     * Adds this read to the given shard.
-     * @param shard The shard to which to add the read.
-     * @param id The id of the given reader.
-     * @param read The read to add to the shard.
-     */
-    private void addReadToBufferingShard(Shard shard,SAMReaderID id,SAMRecord read) {
-        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
-        shard.addRead(read);
-        readerPositions.put(id,endChunk);
     }
 
     /**
