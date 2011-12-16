@@ -66,7 +66,6 @@ public class ReadClipperUnitTest extends BaseTest {
                 Assert.assertTrue(clippedRead.getAlignmentEnd() <= alnEnd + i, String.format("Clipped alignment end is greater than original read (minus %d): %s -> %s", i, read.getCigarString(), clippedRead.getCigarString()));
             }
         }
-        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
@@ -82,7 +81,6 @@ public class ReadClipperUnitTest extends BaseTest {
                 Assert.assertTrue(clipRight.getReadLength() <= i, String.format("Clipped read length is greater than original read length (minus %d): %s -> %s", i, read.getCigarString(), clipRight.getCigarString()));
             }
         }
-        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
@@ -105,7 +103,6 @@ public class ReadClipperUnitTest extends BaseTest {
                 }
             }
         }
-        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
@@ -122,7 +119,6 @@ public class ReadClipperUnitTest extends BaseTest {
                 }
             }
         }
-        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
@@ -139,7 +135,6 @@ public class ReadClipperUnitTest extends BaseTest {
                 }
             }
         }
-        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
@@ -222,8 +217,6 @@ public class ReadClipperUnitTest extends BaseTest {
 
         ReadClipper lowQualClipper = new ReadClipper(read);
         ClipReadsTestUtils.assertEqualReads(lowQualClipper.hardClipLowQualEnds((byte) 2), expected);
-
-        logger.warn("PASSED");
     }
 
     @Test(enabled = true)
