@@ -619,8 +619,9 @@ public class VariantContextUtils {
             if (vc.alleles.size() == 1)
                 continue;
             if ( hasPLIncompatibleAlleles(alleles, vc.alleles)) {
-                logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
-                        genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
+                if ( ! genotypes.isEmpty() )
+                    logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
+                            genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
                 genotypes = stripPLs(genotypes);
                 // this will remove stale AC,AF attributed from vc
                 calculateChromosomeCounts(vc, attributes, true);
