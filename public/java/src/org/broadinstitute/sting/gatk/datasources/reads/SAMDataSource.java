@@ -727,7 +727,7 @@ public class SAMDataSource {
             int readerNumber = 1;
             final SimpleTimer timer = new SimpleTimer().start();
 
-            logger.info("Initializing SAMRecords " + (USE_PARALLEL_LOADING ? "in parallel" : "in serial"));
+            if ( totalNumberOfFiles > 0 ) logger.info("Initializing SAMRecords " + (USE_PARALLEL_LOADING ? "in parallel" : "in serial"));
             if ( ! USE_PARALLEL_LOADING ) {
                 final int tickSize = 50;
                 int nExecutedTotal = 0;
@@ -797,7 +797,7 @@ public class SAMDataSource {
                 executor.shutdown();
             }
 
-            logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
+            if ( totalNumberOfFiles > 0 ) logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
         }
 
         final private void printReaderPerformance(final int nExecutedTotal,
