@@ -204,16 +204,12 @@ public class ReadClipper {
 
         for(CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP &&
-                cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.DELETION)
+                cigarElement.getOperator() != CigarOperator.INSERTION)
                 break;
 
-            else if (cigarElement.getOperator() == CigarOperator.INSERTION) {
+            else if (cigarElement.getOperator() == CigarOperator.INSERTION)
                 this.addOp(new ClippingOp(0, cigarElement.getLength() - 1));
-            }
 
-            else if (cigarElement.getOperator() == CigarOperator.DELETION) {
-                throw new ReviewedStingException("No read should start with a deletion. Aligner bug?");
-            }
         }
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }

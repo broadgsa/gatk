@@ -176,4 +176,16 @@ public class ClipReadsTestUtils {
             Assert.assertEquals(actual.isEmpty(), expected.isEmpty());
     }
 
+    public static Cigar invertCigar (Cigar cigar) {
+        Stack<CigarElement> cigarStack = new Stack<CigarElement>();
+        for (CigarElement cigarElement : cigar.getCigarElements())
+            cigarStack.push(cigarElement);
+
+        Cigar invertedCigar = new Cigar();
+        while (!cigarStack.isEmpty())
+            invertedCigar.add(cigarStack.pop());
+
+        return invertedCigar;
+    }
+
 }

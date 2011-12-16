@@ -46,7 +46,7 @@ import java.util.List;
 public class ReadClipperUnitTest extends BaseTest {
 
     List<Cigar> cigarList;
-    int maximumCigarSize = 10;
+    int maximumCigarSize = 6;      // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
 
     @BeforeClass
     public void init() {
@@ -277,9 +277,30 @@ public class ReadClipperUnitTest extends BaseTest {
 
 //            logger.warn(String.format("Cigar %s -> %s -- PASSED!", read.getCigarString(), clippedRead.getCigarString()));
         }
-
-        logger.warn("PASSED");
     }
+
+    @Test(enabled = false)
+    public void testHardClipLeadingInsertions() {
+        for (Cigar cigar : cigarList) {
+            if (startsWithInsertion(cigar)) {
+                GATKSAMRecord read = ClipReadsTestUtils.makeReadFromCigar(cigar);
+                GATKSAMRecord clippedRead = (new ReadClipper(read)).hardClipLeadingInsertions();
+
+                int expectedLength = read.getReadLength() - leadingInsertionLength(read.getCigar());
+                if (cigarHasElementsDifferentThanInsertionsAndHardClips(read.getCigar()))
+                    expectedLength -= leadingInsertionLength(ClipReadsTestUtils.invertCigar(read.getCigar()));
+
+                if (! clippedRead.isEmpty()) {
+                    Assert.assertEquals(expectedLength, clippedRead.getReadLength(), String.format("%s -> %s", read.getCigarString(), clippedRead.getCigarString()));  // check that everything else is still there
+                    Assert.assertFalse(startsWithInsertion(clippedRead.getCigar()));                                                                                   // check that the insertions are gone
+                }
+                else
+                    Assert.assertTrue(expectedLength == 0, String.format("expected length: %d", expectedLength));                                                      // check that the read was expected to be fully clipped
+            }
+        }
+    }
+
+
 
     private void assertNoLowQualBases(GATKSAMRecord read, byte low_qual) {
         if (!read.isEmpty()) {
@@ -289,5 +310,24 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
+    private boolean startsWithInsertion(Cigar cigar) {
+        return leadingInsertionLength(cigar) > 0;
+    }
 
+    private int leadingInsertionLength(Cigar cigar) {
+        for (CigarElement cigarElement : cigar.getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.INSERTION)
+                return cigarElement.getLength();
+            if (cigarElement.getOperator() != CigarOperator.HARD_CLIP)
+                break;
+        }
+        return 0;
+    }
+
+    private boolean cigarHasElementsDifferentThanInsertionsAndHardClips (Cigar cigar) {
+        for (CigarElement cigarElement : cigar.getCigarElements())
+            if (cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.HARD_CLIP)
+                return true;
+        return false;
+    }
 }
