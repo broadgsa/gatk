@@ -1,20 +1,12 @@
 package org.broadinstitute.sting;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
-import org.apache.xmlbeans.impl.common.IOUtil;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
-import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
-import org.testng.Assert;
 
-import javax.swing.*;
 import java.io.*;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
