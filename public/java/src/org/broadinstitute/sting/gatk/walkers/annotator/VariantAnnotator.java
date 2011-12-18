@@ -194,11 +194,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         System.exit(0);
     }
 
-    @Override
-    public SampleDB getSampleDB() {
-        return super.getSampleDB();
-    }
-
     /**
      * Prepare the output file and the list of available features.
      */
