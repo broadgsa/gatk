@@ -97,7 +97,12 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         for ( int allele = 0; allele < cfg.numAltAlleles; allele++, nameIndex+=2 ) {
             int expectedAlleleCount = Integer.valueOf(cfg.name.substring(nameIndex, nameIndex+1));
             int calculatedAlleleCount = MathUtils.maxElementIndex(result.log10AlleleFrequencyPosteriors[allele]);
-            Assert.assertEquals(calculatedAlleleCount, expectedAlleleCount);
+
+            if ( result.log10AlleleFrequencyPosteriors[0][0] == AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED ) {
+                Assert.assertTrue(calculatedAlleleCount == expectedAlleleCount || result.log10AlleleFrequencyPosteriors[0][calculatedAlleleCount] < result.log10PosteriorOfAFzero);
+            } else {
+                Assert.assertEquals(calculatedAlleleCount, expectedAlleleCount);
+            }
         }
     }
 }
