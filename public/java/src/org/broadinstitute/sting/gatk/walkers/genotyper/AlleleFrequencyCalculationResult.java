@@ -34,8 +34,12 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
  */
 public class AlleleFrequencyCalculationResult {
 
+    // note that the cell at position zero in the likelihoods/posteriors array is actually probability of non-ref (since it's marginalized over all alleles)
     final double[][] log10AlleleFrequencyLikelihoods;
     final double[][] log10AlleleFrequencyPosteriors;
+
+    double log10LikelihoodOfAFzero = 0.0;
+    double log10PosteriorOfAFzero = 0.0;
 
     AlleleFrequencyCalculationResult(int maxAltAlleles, int numChr) {
         log10AlleleFrequencyLikelihoods = new double[maxAltAlleles][numChr+1];

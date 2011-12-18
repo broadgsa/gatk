@@ -407,14 +407,19 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 nonRefAlleles++;
         }
 
-        // update the likelihoods/posteriors vectors which are collapsed views of each of the various ACs
-        for ( int i = 0; i < set.ACcounts.getCounts().length; i++ ) {
-            int AC = set.ACcounts.getCounts()[i];
-            result.log10AlleleFrequencyLikelihoods[i][AC] = approximateLog10SumLog10(result.log10AlleleFrequencyLikelihoods[i][AC], log10LofK);
+        // for k=0, we don't want to put that value into the likelihoods/posteriors matrix, but instead want to set the value in the results object
+        if ( nonRefAlleles == 0 ) {
+            result.log10LikelihoodOfAFzero = log10LofK;
+            result.log10PosteriorOfAFzero = log10LofK + log10AlleleFrequencyPriors[0][0];
+        } else {
+            // update the likelihoods/posteriors vectors which are collapsed views of each of the various ACs
+            for ( int i = 0; i < set.ACcounts.getCounts().length; i++ ) {
+                int AC = set.ACcounts.getCounts()[i];
+                result.log10AlleleFrequencyLikelihoods[i][AC] = approximateLog10SumLog10(result.log10AlleleFrequencyLikelihoods[i][AC], log10LofK);
 
-            // for k=0 we still want to use theta
-            final double prior = (nonRefAlleles == 0) ? log10AlleleFrequencyPriors[0][0] : log10AlleleFrequencyPriors[nonRefAlleles-1][AC];
-            result.log10AlleleFrequencyPosteriors[i][AC] = approximateLog10SumLog10(result.log10AlleleFrequencyPosteriors[i][AC], log10LofK + prior);
+                final double prior = log10AlleleFrequencyPriors[nonRefAlleles-1][AC];
+                result.log10AlleleFrequencyPosteriors[i][AC] = approximateLog10SumLog10(result.log10AlleleFrequencyPosteriors[i][AC], log10LofK + prior);
+            }
         }
     }
 
