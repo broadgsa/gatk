@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.clipreads;
+package org.broadinstitute.sting.utils.clipping;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
