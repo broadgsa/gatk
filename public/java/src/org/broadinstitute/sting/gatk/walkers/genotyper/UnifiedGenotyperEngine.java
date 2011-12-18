@@ -335,12 +335,8 @@ public class UnifiedGenotyperEngine {
 
         // calculate p(f>0):
         // because the likelihoods are marginalized for each alternate allele, we only need to compare log10PosteriorOfAFzero against any one of them
-        double[] normalizedPosteriors = generateNormalizedPosteriors(AFresult, posteriorsArray.get());
-        // TODO -- why not just 1.0 - normalizedPosteriors[0]?
-        double sum = 0.0;
-        for (int i = 1; i <= N+1; i++) // N+1 because the cell at position zero in the original posteriors array is actually probability of non-ref (since it's marginalized over all alleles)
-            sum += normalizedPosteriors[i];
-        double PofF = Math.min(sum, 1.0); // deal with precision errors
+        final double[] normalizedPosteriors = generateNormalizedPosteriors(AFresult, posteriorsArray.get());
+        final double PofF = 1.0 - normalizedPosteriors[0];
 
         double phredScaledConfidence;
         if ( !bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
@@ -350,7 +346,7 @@ public class UnifiedGenotyperEngine {
         } else {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
             if ( Double.isInfinite(phredScaledConfidence) ) {
-                sum = AFresult.log10AlleleFrequencyPosteriors[0][0];
+                double sum = AFresult.log10AlleleFrequencyPosteriors[0][0];
                 if ( sum == AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED )
                     sum = 0.0;
                 for (int i = 1; i <= N; i++) {
@@ -370,7 +366,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // strip out any alleles that aren't going to be used in the VariantContext
-        List<Allele> myAlleles;
+        final List<Allele> myAlleles;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
             myAlleles = new ArrayList<Allele>(vc.getAlleles().size());
             myAlleles.add(vc.getReference());
@@ -384,8 +380,8 @@ public class UnifiedGenotyperEngine {
         }
 
         // start constructing the resulting VC
-        GenomeLoc loc = genomeLocParser.createGenomeLoc(vc);
-        VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), myAlleles);
+        final GenomeLoc loc = genomeLocParser.createGenomeLoc(vc);
+        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), myAlleles);
         builder.log10PError(phredScaledConfidence/-10.0);
         if ( ! passesCallThreshold(phredScaledConfidence) )
             builder.filters(filter);
@@ -396,14 +392,14 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse, myAlleles);
+        final GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse, myAlleles);
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
             printVerboseData(refContext.getLocus().toString(), vc, PofF, phredScaledConfidence, normalizedPosteriors, model);
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
-        HashMap<String, Object> attributes = new HashMap<String, Object>();
+        final HashMap<String, Object> attributes = new HashMap<String, Object>();
 
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
