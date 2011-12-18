@@ -28,18 +28,17 @@ import org.testng.annotations.Test
 import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
-class ExampleCountLociPipelineTest {
+class ExampleUnifiedGenotyperPipelineTest {
   @Test
-  def testCountLoci() {
-    val testOut = "count.out"
+  def testUnifiedGenotyper() {
     val spec = new PipelineTestSpec
-    spec.name = "countloci"
+    spec.name = "unifiedgenotyper"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountLoci.scala",
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.testDir + "exampleFASTA.fasta",
       " -I " + BaseTest.testDir + "exampleBAM.bam",
-      " -o " + testOut).mkString
-    spec.fileMD5s += testOut -> "67823e4722495eb10a5e4c42c267b3a6"
+      " -filter QD",
+      " -filterExpression 'QD < 2.0'").mkString
     PipelineTest.executeTest(spec)
   }
 }

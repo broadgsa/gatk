@@ -24,7 +24,7 @@ class ExampleCountReads extends QScript {
   /**
    * In script, you create and then add() functions to the pipeline.
    */
-  def script = {
+  def script() {
 
     // Run CountReads for all bams jointly.
 
@@ -41,6 +41,9 @@ class ExampleCountReads extends QScript {
     // matches the full form of the argument, but will actually be a scala List[]
     jointCountReads.input_file = bamFiles
 
+    // Set the memory limit. Also acts as a memory request on LSF and GridEngine.
+    jointCountReads.memoryLimit = 1
+
     // Add the newly created function to the pipeline.
     add(jointCountReads)
 
@@ -51,6 +54,7 @@ class ExampleCountReads extends QScript {
         singleCountReads.reference_sequence = referenceFile
         // ':+' is the scala List append operator
         singleCountReads.input_file :+= bamFile
+        singleCountReads.memoryLimit = 1
         add(singleCountReads)
       }
     }

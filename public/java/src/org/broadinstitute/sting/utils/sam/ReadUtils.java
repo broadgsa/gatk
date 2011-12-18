@@ -910,4 +910,9 @@ public class ReadUtils {
         return comp.compare(read1, read2);
     }
 
+    // TEST UTILITIES
+
+
+
+
 }

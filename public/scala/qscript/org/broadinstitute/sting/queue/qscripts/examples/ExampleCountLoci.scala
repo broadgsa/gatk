@@ -19,7 +19,7 @@ class ExampleCountLoci extends QScript {
   @Output
   var out: File = _
 
-  def script = {
+  def script() {
     val countLoci = new CountLoci
     countLoci.reference_sequence = referenceFile
     countLoci.input_file = bamFiles

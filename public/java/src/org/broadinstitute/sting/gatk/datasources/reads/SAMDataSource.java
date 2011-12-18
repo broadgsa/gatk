@@ -64,6 +64,9 @@ import java.util.concurrent.*;
 public class SAMDataSource {
     final private static GATKSamRecordFactory factory = new GATKSamRecordFactory();
 
+    /** If true, we will load SAMReaders in parallel */
+    final private static boolean USE_PARALLEL_LOADING = false;
+
     /** Backing support for reads. */
     protected final ReadProperties readProperties;
 
@@ -259,6 +262,11 @@ public class SAMDataSource {
         validationStringency = strictness;
         if(readBufferSize != null)
             ReadShard.setReadBufferSize(readBufferSize);
+        else {
+            // Choose a sensible default for the read buffer size.  For the moment, we're picking 1000 reads per BAM per shard (which effectively
+            // will mean per-thread once ReadWalkers are parallelized) with a max cap of 250K reads in memory at once.
+            ReadShard.setReadBufferSize(Math.min(1000*samFiles.size(),250000));
+        }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
         SAMReaders readers = resourcePool.getAvailableReaders();
@@ -479,10 +487,13 @@ public class SAMDataSource {
         // Cache the most recently viewed read so that we can check whether we've reached the end of a pair.
         SAMRecord read = null;
 
+        Map<SAMFileReader,GATKBAMFileSpan> positionUpdates = new IdentityHashMap<SAMFileReader,GATKBAMFileSpan>();
+
         CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,sortOrder == SAMFileHeader.SortOrder.coordinate);
         while(!shard.isBufferFull() && iterator.hasNext()) {
             read = iterator.next();
-            addReadToBufferingShard(shard,getReaderID(readers,read),read);
+            shard.addRead(read);
+            noteFilePositionUpdate(positionUpdates,read);
         }
 
         // If the reads are sorted in queryname order, ensure that all reads
@@ -492,11 +503,21 @@ public class SAMDataSource {
                 SAMRecord nextRead = iterator.next();
                 if(read == null || !read.getReadName().equals(nextRead.getReadName()))
                     break;
-                addReadToBufferingShard(shard,getReaderID(readers,nextRead),nextRead);
+                shard.addRead(nextRead);
+                noteFilePositionUpdate(positionUpdates,nextRead);
             }
         }
 
         iterator.close();
+
+        // Make the updates specified by the reader.
+        for(Map.Entry<SAMFileReader,GATKBAMFileSpan> positionUpdate: positionUpdates.entrySet())
+            readerPositions.put(readers.getReaderID(positionUpdate.getKey()),positionUpdate.getValue());
+    }
+
+    private void noteFilePositionUpdate(Map<SAMFileReader,GATKBAMFileSpan> positionMapping, SAMRecord read) {
+        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
+        positionMapping.put(read.getFileSource().getReader(),endChunk);
     }
 
     public StingSAMIterator seek(Shard shard) {
@@ -572,18 +593,6 @@ public class SAMDataSource {
                 readProperties.getBAQQualityMode(),
                 readProperties.getRefReader(),
                 readProperties.defaultBaseQualities());
-    }
-
-    /**
-     * Adds this read to the given shard.
-     * @param shard The shard to which to add the read.
-     * @param id The id of the given reader.
-     * @param read The read to add to the shard.
-     */
-    private void addReadToBufferingShard(Shard shard,SAMReaderID id,SAMRecord read) {
-        GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
-        shard.addRead(read);
-        readerPositions.put(id,endChunk);
     }
 
     /**
@@ -714,68 +723,98 @@ public class SAMDataSource {
          * @param validationStringency validation stringency.
          */
         public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
-            final int N_THREADS = 8;
-            int totalNumberOfFiles = readerIDs.size();
+            final int totalNumberOfFiles = readerIDs.size();
             int readerNumber = 1;
+            final SimpleTimer timer = new SimpleTimer().start();
 
-            ExecutorService executor = Executors.newFixedThreadPool(N_THREADS);
-            final List<ReaderInitializer> inits = new ArrayList<ReaderInitializer>(totalNumberOfFiles);
-            Queue<Future<ReaderInitializer>> futures = new LinkedList<Future<ReaderInitializer>>();
-            for (SAMReaderID readerID: readerIDs) {
-                logger.debug("Enqueuing for initialization: " + readerID.samFile);
-                final ReaderInitializer init = new ReaderInitializer(readerID);
-                inits.add(init);
-                futures.add(executor.submit(init));
-            }
-
-            final SimpleTimer timer = new SimpleTimer();
-            try {
-                final int MAX_WAIT = 30 * 1000;
-                final int MIN_WAIT = 1 * 1000;
-
-                timer.start();
-                while ( ! futures.isEmpty() ) {
-                    final int prevSize = futures.size();
-                    final double waitTime = prevSize * (0.5 / N_THREADS); // about 0.5 seconds to load each file
-                    final int waitTimeInMS = Math.min(MAX_WAIT, Math.max((int) (waitTime * 1000), MIN_WAIT));
-                    Thread.sleep(waitTimeInMS);
-
-                    Queue<Future<ReaderInitializer>> pending = new LinkedList<Future<ReaderInitializer>>();
-                    for ( final Future<ReaderInitializer> initFuture : futures ) {
-                        if ( initFuture.isDone() ) {
-                            final ReaderInitializer init = initFuture.get();
-                            if (threadAllocation.getNumIOThreads() > 0) {
-                                inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
-                            }
-                            logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles, init.readerID));
-                            readers.put(init.readerID, init.reader);
-                        } else {
-                            pending.add(initFuture);
-                        }
+            if ( totalNumberOfFiles > 0 ) logger.info("Initializing SAMRecords " + (USE_PARALLEL_LOADING ? "in parallel" : "in serial"));
+            if ( ! USE_PARALLEL_LOADING ) {
+                final int tickSize = 50;
+                int nExecutedTotal = 0;
+                long lastTick = timer.currentTime();
+                for(final SAMReaderID readerID: readerIDs) {
+                    final ReaderInitializer init = new ReaderInitializer(readerID).call();
+                    if (threadAllocation.getNumIOThreads() > 0) {
+                        inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
                     }
 
-                    final int pendingSize = pending.size();
-                    final int nExecutedInTick = prevSize - pendingSize;
-                    final int nExecutedTotal = totalNumberOfFiles - pendingSize;
-                    final double totalTimeInSeconds = timer.getElapsedTime();
-                    final double nTasksPerSecond = nExecutedTotal / (1.0*totalTimeInSeconds);
-                    final int nRemaining = pendingSize;
-                    final double estTimeToComplete = pendingSize / nTasksPerSecond;
-                    logger.info(String.format("Init %d BAMs in last %d s, %d of %d in %.2f s / %.2f m (%.2f tasks/s).  %d remaining with est. completion in %.2f s / %.2f m",
-                            nExecutedInTick, (int)(waitTimeInMS / 1000.0),
-                            nExecutedTotal, totalNumberOfFiles, totalTimeInSeconds, totalTimeInSeconds / 60, nTasksPerSecond,
-                            nRemaining, estTimeToComplete, estTimeToComplete / 60));
-
-                    futures = pending;
+                    logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.samFile));
+                    readers.put(init.readerID,init.reader);
+                    if ( ++nExecutedTotal % tickSize == 0) {
+                        double tickInSec = (timer.currentTime() - lastTick) / 1000.0;
+                        printReaderPerformance(nExecutedTotal, tickSize, totalNumberOfFiles, timer, tickInSec);
+                        lastTick = timer.currentTime();
+                    }
                 }
-            } catch ( InterruptedException e ) {
-                throw new ReviewedStingException("Interrupted SAMReader initialization", e);
-            } catch ( ExecutionException e ) {
-                throw new ReviewedStingException("Execution exception during SAMReader initialization", e);
+            } else {
+                final int N_THREADS = 8;
+
+                final ExecutorService executor = Executors.newFixedThreadPool(N_THREADS);
+                final List<ReaderInitializer> inits = new ArrayList<ReaderInitializer>(totalNumberOfFiles);
+                Queue<Future<ReaderInitializer>> futures = new LinkedList<Future<ReaderInitializer>>();
+                for (final SAMReaderID readerID: readerIDs) {
+                    logger.debug("Enqueuing for initialization: " + readerID.samFile);
+                    final ReaderInitializer init = new ReaderInitializer(readerID);
+                    inits.add(init);
+                    futures.add(executor.submit(init));
+                }
+
+                try {
+                    final int MAX_WAIT = 30 * 1000;
+                    final int MIN_WAIT = 1 * 1000;
+
+                    while ( ! futures.isEmpty() ) {
+                        final int prevSize = futures.size();
+                        final double waitTime = prevSize * (0.5 / N_THREADS); // about 0.5 seconds to load each file
+                        final int waitTimeInMS = Math.min(MAX_WAIT, Math.max((int) (waitTime * 1000), MIN_WAIT));
+                        Thread.sleep(waitTimeInMS);
+
+                        Queue<Future<ReaderInitializer>> pending = new LinkedList<Future<ReaderInitializer>>();
+                        for ( final Future<ReaderInitializer> initFuture : futures ) {
+                            if ( initFuture.isDone() ) {
+                                final ReaderInitializer init = initFuture.get();
+                                if (threadAllocation.getNumIOThreads() > 0) {
+                                    inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
+                                }
+                                logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles, init.readerID));
+                                readers.put(init.readerID, init.reader);
+                            } else {
+                                pending.add(initFuture);
+                            }
+                        }
+
+                        final int nExecutedTotal = totalNumberOfFiles - pending.size();
+                        final int nExecutedInTick = prevSize - pending.size();
+                        printReaderPerformance(nExecutedTotal, nExecutedInTick, totalNumberOfFiles, timer, waitTimeInMS / 1000.0);
+                        futures = pending;
+                    }
+                } catch ( InterruptedException e ) {
+                    throw new ReviewedStingException("Interrupted SAMReader initialization", e);
+                } catch ( ExecutionException e ) {
+                    throw new ReviewedStingException("Execution exception during SAMReader initialization", e);
+                }
+
+                executor.shutdown();
             }
 
-            logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
-            executor.shutdown();
+            if ( totalNumberOfFiles > 0 ) logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
+        }
+
+        final private void printReaderPerformance(final int nExecutedTotal,
+                                                  final int nExecutedInTick,
+                                                  final int totalNumberOfFiles,
+                                                  final SimpleTimer timer,
+                                                  final double tickDurationInSec) {
+            final int pendingSize = totalNumberOfFiles - nExecutedTotal;
+            final double totalTimeInSeconds = timer.getElapsedTime();
+            final double nTasksPerSecond = nExecutedTotal / (1.0*totalTimeInSeconds);
+            final int nRemaining = pendingSize;
+            final double estTimeToComplete = pendingSize / nTasksPerSecond;
+            logger.info(String.format("Init %d BAMs in last %.2f s, %d of %d in %.2f s / %.2f m (%.2f tasks/s).  %d remaining with est. completion in %.2f s / %.2f m",
+                    nExecutedInTick, tickDurationInSec,
+                    nExecutedTotal, totalNumberOfFiles, totalTimeInSeconds, totalTimeInSeconds / 60, nTasksPerSecond,
+                    nRemaining, estTimeToComplete, estTimeToComplete / 60));
+
         }
 
         /**
