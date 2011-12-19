@@ -45,84 +45,12 @@ import java.util.*;
 public class ReadUtils {
     private ReadUtils() { }
 
-    // ----------------------------------------------------------------------------------------------------
-    //
-    // Reduced read utilities
-    //
-    // ----------------------------------------------------------------------------------------------------
+    private static int DEFAULT_ADAPTOR_SIZE = 100;
 
-    // ----------------------------------------------------------------------------------------------------
-    //
-    // General utilities
-    //
-    // ----------------------------------------------------------------------------------------------------
-    public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
-        SAMFileHeader copy = new SAMFileHeader();
-
-        copy.setSortOrder(toCopy.getSortOrder());
-        copy.setGroupOrder(toCopy.getGroupOrder());
-        copy.setProgramRecords(toCopy.getProgramRecords());
-        copy.setReadGroups(toCopy.getReadGroups());
-        copy.setSequenceDictionary(toCopy.getSequenceDictionary());
-
-        for (Map.Entry<String, String> e : toCopy.getAttributes())
-            copy.setAttribute(e.getKey(), e.getValue());
-
-        return copy;
+    public enum ClippingTail {
+        LEFT_TAIL,
+        RIGHT_TAIL
     }
-
-    public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
-        if (file.endsWith(".bam"))
-            return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
-        return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
-    }
-
-    public static boolean isPlatformRead(SAMRecord read, String name) {
-        SAMReadGroupRecord readGroup = read.getReadGroup();
-        if (readGroup != null) {
-            Object readPlatformAttr = readGroup.getAttribute("PL");
-            if (readPlatformAttr != null)
-                return readPlatformAttr.toString().toUpperCase().contains(name);
-        }
-        return false;
-    }
-
-    // ---------------------------------------------------------------------------------------------------------
-    //
-    // utilities for detecting overlapping reads
-    //
-    // ---------------------------------------------------------------------------------------------------------
-
-    /**
-     * Detects read pairs where the reads are so long relative to the over fragment size that they are
-     * reading into each other's adaptors.
-     *
-     * Normally, fragments are sufficiently far apart that reads aren't reading into each other.
-     *
-     * |-------------------->                                   first read
-     *                                 <--------------------|   second read
-     *
-     * Sometimes, mostly due to lab errors or constraints, fragment library are made too short relative to the
-     * length of the reads.  For example, it's possible to have 76bp PE reads with 125 bp inserts, so that ~25 bp of each
-     * read overlaps with its mate.
-     *
-     * |--------OOOOOOOOOOOO>               first read
-     *         <OOOOOOOOOOOO------------|   second read
-     *
-     * This filter deals with the situation where the fragment is so small that the each read actually reads into the
-     * adaptor sequence of its mate, generating mismatches at both ends of the read:
-     *
-     *              |----------------XXXX>      first read
-     *         <XXXX----------------|           second read
-     *
-     * The code below returns NOT_OVERLAPPING for the first case, IN_ADAPTOR for the last case, and OVERLAPPING
-     * given a read and a reference aligned base position.
-     *
-     * @author depristo
-     * @version 0.1
-     */
-
-    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR}
 
     /**
      * This enum represents all the different ways in which a read can overlap an interval.
@@ -168,91 +96,100 @@ public class ReadUtils {
      */
     public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
-    /**
-     * God, there's a huge information asymmetry in SAM format:
-     *
-     *      s1                      e1
-     *      |-----------------------> [record in hand]
-     *  s2
-     *  <-----------------------|
-     *
-     * s1, e1, and s2 are all in the record.  From isize we can can compute e2 as s1 + isize + 1
-     *
-     *      s2
-     *      |----------------------->
-     *  s1                      e1
-     *  <-----------------------|     [record in hand]
-     *
-     * Here we cannot calculate e2 since the record carries s2 and e1 + isize is s2 now!
-     *
-     * This makes the following code a little nasty, since we can only detect if a base is in the adaptor, but not
-     * if it overlaps the read.
-     *
-     * @param read
-     * @param basePos
-     * @param adaptorLength
-     * @return
-     */
-    public static OverlapType readPairBaseOverlapType(final SAMRecord read, long basePos, final int adaptorLength) {
-        OverlapType state = OverlapType.NOT_OVERLAPPING;
+    public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
+        SAMFileHeader copy = new SAMFileHeader();
 
-        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(read, adaptorLength);
+        copy.setSortOrder(toCopy.getSortOrder());
+        copy.setGroupOrder(toCopy.getGroupOrder());
+        copy.setProgramRecords(toCopy.getProgramRecords());
+        copy.setReadGroups(toCopy.getReadGroups());
+        copy.setSequenceDictionary(toCopy.getSequenceDictionary());
 
-        if ( adaptorBoundaries != null ) { // we're not an unmapped pair -- cannot filter out
+        for (Map.Entry<String, String> e : toCopy.getAttributes())
+            copy.setAttribute(e.getKey(), e.getValue());
 
-            boolean inAdapator = basePos >= adaptorBoundaries.first && basePos <= adaptorBoundaries.second;
-
-            if ( inAdapator ) { 
-                state = OverlapType.IN_ADAPTOR;
-                //System.out.printf("baseOverlapState: %50s negStrand=%b base=%d start=%d stop=%d, adaptorStart=%d adaptorEnd=%d isize=%d => %s%n",
-                //        read.getReadName(), read.getReadNegativeStrandFlag(), basePos, read.getAlignmentStart(), read.getAlignmentEnd(), adaptorBoundaries.first, adaptorBoundaries.second, read.getInferredInsertSize(), state);
-            }
-        }
-
-        return state;
+        return copy;
     }
 
-    private static Pair<Integer, Integer> getAdaptorBoundaries(SAMRecord read, int adaptorLength) {
-        int isize = read.getInferredInsertSize();
-        if ( isize == 0 )
-            return null; // don't worry about unmapped pairs
+    public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
+        if (file.endsWith(".bam"))
+            return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
+        return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
+    }
 
-        int adaptorStart, adaptorEnd;
-
-        if ( read.getReadNegativeStrandFlag() ) {
-            // we are on the negative strand, so our mate is on the positive strand
-            int mateStart = read.getMateAlignmentStart();
-            adaptorStart = mateStart - adaptorLength - 1;
-            adaptorEnd = mateStart - 1;
-        } else {
-            // we are on the positive strand, so our mate is on the negative strand
-            int mateEnd = read.getAlignmentStart() + isize - 1;
-            adaptorStart = mateEnd + 1;
-            adaptorEnd = mateEnd + adaptorLength;
+    public static boolean isPlatformRead(SAMRecord read, String name) {
+        SAMReadGroupRecord readGroup = read.getReadGroup();
+        if (readGroup != null) {
+            Object readPlatformAttr = readGroup.getAttribute("PL");
+            if (readPlatformAttr != null)
+                return readPlatformAttr.toString().toUpperCase().contains(name);
         }
+        return false;
+    }
 
-        return new Pair<Integer, Integer>(adaptorStart, adaptorEnd);
+
+    /**
+     * is this base inside the adaptor of the read?
+     *
+     * There are two cases to treat here:
+     *
+     * 1) Read is in the negative strand => Adaptor boundary is on the left tail
+     * 2) Read is in the positive strand => Adaptor boundary is on the right tail
+     *
+     * Note: We return false to all reads that are UNMAPPED or have an weird big insert size (probably due to mismapping or bigger event)
+     *
+     * @param read the read to test
+     * @param basePos base position in REFERENCE coordinates (not read coordinates)
+     * @return whether or not the base is in the adaptor
+     */
+    public static boolean isBaseInsideAdaptor(final GATKSAMRecord read, long basePos) {
+        Integer adaptorBoundary = getAdaptorBoundary(read);
+        if (adaptorBoundary == null || read.getInferredInsertSize() > DEFAULT_ADAPTOR_SIZE)
+            return false;
+
+        return read.getReadNegativeStrandFlag() ? basePos <= adaptorBoundary : basePos >= adaptorBoundary;
     }
 
     /**
+     * Finds the adaptor boundary around the read and returns the first base inside the adaptor that is closest to
+     * the read boundary. If the read is in the positive strand, this is the first base after the end of the
+     * fragment (Picard calls it 'insert'), if the read is in the negative strand, this is the first base before the
+     * beginning of the fragment.
      *
-     * @param read  original SAM record
-     * @param adaptorLength  length of adaptor sequence
-     * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
+     * There are two cases we need to treat here:
+     *
+     * 1) Our read is in the reverse strand :
+     *
+     *     <----------------------| *
+     *   |--------------------->
+     *
+     *   in these cases, the adaptor boundary is at the mate start (minus one)
+     *
+     * 2) Our read is in the forward strand :
+     *
+     *   |---------------------->   *
+     *     <----------------------|
+     *
+     *   in these cases the adaptor boundary is at the start of the read plus the inferred insert size (plus one)
+     *
+     * @param read the read being tested for the adaptor boundary
+     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the insert size cannot be determined (and is necessary for the calculation).
      */
-    public static GATKSAMRecord hardClipAdaptorSequence(final GATKSAMRecord read, int adaptorLength) {
+    protected static Integer getAdaptorBoundary(final SAMRecord read) {
+        if ( read.getReadUnmappedFlag() )
+            return null;                                             // don't worry about unmapped pairs
 
-        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(read, adaptorLength);
-        GATKSAMRecord result = read;
+        final int isize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
+        int adaptorBoundary;                                         // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
 
-        if ( adaptorBoundaries != null ) {
-            if ( read.getReadNegativeStrandFlag() && adaptorBoundaries.second >= read.getAlignmentStart() && adaptorBoundaries.first < read.getAlignmentEnd() )
-                result = hardClipStartOfRead(read, adaptorBoundaries.second);
-            else if ( !read.getReadNegativeStrandFlag() && adaptorBoundaries.first <= read.getAlignmentEnd() )
-                result = hardClipEndOfRead(read, adaptorBoundaries.first);
-        }
+        if ( read.getReadNegativeStrandFlag() )
+            adaptorBoundary = read.getMateAlignmentStart() - 1;      // case 1 (see header)
+        else if (isize > 0)
+            adaptorBoundary = read.getAlignmentStart() + isize + 1;  // case 2 (see header)
+        else
+            return null;                                             // this is a case 2 where for some reason we cannot estimate the insert size
 
-        return result;
+        return adaptorBoundary;
     }
 
     // return true if the read needs to be completely clipped
@@ -557,7 +494,6 @@ public class ReadUtils {
     }
 
 
-    private static int DEFAULT_ADAPTOR_SIZE = 100;
 
     /**
      *
@@ -565,12 +501,14 @@ public class ReadUtils {
      * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
      */
     public static GATKSAMRecord hardClipAdaptorSequence(final GATKSAMRecord read) {
-        return hardClipAdaptorSequence(read, DEFAULT_ADAPTOR_SIZE);
+        final Integer adaptorBoundary = getAdaptorBoundary(read);
+
+        if (adaptorBoundary == null || !isInsideRead(read, adaptorBoundary))
+            return read;
+
+        return (read.getReadNegativeStrandFlag()) ? hardClipStartOfRead(read, adaptorBoundary) : hardClipEndOfRead(read, adaptorBoundary);
     }
 
-    public static OverlapType readPairBaseOverlapType(final SAMRecord read, long basePos) {
-        return readPairBaseOverlapType(read, basePos, DEFAULT_ADAPTOR_SIZE);
-    }
 
     public static boolean is454Read(SAMRecord read) {
         return isPlatformRead(read, "454");
@@ -716,18 +654,6 @@ public class ReadUtils {
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
     }
 
-    private static boolean readIsEntirelyInsertion(GATKSAMRecord read) {
-        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
-            if (cigarElement.getOperator() != CigarOperator.INSERTION)
-                return false;
-        }
-        return true;
-    }
-
-    public enum ClippingTail {
-        LEFT_TAIL,
-        RIGHT_TAIL
-    }
 
     /**
      * Pre-processes the results of getReadCoordinateForReferenceCoordinate(GATKSAMRecord, int) in case it falls in
@@ -866,7 +792,24 @@ public class ReadUtils {
         return comp.compare(read1, read2);
     }
 
-    // TEST UTILITIES
+    /**
+     * Is a base inside a read?
+     *
+     * @param read the read to evaluate
+     * @param referenceCoordinate the reference coordinate of the base to test
+     * @return true if it is inside the read, false otherwise.
+     */
+    public static boolean isInsideRead(final GATKSAMRecord read, final int referenceCoordinate) {
+        return referenceCoordinate >= read.getAlignmentStart() && referenceCoordinate <= read.getAlignmentEnd();
+    }
+
+    private static boolean readIsEntirelyInsertion(GATKSAMRecord read) {
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() != CigarOperator.INSERTION)
+                return false;
+        }
+        return true;
+    }
 
 
 

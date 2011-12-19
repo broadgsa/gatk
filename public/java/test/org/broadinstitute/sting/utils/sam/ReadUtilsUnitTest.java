@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -68,5 +68,50 @@ public class ReadUtilsUnitTest extends BaseTest {
         Assert.assertTrue(reducedreadp.isReducedRead());
         Assert.assertEquals(reducedreadp.getRepresentativeCount(), REDUCED_READ_COUNTS[0]);
         Assert.assertEquals(reducedreadp.getQual(), readp.getQual());
+    }
+
+    @Test
+    public void testGetAdaptorBoundary() {
+        final byte [] bases = {'A', 'C', 'G', 'T', 'A', 'C', 'G', 'T'};
+        final byte [] quals = {30, 30, 30, 30, 30, 30, 30, 30};
+        final String cigar = "8M";
+        final int fragmentSize = 10;
+        final int mateStart = 1000;
+        final int BEFORE = mateStart - 2;
+        final int AFTER = mateStart + 2;
+        int myStart, boundary;
+
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, cigar);
+        read.setMateAlignmentStart(mateStart);
+        read.setInferredInsertSize(fragmentSize);
+
+        // Test case 1: positive strand, first read
+        myStart = BEFORE;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(false);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+
+        // Test case 2: positive strand, second read
+        myStart = AFTER;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(false);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+
+        // Test case 3: negative strand, second read
+        myStart = AFTER;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(true);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, mateStart - 1);
+
+        // Test case 4: negative strand, first read
+        myStart = BEFORE;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(true);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, mateStart - 1);
+
     }
 }
