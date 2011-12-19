@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.clipreads;
+package org.broadinstitute.sting.utils.clipping;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
@@ -8,7 +8,9 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,7 +19,7 @@ import java.util.*;
  * Time: 6:45 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ClipReadsTestUtils {
+public class ReadClipperTestUtils {
     //Should contain all the utils needed for tests to mass produce
     //reads, cigars, and other needed classes
 
@@ -174,6 +176,18 @@ public class ClipReadsTestUtils {
         // Otherwise test if they're both empty
         else
             Assert.assertEquals(actual.isEmpty(), expected.isEmpty());
+    }
+
+    public static Cigar invertCigar (Cigar cigar) {
+        Stack<CigarElement> cigarStack = new Stack<CigarElement>();
+        for (CigarElement cigarElement : cigar.getCigarElements())
+            cigarStack.push(cigarElement);
+
+        Cigar invertedCigar = new Cigar();
+        while (!cigarStack.isEmpty())
+            invertedCigar.add(cigarStack.pop());
+
+        return invertedCigar;
     }
 
 }

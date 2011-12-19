@@ -89,7 +89,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   private var shuttingDown = false
 
   private lazy val pluginManager = {
-    qScriptClasses = IOUtils.tempDir("Q-Classes", "", settings.qSettings.tempDirectory)
+    qScriptClasses = IOUtils.tempDir("Q-Classes-", "", settings.qSettings.tempDirectory)
     qScriptManager.loadScripts(scripts, qScriptClasses)
     new PluginManager[QScript](classOf[QScript], List(qScriptClasses.toURI.toURL))
   }

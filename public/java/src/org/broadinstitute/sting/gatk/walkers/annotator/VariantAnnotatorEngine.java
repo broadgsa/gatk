@@ -47,9 +47,11 @@ public class VariantAnnotatorEngine {
     private List<GenotypeAnnotation> requestedGenotypeAnnotations;
     private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
-    private HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
-    private AnnotatorCompatibleWalker walker;
-    private GenomeAnalysisEngine toolkit;
+    private final HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
+    private final AnnotatorCompatibleWalker walker;
+    private final GenomeAnalysisEngine toolkit;
+
+    private boolean requireStrictAlleleMatch = false;
 
     protected static class VAExpression {
 
@@ -163,6 +165,10 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
+    public void setRequireStrictAlleleMatch( final boolean requireStrictAlleleMatch ) {
+        this.requireStrictAlleleMatch = requireStrictAlleleMatch;
+    }
+
     public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
@@ -197,7 +203,7 @@ public class VariantAnnotatorEngine {
             } else {
                 boolean overlapsComp = false;
                 for ( VariantContext comp : tracker.getValues(dbSet.getKey(), ref.getLocus()) ) {
-                    if ( !comp.isFiltered() ) {
+                    if ( !comp.isFiltered() && ( !requireStrictAlleleMatch || comp.getAlleles().equals(vc.getAlleles()) ) ) {
                         overlapsComp = true;
                         break;
                     }

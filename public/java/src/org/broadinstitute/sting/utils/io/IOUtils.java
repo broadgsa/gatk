@@ -79,7 +79,7 @@ public class IOUtils {
                 tempDirParent = FileUtils.getTempDirectory();
             if (!tempDirParent.exists() && !tempDirParent.mkdirs())
                 throw new UserException.BadTmpDir("Could not create temp directory: " + tempDirParent);
-            File temp = File.createTempFile(prefix + "-", suffix, tempDirParent);
+            File temp = File.createTempFile(prefix, suffix, tempDirParent);
             if (!temp.delete())
                 throw new UserException.BadTmpDir("Could not delete sub file: " + temp.getAbsolutePath());
             if (!temp.mkdir())

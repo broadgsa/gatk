@@ -12,7 +12,7 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  inputFileName = "Q-8271@gsa2.jobreport.txt"
+  inputFileName = "Q-26618@gsa4.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
@@ -129,9 +129,11 @@ plotGroup <- function(groupTable) {
   # as above, but averaging over all iterations
   groupAnnotationsNoIteration = setdiff(groupAnnotations, "iteration")
   if ( dim(sub)[1] > 1 ) {
-    sum = cast(melt(sub, id.vars=groupAnnotationsNoIteration, measure.vars=c("runtime")), ... ~ ., fun.aggregate=c(mean, sd))
-    textplot(as.data.frame(sum), show.rownames=F)
-    title(paste("Job summary for", name, "averaging over all iterations"), cex=3)
+    try({ # need a try here because we will fail to reduce when there's just a single iteration
+      sum = cast(melt(sub, id.vars=groupAnnotationsNoIteration, measure.vars=c("runtime")), ... ~ ., fun.aggregate=c(mean, sd))
+      textplot(as.data.frame(sum), show.rownames=F)
+      title(paste("Job summary for", name, "averaging over all iterations"), cex=3)
+    }, silent=T)
   }
 }
     
@@ -193,6 +195,7 @@ plotJobsGantt(gatkReportData, F, F)
 plotProgressByTime(gatkReportData)
 plotTimeByHost(gatkReportData)
 for ( group in gatkReportData ) {
+  print(group)
  plotGroup(group)
 }
   

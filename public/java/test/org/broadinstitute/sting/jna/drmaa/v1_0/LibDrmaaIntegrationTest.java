@@ -86,7 +86,7 @@ public class LibDrmaaIntegrationTest extends BaseTest {
 
     @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
-        if (implementation.indexOf("LSF") >= 0) {
+        if (implementation.contains("LSF")) {
             System.err.println("    *********************************************************");
             System.err.println("   ***********************************************************");
             System.err.println("   ****                                                   ****");
@@ -101,7 +101,7 @@ public class LibDrmaaIntegrationTest extends BaseTest {
         Memory error = new Memory(LibDrmaa.DRMAA_ERROR_STRING_BUFFER);
         int errnum;
 
-        File outFile = createNetworkTempFile("LibDrmaaIntegrationTest-", ".out");
+        File outFile = createNetworkTempFile("LibDrmaaIntegrationTest.out");
 
         errnum = LibDrmaa.drmaa_init(null, error, LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN);
 

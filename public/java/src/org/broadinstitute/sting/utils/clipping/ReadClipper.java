@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.clipreads;
+package org.broadinstitute.sting.utils.clipping;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
@@ -63,11 +63,17 @@ public class ReadClipper {
         int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
 
+        if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
+            return new GATKSAMRecord(read.getHeader());
+
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
         if ( start > stop )
             throw new ReviewedStingException("START > STOP -- this should never happen -- call Mauricio!");
+
+        if ( start > 0 && stop < read.getReadLength() - 1)
+            throw new ReviewedStingException(String.format("Trying to clip the middle of the read: start %d, stop %d, cigar: %s", start, stop, read.getCigarString()));
 
         this.addOp(new ClippingOp(start, stop));
         GATKSAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);
@@ -76,6 +82,9 @@ public class ReadClipper {
     }
 
     public GATKSAMRecord hardClipByReadCoordinates(int start, int stop) {
+        if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
+            return new GATKSAMRecord(read.getHeader());
+
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
@@ -195,16 +204,12 @@ public class ReadClipper {
 
         for(CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP &&
-                cigarElement.getOperator() != CigarOperator.INSERTION && cigarElement.getOperator() != CigarOperator.DELETION)
+                cigarElement.getOperator() != CigarOperator.INSERTION)
                 break;
 
-            else if (cigarElement.getOperator() == CigarOperator.INSERTION) {
+            else if (cigarElement.getOperator() == CigarOperator.INSERTION)
                 this.addOp(new ClippingOp(0, cigarElement.getLength() - 1));
-            }
 
-            else if (cigarElement.getOperator() == CigarOperator.DELETION) {
-                throw new ReviewedStingException("No read should start with a deletion. Aligner bug?");
-            }
         }
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }

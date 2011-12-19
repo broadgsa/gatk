@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -42,6 +43,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -140,7 +142,7 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   -family NA12891+NA12892=NA12878 \
+ *   -bed family.ped \
  *   -mvq 50 \
  *   -o violations.vcf
  *
@@ -250,16 +252,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't update the AC, AF, or AN values in the INFO field after selecting", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
-    @Hidden
-    @Argument(fullName="family_structure_file", shortName="familyFile", doc="use -family unless you know what you're doing", required=false)
-    private File FAMILY_STRUCTURE_FILE = null;
-
-    /**
-     * String formatted as dad+mom=child where these parameters determine which sample names are examined.
-     */
-    @Argument(fullName="family_structure", shortName="family", doc="string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
-    private String FAMILY_STRUCTURE = "";
-
     /**
      * This activates the mendelian violation module that will select all variants that correspond to a mendelian violation following the rules given by the family structure.
      */
@@ -286,12 +278,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private double fractionGenotypes = 0;
 
     /**
-      * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
+     * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
      * When specified one or more times, a particular type of variant is selected.
      *
-      */
+     */
     @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file. Valid types are INDEL, SNP, MIXED, MNP, SYMBOLIC, NO_VARIATION. Can be specified multiple times", required=false)
     private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<VariantContext.Type>();
+
+    /**
+     * If provided, we will only include variants whose ID field is present in this list of ids.  The matching
+     * is exact string matching.  The file format is just one ID per line
+     *
+     */
+    @Argument(fullName="keepIDs", shortName="IDs", doc="Only emit sites whose ID is found in this file (one ID per line)", required=false)
+    private File rsIDFile = null;
 
 
     @Hidden
@@ -313,9 +313,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     public enum NumberAlleleRestriction {
-           ALL,
-           BIALLELIC,
-           MULTIALLELIC
+        ALL,
+        BIALLELIC,
+        MULTIALLELIC
     }
 
     private ArrayList<VariantContext.Type> selectedTypes = new ArrayList<VariantContext.Type>();
@@ -339,16 +339,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private int positionToAdd = 0;
     private RandomVariantStructure [] variantArray;
 
-
-    /* Variables used for random selection with AF boosting */
-    private ArrayList<Double> afBreakpoints = null;
-    private ArrayList<Double> afBoosts = null;
-    double bkDelta = 0.0;
-
     private PrintStream outMVFileStream = null;
 
-     //Random number generator for the genotypes to remove
+    //Random number generator for the genotypes to remove
     private Random randomGenotypes = new Random();
+
+    private Set<String> IDsToKeep = null;
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -437,7 +433,18 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
 
-
+        /** load in the IDs file to a hashset for matching */
+        if ( rsIDFile != null ) {
+            IDsToKeep = new HashSet<String>();
+            try {
+                for ( final String line : new XReadLines(rsIDFile).readLines() ) {
+                    IDsToKeep.add(line.trim());
+                }
+                logger.info("Selecting only variants with one of " + IDsToKeep.size() + " IDs from " + rsIDFile);
+            } catch ( FileNotFoundException e ) {
+                throw new UserException.CouldNotReadInputFile(rsIDFile, e);
+            }
+        }
     }
 
     /**
@@ -460,20 +467,23 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         for (VariantContext vc : vcs) {
+            if ( IDsToKeep != null && ! IDsToKeep.contains(vc.getID()) )
+                continue;
+
             if (MENDELIAN_VIOLATIONS && mv.countViolations(this.getSampleDB().getFamilies(samples),vc) < 1)
-                    break;
+                break;
 
             if (outMVFile != null){
                 for( String familyId : mv.getViolationFamilies()){
                     for(Sample sample : this.getSampleDB().getFamily(familyId)){
                         if(sample.getParents().size() > 0){
-                outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
-                                "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
-                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
-                                sample.getMaternalID(), sample.getPaternalID(), sample.getID(),
-                                vc.getGenotype(sample.getMaternalID()).toBriefString(), vc.getGenotype(sample.getMaternalID()).getLikelihoods().getAsString(),
-                                vc.getGenotype(sample.getPaternalID()).toBriefString(), vc.getGenotype(sample.getPaternalID()).getLikelihoods().getAsString(),
-                                vc.getGenotype(sample.getID()).toBriefString(),vc.getGenotype(sample.getID()).getLikelihoods().getAsString()  );
+                            outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
+                                    "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
+                                    vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
+                                    sample.getMaternalID(), sample.getPaternalID(), sample.getID(),
+                                    vc.getGenotype(sample.getMaternalID()).toBriefString(), vc.getGenotype(sample.getMaternalID()).getLikelihoods().getAsString(),
+                                    vc.getGenotype(sample.getPaternalID()).toBriefString(), vc.getGenotype(sample.getPaternalID()).getLikelihoods().getAsString(),
+                                    vc.getGenotype(sample.getID()).toBriefString(),vc.getGenotype(sample.getID()).getLikelihoods().getAsString()  );
 
                         }
                     }
@@ -483,12 +493,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
-                    return 0;
+                    continue;
             }
             if (CONCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(concordanceTrack, context.getLocation());
                 if (!isConcordant(vc, compVCs))
-                    return 0;
+                    continue;
             }
 
             if (alleleRestriction.equals(NumberAlleleRestriction.BIALLELIC) && !vc.isBiallelic())
@@ -502,21 +512,22 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
             VariantContext sub = subsetRecord(vc, samples);
             if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+                boolean failedJexlMatch = false;
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
-                        return 0;
+                        failedJexlMatch = true;
+                        break;
                     }
                 }
-                if (SELECT_RANDOM_NUMBER) {
-                    randomlyAddVariant(++variantNumber, sub);
+                if ( !failedJexlMatch ) {
+                    if (SELECT_RANDOM_NUMBER) {
+                        randomlyAddVariant(++variantNumber, sub);
+                    }
+                    else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
+                        vcfWriter.add(sub);
+                    }
                 }
-                else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                    vcfWriter.add(sub);
-                }
-
-
             }
-
         }
 
         return 1;
@@ -647,7 +658,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-           newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
+            newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
 
         //Remove a fraction of the genotypes if needed
         if(fractionGenotypes>0){
@@ -655,10 +666,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             for ( Genotype genotype : newGC ) {
                 //Set genotype to no call if it falls in the fraction.
                 if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
-                        ArrayList<Allele> alleles = new ArrayList<Allele>(2);
-                        alleles.add(Allele.create((byte)'.'));
-                        alleles.add(Allele.create((byte)'.'));
-                        genotypes.add(new Genotype(genotype.getSampleName(),alleles, Genotype.NO_LOG10_PERROR,genotype.getFilters(),new HashMap<String, Object>(),false));
+                    ArrayList<Allele> alleles = new ArrayList<Allele>(2);
+                    alleles.add(Allele.create((byte)'.'));
+                    alleles.add(Allele.create((byte)'.'));
+                    genotypes.add(new Genotype(genotype.getSampleName(),alleles, Genotype.NO_LOG10_PERROR,genotype.getFilters(),new HashMap<String, Object>(),false));
                 }
                 else{
                     genotypes.add(genotype);

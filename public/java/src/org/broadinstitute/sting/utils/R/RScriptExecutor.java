@@ -109,7 +109,7 @@ public class RScriptExecutor {
 
         List<File> tempFiles = new ArrayList<File>();
         try {
-            File tempLibDir = IOUtils.tempDir("R.", ".lib");
+            File tempLibDir = IOUtils.tempDir("Rlib.", "");
             tempFiles.add(tempLibDir);
 
             StringBuilder expression = new StringBuilder("tempLibDir = '").append(tempLibDir).append("';");

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.clipreads;
+package org.broadinstitute.sting.utils.clipping;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
@@ -460,17 +460,20 @@ public class ClippingOp {
         int newShift = 0;
         int oldShift = 0;
 
+        boolean readHasStarted = false;                                     // if the new cigar is composed of S and H only, we have to traverse the entire old cigar to calculate the shift
         for (CigarElement cigarElement : newCigar.getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
                 newShift += cigarElement.getLength();
-            else
+            else {
+                readHasStarted = true;
                 break;
+            }
         }
 
         for (CigarElement cigarElement : oldCigar.getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP )
                 oldShift += Math.min(cigarElement.getLength(), newShift - oldShift);
-            else
+            else if (readHasStarted)
                 break;
         }
         return newShift - oldShift;

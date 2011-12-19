@@ -127,12 +127,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * multi-allelic INFO field values can be lists of values.
      */
     @Advanced
-     @Argument(fullName="keepMultiAllelic", shortName="KMA", doc="If provided, we will not require the site to be biallelic", required=false)
-     public boolean keepMultiAllelic = false;
+    @Argument(fullName="keepMultiAllelic", shortName="KMA", doc="If provided, we will not require the site to be biallelic", required=false)
+    public boolean keepMultiAllelic = false;
 
     @Hidden
     @Argument(fullName="logACSum", shortName="logACSum", doc="Log sum of AC instead of max value in case of multiallelic variants", required=false)
-     public boolean logACSum = false;
+    public boolean logACSum = false;
 
     /**
      * By default, this tool throws a UserException when it encounters a field without a value in some record.  This
