@@ -17,6 +17,9 @@ trait CommandLineFunction extends QFunction with Logging {
   /** Resident memory request */
   var residentRequest: Option[Double] = None
 
+  /** the number of SMP cores this job wants */
+  var nCoresRequest: Option[Int] = None
+
   /** Job project to run the command */
   var jobProject: String = _
 
@@ -44,6 +47,9 @@ trait CommandLineFunction extends QFunction with Logging {
 
         if (commandLineFunction.residentRequest.isEmpty)
           commandLineFunction.residentRequest = this.residentRequest
+
+        if (commandLineFunction.nCoresRequest.isEmpty)
+          commandLineFunction.nCoresRequest = this.nCoresRequest
 
         if (commandLineFunction.jobProject == null)
           commandLineFunction.jobProject = this.jobProject
@@ -99,6 +105,10 @@ trait CommandLineFunction extends QFunction with Logging {
 
     if (residentRequest.isEmpty)
       residentRequest = qSettings.residentRequest
+
+    // the default value is 1 core
+    if (nCoresRequest.isEmpty)
+      nCoresRequest = Some(1)
 
     if (residentRequest.isEmpty)
       residentRequest = memoryLimit

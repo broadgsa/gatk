@@ -52,12 +52,27 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
       nativeSpec += " -q " + function.jobQueue
 
     // If the resident set size is requested pass on the memory request
-    if (function.residentRequest.isDefined)
-      nativeSpec += " -l mem_free=%dM".format(function.residentRequest.map(_ * 1024).get.ceil.toInt)
+    // NOTE: 12/20/11: depristo commented this out because mem_free isn't
+    // such a standard feature in SGE (gsa-engineering queue doesn't support it)
+    // requiring it can make SGE not so usable.  It's dangerous to not enforce
+    // that we have enough memory to run our jobs, but I'd rather be dangerous
+    // than not be able to run my jobs at all.
+//    if (function.residentRequest.isDefined)
+//      nativeSpec += " -l mem_free=%dM".format(function.residentRequest.map(_ * 1024).get.ceil.toInt)
 
     // If the resident set size limit is defined specify the memory limit
     if (function.residentLimit.isDefined)
       nativeSpec += " -l h_rss=%dM".format(function.residentLimit.map(_ * 1024).get.ceil.toInt)
+
+    // If more than 1 core is requested, set the proper request
+    // if we aren't being jerks and just stealing cores (previous behavior)
+    if ( function.nCoresRequest.getOrElse(1) > 1 ) {
+      if ( function.qSettings.dontRequestMultipleCores )
+        logger.warn("Sending multicore job %s to farm without requesting appropriate number of cores (%d)".format(
+          function.jobName, function.nCoresRequest.get))
+      else
+        nativeSpec += " -pe %s %d".format(function.qSettings.parallelEnvironmentName, function.nCoresRequest.get)
+    }
 
     // Pass on any job resource requests
     nativeSpec += function.jobResourceRequests.map(" -l " + _).mkString
@@ -70,6 +85,7 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
     if (priority.isDefined)
       nativeSpec += " -p " + priority.get
 
+    logger.debug("Native spec is: %s".format(nativeSpec))
     (nativeSpec + " " + super.functionNativeSpec).trim()
   }
 }
