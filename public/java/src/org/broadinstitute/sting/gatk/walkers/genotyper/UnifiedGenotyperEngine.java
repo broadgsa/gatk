@@ -322,8 +322,9 @@ public class UnifiedGenotyperEngine {
         for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
             int indexOfBestAC = MathUtils.maxElementIndex(AFresult.log10AlleleFrequencyPosteriors[i]);
 
-            // if the most likely AC is not 0, then this is a good alternate allele to use
-            if ( indexOfBestAC != 0 && (AFresult.log10AlleleFrequencyPosteriors[i][0] != AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED || AFresult.log10AlleleFrequencyPosteriors[i][indexOfBestAC] > AFresult.log10PosteriorOfAFzero) ) {
+            // if the most likely AC is not 0, then this is a good alternate allele to use;
+            // make sure to test against log10PosteriorOfAFzero since that no longer is an entry in the array
+            if ( indexOfBestAC != 0 && AFresult.log10AlleleFrequencyPosteriors[i][indexOfBestAC] > AFresult.log10PosteriorOfAFzero ) {
                 altAllelesToUse[i] = true;
                 bestGuessIsRef = false;
             }
@@ -392,7 +393,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        final GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse, myAlleles);
+        final GenotypesContext genotypes = assignGenotypes(vc, altAllelesToUse);
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
@@ -771,13 +772,10 @@ public class UnifiedGenotyperEngine {
     /**
      * @param vc            variant context with genotype likelihoods
      * @param allelesToUse  bit vector describing which alternate alleles from the vc are okay to use
-     * @param newAlleles    a list of the final new alleles to use
-     *
      * @return genotypes
      */
     public static GenotypesContext assignGenotypes(final VariantContext vc,
-                                                   final boolean[] allelesToUse,
-                                                   final List<Allele> newAlleles) {
+                                                   final boolean[] allelesToUse) {
 
         // the no-called genotypes
         final GenotypesContext GLs = vc.getGenotypes();
@@ -790,6 +788,12 @@ public class UnifiedGenotyperEngine {
 
         // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
         final int numOriginalAltAlleles = allelesToUse.length;
+        final List<Allele> newAlleles = new ArrayList<Allele>(numOriginalAltAlleles+1);
+        newAlleles.add(vc.getReference());
+        for ( int i = 0; i < numOriginalAltAlleles; i++ ) {
+            if ( allelesToUse[i] )
+                newAlleles.add(vc.getAlternateAllele(i));
+        }
         final int numNewAltAlleles = newAlleles.size() - 1;
         ArrayList<Integer> likelihoodIndexesToUse = null;
 
