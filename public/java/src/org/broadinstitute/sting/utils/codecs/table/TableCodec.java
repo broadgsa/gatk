@@ -88,7 +88,6 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
         try {
             boolean isFirst = true;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
                 if ( isFirst && ! line.startsWith(headerDelimiter) && ! line.startsWith(commentDelimiter)) {
                     throw new UserException.MalformedFile("TableCodec file does not have a header");
                 }

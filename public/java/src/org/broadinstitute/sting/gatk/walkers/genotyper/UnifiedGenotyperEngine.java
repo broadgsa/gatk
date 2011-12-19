@@ -776,9 +776,9 @@ public class UnifiedGenotyperEngine {
      *
      * @return genotypes
      */
-    public GenotypesContext assignGenotypes(final VariantContext vc,
-                                            final boolean[] allelesToUse,
-                                            final List<Allele> newAlleles) {
+    public static GenotypesContext assignGenotypes(final VariantContext vc,
+                                                   final boolean[] allelesToUse,
+                                                   final List<Allele> newAlleles) {
 
         // the no-called genotypes
         final GenotypesContext GLs = vc.getGenotypes();
