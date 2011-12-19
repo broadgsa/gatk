@@ -34,10 +34,17 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
  */
 public class AlleleFrequencyCalculationResult {
 
-    // note that the cell at position zero in the likelihoods/posteriors array is actually probability of non-ref (since it's marginalized over all alleles)
+    // IMPORTANT NOTE:
+    // These 2 arrays are intended to contain the likelihoods/posterior probabilities for each alternate allele over each possible frequency (from 0 to 2N).
+    // For any given alternate allele and frequency, the likelihoods are marginalized over values for all other alternate alleles.  What this means is that
+    // the likelihoods at cell index zero (AF=0) in the array is actually that of the site's being polymorphic (because although this alternate allele may
+    // be at AF=0, it is marginalized over all other alternate alleles which are not necessarily at AF=0).
+    // In the bi-allelic case (where there are no other alternate alleles over which to marginalize),
+    // the value at cell index zero will be equal to AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED.
     final double[][] log10AlleleFrequencyLikelihoods;
     final double[][] log10AlleleFrequencyPosteriors;
 
+    // These 2 variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
     double log10LikelihoodOfAFzero = 0.0;
     double log10PosteriorOfAFzero = 0.0;
 

@@ -117,6 +117,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testMultipleRecordsAtOnePosition() {
+        String testFile = validationDataLocation + "selectVariants.onePosition.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -select 'KG_FREQ < 0.5' --variant " + testFile + " -o %s -NO_HEADER",
+                1,
+                Arrays.asList("20b52c96f5c48258494d072752b53693")
+        );
+
+        executeTest("testMultipleRecordsAtOnePositionFirstIsFiltered--" + testFile, spec);
+    }
+
+    @Test
     public void testParallelization() {
         String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
