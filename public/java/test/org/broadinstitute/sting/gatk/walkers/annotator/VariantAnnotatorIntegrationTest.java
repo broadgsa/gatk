@@ -171,7 +171,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testTDTAnnotation() {
-        final String MD5 = "9fe37b61aab695ad47ce3c587148e91f";
+        final String MD5 = "204e67536a17af7eaa6bf0a910818997";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A TransmissionDisequilibriumTest --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
                         " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
