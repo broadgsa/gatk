@@ -104,11 +104,47 @@ public class ClippingOp {
 
                 break;
 
+            case REVERT_SOFTCLIPPED_BASES:
+                read = revertSoftClippedBases(read);
+                break;
+
             default:
                 throw new IllegalStateException("Unexpected Clipping operator type " + algorithm);
         }
 
         return read;
+    }
+
+    private GATKSAMRecord revertSoftClippedBases(GATKSAMRecord read) {
+        GATKSAMRecord unclipped;
+
+        // shallow copy of the read bases and quals should be fine here because they are immutable in the original read
+        try {
+            unclipped = (GATKSAMRecord) read.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new ReviewedStingException("Where did the clone go?");
+        }
+
+        Cigar unclippedCigar = new Cigar();
+        int matchesCount = 0;
+        for (CigarElement element : read.getCigar().getCigarElements()) {
+            if (element.getOperator() == CigarOperator.SOFT_CLIP || element.getOperator() == CigarOperator.MATCH_OR_MISMATCH)
+                matchesCount += element.getLength();
+            else if (matchesCount > 0) {
+                unclippedCigar.add(new CigarElement(matchesCount, CigarOperator.MATCH_OR_MISMATCH));
+                matchesCount = 0;
+                unclippedCigar.add(element);
+            }
+            else
+                unclippedCigar.add(element);
+        }
+        if (matchesCount > 0)
+            unclippedCigar.add(new CigarElement(matchesCount, CigarOperator.MATCH_OR_MISMATCH));
+
+        unclipped.setCigar(unclippedCigar);
+        unclipped.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), unclippedCigar));
+
+        return unclipped;
     }
 
     /**
@@ -472,7 +508,7 @@ public class ClippingOp {
 
         for (CigarElement cigarElement : oldCigar.getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP )
-                oldShift += Math.min(cigarElement.getLength(), newShift - oldShift);
+                oldShift += cigarElement.getLength();
             else if (readHasStarted)
                 break;
         }

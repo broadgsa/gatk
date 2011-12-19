@@ -213,4 +213,9 @@ public class ReadClipper {
         }
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
+
+    public GATKSAMRecord revertSoftClippedBases() {
+        this.addOp(new ClippingOp(0, 0));     // UNSOFTCLIP_BASES doesn't need coordinates
+        return this.clipRead(ClippingRepresentation.REVERT_SOFTCLIPPED_BASES);
+    }
 }
