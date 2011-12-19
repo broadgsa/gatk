@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.clipreads;
+package org.broadinstitute.sting.utils.clipping;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
@@ -8,7 +8,9 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,7 +19,7 @@ import java.util.*;
  * Time: 6:45 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ClipReadsTestUtils {
+public class ReadClipperTestUtils {
     //Should contain all the utils needed for tests to mass produce
     //reads, cigars, and other needed classes
 

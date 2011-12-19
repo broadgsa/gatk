@@ -63,27 +63,26 @@ public class TransmissionDisequilibriumTest extends InfoFieldAnnotation implemen
     // Following derivation in http://en.wikipedia.org/wiki/Transmission_disequilibrium_test#A_modified_version_of_the_TDT
     private double calculateTDT( final VariantContext vc, final Set<Sample> triosToTest ) {
 
-        final double nABGivenABandBB = calculateNChildren(vc, triosToTest, HET, HET, HOM);
-        final double nBBGivenABandBB = calculateNChildren(vc, triosToTest, HOM, HET, HOM);
+        final double nABGivenABandBB = calculateNChildren(vc, triosToTest, HET, HET, HOM) + calculateNChildren(vc, triosToTest, HET, HOM, HET);
+        final double nBBGivenABandBB = calculateNChildren(vc, triosToTest, HOM, HET, HOM) + calculateNChildren(vc, triosToTest, HOM, HOM, HET);
         final double nAAGivenABandAB = calculateNChildren(vc, triosToTest, REF, HET, HET);
         final double nBBGivenABandAB = calculateNChildren(vc, triosToTest, HOM, HET, HET);
-        final double nAAGivenAAandAB = calculateNChildren(vc, triosToTest, REF, REF, HET);
-        final double nABGivenAAandAB = calculateNChildren(vc, triosToTest, HET, REF, HET);
+        final double nAAGivenAAandAB = calculateNChildren(vc, triosToTest, REF, REF, HET) + calculateNChildren(vc, triosToTest, REF, HET, REF);
+        final double nABGivenAAandAB = calculateNChildren(vc, triosToTest, HET, REF, HET) + calculateNChildren(vc, triosToTest, HET, HET, REF);
 
         final double numer = (nABGivenABandBB - nBBGivenABandBB) + 2.0 * (nAAGivenABandAB - nBBGivenABandAB) + (nAAGivenAAandAB - nABGivenAAandAB);
         final double denom = (nABGivenABandBB + nBBGivenABandBB) + 4.0 * (nAAGivenABandAB + nBBGivenABandAB) + (nAAGivenAAandAB + nABGivenAAandAB);
         return (numer * numer) / denom;
     }
 
-    private double calculateNChildren( final VariantContext vc, final Set<Sample> triosToTest, final int childIdx, final int momIdx, final int dadIdx ) {
-        final double likelihoodVector[] = new double[triosToTest.size() * 2];
+    private double calculateNChildren( final VariantContext vc, final Set<Sample> triosToTest, final int childIdx, final int parent1Idx, final int parent2Idx ) {
+        final double likelihoodVector[] = new double[triosToTest.size()];
         int iii = 0;
         for( final Sample child : triosToTest ) {
             final double[] momGL = vc.getGenotype(child.getMaternalID()).getLikelihoods().getAsVector();
             final double[] dadGL = vc.getGenotype(child.getPaternalID()).getLikelihoods().getAsVector();
             final double[] childGL = vc.getGenotype(child.getID()).getLikelihoods().getAsVector();
-            likelihoodVector[iii++] = momGL[momIdx] + dadGL[dadIdx] + childGL[childIdx];
-            likelihoodVector[iii++] = momGL[dadIdx] + dadGL[momIdx] + childGL[childIdx];
+            likelihoodVector[iii++] = momGL[parent1Idx] + dadGL[parent2Idx] + childGL[childIdx];
         }
 
         return MathUtils.sumLog10(likelihoodVector);

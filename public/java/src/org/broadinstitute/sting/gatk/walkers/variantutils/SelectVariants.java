@@ -493,12 +493,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
-                    return 0;
+                    continue;
             }
             if (CONCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(concordanceTrack, context.getLocation());
                 if (!isConcordant(vc, compVCs))
-                    return 0;
+                    continue;
             }
 
             if (alleleRestriction.equals(NumberAlleleRestriction.BIALLELIC) && !vc.isBiallelic())
@@ -512,16 +512,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
             VariantContext sub = subsetRecord(vc, samples);
             if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+                boolean failedJexlMatch = false;
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
-                        return 0;
+                        failedJexlMatch = true;
+                        break;
                     }
                 }
-                if (SELECT_RANDOM_NUMBER) {
-                    randomlyAddVariant(++variantNumber, sub);
-                }
-                else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                    vcfWriter.add(sub);
+                if ( !failedJexlMatch ) {
+                    if (SELECT_RANDOM_NUMBER) {
+                        randomlyAddVariant(++variantNumber, sub);
+                    }
+                    else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
+                        vcfWriter.add(sub);
+                    }
                 }
             }
         }

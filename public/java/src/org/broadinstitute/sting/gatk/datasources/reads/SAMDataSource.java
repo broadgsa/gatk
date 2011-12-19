@@ -101,11 +101,6 @@ public class SAMDataSource {
     private final Map<SAMReaderID,GATKBAMFileSpan> readerPositions = new HashMap<SAMReaderID,GATKBAMFileSpan>();
 
     /**
-     * Cached representation of the merged header used to generate a merging iterator.
-     */
-    private final SamFileHeaderMerger headerMerger;
-
-    /**
      * The merged header.
      */
     private final SAMFileHeader mergedHeader;
@@ -300,9 +295,8 @@ public class SAMDataSource {
 
         initializeReaderPositions(readers);
 
-        headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
-        mergedHeader = headerMerger.getMergedHeader();
-        hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
+        mergedHeader = readers.getMergedHeader();
+        hasReadGroupCollisions = readers.hasReadGroupCollisions();
 
         readProperties = new ReadProperties(
                 samFiles,
@@ -327,9 +321,9 @@ public class SAMDataSource {
 
             List<SAMReadGroupRecord> readGroups = reader.getFileHeader().getReadGroups();
             for(SAMReadGroupRecord readGroup: readGroups) {
-                if(headerMerger.hasReadGroupCollisions()) {
-                    mappingToMerged.put(readGroup.getReadGroupId(),headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()));
-                    mergedToOriginalReadGroupMappings.put(headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()),readGroup.getReadGroupId());
+                if(hasReadGroupCollisions) {
+                    mappingToMerged.put(readGroup.getReadGroupId(),readers.getReadGroupId(id,readGroup.getReadGroupId()));
+                    mergedToOriginalReadGroupMappings.put(readers.getReadGroupId(id,readGroup.getReadGroupId()),readGroup.getReadGroupId());
                 } else {
                     mappingToMerged.put(readGroup.getReadGroupId(),readGroup.getReadGroupId());
                     mergedToOriginalReadGroupMappings.put(readGroup.getReadGroupId(),readGroup.getReadGroupId());
@@ -562,7 +556,7 @@ public class SAMDataSource {
      */
     private StingSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
         // Set up merging to dynamically merge together multiple BAMs.
-        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
+        MergingSamRecordIterator mergingIterator = readers.createMergingIterator();
 
         for(SAMReaderID id: getReaderIDs()) {
             CloseableIterator<SAMRecord> iterator = null;
@@ -708,6 +702,11 @@ public class SAMDataSource {
      */
     private class SAMReaders implements Iterable<SAMFileReader> {
         /**
+         * Cached representation of the merged header used to generate a merging iterator.
+         */
+        private final SamFileHeaderMerger headerMerger;
+
+        /**
          * Internal storage for a map of id -> reader.
          */
         private final Map<SAMReaderID,SAMFileReader> readers = new LinkedHashMap<SAMReaderID,SAMFileReader>();
@@ -798,6 +797,11 @@ public class SAMDataSource {
             }
 
             if ( totalNumberOfFiles > 0 ) logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
+
+            Collection<SAMFileHeader> headers = new LinkedList<SAMFileHeader>();
+            for(SAMFileReader reader: readers.values())
+                headers.add(reader.getFileHeader());
+            headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,headers,true);
         }
 
         final private void printReaderPerformance(final int nExecutedTotal,
@@ -814,7 +818,37 @@ public class SAMDataSource {
                     nExecutedInTick, tickDurationInSec,
                     nExecutedTotal, totalNumberOfFiles, totalTimeInSeconds, totalTimeInSeconds / 60, nTasksPerSecond,
                     nRemaining, estTimeToComplete, estTimeToComplete / 60));
+        }
 
+        /**
+         * Return the header derived from the merging of these BAM files.
+         * @return the merged header.
+         */
+        public SAMFileHeader getMergedHeader() {
+            return headerMerger.getMergedHeader();
+        }
+
+        /**
+         * Do multiple read groups collide in this dataset?
+         * @return True if multiple read groups collide; false otherwis.
+         */
+        public boolean hasReadGroupCollisions() {
+            return headerMerger.hasReadGroupCollisions();
+        }
+
+        /**
+         * Get the newly mapped read group ID for the given read group.
+         * @param readerID Reader for which to discern the transformed ID.
+         * @param originalReadGroupID Original read group.
+         * @return Remapped read group.
+         */
+        public String getReadGroupId(final SAMReaderID readerID, final String originalReadGroupID) {
+            SAMFileHeader header = readers.get(readerID).getFileHeader();
+            return headerMerger.getReadGroupId(header,originalReadGroupID);
+        }
+
+        public MergingSamRecordIterator createMergingIterator() {
+            return new MergingSamRecordIterator(headerMerger,readers.values(),true);
         }
 
         /**
@@ -865,25 +899,6 @@ public class SAMDataSource {
          */
         public boolean isEmpty() {
             return readers.isEmpty();
-        }
-
-        /**
-         * Gets all the actual readers out of this data structure.
-         * @return A collection of the readers.
-         */
-        public Collection<SAMFileReader> values() {
-            return readers.values();
-        }
-
-        /**
-         * Gets all the actual readers out of this data structure.
-         * @return A collection of the readers.
-         */
-        public Collection<SAMFileHeader> headers() {
-            ArrayList<SAMFileHeader> headers = new ArrayList<SAMFileHeader>(readers.size());
-            for (SAMFileReader reader : values())
-                headers.add(reader.getFileHeader());
-            return headers;
         }
     }
 
