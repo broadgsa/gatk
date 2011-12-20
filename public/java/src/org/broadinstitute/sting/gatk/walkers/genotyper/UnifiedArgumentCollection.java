@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 
@@ -106,6 +103,15 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
+    /**
+     * The default behavior of the Unified Genotyper is to allow the genotyping of just one alternate allele in discovery mode; using this flag
+     * will enable the discovery of multiple alternate alleles.  Please note that this works for SNPs only and that it is still highly experimental.
+     * For advanced users only.
+     */
+    @Advanced
+    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow the discovery of multiple alleles (SNPs only)", required = false)
+    public boolean MULTI_ALLELIC = false;
+
     // indel-related arguments
     /**
      * A candidate indel is genotyped (and potentially called) if there are this number of reads with a consensus indel at a site.
@@ -132,15 +138,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
 
-    //gdebug+
-    // experimental arguments, NOT TO BE USED BY ANYONE WHOSE INITIALS AREN'T GDA!!!
-//    @Hidden
-//    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
-//    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
-//
-//    @Hidden
-//    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
-//    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
     @Hidden
     @Argument(fullName = "bandedIndel", shortName = "bandedIndel", doc = "Banded Indel likelihood computation", required = false)
     public boolean BANDED_INDEL_COMPUTATION = false;
@@ -152,10 +149,6 @@ public class UnifiedArgumentCollection {
     @Hidden
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
-
-    @Hidden
-    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow multiple alleles in discovery", required = false)
-    public boolean MULTI_ALLELIC = false;
 
     /**
      * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
