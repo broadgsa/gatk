@@ -81,7 +81,7 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
         for ( SAMReadGroupRecord readGroup : this.getToolkit().getSAMFileHeader().getReadGroups()) {
             final String sample = readGroup.getSample();
             if ( ! headers.containsKey(sample) ) {
-                SAMFileHeader header = ReadUtils.copySAMFileHeader(this.getToolkit().getSAMFileHeader());
+                SAMFileHeader header = duplicateSAMFileHeader(this.getToolkit().getSAMFileHeader());
                 logger.debug(String.format("Creating BAM header for sample %s", sample));
                 ArrayList<SAMReadGroupRecord> readGroups = new ArrayList<SAMReadGroupRecord>();
                 header.setReadGroups(readGroups);
@@ -121,4 +121,20 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
 
         return outputs;
     }
+
+    public static SAMFileHeader duplicateSAMFileHeader(SAMFileHeader toCopy) {
+        SAMFileHeader copy = new SAMFileHeader();
+
+        copy.setSortOrder(toCopy.getSortOrder());
+        copy.setGroupOrder(toCopy.getGroupOrder());
+        copy.setProgramRecords(toCopy.getProgramRecords());
+        copy.setReadGroups(toCopy.getReadGroups());
+        copy.setSequenceDictionary(toCopy.getSequenceDictionary());
+
+        for (Map.Entry<String, String> e : toCopy.getAttributes())
+            copy.setAttribute(e.getKey(), e.getValue());
+
+        return copy;
+    }
+
 }

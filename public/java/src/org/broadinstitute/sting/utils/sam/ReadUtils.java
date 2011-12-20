@@ -47,9 +47,32 @@ public class ReadUtils {
 
     private static int DEFAULT_ADAPTOR_SIZE = 100;
 
+    /**
+     * A marker to tell which end of the read has been clipped
+     */
     public enum ClippingTail {
         LEFT_TAIL,
         RIGHT_TAIL
+    }
+
+    /**
+     * A HashMap of the SAM spec read flag names
+     *
+     * Note: This is not being used right now, but can be useful in the future
+     */
+    private static final Map<Integer, String> readFlagNames = new HashMap<Integer, String>();
+    static {
+        readFlagNames.put(0x1, "Paired");
+        readFlagNames.put(0x2, "Proper");
+        readFlagNames.put(0x4, "Unmapped");
+        readFlagNames.put(0x8, "MateUnmapped");
+        readFlagNames.put(0x10, "Forward");
+        //readFlagNames.put(0x20, "MateForward");
+        readFlagNames.put(0x40, "FirstOfPair");
+        readFlagNames.put(0x80, "SecondOfPair");
+        readFlagNames.put(0x100, "NotPrimary");
+        readFlagNames.put(0x200, "NON-PF");
+        readFlagNames.put(0x400, "Duplicate");
     }
 
     /**
@@ -96,37 +119,21 @@ public class ReadUtils {
      */
     public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
-    public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
-        SAMFileHeader copy = new SAMFileHeader();
-
-        copy.setSortOrder(toCopy.getSortOrder());
-        copy.setGroupOrder(toCopy.getGroupOrder());
-        copy.setProgramRecords(toCopy.getProgramRecords());
-        copy.setReadGroups(toCopy.getReadGroups());
-        copy.setSequenceDictionary(toCopy.getSequenceDictionary());
-
-        for (Map.Entry<String, String> e : toCopy.getAttributes())
-            copy.setAttribute(e.getKey(), e.getValue());
-
-        return copy;
-    }
-
+    /**
+     * Creates a SAMFileWriter with the given compression level if you request a bam file. Creates a regular
+     * SAMFileWriter without compression otherwise.
+     *
+     * @param header
+     * @param presorted
+     * @param file
+     * @param compression
+     * @return a SAMFileWriter with the compression level if it is a bam.
+     */
     public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
         if (file.endsWith(".bam"))
             return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
         return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
     }
-
-    public static boolean isPlatformRead(SAMRecord read, String name) {
-        SAMReadGroupRecord readGroup = read.getReadGroup();
-        if (readGroup != null) {
-            Object readPlatformAttr = readGroup.getAttribute("PL");
-            if (readPlatformAttr != null)
-                return readPlatformAttr.toString().toUpperCase().contains(name);
-        }
-        return false;
-    }
-
 
     /**
      * is this base inside the adaptor of the read?
@@ -175,7 +182,7 @@ public class ReadUtils {
      * @param read the read being tested for the adaptor boundary
      * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the insert size cannot be determined (and is necessary for the calculation).
      */
-    protected static Integer getAdaptorBoundary(final SAMRecord read) {
+    public static Integer getAdaptorBoundary(final SAMRecord read) {
         if ( read.getReadUnmappedFlag() )
             return null;                                             // don't worry about unmapped pairs
 
@@ -192,362 +199,53 @@ public class ReadUtils {
         return adaptorBoundary;
     }
 
-    // return true if the read needs to be completely clipped
-    private static GATKSAMRecord hardClipStartOfRead(GATKSAMRecord oldRec, int stopPosition) {
-
-        if ( stopPosition >= oldRec.getAlignmentEnd() ) {
-            // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
-            //System.out.printf("Entire read needs to be clipped: %50s %n", read.getReadName());
-            return null;
-        }
-
-        GATKSAMRecord read;
-        try {
-            read = (GATKSAMRecord)oldRec.clone();
-        } catch (Exception e) {
-            return null;
-        }
-
-        //System.out.printf("Clipping start of read: %50s start=%d adaptorEnd=%d isize=%d %n",
-        //        read.getReadName(), read.getAlignmentStart(), stopPosition, read.getInferredInsertSize());
-
-        Cigar oldCigar = read.getCigar();
-        LinkedList<CigarElement> newCigarElements = new LinkedList<CigarElement>();
-        int currentPos = read.getAlignmentStart();
-        int basesToClip = 0;
-        int basesAlreadyClipped = 0;
-
-        for ( CigarElement ce : oldCigar.getCigarElements() ) {
-
-            if ( currentPos > stopPosition) {
-                newCigarElements.add(ce);
-                continue;
-            }
-
-            int elementLength = ce.getLength();
-            switch ( ce.getOperator() ) {
-                case M:
-                    for (int i = 0; i < elementLength; i++, currentPos++, basesToClip++) {
-                        if ( currentPos > stopPosition ) {
-                            newCigarElements.add(new CigarElement(elementLength - i, CigarOperator.M));
-                            break;
-                        }
-                    }
-                    break;
-                case I:
-                case S:
-                    basesToClip += elementLength;
-                    break;
-                case D:
-                case N:
-                    currentPos += elementLength;
-                    break;
-                case H:
-                    basesAlreadyClipped += elementLength;
-                case P:
-                    break;
-                default: throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
-            }
-
-        }
-
-        // copy over the unclipped bases
-        final byte[] bases = read.getReadBases();
-        final byte[] quals = read.getBaseQualities();
-        int newLength = bases.length - basesToClip;
-        byte[] newBases = new byte[newLength];
-        byte[] newQuals = new byte[newLength];
-        System.arraycopy(bases, basesToClip, newBases, 0, newLength);
-        System.arraycopy(quals, basesToClip, newQuals, 0, newLength);
-        read.setReadBases(newBases);
-        read.setBaseQualities(newQuals);
-
-        // now add a CIGAR element for the clipped bases
-        newCigarElements.addFirst(new CigarElement(basesToClip + basesAlreadyClipped, CigarOperator.H));
-        Cigar newCigar = new Cigar(newCigarElements);
-        read.setCigar(newCigar);
-
-        // adjust the start accordingly
-        read.setAlignmentStart(stopPosition + 1);
-
-        return read;
-    }
-
-    private static GATKSAMRecord hardClipEndOfRead(GATKSAMRecord oldRec, int startPosition) {
-
-        if ( startPosition <= oldRec.getAlignmentStart() ) {
-            // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
-            //System.out.printf("Entire read needs to be clipped: %50s %n", read.getReadName());
-            return null;
-        }
-
-        GATKSAMRecord read;
-        try {
-            read = (GATKSAMRecord)oldRec.clone();
-        } catch (Exception e) {
-            return null;
-        }
-
-        //System.out.printf("Clipping end of read: %50s adaptorStart=%d end=%d isize=%d %n",
-        //        read.getReadName(), startPosition, read.getAlignmentEnd(), read.getInferredInsertSize());
-
-        Cigar oldCigar = read.getCigar();
-        LinkedList<CigarElement> newCigarElements = new LinkedList<CigarElement>();
-        int currentPos = read.getAlignmentStart();
-        int basesToKeep = 0;
-        int basesAlreadyClipped = 0;
-
-        for ( CigarElement ce : oldCigar.getCigarElements() ) {
-
-            int elementLength = ce.getLength();
-
-            if ( currentPos >= startPosition ) {
-                if ( ce.getOperator() == CigarOperator.H )
-                    basesAlreadyClipped += elementLength;
-                continue;
-            }
-
-            switch ( ce.getOperator() ) {
-                case M:
-                    for (int i = 0; i < elementLength; i++, currentPos++, basesToKeep++) {
-                        if ( currentPos == startPosition ) {
-                            newCigarElements.add(new CigarElement(i, CigarOperator.M));
-                            break;
-                        }
-                    }
-
-                    if ( currentPos != startPosition )
-                        newCigarElements.add(ce);
-                    break;
-                case I:
-                case S:
-                    newCigarElements.add(ce);
-                    basesToKeep += elementLength;
-                    break;
-                case D:
-                case N:
-                    newCigarElements.add(ce);
-                    currentPos += elementLength;
-                    break;
-                case H:
-                case P:
-                    newCigarElements.add(ce);
-                    break;
-                default: throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
-            }
-
-        }
-
-        // copy over the unclipped bases
-        final byte[] bases = read.getReadBases();
-        final byte[] quals = read.getBaseQualities();
-        byte[] newBases = new byte[basesToKeep];
-        byte[] newQuals = new byte[basesToKeep];
-        System.arraycopy(bases, 0, newBases, 0, basesToKeep);
-        System.arraycopy(quals, 0, newQuals, 0, basesToKeep);
-        read.setReadBases(newBases);
-        read.setBaseQualities(newQuals);
-
-        // now add a CIGAR element for the clipped bases
-        newCigarElements.add(new CigarElement((bases.length - basesToKeep) + basesAlreadyClipped, CigarOperator.H));
-        Cigar newCigar = new Cigar(newCigarElements);
-        read.setCigar(newCigar);
-
-        // adjust the stop accordingly
-        // read.setAlignmentEnd(startPosition - 1);
-
-        return read;
-    }
-
     /**
-     * Hard clips away (i.e.g, removes from the read) bases that were previously soft clipped.
+     * is the read a 454 read ?
      *
-     * @param read
-     * @return
+     * @param read the read to test
+     * @return checks the read group tag PL for the default 454 tag
      */
-    @Requires("read != null")
-    @Ensures("result != null")
-    public static GATKSAMRecord hardClipSoftClippedBases(GATKSAMRecord read) {
-        List<CigarElement> cigarElts = read.getCigar().getCigarElements();
-
-        if ( cigarElts.size() == 1 ) // can't be soft clipped, just return
-            return read;
-
-        int keepStart = 0, keepEnd = read.getReadLength() - 1;
-        List<CigarElement> newCigarElements = new LinkedList<CigarElement>();
-
-        for ( int i = 0; i < cigarElts.size(); i++ ) {
-            CigarElement ce = cigarElts.get(i);
-            int l = ce.getLength();
-            switch ( ce.getOperator() ) {
-                case S:
-                    if ( i == 0 )
-                        keepStart = l;
-                    else
-                        keepEnd = read.getReadLength() - l - 1;
-                    newCigarElements.add(new CigarElement(l, CigarOperator.HARD_CLIP));
-                    break;
-
-                default:
-                    newCigarElements.add(ce);
-                    break;
-            }
-        }
-
-        // Merges tandem cigar elements like 5H10H or 2S5S to 15H or 7S
-        // this will happen if you soft clip a read that has been hard clipped before
-        // like: 5H20S => 5H20H
-        List<CigarElement> mergedCigarElements = new LinkedList<CigarElement>();
-        Iterator<CigarElement> cigarElementIterator = newCigarElements.iterator();
-        CigarOperator currentOperator = null;
-        int currentOperatorLength = 0;
-        while (cigarElementIterator.hasNext()) {
-            CigarElement cigarElement = cigarElementIterator.next();
-            if (currentOperator != cigarElement.getOperator()) {
-                if (currentOperator != null)
-                    mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
-                currentOperator = cigarElement.getOperator();
-                currentOperatorLength = cigarElement.getLength();
-            }
-            else
-                currentOperatorLength += cigarElement.getLength();
-        }
-        mergedCigarElements.add(new CigarElement(currentOperatorLength, currentOperator));
-
-        return hardClipBases(read, keepStart, keepEnd, mergedCigarElements);
-    }
-
-    /**
-     * Hard clips out the bases in read, keeping the bases from keepStart to keepEnd, inclusive.  Note these
-     * are offsets, so they are 0 based
-     *
-     * @param read
-     * @param keepStart
-     * @param keepEnd
-     * @param newCigarElements
-     * @return
-     */
-    @Requires({
-            "read != null",
-            "keepStart >= 0",
-            "keepEnd < read.getReadLength()",
-            "read.getReadUnmappedFlag() || newCigarElements != null"})
-    @Ensures("result != null")
-    public static GATKSAMRecord hardClipBases(GATKSAMRecord read, int keepStart, int keepEnd, List<CigarElement> newCigarElements) {
-        int newLength = keepEnd - keepStart + 1;
-        if ( newLength != read.getReadLength() ) {
-            try {
-                read = (GATKSAMRecord)read.clone();
-                // copy over the unclipped bases
-                final byte[] bases = read.getReadBases();
-                final byte[] quals = read.getBaseQualities();
-                byte[] newBases = new byte[newLength];
-                byte[] newQuals = new byte[newLength];
-                System.arraycopy(bases, keepStart, newBases, 0, newLength);
-                System.arraycopy(quals, keepStart, newQuals, 0, newLength);
-                read.setReadBases(newBases);
-                read.setBaseQualities(newQuals);
-
-                // now add a CIGAR element for the clipped bases, if the read isn't unmapped
-                if ( ! read.getReadUnmappedFlag() ) {
-                    Cigar newCigar = new Cigar(newCigarElements);
-                    read.setCigar(newCigar);
-                }
-            } catch ( CloneNotSupportedException e ) {
-                throw new ReviewedStingException("WTF, where did clone go?", e);
-            }
-        }
-
-        return read;
-    }
-
-    public static GATKSAMRecord replaceSoftClipsWithMatches(GATKSAMRecord read) {
-        List<CigarElement> newCigarElements = new ArrayList<CigarElement>();
-
-        for ( CigarElement ce : read.getCigar().getCigarElements() ) {
-            if ( ce.getOperator() == CigarOperator.SOFT_CLIP )
-                newCigarElements.add(new CigarElement(ce.getLength(), CigarOperator.MATCH_OR_MISMATCH));
-            else
-                newCigarElements.add(ce);
-        }
-
-        if ( newCigarElements.size() > 1 ) { //
-            CigarElement first = newCigarElements.get(0);
-            CigarElement second = newCigarElements.get(1);
-            if ( first.getOperator() == CigarOperator.MATCH_OR_MISMATCH && second.getOperator() == CigarOperator.MATCH_OR_MISMATCH ) {
-                newCigarElements.set(0, new CigarElement(first.getLength() + second.getLength(), CigarOperator.MATCH_OR_MISMATCH));
-                newCigarElements.remove(1);
-            }
-        }
-
-        if ( newCigarElements.size() > 1 ) { //
-            CigarElement penult = newCigarElements.get(newCigarElements.size()-2);
-            CigarElement last = newCigarElements.get(newCigarElements.size()-1);
-            if ( penult.getOperator() == CigarOperator.MATCH_OR_MISMATCH && penult.getOperator() == CigarOperator.MATCH_OR_MISMATCH ) {
-                newCigarElements.set(newCigarElements.size()-2, new CigarElement(penult.getLength() + last.getLength(), CigarOperator.MATCH_OR_MISMATCH));
-                newCigarElements.remove(newCigarElements.size()-1);
-            }
-        }
-
-        read.setCigar(new Cigar(newCigarElements));
-        return read;
-    }
-
-
-
-    /**
-     *
-     * @param read  original SAM record
-     * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
-     */
-    public static GATKSAMRecord hardClipAdaptorSequence(final GATKSAMRecord read) {
-        final Integer adaptorBoundary = getAdaptorBoundary(read);
-
-        if (adaptorBoundary == null || !isInsideRead(read, adaptorBoundary))
-            return read;
-
-        return (read.getReadNegativeStrandFlag()) ? hardClipStartOfRead(read, adaptorBoundary) : hardClipEndOfRead(read, adaptorBoundary);
-    }
-
-
     public static boolean is454Read(SAMRecord read) {
         return isPlatformRead(read, "454");
     }
 
+    /**
+     * is the read a SOLiD read ?
+     *
+     * @param read the read to test
+     * @return checks the read group tag PL for the default SOLiD tag
+     */
     public static boolean isSOLiDRead(SAMRecord read) {
         return isPlatformRead(read, "SOLID");
     }
 
+    /**
+     * is the read a SLX read ?
+     *
+     * @param read the read to test
+     * @return checks the read group tag PL for the default SLX tag
+     */
     public static boolean isSLXRead(SAMRecord read) {
         return isPlatformRead(read, "ILLUMINA");
     }
 
-    private static final Map<Integer, String> readFlagNames
-            = new HashMap<Integer, String>();
-
-    static {
-        readFlagNames.put(0x1, "Paired");
-        readFlagNames.put(0x2, "Proper");
-        readFlagNames.put(0x4, "Unmapped");
-        readFlagNames.put(0x8, "MateUnmapped");
-        readFlagNames.put(0x10, "Forward");
-        //readFlagNames.put(0x20, "MateForward");
-        readFlagNames.put(0x40, "FirstOfPair");
-        readFlagNames.put(0x80, "SecondOfPair");
-        readFlagNames.put(0x100, "NotPrimary");
-        readFlagNames.put(0x200, "NON-PF");
-        readFlagNames.put(0x400, "Duplicate");
-    }
-
-    public static String readFlagsAsString(GATKSAMRecord read) {
-        String flags = "";
-        for (int flag : readFlagNames.keySet()) {
-            if ((read.getFlags() & flag) != 0) {
-                flags += readFlagNames.get(flag) + " ";
-            }
+    /**
+     * checks if the read has a platform tag in the readgroup equal to 'name' ?
+     *
+     * @param read the read to test
+     * @param name the platform name to test
+     * @return whether or not name == PL tag in the read group of read
+     */
+    public static boolean isPlatformRead(SAMRecord read, String name) {
+        SAMReadGroupRecord readGroup = read.getReadGroup();
+        if (readGroup != null) {
+            Object readPlatformAttr = readGroup.getAttribute("PL");
+            if (readPlatformAttr != null)
+                return readPlatformAttr.toString().toUpperCase().contains(name);
         }
-        return flags;
+        return false;
     }
+
 
     /**
      * Returns the collections of reads sorted in coordinate order, according to the order defined
@@ -556,12 +254,19 @@ public class ReadUtils {
      * @param reads
      * @return
      */
-    public final static List<GATKSAMRecord> coordinateSortReads(List<GATKSAMRecord> reads) {
+    public final static List<GATKSAMRecord> sortReadsByCoordinate(List<GATKSAMRecord> reads) {
         final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
         Collections.sort(reads, comparer);
         return reads;
     }
 
+    /**
+     * If a read starts in INSERTION, returns the first element length.
+     *
+     * Warning: If the read has Hard or Soft clips before the insertion this function will return 0.
+     * @param read
+     * @return the length of the first insertion, or 0 if there is none (see warning).
+     */
     public final static int getFirstInsertionOffset(SAMRecord read) {
         CigarElement e = read.getCigar().getCigarElement(0);
         if ( e.getOperator() == CigarOperator.I )
@@ -570,8 +275,15 @@ public class ReadUtils {
             return 0;
     }
 
+    /**
+     * If a read ends in INSERTION, returns the last element length.
+     *
+     * Warning: If the read has Hard or Soft clips after the insertion this function will return 0.
+     * @param read
+     * @return the length of the last insertion, or 0 if there is none (see warning).
+     */
     public final static int getLastInsertionOffset(SAMRecord read) {
-        CigarElement e = read.getCigar().getCigarElement(read.getCigarLength()-1);
+        CigarElement e = read.getCigar().getCigarElement(read.getCigarLength() - 1);
         if ( e.getOperator() == CigarOperator.I )
             return e.getLength();
         else
@@ -621,6 +333,7 @@ public class ReadUtils {
         else
             return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
+
 
     @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
     public static int getRefCoordSoftUnclippedStart(GATKSAMRecord read) {
@@ -803,7 +516,13 @@ public class ReadUtils {
         return referenceCoordinate >= read.getAlignmentStart() && referenceCoordinate <= read.getAlignmentEnd();
     }
 
-    private static boolean readIsEntirelyInsertion(GATKSAMRecord read) {
+    /**
+     * Is this read all insertion?
+     *
+     * @param read
+     * @return whether or not the only element in the cigar string is an Insertion
+     */
+    public static boolean readIsEntirelyInsertion(GATKSAMRecord read) {
         for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
             if (cigarElement.getOperator() != CigarOperator.INSERTION)
                 return false;
