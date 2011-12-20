@@ -33,20 +33,6 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG, REDUCED_READ_COUNTS_TAG);
     }
 
-    private void testReadBasesAndQuals(GATKSAMRecord read, int expectedStart, int expectedStop) {
-        SAMRecord clipped = ReadUtils.hardClipBases(read, expectedStart, expectedStop - 1, null);
-        String expectedBases = BASES.substring(expectedStart, expectedStop);
-        String expectedQuals = QUALS.substring(expectedStart, expectedStop);
-        Assert.assertEquals(clipped.getReadBases(), expectedBases.getBytes(), "Clipped bases not those expected");
-        Assert.assertEquals(clipped.getBaseQualityString(), expectedQuals, "Clipped quals not those expected");
-    }
-
-    @Test public void testNoClip() { testReadBasesAndQuals(read, 0, 4); }
-    @Test public void testClip1Front() { testReadBasesAndQuals(read, 1, 4); }
-    @Test public void testClip2Front() { testReadBasesAndQuals(read, 2, 4); }
-    @Test public void testClip1Back() { testReadBasesAndQuals(read, 0, 3); }
-    @Test public void testClip2Back() { testReadBasesAndQuals(read, 0, 2); }
-
     @Test
     public void testReducedReads() {
         Assert.assertFalse(read.isReducedRead(), "isReducedRead is false for normal read");

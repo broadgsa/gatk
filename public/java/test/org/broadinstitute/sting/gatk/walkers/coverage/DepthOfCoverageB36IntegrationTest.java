@@ -61,13 +61,14 @@ public class DepthOfCoverageB36IntegrationTest extends WalkerTest {
         File baseOutputFile = this.createTempFile("depthofcoveragemapq0",".tmp");
 
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("f39af6ad99520fd4fb27b409ab0344a0",baseOutputFile);
-        spec.addAuxFile("6b15f5330414b6d4e2f6caea42139fa1", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
-        spec.addAuxFile("cc6640d82077991dde8a2b523935cdff", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
+        spec.addAuxFile("5b6c16a1c667c844882e9dce71454fc4",baseOutputFile);
+        spec.addAuxFile("fc161ec1b61dc67bc6a5ce36cb2d02c9", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
+        spec.addAuxFile("89321bbfb76a4e1edc0905d50503ba1f", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
         spec.addAuxFile("0fb627234599c258a3fee1b2703e164a", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
-        spec.addAuxFile("cb73a0fa0cee50f1fb8f249315d38128", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
-        spec.addAuxFile("347b47ef73fbd4e277704ddbd7834f69", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
-        spec.addAuxFile("4ec920335d4b9573f695c39d62748089", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+        spec.addAuxFile("4dd16b659065e331ed4bd3ab0dae6c1b", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
+        spec.addAuxFile("2be0c18b501f4a3d8c5e5f99738b4713", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
+        spec.addAuxFile("5a26ef61f586f58310812580ce842462", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+
 
         execute("testMapQ0Only",spec);
     }
@@ -83,7 +84,7 @@ public class DepthOfCoverageB36IntegrationTest extends WalkerTest {
         File baseOutputFile = this.createTempFile("testManySamples",".tmp");
         
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("c9561b52344536d2b06ab97b0bb1a234",baseOutputFile);
+        spec.addAuxFile("d73fa1fc492f7dcc1d75056f8c12c92a",baseOutputFile);
 
         execute("testLotsOfSamples",spec);
     }
