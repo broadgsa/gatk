@@ -50,6 +50,44 @@ public class ReadClipper {
         return read;
     }
 
+    /**
+     * Return a new read corresponding to this.read that's been clipped according to ops, if any are present.
+     *
+     * @param algorithm
+     * @return
+     */
+    public GATKSAMRecord clipRead(ClippingRepresentation algorithm) {
+        if (ops == null)
+            return getRead();
+        else {
+            try {
+                GATKSAMRecord clippedRead = (GATKSAMRecord) read.clone();
+                for (ClippingOp op : getOps()) {
+                    //check if the clipped read can still be clipped in the range requested
+                    if (op.start < clippedRead.getReadLength()) {
+                        ClippingOp fixedOperation = op;
+                        if (op.stop >= clippedRead.getReadLength())
+                            fixedOperation = new ClippingOp(op.start, clippedRead.getReadLength() - 1);
+
+                        clippedRead = fixedOperation.apply(algorithm, clippedRead);
+                    }
+                }
+                wasClipped = true;
+                ops.clear();
+                if ( clippedRead.isEmpty() )
+                    return new GATKSAMRecord( clippedRead.getHeader() );
+                return clippedRead;
+            } catch (CloneNotSupportedException e) {
+                throw new RuntimeException(e); // this should never happen
+            }
+        }
+    }
+
+
+
+
+    // QUICK USE UTILITY FUNCTION
+
     public GATKSAMRecord hardClipByReferenceCoordinatesLeftTail(int refStop) {
         return hardClipByReferenceCoordinates(-1, refStop);
     }
@@ -163,39 +201,13 @@ public class ReadClipper {
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
     }
 
+    public GATKSAMRecord hardClipAdaptorSequence () {
+        final Integer adaptorBoundary = ReadUtils.getAdaptorBoundary(read);
 
+        if (adaptorBoundary == null || !ReadUtils.isInsideRead(read, adaptorBoundary))
+            return read;
 
-    /**
-     * Return a new read corresponding to this.read that's been clipped according to ops, if any are present.
-     *
-     * @param algorithm
-     * @return
-     */
-    public GATKSAMRecord clipRead(ClippingRepresentation algorithm) {
-        if (ops == null)
-            return getRead();
-        else {
-            try {
-                GATKSAMRecord clippedRead = (GATKSAMRecord) read.clone();
-                for (ClippingOp op : getOps()) {
-                    //check if the clipped read can still be clipped in the range requested
-                    if (op.start < clippedRead.getReadLength()) {
-                        ClippingOp fixedOperation = op;
-                        if (op.stop >= clippedRead.getReadLength())
-                            fixedOperation = new ClippingOp(op.start, clippedRead.getReadLength() - 1);
-
-                        clippedRead = fixedOperation.apply(algorithm, clippedRead);
-                    }
-                }
-                wasClipped = true;
-                ops.clear();
-                if ( clippedRead.isEmpty() )
-                    return new GATKSAMRecord( clippedRead.getHeader() );
-                return clippedRead;
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException(e); // this should never happen
-            }
-        }
+        return read.getReadNegativeStrandFlag() ? hardClipByReferenceCoordinatesLeftTail(adaptorBoundary) : hardClipByReferenceCoordinatesRightTail(adaptorBoundary);
     }
 
     public GATKSAMRecord hardClipLeadingInsertions() {
@@ -217,5 +229,45 @@ public class ReadClipper {
     public GATKSAMRecord revertSoftClippedBases() {
         this.addOp(new ClippingOp(0, 0));     // UNSOFTCLIP_BASES doesn't need coordinates
         return this.clipRead(ClippingRepresentation.REVERT_SOFTCLIPPED_BASES);
+    }
+
+
+
+    // STATIC VERSIONS OF THE QUICK CLIPPING FUNCTIONS
+
+    public static GATKSAMRecord hardClipByReferenceCoordinatesLeftTail(GATKSAMRecord read, int refStop) {
+        return (new ReadClipper(read)).hardClipByReferenceCoordinates(-1, refStop);
+    }
+
+    public static GATKSAMRecord hardClipByReferenceCoordinatesRightTail(GATKSAMRecord read, int refStart) {
+        return (new ReadClipper(read)).hardClipByReferenceCoordinates(refStart, -1);
+    }
+
+    public static GATKSAMRecord hardClipByReadCoordinates(GATKSAMRecord read, int start, int stop) {
+        return (new ReadClipper(read)).hardClipByReadCoordinates(start, stop);
+    }
+
+    public static GATKSAMRecord hardClipBothEndsByReferenceCoordinates(GATKSAMRecord read, int left, int right) {
+        return (new ReadClipper(read)).hardClipBothEndsByReferenceCoordinates(left, right);
+    }
+
+    public static GATKSAMRecord hardClipLowQualEnds(GATKSAMRecord read, byte lowQual) {
+        return (new ReadClipper(read)).hardClipLowQualEnds(lowQual);
+    }
+
+    public static GATKSAMRecord hardClipSoftClippedBases (GATKSAMRecord read) {
+        return (new ReadClipper(read)).hardClipSoftClippedBases();
+    }
+
+    public static GATKSAMRecord hardClipAdaptorSequence (GATKSAMRecord read) {
+        return (new ReadClipper(read)).hardClipAdaptorSequence();
+    }
+
+    public static GATKSAMRecord hardClipLeadingInsertions(GATKSAMRecord read) {
+        return (new ReadClipper(read)).hardClipLeadingInsertions();
+    }
+
+    public static GATKSAMRecord revertSoftClippedBases(GATKSAMRecord read) {
+        return (new ReadClipper(read)).revertSoftClippedBases();
     }
 }
