@@ -32,7 +32,6 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -90,13 +89,13 @@ public class ReadClipperUnitTest extends BaseTest {
             int alnStart = read.getAlignmentStart();
             int alnEnd = read.getAlignmentEnd();
             for (int i=alnStart; i<=alnEnd; i++) {
-                if (ReadUtils.getRefCoordSoftUnclippedStart(read) == alnStart) {                                // we can't test left clipping if the read has hanging soft clips on the left side
+                if (read.getSoftStart() == alnStart) {                                // we can't test left clipping if the read has hanging soft clips on the left side
                     GATKSAMRecord clipLeft = (new ReadClipper(read)).hardClipByReferenceCoordinates(alnStart, i);
                     if (!clipLeft.isEmpty())
                         Assert.assertTrue(clipLeft.getAlignmentStart() >= i + 1, String.format("Clipped alignment start (%d) is less the expected (%d): %s -> %s", clipLeft.getAlignmentStart(), i + 1, read.getCigarString(), clipLeft.getCigarString()));
                 }
 
-                if (ReadUtils.getRefCoordSoftUnclippedEnd(read) == alnEnd) {                                    // we can't test right clipping if the read has hanging soft clips on the right side
+                if (read.getSoftEnd() == alnEnd) {                                    // we can't test right clipping if the read has hanging soft clips on the right side
                     GATKSAMRecord clipRight = (new ReadClipper(read)).hardClipByReferenceCoordinates(i, alnEnd);
                     if (!clipRight.isEmpty() && clipRight.getAlignmentStart() <= clipRight.getAlignmentEnd())   // alnStart > alnEnd if the entire read is a soft clip now. We can't test those.
                         Assert.assertTrue(clipRight.getAlignmentEnd() <= i - 1, String.format("Clipped alignment end (%d) is greater than expected (%d): %s -> %s", clipRight.getAlignmentEnd(), i - 1, read.getCigarString(), clipRight.getCigarString()));
@@ -111,7 +110,7 @@ public class ReadClipperUnitTest extends BaseTest {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             int alnStart = read.getAlignmentStart();
             int alnEnd = read.getAlignmentEnd();
-            if (ReadUtils.getRefCoordSoftUnclippedStart(read) == alnStart) {                                // we can't test left clipping if the read has hanging soft clips on the left side
+            if (read.getSoftStart() == alnStart) {                                // we can't test left clipping if the read has hanging soft clips on the left side
             for (int i=alnStart; i<=alnEnd; i++) {
                 GATKSAMRecord clipLeft = (new ReadClipper(read)).hardClipByReferenceCoordinates(alnStart, i);
                 if (!clipLeft.isEmpty())
@@ -127,7 +126,7 @@ public class ReadClipperUnitTest extends BaseTest {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             int alnStart = read.getAlignmentStart();
             int alnEnd = read.getAlignmentEnd();
-            if (ReadUtils.getRefCoordSoftUnclippedEnd(read) == alnEnd) {                                        // we can't test right clipping if the read has hanging soft clips on the right side
+            if (read.getSoftEnd() == alnEnd) {                                        // we can't test right clipping if the read has hanging soft clips on the right side
                 for (int i=alnStart; i<=alnEnd; i++) {
                     GATKSAMRecord clipRight = (new ReadClipper(read)).hardClipByReferenceCoordinates(i, alnEnd);
                     if (!clipRight.isEmpty() && clipRight.getAlignmentStart() <= clipRight.getAlignmentEnd())   // alnStart > alnEnd if the entire read is a soft clip now. We can't test those.

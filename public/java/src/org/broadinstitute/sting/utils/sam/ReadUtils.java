@@ -299,8 +299,8 @@ public class ReadUtils {
      */
     public static ReadAndIntervalOverlap getReadAndIntervalOverlapType(GATKSAMRecord read, GenomeLoc interval) {
 
-        int sStart = getRefCoordSoftUnclippedStart(read);
-        int sStop = getRefCoordSoftUnclippedEnd(read);
+        int sStart = read.getSoftStart();
+        int sStop = read.getSoftEnd();
         int uStart = read.getUnclippedStart();
         int uStop = read.getUnclippedEnd();
 
@@ -333,40 +333,6 @@ public class ReadUtils {
         else
             return ReadAndIntervalOverlap.OVERLAP_RIGHT;
     }
-
-
-    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
-    public static int getRefCoordSoftUnclippedStart(GATKSAMRecord read) {
-        int start = read.getUnclippedStart();
-        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                start += cigarElement.getLength();
-            else
-                break;
-        }
-        return start;
-    }
-
-    @Ensures({"result >= read.getUnclippedStart()", "result <= read.getUnclippedEnd() || readIsEntirelyInsertion(read)"})
-    public static int getRefCoordSoftUnclippedEnd(GATKSAMRecord read) {
-        int stop = read.getUnclippedStart();
-
-        if (readIsEntirelyInsertion(read))
-            return stop;
-
-        int shift = 0;
-        CigarOperator lastOperator = null;
-        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
-            stop += shift;
-            lastOperator = cigarElement.getOperator();
-            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                shift = cigarElement.getLength();
-            else
-                shift = 0;
-        }
-        return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
-    }
-
 
     /**
      * Pre-processes the results of getReadCoordinateForReferenceCoordinate(GATKSAMRecord, int) in case it falls in
@@ -407,14 +373,14 @@ public class ReadUtils {
      * @param refCoord
      * @return the read coordinate corresponding to the requested reference coordinate. (see warning!)
      */
-    @Requires({"refCoord >= getRefCoordSoftUnclippedStart(read)", "refCoord <= getRefCoordSoftUnclippedEnd(read)"})
+    @Requires({"refCoord >= read.getSoftStart()", "refCoord <= read.getSoftEnd()"})
     @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord) {
         int readBases = 0;
         int refBases = 0;
         boolean fallsInsideDeletion = false;
 
-        int goal = refCoord - getRefCoordSoftUnclippedStart(read);  // The goal is to move this many reference bases
+        int goal = refCoord - read.getSoftStart();  // The goal is to move this many reference bases
         boolean goalReached = refBases == goal;
 
         Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
