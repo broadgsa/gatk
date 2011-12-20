@@ -112,6 +112,13 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow the discovery of multiple alleles (SNPs only)", required = false)
     public boolean MULTI_ALLELIC = false;
 
+    /**
+     * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
+     * then this site will be skipped and a warning printed.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
+     */
+    @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
+    public int MAX_ALTERNATE_ALLELES = 5;
+
     // indel-related arguments
     /**
      * A candidate indel is genotyped (and potentially called) if there are this number of reads with a consensus indel at a site.
@@ -149,14 +156,6 @@ public class UnifiedArgumentCollection {
     @Hidden
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
-
-    /**
-     * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
-     * then this site will be skipped and a warning printed.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
-     */
-    @Hidden
-    @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
-    public int MAX_ALTERNATE_ALLELES = 5;
 
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
