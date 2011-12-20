@@ -48,8 +48,16 @@ public class AlleleFrequencyCalculationResult {
     double log10LikelihoodOfAFzero = 0.0;
     double log10PosteriorOfAFzero = 0.0;
 
-    AlleleFrequencyCalculationResult(int maxAltAlleles, int numChr) {
+    public AlleleFrequencyCalculationResult(int maxAltAlleles, int numChr) {
         log10AlleleFrequencyLikelihoods = new double[maxAltAlleles][numChr+1];
         log10AlleleFrequencyPosteriors = new double[maxAltAlleles][numChr+1];
+    }
+
+    public double getLog10LikelihoodOfAFzero() {
+        return log10LikelihoodOfAFzero;
+    }
+
+    public double getLog10PosteriorOfAFzero() {
+        return log10PosteriorOfAFzero;
     }
 }

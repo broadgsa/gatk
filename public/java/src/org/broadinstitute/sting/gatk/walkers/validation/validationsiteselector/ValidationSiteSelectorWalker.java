@@ -124,6 +124,10 @@ public class ValidationSiteSelectorWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="sampleMode", shortName="sampleMode", doc="Sample selection mode", required=false)
     private SAMPLE_SELECTION_MODE sampleMode = SAMPLE_SELECTION_MODE.NONE;
 
+    @Argument(shortName="samplePNonref",fullName="samplePNonref", doc="GL-based selection mode only: the probability" +
+            " that a site is non-reference in the samples for which to include the site",required=false)
+    private double samplePNonref = 0.99;
+
     @Argument(fullName="numValidationSites", shortName="numSites", doc="Number of output validation sites", required=true)
     private int numValidationSites;
 
@@ -231,13 +235,14 @@ public class ValidationSiteSelectorWalker extends RodWalker<Integer, Integer> {
                 continue;
 
 
-            // do anything required by frequency selector before we select for samples
-            VariantContext subVC;
+            // does this site pass the criteria for the samples we are interested in?
+            boolean passesSampleSelectionCriteria;
             if (samples.isEmpty())
-                subVC = vc;
+                passesSampleSelectionCriteria = true;
             else
-                subVC = sampleSelector.subsetSiteToSamples(vc);
-            frequencyModeSelector.logCurrentSiteData(vc, subVC, IGNORE_GENOTYPES, IGNORE_POLYMORPHIC);
+                passesSampleSelectionCriteria = sampleSelector.selectSiteInSamples(vc);
+
+            frequencyModeSelector.logCurrentSiteData(vc,passesSampleSelectionCriteria,IGNORE_GENOTYPES,IGNORE_POLYMORPHIC);
         }
         return 1;
     }
@@ -263,7 +268,7 @@ public class ValidationSiteSelectorWalker extends RodWalker<Integer, Integer> {
         SampleSelector sm;
          switch ( sampleMode ) {
              case POLY_BASED_ON_GL:
-                 sm = new GLBasedSampleSelector(samples);
+                 sm = new GLBasedSampleSelector(samples, Math.log10(1.0-samplePNonref));
                  break;
              case POLY_BASED_ON_GT:
                  sm = new GTBasedSampleSelector(samples);

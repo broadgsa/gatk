@@ -60,7 +60,7 @@ public class KeepAFSpectrumFrequencySelector extends FrequencyModeSelector {
         postSampleSelectionHistogram = new int[NUM_BINS];
     }
 
-    public void logCurrentSiteData(VariantContext vc, VariantContext subVC, boolean IGNORE_GENOTYPES, boolean IGNORE_POLYMORPHIC) {
+    public void logCurrentSiteData(VariantContext vc, boolean selectedInTargetSamples, boolean IGNORE_GENOTYPES, boolean IGNORE_POLYMORPHIC) {
 
         // this method is called for every  variant of a selected type, regardless of  whether it will be selectable or not
         // get AC,AF,AN attributes from vc
@@ -107,7 +107,7 @@ public class KeepAFSpectrumFrequencySelector extends FrequencyModeSelector {
         numTotalSites++;
 
         // now process VC subsetted to samples of interest
-        if (!subVC.isPolymorphicInSamples() && !IGNORE_POLYMORPHIC)
+        if (! selectedInTargetSamples && !IGNORE_POLYMORPHIC)
             return;
 
         //System.out.format("Post:%4.4f %d\n",af0, binIndex);
