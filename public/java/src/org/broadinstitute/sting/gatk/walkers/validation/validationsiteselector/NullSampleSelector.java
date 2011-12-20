@@ -33,8 +33,7 @@ public class NullSampleSelector extends SampleSelector{
         super(sm);
     }
 
-    public VariantContext subsetSiteToSamples(VariantContext vc) {
-         return vc;
-
+    public boolean selectSiteInSamples(VariantContext vc) {
+         return true;
     }
 }

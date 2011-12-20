@@ -23,21 +23,52 @@
  */
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
+import org.broadinstitute.sting.gatk.walkers.genotyper.AlleleFrequencyCalculationResult;
+import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 
 public class GLBasedSampleSelector extends SampleSelector {
-    public GLBasedSampleSelector(TreeSet<String> sm) {
+    Map<Integer,double[][]> numAllelePriorMatrix = new HashMap<Integer,double[][]>();
+    double referenceLikelihood;
+    public GLBasedSampleSelector(TreeSet<String> sm, double refLik) {
         super(sm);
+        referenceLikelihood = refLik;
     }
 
-    public  VariantContext subsetSiteToSamples(VariantContext vc) {
-        /* todo - Look at sample array, and create a new vc with samples for which GL's indicate they should be included.
-          For example, include all samples (and corresponding genotypes) whose GL's are such that argmax(GL) = HET or HOMVAR. */
-        throw new ReviewedStingException("GLBasedSampleSelector not implemented yet!");
-        //return true;
+    public boolean selectSiteInSamples(VariantContext vc) {
+        if ( samples == null || samples.isEmpty() )
+            return true;
+        // want to include a site in the given samples if it is *likely* to be variant (via the EXACT model)
+        // first subset to the samples
+        VariantContext subContext = vc.subContextFromSamples(samples);
+
+        // now check to see (using EXACT model) whether this should be variant
+        // do we want to apply a prior? maybe user-spec?
+        double[][] flatPrior = createFlatPrior(vc.getAlleles());
+        AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(vc.getAlternateAlleles().size(),2*samples.size());
+        ExactAFCalculationModel.linearExactMultiAllelic(subContext.getGenotypes(),vc.getAlternateAlleles().size(),flatPrior,result,true);
+        // do we want to let this qual go up or down?
+        if ( result.getLog10PosteriorOfAFzero() < referenceLikelihood ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private double[][] createFlatPrior(List<Allele> alleles) {
+        if ( ! numAllelePriorMatrix.containsKey(alleles.size()) ) {
+            numAllelePriorMatrix.put(alleles.size(), new double[alleles.size()][1+2*samples.size()]);
+        }
+
+        return numAllelePriorMatrix.get(alleles.size());
     }
 }

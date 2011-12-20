@@ -34,7 +34,7 @@ public abstract class SampleSelector implements Cloneable {
         samples = new TreeSet<String>(sm);
     }
 
-    protected abstract  VariantContext subsetSiteToSamples(VariantContext vc);
+    protected abstract boolean selectSiteInSamples(VariantContext vc);
 
 
 }
