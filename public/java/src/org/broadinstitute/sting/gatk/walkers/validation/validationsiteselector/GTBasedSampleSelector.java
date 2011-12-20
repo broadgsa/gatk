@@ -38,14 +38,18 @@ public class GTBasedSampleSelector extends SampleSelector{
         super(sm);
     }
 
-    public VariantContext subsetSiteToSamples(VariantContext vc) {
+    public boolean selectSiteInSamples(VariantContext vc) {
         // Super class already defined initialization which filled data structure "samples" with desired samples.
         // We only need to check if current vc if polymorphic in that set of samples
 
         if ( samples == null || samples.isEmpty() )
-            return vc;
+            return true;
 
-        return vc.subContextFromSamples(samples, vc.getAlleles());
+        VariantContext subContext =  vc.subContextFromSamples(samples, vc.getAlleles());
+        if ( subContext.isPolymorphicInSamples() ) {
+            return true;
+        }
 
+        return false;
     }
 }

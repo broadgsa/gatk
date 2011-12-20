@@ -851,50 +851,6 @@ public class ReadUtils {
         return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
 
-    public static GATKSAMRecord unclipSoftClippedBases(GATKSAMRecord read) {
-        int newReadStart = read.getAlignmentStart();
-        int newReadEnd = read.getAlignmentEnd();
-        List<CigarElement> newCigarElements = new ArrayList<CigarElement>(read.getCigar().getCigarElements().size());
-        int heldOver = -1;
-        boolean sSeen = false;
-        for ( CigarElement e : read.getCigar().getCigarElements() ) {
-            if ( e.getOperator().equals(CigarOperator.S) ) {
-                newCigarElements.add(new CigarElement(e.getLength(),CigarOperator.M));
-                if ( sSeen ) {
-                    newReadEnd += e.getLength();
-                    sSeen = true;
-                } else {
-                    newReadStart -= e.getLength();
-                }
-            } else {
-                newCigarElements.add(e);
-            }
-        }
-        // merge duplicate operators together
-        int idx = 0;
-        List<CigarElement> finalCigarElements = new ArrayList<CigarElement>(read.getCigar().getCigarElements().size());
-        while ( idx < newCigarElements.size() -1 ) {
-            if ( newCigarElements.get(idx).getOperator().equals(newCigarElements.get(idx+1).getOperator()) ) {
-                int combSize = newCigarElements.get(idx).getLength();
-                int offset = 0;
-                while (  idx + offset < newCigarElements.size()-1 && newCigarElements.get(idx+offset).getOperator().equals(newCigarElements.get(idx+1+offset).getOperator()) ) {
-                    combSize += newCigarElements.get(idx+offset+1).getLength();
-                    offset++;
-                }
-                finalCigarElements.add(new CigarElement(combSize,newCigarElements.get(idx).getOperator()));
-                idx = idx + offset -1;
-            } else {
-                finalCigarElements.add(newCigarElements.get(idx));
-            }
-            idx++;
-        }
-
-        read.setCigar(new Cigar(finalCigarElements));
-        read.setAlignmentStart(newReadStart);
-
-        return read;
-    }
-
     /**
      * Compares two SAMRecords only the basis on alignment start.  Note that
      * comparisons are performed ONLY on the basis of alignment start; any

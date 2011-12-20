@@ -279,9 +279,9 @@ public class ReadClipperUnitTest extends BaseTest {
                 GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
                 GATKSAMRecord clippedRead = (new ReadClipper(read)).hardClipLeadingInsertions();
 
-                int expectedLength = read.getReadLength() - leadingInsertionLength(read.getCigar());
+                int expectedLength = read.getReadLength() - leadingCigarElementLength(read.getCigar(), CigarOperator.INSERTION);
                 if (cigarHasElementsDifferentThanInsertionsAndHardClips(read.getCigar()))
-                    expectedLength -= leadingInsertionLength(ReadClipperTestUtils.invertCigar(read.getCigar()));
+                    expectedLength -= leadingCigarElementLength(ReadClipperTestUtils.invertCigar(read.getCigar()), CigarOperator.INSERTION);
 
                 if (! clippedRead.isEmpty()) {
                     Assert.assertEquals(expectedLength, clippedRead.getReadLength(), String.format("%s -> %s", read.getCigarString(), clippedRead.getCigarString()));  // check that everything else is still there
@@ -293,6 +293,27 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
+    @Test(enabled = true)
+    public void testRevertSoftClippedBases()
+    {
+        for (Cigar cigar:  cigarList) {
+            final int leadingSoftClips = leadingCigarElementLength(cigar, CigarOperator.SOFT_CLIP);
+            final int tailSoftClips = leadingCigarElementLength(ReadClipperTestUtils.invertCigar(cigar), CigarOperator.SOFT_CLIP);
+
+            final GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
+            final GATKSAMRecord unclipped = (new ReadClipper(read)).revertSoftClippedBases();
+
+            if ( leadingSoftClips > 0 || tailSoftClips > 0) {
+                final int expectedStart = read.getAlignmentStart() - leadingSoftClips;
+                final int expectedEnd = read.getAlignmentEnd() + tailSoftClips;
+
+                Assert.assertEquals(unclipped.getAlignmentStart(), expectedStart);
+                Assert.assertEquals(unclipped.getAlignmentEnd(), expectedEnd);
+            }
+            else
+                Assert.assertEquals(read.getCigarString(), unclipped.getCigarString());
+        }
+    }
 
 
     private void assertNoLowQualBases(GATKSAMRecord read, byte low_qual) {
@@ -304,12 +325,12 @@ public class ReadClipperUnitTest extends BaseTest {
     }
 
     private boolean startsWithInsertion(Cigar cigar) {
-        return leadingInsertionLength(cigar) > 0;
+        return leadingCigarElementLength(cigar, CigarOperator.INSERTION) > 0;
     }
 
-    private int leadingInsertionLength(Cigar cigar) {
+    private int leadingCigarElementLength(Cigar cigar, CigarOperator operator) {
         for (CigarElement cigarElement : cigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.INSERTION)
+            if (cigarElement.getOperator() == operator)
                 return cigarElement.getLength();
             if (cigarElement.getOperator() != CigarOperator.HARD_CLIP)
                 break;

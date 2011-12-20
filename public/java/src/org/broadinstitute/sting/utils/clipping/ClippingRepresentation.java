@@ -29,5 +29,10 @@ public enum ClippingRepresentation {
      * lossy) operation.  Note that this can only be applied to cases where the clipped
      * bases occur at the start or end of a read.
      */
-    HARDCLIP_BASES
+    HARDCLIP_BASES,
+
+    /**
+     * Turn all soft-clipped bases into matches
+     */
+    REVERT_SOFTCLIPPED_BASES,
 }
