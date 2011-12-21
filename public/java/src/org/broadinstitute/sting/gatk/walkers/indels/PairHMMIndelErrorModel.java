@@ -32,6 +32,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -409,7 +410,7 @@ public class PairHMMIndelErrorModel {
             }
             else {
                 //System.out.format("%d %s\n",p.getRead().getAlignmentStart(), p.getRead().getClass().getName());
-                SAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
+                SAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;
 
