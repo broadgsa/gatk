@@ -29,7 +29,7 @@ import org.broadinstitute.sting.BaseTest
 
 class PacbioProcessingPipelineTest {
   @Test
-  def testBAM {
+  def testPacbioProcessingPipeline {
     val testOut = "exampleBAM.recal.bam"
     val spec = new PipelineTestSpec
     spec.name = "pacbioProcessingPipeline"
@@ -40,7 +40,7 @@ class PacbioProcessingPipelineTest {
       " -blasr ",
       " -test ",
       " -D " + BaseTest.testDir + "exampleDBSNP.vcf").mkString
-    spec.fileMD5s += testOut -> "f0adce660b55cb91d5f987f9a145471e"
+    spec.fileMD5s += testOut -> "cf147e7f56806598371f8d5d6794b852"
     PipelineTest.executeTest(spec)
   }
 }
