@@ -269,7 +269,7 @@ public class ReferenceDataSource {
     }
 
     private static Shard createShardFromInterval(final GenomeLoc interval, final SAMDataSource readsDataSource, final GenomeLocParser parser) {
-        System.out.println("Adding shard " + interval);
+        //logger.debug("Adding shard " + interval);
         return new LocusShard(parser,
                 readsDataSource,
                 Collections.singletonList(interval),
