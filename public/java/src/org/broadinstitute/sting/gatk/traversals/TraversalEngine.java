@@ -121,7 +121,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private static final int PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES = 1000;
     private int printProgressCheckCounter = 0;
     private long lastProgressPrintTime = -1;                       // When was the last time we printed progress log?
-    private long MIN_ELAPSED_TIME_BEFORE_FIRST_PROGRESS = 120 * 1000; // in milliseconds
+    private long MIN_ELAPSED_TIME_BEFORE_FIRST_PROGRESS = 30 * 1000; // in milliseconds
     private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in milliseconds
     private final double TWO_HOURS_IN_SECONDS = 2.0 * 60.0 * 60.0;
     private final double TWELVE_HOURS_IN_SECONDS = 12.0 * 60.0 * 60.0;

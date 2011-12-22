@@ -469,7 +469,7 @@ public class GenomeAnalysisEngine {
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
         }
         else {
-            final int SHARD_SIZE = walker instanceof RodWalker ? 1000000 : 100000;
+            final int SHARD_SIZE = walker instanceof RodWalker ? 1000000 : 100000;     // TODO -- make it a multiple of 16K
             if(intervals == null)
                 return referenceDataSource.createShardsOverEntireReference(readsDataSource,genomeLocParser,SHARD_SIZE);
             else
