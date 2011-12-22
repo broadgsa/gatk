@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -33,20 +33,6 @@ public class ReadUtilsUnitTest extends BaseTest {
         reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG, REDUCED_READ_COUNTS_TAG);
     }
 
-    private void testReadBasesAndQuals(GATKSAMRecord read, int expectedStart, int expectedStop) {
-        SAMRecord clipped = ReadUtils.hardClipBases(read, expectedStart, expectedStop - 1, null);
-        String expectedBases = BASES.substring(expectedStart, expectedStop);
-        String expectedQuals = QUALS.substring(expectedStart, expectedStop);
-        Assert.assertEquals(clipped.getReadBases(), expectedBases.getBytes(), "Clipped bases not those expected");
-        Assert.assertEquals(clipped.getBaseQualityString(), expectedQuals, "Clipped quals not those expected");
-    }
-
-    @Test public void testNoClip() { testReadBasesAndQuals(read, 0, 4); }
-    @Test public void testClip1Front() { testReadBasesAndQuals(read, 1, 4); }
-    @Test public void testClip2Front() { testReadBasesAndQuals(read, 2, 4); }
-    @Test public void testClip1Back() { testReadBasesAndQuals(read, 0, 3); }
-    @Test public void testClip2Back() { testReadBasesAndQuals(read, 0, 2); }
-
     @Test
     public void testReducedReads() {
         Assert.assertFalse(read.isReducedRead(), "isReducedRead is false for normal read");
@@ -68,5 +54,50 @@ public class ReadUtilsUnitTest extends BaseTest {
         Assert.assertTrue(reducedreadp.isReducedRead());
         Assert.assertEquals(reducedreadp.getRepresentativeCount(), REDUCED_READ_COUNTS[0]);
         Assert.assertEquals(reducedreadp.getQual(), readp.getQual());
+    }
+
+    @Test
+    public void testGetAdaptorBoundary() {
+        final byte [] bases = {'A', 'C', 'G', 'T', 'A', 'C', 'G', 'T'};
+        final byte [] quals = {30, 30, 30, 30, 30, 30, 30, 30};
+        final String cigar = "8M";
+        final int fragmentSize = 10;
+        final int mateStart = 1000;
+        final int BEFORE = mateStart - 2;
+        final int AFTER = mateStart + 2;
+        int myStart, boundary;
+
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, cigar);
+        read.setMateAlignmentStart(mateStart);
+        read.setInferredInsertSize(fragmentSize);
+
+        // Test case 1: positive strand, first read
+        myStart = BEFORE;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(false);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+
+        // Test case 2: positive strand, second read
+        myStart = AFTER;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(false);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+
+        // Test case 3: negative strand, second read
+        myStart = AFTER;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(true);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, mateStart - 1);
+
+        // Test case 4: negative strand, first read
+        myStart = BEFORE;
+        read.setAlignmentStart(myStart);
+        read.setReadNegativeStrandFlag(true);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertEquals(boundary, mateStart - 1);
+
     }
 }

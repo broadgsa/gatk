@@ -24,10 +24,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.BAMRecord;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
+import com.google.java.contract.Ensures;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
 import java.util.HashMap;
@@ -272,6 +270,53 @@ public class GATKSAMRecord extends BAMRecord {
         this.clearAttributes();
         setReadGroup(rg);
     }
+
+    /**
+     * Calculates the reference coordinate for the beginning of the read taking into account soft clips but not hard clips.
+     *
+     * Note: getUnclippedStart() adds soft and hard clips, this function only adds soft clips.
+     *
+     * @return the unclipped start of the read taking soft clips (but not hard clips) into account
+     */
+    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
+    public int getSoftStart() {
+        int start = this.getUnclippedStart();
+        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                start += cigarElement.getLength();
+            else
+                break;
+        }
+        return start;
+    }
+
+    /**
+     * Calculates the reference coordinate for the end of the read taking into account soft clips but not hard clips.
+     *
+     * Note: getUnclippedStart() adds soft and hard clips, this function only adds soft clips.
+     *
+     * @return the unclipped end of the read taking soft clips (but not hard clips) into account
+     */
+    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
+    public int getSoftEnd() {
+        int stop = this.getUnclippedStart();
+
+        if (ReadUtils.readIsEntirelyInsertion(this))
+            return stop;
+
+        int shift = 0;
+        CigarOperator lastOperator = null;
+        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+            stop += shift;
+            lastOperator = cigarElement.getOperator();
+            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                shift = cigarElement.getLength();
+            else
+                shift = 0;
+        }
+        return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    }
+
 
 
 }

@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 
 
-public class RecalibrationWalkersPerformanceTest extends WalkerTest {
+public class RecalibrationWalkersLargeScaleTest extends WalkerTest {
 
     private void testCountCovariatesWholeGenomeRunner(String moreArgs) {
         WalkerTestSpec spec = new WalkerTestSpec(

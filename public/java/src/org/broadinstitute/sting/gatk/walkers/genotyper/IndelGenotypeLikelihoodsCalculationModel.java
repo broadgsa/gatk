@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Haplotype;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
@@ -125,7 +126,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             for ( ExtendedEventPileupElement p : indelPileup.toExtendedIterable() ) {
                 //SAMRecord read = p.getRead();
-                 GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
+                 GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;     
                 if(ReadUtils.is454Read(read)) {

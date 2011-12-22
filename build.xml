@@ -847,7 +847,6 @@
 
 
     <path id="testng.default.classpath">
-        <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
         <pathelement location="${scala.classes}" />
         <pathelement location="${java.contracts}" />
@@ -858,6 +857,7 @@
         <pathelement location="${R.tar.dir}" />
         <pathelement location="${R.public.scripts.dir}" />
         <pathelement location="${R.private.scripts.dir}" />
+        <path refid="external.dependencies" />
     </path>
 
     <path id="testng.gatk.releasetest.classpath">
@@ -993,7 +993,7 @@
         </antcall>
     </target>
 
-    <!-- Our four different test conditions: Test, IntegrationTest, PerformanceTest, PipelineTest -->
+    <!-- Our four different test conditions: Test, IntegrationTest, LargeScaleTest, PipelineTest -->
     <target name="test" depends="init.buildall,test.compile,vcf.jar,test.init" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
@@ -1010,13 +1010,13 @@
     </target>
     <target name="integrationtest.public" depends="init.buildpublic,integrationtest"/>
 
-    <target name="performancetest" depends="init.buildall,test.compile,test.init" description="Run performance tests">
-       <condition property="ptype" value="*PerformanceTest" else="${single}">
+    <target name="largescaletest" depends="init.buildall,test.compile,test.init" description="Run large-scale tests">
+       <condition property="ptype" value="*LargeScaleTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${ptype}" outputdir="${report}/${ptype}" classpath="${testng.classpath}" runfailed="false"/>
     </target>
-    <target name="performancetest.public" depends="init.buildpublic,performancetest" />
+    <target name="largescaletest.public" depends="init.buildpublic,largescaletest" />
 
     <target name="pipelinetest" depends="init.buildall,test.compile,test.init" description="Run pipeline tests">
         <condition property="pipetype" value="*PipelineTest" else="${single}">
@@ -1043,8 +1043,8 @@
         <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
     </target>
 
-    <target name="failed-performance" depends="init.buildall,test.compile,test.init">
-        <run-test testtype="${report}/*PerformanceTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
+    <target name="failed-largescale" depends="init.buildall,test.compile,test.init">
+        <run-test testtype="${report}/*LargeScaleTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
     </target>
 
     <target name="failed-pipeline" depends="init.buildall,test.compile,test.init">
@@ -1117,6 +1117,11 @@
           <fileset dir="${dist.dir}">
             <patternset refid="dependency.mask" />
           </fileset>
+        </unjar>
+
+        <!-- HACK: The GATK jar itself contains overrides for some core classes.  Make sure the GATK.jar is unrolled last. -->
+        <unjar dest="${staging.dir}" overwrite="true">
+          <fileset dir="${dist.dir}" includes="**/GenomeAnalysisTK.jar"/>
         </unjar>
     </target>
 

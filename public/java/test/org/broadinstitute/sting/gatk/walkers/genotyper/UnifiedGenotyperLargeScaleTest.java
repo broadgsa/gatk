@@ -5,7 +5,7 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 
-public class UnifiedGenotyperPerformanceTest extends WalkerTest {
+public class UnifiedGenotyperLargeScaleTest extends WalkerTest {
 
     @Test
     public void testUnifiedGenotyperWholeGenome() {

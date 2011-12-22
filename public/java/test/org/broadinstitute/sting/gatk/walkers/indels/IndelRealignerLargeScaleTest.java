@@ -5,7 +5,7 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 
-public class IndelRealignerPerformanceTest extends WalkerTest {
+public class IndelRealignerLargeScaleTest extends WalkerTest {
     @Test
     public void testHighCoverage() {
         WalkerTestSpec spec = new WalkerTestSpec(

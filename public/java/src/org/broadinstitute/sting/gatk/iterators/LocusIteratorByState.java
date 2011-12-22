@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReservoirDownsampler;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -432,7 +431,7 @@ public class LocusIteratorByState extends LocusIterator {
                     while(iterator.hasNext()) {
                         SAMRecordState state = iterator.next();
                         if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                            if ( filterBaseInRead(state.getRead(), location.getStart()) ) {
+                            if ( filterBaseInRead((GATKSAMRecord) state.getRead(), location.getStart()) ) {
                                 //discarded_bases++;
                                 //printStatus("Adaptor bases", discarded_adaptor_bases);
                                 continue;
@@ -481,8 +480,8 @@ public class LocusIteratorByState extends LocusIterator {
      * @param pos
      * @return
      */
-    private static boolean filterBaseInRead(SAMRecord rec, long pos) {
-        return ReadUtils.readPairBaseOverlapType(rec, pos) == ReadUtils.OverlapType.IN_ADAPTOR;
+    private static boolean filterBaseInRead(GATKSAMRecord rec, long pos) {
+        return ReadUtils.isBaseInsideAdaptor(rec, pos);
     }
 
     private void updateReadStates() {
