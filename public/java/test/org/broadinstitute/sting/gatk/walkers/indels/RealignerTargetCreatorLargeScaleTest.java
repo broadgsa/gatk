@@ -5,7 +5,7 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 
-public class RealignerTargetCreatorPerformanceTest extends WalkerTest {
+public class RealignerTargetCreatorLargeScaleTest extends WalkerTest {
     @Test
     public void testRealignerTargetCreator() {
 
