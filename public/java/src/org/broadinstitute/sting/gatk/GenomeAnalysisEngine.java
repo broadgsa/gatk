@@ -469,7 +469,10 @@ public class GenomeAnalysisEngine {
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
         }
         else {
-            final int SHARD_SIZE = walker instanceof RodWalker ? 1000000 : 100000;     // TODO -- make it a multiple of 16K
+            // TODO -- Determine what the ideal shard size should be here.  Matt suggested that a multiple of 16K might work well
+            // TODO --  (because of how VCF indexes work), but my empirical experience has been simply that the larger the shard
+            // TODO --  size the more efficient the traversal (at least for RODWalkers).  Keeping the previous values for now.  [EB]
+            final int SHARD_SIZE = walker instanceof RodWalker ? 1000000 : 100000;
             if(intervals == null)
                 return referenceDataSource.createShardsOverEntireReference(readsDataSource,genomeLocParser,SHARD_SIZE);
             else
