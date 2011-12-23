@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -226,6 +227,28 @@ public class ReferenceDataSource {
         return shards;
     }
 
+
+    public Iterable<Shard> createShardsOverIntervals(final SAMDataSource readsDataSource, final GenomeLocSortedSet intervals, final int maxShardSize) {
+        List<Shard> shards = new ArrayList<Shard>();
+
+        for(GenomeLoc interval: intervals) {
+            while(interval.size() > maxShardSize) {
+                shards.add(new LocusShard(intervals.getGenomeLocParser(),
+                        readsDataSource,
+                        Collections.singletonList(intervals.getGenomeLocParser().createGenomeLoc(interval.getContig(),interval.getStart(),interval.getStart()+maxShardSize-1)),
+                        null));
+                interval = intervals.getGenomeLocParser().createGenomeLoc(interval.getContig(),interval.getStart()+maxShardSize,interval.getStop());
+            }
+            shards.add(new LocusShard(intervals.getGenomeLocParser(),
+                    readsDataSource,
+                    Collections.singletonList(interval),
+                    null));
+        }
+
+        return shards;
+    }
+
+
     /**
      * Creates an iterator for processing the entire reference.
      * @param readsDataSource  the reads datasource to embed in the locus shard.  TODO: decouple the creation of the shards themselves from the creation of the driving iterator so that datasources need not be passed to datasources.
@@ -233,46 +256,50 @@ public class ReferenceDataSource {
      * @param targetShardSize  the suggested - and maximum - shard size which can be used to create this list; we will merge intervals greedily so that we generate shards up to but not greater than the target size.
      * @return Creates a schedule for performing a traversal over the entire reference.
      */
+/*
     public Iterable<Shard> createShardsOverIntervals(final SAMDataSource readsDataSource, final GenomeLocSortedSet intervals, final int targetShardSize) {
         final List<Shard> shards = new ArrayList<Shard>();
         final GenomeLocParser parser = intervals.getGenomeLocParser();
-        GenomeLoc currentInterval = null;
+        LinkedList<GenomeLoc> currentIntervals = new LinkedList<GenomeLoc>();
 
         for(GenomeLoc interval: intervals) {
             // if the next interval is too big, we can safely shard currentInterval and then break down this one
             if (interval.size() > targetShardSize) {
-                if (currentInterval != null)
-                    shards.add(createShardFromInterval(currentInterval, readsDataSource, parser));
-                currentInterval = interval;
-                while(currentInterval.size() > targetShardSize) {
-                    final GenomeLoc partialInterval = parser.createGenomeLoc(currentInterval.getContig(), currentInterval.getStart(), currentInterval.getStart()+targetShardSize-1);
-                    shards.add(createShardFromInterval(partialInterval, readsDataSource, parser));
-                    currentInterval = parser.createGenomeLoc(currentInterval.getContig(),currentInterval.getStart()+targetShardSize,currentInterval.getStop());
+                if (!currentIntervals.isEmpty())
+                    shards.add(createShardFromInterval(currentIntervals, readsDataSource, parser));
+                while(interval.size() > targetShardSize) {
+                    final GenomeLoc partialInterval = parser.createGenomeLoc(interval.getContig(), interval.getStart(), interval.getStart()+targetShardSize-1);
+                    shards.add(createShardFromInterval(Collections.singletonList(partialInterval), readsDataSource, parser));
+                    interval = parser.createGenomeLoc(interval.getContig(), interval.getStart() + targetShardSize, interval.getStop());
                 }
+                currentIntervals = new LinkedList<GenomeLoc>();
+                currentIntervals.add(interval);
             }
             // otherwise, we need to check whether we can merge this interval with currentInterval (and either shard currentInterval or merge accordingly)
             else {
-                if (currentInterval == null) {
-                    currentInterval = interval;
+                if (currentIntervals.isEmpty()) {
+                    currentIntervals.add(interval);
                 }
-                else if (currentInterval.compareContigs(interval) != 0 || interval.getStop() - currentInterval.getStart() + 1 > targetShardSize) {
-                    shards.add(createShardFromInterval(currentInterval, readsDataSource, parser));
-                    currentInterval = interval;
-                } else {
-                    currentInterval = parser.createGenomeLoc(currentInterval.getContig(),currentInterval.getStart(),interval.getStop());
+                else {
+                    if (currentIntervals.getLast().compareContigs(interval) != 0 || interval.getStop() - currentIntervals.getLast().getStart() + 1 > targetShardSize) {
+                        shards.add(createShardFromInterval(currentIntervals, readsDataSource, parser));
+                        currentIntervals = new LinkedList<GenomeLoc>();
+                    }
+                    currentIntervals.add(interval);
                 }
             }
         }
-        if (currentInterval != null)
-            shards.add(createShardFromInterval(currentInterval, readsDataSource, parser));
+        if (!currentIntervals.isEmpty())
+            shards.add(createShardFromInterval(currentIntervals, readsDataSource, parser));
         return shards;
     }
 
-    private static Shard createShardFromInterval(final GenomeLoc interval, final SAMDataSource readsDataSource, final GenomeLocParser parser) {
+    private static Shard createShardFromInterval(final List<GenomeLoc> intervals, final SAMDataSource readsDataSource, final GenomeLocParser parser) {
         //logger.debug("Adding shard " + interval);
         return new LocusShard(parser,
                 readsDataSource,
-                Collections.singletonList(interval),
+                intervals,
                 null);
     }
+*/
 }
