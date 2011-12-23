@@ -204,6 +204,11 @@ public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotatio
     }
 
     public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) {
+        throw new UserException("SnpEff support is currently disabled in the GATK until SnpEff 2.0.4 is officially released " +
+                                "due to a serious issue with SnpEff versions prior to 2.0.4. Please see this page for more details: " +
+                                "http://www.broadinstitute.org/gsa/wiki/index.php/Adding_Genomic_Annotations_Using_SnpEff_and_VariantAnnotator");
+
+        /*
         // Make sure that we actually have a valid SnpEff rod binding (just in case the user specified -A SnpEff
         // without providing a SnpEff rod via --snpEffFile):
         validateRodBinding(walker.getSnpEffRodBinding());
@@ -223,6 +228,7 @@ public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotatio
         // mistaken in the future for a SnpEff output file:
         headerLines.add(new VCFHeaderLine(OUTPUT_VCF_HEADER_VERSION_LINE_KEY, snpEffVersionLine.getValue()));
         headerLines.add(new VCFHeaderLine(OUTPUT_VCF_HEADER_COMMAND_LINE_KEY, snpEffCommandLine.getValue()));
+        */
     }
 
     public Map<String, Object> annotate ( RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
