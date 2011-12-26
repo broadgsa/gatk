@@ -26,7 +26,6 @@ package org.broadinstitute.sting.gatk.datasources.rmd;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
@@ -152,16 +151,6 @@ public class ReferenceOrderedDataSource {
      */
     public boolean matchesNameAndRecordType(String name, Type type) {
         return (name.equals(fileDescriptor.getName()) && (type.getClass().isAssignableFrom(getType().getClass())));
-    }
-
-    /**
-     * Seek to the specified position and return an iterator through the data.
-     * @param shard Shard that points to the selected position.
-     * @return Iterator through the data.
-     */
-    public LocationAwareSeekableRODIterator seek( Shard shard ) {
-        DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs().get(0)) : new EntireStream();
-        return iteratorPool.iterator(dataStreamSegment);
     }
 
     /**
