@@ -14,7 +14,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
 
-    @Test
+    @Test(enabled = false)
     public void testFunctionClassWithSnpeff() {
         WalkerTestSpec spec = new WalkerTestSpec(
                                 buildCommandLine(

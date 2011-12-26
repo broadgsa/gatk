@@ -145,7 +145,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void testSnpEffAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
@@ -157,7 +157,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         executeTest("Testing SnpEff annotations", spec);
     }
 
-    @Test
+    @Test(enabled = false)
     public void testSnpEffAnnotationsUnsupportedVersion() {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
