@@ -78,6 +78,9 @@
     <!-- snpEff annotator for pipelines -->
     <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.4rc3" />
 
+	<!-- Snappy support to work around a Picard bug -->
+	<dependency org="org.xerial.snappy" name="snappy-java" rev="1.0.3-rc3" />
+
     <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
     <exclude org="javax.servlet" />
     <exclude org="javax.jms" />
