@@ -286,7 +286,9 @@ public class ClippingOp {
     @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1"})
     private GATKSAMRecord hardClip (GATKSAMRecord read, int start, int stop) {
         if (start == 0 && stop == read.getReadLength() - 1)
-            return new GATKSAMRecord(read.getHeader());
+            return GATKSAMRecord.emptyRead(read);
+//            return new GATKSAMRecord(read.getHeader());
+
 
         // If the read is unmapped there is no Cigar string and neither should we create a new cigar string
         CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);

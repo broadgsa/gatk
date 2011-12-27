@@ -134,7 +134,8 @@ public class ReadClipper {
                 wasClipped = true;
                 ops.clear();
                 if ( clippedRead.isEmpty() )
-                    return new GATKSAMRecord( clippedRead.getHeader() );
+                    return GATKSAMRecord.emptyRead(clippedRead);
+//                    return new GATKSAMRecord( clippedRead.getHeader() );
                 return clippedRead;
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e); // this should never happen
@@ -186,7 +187,8 @@ public class ReadClipper {
                "start == 0 || stop == read.getReadLength() - 1"})  // cannot clip the middle of the read
     private GATKSAMRecord hardClipByReadCoordinates(int start, int stop) {
         if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
-            return new GATKSAMRecord(read.getHeader());
+            return GATKSAMRecord.emptyRead(read);
+//            return new GATKSAMRecord(read.getHeader());
 
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
@@ -210,13 +212,15 @@ public class ReadClipper {
                "right <= read.getAlignmentEnd()"}) // coordinate has to be within the mapped read
     private GATKSAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
         if (read.isEmpty() || left == right)
-            return new GATKSAMRecord(read.getHeader());
+            return GATKSAMRecord.emptyRead(read);
+//            return new GATKSAMRecord(read.getHeader());
         GATKSAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
 
         // after clipping one tail, it is possible that the consequent hard clipping of adjacent deletions
         // make the left cut index no longer part of the read. In that case, clip the read entirely.
         if (left > leftTailRead.getAlignmentEnd())
-            return new GATKSAMRecord(read.getHeader());
+            return GATKSAMRecord.emptyRead(read);
+//            return new GATKSAMRecord(read.getHeader());
 
         ReadClipper clipper = new ReadClipper(leftTailRead);
         return clipper.hardClipByReferenceCoordinatesLeftTail(left);
@@ -249,7 +253,8 @@ public class ReadClipper {
 
         // if the entire read should be clipped, then return an empty read.
         if (leftClipIndex > rightClipIndex)
-            return (new GATKSAMRecord(read.getHeader()));
+            return GATKSAMRecord.emptyRead(read);
+//            return (new GATKSAMRecord(read.getHeader()));
 
         if (rightClipIndex < read.getReadLength() - 1) {
             this.addOp(new ClippingOp(rightClipIndex + 1, read.getReadLength() - 1));
@@ -379,7 +384,8 @@ public class ReadClipper {
         int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
 
         if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
-            return new GATKSAMRecord(read.getHeader());
+            return GATKSAMRecord.emptyRead(read);
+//            return new GATKSAMRecord(read.getHeader());
 
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
