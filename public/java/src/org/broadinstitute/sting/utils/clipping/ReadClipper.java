@@ -151,7 +151,7 @@ public class ReadClipper {
      * @return a new read, without the left tail.
      */
     @Requires("!read.getReadUnmappedFlag()")  // can't handle unmapped reads, as we're using reference coordinates to clip
-    public GATKSAMRecord hardClipByReferenceCoordinatesLeftTail(int refStop) {
+    private GATKSAMRecord hardClipByReferenceCoordinatesLeftTail(int refStop) {
         return hardClipByReferenceCoordinates(-1, refStop);
     }
     public static GATKSAMRecord hardClipByReferenceCoordinatesLeftTail(GATKSAMRecord read, int refStop) {
@@ -168,7 +168,7 @@ public class ReadClipper {
      * @return a new read, without the right tail.
      */
     @Requires("!read.getReadUnmappedFlag()")  // can't handle unmapped reads, as we're using reference coordinates to clip
-    public GATKSAMRecord hardClipByReferenceCoordinatesRightTail(int refStart) {
+    private GATKSAMRecord hardClipByReferenceCoordinatesRightTail(int refStart) {
         return hardClipByReferenceCoordinates(refStart, -1);
     }
     public static GATKSAMRecord hardClipByReferenceCoordinatesRightTail(GATKSAMRecord read, int refStart) {
@@ -184,7 +184,7 @@ public class ReadClipper {
      */
     @Requires({"start >= 0 && stop <= read.getReadLength() - 1",   // start and stop have to be within the read
                "start == 0 || stop == read.getReadLength() - 1"})  // cannot clip the middle of the read
-    public GATKSAMRecord hardClipByReadCoordinates(int start, int stop) {
+    private GATKSAMRecord hardClipByReadCoordinates(int start, int stop) {
         if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
             return new GATKSAMRecord(read.getHeader());
 
@@ -208,7 +208,7 @@ public class ReadClipper {
     @Requires({"left <= right",                    // tails cannot overlap
                "left >= read.getAlignmentStart()", // coordinate has to be within the mapped read
                "right <= read.getAlignmentEnd()"}) // coordinate has to be within the mapped read
-    public GATKSAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
+    private GATKSAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
         if (read.isEmpty() || left == right)
             return new GATKSAMRecord(read.getHeader());
         GATKSAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
@@ -235,7 +235,7 @@ public class ReadClipper {
      * @param lowQual every base quality lower than or equal to this in the tail of the read will be hard clipped
      * @return a new read without low quality tails
      */
-    public GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
+    private GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
         if (read.isEmpty())
             return read;
 
@@ -269,7 +269,7 @@ public class ReadClipper {
      *
      * @return a new read without the soft clipped bases
      */
-    public GATKSAMRecord hardClipSoftClippedBases () {
+    private GATKSAMRecord hardClipSoftClippedBases () {
         if (read.isEmpty())
             return read;
 
@@ -314,7 +314,7 @@ public class ReadClipper {
      *
      * @return a new read without adaptor sequence
      */
-    public GATKSAMRecord hardClipAdaptorSequence () {
+    private GATKSAMRecord hardClipAdaptorSequence () {
         final Integer adaptorBoundary = ReadUtils.getAdaptorBoundary(read);
 
         if (adaptorBoundary == null || !ReadUtils.isInsideRead(read, adaptorBoundary))
@@ -332,7 +332,7 @@ public class ReadClipper {
      *
      * @return a new read without leading insertions
      */
-    public GATKSAMRecord hardClipLeadingInsertions() {
+    private GATKSAMRecord hardClipLeadingInsertions() {
         if (read.isEmpty())
             return read;
 
@@ -357,7 +357,7 @@ public class ReadClipper {
      *
      * @return a new read with every soft clip turned into a match
      */
-    public GATKSAMRecord revertSoftClippedBases() {
+    private GATKSAMRecord revertSoftClippedBases() {
         this.addOp(new ClippingOp(0, 0));     // UNSOFTCLIP_BASES doesn't need coordinates
         return this.clipRead(ClippingRepresentation.REVERT_SOFTCLIPPED_BASES);
     }
