@@ -45,7 +45,6 @@ import java.util.Map;
  */
 public class GATKSAMRecord extends BAMRecord {
     public static final String REDUCED_READ_CONSENSUS_TAG = "RR";
-    public static final String REDUCED_READ_FILTERED_TAG = "RF";
 
     // the SAMRecord data we're caching
     private String mReadString = null;
