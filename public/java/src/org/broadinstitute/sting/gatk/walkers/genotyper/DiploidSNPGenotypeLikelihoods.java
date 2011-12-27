@@ -275,19 +275,22 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         byte obsBase = elt.getBase();
         byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
+        if ( qual == 0 )
+            return 0;
 
         if ( elt.isReducedRead() ) {
             // reduced read representation
             if ( BaseUtils.isRegularBase( obsBase )) {
-                add(obsBase, qual, (byte)0, (byte)0, elt.getRepresentativeCount()); // fast calculation of n identical likelihoods
-                return elt.getRepresentativeCount(); // we added nObs bases here
+                int representativeCount = elt.getRepresentativeCount();
+                add(obsBase, qual, (byte)0, (byte)0, representativeCount); // fast calculation of n identical likelihoods
+                return representativeCount; // we added nObs bases here
             }
 
             // odd bases or deletions => don't use them
             return 0;
         }
 
-        return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0, 1) : 0;
+        return add(obsBase, qual, (byte)0, (byte)0, 1);
     }
 
     public int add(List<PileupElement> overlappingPair, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
@@ -519,7 +522,7 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         if ( qual > SAMUtils.MAX_PHRED_SCORE )
             throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
         if ( capBaseQualsAtMappingQual )
-            qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
+            qual = (byte)Math.min((int)qual, p.getMappingQual());
         if ( (int)qual < minBaseQual )
             qual = (byte)0;
 
