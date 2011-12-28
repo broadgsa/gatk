@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import com.google.java.contract.Ensures;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
@@ -277,7 +276,6 @@ public class GATKSAMRecord extends BAMRecord {
      *
      * @return the unclipped start of the read taking soft clips (but not hard clips) into account
      */
-    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
     public int getSoftStart() {
         int start = this.getUnclippedStart();
         for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
@@ -286,17 +284,17 @@ public class GATKSAMRecord extends BAMRecord {
             else
                 break;
         }
+
         return start;
     }
 
     /**
      * Calculates the reference coordinate for the end of the read taking into account soft clips but not hard clips.
      *
-     * Note: getUnclippedStart() adds soft and hard clips, this function only adds soft clips.
+     * Note: getUnclippedEnd() adds soft and hard clips, this function only adds soft clips.
      *
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
-    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
     public int getSoftEnd() {
         int stop = this.getUnclippedStart();
 
@@ -313,6 +311,7 @@ public class GATKSAMRecord extends BAMRecord {
             else
                 shift = 0;
         }
+
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
     }
 

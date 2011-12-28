@@ -238,7 +238,7 @@ public class ArtificialSAMUtils {
      */
     public static GATKSAMRecord createArtificialRead( byte[] bases, byte[] qual, String cigar ) {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
-        return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 1, bases, qual, cigar);
+        return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 10000, bases, qual, cigar);
     }
 
 
