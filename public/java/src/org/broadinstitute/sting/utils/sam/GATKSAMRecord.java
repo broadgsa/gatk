@@ -45,7 +45,6 @@ import java.util.Map;
  */
 public class GATKSAMRecord extends BAMRecord {
     public static final String REDUCED_READ_CONSENSUS_TAG = "RR";
-    public static final String REDUCED_READ_FILTERED_TAG = "RF";
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -317,6 +316,46 @@ public class GATKSAMRecord extends BAMRecord {
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
     }
 
+    /**
+     * Creates an empty GATKSAMRecord with the read's header, read group and mate
+     * information, but empty (not-null) fields:
+     *  - Cigar String
+     *  - Read Bases
+     *  - Base Qualities
+     *
+     * Use this method if you want to create a new empty GATKSAMRecord based on
+     * another GATKSAMRecord
+     *
+     * @param read
+     * @return
+     */
+    public static GATKSAMRecord emptyRead(GATKSAMRecord read) {
+        GATKSAMRecord emptyRead = new GATKSAMRecord(read.getHeader(),
+                read.getReferenceIndex(),
+                0,
+                (short) 0,
+                (short) 0,
+                0,
+                0,
+                read.getFlags(),
+                0,
+                read.getMateReferenceIndex(),
+                read.getMateAlignmentStart(),
+                read.getInferredInsertSize(),
+                null);
 
+        emptyRead.setCigarString("");
+        emptyRead.setReadBases(new byte[0]);
+        emptyRead.setBaseQualities(new byte[0]);
+
+        SAMReadGroupRecord samRG = read.getReadGroup();
+        emptyRead.clearAttributes();
+        if (samRG != null) {
+            GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(samRG);
+            emptyRead.setReadGroup(rg);
+        }
+
+        return emptyRead;
+    }
 
 }
