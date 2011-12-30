@@ -227,7 +227,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L 1:10,000,000-10,500,000",
                 1,
-                Arrays.asList("d87ce4b405d4f7926d1c36aee7053975"));
+                Arrays.asList("b11df6587e4e16cb819d76a900446946"));
 
         executeTest(String.format("test indel caller in SLX"), spec);
     }
@@ -255,7 +255,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                          " -o %s" +
                          " -L 1:10,000,000-10,500,000",
                  1,
-                 Arrays.asList("c5989e5d67d9e5fe8c5c956f12a975da"));
+                 Arrays.asList("59068bc8888ad5f08790946066d76602"));
 
          executeTest(String.format("test indel calling, multiple technologies"), spec);
      }
@@ -265,7 +265,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("daca0741278de32e507ad367e67753b6"));
+                Arrays.asList("fa4f3ee67d98b64102a8a3ec81a3bc81"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in", spec1);
     }
 
@@ -275,7 +275,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 baseCommandIndels + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles "
                         + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("0ccc4e876809566510429c64adece2c7"));
+                Arrays.asList("df90890e43d735573a3b3e4f289ca46b"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in and emitting all sites", spec2);
     }
 

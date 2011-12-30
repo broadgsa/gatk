@@ -5,11 +5,11 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Arrays;
-import java.util.List;
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     static HashMap<String, String> paramsFiles = new HashMap<String, String>();
@@ -32,10 +32,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @DataProvider(name = "cctestdata")
     public Object[][] createCCTestData() {
 
-        new CCTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "9469d6b65880abe4e5babc1c1a69889d" );
+        new CCTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "ab4940a16ab990181bd8368c76b23853" );
         new CCTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "17d4b8001c982a70185e344929cf3941");
         new CCTest( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "36c0c467b6245c2c6c4e9c956443a154" );
-        new CCTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "ed15f8bf03bb2ea9b7c26844be829c0d" );
+        new CCTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "955a8fa2ddb2b04c406766ccd9ac45cc" );
         return CCTest.getTests(CCTest.class);
     }
 
@@ -89,10 +89,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "trtestdata")
     public Object[][] createTRTestData() {
-        new TRTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "f020725d9f75ad8f1c14bfae056e250f" );
+        new TRTest( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0b7123ae9f4155484b68e4a4f96c5504" );
         new TRTest( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "d04cf1f6df486e45226ebfbf93a188a5");
         new TRTest( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "b2f4757bc47cf23bd9a09f756c250787" );
-        new TRTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "313a21a8a88e3460b6e71ec5ffc50f0f" );
+        new TRTest( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "502c7df4d4923c4d078b014bf78bed34" );
 
         return TRTest.getTests(TRTest.class);
     }
@@ -123,7 +123,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesUseOriginalQuals() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "bd8288b1fc7629e2e8c2cf7f65fefa8f");
+        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "0b88d0e8c97e83bdeee2064b6730abff");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -147,7 +147,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorMaxQ70() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "f020725d9f75ad8f1c14bfae056e250f" );
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0b7123ae9f4155484b68e4a4f96c5504" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -176,7 +176,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "1f643bca090478ba68aac88db835a629" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "8379f24cf5312587a1f92c162ecc220f" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -230,7 +230,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesBED() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "b00e99219aeafe2516c6232b7d6a0a00");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "7e973328751d233653530245d404a64d");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -254,7 +254,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesVCFPlusDBsnp() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "7b92788ce92f49415af3a75a2e4a2b33");
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "fd9e37879069aa6d84436c25e472b9e9");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -282,7 +282,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "f34f7141351a5dbf9664c67260f94e96" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "828d247c6e8ef5ebdf3603dc0ce79f61" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();

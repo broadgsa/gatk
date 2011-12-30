@@ -29,12 +29,10 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
         String gatk_args = "-T Pileup -I " + validationDataLocation + "OV-0930.normal.chunk.bam "
                  + "-R " + hg18Reference
                 + " -show_indels -o %s";
-        String expected_md5="da2a02d02abac9de14cc4b187d8595a1";
+        String expected_md5="06eedc2e7927650961d99d703f4301a4";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args,1,Arrays.asList(expected_md5));
         executeTest("Testing the extended pileup with indel records included on a small chunk of Ovarian dataset with 20 indels (1 D, 19 I)", spec);
 
-        // before Adaptor clipping
-        //        String expected_md5="06eedc2e7927650961d99d703f4301a4";
 
     }
 }

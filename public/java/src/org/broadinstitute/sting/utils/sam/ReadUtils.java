@@ -184,12 +184,12 @@ public class ReadUtils {
      * in these cases the adaptor boundary is at the start of the read plus the inferred insert size (plus one)
      *
      * @param read the read being tested for the adaptor boundary
-     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the insert size cannot be determined (and is necessary for the calculation).
+     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the mate is mapped to another contig.
      */
     public static Integer getAdaptorBoundary(final SAMRecord read) {
         final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
 
-        if (insertSize == 0 || read.getReadUnmappedFlag())              // no adaptors in reads with mates in another
+        if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another
             return null;                                                  // chromosome or unmapped pairs
 
         int adaptorBoundary;                                              // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)

@@ -32,13 +32,13 @@ import java.util.Arrays;
 public class CallableLociWalkerIntegrationTest extends WalkerTest {
     final static String commonArgs = "-R " + b36KGReference + " -T CallableLoci -I " + validationDataLocation + "/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s";
 
-    final static String SUMMARY_MD5 = "cd597a8dae35c226a2cb110b1c9f32d5";
+    final static String SUMMARY_MD5 = "ffdbd9cdcb4169ebed5ae4bec797260f";
 
     @Test
     public void testCallableLociWalkerBed() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("c86ac1ef404c11d5e5452e020c8f7ce9", SUMMARY_MD5));
+                Arrays.asList("9e4ec9c23f21a8162d27a39ab057398c", SUMMARY_MD5));
         executeTest("formatBed", spec);
     }
 
@@ -46,7 +46,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalkerPerBase() {
         String gatk_args = commonArgs + " -format STATE_PER_BASE -L 1:10,000,000-11,000,000 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("d8536a55fe5f6fdb1ee6c9511082fdfd", SUMMARY_MD5));
+                Arrays.asList("e6044b4495ef24f542403e6a94437068", SUMMARY_MD5));
         executeTest("format_state_per_base", spec);
     }
     
@@ -62,7 +62,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalker3() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("bc966060184bf4605a31da7fe383464e", "d624eda8f6ed14b9251ebeec73e37867"));
+                Arrays.asList("4496551d4493857e5153d8172965e527", "b0667e31af9aec02eaf73ca73ec16937"));
         executeTest("formatBed lots of arguments", spec);
     }
 }
