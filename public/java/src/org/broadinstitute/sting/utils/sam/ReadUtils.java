@@ -43,7 +43,8 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
-    private ReadUtils() { }
+    private ReadUtils() {
+    }
 
     private static int DEFAULT_ADAPTOR_SIZE = 100;
 
@@ -57,10 +58,11 @@ public class ReadUtils {
 
     /**
      * A HashMap of the SAM spec read flag names
-     *
+     * <p/>
      * Note: This is not being used right now, but can be useful in the future
      */
     private static final Map<Integer, String> readFlagNames = new HashMap<Integer, String>();
+
     static {
         readFlagNames.put(0x1, "Paired");
         readFlagNames.put(0x2, "Proper");
@@ -77,47 +79,49 @@ public class ReadUtils {
 
     /**
      * This enum represents all the different ways in which a read can overlap an interval.
-     *
+     * <p/>
      * NO_OVERLAP_CONTIG:
      * read and interval are in different contigs.
-     *
+     * <p/>
      * NO_OVERLAP_LEFT:
      * the read does not overlap the interval.
-     *
-     *                        |----------------| (interval)
-     *   <---------------->                      (read)
-     *
+     * <p/>
+     * |----------------| (interval)
+     * <---------------->                      (read)
+     * <p/>
      * NO_OVERLAP_RIGHT:
      * the read does not overlap the interval.
-     *
-     *   |----------------|                      (interval)
-     *                        <----------------> (read)
-     *
+     * <p/>
+     * |----------------|                      (interval)
+     * <----------------> (read)
+     * <p/>
      * OVERLAP_LEFT:
      * the read starts before the beginning of the interval but ends inside of it
-     *
-     *          |----------------| (interval)
-     *   <---------------->        (read)
-     *
+     * <p/>
+     * |----------------| (interval)
+     * <---------------->        (read)
+     * <p/>
      * OVERLAP_RIGHT:
      * the read starts inside the interval but ends outside of it
-     *
-     *   |----------------|     (interval)
-     *       <----------------> (read)
-     *
+     * <p/>
+     * |----------------|     (interval)
+     * <----------------> (read)
+     * <p/>
      * OVERLAP_LEFT_AND_RIGHT:
      * the read starts before the interval and ends after the interval
-     *
-     *      |-----------|     (interval)
-     *  <-------------------> (read)
-     *
+     * <p/>
+     * |-----------|     (interval)
+     * <-------------------> (read)
+     * <p/>
      * OVERLAP_CONTAINED:
      * the read starts and ends inside the interval
-     *
-     *  |----------------|     (interval)
-     *     <-------->          (read)
+     * <p/>
+     * |----------------|     (interval)
+     * <-------->          (read)
      */
-    public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
+    public enum ReadAndIntervalOverlap {
+        NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED
+    }
 
     /**
      * Creates a SAMFileWriter with the given compression level if you request a bam file. Creates a regular
@@ -137,15 +141,15 @@ public class ReadUtils {
 
     /**
      * is this base inside the adaptor of the read?
-     *
+     * <p/>
      * There are two cases to treat here:
-     *
+     * <p/>
      * 1) Read is in the negative strand => Adaptor boundary is on the left tail
      * 2) Read is in the positive strand => Adaptor boundary is on the right tail
-     *
+     * <p/>
      * Note: We return false to all reads that are UNMAPPED or have an weird big insert size (probably due to mismapping or bigger event)
      *
-     * @param read the read to test
+     * @param read    the read to test
      * @param basePos base position in REFERENCE coordinates (not read coordinates)
      * @return whether or not the base is in the adaptor
      */
@@ -162,39 +166,37 @@ public class ReadUtils {
      * the read boundary. If the read is in the positive strand, this is the first base after the end of the
      * fragment (Picard calls it 'insert'), if the read is in the negative strand, this is the first base before the
      * beginning of the fragment.
-     *
+     * <p/>
      * There are two cases we need to treat here:
-     *
+     * <p/>
      * 1) Our read is in the reverse strand :
-     *
-     *     <----------------------| *
-     *   |--------------------->
-     *
-     *   in these cases, the adaptor boundary is at the mate start (minus one)
-     *
+     * <p/>
+     * <----------------------| *
+     * |--------------------->
+     * <p/>
+     * in these cases, the adaptor boundary is at the mate start (minus one)
+     * <p/>
      * 2) Our read is in the forward strand :
-     *
-     *   |---------------------->   *
-     *     <----------------------|
-     *
-     *   in these cases the adaptor boundary is at the start of the read plus the inferred insert size (plus one)
+     * <p/>
+     * |---------------------->   *
+     * <----------------------|
+     * <p/>
+     * in these cases the adaptor boundary is at the start of the read plus the inferred insert size (plus one)
      *
      * @param read the read being tested for the adaptor boundary
      * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the insert size cannot be determined (and is necessary for the calculation).
      */
     public static Integer getAdaptorBoundary(final SAMRecord read) {
-        if ( read.getReadUnmappedFlag() )
-            return null;                                             // don't worry about unmapped pairs
+        final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
 
-        final int isize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
-        int adaptorBoundary;                                         // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
+        if (insertSize == 0 || read.getReadUnmappedFlag())              // no adaptors in reads with mates in another
+            return null;                                                  // chromosome or unmapped pairs
 
-        if ( read.getReadNegativeStrandFlag() )
-            adaptorBoundary = read.getMateAlignmentStart() - 1;      // case 1 (see header)
-        else if (isize > 0)
-            adaptorBoundary = read.getAlignmentStart() + isize + 1;  // case 2 (see header)
+        int adaptorBoundary;                                              // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
+        if (read.getReadNegativeStrandFlag())
+            adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
         else
-            return null;                                             // this is a case 2 where for some reason we cannot estimate the insert size
+            adaptorBoundary = read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
 
         return adaptorBoundary;
     }
@@ -262,14 +264,15 @@ public class ReadUtils {
 
     /**
      * If a read starts in INSERTION, returns the first element length.
-     *
+     * <p/>
      * Warning: If the read has Hard or Soft clips before the insertion this function will return 0.
+     *
      * @param read
      * @return the length of the first insertion, or 0 if there is none (see warning).
      */
     public final static int getFirstInsertionOffset(SAMRecord read) {
         CigarElement e = read.getCigar().getCigarElement(0);
-        if ( e.getOperator() == CigarOperator.I )
+        if (e.getOperator() == CigarOperator.I)
             return e.getLength();
         else
             return 0;
@@ -277,14 +280,15 @@ public class ReadUtils {
 
     /**
      * If a read ends in INSERTION, returns the last element length.
-     *
+     * <p/>
      * Warning: If the read has Hard or Soft clips after the insertion this function will return 0.
+     *
      * @param read
      * @return the length of the last insertion, or 0 if there is none (see warning).
      */
     public final static int getLastInsertionOffset(SAMRecord read) {
         CigarElement e = read.getCigar().getCigarElement(read.getCigarLength() - 1);
-        if ( e.getOperator() == CigarOperator.I )
+        if (e.getOperator() == CigarOperator.I)
             return e.getLength();
         else
             return 0;
@@ -293,7 +297,8 @@ public class ReadUtils {
     /**
      * Determines what is the position of the read in relation to the interval.
      * Note: This function uses the UNCLIPPED ENDS of the reads for the comparison.
-     * @param read the read
+     *
+     * @param read     the read
      * @param interval the interval
      * @return the overlap type as described by ReadAndIntervalOverlap enum (see above)
      */
@@ -304,30 +309,30 @@ public class ReadUtils {
         int uStart = read.getUnclippedStart();
         int uStop = read.getUnclippedEnd();
 
-        if ( !read.getReferenceName().equals(interval.getContig()) )
+        if (!read.getReferenceName().equals(interval.getContig()))
             return ReadAndIntervalOverlap.NO_OVERLAP_CONTIG;
 
-        else if ( uStop < interval.getStart() )
+        else if (uStop < interval.getStart())
             return ReadAndIntervalOverlap.NO_OVERLAP_LEFT;
 
-        else if ( uStart > interval.getStop() )
+        else if (uStart > interval.getStop())
             return ReadAndIntervalOverlap.NO_OVERLAP_RIGHT;
 
-        else if ( sStop < interval.getStart() )
+        else if (sStop < interval.getStart())
             return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_LEFT;
 
-        else if ( sStart > interval.getStop() )
+        else if (sStart > interval.getStop())
             return ReadAndIntervalOverlap.NO_OVERLAP_HARDCLIPPED_RIGHT;
 
-        else if ( (sStart >= interval.getStart()) &&
-                  (sStop <= interval.getStop()) )
+        else if ((sStart >= interval.getStart()) &&
+                (sStop <= interval.getStop()))
             return ReadAndIntervalOverlap.OVERLAP_CONTAINED;
 
-        else if ( (sStart < interval.getStart()) &&
-                  (sStop > interval.getStop()) )
+        else if ((sStart < interval.getStart()) &&
+                (sStop > interval.getStop()))
             return ReadAndIntervalOverlap.OVERLAP_LEFT_AND_RIGHT;
 
-        else if ( (sStart < interval.getStart()) )
+        else if ((sStart < interval.getStart()))
             return ReadAndIntervalOverlap.OVERLAP_LEFT;
 
         else
@@ -359,12 +364,12 @@ public class ReadUtils {
 
     /**
      * Returns the read coordinate corresponding to the requested reference coordinate.
-     *
+     * <p/>
      * WARNING: if the requested reference coordinate happens to fall inside a deletion in the read, this function
      * will return the last read base before the deletion. This function returns a
      * Pair(int readCoord, boolean fallsInsideDeletion) so you can choose which readCoordinate to use when faced with
      * a deletion.
-     *
+     * <p/>
      * SUGGESTION: Use getReadCoordinateForReferenceCoordinate(GATKSAMRecord, int, ClippingTail) instead to get a
      * pre-processed result according to normal clipping needs. Or you can use this function and tailor the
      * behavior to your needs.
@@ -403,7 +408,7 @@ public class ReadUtils {
 
             if (goalReached) {
                 // Is this base's reference position within this cigar element? Or did we use it all?
-                boolean endsWithinCigar = shift <  cigarElement.getLength();
+                boolean endsWithinCigar = shift < cigarElement.getLength();
 
                 // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
                 // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
@@ -416,7 +421,7 @@ public class ReadUtils {
                 if (endsWithinCigar)
                     fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
 
-                // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
+                    // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
                 else {
                     nextCigarElement = cigarElementIterator.next();
 
@@ -437,21 +442,21 @@ public class ReadUtils {
                 if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
                     readBases += shift;
 
-                // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
-                // to add the shift of the current cigar element but go back to it's last element to return the last
-                // base before the deletion (see warning in function contracts)
+                    // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
+                    // to add the shift of the current cigar element but go back to it's last element to return the last
+                    // base before the deletion (see warning in function contracts)
                 else if (fallsInsideDeletion && !endsWithinCigar)
                     readBases += shift - 1;
 
-                // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
+                    // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
                 else if (fallsInsideDeletion && endsWithinCigar)
                     readBases--;
-                }
             }
+        }
 
-            if (!goalReached)
-                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
-        
+        if (!goalReached)
+            throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+
 
         return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
@@ -460,7 +465,7 @@ public class ReadUtils {
      * Compares two SAMRecords only the basis on alignment start.  Note that
      * comparisons are performed ONLY on the basis of alignment start; any
      * two SAM records with the same alignment start will be considered equal.
-     *
+     * <p/>
      * Unmapped alignments will all be considered equal.
      */
 
@@ -474,7 +479,7 @@ public class ReadUtils {
     /**
      * Is a base inside a read?
      *
-     * @param read the read to evaluate
+     * @param read                the read to evaluate
      * @param referenceCoordinate the reference coordinate of the base to test
      * @return true if it is inside the read, false otherwise.
      */
@@ -495,8 +500,6 @@ public class ReadUtils {
         }
         return true;
     }
-
-
 
 
 }
