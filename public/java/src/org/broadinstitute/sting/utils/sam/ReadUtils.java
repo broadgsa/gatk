@@ -29,6 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -531,4 +532,116 @@ public class ReadUtils {
         return new Pair<Boolean, CigarElement>(false, null);
     }
 
+    /**
+     * Returns the coverage distribution of a list of reads within the desired region.
+     *
+     * See getCoverageDistributionOfRead for information on how the coverage is calculated.
+     *
+     * @param list the list of reads covering the region
+     * @param startLocation the first reference coordinate of the region (inclusive)
+     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @return an array with the coverage of each position from startLocation to stopLocation
+     */
+    public static int [] getCoverageDistributionOfReads(List<GATKSAMRecord> list, int startLocation, int stopLocation) {
+        int [] totalCoverage = new int[stopLocation - startLocation + 1];
+
+        for (GATKSAMRecord read : list) {
+            int [] readCoverage = getCoverageDistributionOfRead(read, startLocation, stopLocation);
+            totalCoverage = MathUtils.addArrays(totalCoverage, readCoverage);
+        }
+
+        return totalCoverage;
+    }
+
+    /**
+     * Returns the coverage distribution of a single read within the desired region.
+     *
+     * Note: This function counts DELETIONS as coverage (since the main purpose is to downsample
+     * reads for variant regions, and deletions count as variants)
+     *
+     * @param read the read to get the coverage distribution of
+     * @param startLocation the first reference coordinate of the region (inclusive)
+     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @return an array with the coverage of each position from startLocation to stopLocation
+     */
+    public static int [] getCoverageDistributionOfRead(GATKSAMRecord read, int startLocation, int stopLocation) {
+        int [] coverage = new int[stopLocation - startLocation + 1];
+        int refLocation = read.getSoftStart();
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            switch (cigarElement.getOperator()) {
+                case S:
+                case M:
+                case EQ:
+                case N:
+                case X:
+                case D:
+                    for (int i = 0; i < cigarElement.getLength(); i++) {
+                        if (refLocation >= startLocation && refLocation <= stopLocation) {
+                            int baseCount = read.isReducedRead() ? read.getReducedCount(refLocation - read.getSoftStart()) : 1;
+                            coverage[refLocation - startLocation] += baseCount;   // this may be a reduced read, so add the proper number of bases
+                        }
+                        refLocation++;
+                    }
+                    break;
+
+                case P:
+                case I:
+                case H:
+                    break;
+            }
+
+            if (refLocation > stopLocation)
+                break;
+        }
+        return coverage;
+    }
+
+    /**
+     * Makes association maps for the reads and loci coverage as described below :
+     *
+     *  - First: locusToReadMap -- a HashMap that describes for each locus, which reads contribute to its coverage.
+     *    Note: Locus is in reference coordinates.
+     *    Example: Locus => {read1, read2, ..., readN}
+     *
+     *  - Second: readToLocusMap -- a HashMap that describes for each read what loci it contributes to the coverage.
+     *    Note: Locus is a boolean array, indexed from 0 (= startLocation) to N (= stopLocation), with true meaning it contributes to the coverage.
+     *    Example: Read => {true, true, false, ... false}
+     *
+     * @param readList the list of reads to generate the association mappings
+     * @param startLocation the first reference coordinate of the region (inclusive)
+     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @return the two hashmaps described above
+     */
+    public static Pair<HashMap<Integer, HashSet<GATKSAMRecord>> , HashMap<GATKSAMRecord, Boolean[]>> getBothReadToLociMappings (List<GATKSAMRecord> readList, int startLocation, int stopLocation) {
+        int arraySize = stopLocation - startLocation + 1;
+
+        HashMap<Integer, HashSet<GATKSAMRecord>> locusToReadMap = new HashMap<Integer, HashSet<GATKSAMRecord>>(2*(stopLocation - startLocation + 1), 0.5f);
+        HashMap<GATKSAMRecord, Boolean[]> readToLocusMap = new HashMap<GATKSAMRecord, Boolean[]>(2*readList.size(), 0.5f);
+
+
+        for (int i = startLocation; i <= stopLocation; i++)
+            locusToReadMap.put(i, new HashSet<GATKSAMRecord>()); // Initialize the locusToRead map with empty lists
+
+        for (GATKSAMRecord read : readList) {
+            readToLocusMap.put(read, new Boolean[arraySize]);       // Initialize the readToLocus map with empty arrays
+
+            int [] readCoverage = getCoverageDistributionOfRead(read, startLocation, stopLocation);
+
+            for (int i=0; i<readCoverage.length; i++) {
+                int refLocation = i + startLocation;
+                if (readCoverage[i] > 0) {
+                    // Update the hash for this locus
+                    HashSet<GATKSAMRecord> readSet = locusToReadMap.get(refLocation);
+                    readSet.add(read);
+
+                    // Add this locus to the read hash
+                    readToLocusMap.get(read)[refLocation - startLocation] = true;
+                }
+                else
+                    // Update the boolean array with a 'no coverage' from this read to this locus
+                    readToLocusMap.get(read)[refLocation-startLocation] = false;
+            }
+        }
+        return new Pair<HashMap<Integer, HashSet<GATKSAMRecord>>, HashMap<GATKSAMRecord, Boolean[]>>(locusToReadMap, readToLocusMap);
+    }
 }

@@ -183,6 +183,12 @@ public class GATKSAMRecord extends BAMRecord {
         return getReducedReadCounts() != null;
     }
 
+    /**
+     * The number of bases corresponding the i'th base of the reduced read.
+     *
+     * @param i the read based coordinate inside the read
+     * @return the number of bases corresponding to the i'th base of the reduced read
+     */
     public final byte getReducedCount(final int i) {
         byte firstCount = getReducedReadCounts()[0];
         byte offsetCount = getReducedReadCounts()[i];
