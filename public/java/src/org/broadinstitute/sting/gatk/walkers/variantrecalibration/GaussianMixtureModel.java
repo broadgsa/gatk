@@ -52,6 +52,7 @@ public class GaussianMixtureModel {
     private final double[] empiricalMu;
     private final Matrix empiricalSigma;
     public boolean isModelReadyForEvaluation;
+    public boolean failedToConverge = false;
 
     public GaussianMixtureModel( final int numGaussians, final int numAnnotations,
                                  final double shrinkage, final double dirichletParameter, final double priorCounts ) {

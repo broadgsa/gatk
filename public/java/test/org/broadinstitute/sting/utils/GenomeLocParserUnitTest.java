@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils;
 
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -11,6 +10,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /**
@@ -36,7 +36,6 @@ public class GenomeLocParserUnitTest extends BaseTest {
 
     @Test
     public void testGetContigIndexValid() {
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         assertEquals(genomeLocParser.getContigIndex("chr1"), 0); // should be in the reference
     }
 
@@ -67,7 +66,6 @@ public class GenomeLocParserUnitTest extends BaseTest {
 
     @Test
     public void testGetContigInfoKnownContig() {
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         assertEquals(0, "chr1".compareTo(genomeLocParser.getContigInfo("chr1").getSequenceName())); // should be in the reference
     }
 
@@ -190,5 +188,105 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",-1,10)); // bad start
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,-2)); // bad stop
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",10,11)); // bad start, past end
+    }
+
+    private static class FlankingGenomeLocTestData extends TestDataProvider {
+        final GenomeLocParser parser;
+        final int basePairs;
+        final GenomeLoc original, flankStart, flankStop;
+
+        private FlankingGenomeLocTestData(String name, GenomeLocParser parser, int basePairs, String original, String flankStart, String flankStop) {
+            super(FlankingGenomeLocTestData.class, name);
+            this.parser = parser;
+            this.basePairs = basePairs;
+            this.original = parse(parser, original);
+            this.flankStart = flankStart == null ? null : parse(parser, flankStart);
+            this.flankStop = flankStop == null ? null : parse(parser, flankStop);
+        }
+
+        private static GenomeLoc parse(GenomeLocParser parser, String str) {
+            return "unmapped".equals(str) ? GenomeLoc.UNMAPPED : parser.parseGenomeLoc(str);
+        }
+    }
+
+    @DataProvider(name = "flankingGenomeLocs")
+    public Object[][] getFlankingGenomeLocs() {
+        int contigLength = 10000;
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, contigLength);
+        GenomeLocParser parser = new GenomeLocParser(header.getSequenceDictionary());
+
+        new FlankingGenomeLocTestData("atStartBase1", parser, 1,
+                "chr1:1", null, "chr1:2");
+
+        new FlankingGenomeLocTestData("atStartBase50", parser, 50,
+                "chr1:1", null, "chr1:2-51");
+
+        new FlankingGenomeLocTestData("atStartRange50", parser, 50,
+                "chr1:1-10", null, "chr1:11-60");
+
+        new FlankingGenomeLocTestData("atEndBase1", parser, 1,
+                "chr1:" + contigLength, "chr1:" + (contigLength - 1), null);
+
+        new FlankingGenomeLocTestData("atEndBase50", parser, 50,
+                "chr1:" + contigLength, String.format("chr1:%d-%d", contigLength - 50, contigLength - 1), null);
+
+        new FlankingGenomeLocTestData("atEndRange50", parser, 50,
+                String.format("chr1:%d-%d", contigLength - 10, contigLength),
+                String.format("chr1:%d-%d", contigLength - 60, contigLength - 11),
+                null);
+
+        new FlankingGenomeLocTestData("nearStartBase1", parser, 1,
+                "chr1:2", "chr1:1", "chr1:3");
+
+        new FlankingGenomeLocTestData("nearStartRange50", parser, 50,
+                "chr1:21-30", "chr1:1-20", "chr1:31-80");
+
+        new FlankingGenomeLocTestData("nearEndBase1", parser, 1,
+                "chr1:" + (contigLength - 1), "chr1:" + (contigLength - 2), "chr1:" + contigLength);
+
+        new FlankingGenomeLocTestData("nearEndRange50", parser, 50,
+                String.format("chr1:%d-%d", contigLength - 30, contigLength - 21),
+                String.format("chr1:%d-%d", contigLength - 80, contigLength - 31),
+                String.format("chr1:%d-%d", contigLength - 20, contigLength));
+
+        new FlankingGenomeLocTestData("beyondStartBase1", parser, 1,
+                "chr1:3", "chr1:2", "chr1:4");
+
+        new FlankingGenomeLocTestData("beyondStartRange50", parser, 50,
+                "chr1:101-200", "chr1:51-100", "chr1:201-250");
+
+        new FlankingGenomeLocTestData("beyondEndBase1", parser, 1,
+                "chr1:" + (contigLength - 3),
+                "chr1:" + (contigLength - 4),
+                "chr1:" + (contigLength - 2));
+
+        new FlankingGenomeLocTestData("beyondEndRange50", parser, 50,
+                String.format("chr1:%d-%d", contigLength - 200, contigLength - 101),
+                String.format("chr1:%d-%d", contigLength - 250, contigLength - 201),
+                String.format("chr1:%d-%d", contigLength - 100, contigLength - 51));
+
+        new FlankingGenomeLocTestData("unmapped", parser, 50,
+                "unmapped", null, null);
+
+        new FlankingGenomeLocTestData("fullContig", parser, 50,
+                "chr1", null, null);
+
+        return FlankingGenomeLocTestData.getTests(FlankingGenomeLocTestData.class);
+    }
+
+    @Test(dataProvider = "flankingGenomeLocs")
+    public void testCreateGenomeLocAtStart(FlankingGenomeLocTestData data) {
+        GenomeLoc actual = data.parser.createGenomeLocAtStart(data.original, data.basePairs);
+        String description = String.format("%n      name: %s%n  original: %s%n    actual: %s%n  expected: %s%n",
+                data.toString(), data.original, actual, data.flankStart);
+        assertEquals(actual, data.flankStart, description);
+    }
+
+    @Test(dataProvider = "flankingGenomeLocs")
+    public void testCreateGenomeLocAtStop(FlankingGenomeLocTestData data) {
+        GenomeLoc actual = data.parser.createGenomeLocAtStop(data.original, data.basePairs);
+        String description = String.format("%n      name: %s%n  original: %s%n    actual: %s%n  expected: %s%n",
+                data.toString(), data.original, actual, data.flankStop);
+        assertEquals(actual, data.flankStop, description);
     }
 }

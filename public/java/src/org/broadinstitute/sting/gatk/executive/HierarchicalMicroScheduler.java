@@ -5,7 +5,6 @@ import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
@@ -16,6 +15,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -42,7 +42,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      */
     private ThreadLocalOutputTracker outputTracker = new ThreadLocalOutputTracker();
 
-    private final Queue<Shard> traverseTasks = new LinkedList<Shard>();
     private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
 
     /**
@@ -51,14 +50,16 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     private Throwable error = null;
 
     /**
+     * Queue of incoming shards.
+     */
+    private Iterator<Shard> traversalTasks;
+
+    /**
      * Keep a queue of shard traversals, and constantly monitor it to see what output
      * merge tasks remain.
      * TODO: Integrate this into the reduce tree.
      */
     private final Queue<ShardTraverser> outputMergeTasks = new LinkedList<ShardTraverser>();
-
-    /** How many total tasks were in the queue at the start of run. */
-    private int totalTraversals = 0;
 
     /** How many shard traversals have run to date? */
     private int totalCompletedTraversals = 0;
@@ -88,17 +89,15 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
     }
 
-    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
+    public Object execute( Walker walker, Iterable<Shard> shardStrategy ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");
 
+        this.traversalTasks = shardStrategy.iterator();
+
         ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
-
-        for (Shard shard : shardStrategy)
-            traverseTasks.add(shard);
-        totalTraversals = traverseTasks.size();
 
         while (isShardTraversePending() || isTreeReducePending()) {
             // Check for errors during execution.
@@ -191,7 +190,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * @return true if a shard traversal is waiting; false otherwise.
      */
     protected boolean isShardTraversePending() {
-        return traverseTasks.size() > 0;
+        return traversalTasks.hasNext();
     }
 
     /**
@@ -284,10 +283,10 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * @param reduceTree Tree of reduces to which to add this shard traverse.
      */
     protected void queueNextShardTraverse( Walker walker, ReduceTree reduceTree ) {
-        if (traverseTasks.size() == 0)
+        if (!traversalTasks.hasNext())
             throw new IllegalStateException("Cannot traverse; no pending traversals exist.");
 
-        Shard shard = traverseTasks.remove();
+        Shard shard = traversalTasks.next();
 
         // todo -- add ownership claim here
 
@@ -397,16 +396,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         totalTreeReduceTime += treeReduceTime;
         totalCompletedTreeReduces++;
 
-    }
-
-    /** {@inheritDoc} */
-    public int getTotalNumberOfShards() {
-        return totalTraversals;
-    }
-
-    /** {@inheritDoc} */
-    public int getRemainingNumberOfShards() {
-        return traverseTasks.size();
     }
 
     /** {@inheritDoc} */

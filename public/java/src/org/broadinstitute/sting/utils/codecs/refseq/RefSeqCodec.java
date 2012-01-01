@@ -138,4 +138,7 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
     public Class<RefSeqFeature> getFeatureType() {
         return RefSeqFeature.class;
     }
+
+    public boolean canDecode(final String potentialInput) { return false; }
+
 }

@@ -206,12 +206,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      **/
     public void initialize() {
         // get all of the unique sample names
-        // if we're supposed to assume a single sample, do so
-        Set<String> samples = new TreeSet<String>();
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-        else
-            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+        Set<String> samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
         // initialize the verbose writer
         if ( verboseWriter != null )
@@ -263,7 +258,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
         result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
         result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
-        result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
         result.add(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
 
         return result;

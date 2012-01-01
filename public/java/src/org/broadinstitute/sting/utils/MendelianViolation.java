@@ -1,147 +1,394 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
 
 /**
- * User: carneiro
+ * User: carneiro / lfran
  * Date: 3/9/11
  * Time: 12:38 PM
+ *
+ * Class for the identification and tracking of mendelian violation. It can be used in 2 distinct ways:
+ * - Either using an instance of the MendelianViolation class to track mendelian violations for each of the families while
+ * walking over the variants
+ * - Or using the static methods to directly get information about mendelian violation in a family at a given locus
+ *
  */
 public class MendelianViolation {
-    String sampleMom;
-    String sampleDad;
-    String sampleChild;
+    //List of families with violations
+    private List<String> violationFamilies;
 
-    List allelesMom;
-    List allelesDad;
-    List allelesChild;
+    //Call information
+    private int nocall = 0;
+    private int familyCalled = 0;
+    private int varFamilyCalled = 0;
+    private int lowQual = 0;
 
-    double minGenotypeQuality;
+    private boolean allCalledOnly = true;
+
+    //Stores occurrences of inheritance
+    private EnumMap<Genotype.Type, EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>> inheritance;
+
+    private int violations_total=0;
+
+    private double minGenotypeQuality;
+
+    private boolean abortOnSampleNotFound;
+
+    //Number of families with genotype information for all members
+    public int getFamilyCalledCount(){
+        return familyCalled;
+    }
+
+    //Number of families with genotype information for all members
+    public int getVarFamilyCalledCount(){
+        return varFamilyCalled;
+    }
+
+    //Number of families missing genotypes for one or more of their members
+    public int getFamilyNoCallCount(){
+        return nocall;
+    }
+
+    //Number of families with genotypes below the set quality threshold
+    public int getFamilyLowQualsCount(){
+        return lowQual;
+    }
+
+    public int getViolationsCount(){
+        return violations_total;
+    }
+
+    //Count of alt alleles inherited from het parents (no violation)
+    public int getParentHetInheritedVar(){
+        return getParentsHetHetInheritedVar() + getParentsRefHetInheritedVar() + getParentsVarHetInheritedVar();
+    }
+
+    //Count of ref alleles inherited from het parents (no violation)
+    public int getParentHetInheritedRef(){
+        return getParentsHetHetInheritedRef() + getParentsRefHetInheritedRef() + getParentsVarHetInheritedRef();
+    }
+
+    //Count of HomRef/HomRef/HomRef trios
+    public int getRefRefRef(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF);
+    }
+
+    //Count of HomVar/HomVar/HomVar trios
+    public int getVarVarVar(){
+        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR);
+    }
+
+    //Count of HomRef/HomVar/Het trios
+    public int getRefVarHet(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET) +
+                inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF).get(Genotype.Type.HET);
+    }
+
+    //Count of Het/Het/Het trios
+    public int getHetHetHet(){
+        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HET);
+    }
+
+    //Count of Het/Het/HomRef trios
+    public int getHetHetHomRef(){
+        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF);
+    }
+
+    //Count of Het/Het/HomVar trios
+    public int getHetHetHomVar(){
+        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR);
+    }
+
+    //Count of ref alleles inherited from Het/Het parents (no violation)
+    public int getParentsHetHetInheritedRef(){
+        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HET)
+               + 2*inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF);
+        //return parentsHetHet_childRef;
+    }
+
+    //Count of var alleles inherited from Het/Het parents (no violation)
+    public int getParentsHetHetInheritedVar(){
+        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HET)
+               + 2*inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR);
+        //return parentsHetHet_childVar;
+    }
+
+    //Count of ref alleles inherited from HomRef/Het parents (no violation)
+    public int getParentsRefHetInheritedRef(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF)
+               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF);
+        //return parentsHomRefHet_childRef;
+    }
+
+    //Count of var alleles inherited from HomRef/Het parents (no violation)
+    public int getParentsRefHetInheritedVar(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HET).get(Genotype.Type.HET)
+               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_REF).get(Genotype.Type.HET);
+        //return parentsHomRefHet_childVar;
+    }
+
+    //Count of ref alleles inherited from HomVar/Het parents (no violation)
+    public int getParentsVarHetInheritedRef(){
+        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET).get(Genotype.Type.HET)
+               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET);
+        //return parentsHomVarHet_childRef;
+    }
+
+    //Count of var alleles inherited from HomVar/Het parents (no violation)
+    public int getParentsVarHetInheritedVar(){
+        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR)
+               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR);
+        //return parentsHomVarHet_childVar;
+    }
+
+    //Count of violations of the type HOM_REF/HOM_REF -> HOM_VAR
+    public int getParentsRefRefChildVar(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR);
+    }
+
+    //Count of violations of the type HOM_REF/HOM_REF -> HET
+    public int getParentsRefRefChildHet(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF).get(Genotype.Type.HET);
+    }
+
+    //Count of violations of the type HOM_REF/HET -> HOM_VAR
+    public int getParentsRefHetChildVar(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR)
+                + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR);
+    }
+
+    //Count of violations of the type HOM_REF/HOM_VAR -> HOM_VAR
+    public int getParentsRefVarChildVar(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR)
+                + inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR);
+    }
+
+    //Count of violations of the type HOM_REF/HOM_VAR -> HOM_REF
+    public int getParentsRefVarChildRef(){
+        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF)
+                + inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF);
+    }
+
+    //Count of violations of the type HOM_VAR/HET -> HOM_REF
+    public int getParentsVarHetChildRef(){
+        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF)
+                + inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF);
+    }
+
+    //Count of violations of the type HOM_VAR/HOM_VAR -> HOM_REF
+    public int getParentsVarVarChildRef(){
+        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF);
+    }
+
+    //Count of violations of the type HOM_VAR/HOM_VAR -> HET
+    public int getParentsVarVarChildHet(){
+        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET);
+    }
+
+
+    //Count of violations of the type HOM_VAR/? -> HOM_REF
+    public int getParentVarChildRef(){
+        return getParentsRefVarChildRef() + getParentsVarHetChildRef() +getParentsVarVarChildRef();
+    }
+
+    //Count of violations of the type HOM_REF/? -> HOM_VAR
+    public int getParentRefChildVar(){
+        return getParentsRefVarChildVar() + getParentsRefHetChildVar() +getParentsRefRefChildVar();
+    }
+
+    //Returns a String containing all trios where a Mendelian violation was observed.
+    //The String is formatted "mom1+dad1=child1,mom2+dad2=child2,..."
+    public String getViolationFamiliesString(){
+        if(violationFamilies.isEmpty())
+            return "";
+
+        Iterator<String> it = violationFamilies.iterator();
+        String violationFams = it.next();
+        while(it.hasNext()){
+            violationFams += ","+it.next();
+        }
+        return violationFams;
+    }
+
+    public List<String> getViolationFamilies(){
+        return violationFamilies;
+    }
 
     static final int[] mvOffsets = new int[] { 1,2,5,6,8,11,15,18,20,21,24,25 };
     static final int[] nonMVOffsets = new int[]{ 0,3,4,7,9,10,12,13,14,16,17,19,22,23,26 };
 
-    private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
-
-    public String getSampleMom() {
-        return sampleMom;
-    }
-    public String getSampleDad() {
-        return sampleDad;
-    }
-    public String getSampleChild() {
-        return sampleChild;
-    }
     public double getMinGenotypeQuality() {
         return minGenotypeQuality;
     }
 
-    /**
-     *
-     * @param sampleMomP - sample name of mom
-     * @param sampleDadP - sample name of dad
-     * @param sampleChildP - sample name of child
-     */
-    public MendelianViolation (String sampleMomP, String sampleDadP, String sampleChildP) {
-        sampleMom = sampleMomP;
-        sampleDad = sampleDadP;
-        sampleChild = sampleChildP;
-    }
-
-    /**
-     *
-     * @param family - the sample names string "mom+dad=child"
+   /**
+     * Constructor
      * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
-     */
-    public MendelianViolation(String family, double minGenotypeQualityP) {
-        minGenotypeQuality = minGenotypeQualityP;
-
-        Matcher m = FAMILY_PATTERN.matcher(family);
-        if (m.matches()) {
-            sampleMom = m.group(1);
-            sampleDad = m.group(2);
-            sampleChild = m.group(3);
-        }
-        else
-            throw new IllegalArgumentException("Malformatted family structure string: " + family + " required format is mom+dad=child");
-    }
-
-    /**
-     * An alternative to the more general constructor if you want to get the Sample information from the engine yourself.
-     * @param sample - the sample object extracted from the sample metadata YAML file given to the engine.
-     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
-     */
-    public MendelianViolation(Sample sample, double minGenotypeQualityP) {
-        sampleMom = sample.getMother().getID();
-        sampleDad = sample.getFather().getID();
-        sampleChild = sample.getID();
-        minGenotypeQuality = minGenotypeQualityP;
-    }
-
-    /**
-     * This method prepares the object to evaluate for violation. Typically you won't call it directly, a call to
-     * isViolation(vc) will take care of this. But if you want to know whether your site was a valid comparison site
-     * before evaluating it for mendelian violation, you can call setAlleles and then isViolation().
-     * @param vc - the variant context to extract the genotypes and alleles for mom, dad and child.
-     * @return false if couldn't find the genotypes or context has empty alleles. True otherwise.
-     */
-    public boolean setAlleles (VariantContext vc)
-    {
-        Genotype gMom = vc.getGenotypes(sampleMom).get(sampleMom);
-        Genotype gDad = vc.getGenotypes(sampleDad).get(sampleDad);
-        Genotype gChild = vc.getGenotypes(sampleChild).get(sampleChild);
-
-        if (gMom == null || gDad == null || gChild == null)
-            throw new IllegalArgumentException(String.format("Variant %s:%d didn't contain genotypes for all family members: mom=%s dad=%s child=%s", vc.getChr(), vc.getStart(), sampleMom, sampleDad, sampleChild));
-
-        if (gMom.isNoCall() || gDad.isNoCall() || gChild.isNoCall() ||
-            gMom.getPhredScaledQual()   < minGenotypeQuality ||
-            gDad.getPhredScaledQual()   < minGenotypeQuality ||
-            gChild.getPhredScaledQual() < minGenotypeQuality ) {
-
-            return false;
-        }
-
-        allelesMom = gMom.getAlleles();
-        allelesDad = gDad.getAlleles();
-        allelesChild = gChild.getAlleles();
-        return !allelesMom.isEmpty() && !allelesDad.isEmpty() && !allelesChild.isEmpty();
-    }
-
-
-    /**
      *
+     */
+    public MendelianViolation(double minGenotypeQualityP) {
+        this(minGenotypeQualityP,true);
+    }
+
+    /**
+     * Constructor
+     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
+     * @param abortOnSampleNotFound - Whether to stop execution if a family is passed but no relevant genotypes are found. If false, then the family is ignored.
+     */
+    public MendelianViolation(double minGenotypeQualityP, boolean abortOnSampleNotFound) {
+        minGenotypeQuality = minGenotypeQualityP;
+        this.abortOnSampleNotFound = abortOnSampleNotFound;
+        violationFamilies = new ArrayList<String>();
+        createInheritanceMap();
+    }
+
+    /**
+     * Constructor
+     * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
+     * @param abortOnSampleNotFound - Whether to stop execution if a family is passed but no relevant genotypes are found. If false, then the family is ignored.
+     * @param completeTriosOnly - whether only complete trios are considered or parent/child pairs are too.
+     */
+    public MendelianViolation(double minGenotypeQualityP, boolean abortOnSampleNotFound, boolean completeTriosOnly) {
+        minGenotypeQuality = minGenotypeQualityP;
+        this.abortOnSampleNotFound = abortOnSampleNotFound;
+        violationFamilies = new ArrayList<String>();
+        createInheritanceMap();
+        allCalledOnly = completeTriosOnly;
+    }
+
+    /**
+     * @param families the families to be checked for Mendelian violations
      * @param vc the variant context to extract the genotypes and alleles for mom, dad and child.
-     * @return False if we can't determine (lack of information), or it's not a violation. True if it is a violation.
-     *
-     */
-    public boolean isViolation(VariantContext vc)
-    {
-        return setAlleles(vc) && isViolation();
-    }
-
-    /**
      * @return whether or not there is a mendelian violation at the site.
      */
-    public boolean isViolation() {
-        if (allelesMom.contains(allelesChild.get(0)) && allelesDad.contains(allelesChild.get(1)) ||
-            allelesMom.contains(allelesChild.get(1)) && allelesDad.contains(allelesChild.get(0)))
-            return false;
-        return true;
+    public int countViolations(Map<String, Set<Sample>> families, VariantContext vc){
+
+        //Reset counts
+        nocall = 0;
+        lowQual = 0;
+        familyCalled = 0;
+        varFamilyCalled = 0;
+        violations_total=0;
+        violationFamilies.clear();
+        clearInheritanceMap();
+
+        for(Set<Sample> family : families.values()){
+            Iterator<Sample> sampleIterator = family.iterator();
+            Sample sample;
+            while(sampleIterator.hasNext()){
+                sample = sampleIterator.next();
+                if(sample.getParents().size() > 0)
+                    updateViolations(sample.getFamilyID(),sample.getMaternalID(), sample.getPaternalID(), sample.getID() ,vc);
+            }
+        }
+        return violations_total;
+    }
+
+    public boolean isViolation(Sample mother, Sample father, Sample child, VariantContext vc){
+
+        //Reset counts
+        nocall = 0;
+        lowQual = 0;
+        familyCalled = 0;
+        varFamilyCalled = 0;
+        violations_total=0;
+        violationFamilies.clear();
+        clearInheritanceMap();
+        updateViolations(mother.getFamilyID(),mother.getID(),father.getID(),child.getID(),vc);
+        return violations_total>0;
+    }
+
+
+    private void updateViolations(String familyId, String motherId, String fatherId, String childId, VariantContext vc){
+
+            int count;
+            Genotype gMom = vc.getGenotype(motherId);
+            Genotype gDad = vc.getGenotype(fatherId);
+            Genotype gChild = vc.getGenotype(childId);
+
+            if (gMom == null || gDad == null || gChild == null){
+                if(abortOnSampleNotFound)
+                    throw new IllegalArgumentException(String.format("Variant %s:%d: Missing genotypes for family %s: mom=%s dad=%s family=%s", vc.getChr(), vc.getStart(), familyId, motherId, fatherId, childId));
+                else
+                    return;
+            }
+            //Count No calls
+            if(allCalledOnly && (!gMom.isCalled() || !gDad.isCalled() || !gChild.isCalled())){
+                nocall++;
+            }
+            else if (!gMom.isCalled() && !gDad.isCalled() || !gChild.isCalled()){
+                nocall++;
+            }
+            //Count lowQual. Note that if min quality is set to 0, even values with no quality associated are returned
+            else if (minGenotypeQuality>0 && (gMom.getPhredScaledQual()   < minGenotypeQuality ||
+                gDad.getPhredScaledQual()   < minGenotypeQuality ||
+                gChild.getPhredScaledQual() < minGenotypeQuality )) {
+                lowQual++;
+            }
+            else{
+                //Count all families per loci called
+                familyCalled++;
+                //If the family is all homref, not too interesting
+                if(!(gMom.isHomRef() && gDad.isHomRef() && gChild.isHomRef()))
+                {
+                    varFamilyCalled++;
+                    if(isViolation(gMom, gDad, gChild)){
+                        violationFamilies.add(familyId);
+                        violations_total++;
+                    }
+                }
+                count = inheritance.get(gMom.getType()).get(gDad.getType()).get(gChild.getType());
+                inheritance.get(gMom.getType()).get(gDad.getType()).put(gChild.getType(),count+1);
+
+            }
+    }
+
+    private boolean isViolation(Genotype gMom, Genotype gDad, Genotype gChild) {
+        //1 parent is no "call
+        if(!gMom.isCalled()){
+            return (gDad.isHomRef() && gChild.isHomVar()) || (gDad.isHomVar() && gChild.isHomRef());
+        }
+        else if(!gDad.isCalled()){
+            return (gMom.isHomRef() && gChild.isHomVar()) || (gMom.isHomVar() && gChild.isHomRef());
+        }
+        //Both parents have genotype information
+        return !(gMom.getAlleles().contains(gChild.getAlleles().get(0)) && gDad.getAlleles().contains(gChild.getAlleles().get(1)) ||
+            gMom.getAlleles().contains(gChild.getAlleles().get(1)) && gDad.getAlleles().contains(gChild.getAlleles().get(0)));
+    }
+
+    private void createInheritanceMap(){
+
+        inheritance = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>>(Genotype.Type.class);
+        for(Genotype.Type mType : Genotype.Type.values()){
+            inheritance.put(mType, new EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>(Genotype.Type.class));
+            for(Genotype.Type dType : Genotype.Type.values()){
+                inheritance.get(mType).put(dType, new EnumMap<Genotype.Type,Integer>(Genotype.Type.class));
+                for(Genotype.Type cType : Genotype.Type.values()){
+                    inheritance.get(mType).get(dType).put(cType, 0);
+                }
+            }
+        }
+
+    }
+
+    private void clearInheritanceMap(){
+        for(Genotype.Type mType : Genotype.Type.values()){
+            for(Genotype.Type dType : Genotype.Type.values()){
+                for(Genotype.Type cType : Genotype.Type.values()){
+                    inheritance.get(mType).get(dType).put(cType, 0);
+                }
+            }
+        }
     }
 
     /**
      * @return the likelihood ratio for a mendelian violation
      */
-    public double violationLikelihoodRatio(VariantContext vc) {
+    public double violationLikelihoodRatio(VariantContext vc, String motherId, String fatherId, String childId) {
         double[] logLikAssignments = new double[27];
         // the matrix to set up is
         // MOM   DAD    CHILD
@@ -152,9 +399,9 @@ public class MendelianViolation {
         //  AA     AB     |   AB
         //                    |- BB
         // etc. The leaves are counted as 0-11 for MVs and 0-14 for non-MVs
-        double[] momGL = vc.getGenotype(sampleMom).getLikelihoods().getAsVector();
-        double[] dadGL = vc.getGenotype(sampleDad).getLikelihoods().getAsVector();
-        double[] childGL = vc.getGenotype(sampleChild).getLikelihoods().getAsVector();
+        double[] momGL = vc.getGenotype(motherId).getLikelihoods().getAsVector();
+        double[] dadGL = vc.getGenotype(fatherId).getLikelihoods().getAsVector();
+        double[] childGL = vc.getGenotype(childId).getLikelihoods().getAsVector();
         int offset = 0;
         for ( int oMom = 0; oMom < 3; oMom++ ) {
             for ( int oDad = 0; oDad < 3; oDad++ ) {

@@ -26,16 +26,11 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -47,8 +42,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
     public enum Model {
         /** The default model with the best performance in all cases */
         EXACT,
-        /** For posterity we have kept around the older GRID_SEARCH model, but this gives inferior results and shouldn't be used. */
-        GRID_SEARCH
     }
 
     protected int N;
@@ -58,7 +51,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected enum GenotypeType { AA, AB, BB }
 
-    protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
+    protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
 
     protected AlleleFrequencyCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         this.N = N;
@@ -68,24 +61,12 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     /**
      * Must be overridden by concrete subclasses
-     * @param GLs                             genotype likelihoods
-     * @param Alleles                       Alleles corresponding to GLs
-     * @param log10AlleleFrequencyPriors      priors
-     * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
+     * @param GLs                               genotype likelihoods
+     * @param Alleles                           Alleles corresponding to GLs
+     * @param log10AlleleFrequencyPriors        priors
+     * @param result                            (pre-allocated) object to store likelihoods results
      */
-    protected abstract void getLog10PNonRef(Map<String, Genotype> GLs,  List<Allele> Alleles,
-                                            double[] log10AlleleFrequencyPriors,
-                                            double[] log10AlleleFrequencyPosteriors);
-
-    /**
-     * Can be overridden by concrete subclasses
-     * @param vc                   variant context with genotype likelihoods
-     * @param log10AlleleFrequencyPosteriors    allele frequency results
-     * @param AFofMaxLikelihood    allele frequency of max likelihood
-     *
-     * @return calls
-     */
-    protected abstract Map<String, Genotype> assignGenotypes(VariantContext vc,
-                                                             double[] log10AlleleFrequencyPosteriors,
-                                                             int AFofMaxLikelihood);
+    protected abstract void getLog10PNonRef(GenotypesContext GLs,  List<Allele> Alleles,
+                                            double[][] log10AlleleFrequencyPriors,
+                                            AlleleFrequencyCalculationResult result);
 }

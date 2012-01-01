@@ -6,8 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * the ref seq feature
@@ -109,6 +108,34 @@ public class RefSeqFeature implements Transcript, Feature {
         }
 
         return overlapString.toString();
+    }
+
+    ArrayList<GenomeLoc> exonInRefOrderCache = null;
+
+    public Integer getSortedOverlapInteger(GenomeLoc position) {
+        int exonNo = -1;
+        ArrayList<GenomeLoc> exonsInReferenceOrder = exonInRefOrderCache != null ? exonInRefOrderCache : new ArrayList<GenomeLoc>(exons);
+        if ( exonInRefOrderCache == null ) {
+            Collections.sort(exonsInReferenceOrder);
+        }
+        exonInRefOrderCache = exonsInReferenceOrder;
+        for ( GenomeLoc exon : exonsInReferenceOrder ) {
+            if ( exon.overlapsP(position) ) {
+                return ++exonNo;
+            }
+            ++exonNo;
+        }
+
+        return -1;
+    }
+
+    public GenomeLoc getSortedExonLoc(int offset) {
+        ArrayList<GenomeLoc> exonsInReferenceOrder = exonInRefOrderCache != null ? exonInRefOrderCache : new ArrayList<GenomeLoc>(exons);
+        if ( exonInRefOrderCache == null ) {
+            Collections.sort(exonsInReferenceOrder);
+        }
+        exonInRefOrderCache = exonsInReferenceOrder;
+        return exonsInReferenceOrder.get(offset);
     }
 
     /** Returns true if the specified interval 'that' overlaps with the full genomic interval of this transcript */

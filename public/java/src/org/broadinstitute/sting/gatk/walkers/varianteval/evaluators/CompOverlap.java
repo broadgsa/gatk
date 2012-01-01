@@ -28,13 +28,13 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "number of eval sites at comp sites")
     long nVariantsAtComp = 0;
 
-    @DataPoint(description = "percentage of eval sites at comp sites")
+    @DataPoint(description = "percentage of eval sites at comp sites", format = "%.2f" )
     double compRate = 0.0;
 
     @DataPoint(description = "number of concordant sites")
     long nConcordant = 0;
 
-    @DataPoint(description = "the concordance rate")
+    @DataPoint(description = "the concordance rate", format = "%.2f")
     double concordantRate = 0.0;
 
     public int getComparisonOrder() {
@@ -72,7 +72,7 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        boolean evalIsGood = eval != null && eval.isPolymorphic();
+        boolean evalIsGood = eval != null && eval.isPolymorphicInSamples();
         boolean compIsGood = comp != null && comp.isNotFiltered();
 
         if (evalIsGood) nEvalVariants++;           // count the number of eval events

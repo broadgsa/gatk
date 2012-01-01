@@ -80,7 +80,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             // grab the ROD iterator from the data source, and compute the first location in this shard, forwarding
             // the iterator to immediately before it, so that it can be added to the merging iterator primed for
             // next() to return the first real ROD in this shard
-            LocationAwareSeekableRODIterator it = dataSource.seek(provider.getShard());
+            LocationAwareSeekableRODIterator it = dataSource.seek(provider.getLocus());
             it.seekForward(genomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart()-1));
 
             states.add(new ReferenceOrderedDataState(dataSource,it));            

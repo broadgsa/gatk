@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 
 /**
@@ -71,12 +70,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
 
     public void initialize() {
         // get all of the unique sample names
-        // if we're supposed to assume a single sample, do so
-        Set<String> samples = new TreeSet<String>();
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-        else
-            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+        Set<String> samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples);
 

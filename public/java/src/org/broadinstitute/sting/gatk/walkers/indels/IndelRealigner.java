@@ -463,7 +463,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void emitReadLists() {
         // pre-merge lists to sort them in preparation for constrained SAMFileWriter
         readsNotToClean.addAll(readsToClean.getReads());
-        ReadUtils.coordinateSortReads(readsNotToClean);
+        ReadUtils.sortReadsByCoordinate(readsNotToClean);
         manager.addReads(readsNotToClean, readsActuallyCleaned);
         readsToClean.clear();
         readsNotToClean.clear();

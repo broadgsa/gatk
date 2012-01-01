@@ -331,12 +331,12 @@ public abstract class CommandLineProgram {
      * used to indicate an error occured
      *
      * @param msg the message
-     * @param e   the error
+     * @param t   the error
      */
-    public static void exitSystemWithError(String msg, final Exception e) {
+    public static void exitSystemWithError(String msg, final Throwable t) {
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("stack trace %n");
-        e.printStackTrace();
+        t.printStackTrace();
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A GATK RUNTIME ERROR has occurred (version %s):%n", CommandLineGATK.getVersionNumber());
@@ -392,10 +392,10 @@ public abstract class CommandLineProgram {
     /**
      * used to indicate an error occured
      *
-     * @param e the exception occured
+     * @param t the exception that occurred
      */
-    public static void exitSystemWithError(Exception e) {
-        exitSystemWithError(e.getMessage(), e);
+    public static void exitSystemWithError(Throwable t) {
+        exitSystemWithError(t.getMessage(), t);
     }
 
     /**

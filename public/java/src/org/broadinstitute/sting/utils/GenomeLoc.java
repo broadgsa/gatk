@@ -440,4 +440,29 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         return stop - start + 1;
     }
 
+    /**
+     * reciprocialOverlap: what is the min. percent of gl1 and gl2 covered by both
+     *
+     * gl1.s ---------- gk1.e
+     * gl2.s ---------- gl2.e
+     * 100%
+     *
+     * gl1.s ---------- gk1.e
+     *      gl2.s ---------- gl2.e
+     * 50%
+     *
+     * gl1.s ---------- gk1.e
+     *      gl2.s -------------------- gl2.e
+     * 25% (50% for gl1 but only 25% for gl2)
+     */
+    public final double reciprocialOverlapFraction(final GenomeLoc o) {
+        if ( overlapsP(o) )
+            return Math.min(overlapPercent(this, o), overlapPercent(o, this));
+        else
+            return 0.0;
+    }
+
+    private final static double overlapPercent(final GenomeLoc gl1, final GenomeLoc gl2) {
+        return (1.0 * gl1.intersect(gl2).size()) / gl1.size();
+    }
 }

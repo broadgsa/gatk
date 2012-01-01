@@ -30,7 +30,7 @@ import java.util.NoSuchElementException;
   It is UNIQUE in the fact that its iterator (BidirectionalIterator) can be cloned
   to save the current pointer for a later time (while the original iterator can continue to iterate).
  */
-public class CloneableIteratorLinkedList<E> {
+class CloneableIteratorLinkedList<E> {
     private CloneableIteratorDoublyLinkedNode<E> first;
     private CloneableIteratorDoublyLinkedNode<E> last;
     private int size;

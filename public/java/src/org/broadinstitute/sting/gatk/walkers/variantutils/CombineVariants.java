@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.util.*;
@@ -162,7 +163,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private boolean sitesOnlyVCF = false;
 
     public void initialize() {
-        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
+        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit());
 
         if ( PRIORITY_STRING == null ) {
             PRIORITY_STRING = Utils.join(",", vcfRods.keySet());
@@ -221,7 +222,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             for ( final VariantContext vc : vcs ) {
                 vcfWriter.add(vc);
             }
-            
+
             return vcs.isEmpty() ? 0 : 1;
         }
 
@@ -244,18 +245,17 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                         SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
 
-         for ( VariantContext mergedVC : mergedVCs ) {
+        for ( VariantContext mergedVC : mergedVCs ) {
             // only operate at the start of events
             if ( mergedVC == null )
                 continue;
 
-            HashMap<String, Object> attributes = new HashMap<String, Object>(mergedVC.getAttributes());
+            final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);
             // re-compute chromosome counts
-            VariantContextUtils.calculateChromosomeCounts(mergedVC, attributes, false);
-            VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
+            VariantContextUtils.calculateChromosomeCounts(builder, false);
             if ( minimalVCF )
-                annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, Arrays.asList(SET_KEY));
-            vcfWriter.add(annotatedMergedVC);
+                VariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
+            vcfWriter.add(builder.make());
         }
 
         return vcs.isEmpty() ? 0 : 1;

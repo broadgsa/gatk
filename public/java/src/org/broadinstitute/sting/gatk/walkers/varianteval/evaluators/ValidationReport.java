@@ -11,7 +11,6 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Collection;
-import java.util.Set;
 
 /**
  * The Broad Institute
@@ -31,10 +30,10 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "FN") int FN = 0;
     @DataPoint(description = "TN") int TN = 0;
 
-    @DataPoint(description = "Sensitivity") double sensitivity = 0;
-    @DataPoint(description = "Specificity") double specificity = 0;
-    @DataPoint(description = "PPV") double PPV = 0;
-    @DataPoint(description = "FDR") double FDR = 0;
+    @DataPoint(description = "Sensitivity", format = "%.2f") double sensitivity = 0;
+    @DataPoint(description = "Specificity", format = "%.2f") double specificity = 0;
+    @DataPoint(description = "PPV", format = "%.2f") double PPV = 0;
+    @DataPoint(description = "FDR", format = "%.2f") double FDR = 0;
 
     @DataPoint(description = "CompMonoEvalNoCall") int CompMonoEvalNoCall = 0;
     @DataPoint(description = "CompMonoEvalFiltered") int CompMonoEvalFiltered = 0;
@@ -118,8 +117,8 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     public SiteStatus calcSiteStatus(VariantContext vc) {
         if ( vc == null ) return SiteStatus.NO_CALL;
         if ( vc.isFiltered() ) return SiteStatus.FILTERED;
-        if ( vc.isMonomorphic() ) return SiteStatus.MONO;
-        if ( vc.hasGenotypes() ) return SiteStatus.POLY;  // must be polymorphic if isMonomorphic was false and there are genotypes
+        if ( vc.isMonomorphicInSamples() ) return SiteStatus.MONO;
+        if ( vc.hasGenotypes() ) return SiteStatus.POLY;  // must be polymorphic if isMonomorphicInSamples was false and there are genotypes
 
         if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
             int ac = 0;

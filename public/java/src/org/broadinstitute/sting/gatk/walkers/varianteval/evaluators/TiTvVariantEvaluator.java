@@ -16,19 +16,19 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
     long nTi = 0;
     @DataPoint(description = "number of transversion loci")
     long nTv = 0;
-    @DataPoint(description = "the transition to transversion ratio")
+    @DataPoint(description = "the transition to transversion ratio", format = "%.2f")
     double tiTvRatio = 0.0;    
     @DataPoint(description = "number of comp transition sites")
     long nTiInComp = 0;
     @DataPoint(description = "number of comp transversion sites")
     long nTvInComp = 0;
-    @DataPoint(description = "the transition to transversion ratio for comp sites")
+    @DataPoint(description = "the transition to transversion ratio for comp sites", format = "%.2f")
     double TiTvRatioStandard = 0.0;
     @DataPoint(description = "number of derived transition loci")
     long nTiDerived = 0;
     @DataPoint(description = "number of derived transversion loci")
     long nTvDerived = 0;
-    @DataPoint(description = "the derived transition to transversion ratio")
+    @DataPoint(description = "the derived transition to transversion ratio", format = "%.2f")
     double tiTvDerivedRatio = 0.0;
 
     public boolean enabled() {
@@ -40,7 +40,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
     }
 
     public void updateTiTv(VariantContext vc, boolean updateStandard) {
-        if (vc != null && vc.isSNP() && vc.isBiallelic() && vc.isPolymorphic()) {
+        if (vc != null && vc.isSNP() && vc.isBiallelic() && vc.isPolymorphicInSamples()) {
             if (VariantContextUtils.isTransition(vc)) {
                 if (updateStandard) nTiInComp++;
                 else nTi++;

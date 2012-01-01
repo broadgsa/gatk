@@ -32,6 +32,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -381,7 +382,7 @@ public class PairHMMIndelErrorModel {
         // todo -- refactor into separate function
         for (Allele a: haplotypeMap.keySet()) {
             Haplotype haplotype = haplotypeMap.get(a);
-            byte[] haplotypeBases = haplotype.getBasesAsBytes();
+            byte[] haplotypeBases = haplotype.getBases();
             double[] contextLogGapOpenProbabilities = new double[haplotypeBases.length];
             double[] contextLogGapContinuationProbabilities = new double[haplotypeBases.length];
 
@@ -409,7 +410,7 @@ public class PairHMMIndelErrorModel {
             }
             else {
                 //System.out.format("%d %s\n",p.getRead().getAlignmentStart(), p.getRead().getClass().getName());
-                SAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
+                SAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;
 
@@ -555,17 +556,18 @@ public class PairHMMIndelErrorModel {
                         // cut haplotype bases
                         long indStart = start - haplotype.getStartPosition();
                         long indStop =  stop - haplotype.getStartPosition();
+
                         double readLikelihood;
                         if (DEBUG)
                             System.out.format("indStart: %d indStop: %d WinStart:%d WinStop:%d start: %d stop: %d readLength: %d C:%s\n",
                                     indStart, indStop, ref.getWindow().getStart(), ref.getWindow().getStop(), start, stop, read.getReadLength(), read.getCigar().toString());
 
-                        if (indStart < 0 || indStop >= haplotype.getBasesAsBytes().length || indStart > indStop) {
+                        if (indStart < 0 || indStop >= haplotype.getBases().length || indStart > indStop) {
                             // read spanned more than allowed reference context: we currently can't deal with this
                             readLikelihood =0;
                         } else
                         {
-                            final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
+                            final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBases(),
                                     (int)indStart, (int)indStop);
 
                             if (matchMetricArray == null) {
@@ -629,7 +631,7 @@ public class PairHMMIndelErrorModel {
             return 0; // sanity check
 
         for (int i=0; i < b1.length; i++ ){
-            if ( b1[i]!= b2[i])
+            if ( b1[i]!= b2[i] )
                 return i;
         }
         return b1.length;
@@ -640,7 +642,7 @@ public class PairHMMIndelErrorModel {
             return 0; // sanity check
 
         for (int i=0; i < b1.length; i++ ){
-            if ( b1[i]!= b2[i])
+            if ( MathUtils.compareDoubles(b1[i], b2[i]) != 0 )
                 return i;
         }
         return b1.length;

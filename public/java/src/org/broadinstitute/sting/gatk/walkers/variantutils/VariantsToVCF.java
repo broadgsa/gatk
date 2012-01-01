@@ -42,10 +42,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.util.*;
@@ -124,25 +121,22 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
         for ( VariantContext vc : contexts ) {
-            Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-            if ( rsID != null && !vc.hasID() ) {
-                attrs.put(VariantContext.ID_KEY, rsID);
-                vc = VariantContext.modifyAttributes(vc, attrs);
+            VariantContextBuilder builder = new VariantContextBuilder(vc);
+            if ( rsID != null && vc.emptyID() ) {
+                builder.id(rsID).make();
             }
 
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
                 Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
-                Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
-                genotypes.put(sampleName, g);
-                vc = VariantContext.modifyGenotypes(vc, genotypes);
+                builder.genotypes(g);
             }
 
             if ( fixReferenceBase ) {
-                vc = VariantContext.modifyReferencePadding(vc, ref.getBase());
+                builder.referenceBaseForIndel(ref.getBase());
             }
 
-            writeRecord(vc, tracker, ref.getLocus());
+            writeRecord(builder.make(), tracker, ref.getLocus());
         }
 
         return 1;
@@ -207,7 +201,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         while ( dbsnpIterator.hasNext() ) {
             GATKFeature feature = dbsnpIterator.next();
             VariantContext vc = (VariantContext)feature.getUnderlyingObject();
-            if ( vc.hasID() && vc.getID().equals(rsID) )
+            if ( vc.getID().equals(rsID) )
                 return vc;
         }
 

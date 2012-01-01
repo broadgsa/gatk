@@ -45,7 +45,7 @@ import java.util.*;
  *
  * The IntervalBinding<T> is a formal GATK argument that bridges between a walker and
  * the engine to construct intervals for traversal at runtime.  The IntervalBinding can
- * either be a RodBinding<T>, a string of one or more intervals, or a file with interval strings.
+ * either be a RodBinding<T>, a string of one interval, or a file with interval strings.
  * The GATK Engine takes care of initializing the binding when appropriate and determining intervals from it.
  *
  * Note that this class is immutable.
@@ -92,7 +92,10 @@ public final class IntervalBinding<T extends Feature> {
                 codec.readHeader(lineReader);
                 String line = lineReader.readLine();
                 while ( line != null ) {
-                    intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(codec.decodeLoc(line)));
+                    final Feature feature = codec.decodeLoc(line);
+                    if ( feature == null )
+                        throw new UserException.MalformedFile(featureIntervals.getSource(), "Couldn't parse line '" + line + "'");
+                    intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(feature));
                     line = lineReader.readLine();
                 }
             } catch (IOException e) {
@@ -104,5 +107,9 @@ public final class IntervalBinding<T extends Feature> {
         }
 
         return intervals;
+    }
+
+    public String toString() {
+        return getSource();
     }
 }

@@ -131,7 +131,7 @@ public class AlignmentContextUtils {
         }
     }
 
-    public static Map<String, AlignmentContext> splitContextBySampleName(ReadBackedPileup pileup, String assumedSingleSample) {
+    public static Map<String, AlignmentContext> splitContextBySampleName(ReadBackedPileup pileup) {
         return splitContextBySampleName(new AlignmentContext(pileup.getLocation(), pileup));
     }
 

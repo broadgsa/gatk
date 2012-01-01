@@ -33,7 +33,6 @@ class ExampleUnifiedGenotyper extends QScript {
   @Argument(doc="An optional list of filter expressions.", shortName="filterExpression", required=false)
   var filterExpressions: List[String] = Nil
 
-
   // This trait allows us set the variables below in one place,
   // and then reuse this trait on each CommandLineGATK function below.
   trait UnifiedGenotyperArguments extends CommandLineGATK {
@@ -62,7 +61,7 @@ class ExampleUnifiedGenotyper extends QScript {
     variantFilter.variant = genotyper.out
     variantFilter.out = swapExt(qscript.bamFile, "bam", "filtered.vcf")
     variantFilter.filterName = filterNames
-    variantFilter.filterExpression = filterExpressions.map("\"" + _ + "\"")
+    variantFilter.filterExpression = filterExpressions
 
     evalFiltered.eval :+= variantFilter.out
     evalFiltered.out = swapExt(variantFilter.out, "vcf", "eval")

@@ -50,17 +50,18 @@ public class MalformedReadFilter extends ReadFilter {
 
     public boolean filterOut(SAMRecord read) {
         // slowly changing the behavior to blow up first and filtering out if a parameter is explicitly provided
-        if (!checkMismatchingBasesAndQuals(read)) {
-            if (!filterMismatchingBaseAndQuals)
-                throw new UserException.MalformedBAM(read, "BAM file has a read with mismatching number of bases and base qualities. Offender: " + read.getReadName() +"  [" + read.getReadLength() + " bases] [" +read.getBaseQualities().length +"] quals");
-            else
-                return true;
-        }
-
         return  !checkInvalidAlignmentStart(read) ||
                 !checkInvalidAlignmentEnd(read) ||
                 !checkAlignmentDisagreesWithHeader(this.header,read) ||
+                !checkHasReadGroup(read) ||
+                !checkMismatchingBasesAndQuals(read, filterMismatchingBaseAndQuals) ||
                 !checkCigarDisagreesWithAlignment(read);
+    }
+
+    private static boolean checkHasReadGroup(SAMRecord read) {
+        if ( read.getReadGroup() == null )
+            throw new UserException.ReadMissingReadGroup(read);
+        return true;
     }
 
     /**
@@ -127,7 +128,15 @@ public class MalformedReadFilter extends ReadFilter {
      * @param read the read to validate
      * @return true if they have the same number. False otherwise.
      */
-    private static boolean checkMismatchingBasesAndQuals(SAMRecord read) {
-        return (read.getReadLength() == read.getBaseQualities().length);
+    private static boolean checkMismatchingBasesAndQuals(SAMRecord read, boolean filterMismatchingBaseAndQuals) {
+        boolean result;
+        if (read.getReadLength() == read.getBaseQualities().length)
+            result = true;
+        else if (filterMismatchingBaseAndQuals)
+            result = false;
+        else
+            throw new UserException.MalformedBAM(read, String.format("BAM file has a read with mismatching number of bases and base qualities. Offender: %s [%d bases] [%d quals]", read.getReadName(), read.getReadLength(), read.getBaseQualities().length));
+
+        return result;
     }
 }

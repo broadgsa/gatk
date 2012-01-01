@@ -41,6 +41,7 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -202,8 +203,9 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         for( VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
             if( vc != null ) {
                 if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
+                    VariantContextBuilder builder = new VariantContextBuilder(vc);
                     String filterString = null;
-                    final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+
                     final Double lod = (Double) lodMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
                     final String worstAnnotation = (String) annotationMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
                     if( lod == null ) {
@@ -211,8 +213,8 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                     }
 
                     // Annotate the new record with its VQSLOD and the worst performing annotation
-                    attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
-                    attrs.put(VariantRecalibrator.CULPRIT_KEY, worstAnnotation);
+                    builder.attribute(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                    builder.attribute(VariantRecalibrator.CULPRIT_KEY, worstAnnotation);
 
                     for( int i = tranches.size() - 1; i >= 0; i-- ) {
                         final Tranche tranche = tranches.get(i);
@@ -231,11 +233,10 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                     }
 
                     if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                        final Set<String> filters = new HashSet<String>();
-                        filters.add(filterString);
-                        vc = VariantContext.modifyFilters(vc, filters);
+                        builder.filters(filterString);
                     }
-                    vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs) );
+
+                    vcfWriter.add( builder.make() );
                 } else { // valid VC but not compatible with this mode, so just emit the variant untouched
                     vcfWriter.add( vc );
                 }

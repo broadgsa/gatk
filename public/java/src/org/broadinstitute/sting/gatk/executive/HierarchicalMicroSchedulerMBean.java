@@ -18,18 +18,6 @@ package org.broadinstitute.sting.gatk.executive;
  */
 public interface HierarchicalMicroSchedulerMBean extends MicroSchedulerMBean {
     /**
-     * What is the total number of shards assigned to this microscheduler?
-     * @return Total number of shards to process.
-     */
-    public int getTotalNumberOfShards();
-
-    /**
-     * How many shards are remaining for this microscheduler to process?
-     * @return Remaining number of shards to process.
-     */
-    public int getRemainingNumberOfShards();
-
-    /**
      * How many tree reduces are waiting in the tree reduce queue?
      * @return Total number of reduces waiting in the tree reduce queue?
      */

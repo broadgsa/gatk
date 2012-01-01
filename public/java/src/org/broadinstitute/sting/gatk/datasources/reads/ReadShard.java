@@ -36,12 +36,26 @@ import java.util.Map;
  */
 public class ReadShard extends Shard {
     /**
+     * What is the maximum number of reads which should go into a read shard.
+     */
+    public static int MAX_READS = 10000;
+
+    /**
      * The reads making up this shard.
      */
-    private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(ReadShardStrategy.MAX_READS);
+    private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(MAX_READS);
 
     public ReadShard(GenomeLocParser parser, SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> loci, boolean isUnmapped) {
         super(parser, ShardType.READ, loci, readsDataSource, fileSpans, isUnmapped);
+    }
+
+    /**
+     * Sets the maximum number of reads buffered in a read shard.  Implemented as a weirdly static interface
+     * until we know what effect tuning this parameter has.
+     * @param bufferSize New maximum number
+     */
+    static void setReadBufferSize(final int bufferSize) {
+        MAX_READS = bufferSize;
     }
 
     /**
@@ -66,7 +80,7 @@ public class ReadShard extends Shard {
      * @return True if this shard's buffer is full (and the shard can buffer reads).
      */
     public boolean isBufferFull() {
-        return reads.size() > ReadShardStrategy.MAX_READS;
+        return reads.size() > ReadShard.MAX_READS;
     }
 
     /**

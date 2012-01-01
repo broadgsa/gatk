@@ -35,8 +35,10 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /**
  * Factory class for creating GenomeLocs
@@ -85,12 +87,12 @@ public class GenomeLocParser {
 
         @Requires("contig != null")
         public synchronized boolean hasContig(final String contig) {
-            return lastContig == contig || dict.getSequence(contig) != null;
+            return contig.equals(lastContig) || dict.getSequence(contig) != null;
         }
 
         @Requires("index >= 0")
         public synchronized boolean hasContig(final int index) {
-            return lastIndex == index|| dict.getSequence(index) != null;
+            return lastIndex == index || dict.getSequence(index) != null;
         }
 
         @Requires("contig != null")
@@ -454,6 +456,28 @@ public class GenomeLocParser {
     }
 
     /**
+     * Creates a GenomeLoc corresponding to the variant context vc.  If includeSymbolicEndIfPossible
+     * is true, and VC is a symbolic allele the end of the created genome loc will be the value
+     * of the END info field key, if it exists, or vc.getEnd() if not.
+     *
+     * @param vc
+     * @param includeSymbolicEndIfPossible
+     * @return
+     */
+    public GenomeLoc createGenomeLoc(final VariantContext vc, boolean includeSymbolicEndIfPossible) {
+        if ( includeSymbolicEndIfPossible && vc.isSymbolic() ) {
+            int end = vc.getAttributeAsInt(VCFConstants.END_KEY, vc.getEnd());
+            return createGenomeLoc(vc.getChr(), vc.getStart(), end);
+        }
+        else
+            return createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
+    }
+
+    public GenomeLoc createGenomeLoc(final VariantContext vc) {
+        return createGenomeLoc(vc, false);
+    }
+
+    /**
      * create a new genome loc, given the contig name, and a single position. Must be on the reference
      *
      * @param contig the contig name
@@ -530,4 +554,54 @@ public class GenomeLocParser {
         return createGenomeLoc(contigName,contig.getSequenceIndex(),1,contig.getSequenceLength(), true);
     }
 
+    /**
+     * Creates a loc to the left (starting at the loc start + 1) of maxBasePairs size.
+     * @param loc The original loc
+     * @param maxBasePairs The maximum number of basePairs
+     * @return The contiguous loc of up to maxBasePairs length or null if the loc is already at the start of the contig.
+     */
+    @Requires({"loc != null", "maxBasePairs > 0"})
+    public GenomeLoc createGenomeLocAtStart(GenomeLoc loc, int maxBasePairs) {
+        if (GenomeLoc.isUnmapped(loc))
+            return null;
+        String contigName = loc.getContig();
+        SAMSequenceRecord contig = contigInfo.getSequence(contigName);
+        int contigIndex = contig.getSequenceIndex();
+
+        int start = loc.getStart() - maxBasePairs;
+        int stop = loc.getStart() - 1;
+
+        if (start < 1)
+            start = 1;
+        if (stop < 1)
+            return null;
+
+        return createGenomeLoc(contigName, contigIndex, start, stop, true);
+    }
+
+    /**
+     * Creates a loc to the right (starting at the loc stop + 1) of maxBasePairs size.
+     * @param loc The original loc
+     * @param maxBasePairs The maximum number of basePairs
+     * @return The contiguous loc of up to maxBasePairs length or null if the loc is already at the end of the contig.
+     */
+    @Requires({"loc != null", "maxBasePairs > 0"})
+    public GenomeLoc createGenomeLocAtStop(GenomeLoc loc, int maxBasePairs) {
+        if (GenomeLoc.isUnmapped(loc))
+            return null;
+        String contigName = loc.getContig();
+        SAMSequenceRecord contig = contigInfo.getSequence(contigName);
+        int contigIndex = contig.getSequenceIndex();
+        int contigLength = contig.getSequenceLength();
+
+        int start = loc.getStop() + 1;
+        int stop = loc.getStop() + maxBasePairs;
+
+        if (start > contigLength)
+            return null;
+        if (stop > contigLength)
+            stop = contigLength;
+
+        return createGenomeLoc(contigName, contigIndex, start, stop, true);
+    }
 }

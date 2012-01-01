@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.fragments.FragmentCollection;
-import org.broadinstitute.sting.utils.fragments.FragmentUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -275,19 +274,20 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
     public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         byte obsBase = elt.getBase();
+        byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         if ( elt.isReducedRead() ) {
             // reduced read representation
-            byte qual = elt.getQual();
-            if ( BaseUtils.isRegularBase( elt.getBase() )) {
+            if ( BaseUtils.isRegularBase( obsBase )) {
                 add(obsBase, qual, (byte)0, (byte)0, elt.getRepresentativeCount()); // fast calculation of n identical likelihoods
                 return elt.getRepresentativeCount(); // we added nObs bases here
-            } else // odd bases or deletions => don't use them
-                return 0;
-        } else {
-            byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
-            return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0, 1) : 0;
+            }
+
+            // odd bases or deletions => don't use them
+            return 0;
         }
+
+        return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0, 1) : 0;
     }
 
     public int add(List<PileupElement> overlappingPair, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
@@ -511,20 +511,19 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * @return
      */
     private static byte qualToUse(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
-        if ( ignoreBadBases && !BaseUtils.isRegularBase( p.getBase() ) ) {
+        if ( ignoreBadBases && !BaseUtils.isRegularBase( p.getBase() ) )
             return 0;
-        } else {
-            byte qual = p.getQual();
 
-            if ( qual > SAMUtils.MAX_PHRED_SCORE )
-                throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
-            if ( capBaseQualsAtMappingQual )
-                qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
-            if ( (int)qual < minBaseQual )
-                qual = (byte)0;
+        byte qual = p.getQual();
 
-            return qual;
-        }
+        if ( qual > SAMUtils.MAX_PHRED_SCORE )
+            throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+        if ( capBaseQualsAtMappingQual )
+            qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
+        if ( (int)qual < minBaseQual )
+            qual = (byte)0;
+
+        return qual;
     }
 
     // -----------------------------------------------------------------------------------------------------------------

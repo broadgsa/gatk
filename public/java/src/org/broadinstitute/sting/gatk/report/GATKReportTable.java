@@ -250,13 +250,12 @@ public class GATKReportTable {
      * @param defaultValue  the default value for the column
      */
     public void addColumn(String columnName, Object defaultValue) {
-        if (!isValidName(columnName)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
-        }
-
-        addColumn(columnName, defaultValue, true);
+        addColumn(columnName, defaultValue, null);
     }
 
+    public void addColumn(String columnName, Object defaultValue, String format) {
+        addColumn(columnName, defaultValue, true, format);
+    }
     /**
      * Add a column to the report, specify the default column value, and specify whether the column should be displayed in the final output (useful when intermediate columns are necessary for later calculations, but are not required to be in the output file.
      *
@@ -265,7 +264,14 @@ public class GATKReportTable {
      * @param display  if true - the column will be displayed; if false - the column will be hidden
      */
     public void addColumn(String columnName, Object defaultValue, boolean display) {
-        columns.put(columnName, new GATKReportColumn(columnName, defaultValue, display));
+        addColumn(columnName, defaultValue, display, null);
+    }
+
+    public void addColumn(String columnName, Object defaultValue, boolean display, String format) {
+        if (!isValidName(columnName)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+        columns.put(columnName, new GATKReportColumn(columnName, defaultValue, display, format));
     }
 
     /**
@@ -602,12 +608,9 @@ public class GATKReportTable {
      */
     public void write(PrintStream out) {
         // Get the column widths for everything
-        HashMap<String, String> columnWidths = new HashMap<String, String>();
+        HashMap<String, GATKReportColumnFormat> columnFormats = new HashMap<String, GATKReportColumnFormat>();
         for (String columnName : columns.keySet()) {
-            int width = columns.get(columnName).getColumnWidth();
-            String format = "%-" + String.valueOf(width) + "s";
-
-            columnWidths.put(columnName, format);
+            columnFormats.put(columnName, columns.get(columnName).getColumnFormat());
         }
         String primaryKeyFormat = "%-" + getPrimaryKeyColumnWidth() + "s";
 
@@ -624,7 +627,7 @@ public class GATKReportTable {
         for (String columnName : columns.keySet()) {
             if (columns.get(columnName).isDisplayable()) {
                 if (needsPadding) { out.printf("  "); }
-                out.printf(columnWidths.get(columnName), columnName);
+                out.printf(columnFormats.get(columnName).getNameFormat(), columnName);
 
                 needsPadding = true;
             }
@@ -644,7 +647,7 @@ public class GATKReportTable {
                 if (columns.get(columnName).isDisplayable()) {
                     if (needsPadding) { out.printf("  "); }
                     String value = columns.get(columnName).getStringValue(primaryKey);
-                    out.printf(columnWidths.get(columnName), value);
+                    out.printf(columnFormats.get(columnName).getValueFormat(), value);
 
                     needsPadding = true;
                 }

@@ -6,15 +6,16 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.lang.reflect.Array;
+import java.util.*;
 
 
 public class VariantContextUnitTest extends BaseTest {
@@ -41,6 +42,8 @@ public class VariantContextUnitTest extends BaseTest {
     int mixedLocStart = 20;
     int mixedLocStop = 23;
 
+    VariantContextBuilder basicBuilder, snpBuilder, insBuilder;
+
     @BeforeSuite
     public void before() {
         del = Allele.create("-");
@@ -54,6 +57,13 @@ public class VariantContextUnitTest extends BaseTest {
 
         ATC = Allele.create("ATC");
         ATCref = Allele.create("ATC", true);
+    }
+
+    @BeforeMethod
+    public void beforeTest() {
+        basicBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
+        snpBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
+        insBuilder = new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATC)).referenceBaseForIndel((byte)'A');
     }
 
     @Test
@@ -70,68 +80,68 @@ public class VariantContextUnitTest extends BaseTest {
 
         // test REF
         List<Allele> alleles = Arrays.asList(Tref);
-        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        VariantContext vc = snpBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.NO_VARIATION);
 
         // test SNPs
         alleles = Arrays.asList(Tref, A);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        vc = snpBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
 
         alleles = Arrays.asList(Tref, A, C);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        vc = snpBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
 
         // test MNPs
         alleles = Arrays.asList(ACref, TA);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles);
+        vc = snpBuilder.alleles(alleles).stop(snpLocStop+1).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MNP);
 
         alleles = Arrays.asList(ATCref, CAT, Allele.create("GGG"));
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles);
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+2).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MNP);
 
         // test INDELs
         alleles = Arrays.asList(Aref, ATC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+2).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(Tref, TA, TC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, AC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+2).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         alleles = Arrays.asList(ATCref, A, Allele.create("ATCTC"));
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+2, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+2).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
 
         // test MIXED
         alleles = Arrays.asList(TAref, T, TC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+1).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(TAref, T, AC);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+1).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(ACref, ATC, AT);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop+1, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop+1).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         alleles = Arrays.asList(Aref, T, symbolic);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.MIXED);
 
         // test SYMBOLIC
         alleles = Arrays.asList(Tref, symbolic);
-        vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        vc = basicBuilder.alleles(alleles).stop(snpLocStop).make();
         Assert.assertEquals(vc.getType(), VariantContext.Type.SYMBOLIC);
     }
 
@@ -139,8 +149,8 @@ public class VariantContextUnitTest extends BaseTest {
     public void testMultipleSNPAlleleOrdering() {
         final List<Allele> allelesNaturalOrder = Arrays.asList(Aref, C, T);
         final List<Allele> allelesUnnaturalOrder = Arrays.asList(Aref, T, C);
-        VariantContext naturalVC = new VariantContext("natural", snpLoc, snpLocStart, snpLocStop, allelesNaturalOrder);
-        VariantContext unnaturalVC = new VariantContext("unnatural", snpLoc, snpLocStart, snpLocStop, allelesUnnaturalOrder);
+        VariantContext naturalVC = snpBuilder.alleles(allelesNaturalOrder).make();
+        VariantContext unnaturalVC = snpBuilder.alleles(allelesUnnaturalOrder).make();
         Assert.assertEquals(new ArrayList<Allele>(naturalVC.getAlleles()), allelesNaturalOrder);
         Assert.assertEquals(new ArrayList<Allele>(unnaturalVC.getAlleles()), allelesUnnaturalOrder);
     }
@@ -149,7 +159,7 @@ public class VariantContextUnitTest extends BaseTest {
     public void testCreatingSNPVariantContext() {
 
         List<Allele> alleles = Arrays.asList(Aref, T);
-        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        VariantContext vc = snpBuilder.alleles(alleles).make();
 
         Assert.assertEquals(vc.getChr(), snpLoc);
         Assert.assertEquals(vc.getStart(), snpLocStart);
@@ -175,8 +185,8 @@ public class VariantContextUnitTest extends BaseTest {
 
     @Test
     public void testCreatingRefVariantContext() {
-         List<Allele> alleles = Arrays.asList(Aref);
-        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles);
+        List<Allele> alleles = Arrays.asList(Aref);
+        VariantContext vc = snpBuilder.alleles(alleles).make();
 
         Assert.assertEquals(vc.getChr(), snpLoc);
         Assert.assertEquals(vc.getStart(), snpLocStart);
@@ -202,7 +212,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testCreatingDeletionVariantContext() {
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContext("test", delLoc, delLocStart, delLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        VariantContext vc = new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).referenceBaseForIndel((byte)'A').make();
 
         Assert.assertEquals(vc.getChr(), delLoc);
         Assert.assertEquals(vc.getStart(), delLocStart);
@@ -229,7 +239,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testCreatingInsertionVariantContext() {
         List<Allele> alleles = Arrays.asList(delRef, ATC);
-        VariantContext vc = new VariantContext("test", insLoc, insLocStart, insLocStop, alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        VariantContext vc = insBuilder.alleles(alleles).make();
 
         Assert.assertEquals(vc.getChr(), insLoc);
         Assert.assertEquals(vc.getStart(), insLocStart);
@@ -255,18 +265,18 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testCreatingPartiallyCalledGenotype() {
         List<Allele> alleles = Arrays.asList(Aref, C);
-        Genotype g = new Genotype("foo", Arrays.asList(C, Allele.NO_CALL), 10);
-        VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, alleles, Arrays.asList(g));
+        Genotype g = new Genotype("foo", Arrays.asList(C, Allele.NO_CALL));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g).make();
 
         Assert.assertTrue(vc.isSNP());
         Assert.assertEquals(vc.getNAlleles(), 2);
         Assert.assertTrue(vc.hasGenotypes());
-        Assert.assertFalse(vc.isMonomorphic());
-        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertFalse(vc.isMonomorphicInSamples());
+        Assert.assertTrue(vc.isPolymorphicInSamples());
         Assert.assertEquals(vc.getGenotype("foo"), g);
-        Assert.assertEquals(vc.getChromosomeCount(), 2); // we know that there are 2 chromosomes, even though one isn't called
-        Assert.assertEquals(vc.getChromosomeCount(Aref), 0);
-        Assert.assertEquals(vc.getChromosomeCount(C), 1);
+        Assert.assertEquals(vc.getCalledChrCount(), 1); // we only have 1 called chromosomes, we exclude the NO_CALL one isn't called
+        Assert.assertEquals(vc.getCalledChrCount(Aref), 0);
+        Assert.assertEquals(vc.getCalledChrCount(C), 1);
         Assert.assertFalse(vc.getGenotype("foo").isHet());
         Assert.assertFalse(vc.getGenotype("foo").isHom());
         Assert.assertFalse(vc.getGenotype("foo").isNoCall());
@@ -275,55 +285,71 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(vc.getGenotype("foo").getType(), Genotype.Type.MIXED);
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgs1() {
-        new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATCref));
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATCref)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgs2() {
-        new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, del));
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, del)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgs3() {
-        new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(del));
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(del)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Throwable.class)
     public void testBadConstructorArgs4() {
-        new VariantContext("test", insLoc, insLocStart, insLocStop, Collections.<Allele>emptyList());
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Collections.<Allele>emptyList()).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgsDuplicateAlleles1() {
-        new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(Aref, T, T));
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(Aref, T, T)).make();
     }
 
-    @Test (expectedExceptions = IllegalArgumentException.class)
+    @Test (expectedExceptions = Exception.class)
     public void testBadConstructorArgsDuplicateAlleles2() {
-        new VariantContext("test", insLoc, insLocStart, insLocStop, Arrays.asList(Aref, A));
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(Aref, A)).make();
     }
 
-    @Test (expectedExceptions = IllegalStateException.class)
+    @Test (expectedExceptions = Throwable.class)
     public void testBadLoc1() {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        new VariantContext("test", delLoc, delLocStart, delLocStop, alleles);
+        new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).make();
+    }
+
+    @Test (expectedExceptions = Throwable.class)
+    public void testBadID1() {
+        new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, Arrays.asList(Aref, T)).id(null).make();
+    }
+
+    @Test (expectedExceptions = Exception.class)
+    public void testBadID2() {
+        new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, Arrays.asList(Aref, T)).id("").make();
+    }
+
+    @Test (expectedExceptions = Throwable.class)
+    public void testBadPError() {
+        new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATCref)).log10PError(0.5).make();
     }
 
     @Test
     public void testAccessingSimpleSNPGenotypes() {
         List<Allele> alleles = Arrays.asList(Aref, T);
 
-        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
-        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
-        Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
 
-        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1, g2, g3));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles)
+                .genotypes(g1, g2, g3).make();
 
         Assert.assertTrue(vc.hasGenotypes());
-        Assert.assertFalse(vc.isMonomorphic());
-        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertFalse(vc.isMonomorphicInSamples());
+        Assert.assertTrue(vc.isPolymorphicInSamples());
         Assert.assertEquals(vc.getSampleNames().size(), 3);
 
         Assert.assertEquals(vc.getGenotypes().size(), 3);
@@ -342,36 +368,37 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertFalse(vc.hasGenotype("at"));
         Assert.assertFalse(vc.hasGenotype("tt"));
 
-        Assert.assertEquals(vc.getChromosomeCount(), 6);
-        Assert.assertEquals(vc.getChromosomeCount(Aref), 3);
-        Assert.assertEquals(vc.getChromosomeCount(T), 3);
+        Assert.assertEquals(vc.getCalledChrCount(), 6);
+        Assert.assertEquals(vc.getCalledChrCount(Aref), 3);
+        Assert.assertEquals(vc.getCalledChrCount(T), 3);
     }
 
     @Test
     public void testAccessingCompleteGenotypes() {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
 
-        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
-        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
-        Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
-        Genotype g4 = new Genotype("Td", Arrays.asList(T, del), 10);
-        Genotype g5 = new Genotype("dd", Arrays.asList(del, del), 10);
-        Genotype g6 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
+        Genotype g4 = new Genotype("Td", Arrays.asList(T, del));
+        Genotype g5 = new Genotype("dd", Arrays.asList(del, del));
+        Genotype g6 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL));
 
-        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1, g2, g3, g4, g5, g6));
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles)
+                .genotypes(g1, g2, g3, g4, g5, g6).make();
 
         Assert.assertTrue(vc.hasGenotypes());
-        Assert.assertFalse(vc.isMonomorphic());
-        Assert.assertTrue(vc.isPolymorphic());
+        Assert.assertFalse(vc.isMonomorphicInSamples());
+        Assert.assertTrue(vc.isPolymorphicInSamples());
         Assert.assertEquals(vc.getGenotypes().size(), 6);
 
         Assert.assertEquals(3, vc.getGenotypes(Arrays.asList("AA", "Td", "dd")).size());
 
-        Assert.assertEquals(10, vc.getChromosomeCount());
-        Assert.assertEquals(3, vc.getChromosomeCount(Aref));
-        Assert.assertEquals(4, vc.getChromosomeCount(T));
-        Assert.assertEquals(3, vc.getChromosomeCount(del));
-        Assert.assertEquals(2, vc.getChromosomeCount(Allele.NO_CALL));
+        Assert.assertEquals(10, vc.getCalledChrCount());
+        Assert.assertEquals(3, vc.getCalledChrCount(Aref));
+        Assert.assertEquals(4, vc.getCalledChrCount(T));
+        Assert.assertEquals(3, vc.getCalledChrCount(del));
+        Assert.assertEquals(2, vc.getCalledChrCount(Allele.NO_CALL));
     }
 
     @Test
@@ -380,76 +407,79 @@ public class VariantContextUnitTest extends BaseTest {
         List<Allele> alleles2 = Arrays.asList(Aref);
         List<Allele> alleles3 = Arrays.asList(Aref, T, del);
         for ( List<Allele> alleles : Arrays.asList(alleles1, alleles2, alleles3)) {
-            Genotype g1 = new Genotype("AA1", Arrays.asList(Aref, Aref), 10);
-            Genotype g2 = new Genotype("AA2", Arrays.asList(Aref, Aref), 10);
-            Genotype g3 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
-            VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1, g2, g3));
+            Genotype g1 = new Genotype("AA1", Arrays.asList(Aref, Aref));
+            Genotype g2 = new Genotype("AA2", Arrays.asList(Aref, Aref));
+            Genotype g3 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL));
+            VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles)
+                    .genotypes(g1, g2, g3).make();
 
             Assert.assertTrue(vc.hasGenotypes());
-            Assert.assertTrue(vc.isMonomorphic());
-            Assert.assertFalse(vc.isPolymorphic());
+            Assert.assertTrue(vc.isMonomorphicInSamples());
+            Assert.assertFalse(vc.isPolymorphicInSamples());
             Assert.assertEquals(vc.getGenotypes().size(), 3);
 
-            Assert.assertEquals(4, vc.getChromosomeCount());
-            Assert.assertEquals(4, vc.getChromosomeCount(Aref));
-            Assert.assertEquals(0, vc.getChromosomeCount(T));
-            Assert.assertEquals(2, vc.getChromosomeCount(Allele.NO_CALL));
+            Assert.assertEquals(4, vc.getCalledChrCount());
+            Assert.assertEquals(4, vc.getCalledChrCount(Aref));
+            Assert.assertEquals(0, vc.getCalledChrCount(T));
+            Assert.assertEquals(2, vc.getCalledChrCount(Allele.NO_CALL));
         }
     }
 
     @Test
     public void testFilters() {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
-        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
-        MutableVariantContext vc = new MutableVariantContext("test", snpLoc,snpLocStart, snpLocStop, alleles, Arrays.asList(g1,g2));
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+
+        VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1, g2).make();
 
         Assert.assertTrue(vc.isNotFiltered());
         Assert.assertFalse(vc.isFiltered());
         Assert.assertEquals(0, vc.getFilters().size());
+        Assert.assertFalse(vc.filtersWereApplied());
+        Assert.assertNull(vc.getFiltersMaybeNull());
 
-        vc.addFilter("BAD_SNP_BAD!");
+        vc = new VariantContextBuilder(vc).filters("BAD_SNP_BAD!").make();
 
         Assert.assertFalse(vc.isNotFiltered());
         Assert.assertTrue(vc.isFiltered());
         Assert.assertEquals(1, vc.getFilters().size());
+        Assert.assertTrue(vc.filtersWereApplied());
+        Assert.assertNotNull(vc.getFiltersMaybeNull());
 
-        vc.addFilters(Arrays.asList("REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
+        Set<String> filters = new HashSet<String>(Arrays.asList("BAD_SNP_BAD!", "REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
+        vc = new VariantContextBuilder(vc).filters(filters).make();
 
         Assert.assertFalse(vc.isNotFiltered());
         Assert.assertTrue(vc.isFiltered());
         Assert.assertEquals(3, vc.getFilters().size());
-
-        vc.clearFilters();
-
-        Assert.assertTrue(vc.isNotFiltered());
-        Assert.assertFalse(vc.isFiltered());
-        Assert.assertEquals(0, vc.getFilters().size());
+        Assert.assertTrue(vc.filtersWereApplied());
+        Assert.assertNotNull(vc.getFiltersMaybeNull());
     }
 
     @Test
-    public void testVCromGenotypes() {
+    public void testVCFfromGenotypes() {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
-        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
-        Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
-        Genotype g4 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
-        Genotype g5 = new Genotype("--", Arrays.asList(del, del), 10);
-        VariantContext vc = new VariantContext("test", snpLoc,snpLocStart, snpLocStop , alleles, Arrays.asList(g1,g2,g3,g4,g5));
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
+        Genotype g4 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL));
+        Genotype g5 = new Genotype("--", Arrays.asList(del, del));
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
 
-        VariantContext vc12 = vc.subContextFromGenotypes(Arrays.asList(g1,g2));
-        VariantContext vc1 = vc.subContextFromGenotypes(Arrays.asList(g1));
-        VariantContext vc23 = vc.subContextFromGenotypes(Arrays.asList(g2, g3));
-        VariantContext vc4 = vc.subContextFromGenotypes(Arrays.asList(g4));
-        VariantContext vc14 = vc.subContextFromGenotypes(Arrays.asList(g1, g4));
-        VariantContext vc5 = vc.subContextFromGenotypes(Arrays.asList(g5));
+        VariantContext vc12 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName(), g2.getSampleName())));
+        VariantContext vc1 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName())));
+        VariantContext vc23 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g2.getSampleName(), g3.getSampleName())));
+        VariantContext vc4 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g4.getSampleName())));
+        VariantContext vc14 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g1.getSampleName(), g4.getSampleName())));
+        VariantContext vc5 = vc.subContextFromSamples(new HashSet<String>(Arrays.asList(g5.getSampleName())));
 
-        Assert.assertTrue(vc12.isPolymorphic());
-        Assert.assertTrue(vc23.isPolymorphic());
-        Assert.assertTrue(vc1.isMonomorphic());
-        Assert.assertTrue(vc4.isMonomorphic());
-        Assert.assertTrue(vc14.isMonomorphic());
-        Assert.assertTrue(vc5.isPolymorphic());
+        Assert.assertTrue(vc12.isPolymorphicInSamples());
+        Assert.assertTrue(vc23.isPolymorphicInSamples());
+        Assert.assertTrue(vc1.isMonomorphicInSamples());
+        Assert.assertTrue(vc4.isMonomorphicInSamples());
+        Assert.assertTrue(vc14.isMonomorphicInSamples());
+        Assert.assertTrue(vc5.isPolymorphicInSamples());
 
         Assert.assertTrue(vc12.isSNP());
         Assert.assertTrue(vc12.isVariant());
@@ -476,12 +506,35 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertTrue(vc5.isVariant());
         Assert.assertTrue(vc5.isBiallelic());
 
-        Assert.assertEquals(3, vc12.getChromosomeCount(Aref));
-        Assert.assertEquals(1, vc23.getChromosomeCount(Aref));
-        Assert.assertEquals(2, vc1.getChromosomeCount(Aref));
-        Assert.assertEquals(0, vc4.getChromosomeCount(Aref));
-        Assert.assertEquals(2, vc14.getChromosomeCount(Aref));
-        Assert.assertEquals(0, vc5.getChromosomeCount(Aref));
+        Assert.assertEquals(3, vc12.getCalledChrCount(Aref));
+        Assert.assertEquals(1, vc23.getCalledChrCount(Aref));
+        Assert.assertEquals(2, vc1.getCalledChrCount(Aref));
+        Assert.assertEquals(0, vc4.getCalledChrCount(Aref));
+        Assert.assertEquals(2, vc14.getCalledChrCount(Aref));
+        Assert.assertEquals(0, vc5.getCalledChrCount(Aref));
+    }
+
+    public void testGetGenotypeMethods() {
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
+        GenotypesContext gc = GenotypesContext.create(g1, g2, g3);
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
+
+        Assert.assertEquals(vc.getGenotype("AA"), g1);
+        Assert.assertEquals(vc.getGenotype("AT"), g2);
+        Assert.assertEquals(vc.getGenotype("TT"), g3);
+        Assert.assertEquals(vc.getGenotype("CC"), null);
+
+        Assert.assertEquals(vc.getGenotypes(), gc);
+        Assert.assertEquals(vc.getGenotypes(Arrays.asList("AA", "AT")), Arrays.asList(g1, g2));
+        Assert.assertEquals(vc.getGenotypes(Arrays.asList("AA", "TT")), Arrays.asList(g1, g3));
+        Assert.assertEquals(vc.getGenotypes(Arrays.asList("AA", "AT", "TT")), Arrays.asList(g1, g2, g3));
+        Assert.assertEquals(vc.getGenotypes(Arrays.asList("AA", "AT", "CC")), Arrays.asList(g1, g2));
+
+        Assert.assertEquals(vc.getGenotype(0), g1);
+        Assert.assertEquals(vc.getGenotype(1), g2);
+        Assert.assertEquals(vc.getGenotype(2), g3);
     }
 
     // --------------------------------------------------------------------------------
@@ -520,7 +573,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test(dataProvider = "getAlleles")
     public void testMergeAlleles(GetAllelesTest cfg) {
         final List<Allele> altAlleles = cfg.alleles.subList(1, cfg.alleles.size());
-        final VariantContext vc = new VariantContext("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles, null, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null, (byte)'A');
+        final VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles).referenceBaseForIndel((byte)'A').make();
 
         Assert.assertEquals(vc.getAlleles(), cfg.alleles, "VC alleles not the same as input alleles");
         Assert.assertEquals(vc.getNAlleles(), cfg.alleles.size(), "VC getNAlleles not the same as input alleles size");
@@ -549,5 +602,271 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertNull(vc.getAllele(missingAllele.getBases()));
         Assert.assertFalse(vc.hasAllele(missingAllele));
         Assert.assertFalse(vc.hasAllele(missingAllele, true));
+    }
+
+    private class SitesAndGenotypesVC extends TestDataProvider {
+        VariantContext vc, copy;
+
+        private SitesAndGenotypesVC(String name, VariantContext original) {
+            super(SitesAndGenotypesVC.class, name);
+            this.vc = original;
+            this.copy = new VariantContextBuilder(original).make();
+        }
+
+        public String toString() {
+            return String.format("%s input=%s", super.toString(), vc);
+        }
+    }
+
+    @DataProvider(name = "SitesAndGenotypesVC")
+    public Object[][] MakeSitesAndGenotypesVCs() {
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
+
+        VariantContext sites = new VariantContextBuilder("sites", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).make();
+        VariantContext genotypes = new VariantContextBuilder(sites).source("genotypes").genotypes(g1, g2, g3).make();
+
+        new SitesAndGenotypesVC("sites", sites);
+        new SitesAndGenotypesVC("genotypes", genotypes);
+
+        return SitesAndGenotypesVC.getTests(SitesAndGenotypesVC.class);
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test modifying routines
+    //
+    // --------------------------------------------------------------------------------
+    @Test(dataProvider = "SitesAndGenotypesVC")
+    public void runModifyVCTests(SitesAndGenotypesVC cfg) {
+        VariantContext modified = new VariantContextBuilder(cfg.vc).loc("chr2", 123, 123).make();
+        Assert.assertEquals(modified.getChr(), "chr2");
+        Assert.assertEquals(modified.getStart(), 123);
+        Assert.assertEquals(modified.getEnd(), 123);
+
+        modified = new VariantContextBuilder(cfg.vc).id("newID").make();
+        Assert.assertEquals(modified.getID(), "newID");
+
+        Set<String> newFilters = Collections.singleton("newFilter");
+        modified = new VariantContextBuilder(cfg.vc).filters(newFilters).make();
+        Assert.assertEquals(modified.getFilters(), newFilters);
+
+        modified = new VariantContextBuilder(cfg.vc).attribute("AC", 1).make();
+        Assert.assertEquals(modified.getAttribute("AC"), 1);
+        modified = new VariantContextBuilder(modified).attribute("AC", 2).make();
+        Assert.assertEquals(modified.getAttribute("AC"), 2);
+        modified = new VariantContextBuilder(modified).attributes(null).make();
+        Assert.assertTrue(modified.getAttributes().isEmpty());
+
+        Genotype g1 = new Genotype("AA2", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT2", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT2", Arrays.asList(T, T));
+        GenotypesContext gc = GenotypesContext.create(g1,g2,g3);
+        modified = new VariantContextBuilder(cfg.vc).genotypes(gc).make();
+        Assert.assertEquals(modified.getGenotypes(), gc);
+        modified = new VariantContextBuilder(cfg.vc).noGenotypes().make();
+        Assert.assertTrue(modified.getGenotypes().isEmpty());
+
+        // test that original hasn't changed
+        Assert.assertEquals(cfg.vc.getChr(), cfg.copy.getChr());
+        Assert.assertEquals(cfg.vc.getStart(), cfg.copy.getStart());
+        Assert.assertEquals(cfg.vc.getEnd(), cfg.copy.getEnd());
+        Assert.assertEquals(cfg.vc.getAlleles(), cfg.copy.getAlleles());
+        Assert.assertEquals(cfg.vc.getAttributes(), cfg.copy.getAttributes());
+        Assert.assertEquals(cfg.vc.getID(), cfg.copy.getID());
+        Assert.assertEquals(cfg.vc.getGenotypes(), cfg.copy.getGenotypes());
+        Assert.assertEquals(cfg.vc.getLog10PError(), cfg.copy.getLog10PError());
+        Assert.assertEquals(cfg.vc.getFilters(), cfg.copy.getFilters());
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test subcontext
+    //
+    // --------------------------------------------------------------------------------
+    private class SubContextTest extends TestDataProvider {
+        Set<String> samples;
+        boolean updateAlleles;
+
+        private SubContextTest(Collection<String> samples, boolean updateAlleles) {
+            super(SubContextTest.class);
+            this.samples = new HashSet<String>(samples);
+            this.updateAlleles = updateAlleles;
+        }
+
+        public String toString() {
+            return String.format("%s samples=%s updateAlleles=%b", super.toString(), samples, updateAlleles);
+        }
+    }
+
+    @DataProvider(name = "SubContextTest")
+    public Object[][] MakeSubContextTest() {
+        for ( boolean updateAlleles : Arrays.asList(true, false)) {
+            new SubContextTest(Collections.<String>emptySet(), updateAlleles);
+            new SubContextTest(Collections.singleton("MISSING"), updateAlleles);
+            new SubContextTest(Collections.singleton("AA"), updateAlleles);
+            new SubContextTest(Collections.singleton("AT"), updateAlleles);
+            new SubContextTest(Collections.singleton("TT"), updateAlleles);
+            new SubContextTest(Arrays.asList("AA", "AT"), updateAlleles);
+            new SubContextTest(Arrays.asList("AA", "AT", "TT"), updateAlleles);
+            new SubContextTest(Arrays.asList("AA", "AT", "MISSING"), updateAlleles);
+            new SubContextTest(Arrays.asList("AA", "AT", "TT", "MISSING"), updateAlleles);
+        }
+
+        return SubContextTest.getTests(SubContextTest.class);
+    }
+
+    @Test(dataProvider = "SubContextTest")
+    public void runSubContextTest(SubContextTest cfg) {
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
+
+        GenotypesContext gc = GenotypesContext.create(g1, g2, g3);
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
+        VariantContext sub = cfg.updateAlleles ? vc.subContextFromSamples(cfg.samples) : vc.subContextFromSamples(cfg.samples, vc.getAlleles());
+
+        // unchanged attributes should be the same
+        Assert.assertEquals(sub.getChr(), vc.getChr());
+        Assert.assertEquals(sub.getStart(), vc.getStart());
+        Assert.assertEquals(sub.getEnd(), vc.getEnd());
+        Assert.assertEquals(sub.getLog10PError(), vc.getLog10PError());
+        Assert.assertEquals(sub.getFilters(), vc.getFilters());
+        Assert.assertEquals(sub.getID(), vc.getID());
+        Assert.assertEquals(sub.getReferenceBaseForIndel(), vc.getReferenceBaseForIndel());
+        Assert.assertEquals(sub.getAttributes(), vc.getAttributes());
+
+        Set<Genotype> expectedGenotypes = new HashSet<Genotype>();
+        if ( cfg.samples.contains(g1.getSampleName()) ) expectedGenotypes.add(g1);
+        if ( cfg.samples.contains(g2.getSampleName()) ) expectedGenotypes.add(g2);
+        if ( cfg.samples.contains(g3.getSampleName()) ) expectedGenotypes.add(g3);
+        GenotypesContext expectedGC = GenotypesContext.copy(expectedGenotypes);
+
+        // these values depend on the results of sub
+        if ( cfg.updateAlleles ) {
+            // do the work to see what alleles should be here, and which not
+            Set<Allele> alleles = new HashSet<Allele>();
+            for ( final Genotype g : expectedGC ) alleles.addAll(g.getAlleles());
+            if ( ! alleles.contains(Aref) ) alleles.add(Aref); // always have the reference
+            Assert.assertEquals(new HashSet<Allele>(sub.getAlleles()), alleles);
+        } else {
+            // not updating alleles -- should be the same
+            Assert.assertEquals(sub.getAlleles(), vc.getAlleles());
+        }
+
+        // same sample names => success
+        Assert.assertEquals(sub.getGenotypes().getSampleNames(), expectedGC.getSampleNames());
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test sample name functions
+    //
+    // --------------------------------------------------------------------------------
+    private class SampleNamesTest extends TestDataProvider {
+        List<String> sampleNames;
+        List<String> sampleNamesInOrder;
+
+        private SampleNamesTest(List<String> sampleNames, List<String> sampleNamesInOrder) {
+            super(SampleNamesTest.class);
+            this.sampleNamesInOrder = sampleNamesInOrder;
+            this.sampleNames = sampleNames;
+        }
+
+        public String toString() {
+            return String.format("%s samples=%s order=%s", super.toString(), sampleNames, sampleNamesInOrder);
+        }
+    }
+
+    @DataProvider(name = "SampleNamesTest")
+    public Object[][] MakeSampleNamesTest() {
+        new SampleNamesTest(Arrays.asList("1"), Arrays.asList("1"));
+        new SampleNamesTest(Arrays.asList("2", "1"), Arrays.asList("1", "2"));
+        new SampleNamesTest(Arrays.asList("1", "2"), Arrays.asList("1", "2"));
+        new SampleNamesTest(Arrays.asList("1", "2", "3"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("2", "1", "3"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("2", "3", "1"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("3", "1", "2"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("3", "2", "1"), Arrays.asList("1", "2", "3"));
+        new SampleNamesTest(Arrays.asList("NA2", "NA1"), Arrays.asList("NA1", "NA2"));
+        return SampleNamesTest.getTests(SampleNamesTest.class);
+    }
+
+    private final static void assertGenotypesAreInOrder(Iterable<Genotype> gIt, List<String> names) {
+        int i = 0;
+        for ( final Genotype g : gIt ) {
+            Assert.assertEquals(g.getSampleName(), names.get(i), "Unexpected genotype ordering");
+            i++;
+        }
+    }
+
+
+    @Test(dataProvider = "SampleNamesTest")
+    public void runSampleNamesTest(SampleNamesTest cfg) {
+        GenotypesContext gc = GenotypesContext.create(cfg.sampleNames.size());
+        for ( final String name : cfg.sampleNames ) {
+            gc.add(new Genotype(name, Arrays.asList(Aref, T)));
+        }
+
+        VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
+
+        // same sample names => success
+        Assert.assertEquals(vc.getSampleNames(), new HashSet<String>(cfg.sampleNames), "vc.getSampleNames() = " + vc.getSampleNames());
+        Assert.assertEquals(vc.getSampleNamesOrderedByName(), cfg.sampleNamesInOrder, "vc.getSampleNamesOrderedByName() = " + vc.getSampleNamesOrderedByName());
+
+        assertGenotypesAreInOrder(vc.getGenotypesOrderedByName(), cfg.sampleNamesInOrder);
+        assertGenotypesAreInOrder(vc.getGenotypesOrderedBy(cfg.sampleNames), cfg.sampleNames);
+    }
+
+    @Test
+    public void testGenotypeCounting() {
+        Genotype noCall = new Genotype("nocall", Arrays.asList(Allele.NO_CALL));
+        Genotype mixed  = new Genotype("mixed", Arrays.asList(Aref, Allele.NO_CALL));
+        Genotype homRef = new Genotype("homRef", Arrays.asList(Aref, Aref));
+        Genotype het    = new Genotype("het", Arrays.asList(Aref, T));
+        Genotype homVar = new Genotype("homVar", Arrays.asList(T, T));
+
+        List<Genotype> allGenotypes = Arrays.asList(noCall, mixed, homRef, het, homVar);
+        final int nCycles = allGenotypes.size() * 10;
+
+        for ( int i = 0; i < nCycles; i++ ) {
+            int nNoCall = 0, nNoCallAlleles = 0, nA = 0, nT = 0, nMixed = 0, nHomRef = 0, nHet = 0, nHomVar = 0;
+            int nSamples = 0;
+            GenotypesContext gc = GenotypesContext.create();
+            for ( int j = 0; j < i; j++ ) {
+                nSamples++;
+                Genotype g = allGenotypes.get(j % allGenotypes.size());
+                final String name = String.format("%s_%d%d", g.getSampleName(), i, j);
+                gc.add(new Genotype(name, g.getAlleles()));
+                switch ( g.getType() ) {
+                    case NO_CALL: nNoCall++; nNoCallAlleles++; break;
+                    case HOM_REF: nA += 2; nHomRef++; break;
+                    case HET: nA++; nT++; nHet++; break;
+                    case HOM_VAR: nT += 2; nHomVar++; break;
+                    case MIXED: nA++; nNoCallAlleles++; nMixed++; break;
+                    default: throw new RuntimeException("Unexpected genotype type " + g.getType());
+                }
+
+            }
+
+            VariantContext vc = new VariantContextBuilder("genotypes", snpLoc, snpLocStart, snpLocStop, Arrays.asList(Aref, T)).genotypes(gc).make();
+            Assert.assertEquals(vc.getNSamples(), nSamples);
+            if ( nSamples > 0 ) {
+                Assert.assertEquals(vc.isPolymorphicInSamples(), nT > 0);
+                Assert.assertEquals(vc.isMonomorphicInSamples(), nT == 0);
+            }
+            Assert.assertEquals(vc.getCalledChrCount(), nA + nT);
+
+            Assert.assertEquals(vc.getCalledChrCount(Allele.NO_CALL), nNoCallAlleles);
+            Assert.assertEquals(vc.getCalledChrCount(Aref), nA);
+            Assert.assertEquals(vc.getCalledChrCount(T), nT);
+
+            Assert.assertEquals(vc.getNoCallCount(), nNoCall);
+            Assert.assertEquals(vc.getHomRefCount(), nHomRef);
+            Assert.assertEquals(vc.getHetCount(), nHet);
+            Assert.assertEquals(vc.getHomVarCount(), nHomVar);
+            Assert.assertEquals(vc.getMixedCount(), nMixed);
+        }
     }
 }

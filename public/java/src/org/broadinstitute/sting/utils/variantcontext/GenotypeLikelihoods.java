@@ -25,7 +25,13 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.jgrapht.util.MathUtil;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 public class GenotypeLikelihoods {
     public static final boolean CAP_PLS = false;
@@ -92,6 +98,53 @@ public class GenotypeLikelihoods {
         }
 
         return likelihoodsAsString_PLs;
+    }
+
+    //Return genotype likelihoods as an EnumMap with Genotypes as keys and likelihoods as values
+    //Returns null in case of missing likelihoods
+    public EnumMap<Genotype.Type,Double> getAsMap(boolean normalizeFromLog10){
+        //Make sure that the log10likelihoods are set
+        double[] likelihoods = normalizeFromLog10 ? MathUtils.normalizeFromLog10(getAsVector()) : getAsVector();
+        if(likelihoods == null)
+            return null;
+        EnumMap<Genotype.Type,Double> likelihoodsMap = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
+        likelihoodsMap.put(Genotype.Type.HOM_REF,likelihoods[Genotype.Type.HOM_REF.ordinal()-1]);
+        likelihoodsMap.put(Genotype.Type.HET,likelihoods[Genotype.Type.HET.ordinal()-1]);
+        likelihoodsMap.put(Genotype.Type.HOM_VAR, likelihoods[Genotype.Type.HOM_VAR.ordinal() - 1]);
+        return likelihoodsMap;
+    }
+
+    //Return the neg log10 Genotype Quality (GQ) for the given genotype
+    //Returns Double.NEGATIVE_INFINITY in case of missing genotype
+    public double getLog10GQ(Genotype.Type genotype){
+        return getQualFromLikelihoods(genotype.ordinal() - 1 /* NO_CALL IS FIRST */, getAsVector());
+    }
+
+    public static double getQualFromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){
+        if(likelihoods == null)
+            return Double.NEGATIVE_INFINITY;
+
+        double qual = Double.NEGATIVE_INFINITY;
+        for (int i=0; i < likelihoods.length; i++) {
+            if (i==iOfChoosenGenotype)
+                continue;
+            if (likelihoods[i] >= qual)
+                qual = likelihoods[i];
+        }
+
+        // qual contains now max(likelihoods[k]) for all k != bestGTguess
+        qual = likelihoods[iOfChoosenGenotype] - qual;
+
+        if (qual < 0) {
+            // QUAL can be negative if the chosen genotype is not the most likely one individually.
+            // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen one
+            double[] normalized = MathUtils.normalizeFromLog10(likelihoods);
+            double chosenGenotype = normalized[iOfChoosenGenotype];
+            return Math.log10(1.0 - chosenGenotype);
+        } else {
+            // invert the size, as this is the probability of making an error
+            return -1 * qual;
+        }
     }
 
     private final static double[] parsePLsIntoLikelihoods(String likelihoodsAsString_PLs) {

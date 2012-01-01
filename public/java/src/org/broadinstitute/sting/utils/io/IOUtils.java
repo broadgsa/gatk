@@ -79,7 +79,7 @@ public class IOUtils {
                 tempDirParent = FileUtils.getTempDirectory();
             if (!tempDirParent.exists() && !tempDirParent.mkdirs())
                 throw new UserException.BadTmpDir("Could not create temp directory: " + tempDirParent);
-            File temp = File.createTempFile(prefix + "-", suffix, tempDirParent);
+            File temp = File.createTempFile(prefix, suffix, tempDirParent);
             if (!temp.delete())
                 throw new UserException.BadTmpDir("Could not delete sub file: " + temp.getAbsolutePath());
             if (!temp.mkdir())
@@ -361,5 +361,28 @@ public class IOUtils {
             org.apache.commons.io.IOUtils.closeQuietly(inputStream);
             org.apache.commons.io.IOUtils.closeQuietly(outputStream);
         }
+    }
+
+    /**
+     * Returns a file throwing a UserException if the file cannot be read.
+     * @param path File path
+     * @return LineIterator
+     */
+    public static LineIterator lineIterator(String path) {
+        return lineIterator(new File(path));
+    }
+
+    /**
+     * Returns a file throwing a UserException if the file cannot be read.
+     * @param file File
+     * @return LineIterator
+     */
+    public static LineIterator lineIterator(File file) {
+        try {
+            return FileUtils.lineIterator(file);
+        } catch (IOException e) {
+            throw new UserException.CouldNotReadInputFile(file, e);
+        }
+
     }
 }

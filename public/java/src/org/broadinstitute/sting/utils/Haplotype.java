@@ -33,8 +33,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 public class Haplotype {
-    protected byte[] bases = null;
-    protected double[] quals = null;
+    protected final byte[] bases;
+    protected final double[] quals;
     private GenomeLoc genomeLocation = null;
     private boolean isReference = false;
  
@@ -69,6 +69,11 @@ public class Haplotype {
         this.isReference = isRef;
     }
 
+    @Override
+    public boolean equals( Object h ) {
+        return h instanceof Haplotype && Arrays.equals(bases, ((Haplotype) h).bases);
+    }
+
     public double getQualitySum() {
         double s = 0;
         for (int k=0; k < bases.length; k++) {
@@ -88,7 +93,7 @@ public class Haplotype {
     public double[] getQuals() {
         return quals;
     }
-    public byte[] getBasesAsBytes() {
+    public byte[] getBases() {
         return bases;
     }
 
@@ -99,7 +104,6 @@ public class Haplotype {
     public long getStopPosition() {
         return genomeLocation.getStop();
     }
-
 
     public boolean isReference() {
         return isReference;

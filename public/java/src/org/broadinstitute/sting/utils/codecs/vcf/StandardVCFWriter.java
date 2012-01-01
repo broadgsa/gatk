@@ -25,18 +25,10 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import org.broad.tribble.Tribble;
 import org.broad.tribble.TribbleException;
-import org.broad.tribble.index.DynamicIndexCreator;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broad.tribble.util.ParsingUtils;
-import org.broad.tribble.util.PositionalStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.lang.reflect.Array;
@@ -164,10 +156,10 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             throw new IllegalStateException("The VCF Header must be written before records can be added: " + getStreamName());
 
         if ( doNotWriteGenotypes )
-            vc = VariantContext.modifyGenotypes(vc, null);
+            vc = new VariantContextBuilder(vc).noGenotypes().make();
 
         try {
-            vc = VariantContext.createVariantContextWithPaddedAlleles(vc, false);
+            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, false);
             super.add(vc);
 
             Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());
@@ -182,7 +174,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // ID
-            String ID = vc.hasID() ? vc.getID() : VCFConstants.EMPTY_ID_FIELD;
+            String ID = vc.getID();
             mWriter.write(ID);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -212,7 +204,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // QUAL
-            if ( !vc.hasNegLog10PError() )
+            if ( !vc.hasLog10PError() )
                 mWriter.write(VCFConstants.MISSING_VALUE_v4);
             else
                 mWriter.write(getQualValue(vc.getPhredScaledQual()));
@@ -227,9 +219,6 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
-                if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) || key.equals(VariantContext.UNPARSED_GENOTYPE_PARSER_KEY) )
-                    continue;
-
                 String outputValue = formatVCFField(field.getValue());
                 if ( outputValue != null )
                     infoFields.put(key, outputValue);
@@ -237,9 +226,10 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             writeInfoString(infoFields);
 
             // FORMAT
-            if ( vc.hasAttribute(VariantContext.UNPARSED_GENOTYPE_MAP_KEY) ) {
+            final GenotypesContext gc = vc.getGenotypes();
+            if ( gc instanceof LazyGenotypesContext && ((LazyGenotypesContext)gc).getUnparsedGenotypeData() != null) {
                 mWriter.write(VCFConstants.FIELD_SEPARATOR);
-                mWriter.write(vc.getAttributeAsString(VariantContext.UNPARSED_GENOTYPE_MAP_KEY, ""));
+                mWriter.write(((LazyGenotypesContext)gc).getUnparsedGenotypeData().toString());
             } else {
                 List<String> genotypeAttributeKeys = new ArrayList<String>();
                 if ( vc.hasGenotypes() ) {
@@ -361,7 +351,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
 
                 // some exceptions
                 if ( key.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
-                    if ( Math.abs(g.getNegLog10PError() - Genotype.NO_NEG_LOG_10PERROR) < 1e-6)
+                    if ( ! g.hasLog10PError() )
                         val = VCFConstants.MISSING_VALUE_v4;
                     else {
                         val = getQualValue(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
@@ -451,11 +441,11 @@ public class StandardVCFWriter extends IndexingVCFWriter {
         boolean sawGoodGT = false;
         boolean sawGoodQual = false;
         boolean sawGenotypeFilter = false;
-        for ( Genotype g : vc.getGenotypes().values() ) {
+        for ( final Genotype g : vc.getGenotypes() ) {
             keys.addAll(g.getAttributes().keySet());
             if ( g.isAvailable() )
                 sawGoodGT = true;
-            if ( g.hasNegLog10PError() )
+            if ( g.hasLog10PError() )
                 sawGoodQual = true;
             if (g.isFiltered() && g.isCalled())
                 sawGenotypeFilter = true;

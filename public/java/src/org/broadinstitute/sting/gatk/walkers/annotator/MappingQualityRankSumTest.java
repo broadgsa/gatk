@@ -16,6 +16,7 @@ import java.util.List;
 
 /**
  * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for mapping qualities (reads with ref bases vs. those with the alternate allele)
+ * Note that the mapping quality rank sum test can not be calculated for homozygous sites.
  */
 public class MappingQualityRankSumTest extends RankSumTest {
 

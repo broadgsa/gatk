@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.executive.WindowMaker;
 import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -49,7 +50,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator();
 
         GenomeLoc shardBounds = genomeLocParser.createGenomeLoc("chr1", 1, 5);
-        Shard shard = new LocusShard(genomeLocParser, new SAMDataSource(Collections.<SAMReaderID>emptyList(),genomeLocParser),Collections.singletonList(shardBounds),Collections.<SAMReaderID,SAMFileSpan>emptyMap());
+        Shard shard = new LocusShard(genomeLocParser, new SAMDataSource(Collections.<SAMReaderID>emptyList(),new ThreadAllocation(),null,genomeLocParser),Collections.singletonList(shardBounds),Collections.<SAMReaderID,SAMFileSpan>emptyMap());
         WindowMaker windowMaker = new WindowMaker(shard,genomeLocParser,iterator,shard.getGenomeLocs());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, genomeLocParser, window.getLocus(), window, null, null);

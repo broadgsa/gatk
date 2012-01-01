@@ -3,12 +3,8 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
@@ -112,19 +108,22 @@ public class VCF3Codec extends AbstractVCFCodec {
 
     /**
      * create a genotype map
+     *
      * @param str the string
      * @param alleles the list of alleles
      * @param chr chrom
      * @param pos position
      * @return a mapping of sample name to genotype object
      */
-    public Map<String, Genotype> createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
+    public LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
         if (genotypeParts == null)
             genotypeParts = new String[header.getColumnCount() - NUM_STANDARD_FIELDS];
 
         int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
+        if ( nParts != genotypeParts.length )
+            generateException("there are " + (nParts-1) + " genotypes while the header requires that " + (genotypeParts.length-1) + " genotypes be present for all records", lineNo);
 
-        Map<String, Genotype> genotypes = new LinkedHashMap<String, Genotype>(nParts);
+        ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nParts);
 
         // get the format keys
         int nGTKeys = ParsingUtils.split(genotypeParts[0], genotypeKeyArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
@@ -139,9 +138,9 @@ public class VCF3Codec extends AbstractVCFCodec {
         for (int genotypeOffset = 1; genotypeOffset < nParts; genotypeOffset++) {
             int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
 
-            double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
+            double GTQual = VariantContext.NO_LOG10_PERROR;
             Set<String> genotypeFilters = null;
-            Map<String, String> gtAttributes = null;
+            Map<String, Object> gtAttributes = null;
             String sampleName = sampleNameIterator.next();
 
             // check to see if the value list is longer than the key list, which is a problem
@@ -150,7 +149,7 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             int genotypeAlleleLocation = -1;
             if (nGTKeys >= 1) {
-                gtAttributes = new HashMap<String, String>(nGTKeys - 1);
+                gtAttributes = new HashMap<String, Object>(nGTKeys - 1);
 
                 for (int i = 0; i < nGTKeys; i++) {
                     final String gtKey = new String(genotypeKeyArray[i]);
@@ -180,7 +179,7 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             // add it to the list
             try {
-                genotypes.put(sampleName, new Genotype(sampleName,
+                genotypes.add(new Genotype(sampleName,
                         parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap),
                         GTQual,
                         genotypeFilters,
@@ -191,11 +190,11 @@ public class VCF3Codec extends AbstractVCFCodec {
             }
         }
 
-        return genotypes;
+        return new LazyGenotypesContext.LazyData(genotypes, header.sampleNamesInOrder, header.sampleNameToOffset);
     }
 
     @Override
-    public boolean canDecode(final File potentialInput) {
+    public boolean canDecode(final String potentialInput) {
         return canDecodeFile(potentialInput, VCF3_MAGIC_HEADER);
     }
 }

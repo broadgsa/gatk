@@ -24,7 +24,7 @@ class ExampleCustomWalker extends QScript {
   /**
    * In script, you create and then add() functions to the pipeline.
    */
-  def script = {
+  def script() {
     val customWalker = new CommandLineGATK {
       // Set the name of your walker, for example this will be passed as -T MyCustomWalker
       this.analysis_type = "MyCustomWalker"

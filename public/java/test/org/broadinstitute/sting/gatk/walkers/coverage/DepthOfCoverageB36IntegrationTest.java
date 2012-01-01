@@ -69,6 +69,7 @@ public class DepthOfCoverageB36IntegrationTest extends WalkerTest {
         spec.addAuxFile("347b47ef73fbd4e277704ddbd7834f69", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
         spec.addAuxFile("4ec920335d4b9573f695c39d62748089", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
 
+
         execute("testMapQ0Only",spec);
     }
 

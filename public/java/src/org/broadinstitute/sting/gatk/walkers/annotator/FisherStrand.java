@@ -46,7 +46,8 @@ import java.util.*;
 /**
  * Phred-scaled p-value using Fisher's Exact Test to detect strand bias (the variation
  * being seen on only the forward or only the reverse strand) in the reads? More bias is
- * indicative of false positive calls.
+ * indicative of false positive calls.  Note that the fisher strand test may not be
+ * calculated for certain complex indel cases or for multi-allelic sites.
  */
 public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation {
     private static final String FS = "FS";

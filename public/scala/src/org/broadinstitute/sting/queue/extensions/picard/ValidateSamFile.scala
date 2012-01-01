@@ -50,11 +50,11 @@ class ValidateSamFile extends org.broadinstitute.sting.queue.function.JavaComman
   override def inputBams = input
   override def outputBam = output
   override def commandLine = super.commandLine +
-       " MODE=" + MODE +
-       " MAX_OUTPUT=" + MAX_OUTPUT +
-       " MAX_OPEN_TEMP_FILES=" + MAX_OPEN_TEMP_FILES +
-       conditionalParameter(!VALIDATE_INDEX, " VALIDATE_INDEX=false") +
-       conditionalParameter(IGNORE_WARNINGS, " IGNORE_WARNINGS=true") +
-       conditionalParameter(IS_BISULFITE_SEQUENCED, " IS_BISULFITE_SEQUENCED=true") +
-       conditionalParameter(IGNORE != null && !IGNORE.isEmpty, repeat(" IGNORE=", IGNORE))
+                             required("MODE=" + MODE) +
+                             required("MAX_OUTPUT=" + MAX_OUTPUT) +
+                             required("MAX_OPEN_TEMP_FILES=" + MAX_OPEN_TEMP_FILES) +
+                             conditional(!VALIDATE_INDEX, "VALIDATE_INDEX=false") +
+                             conditional(IGNORE_WARNINGS, "IGNORE_WARNINGS=true") +
+                             conditional(IS_BISULFITE_SEQUENCED, "IS_BISULFITE_SEQUENCED=true") +
+                             repeat("IGNORE=", IGNORE, spaceSeparated=false)  // repeat() returns "" for null/empty list
 }

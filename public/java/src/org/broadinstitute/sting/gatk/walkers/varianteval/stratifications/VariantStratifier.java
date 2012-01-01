@@ -9,9 +9,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class VariantStratifier implements Comparable {
+public abstract class VariantStratifier implements Comparable<VariantStratifier> {
     private VariantEvalWalker variantEvalWalker;
+    final private String name;
     protected ArrayList<String> states = new ArrayList<String>();
+
+    protected VariantStratifier() {
+        name = this.getClass().getSimpleName();
+    }
 
     /**
      * @return a reference to the parent VariantEvalWalker running this stratification
@@ -34,8 +39,12 @@ public abstract class VariantStratifier implements Comparable {
         return null;
     }
 
-    public int compareTo(Object o1) {
-        return this.getClass().getSimpleName().compareTo(o1.getClass().getSimpleName());
+    public int compareTo(VariantStratifier o1) {
+        return this.getName().compareTo(o1.getName());
+    }
+
+    public final String getName() {
+        return name;
     }
 
     public ArrayList<String> getAllStates() {

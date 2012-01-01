@@ -36,9 +36,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -224,7 +222,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                  (vc.getFilters() == null || !vc.getFilters().contains(MASK_NAME)) ) { // the filter hasn't already been applied
                 Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
                 filters.add(MASK_NAME);
-                vc = VariantContext.modifyFilters(vc, filters);
+                vc = new VariantContextBuilder(vc).filters(filters).make();
             }
 
             FiltrationContext varContext = new FiltrationContext(ref, vc);
@@ -267,7 +265,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
              (vc.getFilters() == null || !vc.getFilters().contains(MASK_NAME)) ) { // the filter hasn't already been applied
             Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
             filters.add(MASK_NAME);
-            vc = VariantContext.modifyFilters(vc, filters);
+            vc = new VariantContextBuilder(vc).filters(filters).make();
         }
 
         return vc;
@@ -279,20 +277,15 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( context == null )
             return;
 
-        VariantContext vc = context.getVariantContext();
+        final VariantContext vc = context.getVariantContext();
+        final VariantContextBuilder builder = new VariantContextBuilder(vc);
 
         // make new Genotypes based on filters
-        Map<String, Genotype> genotypes;
-        if ( genotypeFilterExps.size() == 0 ) {
-            genotypes = null;
-        } else {
-            genotypes = new HashMap<String, Genotype>(vc.getGenotypes().size());
+        if ( genotypeFilterExps.size() > 0 ) {
+            GenotypesContext genotypes = GenotypesContext.create(vc.getGenotypes().size());
 
             // for each genotype, check filters then create a new object
-            for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
-
-                Genotype g = genotype.getValue();
-
+            for ( final Genotype g : vc.getGenotypes() ) {
                 if ( g.isCalled() ) {
                     Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
@@ -300,11 +293,13 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                         if ( VariantContextUtils.match(vc, g, exp) )
                             filters.add(exp.name);
                     }
-                    genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.isPhased()));
+                    genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), filters, g.getAttributes(), g.isPhased()));
                 } else {
-                    genotypes.put(genotype.getKey(), g);
+                    genotypes.add(g);
                 }
             }
+
+            builder.genotypes(genotypes);
         }
 
         // make a new variant context based on filters
@@ -324,14 +319,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                     filters.add(exp.name);                         
             }
         }
+        builder.filters(filters);
 
-        VariantContext filteredVC;
-        if ( genotypes == null )
-            filteredVC = VariantContext.modifyFilters(vc, filters);
-        else
-            filteredVC = new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
-
-        writer.add(filteredVC);
+        writer.add(builder.make());
     }
 
     public Integer reduce(Integer value, Integer sum) {

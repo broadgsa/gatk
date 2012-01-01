@@ -47,10 +47,8 @@ class MarkDuplicates extends org.broadinstitute.sting.queue.function.JavaCommand
   this.sortOrder = null
   this.createIndex = Some(true)
   override def commandLine = super.commandLine +
-       " M=" + metrics +
-       conditionalParameter(REMOVE_DUPLICATES, " REMOVE_DUPLICATES=true") +
-       conditionalParameter(MAX_FILE_HANDLES_FOR_READ_ENDS_MAP > 0, " MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=" + MAX_FILE_HANDLES_FOR_READ_ENDS_MAP.toString) +
-       conditionalParameter(SORTING_COLLECTION_SIZE_RATIO > 0, " SORTING_COLLECTION_SIZE_RATIO=" + SORTING_COLLECTION_SIZE_RATIO.toString)
-
-
+                             required("M=" + metrics) +
+                             conditional(REMOVE_DUPLICATES, "REMOVE_DUPLICATES=true") +
+                             conditional(MAX_FILE_HANDLES_FOR_READ_ENDS_MAP > 0, "MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=" + MAX_FILE_HANDLES_FOR_READ_ENDS_MAP.toString) +
+                             conditional(SORTING_COLLECTION_SIZE_RATIO > 0, "SORTING_COLLECTION_SIZE_RATIO=" + SORTING_COLLECTION_SIZE_RATIO.toString)
 }

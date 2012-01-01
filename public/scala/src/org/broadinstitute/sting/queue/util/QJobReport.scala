@@ -81,6 +81,10 @@ trait QJobReport extends Logging {
     this.reportFeatures = features.mapValues(_.toString)
   }
 
+  def addJobReportBinding(key: String, value: Any) {
+    this.reportFeatures += (key -> value.toString)
+  }
+
   // copy the QJobReport information -- todo : what's the best way to do this?
   override def copySettingsTo(function: QFunction) {
     self.copySettingsTo(function)

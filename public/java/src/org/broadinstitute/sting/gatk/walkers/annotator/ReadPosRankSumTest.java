@@ -20,6 +20,7 @@ import java.util.List;
 
 /**
  * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
+ * Note that the read position rank sum test can not be calculated for homozygous sites.
  */
 public class ReadPosRankSumTest extends RankSumTest {
 

@@ -32,11 +32,9 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -71,8 +69,9 @@ import java.util.*;
  *   -T VariantAnnotator \
  *   -I input.bam \
  *   -o output.vcf \
- *   -A DepthOfCoverage
+ *   -A DepthOfCoverage \
  *   --variant input.vcf \
+ *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
@@ -165,18 +164,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean LIST = false;
 
     @Hidden
-    @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
-    protected String ASSUME_SINGLE_SAMPLE = null;
-
-    @Hidden
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
 
-    @Argument(fullName="family_string",shortName="family",required=false,doc="A family string of the form mom+dad=child for use with the mendelian violation ratio annotation")
-    public String familyStr = null;
-
     @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality treshold in order to annotate mendelian violation ratio")
     public double minGenotypeQualityP = 0.0;
+
+    @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp tracks that exactly match both reference and alternate alleles will be counted as concordant", required=false)
+    private boolean requireStrictAlleleMatch = false;
 
     private VariantAnnotatorEngine engine;
 
@@ -184,15 +179,16 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
 
     private void listAnnotationsAndExit() {
+        System.out.println("\nStandard annotations in the list below are marked with a '*'.");
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
         System.out.println("\nAvailable annotations for the VCF INFO field:");
         for (int i = 0; i < infoAnnotationClasses.size(); i++)
-            System.out.println("\t" + infoAnnotationClasses.get(i).getSimpleName());
+            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(infoAnnotationClasses.get(i)) ? "*" : "") + infoAnnotationClasses.get(i).getSimpleName());
         System.out.println();
         List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = new PluginManager<GenotypeAnnotation>(GenotypeAnnotation.class).getPlugins();
         System.out.println("\nAvailable annotations for the VCF FORMAT field:");
         for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
-            System.out.println("\t" + genotypeAnnotationClasses.get(i).getSimpleName());
+            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(genotypeAnnotationClasses.get(i)) ? "*" : "") + genotypeAnnotationClasses.get(i).getSimpleName());
         System.out.println();
         System.out.println("\nAvailable classes/groups of annotations:");
         for ( Class c : new PluginManager<AnnotationType>(AnnotationType.class).getInterfaces() )
@@ -213,16 +209,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         List<String> rodName = Arrays.asList(variantCollection.variants.getName());
         Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
 
-        // if there are no valid samples, warn the user
-        if ( samples.size() == 0 ) {
-            logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
-        }
-
         if ( USE_ALL_ANNOTATIONS )
             engine = new VariantAnnotatorEngine(annotationsToExclude, this, getToolkit());
         else
             engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, annotationsToExclude, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
+        engine.setRequireStrictAlleleMatch(requireStrictAlleleMatch);
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
@@ -232,8 +224,33 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
-        for ( String expression : expressionsToUse )
-            hInfo.add(new VCFInfoHeaderLine(expression, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Value transferred from another external VCF resource"));
+        // for the expressions, pull the info header line from the header of the resource rod
+        for ( VariantAnnotatorEngine.VAExpression expression : engine.getRequestedExpressions() ) {
+            // special case the ID field
+            if ( expression.fieldName.equals("ID") ) {
+                hInfo.add(new VCFInfoHeaderLine(expression.fullName, 1, VCFHeaderLineType.String, "ID field transferred from external VCF resource"));
+                continue;
+            }
+            VCFInfoHeaderLine targetHeaderLine = null;
+            for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(expression.binding.getName())) ) {
+                if ( line instanceof VCFInfoHeaderLine ) {
+                    VCFInfoHeaderLine infoline = (VCFInfoHeaderLine)line;
+                    if ( infoline.getName().equals(expression.fieldName) ) {
+                        targetHeaderLine = infoline;
+                        break;
+                    }
+                }
+            }
+
+            if ( targetHeaderLine != null ) {
+                if ( targetHeaderLine.getCountType() == VCFHeaderLineCount.INTEGER )
+                    hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCount(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
+                else
+                    hInfo.add(new VCFInfoHeaderLine(expression.fullName, targetHeaderLine.getCountType(), targetHeaderLine.getType(), targetHeaderLine.getDescription()));
+            } else {
+                hInfo.add(new VCFInfoHeaderLine(expression.fullName, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Value transferred from another external VCF resource"));
+            }
+        }
 
         engine.invokeAnnotationInitializationMethods(hInfo);
 
@@ -301,9 +318,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup(), ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
             } else {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getExtendedEventPileup());
             }
             if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());

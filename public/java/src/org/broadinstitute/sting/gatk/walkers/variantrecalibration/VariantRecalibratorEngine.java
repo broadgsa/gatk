@@ -67,14 +67,20 @@ public class VariantRecalibratorEngine {
 
     public void evaluateData( final List<VariantDatum> data, final GaussianMixtureModel model, final boolean evaluateContrastively ) {
         if( !model.isModelReadyForEvaluation ) {
-            model.precomputeDenominatorForEvaluation();
+            try {
+                model.precomputeDenominatorForEvaluation();
+            } catch( Exception e ) {
+                model.failedToConverge = true;
+                return;
+            }
         }
         
         logger.info("Evaluating full set of " + data.size() + " variants...");
         for( final VariantDatum datum : data ) {
             final double thisLod = evaluateDatum( datum, model );
             if( Double.isNaN(thisLod) ) {
-                throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
+                model.failedToConverge = true;
+                return;
             }
 
             datum.lod = ( evaluateContrastively ?

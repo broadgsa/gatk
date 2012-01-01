@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
+import com.google.java.contract.Ensures;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
@@ -43,7 +44,8 @@ import java.util.Map;
  *
  */
 public class GATKSAMRecord extends BAMRecord {
-    public static final String REDUCED_READ_QUALITY_TAG = "RR";
+    public static final String REDUCED_READ_CONSENSUS_TAG = "RR";
+
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
@@ -83,8 +85,13 @@ public class GATKSAMRecord extends BAMRecord {
                 read.getMateReferenceIndex(),
                 read.getMateAlignmentStart(),
                 read.getInferredInsertSize(),
-                new byte[]{});
-        super.clearAttributes();
+                null);
+        SAMReadGroupRecord samRG = read.getReadGroup();
+        clearAttributes();
+        if (samRG != null) {
+            GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(samRG);
+            setReadGroup(rg);
+        }
     }
 
     public GATKSAMRecord(final SAMFileHeader header,
@@ -131,6 +138,21 @@ public class GATKSAMRecord extends BAMRecord {
         return mReadGroup;
     }
 
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (!(o instanceof GATKSAMRecord)) return false;
+
+        // note that we do not consider the GATKSAMRecord internal state at all
+        return super.equals(o);
+    }
+
     /**
      * Efficient caching accessor that returns the GATK NGSPlatform of this read
      * @return
@@ -142,17 +164,16 @@ public class GATKSAMRecord extends BAMRecord {
     public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
         mReadGroup = readGroup;
         retrievedReadGroup = true;
+        setAttribute("RG", mReadGroup.getId());       // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
-    //
-    //
-    // Reduced read functions
-    //
-    //
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** ReduceReads functions                                              ***//
+    ///////////////////////////////////////////////////////////////////////////////
 
     public byte[] getReducedReadCounts() {
         if ( ! retrievedReduceReadCounts ) {
-            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_QUALITY_TAG);
+            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_CONSENSUS_TAG);
             retrievedReduceReadCounts = true;
         }
 
@@ -164,8 +185,16 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     public final byte getReducedCount(final int i) {
-        return getReducedReadCounts()[i];
+        byte firstCount = getReducedReadCounts()[0];
+        byte offsetCount = getReducedReadCounts()[i];
+        return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
     }
+
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** GATKSAMRecord specific methods                                     ***//
+    ///////////////////////////////////////////////////////////////////////////////
+
 
     /**
      * Checks whether an attribute has been set for the given key.
@@ -220,18 +249,113 @@ public class GATKSAMRecord extends BAMRecord {
         return null;
     }
 
-    @Override
-    public int hashCode() {
-        return super.hashCode();
+    /**
+     * Checks whether if the read has any bases.
+     *
+     * Empty reads can be dangerous as it may have no cigar strings, no read names and
+     * other missing attributes.
+     *
+     * @return true if the read has no bases
+     */
+    public boolean isEmpty() {
+        return super.getReadBases() == null || super.getReadLength() == 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-
-        if (!(o instanceof GATKSAMRecord)) return false;
-
-        // note that we do not consider the GATKSAMRecord internal state at all
-        return super.equals(o);
+    /**
+     * Clears all attributes except ReadGroup of the read.
+     */
+    public void simplify () {
+        GATKSAMReadGroupRecord rg = getReadGroup();
+        this.clearAttributes();
+        setReadGroup(rg);
     }
+
+    /**
+     * Calculates the reference coordinate for the beginning of the read taking into account soft clips but not hard clips.
+     *
+     * Note: getUnclippedStart() adds soft and hard clips, this function only adds soft clips.
+     *
+     * @return the unclipped start of the read taking soft clips (but not hard clips) into account
+     */
+    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
+    public int getSoftStart() {
+        int start = this.getUnclippedStart();
+        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                start += cigarElement.getLength();
+            else
+                break;
+        }
+        return start;
+    }
+
+    /**
+     * Calculates the reference coordinate for the end of the read taking into account soft clips but not hard clips.
+     *
+     * Note: getUnclippedStart() adds soft and hard clips, this function only adds soft clips.
+     *
+     * @return the unclipped end of the read taking soft clips (but not hard clips) into account
+     */
+    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
+    public int getSoftEnd() {
+        int stop = this.getUnclippedStart();
+
+        if (ReadUtils.readIsEntirelyInsertion(this))
+            return stop;
+
+        int shift = 0;
+        CigarOperator lastOperator = null;
+        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+            stop += shift;
+            lastOperator = cigarElement.getOperator();
+            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                shift = cigarElement.getLength();
+            else
+                shift = 0;
+        }
+        return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    }
+
+    /**
+     * Creates an empty GATKSAMRecord with the read's header, read group and mate
+     * information, but empty (not-null) fields:
+     *  - Cigar String
+     *  - Read Bases
+     *  - Base Qualities
+     *
+     * Use this method if you want to create a new empty GATKSAMRecord based on
+     * another GATKSAMRecord
+     *
+     * @param read
+     * @return
+     */
+    public static GATKSAMRecord emptyRead(GATKSAMRecord read) {
+        GATKSAMRecord emptyRead = new GATKSAMRecord(read.getHeader(),
+                read.getReferenceIndex(),
+                0,
+                (short) 0,
+                (short) 0,
+                0,
+                0,
+                read.getFlags(),
+                0,
+                read.getMateReferenceIndex(),
+                read.getMateAlignmentStart(),
+                read.getInferredInsertSize(),
+                null);
+
+        emptyRead.setCigarString("");
+        emptyRead.setReadBases(new byte[0]);
+        emptyRead.setBaseQualities(new byte[0]);
+
+        SAMReadGroupRecord samRG = read.getReadGroup();
+        emptyRead.clearAttributes();
+        if (samRG != null) {
+            GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(samRG);
+            emptyRead.setReadGroup(rg);
+        }
+
+        return emptyRead;
+    }
+
 }

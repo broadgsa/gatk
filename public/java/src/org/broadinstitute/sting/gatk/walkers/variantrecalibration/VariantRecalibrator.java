@@ -175,7 +175,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     /////////////////////////////
     // Debug Arguments
     /////////////////////////////
-    @Hidden
+    @Advanced
     @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
     protected Boolean TRUST_ALL_POLYMORPHIC = false;
     //@Hidden
@@ -311,8 +311,23 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         engine.evaluateData( dataManager.getData(), goodModel, false );
 
         // Generate the negative model using the worst performing data and evaluate each variant contrastively
-        final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS, VRAC.MIN_NUM_BAD_VARIANTS ) );
+        final ExpandingArrayList<VariantDatum> negativeTrainingData = dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS, VRAC.MIN_NUM_BAD_VARIANTS );
+        GaussianMixtureModel badModel = engine.generateModel( negativeTrainingData );
         engine.evaluateData( dataManager.getData(), badModel, true );
+
+        // Detect if the negative model failed to converge because of too few points and/or too many Gaussians and try again
+        while( badModel.failedToConverge && VRAC.MAX_GAUSSIANS > 4 ) {
+            logger.info("Negative model failed to converge. Retrying...");
+            VRAC.MAX_GAUSSIANS--;
+            badModel = engine.generateModel( negativeTrainingData );
+            engine.evaluateData( dataManager.getData(), goodModel, false );
+            engine.evaluateData( dataManager.getData(), badModel, true );
+        }
+
+        if( badModel.failedToConverge || goodModel.failedToConverge ) {
+            throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
+        }
+
         engine.calculateWorstPerformingAnnotation( dataManager.getData(), goodModel, badModel );
 
         // Find the VQSLOD cutoff values which correspond to the various tranches of calls requested by the user

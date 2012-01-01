@@ -24,16 +24,16 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.apache.poi.hpsf.Variant;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.gatk.samples.Sample;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -41,9 +41,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -145,7 +142,7 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   -family NA12891+NA12892=NA12878 \
+ *   -bed family.ped \
  *   -mvq 50 \
  *   -o violations.vcf
  *
@@ -185,7 +182,7 @@ import java.util.*;
  * </pre>
  *
  */
-public class SelectVariants extends RodWalker<Integer, Integer> {
+public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
@@ -255,16 +252,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't update the AC, AF, or AN values in the INFO field after selecting", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
-    @Hidden
-    @Argument(fullName="family_structure_file", shortName="familyFile", doc="use -family unless you know what you're doing", required=false)
-    private File FAMILY_STRUCTURE_FILE = null;
-
-    /**
-     * String formatted as dad+mom=child where these parameters determine which sample names are examined.
-     */
-    @Argument(fullName="family_structure", shortName="family", doc="string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
-    private String FAMILY_STRUCTURE = "";
-
     /**
      * This activates the mendelian violation module that will select all variants that correspond to a mendelian violation following the rules given by the family structure.
      */
@@ -275,8 +262,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
     /**
-     * Variants are kept in memory to guarantee that exactly n variants will be chosen randomly, so use it only for a reasonable
-     * number of variants.  Use --select_random_fraction for larger numbers of variants.
+     * Variants are kept in memory to guarantee that exactly n variants will be chosen randomly, so make sure you supply the program with enough memory
+     * given your input set.  This option will NOT work well for large callsets; use --select_random_fraction for sets with a large numbers of variants.
      */
     @Argument(fullName="select_random_number", shortName="number", doc="Selects a number of variants at random from the variant track", required=false)
     private int numRandom = 0;
@@ -287,13 +274,24 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track", required=false)
     private double fractionRandom = 0;
 
+    @Argument(fullName="remove_fraction_genotypes", shortName="fractionGenotypes", doc="Selects a fraction (a number between 0 and 1) of the total genotypes at random from the variant track and sets them to nocall", required=false)
+    private double fractionGenotypes = 0;
+
     /**
-      * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
+     * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
      * When specified one or more times, a particular type of variant is selected.
      *
-      */
+     */
     @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file. Valid types are INDEL, SNP, MIXED, MNP, SYMBOLIC, NO_VARIATION. Can be specified multiple times", required=false)
     private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<VariantContext.Type>();
+
+    /**
+     * If provided, we will only include variants whose ID field is present in this list of ids.  The matching
+     * is exact string matching.  The file format is just one ID per line
+     *
+     */
+    @Argument(fullName="keepIDs", shortName="IDs", doc="Only emit sites whose ID is found in this file (one ID per line)", required=false)
+    private File rsIDFile = null;
 
 
     @Hidden
@@ -315,9 +313,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     }
 
     public enum NumberAlleleRestriction {
-           ALL,
-           BIALLELIC,
-           MULTIALLELIC
+        ALL,
+        BIALLELIC,
+        MULTIALLELIC
     }
 
     private ArrayList<VariantContext.Type> selectedTypes = new ArrayList<VariantContext.Type>();
@@ -330,7 +328,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private boolean DISCORDANCE_ONLY = false;
     private boolean CONCORDANCE_ONLY = false;
 
-    private Set<MendelianViolation> mvSet = new HashSet<MendelianViolation>();
+    private MendelianViolation mv;
 
 
     /* variables used by the SELECT RANDOM modules */
@@ -341,14 +339,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private int positionToAdd = 0;
     private RandomVariantStructure [] variantArray;
 
-
-    /* Variables used for random selection with AF boosting */
-    private ArrayList<Double> afBreakpoints = null;
-    private ArrayList<Double> afBoosts = null;
-    double bkDelta = 0.0;
-
     private PrintStream outMVFileStream = null;
 
+    //Random number generator for the genotypes to remove
+    private Random randomGenotypes = new Random();
+
+    private Set<String> IDsToKeep = null;
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -384,8 +380,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         for ( String sample : samples )
             logger.info("Including sample '" + sample + "'");
-
-
 
         // if user specified types to include, add these, otherwise, add all possible variant context types to list of vc types to include
         if (TYPES_TO_INCLUDE.isEmpty()) {
@@ -426,29 +420,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getName());
 
         if (MENDELIAN_VIOLATIONS) {
-            if ( FAMILY_STRUCTURE_FILE != null) {
-                try {
-                    for ( final String line : new XReadLines( FAMILY_STRUCTURE_FILE ) ) {
-                        MendelianViolation mv = new MendelianViolation(line, MENDELIAN_VIOLATION_QUAL_THRESHOLD);
-                        if (samples.contains(mv.getSampleChild()) &&  samples.contains(mv.getSampleDad()) && samples.contains(mv.getSampleMom()))
-                            mvSet.add(mv);
-                    }
-                } catch ( FileNotFoundException e ) {
-                    throw new UserException.CouldNotReadInputFile(FAMILY_STRUCTURE_FILE, e);
-                }
-                if (outMVFile != null)
-                    try {
-                        outMVFileStream = new PrintStream(outMVFile);
-                    }
-                    catch (FileNotFoundException e) {
-                        throw new UserException.CouldNotCreateOutputFile(outMVFile, "Can't open output file", e);   }
-            }
-            else
-                mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));
-        }
-        else if (!FAMILY_STRUCTURE.isEmpty()) {
-            mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));
-            MENDELIAN_VIOLATIONS = true;
+            mv = new MendelianViolation(MENDELIAN_VIOLATION_QUAL_THRESHOLD,false,true);
         }
 
         SELECT_RANDOM_NUMBER = numRandom > 0;
@@ -461,7 +433,18 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
 
-
+        /** load in the IDs file to a hashset for matching */
+        if ( rsIDFile != null ) {
+            IDsToKeep = new HashSet<String>();
+            try {
+                for ( final String line : new XReadLines(rsIDFile).readLines() ) {
+                    IDsToKeep.add(line.trim());
+                }
+                logger.info("Selecting only variants with one of " + IDsToKeep.size() + " IDs from " + rsIDFile);
+            } catch ( FileNotFoundException e ) {
+                throw new UserException.CouldNotReadInputFile(rsIDFile, e);
+            }
+        }
     }
 
     /**
@@ -484,35 +467,38 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
 
         for (VariantContext vc : vcs) {
-            if (MENDELIAN_VIOLATIONS) {
-                boolean foundMV = false;
-                for (MendelianViolation mv : mvSet) {
-                    if (mv.isViolation(vc)) {
-                        foundMV = true;
-                        //System.out.println(vc.toString());
-                        if (outMVFile != null)
+            if ( IDsToKeep != null && ! IDsToKeep.contains(vc.getID()) )
+                continue;
+
+            if (MENDELIAN_VIOLATIONS && mv.countViolations(this.getSampleDB().getFamilies(samples),vc) < 1)
+                break;
+
+            if (outMVFile != null){
+                for( String familyId : mv.getViolationFamilies()){
+                    for(Sample sample : this.getSampleDB().getFamily(familyId)){
+                        if(sample.getParents().size() > 0){
                             outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
-                                "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
-                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getChromosomeCount(vc.getAlternateAllele(0)),
-                                mv.getSampleMom(), mv.getSampleDad(), mv.getSampleChild(),
-                                vc.getGenotype(mv.getSampleMom()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
-                                vc.getGenotype(mv.getSampleDad()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
-                                vc.getGenotype(mv.getSampleChild()).toBriefString(),vc.getGenotype(mv.getSampleChild()).getLikelihoods().getAsString()  );
+                                    "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
+                                    vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
+                                    sample.getMaternalID(), sample.getPaternalID(), sample.getID(),
+                                    vc.getGenotype(sample.getMaternalID()).toBriefString(), vc.getGenotype(sample.getMaternalID()).getLikelihoods().getAsString(),
+                                    vc.getGenotype(sample.getPaternalID()).toBriefString(), vc.getGenotype(sample.getPaternalID()).getLikelihoods().getAsString(),
+                                    vc.getGenotype(sample.getID()).toBriefString(),vc.getGenotype(sample.getID()).getLikelihoods().getAsString()  );
+
+                        }
                     }
                 }
-
-                if (!foundMV)
-                    break;
             }
+
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
-                    return 0;
+                    continue;
             }
             if (CONCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(concordanceTrack, context.getLocation());
                 if (!isConcordant(vc, compVCs))
-                    return 0;
+                    continue;
             }
 
             if (alleleRestriction.equals(NumberAlleleRestriction.BIALLELIC) && !vc.isBiallelic())
@@ -525,22 +511,23 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 continue;
 
             VariantContext sub = subsetRecord(vc, samples);
-            if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+            if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+                boolean failedJexlMatch = false;
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
-                        return 0;
+                        failedJexlMatch = true;
+                        break;
                     }
                 }
-                if (SELECT_RANDOM_NUMBER) {
-                    randomlyAddVariant(++variantNumber, sub, ref.getBase());
+                if ( !failedJexlMatch ) {
+                    if (SELECT_RANDOM_NUMBER) {
+                        randomlyAddVariant(++variantNumber, sub);
+                    }
+                    else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
+                        vcfWriter.add(sub);
+                    }
                 }
-                else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                    vcfWriter.add(sub);
-                }
-
-
             }
-
         }
 
         return 1;
@@ -561,8 +548,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return (compVCs == null || compVCs.isEmpty());
 
         // check if we find it in the variant rod
-        Map<String, Genotype> genotypes = vc.getGenotypes(samples);
-        for (Genotype g : genotypes.values()) {
+        GenotypesContext genotypes = vc.getGenotypes(samples);
+        for (final Genotype g : genotypes) {
             if (sampleHasVariant(g)) {
                 // There is a variant called (or filtered with not exclude filtered option set) that is not HomRef for at least one of the samples.
                 if (compVCs == null)
@@ -634,6 +621,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Override
     public Integer reduce(Integer value, Integer sum) { return value + sum; }
 
+    @Override
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
+    }
+
     public void onTraversalDone(Integer result) {
         logger.info(result + " records processed.");
 
@@ -659,19 +651,34 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
-        ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
-        for ( Map.Entry<String, Genotype> genotypePair : vc.getGenotypes().entrySet() ) {
-            if ( samples.contains(genotypePair.getKey()) )
-                genotypes.add(genotypePair.getValue());
-        }
+        final VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
+        VariantContextBuilder builder = new VariantContextBuilder(sub);
 
-        VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
+        GenotypesContext newGC = sub.getGenotypes();
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-            sub = VariantContext.modifyGenotypes(sub, VariantContextUtils.stripPLs(vc.getGenotypes()));
+            newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
 
-        HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
+        //Remove a fraction of the genotypes if needed
+        if(fractionGenotypes>0){
+            ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
+            for ( Genotype genotype : newGC ) {
+                //Set genotype to no call if it falls in the fraction.
+                if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
+                    ArrayList<Allele> alleles = new ArrayList<Allele>(2);
+                    alleles.add(Allele.create((byte)'.'));
+                    alleles.add(Allele.create((byte)'.'));
+                    genotypes.add(new Genotype(genotype.getSampleName(),alleles, Genotype.NO_LOG10_PERROR,genotype.getFilters(),new HashMap<String, Object>(),false));
+                }
+                else{
+                    genotypes.add(genotype);
+                }
+            }
+            newGC = GenotypesContext.create(genotypes);
+        }
+
+        builder.genotypes(newGC);
 
         int depth = 0;
         for (String sample : sub.getSampleNames()) {
@@ -688,24 +695,21 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
-                attributes.put("AC_Orig",attributes.get(VCFConstants.ALLELE_COUNT_KEY));
-            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                attributes.put("AF_Orig",attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY));
-            if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
-                attributes.put("AN_Orig",attributes.get(VCFConstants.ALLELE_NUMBER_KEY));
-
+            if ( sub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+                builder.attribute("AC_Orig", sub.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+            if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                builder.attribute("AF_Orig", sub.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+            if ( sub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
+                builder.attribute("AN_Orig", sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
 
-        VariantContextUtils.calculateChromosomeCounts(sub,attributes,false);
-        attributes.put("DP", depth);
+        VariantContextUtils.calculateChromosomeCounts(builder, false);
+        builder.attribute("DP", depth);
 
-        sub = VariantContext.modifyAttributes(sub, attributes);
-
-        return sub;
+        return builder.make();
     }
 
-    private void randomlyAddVariant(int rank, VariantContext vc, byte refBase) {
+    private void randomlyAddVariant(int rank, VariantContext vc) {
         if (nVariantsAdded < numRandom)
             variantArray[nVariantsAdded++] = new RandomVariantStructure(vc);
 

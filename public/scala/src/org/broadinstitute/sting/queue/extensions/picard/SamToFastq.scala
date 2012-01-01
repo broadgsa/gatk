@@ -61,17 +61,17 @@ class SamToFastq extends org.broadinstitute.sting.queue.function.JavaCommandLine
   this.sortOrder = null
 
   override def commandLine = super.commandLine +
-       " FASTQ=" + fastq +
-       optional(" SECOND_END_FASTQ=", secondEndFastQ) +
-       conditionalParameter(outputPerReadGroup, optional(" OUTPUT_PER_RG=", outputPerReadGroup)) +
-       optional(" OUTPUT_DIR=", outputDir) +
-       conditionalParameter(!reReverse, optional(" RE_REVERSE=", reReverse)) +
-       conditionalParameter(includeNonPFReads, optional(" INCLUDE_NON_PF_READS=", includeNonPFReads)) +
-       optional(" CLIPPING_ATTRIBUTE=", clippingAttribute) +
-       optional(" CLIPPING_ACTION=", clippingAction) +
-       conditionalParameter (readOneTrim >= 0, optional(" READ1_TRIM=", readOneTrim)) +
-       conditionalParameter (readOneMaxBasesToWrite >= 0, optional(" READ1_MAX_BASES_TO_WRITE=", readOneMaxBasesToWrite)) +
-       conditionalParameter (readTwoTrim >= 0, optional(" READ2_TRIM=", readTwoTrim)) +
-       conditionalParameter (readTwoMaxBasesToWrite >=0, optional(" READ2_MAX_BASES_TO_WRITE=", readTwoMaxBasesToWrite)) +
-       conditionalParameter (includeNonPrimaryAlignments, optional(" INCLUDE_NON_PRIMARY_ALIGNMENTS=", includeNonPrimaryAlignments))
+                             required("FASTQ=" + fastq) +
+                             optional("SECOND_END_FASTQ=", secondEndFastQ, spaceSeparated=false) +
+                             conditional(outputPerReadGroup, "OUTPUT_PER_RG=" + outputPerReadGroup) +
+                             optional("OUTPUT_DIR=", outputDir, spaceSeparated=false) +
+                             conditional(!reReverse, "RE_REVERSE=" + reReverse) +
+                             conditional(includeNonPFReads, "INCLUDE_NON_PF_READS=" + includeNonPFReads) +
+                             optional("CLIPPING_ATTRIBUTE=", clippingAttribute, spaceSeparated=false) +
+                             optional("CLIPPING_ACTION=", clippingAction, spaceSeparated=false) +
+                             conditional(readOneTrim >= 0, "READ1_TRIM=" + readOneTrim) +
+                             conditional(readOneMaxBasesToWrite >= 0, "READ1_MAX_BASES_TO_WRITE=" + readOneMaxBasesToWrite) +
+                             conditional(readTwoTrim >= 0, "READ2_TRIM=" + readTwoTrim) +
+                             conditional(readTwoMaxBasesToWrite >= 0, "READ2_MAX_BASES_TO_WRITE=" + readTwoMaxBasesToWrite) +
+                             conditional(includeNonPrimaryAlignments, "INCLUDE_NON_PRIMARY_ALIGNMENTS=" + includeNonPrimaryAlignments)
 }

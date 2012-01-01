@@ -388,6 +388,15 @@ public class Utils {
         return reallocate(pos, z);
     }
 
+    public static int countSetBits(boolean[] array) {
+        int counter = 0;
+        for ( int i = 0; i < array.length; i++ ) {
+            if ( array[i] )
+                counter++;
+        }
+        return counter;
+    }
+
     /**
      * Returns new (reallocated) integer array of the specified size, with content
      * of the original array <code>orig</code> copied into it. If <code>newSize</code> is
@@ -645,4 +654,18 @@ public class Utils {
             // handle exception
         }
     }
+
+
+    public static byte [] arrayFromArrayWithLength(byte[] array, int length) {
+        byte [] output = new byte[length];
+        for (int j = 0; j < length; j++)
+            output[j] = array[(j % array.length)];
+        return output;
+    }
+
+    public static void fillArrayWithByte(byte[] array, byte value) {
+        for (int i=0; i<array.length; i++)
+            array[i] = value;
+    }
+
 }

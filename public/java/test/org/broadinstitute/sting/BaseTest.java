@@ -1,18 +1,12 @@
 package org.broadinstitute.sting;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
-import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.testng.Assert;
+import org.broadinstitute.sting.utils.io.IOUtils;
 
-import javax.swing.*;
 import java.io.*;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -78,8 +72,8 @@ public abstract class BaseTest {
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
     public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
-    public static final String networkTempDir = "/broad/shptmp/";
-    public static final File networkTempDirFile = new File(networkTempDir);
+    public static final String networkTempDir;
+    public static final File networkTempDirFile;
 
     public static final File testDirFile = new File("public/testdata/");
     public static final String testDir = testDirFile.getAbsolutePath() + "/";
@@ -98,6 +92,10 @@ public abstract class BaseTest {
 
         // Set the Root logger to only output warnings.
         logger.setLevel(Level.WARN);
+
+        networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File("/broad/shptmp/" + System.getProperty("user.name")));
+        networkTempDirFile.deleteOnExit();
+        networkTempDir = networkTempDirFile.getAbsolutePath() + "/";
 
         // find our file sources
 //        if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
@@ -134,7 +132,7 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
-        private final String name;
+        private String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C
@@ -149,6 +147,10 @@ public abstract class BaseTest {
 
         public TestDataProvider(Class c) {
             this(c, "");
+        }
+
+        public void setName(final String name) {
+            this.name = name;
         }
 
         /**
@@ -229,17 +231,12 @@ public abstract class BaseTest {
 
     /**
      * Creates a temp file that will be deleted on exit after tests are complete.
-     * @param name Prefix of the file.
-     * @param extension Extension to concat to the end of the file.
-     * @return A file in the network temporary directory starting with name, ending with extension, which will be deleted after the program exits.
+     * @param name Name of the file.
+     * @return A file in the network temporary directory with name, which will be deleted after the program exits.
      */
-    public static File createNetworkTempFile(String name, String extension) {
-        try {
-            File file = File.createTempFile(name, extension, networkTempDirFile);
-            file.deleteOnExit();
-            return file;
-        } catch (IOException ex) {
-            throw new ReviewedStingException("Cannot create temp file: " + ex.getMessage(), ex);
-        }
+    public static File createNetworkTempFile(String name) {
+        File file = new File(networkTempDirFile, name);
+        file.deleteOnExit();
+        return file;
     }
 }

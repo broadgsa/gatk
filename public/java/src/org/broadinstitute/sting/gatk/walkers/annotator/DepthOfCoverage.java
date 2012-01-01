@@ -49,5 +49,5 @@ public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnno
 
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.DEPTH_KEY); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Filtered Depth")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Approximate read depth; some reads may have been filtered")); }
 }

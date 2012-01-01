@@ -33,5 +33,6 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args,1,Arrays.asList(expected_md5));
         executeTest("Testing the extended pileup with indel records included on a small chunk of Ovarian dataset with 20 indels (1 D, 19 I)", spec);
 
+
     }
 }

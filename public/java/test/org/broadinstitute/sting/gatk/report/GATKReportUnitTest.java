@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.report;
 
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class GATKReportUnitTest extends BaseTest {
@@ -44,12 +45,32 @@ public class GATKReportUnitTest extends BaseTest {
         Assert.assertEquals(validationReport.getVersion(), GATKReportVersion.V0_1);
         Object validationReportPK = countVariants.getPrimaryKey("none.eval.none.known");
         Assert.assertEquals(validationReport.get(validationReportPK, "sensitivity"), "NaN");
+    }
 
-        GATKReportTable simpleMetricsByAC = report.getTable("SimpleMetricsByAC.metrics");
-        Assert.assertEquals(simpleMetricsByAC.getVersion(), GATKReportVersion.V0_1);
-        Object simpleMetricsByACPK = simpleMetricsByAC.getPrimaryKey("none.eval.none.novel.ac2");
-        Assert.assertEquals(simpleMetricsByAC.get(simpleMetricsByACPK, "AC"), "2");
+    @DataProvider(name = "rightAlignValues")
+    public Object[][] getRightAlignValues() {
+        return new Object[][] {
+                new Object[] {null, true},
+                new Object[] {"null", true},
+                new Object[] {"NA", true},
+                new Object[] {"0", true},
+                new Object[] {"0.0", true},
+                new Object[] {"-0", true},
+                new Object[] {"-0.0", true},
+                new Object[] {String.valueOf(Long.MAX_VALUE), true},
+                new Object[] {String.valueOf(Long.MIN_VALUE), true},
+                new Object[] {String.valueOf(Float.MIN_NORMAL), true},
+                new Object[] {String.valueOf(Double.MAX_VALUE), true},
+                new Object[] {String.valueOf(Double.MIN_VALUE), true},
+                new Object[] {String.valueOf(Double.POSITIVE_INFINITY), true},
+                new Object[] {String.valueOf(Double.NEGATIVE_INFINITY), true},
+                new Object[] {String.valueOf(Double.NaN), true},
+                new Object[] {"hello", false}
+        };
+    }
 
-        Assert.assertFalse(simpleMetricsByAC.containsPrimaryKey("none.eval.none.novel.ac2.bad"));
+    @Test(dataProvider = "rightAlignValues")
+    public void testIsRightAlign(String value, boolean expected) {
+        Assert.assertEquals(GATKReportColumn.isRightAlign(value), expected, "right align of '" + value + "'");
     }
 }

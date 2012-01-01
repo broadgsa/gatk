@@ -30,16 +30,12 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.gatk.refdata.SelfScopingFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.GATKDocUtils;
-import org.broadinstitute.sting.utils.help.HelpUtils;
 
-import javax.mail.Header;
 import java.io.File;
 import java.util.*;
 
@@ -159,10 +155,8 @@ public class FeatureManager  {
     public FeatureDescriptor getByFiletype(File file) {
         List<FeatureDescriptor> canParse = new ArrayList<FeatureDescriptor>();
         for ( FeatureDescriptor descriptor : featureDescriptors )
-            if ( descriptor.getCodec() instanceof SelfScopingFeatureCodec ) {
-                if ( ((SelfScopingFeatureCodec) descriptor.getCodec()).canDecode(file) ) {
-                    canParse.add(descriptor);
-                }
+            if ( descriptor.getCodec().canDecode(file.getPath()) ) {
+                canParse.add(descriptor);
             }
 
         if ( canParse.size() == 0 )

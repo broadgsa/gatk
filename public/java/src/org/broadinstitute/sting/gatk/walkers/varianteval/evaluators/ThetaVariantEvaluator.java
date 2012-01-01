@@ -37,7 +37,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
     }
 
     public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (vc == null || !vc.isSNP() || !vc.hasGenotypes() || vc.isMonomorphic()) {
+        if (vc == null || !vc.isSNP() || !vc.hasGenotypes() || vc.isMonomorphicInSamples()) {
             return null; //no interesting sites
         }
 
@@ -48,7 +48,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
         float numGenosHere = 0;
         int numIndsHere = 0;
 
-        for (Genotype genotype : vc.getGenotypes().values()) {
+        for (final Genotype genotype : vc.getGenotypes()) {
             numIndsHere++;
             if (!genotype.isNoCall()) {
                 //increment stats for heterozygosity

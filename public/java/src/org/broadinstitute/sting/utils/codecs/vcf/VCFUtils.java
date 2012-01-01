@@ -26,6 +26,8 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -40,6 +42,18 @@ public class VCFUtils {
      * Constructor access disallowed...static utility methods only!
      */
     private VCFUtils() { }
+
+    public static <T extends Feature> Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, List<RodBinding<T>> rodBindings) {
+        // Collect the eval rod names
+        final Set<String> names = new TreeSet<String>();
+        for ( final RodBinding<T> evalRod : rodBindings )
+            names.add(evalRod.getName());
+        return getVCFHeadersFromRods(toolkit, names);
+    }
+
+    public static Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit) {
+        return getVCFHeadersFromRods(toolkit, (Collection<String>)null);
+    }
 
     public static Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
         Map<String, VCFHeader> data = new HashMap<String, VCFHeader>();

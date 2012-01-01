@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -143,7 +144,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     private JEXLMap getVarContext() {
         List<Allele> alleles = Arrays.asList(Aref, T);
 
-        VariantContext vc = new VariantContext("test", snpLoc.getContig(), snpLoc.getStart(), snpLoc.getStop(), alleles);
+        VariantContext vc = new VariantContextBuilder("test", snpLoc.getContig(), snpLoc.getStart(), snpLoc.getStop(), alleles).make();
         return new JEXLMap(Arrays.asList(exp),vc);
     }
 

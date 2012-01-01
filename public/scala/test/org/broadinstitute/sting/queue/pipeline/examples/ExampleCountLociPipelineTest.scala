@@ -30,7 +30,7 @@ import org.broadinstitute.sting.BaseTest
 
 class ExampleCountLociPipelineTest {
   @Test
-  def testCountLoci {
+  def testCountLoci() {
     val testOut = "count.out"
     val spec = new PipelineTestSpec
     spec.name = "countloci"
@@ -39,7 +39,7 @@ class ExampleCountLociPipelineTest {
       " -R " + BaseTest.testDir + "exampleFASTA.fasta",
       " -I " + BaseTest.testDir + "exampleBAM.bam",
       " -o " + testOut).mkString
-    spec.fileMD5s += testOut -> "67823e4722495eb10a5e4c42c267b3a6"
+    spec.fileMD5s += testOut -> "ade93df31a6150321c1067e749cae9be"
     PipelineTest.executeTest(spec)
   }
 }

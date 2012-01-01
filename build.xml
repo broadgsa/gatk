@@ -847,7 +847,6 @@
 
 
     <path id="testng.default.classpath">
-        <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
         <pathelement location="${scala.classes}" />
         <pathelement location="${java.contracts}" />
@@ -858,6 +857,7 @@
         <pathelement location="${R.tar.dir}" />
         <pathelement location="${R.public.scripts.dir}" />
         <pathelement location="${R.private.scripts.dir}" />
+        <path refid="external.dependencies" />
     </path>
 
     <path id="testng.gatk.releasetest.classpath">
@@ -1117,6 +1117,11 @@
           <fileset dir="${dist.dir}">
             <patternset refid="dependency.mask" />
           </fileset>
+        </unjar>
+
+        <!-- HACK: The GATK jar itself contains overrides for some core classes.  Make sure the GATK.jar is unrolled last. -->
+        <unjar dest="${staging.dir}" overwrite="true">
+          <fileset dir="${dist.dir}" includes="**/GenomeAnalysisTK.jar"/>
         </unjar>
     </target>
 

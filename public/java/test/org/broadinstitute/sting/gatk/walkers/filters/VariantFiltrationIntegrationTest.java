@@ -29,17 +29,23 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testMasks() {
+    public void testMask1() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo --mask:VCF3 " + validationDataLocation + "vcfexample2.vcf --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("578f9e774784c25871678e6464fd212b"));
         executeTest("test mask all", spec1);
+    }
 
+    @Test
+    public void testMask2() {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo --mask:VCF " + validationDataLocation + "vcfMask.vcf --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("bfa86a674aefca1b13d341cb14ab3c4f"));
         executeTest("test mask some", spec2);
+    }
 
+    @Test
+    public void testMask3() {
         WalkerTestSpec spec3 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo -maskExtend 10 --mask:VCF " + validationDataLocation + "vcfMask.vcf --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("5939f80d14b32d88587373532d7b90e5"));
@@ -71,12 +77,15 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testGenotypeFilters() {
+    public void testGenotypeFilters1() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'GQ == 0.60' -G_filterName foo --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("96b61e4543a73fe725e433f007260039"));
         executeTest("test genotype filter #1", spec1);
+    }
 
+    @Test
+    public void testGenotypeFilters2() {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'AF == 0.04 && isHomVar == 1' -G_filterName foo --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("6c8112ab17ce39c8022c891ae73bf38e"));

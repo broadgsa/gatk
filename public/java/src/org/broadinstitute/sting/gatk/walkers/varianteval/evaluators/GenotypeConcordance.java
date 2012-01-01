@@ -209,7 +209,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     //public GenotypeConcordance(VariantEvalWalker parent) {
     //    super(parent);
-	//	discordantInteresting = parent.DISCORDANT_INTERESTING;
+    //	discordantInteresting = parent.DISCORDANT_INTERESTING;
     //}
 
     public String getName() {
@@ -277,8 +277,9 @@ public class GenotypeConcordance extends VariantEvaluator {
 
         // determine concordance for eval data
         if (eval != null) {
-           for (final String sample : eval.getGenotypes().keySet()) {
-                final Genotype.Type called = eval.getGenotype(sample).getType();
+            for (final Genotype g : eval.getGenotypes() ) {
+                final String sample = g.getSampleName();
+                final Genotype.Type called = g.getType();
                 final Genotype.Type truth;
 
                 if (!validationIsValidVC || !validation.hasGenotype(sample)) {
@@ -299,9 +300,9 @@ public class GenotypeConcordance extends VariantEvaluator {
         else {
             final Genotype.Type called = Genotype.Type.NO_CALL;
 
-            for (final String sample : validation.getGenotypes().keySet()) {
-                final Genotype.Type truth = validation.getGenotype(sample).getType();
-                detailedStats.incrValue(sample, truth, called);
+            for (final Genotype g : validation.getGenotypes()) {
+                final Genotype.Type truth = g.getType();
+                detailedStats.incrValue(g.getSampleName(), truth, called);
 
                 // print out interesting sites
                 /*
@@ -410,8 +411,8 @@ class SampleStats implements TableType {
 
     public SampleStats(VariantContext vc, int nGenotypeTypes) {
         this.nGenotypeTypes = nGenotypeTypes;
-        for (String sample : vc.getGenotypes().keySet())
-            concordanceStats.put(sample, new long[nGenotypeTypes][nGenotypeTypes]);
+        for (final Genotype g : vc.getGenotypes())
+            concordanceStats.put(g.getSampleName(), new long[nGenotypeTypes][nGenotypeTypes]);
     }
 
     public SampleStats(int genotypeTypes) {
@@ -441,39 +442,6 @@ class SampleStats implements TableType {
 
     public String getName() {
         return "Sample Statistics";
-    }
-}
-
-/**
- * Sample stats, but for AC
- */
-class ACStats extends SampleStats {
-    private String[] rowKeys;
-
-    public ACStats(VariantContext evalvc, VariantContext compvc, int nGenotypeTypes) {
-        super(nGenotypeTypes);
-        rowKeys = new String[1+2*evalvc.getGenotypes().size()+1+2*compvc.getGenotypes().size()];
-        for ( int i = 0; i <= 2*evalvc.getGenotypes().size(); i++ ) { // todo -- assuming ploidy 2 here...
-            concordanceStats.put(String.format("evalAC%d",i),new long[nGenotypeTypes][nGenotypeTypes]);
-            rowKeys[i] = String.format("evalAC%d",i);
-
-        }
-
-        for ( int i = 0; i <= 2*compvc.getGenotypes().size(); i++ ) {
-            concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
-            rowKeys[1+2*evalvc.getGenotypes().size()+i] = String.format("compAC%d",i);
-        }
-    }
-
-    public String getName() {
-        return "Allele Count Statistics";
-    }
-
-    public Object[] getRowKeys() {
-        if ( rowKeys == null ) {
-            throw new StingException("RowKeys is null!");
-        }
-        return rowKeys;
     }
 }
 
@@ -511,8 +479,8 @@ class SampleSummaryStats implements TableType {
 
     public SampleSummaryStats(final VariantContext vc) {
         concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
-        for( final String sample : vc.getGenotypes().keySet() ) {
-            concordanceSummary.put(sample, new double[COLUMN_KEYS.length]);
+        for( final Genotype g : vc.getGenotypes() ) {
+            concordanceSummary.put(g.getSampleName(), new double[COLUMN_KEYS.length]);
         }
     }
 
@@ -633,82 +601,6 @@ class SampleSummaryStats implements TableType {
 
     public String getName() {
         return "Sample Summary Statistics";
-    }
-}
-
-/**
- * SampleSummaryStats .. but for allele counts
- */
-class ACSummaryStats extends SampleSummaryStats {
-    private String[] rowKeys;
-
-    public ACSummaryStats (final VariantContext evalvc, final VariantContext compvc) {
-        concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
-        rowKeys = new String[3+2*evalvc.getGenotypes().size() + 2*compvc.getGenotypes().size()];
-        rowKeys[0] = ALL_SAMPLES_KEY;
-        for( int i = 0; i <= 2*evalvc.getGenotypes().size() ; i ++ ) {
-            concordanceSummary.put(String.format("evalAC%d",i), new double[COLUMN_KEYS.length]);
-            rowKeys[i+1] = String.format("evalAC%d",i);
-        }
-        for( int i = 0; i <= 2*compvc.getGenotypes().size() ; i ++ ) {
-            concordanceSummary.put(String.format("compAC%d",i), new double[COLUMN_KEYS.length]);
-            rowKeys[2+2*evalvc.getGenotypes().size()+i] = String.format("compAC%d",i);
-        }
-
-    }
-
-    public String getName() {
-        return "Allele Count Summary Statistics";
-    }
-
-    public Object[] getRowKeys() {
-        if ( rowKeys == null) {
-            throw new StingException("rowKeys is null!!");
-        }
-        return rowKeys;
-    }
-}
-
-class CompACNames implements Comparator{
-
-    final Logger myLogger;
-    private boolean info = true;
-
-    public CompACNames(Logger l) {
-        myLogger = l;
-    }
-
-    public boolean equals(Object o) {
-        return ( o.getClass() == CompACNames.class );
-    }
-
-    public int compare(Object o1, Object o2) {
-        if ( info ) {
-            myLogger.info("Sorting AC names");
-            info = false;
-        }
-        //System.out.printf("Objects %s %s get ranks %d %d%n",o1.toString(),o2.toString(),getRank(o1),getRank(o2));
-        return getRank(o1) - getRank(o2);
-    }
-
-    public int getRank(Object o) {
-        if ( o.getClass() != String.class ) {
-            return Integer.MIN_VALUE/4;
-        } else {
-            String s = (String) o;
-            if ( s.startsWith("eval") ) {
-                return Integer.MIN_VALUE/4 + 1 + parseAC(s);
-            } else if ( s.startsWith("comp") ) {
-                return 1+ parseAC(s);
-            } else {
-                return Integer.MIN_VALUE/4;
-            }
-        }
-    }
-
-    public int parseAC(String s) {
-        String[] g = s.split("AC");
-        return Integer.parseInt(g[1]);
     }
 }
 

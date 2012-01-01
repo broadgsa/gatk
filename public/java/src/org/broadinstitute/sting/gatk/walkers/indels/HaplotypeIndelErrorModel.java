@@ -205,7 +205,7 @@ public class HaplotypeIndelErrorModel {
 
                 byte haplotypeBase;
                 if (haplotypeIndex < RIGHT_ALIGN_INDEX)
-                    haplotypeBase = haplotype.getBasesAsBytes()[haplotypeIndex];
+                    haplotypeBase = haplotype.getBases()[haplotypeIndex];
                 else
                     haplotypeBase = (byte)0; // dummy
 
@@ -217,7 +217,7 @@ public class HaplotypeIndelErrorModel {
                 if (readQual > 3)
                     pRead += pBaseRead;
                 haplotypeIndex++;
-                if (haplotypeIndex >= haplotype.getBasesAsBytes().length)
+                if (haplotypeIndex >= haplotype.getBases().length)
                     haplotypeIndex = RIGHT_ALIGN_INDEX;
                 //System.out.format("H:%c R:%c RQ:%d HI:%d %4.5f %4.5f\n", haplotypeBase, readBase, (int)readQual, haplotypeIndex, pBaseRead, pRead);
              }
@@ -227,8 +227,8 @@ public class HaplotypeIndelErrorModel {
                 System.out.println(read.getReadName());
                 System.out.print("Haplotype:");
 
-                for (int k=0; k <haplotype.getBasesAsBytes().length; k++) {
-                    System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
+                for (int k=0; k <haplotype.getBases().length; k++) {
+                    System.out.format("%c ", haplotype.getBases()[k]);
                 }
                 System.out.println();
 
@@ -246,8 +246,8 @@ public class HaplotypeIndelErrorModel {
 
                 System.out.println("Haplotype:");
 
-                for (int k=initialIndexInHaplotype; k <haplotype.getBasesAsBytes().length; k++) {
-                    System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
+                for (int k=initialIndexInHaplotype; k <haplotype.getBases().length; k++) {
+                    System.out.format("%c ", haplotype.getBases()[k]);
                 }
                 System.out.println();
 
@@ -275,7 +275,7 @@ public class HaplotypeIndelErrorModel {
 
                 byte haplotypeBase;
                 if (indX > LEFT_ALIGN_INDEX && indX < RIGHT_ALIGN_INDEX)
-                    haplotypeBase = haplotype.getBasesAsBytes()[indX-1];
+                    haplotypeBase = haplotype.getBases()[indX-1];
                 else
                     haplotypeBase = readBase;
 
@@ -296,8 +296,8 @@ public class HaplotypeIndelErrorModel {
             System.out.println(read.getReadName());
             System.out.print("Haplotype:");
 
-            for (int k=0; k <haplotype.getBasesAsBytes().length; k++) {
-                System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
+            for (int k=0; k <haplotype.getBases().length; k++) {
+                System.out.format("%c ", haplotype.getBases()[k]);
             }
             System.out.println();
 

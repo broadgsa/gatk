@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -54,22 +55,22 @@ public class AlleleBalance extends InfoFieldAnnotation {
         
         if ( !vc.isBiallelic() )
             return null;
-        final Map<String, Genotype> genotypes = vc.getGenotypes();
+        final GenotypesContext genotypes = vc.getGenotypes();
         if ( !vc.hasGenotypes() )
             return null;
 
         double ratio = 0.0;
         double totalWeights = 0.0;
-        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
+        for ( Genotype genotype : genotypes ) {
             // we care only about het calls
-            if ( !genotype.getValue().isHet() )
+            if ( !genotype.isHet() )
                 continue;
 
-            AlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null )
                 continue;
 
-            if ( vc.isSNP() ) {
+            if ( vc.isSNP() && context.hasBasePileup() ) {
                 final String bases = new String(context.getBasePileup().getBases());
                 if ( bases.length() == 0 )
                     return null;
@@ -84,8 +85,8 @@ public class AlleleBalance extends InfoFieldAnnotation {
                     continue;
 
                 // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
-                ratio += genotype.getValue().getNegLog10PError() * ((double)refCount / (double)(refCount + altCount));
-                totalWeights += genotype.getValue().getNegLog10PError();
+                ratio += genotype.getLog10PError() * ((double)refCount / (double)(refCount + altCount));
+                totalWeights += genotype.getLog10PError();
             } else if ( vc.isIndel() && context.hasExtendedEventPileup() ) {
                 final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
                 if ( indelPileup == null ) {

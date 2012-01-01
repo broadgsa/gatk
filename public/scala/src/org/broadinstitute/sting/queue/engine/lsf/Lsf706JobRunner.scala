@@ -56,6 +56,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
   private val selectString = new StringBuffer()
   private val usageString = new StringBuffer()
   private val requestString = new StringBuffer()
+  private val spanString = new StringBuffer()
 
   /**
    * Dispatches the function on the LSF cluster.
@@ -98,6 +99,23 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
         val memInUnits = Lsf706JobRunner.convertUnits(function.residentRequest.get)
         appendRequest("select", selectString, "&&", "mem>%d".format(memInUnits))
         appendRequest("rusage", usageString, ",", "mem=%d".format(memInUnits))
+      }
+
+      //
+      // Request multiple cores on the same host.  If nCoresRequest > 1, and we
+      // aren't being jerks and stealing cores, set numProcessors and maxNumProcessors
+      // and the span[host=1] parameters to get us exactly the right number of
+      // cores on a single host
+      //
+      if ( function.nCoresRequest.getOrElse(1) > 1 ) {
+        if ( function.qSettings.dontRequestMultipleCores )
+          logger.warn("Sending multicore job %s to farm without requesting appropriate number of cores (%d)".format(
+            function.jobName, function.nCoresRequest.get))
+        else {
+          request.numProcessors = function.nCoresRequest.get
+          request.maxNumProcessors = request.numProcessors
+          appendRequest("span", spanString, ",", "hosts=1")
+        }
       }
 
       val resReq = getResourceRequest
@@ -167,10 +185,12 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
     requestString.setLength(0)
     selectString.setLength(0)
     usageString.setLength(0)
+    spanString.setLength(0)
 
     requestString.append(function.jobResourceRequests.mkString(" "))
     extractSection(requestString, "select", selectString)
     extractSection(requestString, "rusage", usageString)
+    extractSection(requestString, "span", spanString)
   }
 
   private def extractSection(requestString: StringBuffer, section: String, sectionString: StringBuffer) {
@@ -196,7 +216,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
       sectionString.insert(sectionString.length() - 1, separator + request)
   }
 
-  private def getResourceRequest = "%s %s %s".format(selectString, usageString, requestString).trim()
+  private def getResourceRequest = "%s %s %s %s".format(selectString, usageString, spanString, requestString).trim()
 }
 
 object Lsf706JobRunner extends Logging {

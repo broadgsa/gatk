@@ -100,6 +100,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class TooManyOpenFiles extends UserException {
+        public TooManyOpenFiles() {
+            super(String.format("There was a failure because there are too many files open concurrently; your system's open file handle limit is too small.  See the unix ulimit command to adjust this limit"));
+        }
+    }
+
     public static class ErrorWritingBamFile extends UserException {
         public ErrorWritingBamFile(String message) {
             super(String.format("An error occurred when trying to write the BAM file.  Usually this happens when there is not enough space in the directory to which the data is being written (generally the temp directory) or when your system's open file handle limit is too small.  To tell Java to use a bigger/better file system use -Djava.io.tmpdir=X on the command line.  The exact error was %s", message));
@@ -178,11 +184,11 @@ public class UserException extends ReviewedStingException {
 
     public static class MalformedVCF extends UserException {
         public MalformedVCF(String message, String line) {
-            super(String.format("The provided VCF file is malformed at line %s: %s", line, message));
+            super(String.format("The provided VCF file is malformed at approximately line %s: %s", line, message));
         }
 
         public MalformedVCF(String message, int lineNo) {
-            super(String.format("The provided VCF file is malformed at line number %d: %s", lineNo, message));
+            super(String.format("The provided VCF file is malformed at approximately line number %d: %s", lineNo, message));
         }
     }
 

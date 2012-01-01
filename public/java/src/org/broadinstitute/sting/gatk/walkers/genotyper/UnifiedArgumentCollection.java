@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 
@@ -96,11 +93,6 @@ public class UnifiedArgumentCollection {
     @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when in GENOTYPE_MODE = GENOTYPE_GIVEN_ALLELES", required=false)
     public RodBinding<VariantContext> alleles;
 
-    // control the error modes
-    @Hidden
-    @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
-    public String ASSUME_SINGLE_SAMPLE = null;
-
     /**
      * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
      * is capped by the mapping quality so that bases on reads with low mapping quality may get filtered out depending on this value.
@@ -110,6 +102,22 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
+
+    /**
+     * The default behavior of the Unified Genotyper is to allow the genotyping of just one alternate allele in discovery mode; using this flag
+     * will enable the discovery of multiple alternate alleles.  Please note that this works for SNPs only and that it is still highly experimental.
+     * For advanced users only.
+     */
+    @Advanced
+    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow the discovery of multiple alleles (SNPs only)", required = false)
+    public boolean MULTI_ALLELIC = false;
+
+    /**
+     * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
+     * then this site will be skipped and a warning printed.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
+     */
+    @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
+    public int MAX_ALTERNATE_ALLELES = 5;
 
     // indel-related arguments
     /**
@@ -137,15 +145,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
 
-    //gdebug+
-    // experimental arguments, NOT TO BE USED BY ANYONE WHOSE INITIALS AREN'T GDA!!!
-//    @Hidden
-//    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
-//    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
-//
-//    @Hidden
-//    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
-//    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
     @Hidden
     @Argument(fullName = "bandedIndel", shortName = "bandedIndel", doc = "Banded Indel likelihood computation", required = false)
     public boolean BANDED_INDEL_COMPUTATION = false;
@@ -170,7 +169,6 @@ public class UnifiedArgumentCollection {
         uac.GenotypingMode = GenotypingMode;
         uac.OutputMode = OutputMode;
         uac.COMPUTE_SLOD = COMPUTE_SLOD;
-        uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
@@ -182,10 +180,12 @@ public class UnifiedArgumentCollection {
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.alleles = alleles;
+        uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
         uac.BANDED_INDEL_COMPUTATION = BANDED_INDEL_COMPUTATION;
+        uac.MULTI_ALLELIC = MULTI_ALLELIC;
         return uac;
     }
 

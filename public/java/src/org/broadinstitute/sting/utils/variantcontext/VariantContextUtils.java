@@ -25,13 +25,10 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.samtools.util.StringUtil;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
-import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -58,84 +55,38 @@ public class VariantContextUtils {
     }
 
     /**
-     * Create a new VariantContext
-     *
-     * @param name            name
-     * @param loc             location
-     * @param alleles         alleles
-     * @param genotypes       genotypes set
-     * @param negLog10PError  qual
-     * @param filters         filters: use null for unfiltered and empty set for passes filters
-     * @param attributes      attributes
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes != null ? VariantContext.genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes);
-    }
-
-    /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     * @param name            name
-     * @param loc             location
-     * @param alleles         alleles
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles) {
-        return new VariantContext (name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, VariantContext.NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
-    }
-
-    /**
-     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     * @param name            name
-     * @param loc             location
-     * @param alleles         alleles
-     * @param genotypes       genotypes
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
-        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
-    }
-
-    /**
-     * Copy constructor
-     *
-     * @param other the VariantContext to copy
-     * @return VariantContext object
-     */
-    public static VariantContext toVC(VariantContext other) {
-        return new VariantContext(other.getSource(), other.getChr(), other.getStart(), other.getEnd(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
-    }
-
-    /**
-     * Update the attributes of the attributes map given the VariantContext to reflect the proper chromosome-based VCF tags
+     * Update the attributes of the attributes map given the VariantContext to reflect the
+     * proper chromosome-based VCF tags
      *
      * @param vc          the VariantContext
      * @param attributes  the attributes map to populate; must not be null; may contain old values
      * @param removeStaleValues should we remove stale values from the mapping?
+     * @return the attributes map provided as input, returned for programming convenience
      */
-    public static void calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
+    public static Map<String, Object> calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
         // if everyone is a no-call, remove the old attributes if requested
-        if ( vc.getChromosomeCount() == 0 && removeStaleValues ) {
+        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
             if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
                 attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
             if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
                 attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
             if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
                 attributes.remove(VCFConstants.ALLELE_NUMBER_KEY);
-            return;
+            return attributes;
         }
 
         if ( vc.hasGenotypes() ) {
-            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
+            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
 
             // if there are alternate alleles, record the relevant tags
             if ( vc.getAlternateAlleles().size() > 0 ) {
                 ArrayList<String> alleleFreqs = new ArrayList<String>();
                 ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-                double totalChromosomes = (double)vc.getChromosomeCount();
+                double totalChromosomes = (double)vc.getCalledChrCount();
                 for ( Allele allele : vc.getAlternateAlleles() ) {
-                    int altChromosomes = vc.getChromosomeCount(allele);
+                    int altChromosomes = vc.getCalledChrCount(allele);
                     alleleCounts.add(altChromosomes);
+                    // todo -- this is a performance problem
                     String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
                     alleleFreqs.add(freq);
                 }
@@ -146,6 +97,54 @@ public class VariantContextUtils {
             else {
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
                 attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
+            }
+        }
+
+        return attributes;
+    }
+
+    /**
+     * Update the attributes of the attributes map in the VariantContextBuilder to reflect the proper
+     * chromosome-based VCF tags based on the current VC produced by builder.make()
+     *
+     * @param builder     the VariantContextBuilder we are updating
+     * @param removeStaleValues should we remove stale values from the mapping?
+     */
+    public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues) {
+        final VariantContext vc = builder.make();
+
+        // if everyone is a no-call, remove the old attributes if requested
+        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
+            if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+                builder.rmAttribute(VCFConstants.ALLELE_COUNT_KEY);
+            if ( vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                builder.rmAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
+            if ( vc.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
+                builder.rmAttribute(VCFConstants.ALLELE_NUMBER_KEY);
+            return;
+        }
+
+        if ( vc.hasGenotypes() ) {
+            builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
+
+            // if there are alternate alleles, record the relevant tags
+            if ( vc.getAlternateAlleles().size() > 0 ) {
+                ArrayList<String> alleleFreqs = new ArrayList<String>();
+                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+                double totalChromosomes = (double)vc.getCalledChrCount();
+                for ( Allele allele : vc.getAlternateAlleles() ) {
+                    int altChromosomes = vc.getCalledChrCount(allele);
+                    alleleCounts.add(altChromosomes);
+                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
+                    alleleFreqs.add(freq);
+                }
+
+                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
+                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
+            }
+            else {
+                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, 0);
+                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
             }
         }
     }
@@ -165,7 +164,81 @@ public class VariantContextUtils {
         Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
         attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
         attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
+    }
+
+    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
+        // see if we need to pad common reference base from all alleles
+        boolean padVC;
+
+        // We need to pad a VC with a common base if the length of the reference allele is less than the length of the VariantContext.
+        // This happens because the position of e.g. an indel is always one before the actual event (as per VCF convention).
+        long locLength = (inputVC.getEnd() - inputVC.getStart()) + 1;
+        if (inputVC.hasSymbolicAlleles())
+            padVC = true;
+        else if (inputVC.getReference().length() == locLength)
+            padVC = false;
+        else if (inputVC.getReference().length() == locLength-1)
+            padVC = true;
+        else throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
+                    " in contig " + inputVC.getChr() + ". Reference length must be at most one base shorter than location size");
+
+        // nothing to do if we don't need to pad bases
+        if (padVC) {
+            if ( !inputVC.hasReferenceBaseForIndel() )
+                throw new ReviewedStingException("Badly formed variant context at location " + inputVC.getChr() + ":" + inputVC.getStart() + "; no padded reference base is available.");
+
+            Byte refByte = inputVC.getReferenceBaseForIndel();
+
+            List<Allele> alleles = new ArrayList<Allele>();
+
+            for (Allele a : inputVC.getAlleles()) {
+                // get bases for current allele and create a new one with trimmed bases
+                if (a.isSymbolic()) {
+                    alleles.add(a);
+                } else {
+                    String newBases;
+                    if ( refBaseShouldBeAppliedToEndOfAlleles )
+                        newBases = a.getBaseString() + new String(new byte[]{refByte});
+                    else
+                        newBases = new String(new byte[]{refByte}) + a.getBaseString();
+                    alleles.add(Allele.create(newBases,a.isReference()));
+                }
+            }
+
+            // now we can recreate new genotypes with trimmed alleles
+            GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
+            for (final Genotype g : inputVC.getGenotypes() ) {
+                List<Allele> inAlleles = g.getAlleles();
+                List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
+                for (Allele a : inAlleles) {
+                    if (a.isCalled()) {
+                        if (a.isSymbolic()) {
+                            newGenotypeAlleles.add(a);
+                        } else {
+                            String newBases;
+                            if ( refBaseShouldBeAppliedToEndOfAlleles )
+                                newBases = a.getBaseString() + new String(new byte[]{refByte});
+                            else
+                                newBases = new String(new byte[]{refByte}) + a.getBaseString();
+                            newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
+                        }
+                    }
+                    else {
+                        // add no-call allele
+                        newGenotypeAlleles.add(Allele.NO_CALL);
+                    }
+                }
+                genotypes.add(new Genotype(g.getSampleName(), newGenotypeAlleles, g.getLog10PError(),
+                        g.getFilters(), g.getAttributes(), g.isPhased()));
+
+            }
+
+            return new VariantContextBuilder(inputVC).alleles(alleles).genotypes(genotypes).make();
+        }
+        else
+            return inputVC;
+
     }
 
     /**
@@ -296,7 +369,7 @@ public class VariantContextUtils {
     }
 
     public static double computeHardyWeinbergPvalue(VariantContext vc) {
-        if ( vc.getChromosomeCount() == 0 )
+        if ( vc.getCalledChrCount() == 0 )
             return 0.0;
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }
@@ -309,7 +382,7 @@ public class VariantContextUtils {
     @Requires("vc != null")
     @Ensures("result != null")
     public static VariantContext sitesOnlyVariantContext(VariantContext vc) {
-        return VariantContext.modifyGenotypes(vc, null);
+        return new VariantContextBuilder(vc).noGenotypes().make();
     }
 
     /**
@@ -326,39 +399,42 @@ public class VariantContextUtils {
         return r;
     }
 
-    public static VariantContext pruneVariantContext(VariantContext vc) {
-        return pruneVariantContext(vc, null);
+    private final static Map<String, Object> subsetAttributes(final CommonInfo igc, final Collection<String> keysToPreserve) {
+        Map<String, Object> attributes = new HashMap<String, Object>(keysToPreserve.size());
+        for ( final String key : keysToPreserve  ) {
+            if ( igc.hasAttribute(key) )
+                attributes.put(key, igc.getAttribute(key));
+        }
+        return attributes;
     }
 
-    public static VariantContext pruneVariantContext(final VariantContext vc, final Collection<String> keysToPreserve ) {
-        final MutableVariantContext mvc = new MutableVariantContext(vc);
+    /**
+     * @deprecated use variant context builder version instead
+     * @param vc
+     * @param keysToPreserve
+     * @return
+     */
+    @Deprecated
+    public static VariantContext pruneVariantContext(final VariantContext vc, Collection<String> keysToPreserve ) {
+        return pruneVariantContext(new VariantContextBuilder(vc), keysToPreserve).make();
+    }
 
-        if ( keysToPreserve == null || keysToPreserve.size() == 0 )
-            mvc.clearAttributes();
-        else {
-            final Map<String, Object> d = mvc.getAttributes();
-            mvc.clearAttributes();
-            for ( String key : keysToPreserve )
-                if ( d.containsKey(key) )
-                    mvc.putAttribute(key, d.get(key));
+    public static VariantContextBuilder pruneVariantContext(final VariantContextBuilder builder, Collection<String> keysToPreserve ) {
+        final VariantContext vc = builder.make();
+        if ( keysToPreserve == null ) keysToPreserve = Collections.emptyList();
+
+        // VC info
+        final Map<String, Object> attributes = subsetAttributes(vc.commonInfo, keysToPreserve);
+
+        // Genotypes
+        final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype g : vc.getGenotypes() ) {
+            Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
+            genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.getFilters(),
+                    genotypeAttributes, g.isPhased()));
         }
 
-        // this must be done as the ID is stored in the attributes field
-        if ( vc.hasID() ) mvc.setID(vc.getID());
-
-        Collection<Genotype> gs = mvc.getGenotypes().values();
-        mvc.clearGenotypes();
-        for ( Genotype g : gs ) {
-            MutableGenotype mg = new MutableGenotype(g);
-            mg.clearAttributes();
-            if ( keysToPreserve != null )
-                for ( String key : keysToPreserve )
-                    if ( g.hasAttribute(key) )
-                        mg.putAttribute(key, g.getAttribute(key));
-            mvc.addGenotype(mg);
-        }
-
-        return mvc;
+        return builder.genotypes(genotypes).attributes(attributes);
     }
 
     public enum GenotypeMergeType {
@@ -389,75 +465,6 @@ public class VariantContextUtils {
          * Requires all records present at site to be unfiltered. VCF files that don't contain the record don't influence this.
          */
         KEEP_IF_ALL_UNFILTERED
-    }
-
-    /**
-     * Performs a master merge on the VCs.  Here there is a master input [contains all of the information] and many
-     * VCs containing partial, extra genotype information which should be added to the master.  For example,
-     * we scatter out the phasing algorithm over some samples in the master, producing a minimal VCF with phasing
-     * information per genotype.  The master merge will add the PQ information from each genotype record, where
-     * appropriate, to the master VC.
-     *
-     * @param unsortedVCs   collection of VCs
-     * @param masterName    name of master VC
-     * @return  master-merged VC
-     */
-    public static VariantContext masterMerge(Collection<VariantContext> unsortedVCs, String masterName) {
-        VariantContext master = findMaster(unsortedVCs, masterName);
-        Map<String, Genotype> genotypes = master.getGenotypes();
-        for (Genotype g : genotypes.values()) {
-            genotypes.put(g.getSampleName(), new MutableGenotype(g));
-        }
-
-        Map<String, Object> masterAttributes = new HashMap<String, Object>(master.getAttributes());
-
-        for (VariantContext vc : unsortedVCs) {
-            if (!vc.getSource().equals(masterName)) {
-                for (Genotype g : vc.getGenotypes().values()) {
-                    MutableGenotype masterG = (MutableGenotype) genotypes.get(g.getSampleName());
-                    for (Map.Entry<String, Object> attr : g.getAttributes().entrySet()) {
-                        if (!masterG.hasAttribute(attr.getKey())) {
-                            //System.out.printf("Adding GT attribute %s to masterG %s, new %s%n", attr, masterG, g);
-                            masterG.putAttribute(attr.getKey(), attr.getValue());
-                        }
-                    }
-
-                    if (masterG.isPhased() != g.isPhased()) {
-                        if (masterG.sameGenotype(g)) {
-                            // System.out.printf("Updating phasing %s to masterG %s, new %s%n", g.isPhased(), masterG, g);
-                            masterG.setAlleles(g.getAlleles());
-                            masterG.setPhase(g.isPhased());
-                        }
-                        //else System.out.println("WARNING: Not updating phase, since genotypes differ between master file and auxiliary info file!");
-                    }
-
-//                    if ( MathUtils.compareDoubles(masterG.getNegLog10PError(), g.getNegLog10PError()) != 0 ) {
-//                        System.out.printf("Updating GQ %s to masterG %s, new %s%n", g.getNegLog10PError(), masterG, g);
-//                        masterG.setNegLog10PError(g.getNegLog10PError());
-//                    }
-
-                }
-
-                for (Map.Entry<String, Object> attr : vc.getAttributes().entrySet()) {
-                    if (!masterAttributes.containsKey(attr.getKey())) {
-                        //System.out.printf("Adding VC attribute %s to master %s, new %s%n", attr, master, vc);
-                        masterAttributes.put(attr.getKey(), attr.getValue());
-                    }
-                }
-            }
-        }
-
-        return new VariantContext(master.getSource(), master.getChr(), master.getStart(), master.getEnd(), master.getAlleles(), genotypes, master.getNegLog10PError(), master.getFilters(), masterAttributes);
-    }
-
-    private static VariantContext findMaster(Collection<VariantContext> unsortedVCs, String masterName) {
-        for (VariantContext vc : unsortedVCs) {
-            if (vc.getSource().equals(masterName)) {
-                return vc;
-            }
-        }
-
-        throw new ReviewedStingException(String.format("Couldn't find master VCF %s at %s", masterName, unsortedVCs.iterator().next()));
     }
 
     /**
@@ -503,7 +510,7 @@ public class VariantContextUtils {
         for (VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc, false));
+                VCs.add(createVariantContextWithPaddedAlleles(vc, false));
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;
@@ -524,9 +531,9 @@ public class VariantContextUtils {
         int depth = 0;
         int maxAC = -1;
         final Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
-        double negLog10PError = -1;
+        double log10PError = 1;
         VariantContext vcWithMaxAC = null;
-        Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+        GenotypesContext genotypes = GenotypesContext.create();
 
         // counting the number of filtered and variant VCs
         int nFiltered = 0;
@@ -552,7 +559,7 @@ public class VariantContextUtils {
 
             mergeGenotypes(genotypes, vc, alleleMapping, genotypeMergeOptions == GenotypeMergeType.UNIQUIFY);
 
-            negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
+            log10PError = Math.min(log10PError, vc.isVariant() ? vc.getLog10PError() : 1);
 
             filters.addAll(vc.getFilters());
 
@@ -563,7 +570,7 @@ public class VariantContextUtils {
             //
             if (vc.hasAttribute(VCFConstants.DEPTH_KEY))
                 depth += vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0);
-            if ( vc.hasID() && ! vc.getID().equals(VCFConstants.EMPTY_ID_FIELD) ) rsIDs.add(vc.getID());
+            if ( vc.hasID() ) rsIDs.add(vc.getID());
             if (mergeInfoWithMaxAC && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) {
                 String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY, null);
                 // lets see if the string contains a , separator
@@ -612,8 +619,9 @@ public class VariantContextUtils {
             if (vc.alleles.size() == 1)
                 continue;
             if ( hasPLIncompatibleAlleles(alleles, vc.alleles)) {
-                logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
-                        genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
+                if ( ! genotypes.isEmpty() )
+                    logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
+                            genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
                 genotypes = stripPLs(genotypes);
                 // this will remove stale AC,AF attributed from vc
                 calculateChromosomeCounts(vc, attributes, true);
@@ -656,14 +664,17 @@ public class VariantContextUtils {
         if ( depth > 0 )
             attributes.put(VCFConstants.DEPTH_KEY, String.valueOf(depth));
 
-        if ( ! rsIDs.isEmpty() ) {
-            attributes.put(VariantContext.ID_KEY, Utils.join(",", rsIDs));
-        }
+        final String ID = rsIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(",", rsIDs);
 
-        VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
+        final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID);
+        builder.loc(loc.getContig(), loc.getStart(), loc.getStop());
+        builder.alleles(alleles);
+        builder.genotypes(genotypes);
+        builder.log10PError(log10PError);
+        builder.filters(filters).attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
+
         // Trim the padded bases of all alleles if necessary
-        merged = createVariantContextWithTrimmedAlleles(merged);
-
+        VariantContext merged = createVariantContextWithTrimmedAlleles(builder.make());
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -698,6 +709,7 @@ public class VariantContextUtils {
 
         return true;
     }
+
     public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
         // see if we need to trim common reference base from all alleles
         boolean trimVC;
@@ -716,7 +728,7 @@ public class VariantContextUtils {
         // nothing to do if we don't need to trim bases
         if (trimVC) {
             List<Allele> alleles = new ArrayList<Allele>();
-            Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+            GenotypesContext genotypes = GenotypesContext.create();
 
             // set the reference base for indels in the attributes
             Map<String,Object> attributes = new TreeMap<String,Object>(inputVC.getAttributes());
@@ -750,9 +762,9 @@ public class VariantContextUtils {
              if (!hasNullAlleles)
                return inputVC;
            // now we can recreate new genotypes with trimmed alleles
-            for ( Map.Entry<String, Genotype> sample : inputVC.getGenotypes().entrySet() ) {
+            for ( final Genotype genotype : inputVC.getGenotypes() ) {
 
-                List<Allele> originalAlleles = sample.getValue().getAlleles();
+                List<Allele> originalAlleles = genotype.getAlleles();
                 List<Allele> trimmedAlleles = new ArrayList<Allele>();
                 for ( Allele a : originalAlleles ) {
                     if ( a.isCalled() )
@@ -760,21 +772,22 @@ public class VariantContextUtils {
                     else
                         trimmedAlleles.add(Allele.NO_CALL);
                 }
-                genotypes.put(sample.getKey(), Genotype.modifyAlleles(sample.getValue(), trimmedAlleles));
+                genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
 
             }
-            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(), inputVC.filtersWereApplied() ? inputVC.getFilters() : null, attributes, new Byte(inputVC.getReference().getBases()[0]));
 
+            final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
+            return builder.alleles(alleles).genotypes(genotypes).attributes(attributes).referenceBaseForIndel(new Byte(inputVC.getReference().getBases()[0])).make();
         }
 
         return inputVC;
     }
 
-    public static Map<String, Genotype> stripPLs(Map<String, Genotype> genotypes) {
-        Map<String, Genotype> newGs = new HashMap<String, Genotype>(genotypes.size());
+    public static GenotypesContext stripPLs(GenotypesContext genotypes) {
+        GenotypesContext newGs = GenotypesContext.create(genotypes.size());
 
-        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
-            newGs.put(g.getKey(), g.getValue().hasLikelihoods() ? removePLs(g.getValue()) : g.getValue());
+        for ( final Genotype g : genotypes ) {
+            newGs.add(g.hasLikelihoods() ? removePLs(g) : g);
         }
 
         return newGs;
@@ -951,20 +964,19 @@ public class VariantContextUtils {
         }
     }
 
-    private static void mergeGenotypes(Map<String, Genotype> mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
-        for ( Genotype g : oneVC.getGenotypes().values() ) {
+    private static void mergeGenotypes(GenotypesContext mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
+        for ( Genotype g : oneVC.getGenotypes() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
-            if ( ! mergedGenotypes.containsKey(name) ) {
+            if ( ! mergedGenotypes.containsSample(name) ) {
                 // only add if the name is new
                 Genotype newG = g;
 
                 if ( uniqifySamples || alleleMapping.needsRemapping() ) {
-                    MutableGenotype mutG = new MutableGenotype(name, g);
-                    if ( alleleMapping.needsRemapping() ) mutG.setAlleles(alleleMapping.remap(g.getAlleles()));
-                    newG = mutG;
+                    final List<Allele> alleles = alleleMapping.needsRemapping() ? alleleMapping.remap(g.getAlleles()) : g.getAlleles();
+                    newG = new Genotype(name, alleles, g.getLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased());
                 }
 
-                mergedGenotypes.put(name, newG);
+                mergedGenotypes.add(newG);
             }
         }
     }
@@ -992,37 +1004,36 @@ public class VariantContextUtils {
         }
 
         // create new Genotype objects
-        Map<String, Genotype> newGenotypes = new HashMap<String, Genotype>(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype genotype : vc.getGenotypes() ) {
             List<Allele> newAlleles = new ArrayList<Allele>();
-            for ( Allele allele : genotype.getValue().getAlleles() ) {
+            for ( Allele allele : genotype.getAlleles() ) {
                 Allele newAllele = alleleMap.get(allele);
                 if ( newAllele == null )
                     newAllele = Allele.NO_CALL;
                 newAlleles.add(newAllele);
             }
-            newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
+            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
         }
 
-        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
-
+        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).make();
     }
 
     public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {
         if ( allowedAttributes == null )
             return vc;
 
-        Map<String, Genotype> newGenotypes = new HashMap<String, Genotype>(vc.getNSamples());
-        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype genotype : vc.getGenotypes() ) {
             Map<String, Object> attrs = new HashMap<String, Object>();
-            for ( Map.Entry<String, Object> attr : genotype.getValue().getAttributes().entrySet() ) {
+            for ( Map.Entry<String, Object> attr : genotype.getAttributes().entrySet() ) {
                 if ( allowedAttributes.contains(attr.getKey()) )
                     attrs.put(attr.getKey(), attr.getValue());
             }
-            newGenotypes.put(genotype.getKey(), Genotype.modifyAttributes(genotype.getValue(), attrs));
+            newGenotypes.add(Genotype.modifyAttributes(genotype, attrs));
         }
 
-        return VariantContext.modifyGenotypes(vc, newGenotypes);
+        return new VariantContextBuilder(vc).genotypes(newGenotypes).make();
     }
 
     public static BaseUtils.BaseSubstitutionType getSNPSubstitutionType(VariantContext context) {
@@ -1055,355 +1066,10 @@ public class VariantContextUtils {
         return genomeLocParser.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd(), true);
     }
 
-    public abstract static class AlleleMergeRule {
-        // vc1, vc2 are ONLY passed to allelesShouldBeMerged() if mergeIntoMNPvalidationCheck(genomeLocParser, vc1, vc2) AND allSamplesAreMergeable(vc1, vc2):
-        abstract public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2);
-
-        public String toString() {
-            return "all samples are mergeable";
-        }
-    }
-
-    // NOTE: returns null if vc1 and vc2 are not merged into a single MNP record
-
-    public static VariantContext mergeIntoMNP(GenomeLocParser genomeLocParser, VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile, AlleleMergeRule alleleMergeRule) {
-        if (!mergeIntoMNPvalidationCheck(genomeLocParser, vc1, vc2))
-            return null;
-
-        // Check that it's logically possible to merge the VCs:
-        if (!allSamplesAreMergeable(vc1, vc2))
-            return null;
-
-        // Check if there's a "point" in merging the VCs (e.g., annotations could be changed)
-        if (!alleleMergeRule.allelesShouldBeMerged(vc1, vc2))
-            return null;
-
-        return reallyMergeIntoMNP(vc1, vc2, referenceFile);
-    }
-
-    private static VariantContext reallyMergeIntoMNP(VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile) {
-        int startInter = vc1.getEnd() + 1;
-        int endInter = vc2.getStart() - 1;
-        byte[] intermediateBases = null;
-        if (startInter <= endInter) {
-            intermediateBases = referenceFile.getSubsequenceAt(vc1.getChr(), startInter, endInter).getBases();
-            StringUtil.toUpperCase(intermediateBases);
-        }
-        MergedAllelesData mergeData = new MergedAllelesData(intermediateBases, vc1, vc2); // ensures that the reference allele is added
-
-        Map<String, Genotype> mergedGenotypes = new HashMap<String, Genotype>();
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
-
-            List<Allele> site1Alleles = gt1.getAlleles();
-            List<Allele> site2Alleles = gt2.getAlleles();
-
-            List<Allele> mergedAllelesForSample = new LinkedList<Allele>();
-
-            /* NOTE: Since merged alleles are added to mergedAllelesForSample in the SAME order as in the input VC records,
-               we preserve phase information (if any) relative to whatever precedes vc1:
-             */
-            Iterator<Allele> all2It = site2Alleles.iterator();
-            for (Allele all1 : site1Alleles) {
-                Allele all2 = all2It.next(); // this is OK, since allSamplesAreMergeable()
-
-                Allele mergedAllele = mergeData.ensureMergedAllele(all1, all2);
-                mergedAllelesForSample.add(mergedAllele);
-            }
-
-            double mergedGQ = Math.max(gt1.getNegLog10PError(), gt2.getNegLog10PError());
-            Set<String> mergedGtFilters = new HashSet<String>(); // Since gt1 and gt2 were unfiltered, the Genotype remains unfiltered
-
-            Map<String, Object> mergedGtAttribs = new HashMap<String, Object>();
-            PhaseAndQuality phaseQual = calcPhaseForMergedGenotypes(gt1, gt2);
-            if (phaseQual.PQ != null)
-                mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, phaseQual.PQ);
-
-            Genotype mergedGt = new Genotype(sample, mergedAllelesForSample, mergedGQ, mergedGtFilters, mergedGtAttribs, phaseQual.isPhased);
-            mergedGenotypes.put(sample, mergedGt);
-        }
-
-        String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getSource(), vc2.getSource());
-        double mergedNegLog10PError = Math.max(vc1.getNegLog10PError(), vc2.getNegLog10PError());
-        Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
-        Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1, vc2);
-
-        VariantContext mergedVc = new VariantContext(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
-
-        mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
-        VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);
-        mergedVc = VariantContext.modifyAttributes(mergedVc, mergedAttribs);
-
-        return mergedVc;
-    }
-
-    private static class AlleleOneAndTwo {
-        private Allele all1;
-        private Allele all2;
-
-        public AlleleOneAndTwo(Allele all1, Allele all2) {
-            this.all1 = all1;
-            this.all2 = all2;
-        }
-
-        public int hashCode() {
-            return all1.hashCode() + all2.hashCode();
-        }
-
-        public boolean equals(Object other) {
-            if (!(other instanceof AlleleOneAndTwo))
-                return false;
-
-            AlleleOneAndTwo otherAot = (AlleleOneAndTwo) other;
-            return (this.all1.equals(otherAot.all1) && this.all2.equals(otherAot.all2));
-        }
-    }
-
-    private static class MergedAllelesData {
-        private Map<AlleleOneAndTwo, Allele> mergedAlleles;
-        private byte[] intermediateBases;
-        private int intermediateLength;
-
-        public MergedAllelesData(byte[] intermediateBases, VariantContext vc1, VariantContext vc2) {
-            this.mergedAlleles = new HashMap<AlleleOneAndTwo, Allele>(); // implemented equals() and hashCode() for AlleleOneAndTwo
-            this.intermediateBases = intermediateBases;
-            this.intermediateLength = this.intermediateBases != null ? this.intermediateBases.length : 0;
-
-            this.ensureMergedAllele(vc1.getReference(), vc2.getReference(), true);
-        }
-
-        public Allele ensureMergedAllele(Allele all1, Allele all2) {
-            return ensureMergedAllele(all1, all2, false); // false <-> since even if all1+all2 = reference, it was already created in the constructor
-        }
-
-        private Allele ensureMergedAllele(Allele all1, Allele all2, boolean creatingReferenceForFirstTime) {
-            AlleleOneAndTwo all12 = new AlleleOneAndTwo(all1, all2);
-            Allele mergedAllele = mergedAlleles.get(all12);
-
-            if (mergedAllele == null) {
-                byte[] bases1 = all1.getBases();
-                byte[] bases2 = all2.getBases();
-
-                byte[] mergedBases = new byte[bases1.length + intermediateLength + bases2.length];
-                System.arraycopy(bases1, 0, mergedBases, 0, bases1.length);
-                if (intermediateBases != null)
-                    System.arraycopy(intermediateBases, 0, mergedBases, bases1.length, intermediateLength);
-                System.arraycopy(bases2, 0, mergedBases, bases1.length + intermediateLength, bases2.length);
-
-                mergedAllele = Allele.create(mergedBases, creatingReferenceForFirstTime);
-                mergedAlleles.put(all12, mergedAllele);
-            }
-
-            return mergedAllele;
-        }
-
-        public Set<Allele> getAllMergedAlleles() {
-            return new HashSet<Allele>(mergedAlleles.values());
-        }
-    }
-
-    private static String mergeVariantContextNames(String name1, String name2) {
-        return name1 + "_" + name2;
-    }
-
-    private static Map<String, Object> mergeVariantContextAttributes(VariantContext vc1, VariantContext vc2) {
-        Map<String, Object> mergedAttribs = new HashMap<String, Object>();
-
-        List<VariantContext> vcList = new LinkedList<VariantContext>();
-        vcList.add(vc1);
-        vcList.add(vc2);
-
-        String[] MERGE_OR_ATTRIBS = {VCFConstants.DBSNP_KEY};
-        for (String orAttrib : MERGE_OR_ATTRIBS) {
-            boolean attribVal = false;
-            for (VariantContext vc : vcList) {
-                attribVal = vc.getAttributeAsBoolean(orAttrib, false);
-                if (attribVal) // already true, so no reason to continue:
-                    break;
-            }
-            mergedAttribs.put(orAttrib, attribVal);
-        }
-
-        // Merge ID fields:
-        String iDVal = null;
-        for (VariantContext vc : vcList) {
-            String val = vc.getAttributeAsString(VariantContext.ID_KEY, null);
-            if (val != null && !val.equals(VCFConstants.EMPTY_ID_FIELD)) {
-                if (iDVal == null)
-                    iDVal = val;
-                else
-                    iDVal += VCFConstants.ID_FIELD_SEPARATOR + val;
-            }
-        }
-        if (iDVal != null)
-            mergedAttribs.put(VariantContext.ID_KEY, iDVal);
-
-        return mergedAttribs;
-    }
-
-    private static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser, VariantContext vc1, VariantContext vc2) {
-        GenomeLoc loc1 = VariantContextUtils.getLocation(genomeLocParser, vc1);
-        GenomeLoc loc2 = VariantContextUtils.getLocation(genomeLocParser, vc2);
-
-        if (!loc1.onSameContig(loc2))
-            throw new ReviewedStingException("Can only merge vc1, vc2 if on the same chromosome");
-
-        if (!loc1.isBefore(loc2))
-            throw new ReviewedStingException("Can only merge if vc1 is BEFORE vc2");
-
-        if (vc1.isFiltered() || vc2.isFiltered())
-            return false;
-
-        if (!vc1.getSampleNames().equals(vc2.getSampleNames())) // vc1, vc2 refer to different sample sets
-            return false;
-
-        if (!allGenotypesAreUnfilteredAndCalled(vc1) || !allGenotypesAreUnfilteredAndCalled(vc2))
-            return false;
-
-        return true;
-    }
-
-    private static boolean allGenotypesAreUnfilteredAndCalled(VariantContext vc) {
-        for (Map.Entry<String, Genotype> gtEntry : vc.getGenotypes().entrySet()) {
-            Genotype gt = gtEntry.getValue();
-            if (gt.isNoCall() || gt.isFiltered())
-                return false;
-        }
-
-        return true;
-    }
-
-    // Assumes that vc1 and vc2 were already checked to have the same sample names:
-
-    private static boolean allSamplesAreMergeable(VariantContext vc1, VariantContext vc2) {
-        // Check that each sample's genotype in vc2 is uniquely appendable onto its genotype in vc1:
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
-
-            if (!alleleSegregationIsKnown(gt1, gt2)) // can merge if: phased, or if either is a hom
-                return false;
-        }
-
-        return true;
-    }
-
-    public static boolean alleleSegregationIsKnown(Genotype gt1, Genotype gt2) {
-        if (gt1.getPloidy() != gt2.getPloidy())
-            return false;
-
-        /* If gt2 is phased or hom, then could even be MERGED with gt1 [This is standard].
-
-           HOWEVER, EVEN if this is not the case, but gt1.isHom(),
-           it is trivially known that each of gt2's alleles segregate with the single allele type present in gt1.
-         */
-        return (gt2.isPhased() || gt2.isHom() || gt1.isHom());
-    }
-
-    private static class PhaseAndQuality {
-        public boolean isPhased;
-        public Double PQ = null;
-
-        public PhaseAndQuality(Genotype gt) {
-            this.isPhased = gt.isPhased();
-            if (this.isPhased) {
-                this.PQ = gt.getAttributeAsDouble(ReadBackedPhasingWalker.PQ_KEY, -1);
-                if ( this.PQ == -1 ) this.PQ = null;
-            }
-        }
-    }
-
-    // Assumes that alleleSegregationIsKnown(gt1, gt2):
-
-    private static PhaseAndQuality calcPhaseForMergedGenotypes(Genotype gt1, Genotype gt2) {
-        if (gt2.isPhased() || gt2.isHom())
-            return new PhaseAndQuality(gt1); // maintain the phase of gt1
-
-        if (!gt1.isHom())
-            throw new ReviewedStingException("alleleSegregationIsKnown(gt1, gt2) implies: gt2.genotypesArePhased() || gt2.isHom() || gt1.isHom()");
-
-        /* We're dealing with: gt1.isHom(), gt2.isHet(), !gt2.genotypesArePhased(); so, the merged (het) Genotype is not phased relative to the previous Genotype
-
-           For example, if we're merging the third Genotype with the second one:
-           0/1
-           1|1
-           0/1
-
-           Then, we want to output:
-           0/1
-           1/2
-         */
-        return new PhaseAndQuality(gt2); // maintain the phase of gt2 [since !gt2.genotypesArePhased()]
-    }
-
-    /* Checks if any sample has a MNP of ALT alleles (segregating together):
-     [Assumes that vc1 and vc2 were already checked to have the same sample names && allSamplesAreMergeable(vc1, vc2)]
-     */
-
-    public static boolean someSampleHasDoubleNonReferenceAllele(VariantContext vc1, VariantContext vc2) {
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
-
-            List<Allele> site1Alleles = gt1.getAlleles();
-            List<Allele> site2Alleles = gt2.getAlleles();
-
-            Iterator<Allele> all2It = site2Alleles.iterator();
-            for (Allele all1 : site1Alleles) {
-                Allele all2 = all2It.next(); // this is OK, since allSamplesAreMergeable()
-
-                if (all1.isNonReference() && all2.isNonReference()) // corresponding alleles are alternate
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    /* Checks if all samples are consistent in their haplotypes:
-     [Assumes that vc1 and vc2 were already checked to have the same sample names && allSamplesAreMergeable(vc1, vc2)]
-     */
-
-    public static boolean doubleAllelesSegregatePerfectlyAmongSamples(VariantContext vc1, VariantContext vc2) {
-        // Check that Alleles at vc1 and at vc2 always segregate together in all samples (including reference):
-        Map<Allele, Allele> allele1ToAllele2 = new HashMap<Allele, Allele>();
-        Map<Allele, Allele> allele2ToAllele1 = new HashMap<Allele, Allele>();
-
-        // Note the segregation of the alleles for the reference genome:
-        allele1ToAllele2.put(vc1.getReference(), vc2.getReference());
-        allele2ToAllele1.put(vc2.getReference(), vc1.getReference());
-
-        // Note the segregation of the alleles for each sample (and check that it is consistent with the reference and all previous samples).
-        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
-            String sample = gt1Entry.getKey();
-            Genotype gt1 = gt1Entry.getValue();
-            Genotype gt2 = vc2.getGenotype(sample);
-
-            List<Allele> site1Alleles = gt1.getAlleles();
-            List<Allele> site2Alleles = gt2.getAlleles();
-
-            Iterator<Allele> all2It = site2Alleles.iterator();
-            for (Allele all1 : site1Alleles) {
-                Allele all2 = all2It.next();
-
-                Allele all1To2 = allele1ToAllele2.get(all1);
-                if (all1To2 == null)
-                    allele1ToAllele2.put(all1, all2);
-                else if (!all1To2.equals(all2)) // all1 segregates with two different alleles at site 2
-                    return false;
-
-                Allele all2To1 = allele2ToAllele1.get(all2);
-                if (all2To1 == null)
-                    allele2ToAllele1.put(all2, all1);
-                else if (!all2To1.equals(all1)) // all2 segregates with two different alleles at site 1
-                    return false;
-            }
-        }
-
-        return true;
+    public static final Set<String> genotypeNames(final Collection<Genotype> genotypes) {
+        final Set<String> names = new HashSet<String>(genotypes.size());
+        for ( final Genotype g : genotypes )
+            names.add(g.getSampleName());
+        return names;
     }
 }

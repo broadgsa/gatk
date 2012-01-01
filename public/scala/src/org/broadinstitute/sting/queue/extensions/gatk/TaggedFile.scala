@@ -2,6 +2,7 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import java.io.File
 import org.broadinstitute.sting.utils.io.FileExtension
+import org.broadinstitute.sting.queue.util.ShellUtils
 
 /**
  * Used to provide tagged -I input_file arguments to the GATK.
@@ -19,21 +20,14 @@ object TaggedFile {
   def apply(path: String, tag: String) = new TaggedFile(path, tag)
   def apply(file: File, tag: String) = new TaggedFile(file, tag)
 
-  /**
-   * Formats the rod binding on the command line.
-   * Used for optional and repeat.
-   * @param cmdLineParam command line parameter, ex: -I
-   * @param prefix unused
-   * @param value TaggedFile to add.
-   * @param suffix unused
-   * @return The command line addition.
-   */
-  def formatCommandLine(cmdLineParam: String)(prefix: String, value: Any, suffix: String) = {
+  def formatCommandLineParameter(cmdLineParam: String, value: Any) = {
     value match {
       case taggedFile: TaggedFile if (taggedFile.tag != null) =>
-          " %s:%s %s".format(cmdLineParam, taggedFile.tag, taggedFile.getPath)
+        "%s:%s".format(cmdLineParam, taggedFile.tag)
       case file: File =>
-          " %s %s".format(cmdLineParam, file.getPath)
+        cmdLineParam
+      case x =>
+        ""
     }
   }
 }

@@ -147,7 +147,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                     String clpConstructor = String.format("analysisName = \"%s\"%njavaMainClass = \"%s\"%n", clpClassName, clp.getName());
 
                     writeClass("org.broadinstitute.sting.queue.function.JavaCommandLineFunction", clpClassName,
-                            false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
+                            false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents, false);
 
                     if (clp == CommandLineGATK.class) {
                         for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
@@ -169,7 +169,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                                     }
 
                                     writeClass(GATK_EXTENSIONS_PACKAGE_NAME + "." + clpClassName, walkerName,
-                                            isScatter, constructor, argumentFields, dependents);
+                                            isScatter, constructor, argumentFields, dependents, true);
                                 } catch (Exception e) {
                                     throw new ReviewedStingException("Error generating wrappers for walker " + walkerType, e);
                                 }
@@ -241,8 +241,9 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      * @throws IOException If the file cannot be written.
      */
     private void writeClass(String baseClass, String className, boolean isScatter,
-                            String constructor, List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) throws IOException {
-        String content = getContent(CLASS_TEMPLATE, baseClass, className, constructor, isScatter, "", argumentFields, dependents);
+                            String constructor, List<? extends ArgumentField> argumentFields,
+                            Set<Class<?>> dependents, boolean isGATKWalker) throws IOException {
+        String content = getContent(CLASS_TEMPLATE, baseClass, className, constructor, isScatter, "", argumentFields, dependents, isGATKWalker);
         writeFile(GATK_EXTENSIONS_PACKAGE_NAME + "." + className, content);
     }
 
@@ -256,7 +257,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private void writeFilter(String className, List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) throws IOException {
         String content = getContent(TRAIT_TEMPLATE, "org.broadinstitute.sting.queue.function.CommandLineFunction",
-                className, "", false, String.format(" + \" -read_filter %s\"", className), argumentFields, dependents);
+                className, "", false, String.format(" + \" -read_filter %s\"", className), argumentFields, dependents, false);
         writeFile(GATK_EXTENSIONS_PACKAGE_NAME + "." + className, content);
     }
 
@@ -350,7 +351,8 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private static String getContent(String scalaTemplate, String baseClass, String className,
                                      String constructor, boolean isScatter, String commandLinePrefix,
-                                     List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) {
+                                     List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents,
+                                     boolean isGATKWalker) {
         StringBuilder arguments = new StringBuilder();
         StringBuilder commandLine = new StringBuilder(commandLinePrefix);
 
@@ -374,6 +376,9 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         if (isGather)
             importSet.add("import org.broadinstitute.sting.commandline.Gather");
 
+        // Needed for ShellUtils.escapeShellArgument()
+        importSet.add("import org.broadinstitute.sting.queue.util.ShellUtils");
+
         // Sort the imports so that the are always in the same order.
         List<String> sortedImports = new ArrayList<String>(importSet);
         Collections.sort(sortedImports);
@@ -381,8 +386,10 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         StringBuffer freezeFieldOverride = new StringBuffer();
         for (String freezeField: freezeFields)
             freezeFieldOverride.append(freezeField);
-        if (freezeFieldOverride.length() > 0) {
+        if (freezeFieldOverride.length() > 0 || isGATKWalker) {
             freezeFieldOverride.insert(0, String.format("override def freezeFieldValues = {%nsuper.freezeFieldValues%n"));
+            if ( isGATKWalker )
+                freezeFieldOverride.append(String.format("if ( num_threads.isDefined ) nCoresRequest = num_threads%n"));
             freezeFieldOverride.append(String.format("}%n%n"));
         }
 

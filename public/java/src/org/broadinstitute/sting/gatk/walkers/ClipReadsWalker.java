@@ -38,12 +38,11 @@ import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.clipreads.ClippingOp;
-import org.broadinstitute.sting.utils.clipreads.ClippingRepresentation;
-import org.broadinstitute.sting.utils.clipreads.ReadClipper;
+import org.broadinstitute.sting.utils.clipping.ClippingOp;
+import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -299,9 +298,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipperWithD
      */
     public ReadClipperWithData map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
-            if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES ) {
-                read = ReadUtils.replaceSoftClipsWithMatches(read);
-            }
+            if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES )
+                read = ReadClipper.revertSoftClippedBases(read);
             ReadClipperWithData clipper = new ReadClipperWithData(read, sequencesToClip);
 
             //

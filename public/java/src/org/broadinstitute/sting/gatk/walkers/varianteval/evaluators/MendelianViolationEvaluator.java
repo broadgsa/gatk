@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
+import org.broadinstitute.sting.gatk.samples.Sample;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -7,9 +9,11 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.MendelianViolation;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Mendelian violation detection and counting
@@ -40,12 +44,25 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 @Analysis(name = "Mendelian Violation Evaluator", description = "Mendelian Violation Evaluator")
 public class MendelianViolationEvaluator extends VariantEvaluator {
 
-    @DataPoint(description = "Number of mendelian variants found")
+    @DataPoint(description = "Number of variants found with at least one family having genotypes")
     long nVariants;
+    @DataPoint(description = "Number of variants found with no family having genotypes -- these sites do not count in the nNoCall")
+    long nSkipped;
+    @DataPoint(description="Number of variants x families called (no missing genotype or lowqual)")
+    long nFamCalled;
+    @DataPoint(description="Number of variants x families called (no missing genotype or lowqual) that contain at least one var allele.")
+    long nVarFamCalled;
+    @DataPoint(description="Number of variants x families discarded as low quality")
+    long nLowQual;
+    @DataPoint(description="Number of variants x families discarded as no call")
+    long nNoCall;
+    @DataPoint(description="Number of loci with mendelian violations")
+    long nLociViolations;
     @DataPoint(description = "Number of mendelian violations found")
     long nViolations;
 
-    @DataPoint(description = "number of child hom ref calls where the parent was hom variant")
+
+    /*@DataPoint(description = "number of child hom ref calls where the parent was hom variant")
     long KidHomRef_ParentHomVar;
     @DataPoint(description = "number of child het calls where the parent was hom ref")
     long KidHet_ParentsHomRef;
@@ -53,11 +70,65 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     long KidHet_ParentsHomVar;
     @DataPoint(description = "number of child hom variant calls where the parent was hom ref")
     long KidHomVar_ParentHomRef;
+    */
+
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HOM_VAR")
+    long mvRefRef_Var;
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HET")
+    long mvRefRef_Het;
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HET -> HOM_VAR")
+    long mvRefHet_Var;
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_VAR")
+    long mvRefVar_Var;
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_REF")
+    long mvRefVar_Ref;
+    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HET -> HOM_REF")
+    long mvVarHet_Ref;
+    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HOM_REF")
+    long mvVarVar_Ref;
+    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HET")
+    long mvVarVar_Het;
+
+
+    /*@DataPoint(description ="Number of inherited var alleles from het parents")
+    long nInheritedVar;
+    @DataPoint(description ="Number of inherited ref alleles from het parents")
+    long nInheritedRef;*/
+
+    @DataPoint(description="Number of HomRef/HomRef/HomRef trios")
+    long HomRefHomRef_HomRef;
+    @DataPoint(description="Number of Het/Het/Het trios")
+    long HetHet_Het;
+    @DataPoint(description="Number of Het/Het/HomRef trios")
+    long HetHet_HomRef;
+    @DataPoint(description="Number of Het/Het/HomVar trios")
+    long HetHet_HomVar;
+    @DataPoint(description="Number of HomVar/HomVar/HomVar trios")
+    long HomVarHomVar_HomVar;
+    @DataPoint(description="Number of HomRef/HomVar/Het trios")
+    long HomRefHomVAR_Het;
+    @DataPoint(description="Number of ref alleles inherited from het/het parents")
+    long HetHet_inheritedRef;
+    @DataPoint(description="Number of var alleles inherited from het/het parents")
+    long HetHet_inheritedVar;
+    @DataPoint(description="Number of ref alleles inherited from homRef/het parents")
+    long HomRefHet_inheritedRef;
+    @DataPoint(description="Number of var alleles inherited from homRef/het parents")
+    long HomRefHet_inheritedVar;
+    @DataPoint(description="Number of ref alleles inherited from homVar/het parents")
+    long HomVarHet_inheritedRef;
+    @DataPoint(description="Number of var alleles inherited from homVar/het parents")
+    long HomVarHet_inheritedVar;
 
     MendelianViolation mv;
+    PrintStream mvFile;
+    Map<String,Set<Sample>> families;
 
     public void initialize(VariantEvalWalker walker) {
-        mv = new MendelianViolation(walker.getFamilyStructure(), walker.getMendelianViolationQualThreshold());
+        //Changed by Laurent Francioli - 2011-06-07
+        //mv = new MendelianViolation(walker.getFamilyStructure(), walker.getMendelianViolationQualThreshold());
+        mv = new MendelianViolation(walker.getMendelianViolationQualThreshold(),false);
+        families = walker.getSampleDB().getFamilies();
     }
 
     public boolean enabled() {
@@ -75,110 +146,48 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
 
     public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (vc.isBiallelic() && vc.hasGenotypes()) { // todo -- currently limited to biallelic loci
-            if (mv.setAlleles(vc)) {
+
+            if(mv.countViolations(families,vc)>0){
+                nLociViolations++;
+                nViolations += mv.getViolationsCount();
+                mvRefRef_Var += mv.getParentsRefRefChildVar();
+                mvRefRef_Het += mv.getParentsRefRefChildHet();
+                mvRefHet_Var += mv.getParentsRefHetChildVar();
+                mvRefVar_Var += mv.getParentsRefVarChildVar();
+                mvRefVar_Ref += mv.getParentsRefVarChildRef();
+                mvVarHet_Ref += mv.getParentsVarHetChildRef();
+                mvVarVar_Ref += mv.getParentsVarVarChildRef();
+                mvVarVar_Het += mv.getParentsVarVarChildHet();
+
+            }
+            HomRefHomRef_HomRef += mv.getRefRefRef();
+            HetHet_Het += mv.getHetHetHet();
+            HetHet_HomRef += mv.getHetHetHomRef();
+            HetHet_HomVar += mv.getHetHetHomVar();
+            HomVarHomVar_HomVar += mv.getVarVarVar();
+            HomRefHomVAR_Het += mv.getRefVarHet();
+            HetHet_inheritedRef += mv.getParentsHetHetInheritedRef();
+            HetHet_inheritedVar += mv.getParentsHetHetInheritedVar();
+            HomRefHet_inheritedRef += mv.getParentsRefHetInheritedRef();
+            HomRefHet_inheritedVar += mv.getParentsRefHetInheritedVar();
+            HomVarHet_inheritedRef += mv.getParentsVarHetInheritedRef();
+            HomVarHet_inheritedVar += mv.getParentsVarHetInheritedVar();
+
+            if(mv.getFamilyCalledCount()>0){
                 nVariants++;
-
-                Genotype momG = vc.getGenotype(mv.getSampleMom());
-                Genotype dadG = vc.getGenotype(mv.getSampleDad());
-                Genotype childG = vc.getGenotype(mv.getSampleChild());
-
-                if (mv.isViolation()) {
-                    nViolations++;
-
-                    String label;
-                    if (childG.isHomRef() && (momG.isHomVar() || dadG.isHomVar())) {
-                        label = "KidHomRef_ParentHomVar";
-                        KidHomRef_ParentHomVar++;
-                    } else if (childG.isHet() && (momG.isHomRef() && dadG.isHomRef())) {
-                        label = "KidHet_ParentsHomRef";
-                        KidHet_ParentsHomRef++;
-                    } else if (childG.isHet() && (momG.isHomVar() && dadG.isHomVar())) {
-                        label = "KidHet_ParentsHomVar";
-                        KidHet_ParentsHomVar++;
-                    } else if (childG.isHomVar() && (momG.isHomRef() || dadG.isHomRef())) {
-                        label = "KidHomVar_ParentHomRef";
-                        KidHomVar_ParentHomRef++;
-                    } else {
-                        throw new ReviewedStingException("BUG: unexpected child genotype class " + childG);
-                    }
-
-                    return "MendelViolation=" + label;
-                }
+                nFamCalled += mv.getFamilyCalledCount();
+                nLowQual += mv.getFamilyLowQualsCount();
+                nNoCall += mv.getFamilyNoCallCount();
+                nVarFamCalled += mv.getVarFamilyCalledCount();
             }
-        }
-
-        return null; // we don't capture any intersting sites
-    }
-
-
-/*
-    private double getQThreshold() {
-        //return getVEWalker().MENDELIAN_VIOLATION_QUAL_THRESHOLD / 10;  // we aren't 10x scaled in the GATK a la phred
-        return mendelianViolationQualThreshold / 10;  // we aren't 10x scaled in the GATK a la phred
-        //return 0.0;
-    }
-
-    TrioStructure trio;
-    double mendelianViolationQualThreshold;
-
-    private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
-
-    public static class TrioStructure {
-        public String mom, dad, child;
-    }
-
-    public static TrioStructure parseTrioDescription(String family) {
-        Matcher m = FAMILY_PATTERN.matcher(family);
-        if (m.matches()) {
-            TrioStructure trio = new TrioStructure();
-            //System.out.printf("Found a family pattern: %s%n", parent.FAMILY_STRUCTURE);
-            trio.mom = m.group(1);
-            trio.dad = m.group(2);
-            trio.child = m.group(3);
-            return trio;
-        } else {
-            throw new IllegalArgumentException("Malformatted family structure string: " + family + " required format is mom+dad=child");
-        }
-    }
-
-    public void initialize(VariantEvalWalker walker) {
-        trio = parseTrioDescription(walker.getFamilyStructure());
-        mendelianViolationQualThreshold = walker.getMendelianViolationQualThreshold();
-    }
-
-    private boolean includeGenotype(Genotype g) {
-        return g.getNegLog10PError() > getQThreshold() && g.isCalled();
-    }
-
-    public static boolean isViolation(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG) {
-        return isViolation(vc, momG.getAlleles(), dadG.getAlleles(), childG.getAlleles());
-    }
-
-    public static boolean isViolation(VariantContext vc, TrioStructure trio ) {
-        return isViolation(vc, vc.getGenotype(trio.mom), vc.getGenotype(trio.dad), vc.getGenotype(trio.child) );
-    }
-
-    public static boolean isViolation(VariantContext vc, List<Allele> momA, List<Allele> dadA, List<Allele> childA) {
-        //VariantContext momVC = vc.subContextFromGenotypes(momG);
-        //VariantContext dadVC = vc.subContextFromGenotypes(dadG);
-        int i = 0;
-        Genotype childG = new Genotype("kidG", childA);
-        for (Allele momAllele : momA) {
-            for (Allele dadAllele : dadA) {
-                if (momAllele.isCalled() && dadAllele.isCalled()) {
-                    Genotype possibleChild = new Genotype("possibleGenotype" + i, Arrays.asList(momAllele, dadAllele));
-                    if (childG.sameGenotype(possibleChild)) {
-                        return false;
-                    }
-                }
+            else{
+                nSkipped++;
             }
+
+
+            return null;
         }
 
-        return true;
+        return null; // we don't capture any interesting sites
     }
-
-
-*/
-
-
 }
