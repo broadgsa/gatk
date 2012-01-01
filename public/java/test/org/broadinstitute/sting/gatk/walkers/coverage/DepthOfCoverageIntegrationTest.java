@@ -55,25 +55,25 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         spec.setOutputFileLocation(baseOutputFile);
 
         // now add the expected files that get generated
-        spec.addAuxFile("19e862f7ed3de97f2569803f766b7433", baseOutputFile);
-        spec.addAuxFile("c64cc5636d4880b80b71169ed1832cd7", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_counts"));
-        spec.addAuxFile("1a8ba07a60e55f9fdadc89d00b1f3394", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_proportions"));
-        spec.addAuxFile("0075cead73a901e3a9d07c5d9c2b75f4", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_statistics"));
-        spec.addAuxFile("d757be2f953f893e66eff1ef1f0fff4e", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
-        spec.addAuxFile("de08996729c774590d6a4954c906fe84", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_statistics"));
-        spec.addAuxFile("58ad39b100d1f2af7d119f28ba626bfd", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_summary"));
-        spec.addAuxFile("0b4ce6059e6587ae5a986afbbcc7d783", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_cumulative_coverage_counts"));
-        spec.addAuxFile("adc2b2babcdd72a843878acf2d510ca7", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_cumulative_coverage_proportions"));
-        spec.addAuxFile("884281c139241c5db3c9f90e8684d084", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_interval_statistics"));
-        spec.addAuxFile("b90636cad74ff4f6b9ff9a596e145bd6", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_interval_summary"));
-        spec.addAuxFile("ad540b355ef90c566bebaeabd70026d2", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_statistics"));
-        spec.addAuxFile("27fe09a02a5b381e0ed633587c0f4b23", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_summary"));
-        spec.addAuxFile("5fcd53b4bd167b5e6d5f92329cf8678e", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
-        spec.addAuxFile("7a2a19e54f73a8e07de2f020f1f913dd", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
-        spec.addAuxFile("852a079c5e9e93e7daad31fd6a9f4a49", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
-        spec.addAuxFile("0828762842103edfaf115ef4e50809c6", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
-        spec.addAuxFile("5c5aeb28419bba1decb17f8a166777f2", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
-        spec.addAuxFile("e5fd6216b3d6a751f3a90677b4e5bf3c", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+        spec.addAuxFile("2f072fd8b41b5ac1108797f89376c797", baseOutputFile);
+        spec.addAuxFile("d17ac7cc0b58ba801d2b0727a363d615", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_counts"));
+        spec.addAuxFile("c05190c9e6239cdb1cd486edcbc23505", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_proportions"));
+        spec.addAuxFile("9cd395f47b329b9dd00ad024fcac9929", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_statistics"));
+        spec.addAuxFile("c94a52b4e73a7995319e0b570c80d2f7", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
+        spec.addAuxFile("1970a44efb7ace4e51a37f0bd2dc84d1", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_statistics"));
+        spec.addAuxFile("c321c542be25359d2e26d45cbeb6d7ab", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_summary"));
+        spec.addAuxFile("9023cc8939777d515cd2895919a99688", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_cumulative_coverage_counts"));
+        spec.addAuxFile("3597b69e90742c5dd7c83fbc74d079f3", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_cumulative_coverage_proportions"));
+        spec.addAuxFile("7b9d0e93bf5b5313995be7010ef1f528", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_interval_statistics"));
+        spec.addAuxFile("1a6ea3aa759fb154ccc4e171ebca9d02", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_interval_summary"));
+        spec.addAuxFile("b492644ff06b4ffb044d5075cd168abf", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_statistics"));
+        spec.addAuxFile("77cef87dc4083a7b60b7a7b38b4c0bd8", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_summary"));
+        spec.addAuxFile("8e1adbe37b98bb2271ba13932d5c947f", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
+        spec.addAuxFile("761d2f9daf2ebaf43abf65c8fd2fcd05", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
+        spec.addAuxFile("df0ba76e0e6082c0d29fcfd68efc6b77", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
+        spec.addAuxFile("0582b4681dbc02ece2dfe2752dcfd228", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
+        spec.addAuxFile("0685214965bf1863f7ce8de2e38af060", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
+        spec.addAuxFile("7a0cd8a5ebaaa82621fd3b5aed9c32fe", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
 
         execute("testBaseOutputNoFiltering",spec);
     }
