@@ -526,6 +526,42 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         }
     }
 
+    /**
+     * Gets the pileup for a set of read groups.  Horrendously inefficient at this point.
+     * @param rgSet List of identifiers for the read groups.
+     * @return A read-backed pileup containing only the reads in the given read groups.
+     */
+    @Override
+    public RBP getPileupForReadGroups(final HashSet<String> rgSet) {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
+
+            for(final String sample: tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sample);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getPileupForReadGroups(rgSet);
+                if(pileup != null)
+                    filteredTracker.addElements(sample,pileup.pileupElementTracker);
+            }
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
+        }
+        else {
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+            for(PE p: pileupElementTracker) {
+                GATKSAMRecord read = p.getRead();
+                if(rgSet != null && !rgSet.isEmpty()) {
+                    if(read.getReadGroup() != null && rgSet.contains(read.getReadGroup().getReadGroupId()))
+                        filteredTracker.add(p);
+                }
+                else {
+                    if(read.getReadGroup() == null || read.getReadGroup().getReadGroupId() == null)
+                        filteredTracker.add(p);
+                }
+            }
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
+        }
+    }
+
     @Override
     public RBP getPileupForLane(String laneID) {
         if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
