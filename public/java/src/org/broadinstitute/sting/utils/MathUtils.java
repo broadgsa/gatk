@@ -573,6 +573,10 @@ public class MathUtils {
         return array[minElementIndex(array)];
     }
 
+    public static int arrayMin(int[] array) {
+        return array[minElementIndex(array)];
+    }
+
     public static byte arrayMin(byte[] array) {
         return array[minElementIndex(array)];
     }
@@ -590,6 +594,18 @@ public class MathUtils {
     }
 
     public static int minElementIndex(byte[] array) {
+        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
+
+        int minI = -1;
+        for (int i = 0; i < array.length; i++) {
+            if (minI == -1 || array[i] < array[minI])
+                minI = i;
+        }
+
+        return minI;
+    }
+
+    public static int minElementIndex(int[] array) {
         if (array == null) throw new IllegalArgumentException("Array cannot be null!");
 
         int minI = -1;
