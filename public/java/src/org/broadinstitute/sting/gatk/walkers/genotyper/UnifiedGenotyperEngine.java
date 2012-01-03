@@ -401,6 +401,11 @@ public class UnifiedGenotyperEngine {
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
+        List<Integer> mlecounts = new ArrayList<Integer>(AFresult.log10AlleleFrequencyPosteriors.length);
+        for ( int i = 0; i < AFresult.log10AlleleFrequencyLikelihoods.length ; i++) {
+            mlecounts.add(MathUtils.maxElementIndex(AFresult.log10AlleleFrequencyLikelihoods[i]));
+        }
+        attributes.put("MLEAC",Utils.join(",",mlecounts));
 
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
@@ -857,5 +862,172 @@ public class UnifiedGenotyperEngine {
         }
 
         return calls;
+    }
+
+    /**
+     * @param vc            variant context with genotype likelihoods
+     * @param allelesToUse  bit vector describing which alternate alleles from the vc are okay to use
+     * @param exactAC       integer array describing the AC from the exact model for the corresponding alleles
+     * @return genotypes
+     */
+    public static GenotypesContext constrainedAssignGenotypes(VariantContext vc, boolean[] allelesToUse, int[] exactAC ) {
+
+        final GenotypesContext GLs = vc.getGenotypes();
+
+        // samples
+        final List<String> sampleIndices = GLs.getSampleNamesOrderedByName();
+
+        // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
+        final int numOriginalAltAlleles = allelesToUse.length;
+        final List<Allele> newAlleles = new ArrayList<Allele>(numOriginalAltAlleles+1);
+        newAlleles.add(vc.getReference());
+        final HashMap<Allele,Integer> alleleIndexMap = new HashMap<Allele,Integer>(); // need this for skipping dimensions
+        int[] alleleCount = new int[exactAC.length];
+        for ( int i = 0; i < numOriginalAltAlleles; i++ ) {
+            if ( allelesToUse[i] ) {
+                newAlleles.add(vc.getAlternateAllele(i));
+                alleleIndexMap.put(vc.getAlternateAllele(i),i);
+                alleleCount[i] = exactAC[i];
+            } else {
+                alleleCount[i] = 0;
+            }
+        }
+        final List<Allele> newAltAlleles = newAlleles.subList(1,newAlleles.size());
+        final int numNewAltAlleles = newAltAlleles.size();
+        ArrayList<Integer> likelihoodIndexesToUse = null;
+
+        // an optimization: if we are supposed to use all (or none in the case of a ref call) of the alleles,
+        // then we can keep the PLs as is; otherwise, we determine which ones to keep
+        final int[][] PLcache;
+        if ( numNewAltAlleles != numOriginalAltAlleles && numNewAltAlleles > 0 ) {
+            likelihoodIndexesToUse = new ArrayList<Integer>(30);
+            PLcache = PLIndexToAlleleIndex[numOriginalAltAlleles];
+
+            for ( int PLindex = 0; PLindex < PLcache.length; PLindex++ ) {
+                int[] alleles = PLcache[PLindex];
+                // consider this entry only if both of the alleles are good
+                if ( (alleles[0] == 0 || allelesToUse[alleles[0] - 1]) && (alleles[1] == 0 || allelesToUse[alleles[1] - 1]) )
+                    likelihoodIndexesToUse.add(PLindex);
+            }
+        } else {
+            PLcache = PLIndexToAlleleIndex[numOriginalAltAlleles];
+        }
+
+        // set up the trellis dimensions
+        // SAMPLE x alt 1 x alt 2 x alt 3
+        // todo -- check that exactAC has alt counts at [1],[2],[3] (and not [0],[1],[2])
+        double[][][][] transitionTrellis = new double[sampleIndices.size()+1][exactAC[1]][exactAC[2]][exactAC[3]];
+        // N x AC1 x AC2 x AC3; worst performance in multi-allelic where all alleles are moderate frequency
+        // capped at the MLE ACs*
+        // todo -- there's an optimization: not all states in the rectangular matrix will be reached, in fact
+        // todo -- for tT[0] we only care about tT[0][0][0][0], and for tT[1], only combinations of 0,1,2.
+        int idx = 1; // index of which sample we're on
+        int prevMaxState = 0; // the maximum state (e.g. AC) reached by the previous sample. Symmetric. (AC capping handled by logic in loop)
+        // iterate over each sample
+        for ( String sample : sampleIndices ) {
+            // push the likelihoods into the next possible states, that is to say
+            // L[state] = L[prev state] + L[genotype getting into state]
+            // iterate over each previous state, by dimension
+            // and contribute the likelihoods for transitions to this state
+            double[][][] prevState = transitionTrellis[idx-1];
+            double[][][] thisState = transitionTrellis[idx];
+            Genotype genotype = GLs.get(sample);
+            if ( genotype.isNoCall() || genotype.isFiltered() ) {
+                thisState = prevState.clone();
+            } else {
+                double[] likelihoods = genotype.getLikelihoods().getAsVector();
+                int dim1min = Math.max(0, alleleCount[0]-2*(sampleIndices.size()-idx+1));
+                int dim1max = Math.min(prevMaxState,alleleCount[0]);
+                int dim2min = Math.max(0,alleleCount[1]-2*(sampleIndices.size()-idx+1));
+                int dim2max = Math.min(prevMaxState,alleleCount[1]);
+                int dim3min = Math.max(0,alleleCount[2]-2*(sampleIndices.size()-idx+1));
+                int dim3max = Math.min(prevMaxState,alleleCount[2]);
+                // cue annoying nested for loop
+                for ( int a1 = dim1min ; a1 <= dim1max; a1++ ) {
+                    for ( int a2 = dim2min; a2 <= dim2max; a2++ ) {
+                        for ( int a3 = dim3min; a3 <= dim3max; a3++ ) {
+                            double base = prevState[a1][a2][a3];
+                            for ( int likIdx : likelihoodIndexesToUse ) {
+                                int[] offsets = calculateOffsets(PLcache[likIdx]);
+                                thisState[a1+offsets[1]][a2+offsets[2]][a3+offsets[3]] = base + likelihoods[likIdx];
+                            }
+                        }
+                    }
+                }
+                prevMaxState += 2;
+            }
+            idx++;
+        }
+
+        // after all that pain, we have a fully calculated trellis. Now just march backwards from the EAC state and
+        // assign genotypes along the greedy path
+
+        GenotypesContext calls = GenotypesContext.create(sampleIndices.size());
+        int[] state = alleleCount;
+        for ( String sample : Utils.reverse(sampleIndices) ) {
+            --idx;
+            // the next state will be the maximum achievable state
+            Genotype g = GLs.get(sample);
+            if ( g.isNoCall() || ! g.hasLikelihoods() ) {
+                calls.add(g);
+                continue;
+            }
+
+            // subset to the new likelihoods. These are not used except for subsetting in the context iself.
+            // i.e. they are not a part of the calculation.
+            final double[] originalLikelihoods = GLs.get(sample).getLikelihoods().getAsVector();
+            double[] newLikelihoods;
+            if ( likelihoodIndexesToUse == null ) {
+                newLikelihoods = originalLikelihoods;
+            } else {
+                newLikelihoods = new double[likelihoodIndexesToUse.size()];
+                int newIndex = 0;
+                for ( int oldIndex : likelihoodIndexesToUse )
+                    newLikelihoods[newIndex++] = originalLikelihoods[oldIndex];
+
+                // might need to re-normalize
+                newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
+            }
+
+            // todo -- alter this. For ease of programming, likelihood indeces are
+            // todo -- used to iterate over achievable states.
+            double max = Double.NEGATIVE_INFINITY;
+            int[] bestState = null;
+            int[] bestAlleles = null;
+            int bestLikIdx = -1;
+            for ( int likIdx : likelihoodIndexesToUse ) {
+                int[] offsets = calculateOffsets(PLcache[likIdx]);
+                double val = transitionTrellis[idx-1][state[0]-offsets[0]][state[1]-offsets[1]][state[2]-offsets[2]];
+                if ( val > max ) {
+                    max = val;
+                    bestState = new int[] { state[0]-offsets[0],state[1]-offsets[1],state[2]-offsets[2]};
+                    bestAlleles = PLcache[likIdx];
+                    bestLikIdx = likIdx;
+                }
+            }
+            state = bestState;
+            List<Allele> gtAlleles = new ArrayList<Allele>(2);
+            gtAlleles.add(newAlleles.get(bestAlleles[0]));
+            gtAlleles.add(newAlleles.get(bestAlleles[1]));
+
+            final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(bestLikIdx, newLikelihoods);
+            Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+            if ( numNewAltAlleles == 0 )
+                attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+            else
+                attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(newLikelihoods));
+            calls.add(new Genotype(sample, gtAlleles, qual, null, attrs, false));
+
+        }
+        return calls;
+    }
+
+    private static int[] calculateOffsets(int[] alleleIndeces) {
+        int[] offsets = new int[4];
+        for ( int i = 0; i < alleleIndeces.length; i++ ) {
+            offsets[alleleIndeces[i]]++;
+        }
+
+        return offsets;
     }
 }
