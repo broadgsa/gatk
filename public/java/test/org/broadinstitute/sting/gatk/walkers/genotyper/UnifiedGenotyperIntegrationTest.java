@@ -298,7 +298,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("test MultiSample Phase1 indels with complicated records", spec4);
     }
 
-    @Test(enabled = false)
+    @Test
     public void testSnpEffAnnotationRequestedWithoutRodBinding() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000 " +
