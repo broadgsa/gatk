@@ -118,6 +118,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                     Arrays.asList(md5));
             executeTest("testTableRecalibrator1", spec);
         }
+        else {
+            throw new IllegalStateException("testTableRecalibrator1: paramsFile was null");
+        }
     }
 
     @Test
@@ -144,7 +147,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    @Test(dependsOnMethods = "testCountCovariates1")
     public void testTableRecalibratorMaxQ70() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "0b7123ae9f4155484b68e4a4f96c5504" );
@@ -169,6 +172,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         1, // just one output file
                         Arrays.asList(md5));
                 executeTest("testTableRecalibratorMaxQ70", spec);
+            }
+            else {
+                throw new IllegalStateException("testTableRecalibratorMaxQ70: paramsFile was null");
             }
         }
     }
@@ -199,7 +205,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    @Test(dependsOnMethods = "testCountCovariatesSolidIndelsRemoveRefBias")
     public void testTableRecalibratorSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "2ad4c17ac3ed380071137e4e53a398a5" );
@@ -223,6 +229,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         1, // just one output file
                         Arrays.asList(md5));
                 executeTest("testTableRecalibratorSolidIndelsRemoveRefBias", spec);
+            }
+            else {
+                throw new IllegalStateException("testTableRecalibratorSolidIndelsRemoveRefBias: paramsFile was null");
             }
         }
     }
@@ -305,7 +314,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    @Test(dependsOnMethods = "testCountCovariatesNoIndex")
     public void testTableRecalibratorNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "991f093a0e610df235d28ada418ebf33" );
@@ -328,6 +337,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         1, // just one output file
                         Arrays.asList(md5));
                 executeTest("testTableRecalibratorNoIndex", spec);
+            }
+            else {
+                throw new IllegalStateException("testTableRecalibratorNoIndex: paramsFile was null");
             }
         }
     }
