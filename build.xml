@@ -215,7 +215,7 @@
 
     <target name="git.describe">
       <exec executable="git" outputproperty="git.describe.output" resultproperty="git.describe.exit.value" failonerror="false">
-        <arg line="describe" />
+        <arg line="describe --long" />
       </exec>
       <condition property="git.describe.succeeded">
         <equals arg1="${git.describe.exit.value}" arg2="0" />
