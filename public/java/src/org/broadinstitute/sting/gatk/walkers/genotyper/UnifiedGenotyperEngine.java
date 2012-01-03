@@ -401,11 +401,6 @@ public class UnifiedGenotyperEngine {
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
-        List<Integer> mlecounts = new ArrayList<Integer>(AFresult.log10AlleleFrequencyPosteriors.length);
-        for ( int i = 0; i < AFresult.log10AlleleFrequencyLikelihoods.length ; i++) {
-            mlecounts.add(MathUtils.maxElementIndex(AFresult.log10AlleleFrequencyLikelihoods[i]));
-        }
-        attributes.put("MLEAC",Utils.join(",",mlecounts));
 
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
