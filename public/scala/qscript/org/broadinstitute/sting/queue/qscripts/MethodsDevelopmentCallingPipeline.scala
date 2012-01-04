@@ -46,20 +46,24 @@ class MethodsDevelopmentCallingPipeline extends QScript {
           val bamList: File,
           val goldStandard_VCF: File,
           val intervals: String,
-          val titvTarget: Double,
-          val trancheTarget: Double,
+          val indelTranchTarget: Double,
+          val snpTrancheTarget: Double,
           val isLowpass: Boolean,
           val isExome: Boolean,
           val nSamples: Int) {
     val name = qscript.outputDir + baseName
     val clusterFile = new File(name + ".clusters")
-    val rawVCF = new File(name + ".raw.vcf")
+    val rawSnpVCF = new File(name + ".raw.vcf")
     val rawIndelVCF = new File(name + ".raw.indel.vcf")
     val filteredIndelVCF = new File(name + ".filtered.indel.vcf")
-    val recalibratedVCF = new File(name + ".recalibrated.vcf")
-    val tranchesFile = new File(name + ".tranches")
-    val vqsrRscript = name + ".vqsr.r"
-    val recalFile = new File(name + ".tranches.recal")
+    val recalibratedSnpVCF = new File(name + ".snp.recalibrated.vcf")
+    val recalibratedIndelVCF = new File(name + ".indel.recalibrated.vcf")
+    val tranchesSnpFile = new File(name + ".snp.tranches")
+    val tranchesIndelFile = new File(name + ".indel.tranches")
+    val vqsrSnpRscript = name + ".snp.vqsr.r"
+    val vqsrIndelRscript = name + ".indel.vqsr.r"
+    val recalSnpFile = new File(name + ".snp.tranches.recal")
+    val recalIndelFile = new File(name + ".indel.tranches.recal")
     val goldStandardRecalibratedVCF = new File(name + "goldStandard.recalibrated.vcf")
     val goldStandardTranchesFile = new File(name + "goldStandard.tranches")
     val goldStandardRecalFile = new File(name + "goldStandard.tranches.recal")
@@ -88,6 +92,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   val training_1000G = "/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.highQuality.vcf"
   val badSites_1000G = "/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.terrible.vcf"
   val projectConsensus_1000G = "/humgen/1kg/processing/official_release/phase1/projectConsensus/ALL.wgs.projectConsensus_v2b.20101123.snps.sites.vcf"
+  val millsDevine_b37 = "/humgen/gsa-hpprojects/GATK/bundle/current/b37/Mills_Devine_2hit.indels.b37.sites.vcf"
 
   val lowPass: Boolean = true
   val exome: Boolean = true
@@ -101,69 +106,69 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     "NA12878_gold" -> new Target("NA12878.goldStandard", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/data/goldStandard.list"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** There is no gold standard for the gold standard **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, lowPass, !exome, 391),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 90.0, 99.0, lowPass, !exome, 391),
     "NA12878_wgs_b37" -> new Target("NA12878.HiSeq.WGS.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 90.0, 99.0, !lowPass, !exome, 1),
     "NA12878_wgs_decoy" -> new Target("NA12878.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37_decoy.NA12878.clean.dedup.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.HiSeq19.filtered.vcf"),          // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.noChrY.hg19.intervals", 90.0, 99.0, !lowPass, !exome, 1),
     "NA12878_wgs_hg18" -> new Target("NA12878.HiSeq.WGS.hg18", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.14, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 90.0, 99.0, !lowPass, !exome, 1),
     "NA12878_wex_b37" -> new Target("NA12878.HiSeq.WEx.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/seq/picard_aggregation/C339/NA12878/v3/NA12878.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 1),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 90.0, 98.0, !lowPass, exome, 1),
     "NA12878_wex_hg18" -> new Target("NA12878.HiSeq.WEx.hg18", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 3.3, 98.0, !lowPass, exome, 1),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 90.0, 98.0, !lowPass, exome, 1),
     "NA12878_wex_decoy" -> new Target("NA12878.HiSeq.WEx.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.b37_decoy.NA12878.clean.dedup.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 1),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 90.0, 98.0, !lowPass, exome, 1),
     "CEUTrio_wex_b37" -> new Target("CEUTrio.HiSeq.WEx.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 3),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 90.0, 98.0, !lowPass, exome, 3),
     "CEUTrio_wgs_b37" -> new Target("CEUTrio.HiSeq.WGS.b37", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 90.0, 99.0, !lowPass, !exome, 3),
     "CEUTrio_wex_decoy" -> new Target("CEUTrio.HiSeq.WEx.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.b37_decoy.list"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 3.3, 98.0, !lowPass, exome, 3),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 90.0, 98.0, !lowPass, exome, 3),
     "CEUTrio_wgs_decoy" -> new Target("CEUTrio.HiSeq.WGS.b37_decoy", b37_decoy, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37_decoy.list"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),                  // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass, !exome, 3),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 90.0, 99.0, !lowPass, !exome, 3),
     "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/NA12878/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.14, 99.0, !lowPass, !exome, 1),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 90.0, 99.0, !lowPass, !exome, 1),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 99.0, lowPass, !exome, 79),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 90.0, 99.0, lowPass, !exome, 79),
     "TGPWExGdA" -> new Target("1000G.WEx.GdA", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"),        // BUGBUG: reduce from 60 to 20 people
               new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, 99.0, !lowPass, exome, 96),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 90.0, 99.0, !lowPass, exome, 96),
     "LowPassN60" -> new Target("lowpass.N60", b36, dbSNP_b36, hapmap_b36, indelMask_b36,
               new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/lowpass_b36/lowpass.chr20.cleaned.matefixed.bam"), // the bam list to call from
               new File("/home/radon01/depristo/work/oneOffProjects/VQSRCutByNRS/lowpass.N60.chr20.filtered.vcf"),           // the gold standard VCF file to run through the VQSR
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 2.3, 99.0, lowPass, !exome, 60),          // chunked interval list to use with Queue's scatter/gather functionality
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 90.0, 99.0, lowPass, !exome, 60),          // chunked interval list to use with Queue's scatter/gather functionality
     "LowPassEUR363Nov" -> new Target("EUR.nov2010", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 99.0, lowPass, !exome, 363)
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 90.0, 99.0, lowPass, !exome, 363)
   )
 
 
@@ -181,15 +186,15 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandard = true
     for (target <- targets) {
       if( !skipCalling ) {
-        if (!noIndels) add(new indelCall(target), new indelFilter(target), new indelEvaluation(target))
+        if (!noIndels) add(new indelCall(target), new indelRecal(target), new indelCut(target), new indelEvaluation(target))
         add(new snpCall(target))
-        add(new VQSR(target, !goldStandard))
-        add(new applyVQSR(target, !goldStandard))
+        add(new snpRecal(target, !goldStandard))
+        add(new snpCut(target, !goldStandard))
         add(new snpEvaluation(target))
       }
       if ( runGoldStandard ) {
-        add(new VQSR(target, goldStandard))
-        add(new applyVQSR(target, goldStandard))
+        add(new snpRecal(target, goldStandard))
+        add(new snpCut(target, goldStandard))
       }
     }
   }
@@ -222,7 +227,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.min_base_quality_score = minimumBaseQuality
     if (qscript.deletions >= 0)
       this.max_deletion_fraction = qscript.deletions
-    this.out = t.rawVCF
+    this.out = t.rawSnpVCF
     this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.SNP
     this.baq = if (noBAQ ||  t.isExome) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY}
     this.analysisName = t.name + "_UGs"
@@ -257,79 +262,114 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.jobName =  queueLogDir + t.name + ".indelfilter"
   }
 
-  // 3.) Variant Quality Score Recalibration - Generate Recalibration table
-  class VQSR(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
+  class VQSRBase(t: Target) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
     this.nt = 2
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
-    this.input :+= ( if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
-    this.resource :+= new TaggedFile( t.hapmapFile, "training=true,truth=true,prior=15.0" )
-    this.resource :+= new TaggedFile( omni_b37, "training=true,truth=true,prior=12.0" )
-    this.resource :+= new TaggedFile( training_1000G, "training=true,prior=10.0" )
+    this.allPoly = true
+    this.tranche ++= List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")  
+  }
+  
+  class snpRecal(t: Target, goldStandard: Boolean) extends VQSRBase(t) with UNIVERSAL_GATK_ARGS {
+    this.input :+= ( if ( goldStandard ) { t.goldStandard_VCF } else { t.rawSnpVCF } )
+    this.resource :+= new TaggedFile( t.hapmapFile, "known=false,training=true,truth=true,prior=15.0" )
+    this.resource :+= new TaggedFile( omni_b37, "known=false,training=true,truth=true,prior=12.0" )
+    this.resource :+= new TaggedFile( training_1000G, "known=false,training=true,prior=10.0" )
     this.resource :+= new TaggedFile( t.dbsnpFile, "known=true,prior=2.0" )
     this.resource :+= new TaggedFile( projectConsensus_1000G, "prior=8.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "MQ", "FS")
-    if(t.nSamples >= 10) { // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
-        this.use_annotation ++= List("InbreedingCoeff")
-    }
-    if(!t.isExome) {
+    if(t.nSamples >= 10)
+        this.use_annotation ++= List("InbreedingCoeff")  // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
+    if(!t.isExome) 
         this.use_annotation ++= List("DP")
-    } else { // exome specific parameters
+    else {                                               // exome specific parameters
         this.resource :+= new TaggedFile( badSites_1000G, "bad=true,prior=2.0" )
         this.mG = 6
-        if(t.nSamples <= 3) { // very few exome samples means very few variants
+        if(t.nSamples <= 3) {                            // very few exome samples means very few variants
             this.mG = 4
             this.percentBad = 0.04
         }
     }
-    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
-    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
-    this.allPoly = true
-    this.tranche ++= List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
-    this.rscript_file = t.vqsrRscript
-    this.analysisName = t.name + "_VQSR"
-    this.jobName = queueLogDir + t.name + ".VQSR"
+    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesSnpFile }
+    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalSnpFile }
+    this.rscript_file = t.vqsrSnpRscript
+    this.mode = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibratorArgumentCollection.Mode.SNP
+    this.analysisName = t.name + "_VQSRs"
+    this.jobName = queueLogDir + t.name + ".snprecal"
   }
 
+  class indelRecal(t: Target) extends VQSRBase(t) with UNIVERSAL_GATK_ARGS {
+    this.input :+= t.rawIndelVCF 
+    this.resource :+= new TaggedFile( millsDevine_b37, "known=true,training=true,truth=true,prior=12.0" )
+    this.use_annotation ++= List("QD", "HaplotypeScore", "ReadPosRankSum", "FS")
+    if(t.nSamples >= 10)
+      this.use_annotation ++= List("InbreedingCoeff")  // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
+    this.tranches_file = t.tranchesIndelFile
+    this.recal_file = t.recalIndelFile
+    this.rscript_file = t.vqsrIndelRscript
+    this.mode = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibratorArgumentCollection.Mode.INDEL
+    this.analysisName = t.name + "_VQSRi"
+    this.jobName = queueLogDir + t.name + ".indelrecal"
+  }
+
+  
   // 4.) Apply the recalibration table to the appropriate tranches
-  class applyVQSR (t: Target, goldStandard: Boolean) extends ApplyRecalibration with UNIVERSAL_GATK_ARGS {
+  class applyVQSRBase (t: Target) extends ApplyRecalibration with UNIVERSAL_GATK_ARGS {
     this.memoryLimit = 6
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
-    this.input :+= ( if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
-    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
-    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
-    this.ts_filter_level = t.trancheTarget
-    this.out = t.recalibratedVCF
-    this.analysisName = t.name + "_AVQSR"
-    this.jobName = queueLogDir + t.name + ".applyVQSR"
   }
+
+  class snpCut (t: Target, goldStandard: Boolean) extends applyVQSRBase(t) {
+    this.input :+= ( if ( goldStandard ) { t.goldStandard_VCF } else { t.rawSnpVCF } )
+    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesSnpFile}
+    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalSnpFile }
+    this.ts_filter_level = t.snpTrancheTarget
+    this.mode = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibratorArgumentCollection.Mode.SNP
+    this.out = t.recalibratedSnpVCF
+    this.analysisName = t.name + "_AVQSRs"
+    this.jobName = queueLogDir + t.name + ".snpcut"
+  }
+
+  class indelCut (t: Target) extends applyVQSRBase(t) {
+    this.input :+= t.rawIndelVCF
+    this.tranches_file = t.tranchesIndelFile
+    this.recal_file = t.recalIndelFile
+    this.ts_filter_level = t.indelTranchTarget
+    this.mode = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibratorArgumentCollection.Mode.INDEL
+    this.out = t.recalibratedIndelVCF
+    this.analysisName = t.name + "_AVQSRi"
+    this.jobName = queueLogDir + t.name + ".indelcut"
+  }
+
 
   // 5.) Variant Evaluation Base(OPTIONAL)
   class EvalBase(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
     this.memoryLimit = 3
-    this.reference_sequence = t.reference
     this.comp :+= new TaggedFile(t.hapmapFile, "hapmap" )
-    this.intervalsString ++= List(t.intervals)
     this.D = new File(t.dbsnpFile)
+    this.reference_sequence = t.reference
+    this.intervalsString ++= List(t.intervals)
     this.sample = samples
   }
 
   // 5a.) SNP Evaluation (OPTIONAL) based on the cut vcf
   class snpEvaluation(t: Target) extends EvalBase(t) {
     if (t.reference == b37 || t.reference == hg19) this.comp :+= new TaggedFile( omni_b37, "omni" )
-    this.eval :+= t.recalibratedVCF
+    this.eval :+= t.recalibratedSnpVCF
     this.out =  t.evalFile
     this.analysisName = t.name + "_VEs"
-    this.jobName = queueLogDir + t.name + ".snp.eval"
+    this.jobName = queueLogDir + t.name + ".snpeval"
   }
 
   // 5b.) Indel Evaluation (OPTIONAL)
   class indelEvaluation(t: Target) extends EvalBase(t) {
-    this.eval :+= t.filteredIndelVCF
-    this.evalModule :+= "IndelStatistics"
+    this.eval :+= t.recalibratedIndelVCF
+    this.comp :+= new TaggedFile(millsDevine_b37, "mills" )
+    this.noEV = true
+    this.evalModule = List("CompOverlap", "CountVariants", "TiTvVariantEvaluator", "ValidationReport", "IndelStatistics")
     this.out =  t.evalIndelFile
     this.analysisName = t.name + "_VEi"
-    this.jobName = queueLogDir + queueLogDir + t.name + ".indel.eval"
+    this.jobName = queueLogDir + queueLogDir + t.name + ".indeleval"
   }
 }
