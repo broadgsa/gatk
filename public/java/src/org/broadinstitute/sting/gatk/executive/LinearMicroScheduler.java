@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -55,7 +56,6 @@ public class LinearMicroScheduler extends MicroScheduler {
 
             traversalEngine.startTimersIfNecessary();
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
-                LocusWalker lWalker = (LocusWalker)walker;
                 WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(),
                         getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
@@ -77,6 +77,12 @@ public class LinearMicroScheduler extends MicroScheduler {
             done = walker.isDone();
         }
 
+        // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we push this functionality more into the engine
+        if( traversalEngine instanceof TraverseActiveRegions ) {
+            final Object result = ((TraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
+            accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
+        }
+                
         Object result = accumulator.finishTraversal();
 
         printOnTraversalDone(result);
