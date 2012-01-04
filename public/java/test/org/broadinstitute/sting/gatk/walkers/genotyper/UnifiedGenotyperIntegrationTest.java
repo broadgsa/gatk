@@ -265,7 +265,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("fa4f3ee67d98b64102a8a3ec81a3bc81"));
+                Arrays.asList("c60a44ba94a80a0cb1fba8b6f90a13cd"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in", spec1);
     }
 
@@ -275,7 +275,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 baseCommandIndels + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles "
                         + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000", 1,
-                Arrays.asList("df90890e43d735573a3b3e4f289ca46b"));
+                Arrays.asList("36ce53ae4319718ad9c8ae391deebc8c"));
         executeTest("test MultiSample Pilot2 indels with alleles passed in and emitting all sites", spec2);
     }
 
@@ -285,7 +285,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,080,000", 1,
-                Arrays.asList("cff6dd0f4eb1ef0b6fc476da6ffead19"));
+                Arrays.asList("d356cbaf240d7025d1aecdabaff3a3e0"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
     }
 
@@ -294,7 +294,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("1e2a4aab26e9ab0dae709d33a669e036"));
+                Arrays.asList("947c12ef2a8c29ae787cd11be8c565c8"));
         executeTest("test MultiSample Phase1 indels with complicated records", spec4);
     }
 

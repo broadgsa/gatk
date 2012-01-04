@@ -81,7 +81,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.BANDED_INDEL_COMPUTATION);
+                UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;

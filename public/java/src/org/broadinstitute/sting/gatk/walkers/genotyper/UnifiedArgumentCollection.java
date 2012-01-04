@@ -146,8 +146,8 @@ public class UnifiedArgumentCollection {
     public int INDEL_HAPLOTYPE_SIZE = 80;
 
     @Hidden
-    @Argument(fullName = "bandedIndel", shortName = "bandedIndel", doc = "Banded Indel likelihood computation", required = false)
-    public boolean BANDED_INDEL_COMPUTATION = false;
+    @Argument(fullName = "noBandedIndel", shortName = "noBandedIndel", doc = "Don't do Banded Indel likelihood computation", required = false)
+    public boolean DONT_DO_BANDED_INDEL_COMPUTATION = false;
 
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
@@ -184,7 +184,7 @@ public class UnifiedArgumentCollection {
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
-        uac.BANDED_INDEL_COMPUTATION = BANDED_INDEL_COMPUTATION;
+        uac.DONT_DO_BANDED_INDEL_COMPUTATION = DONT_DO_BANDED_INDEL_COMPUTATION;
         uac.MULTI_ALLELIC = MULTI_ALLELIC;
         return uac;
     }
