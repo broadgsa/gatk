@@ -224,7 +224,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         allVariantCounts.inc(type, ALL);
 
         // type specific calculations
-        if ( type == Type.SNP ) {
+        if ( type == Type.SNP && eval.isBiallelic() ) {
             titvTable = VariantContextUtils.isTransition(eval) ? transitionsPerSample : transversionsPerSample;
             titvTable.inc(type, ALL);
         }
