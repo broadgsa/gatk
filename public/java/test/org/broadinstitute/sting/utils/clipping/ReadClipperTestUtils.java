@@ -112,8 +112,9 @@ public class ReadClipperTestUtils {
                 }
             }
 
-            if (startingOp != CigarOperator.DELETION && endingOp != CigarOperator.DELETION && startingOp != CigarOperator.INSERTION && endingOp != CigarOperator.INSERTION)
-                return true;                                                            // we don't accept reads starting or ending in deletions (add any other constraint here)
+//            if (startingOp != CigarOperator.DELETION && endingOp != CigarOperator.DELETION && startingOp != CigarOperator.INSERTION && endingOp != CigarOperator.INSERTION)
+              if (startingOp != CigarOperator.DELETION && endingOp != CigarOperator.DELETION)
+                  return true;                                                            // we don't accept reads starting or ending in deletions (add any other constraint here)
         }
 
         return false;
@@ -189,5 +190,19 @@ public class ReadClipperTestUtils {
 
         return invertedCigar;
     }
+
+    /**
+     * Checks whether or not the read has any cigar element that is not H or S
+     *
+     * @param read
+     * @return true if it has any M, I or D, false otherwise
+     */
+    public static boolean readHasNonClippedBases(GATKSAMRecord read) {
+        for (CigarElement cigarElement : read.getCigar().getCigarElements())
+            if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP)
+                return true;
+        return false;
+    }
+
 
 }

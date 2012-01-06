@@ -28,13 +28,13 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
@@ -409,9 +409,9 @@ public class PairHMMIndelErrorModel {
                 }
             }
             else {
-                //System.out.format("%d %s\n",p.getRead().getAlignmentStart(), p.getRead().getClass().getName());
-                SAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
-                if (read == null)
+                // System.out.format("%d %s\n",p.getRead().getAlignmentStart(), p.getRead().getClass().getName());
+                GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
+                if (read.isEmpty())
                     continue;
 
                 if(ReadUtils.is454Read(read)) {

@@ -26,22 +26,20 @@
 package org.broadinstitute.sting.utils;
 
 
+import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
 
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 
 /**
  * Basic unit test for MathUtils
  */
 public class MathUtilsUnitTest extends BaseTest {
     @BeforeClass
-    public void init() { }
+    public void init() {
+    }
 
     /**
      * Tests that we get the right values from the binomial distribution
@@ -66,20 +64,20 @@ public class MathUtilsUnitTest extends BaseTest {
     public void testMultinomialProbability() {
         logger.warn("Executing testMultinomialProbability");
 
-        int[] counts0 = { 2, 0, 1 };
-        double[] probs0 = { 0.33, 0.33, 0.34 };
+        int[] counts0 = {2, 0, 1};
+        double[] probs0 = {0.33, 0.33, 0.34};
         Assert.assertEquals(MathUtils.multinomialProbability(counts0, probs0), 0.111078, 1e-6);
 
-        int[] counts1 = { 10, 20, 30 };
-        double[] probs1 = { 0.25, 0.25, 0.50 };
+        int[] counts1 = {10, 20, 30};
+        double[] probs1 = {0.25, 0.25, 0.50};
         Assert.assertEquals(MathUtils.multinomialProbability(counts1, probs1), 0.002870301, 1e-9);
 
-        int[] counts2 = { 38, 82, 50, 36 };
-        double[] probs2 = { 0.25, 0.25, 0.25, 0.25 };
+        int[] counts2 = {38, 82, 50, 36};
+        double[] probs2 = {0.25, 0.25, 0.25, 0.25};
         Assert.assertEquals(MathUtils.multinomialProbability(counts2, probs2), 1.88221e-09, 1e-10);
 
-        int[] counts3 = { 1, 600, 1 };
-        double[] probs3 = { 0.33, 0.33, 0.34 };
+        int[] counts3 = {1, 600, 1};
+        double[] probs3 = {0.33, 0.33, 0.34};
         Assert.assertEquals(MathUtils.multinomialProbability(counts3, probs3), 5.20988e-285, 1e-286);
     }
 
@@ -123,19 +121,21 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertTrue(FiveAlpha.containsAll(BigFiveAlpha));
     }
 
-    /** Tests that we correctly compute mean and standard deviation from a stream of numbers */
+    /**
+     * Tests that we correctly compute mean and standard deviation from a stream of numbers
+     */
     @Test
     public void testRunningAverage() {
         logger.warn("Executing testRunningAverage");
 
-        int [] numbers = {1,2,4,5,3,128,25678,-24};
+        int[] numbers = {1, 2, 4, 5, 3, 128, 25678, -24};
         MathUtils.RunningAverage r = new MathUtils.RunningAverage();
 
-        for ( int i = 0 ; i < numbers.length ; i++ ) r.add((double)numbers[i]);
+        for (int i = 0; i < numbers.length; i++) r.add((double) numbers[i]);
 
-        Assert.assertEquals((long)numbers.length, r.observationCount());
-        Assert.assertTrue(r.mean()- 3224.625 < 2e-10 );
-        Assert.assertTrue(r.stddev()-9072.6515881128 < 2e-10);
+        Assert.assertEquals((long) numbers.length, r.observationCount());
+        Assert.assertTrue(r.mean() - 3224.625 < 2e-10);
+        Assert.assertTrue(r.stddev() - 9072.6515881128 < 2e-10);
     }
 
     @Test
@@ -174,4 +174,56 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertEquals(MathUtils.log10Factorial(12342), 45138.26, 1e-1);
     }
 
+    @Test(enabled = true)
+    public void testRandomSubset() {
+        Integer[] x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        Assert.assertEquals(MathUtils.randomSubset(x, 0).length, 0);
+        Assert.assertEquals(MathUtils.randomSubset(x, 1).length, 1);
+        Assert.assertEquals(MathUtils.randomSubset(x, 2).length, 2);
+        Assert.assertEquals(MathUtils.randomSubset(x, 3).length, 3);
+        Assert.assertEquals(MathUtils.randomSubset(x, 4).length, 4);
+        Assert.assertEquals(MathUtils.randomSubset(x, 5).length, 5);
+        Assert.assertEquals(MathUtils.randomSubset(x, 6).length, 6);
+        Assert.assertEquals(MathUtils.randomSubset(x, 7).length, 7);
+        Assert.assertEquals(MathUtils.randomSubset(x, 8).length, 8);
+        Assert.assertEquals(MathUtils.randomSubset(x, 9).length, 9);
+        Assert.assertEquals(MathUtils.randomSubset(x, 10).length, 10);
+        Assert.assertEquals(MathUtils.randomSubset(x, 11).length, 10);
+
+        for (int i = 0; i < 25; i++)
+            Assert.assertTrue(hasUniqueElements(MathUtils.randomSubset(x, 5)));
+
+    }
+
+    @Test(enabled = true)
+    public void testArrayShuffle() {
+        Integer[] x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        for (int i = 0; i < 25; i++) {
+            Object[] t = MathUtils.arrayShuffle(x);
+            Assert.assertTrue(hasUniqueElements(t));
+            Assert.assertTrue(hasAllElements(x, t));
+        }
+    }
+
+    private boolean hasUniqueElements(Object[] x) {
+        for (int i = 0; i < x.length; i++)
+            for (int j = i + 1; j < x.length; j++)
+                if (x[i].equals(x[j]) || x[i] == x[j])
+                    return false;
+        return true;
+    }
+
+    private boolean hasAllElements(final Object[] expected, final Object[] actual) {
+        HashSet<Object> set = new HashSet<Object>();
+        set.addAll(Arrays.asList(expected));
+        set.removeAll(Arrays.asList(actual));
+        return set.isEmpty();
+    }
+
+
+    private void p (Object []x) {
+        for (Object v: x)
+            System.out.print((Integer) v + " ");
+        System.out.println();
+    }
 }

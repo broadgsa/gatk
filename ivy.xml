@@ -76,7 +76,7 @@
     <dependency org="org.apache.poi" name="poi-ooxml" rev="3.8-beta3" />
 
     <!-- snpEff annotator for pipelines -->
-    <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.4rc3" />
+    <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.5" />
 
     <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
     <exclude org="javax.servlet" />

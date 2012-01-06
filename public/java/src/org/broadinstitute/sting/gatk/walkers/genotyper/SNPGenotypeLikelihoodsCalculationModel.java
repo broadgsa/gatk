@@ -30,10 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -46,8 +43,6 @@ import java.util.*;
 
 public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
 
-    private static final int MIN_QUAL_SUM_FOR_ALT_ALLELE = 50;
-
     private boolean ALLOW_MULTIPLE_ALLELES;
 
     private final boolean useAlleleFromVCF;
@@ -56,15 +51,20 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         super(UAC, logger);
         ALLOW_MULTIPLE_ALLELES = UAC.MULTI_ALLELIC;
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
+
+        // make sure the PL cache has been initialized with enough alleles
+        if ( UnifiedGenotyperEngine.PLIndexToAlleleIndex == null || UnifiedGenotyperEngine.PLIndexToAlleleIndex.length < 4 ) // +1 for 0 alt alleles
+            UnifiedGenotyperEngine.calculatePLcache(3);
     }
 
-    public VariantContext getLikelihoods(RefMetaDataTracker tracker,
-                                         ReferenceContext ref,
-                                         Map<String, AlignmentContext> contexts,
-                                         AlignmentContextUtils.ReadOrientation contextType,
-                                         GenotypePriors priors,
-                                         Allele alternateAlleleToUse,
-                                         boolean useBAQedPileup) {
+    public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
+                                         final ReferenceContext ref,
+                                         final Map<String, AlignmentContext> contexts,
+                                         final AlignmentContextUtils.ReadOrientation contextType,
+                                         final GenotypePriors priors,
+                                         final Allele alternateAlleleToUse,
+                                         final boolean useBAQedPileup,
+                                         final GenomeLocParser locParser) {
 
         if ( !(priors instanceof DiploidSNPGenotypePriors) )
             throw new StingException("Only diploid-based SNP priors are supported in the SNP GL model");
@@ -78,6 +78,20 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         final List<Allele> alleles = new ArrayList<Allele>();
         alleles.add(Allele.create(refBase, true));
         final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
+
+        // calculate the GLs
+        ArrayList<SampleGenotypeData> GLs = new ArrayList<SampleGenotypeData>(contexts.size());
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            ReadBackedPileup pileup = AlignmentContextUtils.stratify(sample.getValue(), contextType).getBasePileup();
+            if ( useBAQedPileup )
+                pileup = createBAQedPileup( pileup );
+
+            // create the GenotypeLikelihoods object
+            final DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
+            final int nGoodBases = GL.add(pileup, true, true, UAC.MIN_BASE_QUALTY_SCORE);
+            if ( nGoodBases > 0 )
+                GLs.add(new SampleGenotypeData(sample.getKey(), GL, getFilteredDepth(pileup)));
+        }
 
         // find the alternate allele(s) that we should be using
         if ( alternateAlleleToUse != null ) {
@@ -93,7 +107,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 basesToUse[BaseUtils.simpleBaseToBaseIndex(allele.getBases()[0])] = true;
         } else {
 
-            determineAlternateAlleles(basesToUse, refBase, contexts, useBAQedPileup);
+            determineAlternateAlleles(basesToUse, refBase, GLs);
 
             // how many alternate alleles are we using?
             int alleleCounter = Utils.countSetBits(basesToUse);
@@ -125,22 +139,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         builder.alleles(alleles);
 
         // create the genotypes; no-call everyone for now
-        GenotypesContext genotypes = GenotypesContext.create();
+        final GenotypesContext genotypes = GenotypesContext.create();
         final List<Allele> noCall = new ArrayList<Allele>();
         noCall.add(Allele.NO_CALL);
 
-        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
-            ReadBackedPileup pileup = AlignmentContextUtils.stratify(sample.getValue(), contextType).getBasePileup();
-            if ( useBAQedPileup )
-                pileup = createBAQedPileup( pileup );
-
-            // create the GenotypeLikelihoods object
-            final DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
-            final int nGoodBases = GL.add(pileup, true, true, UAC.MIN_BASE_QUALTY_SCORE);
-            if ( nGoodBases == 0 )
-                continue;
-
-            final double[] allLikelihoods = GL.getLikelihoods();
+        for ( SampleGenotypeData sampleData : GLs ) {
+            final double[] allLikelihoods = sampleData.GL.getLikelihoods();
             final double[] myLikelihoods = new double[numLikelihoods];
 
             int myLikelihoodsIndex = 0;
@@ -151,60 +155,48 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             }
 
             // normalize in log space so that max element is zero.
-            GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(MathUtils.normalizeFromLog10(myLikelihoods, false, true));
+            final GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(MathUtils.normalizeFromLog10(myLikelihoods, false, true));
 
-            HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(pileup));
+            final HashMap<String, Object> attributes = new HashMap<String, Object>();
+            attributes.put(VCFConstants.DEPTH_KEY, sampleData.depth);
             attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-            genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
+            genotypes.add(new Genotype(sampleData.name, noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
         }
 
         return builder.genotypes(genotypes).make();
     }
 
     // fills in the allelesToUse array
-    protected void determineAlternateAlleles(boolean[] allelesToUse, byte ref, Map<String, AlignmentContext> contexts, boolean useBAQedPileup) {
-        int[] qualCounts = new int[4];
+    protected void determineAlternateAlleles(final boolean[] allelesToUse, final byte ref, final List<SampleGenotypeData> sampleDataList) {
 
-        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
-            // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = useBAQedPileup ? createBAQedPileup( sample.getValue().getBasePileup() ) : sample.getValue().getBasePileup();
-            for ( PileupElement p : pileup ) {
-                // ignore deletions
-                if ( p.isDeletion() || (!p.isReducedRead() && p.getQual() < UAC.MIN_BASE_QUALTY_SCORE) )
-                    continue;
+        final int baseIndexOfRef = BaseUtils.simpleBaseToBaseIndex(ref);
+        final int PLindexOfRef = DiploidGenotype.createDiploidGenotype(ref, ref).ordinal();
+        final double[] likelihoodCounts = new double[4];
 
-                final int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());
-                if ( index >= 0 ) {
-                    qualCounts[index] += p.getQual();
-                }
+        // based on the GLs, find the alternate alleles with the most probability
+        for ( SampleGenotypeData sampleData : sampleDataList ) {
+            final double[] likelihoods = sampleData.GL.getLikelihoods();
+            final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
+            if ( PLindexOfBestGL != PLindexOfRef ) {
+                int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[3][PLindexOfBestGL];
+                if ( alleles[0] != baseIndexOfRef )
+                    likelihoodCounts[alleles[0]] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
+                // don't double-count it
+                if ( alleles[1] != baseIndexOfRef && alleles[1] != alleles[0] )
+                    likelihoodCounts[alleles[1]] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
             }
         }
 
         if ( ALLOW_MULTIPLE_ALLELES ) {
-            for ( byte altAllele : BaseUtils.BASES ) {
-                if ( altAllele == ref )
-                    continue;
-                int index = BaseUtils.simpleBaseToBaseIndex(altAllele);
-                if ( qualCounts[index] >= MIN_QUAL_SUM_FOR_ALT_ALLELE ) {
-                    allelesToUse[index] = true;
+            for ( int i = 0; i < 4; i++ ) {
+                if ( likelihoodCounts[i] > 0.0 ) {
+                    allelesToUse[i] = true;
                 }
             }
         } else {
-            // set the non-ref base which has the maximum quality score sum
-            int maxCount = 0;
-            int indexOfMax = 0;
-            for ( byte altAllele : BaseUtils.BASES ) {
-                if ( altAllele == ref )
-                    continue;
-                int index = BaseUtils.simpleBaseToBaseIndex(altAllele);
-                if ( qualCounts[index] > maxCount ) {
-                    maxCount = qualCounts[index];
-                    indexOfMax = index;
-                }
-            }
-
-            if ( maxCount > 0 )
+            // set the non-ref base which has the maximum sum of non-ref GLs
+            final int indexOfMax = MathUtils.maxElementIndex(likelihoodCounts);
+            if ( likelihoodCounts[indexOfMax] > 0.0 )
                 allelesToUse[indexOfMax] = true;
         }
     }
@@ -227,4 +219,16 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         public byte getQual( final int offset ) { return BAQ.calcBAQFromTag(getRead(), offset, true); }
     }
 
+    private static class SampleGenotypeData {
+
+        public final String name;
+        public final DiploidSNPGenotypeLikelihoods GL;
+        public final int depth;
+
+        public SampleGenotypeData(final String name, final DiploidSNPGenotypeLikelihoods GL, final int depth) {
+            this.name = name;
+            this.GL = GL;
+            this.depth = depth;
+        }
+    }
 }

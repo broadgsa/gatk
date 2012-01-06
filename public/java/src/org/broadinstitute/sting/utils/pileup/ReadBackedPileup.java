@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.fragments.FragmentCollection;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -129,6 +130,13 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public ReadBackedPileup getPileupForReadGroup(String readGroupId);
 
+    /**
+     * Gets all the reads associated with a given read groups.
+     * @param rgSet Set of identifiers for the read group.
+     * @return A pileup containing only the reads in the given read groups.
+     */
+    public ReadBackedPileup getPileupForReadGroups(final HashSet<String> rgSet);
+    
     /**
      * Gets all reads in a given lane id. (Lane ID is the read group
      * id stripped of the last .XX sample identifier added by the GATK).

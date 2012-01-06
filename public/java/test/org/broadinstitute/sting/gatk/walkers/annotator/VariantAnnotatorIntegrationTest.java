@@ -145,19 +145,19 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test(enabled = false)
+    @Test
     public void testSnpEffAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
             validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
-            "snpEff2.0.4.AFR.unfiltered.vcf -L 1:1-1,500,000 -L 2:232,325,429",
+            "snpEff2.0.5.AFR.unfiltered.vcf -L 1:1-1,500,000 -L 2:232,325,429",
             1,
-            Arrays.asList("51258f5c880bd1ca3eb45a1711335c66")
+            Arrays.asList("ffbda45b3682c9b83cb541d83f6c15d6")
         );
         executeTest("Testing SnpEff annotations", spec);
     }
 
-    @Test(enabled = false)
+    @Test
     public void testSnpEffAnnotationsUnsupportedVersion() {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +

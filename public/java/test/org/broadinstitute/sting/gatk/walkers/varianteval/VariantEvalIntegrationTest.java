@@ -14,19 +14,19 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
 
-    @Test(enabled = false)
+    @Test
     public void testFunctionClassWithSnpeff() {
         WalkerTestSpec spec = new WalkerTestSpec(
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
                                         "--dbsnp " + b37dbSNP132,
-                                        "--eval " + validationDataLocation + "snpEff2.0.4.AFR.unfiltered.VariantAnnotator.output.vcf",
+                                        "--eval " + validationDataLocation + "snpEff2.0.5.AFR.unfiltered.VariantAnnotator.output.vcf",
                                         "-noEV",
                                         "-EV TiTvVariantEvaluator",
                                         "-noST",
                                         "-ST FunctionalClass",
-                                        "-L " + validationDataLocation + "snpEff2.0.4.AFR.unfiltered.VariantAnnotator.output.vcf",
+                                        "-L " + validationDataLocation + "snpEff2.0.5.AFR.unfiltered.VariantAnnotator.output.vcf",
                                         "-o %s"
                                 ),
                                 1,
@@ -449,5 +449,22 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 Arrays.asList("240369cd651c77e05e8a6659f4a6237e")
                               );
         executeTest("testIntervalStrat", spec);
+    }
+
+    @Test
+    public void testModernVCFWithLargeIndels() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                                buildCommandLine(
+                                        "-T VariantEval",
+                                        "-R " + b37KGReference,
+                                        "-eval " + validationDataLocation + "/NA12878.HiSeq.WGS.b37_decoy.indel.recalibrated.vcf",
+                                        "-L 20",
+                                        "-D " + b37dbSNP132,
+                                        "-o %s"
+                                ),
+                                1,
+                                Arrays.asList("a6f8b32fa732632da13dfe3ddcc73cef")
+                              );
+        executeTest("testModernVCFWithLargeIndels", spec);
     }
 }
