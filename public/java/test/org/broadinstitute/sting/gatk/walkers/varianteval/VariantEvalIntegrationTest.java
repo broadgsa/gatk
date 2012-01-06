@@ -450,4 +450,21 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                               );
         executeTest("testIntervalStrat", spec);
     }
+
+    @Test
+    public void testModernVCFWithLargeIndels() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                                buildCommandLine(
+                                        "-T VariantEval",
+                                        "-R " + b37KGReference,
+                                        "-eval " + validationDataLocation + "/NA12878.HiSeq.WGS.b37_decoy.indel.recalibrated.vcf",
+                                        "-L 20",
+                                        "-D " + b37dbSNP132,
+                                        "-o %s"
+                                ),
+                                1,
+                                Arrays.asList("a6f8b32fa732632da13dfe3ddcc73cef")
+                              );
+        executeTest("testModernVCFWithLargeIndels", spec);
+    }
 }
