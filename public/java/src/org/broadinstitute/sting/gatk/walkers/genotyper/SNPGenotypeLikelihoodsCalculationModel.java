@@ -30,10 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -66,7 +63,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final AlignmentContextUtils.ReadOrientation contextType,
                                          final GenotypePriors priors,
                                          final Allele alternateAlleleToUse,
-                                         final boolean useBAQedPileup) {
+                                         final boolean useBAQedPileup,
+                                         final GenomeLocParser locParser) {
 
         if ( !(priors instanceof DiploidSNPGenotypePriors) )
             throw new StingException("Only diploid-based SNP priors are supported in the SNP GL model");

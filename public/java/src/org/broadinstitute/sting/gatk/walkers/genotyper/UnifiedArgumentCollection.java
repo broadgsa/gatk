@@ -109,7 +109,7 @@ public class UnifiedArgumentCollection {
      * For advanced users only.
      */
     @Advanced
-    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow the discovery of multiple alleles (SNPs only)", required = false)
+    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow the discovery of multiple alleles", required = false)
     public boolean MULTI_ALLELIC = false;
 
     /**
