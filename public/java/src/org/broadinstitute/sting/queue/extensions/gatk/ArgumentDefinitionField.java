@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -70,17 +70,18 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     " * Short name of %1$s%n" +
                     " * @return Short name of %1$s%n" +
                     " */%n" +
-                    "def %3$s = this.%1$s%n" +
+                    "%5$sdef %3$s = this.%1$s%n" +
                     "%n" +
                     "/**%n" +
                     " * Short name of %1$s%n" +
                     " * @param value Short name of %1$s%n" +
                     " */%n" +
-                    "def %4$s(value: %2$s) { this.%1$s = value }%n",
+                    "%5$sdef %4$s(value: %2$s) { this.%1$s = value }%n",
                     getFieldName(),
                     getFieldType(),
                     getShortFieldGetter(),
-                    getShortFieldSetter());
+                    getShortFieldSetter(),
+                    getPrivacy());
     }
 
     protected static final String REQUIRED_TEMPLATE = " + required(\"%1$s\", %3$s, spaceSeparated=true, escape=true, format=%2$s)";
@@ -135,11 +136,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     new IntervalFileArgumentField(argumentDefinition),
                     new IntervalStringArgumentField(argumentDefinition));
 
-        // ROD Bindings are set by the RodBindField
-        } else if (RodBindArgumentField.ROD_BIND_FIELD.equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
-            // TODO: Once everyone is using @Allows and @Requires correctly, we can stop blindly allowing Triplets
-            return Arrays.asList(new RodBindArgumentField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, Tribble.STANDARD_INDEX_EXTENSION));
-            //return Collections.<ArgumentField>emptyList();
+        } else if (NumThreadsArgumentField.NUM_THREADS_FIELD.equals(argumentDefinition.fullName)) {
+            return Arrays.asList(new NumThreadsArgumentField(argumentDefinition));
 
         } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, BAMIndex.BAMIndexSuffix, ".bam"));
@@ -166,10 +164,13 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
             fields.add(new OutputArgumentField(argumentDefinition, gatherClass));
 
-            if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+            if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType)) {
                 fields.add(new SAMFileWriterIndexArgumentField(argumentDefinition));
-            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                fields.add(new SAMFileWriterMD5ArgumentField(argumentDefinition));
+            }
+            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType)) {
                 fields.add(new VCFWriterIndexArgumentField(argumentDefinition));
+            }
 
             return fields;
 
@@ -228,7 +229,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getRawFieldName() { return super.getRawFieldName() + "String"; }
         @Override protected String getFullName() { return super.getFullName() + "String"; }
         @Override protected String getRawShortFieldName() { return super.getRawShortFieldName() + "String"; }
-        @Override protected String getFieldType() { return "List[String]"; }
+        @Override protected String getFieldType() { return "Seq[String]"; }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override public String getCommandLineTemplate() { return REPEAT_TEMPLATE; }
 
@@ -250,7 +251,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
 
         @Override protected Class<?> getInnerType() { return File.class; }
-        @Override protected String getFieldType() { return isMultiValued() ? "List[File]" : "File"; }
+        @Override protected String getFieldType() { return isMultiValued() ? "Seq[File]" : "File"; }
         @Override protected String getDefaultValue() { return isMultiValued() ? "Nil" : "_"; }
     }
 
@@ -294,7 +295,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
 
         @Override protected Class<?> getInnerType() { return mapType(argumentDefinition.componentType); }
-        @Override protected String getFieldType() { return String.format("List[%s]", getType(getInnerType())); }
+        @Override protected String getFieldType() { return String.format("Seq[%s]", getType(getInnerType())); }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override protected String getCommandLineTemplate() { return REPEAT_TEMPLATE; }
     }
@@ -336,17 +337,16 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     // Allows the user to specify the track name, track type, and the file.
-    public static class RodBindArgumentField extends ArgumentDefinitionField {
-        public static final String ROD_BIND_FIELD = "rodBind";
+    public static class NumThreadsArgumentField extends OptionedArgumentField {
+        public static final String NUM_THREADS_FIELD = "num_threads";
 
-        public RodBindArgumentField(ArgumentDefinition argumentDefinition) {
-            super(argumentDefinition);
+        public NumThreadsArgumentField(ArgumentDefinition argumentDefinition) {
+            super(argumentDefinition, false);
         }
-        @Override protected Class<?> getInnerType() { return null; } // RodBind does not need to be imported.
-        @Override protected String getFieldType() { return "List[RodBind]"; }
-        @Override protected String getDefaultValue() { return "Nil"; }
-        @Override protected String getCommandLineTemplate() {
-            return " + repeat(\"%1$s\", %3$s, formatPrefix=RodBind.formatCommandLineParameter, spaceSeparated=true, escape=true, format=%2$s)";
+
+        @Override
+        protected String getFreezeFields() {
+            return String.format("if (num_threads.isDefined) nCoresRequest = num_threads%n");
         }
     }
 
@@ -356,7 +356,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             super(argumentDefinition);
         }
         @Override protected Class<?> getInnerType() { return null; } // TaggedFile does not need to be imported.
-        @Override protected String getFieldType() { return argumentDefinition.isMultiValued ? "List[File]" :  "File"; }
+        @Override protected String getFieldType() { return argumentDefinition.isMultiValued ? "Seq[File]" :  "File"; }
         @Override protected String getDefaultValue() { return argumentDefinition.isMultiValued ? "Nil" : "_"; }
         @Override protected String getCommandLineTemplate() {
             if (argumentDefinition.isMultiValued) {
@@ -395,10 +395,11 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFullName() { return this.indexFieldName; }
         @Override protected boolean isRequired() { return false; }
-        @Override protected String getFieldType() { return "List[File]"; }
+        @Override protected String getFieldType() { return "Seq[File]"; }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override protected Class<?> getInnerType() { return File.class; }
         @Override protected String getRawFieldName() { return this.indexFieldName; }
+        @Override protected String getPrivacy() { return "private "; }
         @Override protected String getFreezeFields() {
             if (originalIsMultiValued) {
                 if (originalSuffix == null) {
@@ -434,53 +435,69 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
     }
 
-    // Tracks an automatically generated index
-    private static abstract class OutputIndexArgumentField extends ArgumentField {
-        protected final String indexFieldName;
+    // Tracks an automatically generated index, md5, etc.
+    private static abstract class AuxilliaryOutputArgumentField extends ArgumentField {
         protected final String originalFieldName;
-        public OutputIndexArgumentField(ArgumentDefinition originalArgumentDefinition) {
-            this.indexFieldName = originalArgumentDefinition.fullName + "Index";
+        protected final String auxFieldName;
+        protected final String auxFieldLabel;
+        public AuxilliaryOutputArgumentField(ArgumentDefinition originalArgumentDefinition, String auxFieldLabel) {
             this.originalFieldName = originalArgumentDefinition.fullName;
+            this.auxFieldName = originalArgumentDefinition.fullName + auxFieldLabel;
+            this.auxFieldLabel = auxFieldLabel;
         }
         @Override protected Class<? extends Annotation> getAnnotationIOClass() { return Output.class; }
         @Override public String getCommandLineAddition() { return ""; }
-        @Override protected String getDoc() { return "Automatically generated index for " + this.originalFieldName; }
-        @Override protected String getFullName() { return this.indexFieldName; }
+        @Override protected String getDoc() { return String.format("Automatically generated %s for %s", auxFieldLabel.toLowerCase(), this.originalFieldName); }
+        @Override protected String getFullName() { return this.auxFieldName; }
         @Override protected boolean isRequired() { return false; }
         @Override protected String getFieldType() { return "File"; }
         @Override protected String getDefaultValue() { return "_"; }
         @Override protected Class<?> getInnerType() { return File.class; }
-        @Override protected String getRawFieldName() { return this.indexFieldName; }
+        @Override protected String getRawFieldName() { return this.auxFieldName; }
+        @Override protected String getPrivacy() { return "private "; }
 
         @Override public boolean isGather() { return true; }
         @Override protected String getGatherAnnotation() {
-            return String.format("@Gather(classOf[AutoIndexGatherFunction])%n");
+            return String.format("@Gather(enabled=false)%n");
         }
     }
 
-    private static class VCFWriterIndexArgumentField extends OutputIndexArgumentField {
+    private static class VCFWriterIndexArgumentField extends AuxilliaryOutputArgumentField {
         public VCFWriterIndexArgumentField(ArgumentDefinition originalArgumentDefinition) {
-            super(originalArgumentDefinition);
+            super(originalArgumentDefinition, "Index");
         }
         @Override protected String getFreezeFields() {
             return String.format(
                     ("if (%2$s != null)%n" +
                             "  if (!org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
                             "    %1$s = new File(%2$s.getPath + \"%3$s\")%n"),
-                    indexFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
+                    auxFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
         }
     }
 
-    private static class SAMFileWriterIndexArgumentField extends OutputIndexArgumentField {
+    private static class SAMFileWriterIndexArgumentField extends AuxilliaryOutputArgumentField {
         public SAMFileWriterIndexArgumentField(ArgumentDefinition originalArgumentDefinition) {
-            super(originalArgumentDefinition);
+            super(originalArgumentDefinition, "Index");
         }
         @Override protected String getFreezeFields() {
             return String.format(
                     ("if (%2$s != null)%n" +
                             "  if (!%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath.stripSuffix(\".bam\") + \"%4$s\")%n"),
-                    indexFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME, BAMIndex.BAMIndexSuffix);
+                    auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME, BAMIndex.BAMIndexSuffix);
+        }
+    }
+
+    private static class SAMFileWriterMD5ArgumentField extends AuxilliaryOutputArgumentField {
+        public SAMFileWriterMD5ArgumentField(ArgumentDefinition originalArgumentDefinition) {
+            super(originalArgumentDefinition, "MD5");
+        }
+        @Override protected String getFreezeFields() {
+            return String.format(
+                    ("if (%2$s != null)%n" +
+                            "  if (%3$s)%n" +
+                            "    %1$s = new File(%2$s.getPath + \"%4$s\")%n"),
+                    auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME, ".md5");
         }
     }
 

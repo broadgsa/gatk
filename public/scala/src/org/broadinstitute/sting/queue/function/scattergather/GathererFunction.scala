@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -32,11 +32,12 @@ import collection.JavaConversions._
  * Runs a Gatherer in process.
  */
 class GathererFunction(gathererClass: Class[_ <: Gatherer]) extends InProcessFunction with GatherFunction {
+  analysisName = this.gathererClass.getSimpleName
+
   def run() {
     val gatherer = gathererClass.newInstance
     if (gatherer.waitForInputs)
-      waitForGatherParts
+      waitForGatherParts()
     gatherer.gather(this.gatherParts, this.originalOutput)
   }
-  override def description = this.gathererClass.getSimpleName + " " + this.commandOutputs.mkString(" ")
 }

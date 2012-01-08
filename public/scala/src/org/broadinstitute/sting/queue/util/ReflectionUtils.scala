@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.queue.QException
@@ -64,17 +88,17 @@ object ReflectionUtils {
   /**
    * Returns all the declared fields on a class in order of sub type to super type.
    * @param clazz Base class to start looking for fields.
-   * @return List[Field] found on the class and all super classes.
+   * @return Seq[Field] found on the class and all super classes.
    */
-  def getAllFields(clazz: Class[_]) = getAllTypes(clazz).map(_.getDeclaredFields).flatMap(_.toList)
+  def getAllFields(clazz: Class[_]) = getAllTypes(clazz).map(_.getDeclaredFields).flatMap(_.toSeq)
 
   /**
    * Gets all the types on a class in order of sub type to super type.
    * @param clazz Base class.
-   * @return List[Class] including the class and all super classes.
+   * @return Seq[Class] including the class and all super classes.
    */
   def getAllTypes(clazz: Class[_]) = {
-    var types = List.empty[Class[_]]
+    var types = Seq.empty[Class[_]]
     var c = clazz
     while (c != null) {
       types :+= c

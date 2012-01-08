@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.util
 
 import collection.JavaConversions._
@@ -14,32 +38,34 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
   /**
    * Checks if the class type is a scala collection.
    * @param classType Class type to check.
-   * @return true if the class is a List, Set, or an Option.
+   * @return true if the class is a Seq, Set, or an Option.
    */
   def supports(classType: Class[_]) = isCompound(classType)
 
   /**
    * Checks if the class type is a scala collection.
    * @param source Argument source to check.
-   * @return true if the source is a List, Set, or an Option.
+   * @return true if the source is a Seq, Set, or an Option.
    */
   override def isMultiValued(source: ArgumentSource) = isCompound(source.field.getType)
 
   /**
    * Checks if the class type is a scala collection.
    * @param classType Class type to check.
-   * @return true if the class is a List, Set, or an Option.
+   * @return true if the class is a Seq, Set, or an Option.
    */
   private def isCompound(classType: Class[_]) = {
-    classOf[List[_]].isAssignableFrom(classType) ||
+    classOf[Seq[_]].isAssignableFrom(classType) ||
+    classOf[List[_]].isAssignableFrom(classType) || // see comment below re: List vs. Seq
     classOf[Set[_]].isAssignableFrom(classType) ||
     classOf[Option[_]].isAssignableFrom(classType)
   }
 
   /**
    * Parses the argument matches based on the class type of the argument source's field.
+   * @param parsingEngine Parsing engine.
    * @param source Argument source that contains the field being populated.
-   * @param classType Class type being parsed.
+   * @param typeType Type of the argument source's field.
    * @param argumentMatches The argument match strings that were found for this argument source.
    * @return The parsed object.
    */
@@ -51,7 +77,15 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     val componentType = ReflectionUtils.getCollectionType(source.field)
     val componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType)
 
-    if (classOf[List[_]].isAssignableFrom(classType)) {
+    if (classOf[Seq[_]].isAssignableFrom(classType)) {
+      var seq = Seq.empty[Any]
+      for (argumentMatch <- argumentMatches)
+        for (value <- argumentMatch)
+          seq :+= componentArgumentParser.parse(parsingEngine, source, componentType, new ArgumentMatches(value))
+      seq
+    } else if (classOf[List[_]].isAssignableFrom(classType)) {
+      // QScripts should be using the interface Seq instead of the class List.
+      // Leaving this here for now for legacy support until the effects of switching have been tested for a while. -ks
       var list = List.empty[Any]
       for (argumentMatch <- argumentMatches)
         for (value <- argumentMatch)

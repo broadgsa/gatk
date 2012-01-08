@@ -52,6 +52,4 @@ class SamtoolsIndexFunction extends SamtoolsCommandLineFunction {
                     required("index") +
                     required(bamFile) +
                     required(bamFileIndex)
-
-  override def dotString = "Index: %s".format(bamFile.getName)
 }

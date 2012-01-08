@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,15 +22,34 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.sting.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
 import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.sting.commandline.Input
+import org.apache.commons.io.FileUtils
+import java.io.File
+import collection.JavaConversions._
 
 /**
- * A no-op for index files that were automatically generated during the gather step.
- * TODO: Allow graph to know that this isn't needed, and/or that one gather job can actually gather N-outputs, and/or look more into generic source->sinks.
+ * Concatenate log files to the jobOutputFile.
  */
-class AutoIndexGatherFunction extends InProcessFunction with GatherFunction {
-  def run() {}
+class ConcatenateLogsFunction extends InProcessFunction {
+  analysisName = "Concat"
+
+  @Input(doc="Parts to gather back into the original output")
+  var logs: Seq[File] = Nil
+
+  override def description = "%s: %s > %s".format(analysisName, logs, jobOutputFile)
+  override def shortDescription = analysisName + ": " + jobOutputFile.getName
+
+  def run() {
+    val missing = org.broadinstitute.sting.utils.io.IOUtils.waitFor(logs, 120)
+    if (!missing.isEmpty)
+      throw new QException("Unable to find log: " + missing.mkString(", "))
+    logs.foreach(log => {
+      FileUtils.copyFile(log, this.jobOutputStream)
+      this.jobOutputStream.println()
+    })
+  }
 }

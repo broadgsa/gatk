@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -44,7 +44,7 @@ object StringFileConversions {
   // and mixins all correct so this doesn't have to be duplicated with concrete implementations?
   // http://programming-scala.labs.oreilly.com/ch12.html is your friend.
 
-  implicit def stringsAsFiles(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): List[File] = {
+  implicit def stringsAsFiles(x: Seq[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): Seq[File] = {
     x.map(_ match {
       case string: String => stringAsFile(string)
       case file: File => file
@@ -52,7 +52,23 @@ object StringFileConversions {
     })
   }
 
-  implicit def filesAsStrings(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): List[String] = {
+  implicit def filesAsStrings(x: Seq[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): Seq[String] = {
+    x.map(_ match {
+      case file: File => fileAsString(file)
+      case string: String => string
+      case null => null
+    })
+  }
+
+  implicit def stringsAsFilesList(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): List[File] = {
+    x.map(_ match {
+      case string: String => stringAsFile(string)
+      case file: File => file
+      case null => null
+    })
+  }
+
+  implicit def filesAsStringsList(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): List[String] = {
     x.map(_ match {
       case file: File => fileAsString(file)
       case string: String => string
@@ -91,12 +107,20 @@ trait StringFileConversions {
     StringFileConversions.fileAsString(x)
   }
 
-  implicit def stringsAsFiles(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): List[File] = {
+  implicit def stringsAsFiles(x: Seq[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): Seq[File] = {
     StringFileConversions.stringsAsFiles(x)
   }
 
-  implicit def filesAsStrings(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): List[String] = {
+  implicit def filesAsStrings(x: Seq[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): Seq[String] = {
     StringFileConversions.filesAsStrings(x)
+  }
+
+  implicit def stringsAsFilesList(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): List[File] = {
+    StringFileConversions.stringsAsFilesList(x)
+  }
+
+  implicit def filesAsStringsList(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): List[String] = {
+    StringFileConversions.filesAsStringsList(x)
   }
 
   implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]): Set[File] = {

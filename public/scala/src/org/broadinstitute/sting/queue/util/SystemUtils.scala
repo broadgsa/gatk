@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.queue.util
 
-import java.lang.management.ManagementFactory
 import java.net.InetAddress
 import java.io.File
 import io.Source
@@ -56,6 +55,4 @@ object SystemUtils extends Logging {
     else
       hostName.split('.').takeRight(2).mkString(".")
   }
-
-  val pidAtHost = ManagementFactory.getRuntimeMXBean.getName.split('.').head
 }

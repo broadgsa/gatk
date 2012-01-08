@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2011, The Broad Institute
+  ~ Copyright (c) 2012, The Broad Institute
   ~
   ~ Permission is hereby granted, free of charge, to any person
   ~ obtaining a copy of this software and associated documentation
@@ -1210,7 +1210,14 @@
     <!-- Build gsalib R module -->
     <target name="gsalib">
       <exec executable="R" failonerror="true">
-        <arg line="R CMD INSTALL -l ${R.library.dir} ${R.public.src.dir}/${R.package.path}/gsalib" />
+        <arg line="R CMD INSTALL --preclean ${R.public.src.dir}/${R.package.path}/gsalib" />
+      </exec>
+    </target>
+
+    <target name="clean.gsalib">
+        <!-- Currently not cleaning out the lib during 'ant clean' -->
+      <exec executable="R" failonerror="false">
+        <arg line="R CMD REMOVE gsalib" />
       </exec>
     </target>
 </project>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -28,9 +28,10 @@ import org.broadinstitute.sting.queue.function.QFunction
 import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
-import java.io.{FileOutputStream, PrintStream, File}
+import java.io.{PrintStream, File}
 import org.broadinstitute.sting.utils.R.{RScriptLibrary, RScriptExecutor}
 import org.broadinstitute.sting.utils.io.Resource
+import org.apache.commons.io.{IOUtils, FileUtils}
 
 /**
  * A mixin to add Job info to the class
@@ -67,7 +68,7 @@ trait QJobReport extends Logging {
   def getReportGroup = self.analysisName.replaceAll(GATKReportTable.INVALID_TABLE_NAME_REGEX, "_")
   def getReportFeatures = reportFeatures
 
-  def getReportFeatureNames: List[String] = getReportFeatures.keys.toList
+  def getReportFeatureNames: Seq[String] = getReportFeatures.keys.toSeq
   def getReportFeature(key: String): String = {
     getReportFeatures.get(key) match {
       case Some(x) => x
@@ -102,9 +103,12 @@ object QJobReport {
   def printReport(jobsRaw: Map[QFunction, JobRunInfo], dest: File) {
     val jobs = jobsRaw.filter(_._2.isFilledIn).filter(_._1.includeInReport)
     jobs foreach {case (qf, info) => qf.setRunInfo(info)}
-    val stream = new PrintStream(new FileOutputStream(dest))
-    printJobLogging(jobs.keys.toList, stream)
-    stream.close()
+    val stream = new PrintStream(FileUtils.openOutputStream(dest))
+    try {
+      printJobLogging(jobs.keys.toSeq, stream)
+    } finally {
+      IOUtils.closeQuietly(stream)
+    }
   }
 
   def plotReport(reportFile: File, pdfFile: File) {
@@ -129,7 +133,7 @@ object QJobReport {
    * Prints the JobLogging logs to a GATKReport.  First splits up the
    * logs by group, and for each group generates a GATKReportTable
    */
-  private def printJobLogging(logs: List[QFunction], stream: PrintStream) {
+  private def printJobLogging(logs: Seq[QFunction], stream: PrintStream) {
     // create the report
     val report: GATKReport = new GATKReport
 
@@ -151,11 +155,11 @@ object QJobReport {
     report.print(stream)
   }
 
-  private def groupLogs(logs: List[QFunction]): Map[String, List[QFunction]] = {
+  private def groupLogs(logs: Seq[QFunction]): Map[String, Seq[QFunction]] = {
     logs.groupBy(_.getReportGroup)
   }
 
-  private def logKeys(logs: List[QFunction]): Set[String] = {
+  private def logKeys(logs: Seq[QFunction]): Set[String] = {
     // the keys should be the same for each log, but we will check that
     val keys = Set[String](logs(0).getReportFeatureNames : _*)
 
