@@ -20,7 +20,7 @@ class QScriptManager() extends Logging {
    * Compiles and loads the scripts in the files into the current classloader.
    * Heavily based on scala/src/compiler/scala/tools/ant/Scalac.scala
    */
-  def loadScripts(scripts: List[File], tempDir: File) {
+  def loadScripts(scripts: Seq[File], tempDir: File) {
     if (scripts.size > 0) {
       val settings = new Settings((error: String) => logger.error(error))
       settings.deprecation.value = true
@@ -36,7 +36,7 @@ class QScriptManager() extends Logging {
 
       logger.info("Compiling %s QScript%s".format(scripts.size, plural(scripts.size)))
       logger.debug("Compilation directory: " + settings.outdir.value)
-      run.compileFiles(scripts.map(new PlainFile(_)))
+      run.compileFiles(scripts.toList.map(new PlainFile(_)))
 
       reporter.printSummary()
       if (reporter.hasErrors) {

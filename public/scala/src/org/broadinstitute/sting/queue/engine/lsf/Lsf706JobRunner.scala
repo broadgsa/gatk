@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -35,8 +35,8 @@ import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner
 import java.util.regex.Pattern
 import java.lang.StringBuffer
 import java.util.Date
-import com.sun.jna.{Pointer, Structure, StringArray, NativeLong}
-import com.sun.jna.ptr.{PointerByReference, IntByReference}
+import com.sun.jna.{Structure, StringArray, NativeLong}
+import com.sun.jna.ptr.IntByReference
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -60,7 +60,6 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 
   /**
    * Dispatches the function on the LSF cluster.
-   * @param function Command to run.
    */
   def start() {
     Lsf706JobRunner.lsfLibLock.synchronized {
@@ -110,7 +109,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
       if ( function.nCoresRequest.getOrElse(1) > 1 ) {
         if ( function.qSettings.dontRequestMultipleCores )
           logger.warn("Sending multicore job %s to farm without requesting appropriate number of cores (%d)".format(
-            function.jobName, function.nCoresRequest.get))
+            function.shortDescription, function.nCoresRequest.get))
         else {
           request.numProcessors = function.nCoresRequest.get
           request.maxNumProcessors = request.numProcessors
@@ -298,7 +297,7 @@ object Lsf706JobRunner extends Logging {
       runner.getRunInfo.doneTime = new Date(jobInfo.endTime.longValue * 1000)
       val exHostsRaw = jobInfo.exHosts.getStringArray(0)
       //logger.warn("exHostsRaw = " + exHostsRaw)
-      val exHostsList = exHostsRaw.toList
+      val exHostsList = exHostsRaw.toSeq
       //logger.warn("exHostsList = " + exHostsList)
       val exHosts = exHostsList.reduceLeft(_ + "," + _)
       //logger.warn("exHosts = " + exHosts)
@@ -363,7 +362,7 @@ object Lsf706JobRunner extends Logging {
   /**
    * Returns the run limit in seconds for the queue.
    * If the queue name is null returns the length of the default queue.
-   * @param queue Name of the queue or null for the default queue.
+   * @param queueName Name of the queue or null for the default queue.
    * @return the run limit in seconds for the queue.
    */
   private def getRlimitRun(queueName: String) = {

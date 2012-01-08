@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -34,7 +34,7 @@ class SamtoolsMergeFunction extends SamtoolsCommandLineFunction {
   analysisName = "samtools merge"
 
   @Input(doc="BAM file input")
-  var inputBams: List[File] = Nil
+  var inputBams: Seq[File] = Nil
 
   @Output(doc="BAM file output")
   var outputBam: File = _
@@ -43,10 +43,10 @@ class SamtoolsMergeFunction extends SamtoolsCommandLineFunction {
   var region: String = _
 
   @Input(doc="BAM file input indexes")
-  var inputBamIndexes: List[File] = Nil
+  var inputBamIndexes: Seq[File] = Nil
 
-  override def freezeFieldValues = {
-    super.freezeFieldValues
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
     inputBamIndexes ++= inputBams
       .filter(orig => orig != null && orig.getName.endsWith(".bam"))
       .flatMap(orig => Array(

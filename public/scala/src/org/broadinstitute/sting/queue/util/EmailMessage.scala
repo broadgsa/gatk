@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -34,12 +34,12 @@ import scala.collection.JavaConversions._
  */
 class EmailMessage extends Logging {
   var from: String = _
-  var to: List[String] = Nil
-  var cc: List[String] = Nil
-  var bcc: List[String] = Nil
+  var to: Seq[String] = Nil
+  var cc: Seq[String] = Nil
+  var bcc: Seq[String] = Nil
   var subject: String = _
   var body: String = _
-  var attachments: List[File] = Nil
+  var attachments: Seq[File] = Nil
 
   /**
    * Sends the email and throws an exception if the email can't be sent.
@@ -111,10 +111,10 @@ class EmailMessage extends Logging {
   /**
    * Converts the email addresses to a collection of InternetAddress which can bypass client side validation,
    * specifically that the domain is specified.
-   * @param addresses List of email addresses.
+   * @param addresses Seq of email addresses.
    * @return java.util.List of InternetAddress'es
    */
-  private def convert(addresses: List[String]): java.util.List[InternetAddress] = {
+  private def convert(addresses: Seq[String]): java.util.List[InternetAddress] = {
     addresses.map(address => new InternetAddress(address, false))
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,7 +26,7 @@ package org.broadinstitute.sting.queue.engine
 
 import java.io.File
 import org.broadinstitute.sting.queue.QSettings
-import org.broadinstitute.sting.queue.util.SystemUtils
+import org.broadinstitute.sting.queue.util.{EmailSettings, SystemUtils}
 import org.broadinstitute.sting.commandline.{Advanced, ArgumentCollection, Argument}
 
 /**
@@ -58,16 +58,16 @@ class QGraphSettings {
   var keepIntermediates = false
 
   @Argument(fullName="status_email_to", shortName="statusTo", doc="Email address to send emails to upon completion or on error.", required=false)
-  var statusEmailTo: List[String] = Nil
+  var statusEmailTo: Seq[String] = Nil
 
   @Argument(fullName="status_email_from", shortName="statusFrom", doc="Email address to send emails from upon completion or on error.", required=false)
   var statusEmailFrom: String = System.getProperty("user.name") + "@" + SystemUtils.mailName
 
-  @Argument(fullName="dot_graph", shortName="dot", doc="Outputs the queue graph to a .dot file.  See: http://en.wikipedia.org/wiki/DOT_language", required=false)
-  var dotFile: File = _
+  @Argument(fullName="graphviz", shortName="gv", doc="Outputs the queue graph to a Graphviz .gv file. See: http://www.graphviz.org/Documentation.php", required=false)
+  var graphvizFile: File = _
 
-  @Argument(fullName="expanded_dot_graph", shortName="expandedDot", doc="Outputs the queue graph of scatter gather to a .dot file.  Otherwise overwrites the dot_graph", required=false)
-  var expandedDotFile: File = _
+  @Argument(fullName="graphviz_scatter_gather", shortName="gvsg", doc="Outputs the scatter/gather queue graph to a Graphviz .gv file.  Otherwise overwrites the --graphviz file.", required=false)
+  var graphvizScatterGatherFile: File = _
 
   @Argument(fullName="jobReport", shortName="jobReport", doc="File where we will write the Queue job report", required=false)
   var jobReportFile: String = _
@@ -75,6 +75,9 @@ class QGraphSettings {
   @Advanced
   @Argument(fullName="disableJobReport", shortName="disabpleJobReport", doc="If provided, we will not create a job report", required=false)
   var disableJobReport: Boolean = false
+
+  @ArgumentCollection
+  val emailSettings = new EmailSettings
 
   @ArgumentCollection
   val qSettings = new QSettings

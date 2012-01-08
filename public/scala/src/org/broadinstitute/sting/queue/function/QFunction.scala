@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -29,7 +29,7 @@ import java.lang.annotation.Annotation
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.{QException, QSettings}
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
+import java.lang.IllegalStateException
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.utils.io.IOUtils
 
@@ -39,13 +39,18 @@ import org.broadinstitute.sting.utils.io.IOUtils
  * Inputs are matched to other outputs by using .equals()
  */
 trait QFunction extends Logging with QJobReport {
-  /** A short description of this step in the graph */
+  /**
+   * A short description of what this class of function does.
+   * By default does not include the output specific to this function.
+   * See shortDescription for a description of what this instance of the function outputs.
+   */
   var analysisName: String = "<function>"
 
-  /** Prefix for automatic job name creation */
-  var jobNamePrefix: String = _
-
-  /** The name name of the job */
+  /**
+   * The name name of the job, must be file system safe and unique to the graph.
+   * Defaults to "runName-<order_function_added>".
+   * Use shortDescription for an alternative that is display friendly.
+   */
   var jobName: String = _
 
   /** Default settings */
@@ -58,7 +63,7 @@ trait QFunction extends Logging with QJobReport {
   var jobTempDir: File = null
 
   /** Order the function was added to the graph. */
-  var addOrder: List[Int] = Nil
+  var addOrder: Seq[Int] = Nil
 
   /** Job priority */
   var jobPriority: Option[Int] = None
@@ -78,12 +83,6 @@ trait QFunction extends Logging with QJobReport {
    */
   var isIntermediate = false
 
-  /**
-   * If true and isIntermediate is true, the files listed
-   * via outputs will deleted after the command completes.
-   */
-  var deleteIntermediateOutputs = true
-
   // -------------------------------------------------------
   //
   // job run information
@@ -95,8 +94,6 @@ trait QFunction extends Logging with QJobReport {
    * @param function QFunction to copy values to.
    */
   override def copySettingsTo(function: QFunction) {
-    function.analysisName = this.analysisName
-    function.jobName = this.jobName
     function.qSettings = this.qSettings
     function.commandDirectory = this.commandDirectory
     function.jobTempDir = this.jobTempDir
@@ -105,79 +102,80 @@ trait QFunction extends Logging with QJobReport {
     function.jobRestartable = this.jobRestartable
     function.updateJobRun = this.updateJobRun
     function.isIntermediate = this.isIntermediate
-    function.deleteIntermediateOutputs = this.deleteIntermediateOutputs
     function.reportGroup = this.reportGroup
     function.reportFeatures = this.reportFeatures
   }
 
   /** File to redirect any output.  Defaults to <jobName>.out */
-  @Output(doc="File to redirect any output", required=false)
-  @Gather(classOf[SimpleTextGatherFunction])
   var jobOutputFile: File = _
 
   /** File to redirect any errors.  Defaults to <jobName>.out */
-  @Output(doc="File to redirect any errors", required=false)
-  @Gather(classOf[SimpleTextGatherFunction])
   var jobErrorFile: File = _
 
   /**
    * Description of this command line function.
    */
-  def description: String
+  def description: String = "%s: %s > %s".format(analysisName, inputs, outputs)
 
   /**
-   * The function description in .dot files
+   * A short description of the function.
    */
-  def dotString = jobName + " => " + description
+  def shortDescription = {
+    firstOutput match {
+      case file: File => analysisName + ": " + file.getName
+      case _ => analysisName
+    }
+  }
 
   /**
-   * Returns true if the function is done, false if it's
-   * not done and None if the done status is unknown.
+   * Returns true if the function is done.
    */
-  def isDone = {
+  def isDone: Boolean = {
     val files = doneOutputs
     if (files.size == 0)
-      None
-    else
-      Some(files.forall(_.exists))
+      throw new IllegalStateException("Function should have at least one output: " + analysisName)
+    files.forall(_.exists)
   }
 
   /**
-   * Returns true if the function has failed, false if it
-   * has not failed and None if the fail status is unknown.
+   * Returns true if the function has failed.
    */
-  def isFail = {
+  def isFail: Boolean = {
     val files = failOutputs
     if (files.size == 0)
-      None
-    else
-      Some(files.exists(_.exists))
+      throw new IllegalStateException("Function should have at least one output: " + analysisName)
+    files.exists(_.exists)
   }
 
   /**
-   * Returns true if the file is a log file for this function.
+   * Returns files to track for hidden done/fail files.
+   * @return Seq[String] files.
    */
-  protected def isLogFile(file: File) =
-    file == jobOutputFile || file == jobErrorFile
+  protected def statusPaths = {
+    var paths = outputs
+    paths :+= jobOutputFile
+    if (jobErrorFile != null)
+      paths :+= jobErrorFile
+    paths
+  }
+
+  /**
+   * Returns prefixes for hidden done/fail files.
+   * @return prefixes.
+   */
+  private def statusPrefixes = statusPaths.map(file => file.getParentFile + "/." + file.getName)
 
   /**
    * Returns the output files for this function.
-   * @return Set[File] outputs for this function.
+   * @return outputs for this function.
    */
-  private def statusPaths =
-    commandOutputs.map(file => file.getParentFile + "/." + file.getName)
-  
-  /**
-   * Returns the output files for this function.
-   * @return Set[File] outputs for this function.
-   */
-  def doneOutputs = statusPaths.map(path => new File(path + ".done"))
+  def doneOutputs: Seq[File] = statusPrefixes.map(path => new File(path + ".done"))
 
   /**
    * Returns the output files for this function.
-   * @return Set[File] outputs for this function.
+   * @return outputs for this function.
    */
-  def failOutputs = statusPaths.map(path => new File(path + ".fail"))
+  def failOutputs: Seq[File] = statusPrefixes.map(path => new File(path + ".fail"))
 
   /** The complete list of fields on this CommandLineFunction. */
   def functionFields = QFunction.classFields(this.functionFieldClass).functionFields
@@ -195,21 +193,21 @@ trait QFunction extends Logging with QJobReport {
 
   /**
    * Returns the input files for this function.
-   * @return Set[File] inputs for this function.
+   * @return inputs for this function.
    */
-  def inputs = getFieldFiles(inputFields)
+  def inputs: Seq[File] = getFieldFiles(inputFields)
 
   /**
    * Returns the output files for this function.
-   * @return Set[File] outputs for this function.
+   * @return outputs for this function.
    */
-  def outputs = getFieldFiles(outputFields)
+  def outputs: Seq[File] = getFieldFiles(outputFields)
 
   /**
-   * Returns the non-log outputs for this function.
-   * @return the non-log outputs for this function.
+   * Returns the first output file.
+   * @return first output for this function.
    */
-  def commandOutputs = outputs.filterNot(file => isLogFile(file))
+  def firstOutput: File = outputs.headOption.getOrElse(null)
 
   /**
    * Returns the set of directories where files may be written.
@@ -218,6 +216,9 @@ trait QFunction extends Logging with QJobReport {
     var dirs = Set.empty[File]
     dirs += commandDirectory
     dirs += jobTempDir
+    dirs += jobOutputFile.getParentFile
+    if (jobErrorFile != null)
+      dirs += jobErrorFile.getParentFile
     dirs ++= outputs.map(_.getParentFile)
     dirs
   }
@@ -235,7 +236,7 @@ trait QFunction extends Logging with QJobReport {
    * Deletes the output files and all the status files for this function.
    */
   def deleteOutputs() {
-    commandOutputs.foreach(file => IOUtils.tryDelete(file))
+    outputs.foreach(file => IOUtils.tryDelete(file))
     doneOutputs.foreach(file => IOUtils.tryDelete(file))
     failOutputs.foreach(file => IOUtils.tryDelete(file))
   }
@@ -252,63 +253,63 @@ trait QFunction extends Logging with QJobReport {
 
   /**
    * Returns fields that do not have values which are required.
-   * @return List[String] names of fields missing values.
+   * @return Seq[String] names of fields missing values.
    */
-  def missingFields: List[String] = {
+  def missingFields: Seq[String] = {
     val missingInputs = missingFields(inputFields, classOf[Input])
     val missingOutputs = missingFields(outputFields, classOf[Output])
     val missingArguments = missingFields(argumentFields, classOf[Argument])
-    (missingInputs | missingOutputs | missingArguments).toList.sorted
+    (missingInputs ++ missingOutputs ++ missingArguments).distinct.sorted
   }
 
   /**
    * Returns fields that do not have values which are required.
    * @param sources Fields to check.
    * @param annotation Annotation.
-   * @return Set[String] names of fields missing values.
+   * @return names of fields missing values.
    */
-  private def missingFields(sources: List[ArgumentSource], annotation: Class[_ <: Annotation]): Set[String] = {
-    var missing = Set.empty[String]
+  private def missingFields(sources: Seq[ArgumentSource], annotation: Class[_ <: Annotation]): Seq[String] = {
+    var missing: Seq[String] = Nil
     for (source <- sources) {
       if (isRequired(source, annotation))
         if (!hasFieldValue(source))
           if (!exclusiveOf(source, annotation).exists(otherSource => hasFieldValue(otherSource)))
-            missing += "@%s: %s - %s".format(annotation.getSimpleName, source.field.getName, doc(source, annotation))
+            missing :+= "@%s: %s - %s".format(annotation.getSimpleName, source.field.getName, doc(source, annotation))
     }
     missing
   }
 
   /**
-   *  Gets the files from the fields.  The fields must be a File, a FileExtension, or a List or Set of either.
+   *  Gets the files from the fields.  The fields must be a File, a FileExtension, or a Seq or Set of either.
    * @param fields Fields to get files.
-   * @return Set[File] for the fields.
+   * @return for the fields.
    */
-  private def getFieldFiles(fields: List[ArgumentSource]): Set[File] = {
-    var files = Set.empty[File]
+  private def getFieldFiles(fields: Seq[ArgumentSource]): Seq[File] = {
+    var files: Seq[File] = Nil
     for (field <- fields)
       files ++= getFieldFiles(field)
-    files
+    files.distinct
   }
 
   /**
-   * Gets the files from the field.  The field must be a File, a FileExtension, or a List or Set of either.
-   * @param fields Field to get files.
-   * @return Set[File] for the field.
+   * Gets the files from the field.  The field must be a File, a FileExtension, or a Seq or Set of either.
+   * @param field Field to get files.
+   * @return for the field.
    */
-  def getFieldFiles(field: ArgumentSource): Set[File] = {
-    var files = Set.empty[File]
+  def getFieldFiles(field: ArgumentSource): Seq[File] = {
+    var files: Seq[File] = Nil
     CollectionUtils.foreach(getFieldValue(field), (fieldValue) => {
       val file = fieldValueToFile(field, fieldValue)
       if (file != null)
-        files += file
+        files :+= file
     })
-    files
+    files.distinct
   }
 
   /**
-   *  Gets the file from the field.  The field must be a File or a FileExtension and not a List or Set.
+   *  Gets the file from the field.  The field must be a File or a FileExtension and not a Seq or Set.
    * @param field Field to get the file.
-   * @return File for the field.
+   * @return for the field.
    */
   def getFieldFile(field: ArgumentSource): File =
     fieldValueToFile(field, getFieldValue(field))
@@ -340,14 +341,15 @@ trait QFunction extends Logging with QJobReport {
    * Sets all field values.
    */
   def freezeFieldValues() {
-    if (jobNamePrefix == null)
-      jobNamePrefix = qSettings.jobNamePrefix
-
     if (jobName == null)
-      jobName = QFunction.nextJobName(jobNamePrefix)
+      jobName = qSettings.runName + "-" + this.addOrder.mkString("-")
 
-    if (jobOutputFile == null)
-      jobOutputFile = new File(jobName + ".out")
+    if (jobOutputFile == null) {
+      jobOutputFile = firstOutput match {
+        case file: File => new File(file.getParentFile, file.getName + ".out")
+        case _ => new File(jobName + ".out")
+      }
+    }
 
     if (jobTempDir == null)
       jobTempDir = qSettings.tempDirectory
@@ -378,6 +380,10 @@ trait QFunction extends Logging with QJobReport {
       fieldValue = CollectionUtils.updated(fieldValue, canon).asInstanceOf[AnyRef]
       this.setFieldValue(field, fieldValue)
     }
+
+    this.jobOutputFile = canon(this.jobOutputFile).asInstanceOf[File]
+    if (this.jobErrorFile != null)
+      this.jobErrorFile = canon(this.jobErrorFile).asInstanceOf[File]
   }
 
   /**
@@ -443,7 +449,7 @@ trait QFunction extends Logging with QJobReport {
 
   /**
    * Returns false if the value is null or an empty collection.
-   * @param value Value to test for null, or a collection to test if it is empty.
+   * @param param Value to test for null, or a collection to test if it is empty.
    * @return false if the value is null, or false if the collection is empty, otherwise true.
    */
   protected def hasValue(param: Any) = CollectionUtils.isNotNullOrNotEmpty(param)
@@ -472,20 +478,7 @@ trait QFunction extends Logging with QJobReport {
 }
 
 object QFunction {
-  /** Job index counter for this run of Queue. */
-  private var jobIndex = 0
-
   var parsingEngine: ParsingEngine = _
-
-  /**
-   * Returns the next job name using the prefix.
-   * @param prefix Prefix of the job name.
-   * @return the next job name.
-   */
-  private def nextJobName(prefix: String) = {
-    jobIndex += 1
-    prefix + "-" + jobIndex
-  }
 
   /**
    * The list of fields defined on a class
@@ -493,7 +486,7 @@ object QFunction {
    */
   private class ClassFields(clazz: Class[_]) {
     /** The complete list of fields on this CommandLineFunction. */
-    val functionFields: List[ArgumentSource] = parsingEngine.extractArgumentSources(clazz).toList
+    val functionFields: Seq[ArgumentSource] = parsingEngine.extractArgumentSources(clazz).toSeq
     /** The @Input fields on this CommandLineFunction. */
     val inputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Input]))
     /** The @Output fields on this CommandLineFunction. */

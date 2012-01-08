@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.extensions.picard
 
 import org.broadinstitute.sting.commandline._
@@ -17,7 +41,7 @@ class ValidateSamFile extends org.broadinstitute.sting.queue.function.JavaComman
   javaMainClass = "net.sf.picard.sam.ValidateSamFile"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
-  var input: List[File] = Nil
+  var input: Seq[File] = Nil
 
   @Output(doc="Send output to a file instead of stdout", shortName = "output", fullName = "output_file", required = false)
   var output: File = _
@@ -26,7 +50,7 @@ class ValidateSamFile extends org.broadinstitute.sting.queue.function.JavaComman
   var MODE: Mode = Mode.VERBOSE
 
   @Argument(doc="List of validation error types to ignore.", shortName = "ignore", fullName = "ignore_error_types", required = false)
-  var IGNORE: List[String] = Nil
+  var IGNORE: Seq[String] = Nil
 
   @Argument(doc = "The maximum number of lines output in verbose mode.", shortName = "max", fullName = "max_output", required = false)
   var MAX_OUTPUT: Int = 100

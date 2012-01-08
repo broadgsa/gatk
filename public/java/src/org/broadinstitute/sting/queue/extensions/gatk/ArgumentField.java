@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -56,7 +56,7 @@ public abstract class ArgumentField {
         return String.format("%n" +
                 "/** %s */%n" +
                 "@%s(fullName=\"%s\", shortName=\"%s\", doc=\"%s\", required=%s, exclusiveOf=\"%s\", validation=\"%s\")%n" +
-                "%svar %s: %s = %s%n" +
+                "%s%svar %s: %s = %s%n" +
                 "%s",
                 getDoc(),
                 getAnnotationIOClass().getSimpleName(),
@@ -66,7 +66,7 @@ public abstract class ArgumentField {
                 isRequired(),
                 getExclusiveOf(),
                 getValidation(),
-                getGatherAnnotation(), getFieldName(), getFieldType(), getDefaultValue(),
+                getGatherAnnotation(), getPrivacy(), getFieldName(), getFieldType(), getDefaultValue(),
                 getDefineAddition());
     }
 
@@ -142,6 +142,9 @@ public abstract class ArgumentField {
 
     /** @return True if this field uses @Gather. */
     public boolean isGather() { return false; }
+
+    /** @return Privacy for the field. */
+    protected String getPrivacy() { return ""; }
 
     /** @return The raw field name, which will be checked against scala build in types. */
     protected abstract String getRawFieldName();
