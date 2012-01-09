@@ -92,7 +92,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   val training_1000G = "/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.highQuality.vcf"
   val badSites_1000G = "/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.terrible.vcf"
   val projectConsensus_1000G = "/humgen/1kg/processing/official_release/phase1/projectConsensus/ALL.wgs.projectConsensus_v2b.20101123.snps.sites.vcf"
-  val millsDevine_b37 = "/humgen/gsa-hpprojects/GATK/bundle/current/b37/Mills_Devine_2hit.indels.b37.sites.vcf"
+  val indelGoldStandardCallset = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf"
 
   val lowPass: Boolean = true
   val exome: Boolean = true
@@ -300,7 +300,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   class indelRecal(t: Target) extends VQSRBase(t) with UNIVERSAL_GATK_ARGS {
     this.input :+= t.rawIndelVCF 
-    this.resource :+= new TaggedFile( millsDevine_b37, "known=true,training=true,truth=true,prior=12.0" )
+    this.resource :+= new TaggedFile( indelGoldStandardCallset, "known=true,training=true,truth=true,prior=12.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "ReadPosRankSum", "FS")
     if(t.nSamples >= 10)
       this.use_annotation ++= List("InbreedingCoeff")  // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
@@ -365,7 +365,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // 5b.) Indel Evaluation (OPTIONAL)
   class indelEvaluation(t: Target) extends EvalBase(t) {
     this.eval :+= t.recalibratedIndelVCF
-    this.comp :+= new TaggedFile(millsDevine_b37, "mills" )
+    this.comp :+= new TaggedFile(indelGoldStandardCallset, "indelGS" )
     this.noEV = true
     this.evalModule = List("CompOverlap", "CountVariants", "TiTvVariantEvaluator", "ValidationReport", "IndelStatistics")
     this.out =  t.evalIndelFile
