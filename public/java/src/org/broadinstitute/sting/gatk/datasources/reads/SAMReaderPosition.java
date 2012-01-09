@@ -75,6 +75,22 @@ class SAMReaderPosition {
         return nextBlockAddress;
     }
 
+    /**
+     * Retrieves the first offset of interest in the block returned by getBlockAddress().
+     * @return First block of interest in this segment.
+     */
+    public int getFirstOffsetInBlock() {
+        return (nextBlockAddress == positionIterator.peek().getBlockStart()) ? positionIterator.peek().getBlockOffsetStart() : 0;
+    }
+
+    /**
+     * Retrieves the last offset of interest in the block returned by getBlockAddress().
+     * @return First block of interest in this segment.
+     */
+    public int getLastOffsetInBlock() {
+        return (nextBlockAddress == positionIterator.peek().getBlockEnd()) ? positionIterator.peek().getBlockOffsetEnd() : 65536;
+    }
+
     public void reset() {
         initialize();
     }
@@ -95,26 +111,27 @@ class SAMReaderPosition {
      * @param filePosition The current position within the file.
      */
     void advancePosition(final long filePosition) {
-        nextBlockAddress = filePosition;
+        nextBlockAddress = filePosition >> 16;
 
         // Check the current file position against the iterator; if the iterator is before the current file position,
         // draw the iterator forward.  Remember when performing the check that coordinates are half-open!
-        try {
-            while(positionIterator.hasNext() && isFilePositionPastEndOfChunk(filePosition,positionIterator.peek())) {
-                positionIterator.next();
-                // Check to see if the iterator has more data available.
-                if(positionIterator.hasNext() && filePosition < positionIterator.peek().getBlockStart()) {
-                    nextBlockAddress = positionIterator.peek().getBlockStart();
-                    break;
-                }
+        while(positionIterator.hasNext() && isFilePositionPastEndOfChunk(filePosition,positionIterator.peek())) {
+            positionIterator.next();
+
+            // If the block iterator has shot past the file pointer, bring the file pointer flush with the start of the current block.
+            if(positionIterator.hasNext() && filePosition < positionIterator.peek().getChunkStart()) {
+                nextBlockAddress = positionIterator.peek().getBlockStart();
+                //System.out.printf("SAMReaderPosition: next block address advanced to %d%n",nextBlockAddress);
+                break;
             }
         }
-        catch(Exception ex) {
-            throw new ReviewedStingException("");
-        }
+
+        // If we've shot off the end of the block pointer, notify consumers that iteration is complete.
+        if(!positionIterator.hasNext())
+            nextBlockAddress = -1;
     }
 
     private boolean isFilePositionPastEndOfChunk(final long filePosition, final GATKChunk chunk) {
-        return (filePosition > chunk.getBlockEnd() || (filePosition == chunk.getBlockEnd() && chunk.getBlockOffsetEnd() == 0));
+        return filePosition >= chunk.getChunkEnd();
     }
 }
