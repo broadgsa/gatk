@@ -299,8 +299,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   class indelRecal(t: Target) extends VQSRBase(t) with UNIVERSAL_GATK_ARGS {
-    this.input :+= t.rawIndelVCF 
-    this.resource :+= new TaggedFile( indelGoldStandardCallset, "known=true,training=true,truth=true,prior=12.0" )
+    this.input :+= t.rawIndelVCF
+    this.resource :+= new TaggedFile(indelGoldStandardCallset, "known=false,training=true,truth=true,prior=12.0" )
+    this.resource :+= new TaggedFile( t.dbsnpFile, "known=true,prior=2.0" )
     this.use_annotation ++= List("QD", "HaplotypeScore", "ReadPosRankSum", "FS")
     if(t.nSamples >= 10)
       this.use_annotation ++= List("InbreedingCoeff")  // InbreedingCoeff is a population-wide statistic that requires at least 10 samples to calculate
