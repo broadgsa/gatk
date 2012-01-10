@@ -27,8 +27,8 @@ import java.util.concurrent.Future;
 public class TreeReducer implements Callable {
     private HierarchicalMicroScheduler microScheduler;
     private TreeReducible walker;
-    private final Future lhs;
-    private final Future rhs;
+    private Future lhs;
+    private Future rhs;
 
     /**
      * Create a one-sided reduce.  Result will be a simple pass-through of the result.
@@ -98,6 +98,10 @@ public class TreeReducer implements Callable {
         }
 
         long endTime = System.currentTimeMillis();
+
+        // Constituent bits of this tree reduces are no longer required.  Throw them away.
+        this.lhs = null;
+        this.rhs = null;
 
         microScheduler.reportTreeReduceTime( endTime - startTime );
 
