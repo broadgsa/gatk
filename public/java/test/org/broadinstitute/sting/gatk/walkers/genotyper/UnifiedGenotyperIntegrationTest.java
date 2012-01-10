@@ -28,7 +28,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("66ed60c6c1190754abd8a0a9d1d8d61e"));
+                Arrays.asList("d61c7055bd09024abb8902bde6bd3960"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
@@ -294,7 +294,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("1e2a4aab26e9ab0dae709d33a669e036"));
+                Arrays.asList("69bfc9bec43a4fdd85dda3b947e6a98e"));
         executeTest("test MultiSample Phase1 indels with complicated records", spec4);
     }
 

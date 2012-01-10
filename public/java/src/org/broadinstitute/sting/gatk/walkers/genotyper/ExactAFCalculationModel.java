@@ -70,15 +70,25 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return genotypeLikelihoods;
     }
 
-
     final static double approximateLog10SumLog10(double[] vals) {
-        if ( vals.length < 2 )
-            throw new ReviewedStingException("Passing array with fewer than 2 values when computing approximateLog10SumLog10");
 
-        double approx = approximateLog10SumLog10(vals[0], vals[1]);
-        for ( int i = 2; i < vals.length; i++ )
-            approx = approximateLog10SumLog10(approx, vals[i]);
-        return approx;
+	final int maxElementIndex = MathUtils.maxElementIndex(vals);
+	double approxSum = vals[maxElementIndex];
+        if ( approxSum == Double.NEGATIVE_INFINITY )
+            return approxSum;
+
+        for ( int i = 0; i < vals.length; i++ ) {
+	    if ( i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY )
+		continue;
+
+	    final double diff = approxSum - vals[i];
+	    if ( diff < MathUtils.MAX_JACOBIAN_TOLERANCE ) {
+		final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+		approxSum += MathUtils.jacobianLogTable[ind];
+	    }
+	}
+
+        return approxSum;
     }
 
     final static double approximateLog10SumLog10(double small, double big) {
@@ -89,27 +99,29 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             small = t;
         }
 
-        if (small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY )
+        if ( small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY )
             return big;
 
-        if (big >= small + MathUtils.MAX_JACOBIAN_TOLERANCE)
+	final double diff = big - small;
+        if ( diff >= MathUtils.MAX_JACOBIAN_TOLERANCE )
             return big;
 
         // OK, so |y-x| < tol: we use the following identity then:
         // we need to compute log10(10^x + 10^y)
         // By Jacobian logarithm identity, this is equal to
         // max(x,y) + log10(1+10^-abs(x-y))
-        // we compute the second term as a table lookup
-        // with integer quantization
+        // we compute the second term as a table lookup with integer quantization
         // we have pre-stored correction for 0,0.1,0.2,... 10.0
-        //final int ind = (int)(((big-small)/JACOBIAN_LOG_TABLE_STEP)); // hard rounding
-        int ind = (int)(Math.round((big-small)/MathUtils.JACOBIAN_LOG_TABLE_STEP)); // hard rounding
-
-        //double z =Math.log10(1+Math.pow(10.0,-diff));
-        //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
+        final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
         return big + MathUtils.jacobianLogTable[ind];
     }
 
+    // A fast implementation of the Math.round() method.  This method does not perform
+    // under/overflow checking, so this shouldn't be used in the general case (but is fine
+    // here because we already make those checks before calling in to the rounding).
+    final static int fastRound(double d) {
+	return (d > 0) ? (int)(d + 0.5d) : (int)(d - 0.5d);
+    }
 
     // -------------------------------------------------------------------------------------
     //
