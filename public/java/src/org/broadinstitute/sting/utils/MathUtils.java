@@ -56,17 +56,58 @@ public class MathUtils {
     private MathUtils() {
     }
 
-    @Requires({"d > 0.0"})
-    public static int fastPositiveRound(double d) {
-        return (int) (d + 0.5);
+    // A fast implementation of the Math.round() method.  This method does not perform
+    // under/overflow checking, so this shouldn't be used in the general case (but is fine
+    // if one is already make those checks before calling in to the rounding).
+    public static int fastRound(double d) {
+	return (d > 0) ? (int)(d + 0.5d) : (int)(d - 0.5d);
     }
 
-    public static int fastRound(double d) {
-        if (d > 0.0) {
-            return fastPositiveRound(d);
-        } else {
-            return -1 * fastPositiveRound(-1 * d);
+    public static double approximateLog10SumLog10(double[] vals) {
+
+	final int maxElementIndex = MathUtils.maxElementIndex(vals);
+	double approxSum = vals[maxElementIndex];
+        if ( approxSum == Double.NEGATIVE_INFINITY )
+            return approxSum;
+
+        for ( int i = 0; i < vals.length; i++ ) {
+	    if ( i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY )
+		continue;
+
+	    final double diff = approxSum - vals[i];
+	    if ( diff < MathUtils.MAX_JACOBIAN_TOLERANCE ) {
+		// See notes from the 2-inout implementation below
+		final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+		approxSum += MathUtils.jacobianLogTable[ind];
+	    }
+	}
+
+        return approxSum;
+    }
+
+    public static double approximateLog10SumLog10(double small, double big) {
+        // make sure small is really the smaller value
+        if ( small > big ) {
+            final double t = big;
+            big = small;
+            small = t;
         }
+
+        if ( small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY )
+            return big;
+
+	final double diff = big - small;
+        if ( diff >= MathUtils.MAX_JACOBIAN_TOLERANCE )
+            return big;
+
+        // OK, so |y-x| < tol: we use the following identity then:
+        // we need to compute log10(10^x + 10^y)
+        // By Jacobian logarithm identity, this is equal to
+        // max(x,y) + log10(1+10^-abs(x-y))
+        // we compute the second term as a table lookup with integer quantization
+        // we have pre-stored correction for 0,0.1,0.2,... 10.0
+        final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+        return big + MathUtils.jacobianLogTable[ind];
     }
 
     public static double sum(Collection<Number> numbers) {

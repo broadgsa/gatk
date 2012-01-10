@@ -70,59 +70,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return genotypeLikelihoods;
     }
 
-    final static double approximateLog10SumLog10(double[] vals) {
-
-	final int maxElementIndex = MathUtils.maxElementIndex(vals);
-	double approxSum = vals[maxElementIndex];
-        if ( approxSum == Double.NEGATIVE_INFINITY )
-            return approxSum;
-
-        for ( int i = 0; i < vals.length; i++ ) {
-	    if ( i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY )
-		continue;
-
-	    final double diff = approxSum - vals[i];
-	    if ( diff < MathUtils.MAX_JACOBIAN_TOLERANCE ) {
-		final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
-		approxSum += MathUtils.jacobianLogTable[ind];
-	    }
-	}
-
-        return approxSum;
-    }
-
-    final static double approximateLog10SumLog10(double small, double big) {
-        // make sure small is really the smaller value
-        if ( small > big ) {
-            final double t = big;
-            big = small;
-            small = t;
-        }
-
-        if ( small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY )
-            return big;
-
-	final double diff = big - small;
-        if ( diff >= MathUtils.MAX_JACOBIAN_TOLERANCE )
-            return big;
-
-        // OK, so |y-x| < tol: we use the following identity then:
-        // we need to compute log10(10^x + 10^y)
-        // By Jacobian logarithm identity, this is equal to
-        // max(x,y) + log10(1+10^-abs(x-y))
-        // we compute the second term as a table lookup with integer quantization
-        // we have pre-stored correction for 0,0.1,0.2,... 10.0
-        final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
-        return big + MathUtils.jacobianLogTable[ind];
-    }
-
-    // A fast implementation of the Math.round() method.  This method does not perform
-    // under/overflow checking, so this shouldn't be used in the general case (but is fine
-    // here because we already make those checks before calling in to the rounding).
-    final static int fastRound(double d) {
-	return (d > 0) ? (int)(d + 0.5d) : (int)(d - 0.5d);
-    }
-
     // -------------------------------------------------------------------------------------
     //
     // Multi-allelic implementation.
@@ -403,7 +350,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     }
                 }
 
-                final double log10Max = approximateLog10SumLog10(log10ConformationLikelihoods);
+                final double log10Max = MathUtils.approximateLog10SumLog10(log10ConformationLikelihoods);
 
                 // finally, update the L(j,k) value
                 set.log10Likelihoods[j] = log10Max - logDenominator;
@@ -427,10 +374,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             // update the likelihoods/posteriors vectors which are collapsed views of each of the various ACs
             for ( int i = 0; i < set.ACcounts.getCounts().length; i++ ) {
                 int AC = set.ACcounts.getCounts()[i];
-                result.log10AlleleFrequencyLikelihoods[i][AC] = approximateLog10SumLog10(result.log10AlleleFrequencyLikelihoods[i][AC], log10LofK);
+                result.log10AlleleFrequencyLikelihoods[i][AC] = MathUtils.approximateLog10SumLog10(result.log10AlleleFrequencyLikelihoods[i][AC], log10LofK);
 
                 final double prior = log10AlleleFrequencyPriors[nonRefAlleles-1][AC];
-                result.log10AlleleFrequencyPosteriors[i][AC] = approximateLog10SumLog10(result.log10AlleleFrequencyPosteriors[i][AC], log10LofK + prior);
+                result.log10AlleleFrequencyPosteriors[i][AC] = MathUtils.approximateLog10SumLog10(result.log10AlleleFrequencyPosteriors[i][AC], log10LofK + prior);
             }
         }
     }
