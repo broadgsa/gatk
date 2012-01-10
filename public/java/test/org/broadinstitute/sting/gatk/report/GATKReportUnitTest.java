@@ -49,28 +49,120 @@ public class GATKReportUnitTest extends BaseTest {
 
     @DataProvider(name = "rightAlignValues")
     public Object[][] getRightAlignValues() {
-        return new Object[][] {
-                new Object[] {null, true},
-                new Object[] {"null", true},
-                new Object[] {"NA", true},
-                new Object[] {"0", true},
-                new Object[] {"0.0", true},
-                new Object[] {"-0", true},
-                new Object[] {"-0.0", true},
-                new Object[] {String.valueOf(Long.MAX_VALUE), true},
-                new Object[] {String.valueOf(Long.MIN_VALUE), true},
-                new Object[] {String.valueOf(Float.MIN_NORMAL), true},
-                new Object[] {String.valueOf(Double.MAX_VALUE), true},
-                new Object[] {String.valueOf(Double.MIN_VALUE), true},
-                new Object[] {String.valueOf(Double.POSITIVE_INFINITY), true},
-                new Object[] {String.valueOf(Double.NEGATIVE_INFINITY), true},
-                new Object[] {String.valueOf(Double.NaN), true},
-                new Object[] {"hello", false}
+        return new Object[][]{
+                new Object[]{null, true},
+                new Object[]{"null", true},
+                new Object[]{"NA", true},
+                new Object[]{"0", true},
+                new Object[]{"0.0", true},
+                new Object[]{"-0", true},
+                new Object[]{"-0.0", true},
+                new Object[]{String.valueOf(Long.MAX_VALUE), true},
+                new Object[]{String.valueOf(Long.MIN_VALUE), true},
+                new Object[]{String.valueOf(Float.MIN_NORMAL), true},
+                new Object[]{String.valueOf(Double.MAX_VALUE), true},
+                new Object[]{String.valueOf(Double.MIN_VALUE), true},
+                new Object[]{String.valueOf(Double.POSITIVE_INFINITY), true},
+                new Object[]{String.valueOf(Double.NEGATIVE_INFINITY), true},
+                new Object[]{String.valueOf(Double.NaN), true},
+                new Object[]{"hello", false}
         };
     }
 
     @Test(dataProvider = "rightAlignValues")
     public void testIsRightAlign(String value, boolean expected) {
         Assert.assertEquals(GATKReportColumn.isRightAlign(value), expected, "right align of '" + value + "'");
+    }
+
+    @Test
+    public void testGATKReportGatherer() {
+
+        /*
+        GATKReportTable actual1 = new GATKReportTable("TableName", "Description");
+        actual1.addPrimaryKey("key");
+        actual1.addColumn("colA", 0);
+        actual1.addColumn("colB", 0);
+        actual1.set("row1", "colA", 1);
+        actual1.set("row1", "colB", 2);
+
+        GATKReportTable actual2 = new GATKReportTable("TableName", "Description");
+        actual2.addPrimaryKey("key");
+        actual2.addColumn("colA", 0);
+        actual2.addColumn("colB", 0);
+        actual2.set("row2", "colA", 3);
+        actual2.set("row2", "colB", 4);
+
+        GATKReportTable actual3 = new GATKReportTable("TableName", "Description");
+        actual3.addPrimaryKey("key");
+        actual3.addColumn("colA", 0);
+        actual3.addColumn("colB", 0);
+        actual3.set("row3", "colA", 5);
+        actual3.set("row3", "colB", 6);
+
+        actual1.mergeRows(actual2);
+        actual1.mergeRows(actual3);
+        actual1.write(System.out);
+        */
+
+        GATKReportTable expected = new GATKReportTable("TableName", "Description");
+        expected.addPrimaryKey("key");
+        expected.addColumn("colA", 0);
+        expected.addColumn("colB", 0);
+        expected.set("row1", "colA", 1);
+        expected.set("row1", "colB", 2);
+        expected.set("row2", "colA", 3);
+        expected.set("row2", "colB", 4);
+        expected.set("row3", "colA", 5);
+        expected.set("row3", "colB", 6);
+        expected.write(System.out);
+
+        GATKReport report1, report2, report3;
+        report1 = new GATKReport();
+        report1.addTable("TableName", "Description");
+        report1.getTable("TableName").addPrimaryKey("key");
+        report1.getTable("TableName").addColumn("colA", 0);
+        report1.getTable("TableName").addColumn("colB", 0);
+        report1.getTable("TableName").set("row1", "colA", 1);
+        report1.getTable("TableName").set("row1", "colB", 2);
+
+        report2 = new GATKReport();
+        report2.addTable("TableName", "Description");
+        report2.getTable("TableName").addPrimaryKey("key");
+        report2.getTable("TableName").addColumn("colA", 0);
+        report2.getTable("TableName").addColumn("colB", 0);
+        report2.getTable("TableName").set("row2", "colA", 3);
+        report2.getTable("TableName").set("row2", "colB", 4);
+
+        report3 = new GATKReport();
+        report3.addTable("TableName", "Description");
+        report3.getTable("TableName").addPrimaryKey("key");
+        report3.getTable("TableName").addColumn("colA", 0);
+        report3.getTable("TableName").addColumn("colB", 0);
+        report3.getTable("TableName").set("row3", "colA", 5);
+        report3.getTable("TableName").set("row3", "colB", 6);
+
+        report1.combineWith(report2);
+        report1.combineWith(report3);
+
+        report1.print(System.out);
+        /*
+          File a = new File("/home/roger/tbls/a.tbl");
+          File b = new File("/home/roger/tbls/b.tbl");
+          File c = new File("/home/roger/tbls/c.tbl");
+          File out = new File("/home/roger/tbls/out.tbl");
+
+
+          List<File> FileList = new ArrayList<File>();
+          FileList.add(a);
+          FileList.add(b);
+          FileList.add(c);
+
+          GATKReportGatherer gatherer = new GATKReportGatherer();
+          gatherer.gather(FileList, out);
+          System.out.print(out);
+        */
+
+        //Assert.assertEquals(1,1);
+
     }
 }
