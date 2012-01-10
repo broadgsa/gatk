@@ -103,9 +103,30 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         boundary = ReadUtils.getAdaptorBoundary(read);
         Assert.assertNull(boundary);
+        read.setInferredInsertSize(10);
 
         // Test case 6: read is unmapped
         read.setReadUnmappedFlag(true);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertNull(boundary);
+        read.setReadUnmappedFlag(false);
+
+        // Test case 7:  reads don't overlap and look like this:
+        //    <--------|
+        //                 |------>
+        // first read:
+        myStart = 980;
+        read.setAlignmentStart(myStart);
+        read.setInferredInsertSize(20);
+        read.setReadNegativeStrandFlag(true);
+        boundary = ReadUtils.getAdaptorBoundary(read);
+        Assert.assertNull(boundary);
+
+        // second read:
+        myStart = 1000;
+        read.setAlignmentStart(myStart);
+        read.setMateAlignmentStart(980);
+        read.setReadNegativeStrandFlag(false);
         boundary = ReadUtils.getAdaptorBoundary(read);
         Assert.assertNull(boundary);
     }
