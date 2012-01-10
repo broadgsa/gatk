@@ -556,7 +556,7 @@ public class SAMDataSource {
      */
     private StingSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
         // Set up merging to dynamically merge together multiple BAMs.
-        MergingSamRecordIterator mergingIterator = readers.createMergingIterator();
+        Map<SAMFileReader,CloseableIterator<SAMRecord>> iteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
 
         for(SAMReaderID id: getReaderIDs()) {
             CloseableIterator<SAMRecord> iterator = null;
@@ -573,8 +573,12 @@ public class SAMDataSource {
             iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
-            mergingIterator.addIterator(readers.getReader(id),iterator);
+            iteratorMap.put(readers.getReader(id), iterator);
         }
+
+        MergingSamRecordIterator mergingIterator = readers.createMergingIterator(iteratorMap);
+
+
 
         return applyDecoratingIterators(shard.getReadMetrics(),
                 enableVerification,
@@ -847,8 +851,13 @@ public class SAMDataSource {
             return headerMerger.getReadGroupId(header,originalReadGroupID);
         }
 
-        public MergingSamRecordIterator createMergingIterator() {
-            return new MergingSamRecordIterator(headerMerger,readers.values(),true);
+        /**
+         * Creates a new merging iterator from the given map, with the given header.
+         * @param iteratorMap A map of readers to iterators.
+         * @return An iterator which will merge those individual iterators.
+         */
+        public MergingSamRecordIterator createMergingIterator(final Map<SAMFileReader,CloseableIterator<SAMRecord>> iteratorMap) {
+            return new MergingSamRecordIterator(headerMerger,iteratorMap,true);
         }
 
         /**
