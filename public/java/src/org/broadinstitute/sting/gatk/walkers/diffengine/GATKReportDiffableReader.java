@@ -36,9 +36,14 @@ import java.io.IOException;
 /**
  * Class implementing diffnode reader for GATKReports
  */
+
+// TODO Version check to be added at the report level
+
 public class GATKReportDiffableReader implements DiffableReader {
     @Override
-    public String getName() { return "GATKReport"; }
+    public String getName() {
+        return "GATKReport";
+    }
 
     @Override
     public DiffElement readFromFile(File file, int maxElementsToRead) {
@@ -47,12 +52,12 @@ public class GATKReportDiffableReader implements DiffableReader {
             // one line reads the whole thing into memory
             GATKReport report = new GATKReport(file);
 
-            for (GATKReportTable table : report.getTables() ) {
+            for (GATKReportTable table : report.getTables()) {
                 root.add(tableToNode(table, root));
             }
 
             return root.getBinding();
-        } catch ( Exception e ) {
+        } catch (Exception e) {
             return null;
         }
     }
@@ -62,9 +67,8 @@ public class GATKReportDiffableReader implements DiffableReader {
 
         tableRoot.add("Description", table.getTableDescription());
         tableRoot.add("NumberOfRows", table.getNumRows());
-        tableRoot.add("Version", table.getVersion());
 
-        for ( GATKReportColumn column : table.getColumns().values() ) {
+        for (GATKReportColumn column : table.getColumns().values()) {
             DiffNode columnRoot = DiffNode.empty(column.getColumnName(), tableRoot);
 
             columnRoot.add("Width", column.getColumnFormat().getWidth());
@@ -72,7 +76,7 @@ public class GATKReportDiffableReader implements DiffableReader {
             columnRoot.add("Displayable", column.isDisplayable());
 
             int n = 1;
-            for ( Object elt : column.values() ) {
+            for (Object elt : column.values()) {
                 String name = column.getColumnName() + n++;
                 columnRoot.add(name, elt.toString());
             }
@@ -91,7 +95,7 @@ public class GATKReportDiffableReader implements DiffableReader {
             new FileReader(file).read(buff, 0, HEADER.length());
             String firstLine = new String(buff);
             return firstLine.startsWith(HEADER);
-        } catch ( IOException e ) {
+        } catch (IOException e) {
             return false;
         }
     }

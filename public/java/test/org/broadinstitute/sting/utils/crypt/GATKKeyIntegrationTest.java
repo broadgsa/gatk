@@ -32,6 +32,7 @@ import org.testng.annotations.Test;
 
 import java.util.Arrays;
 
+@Test(enabled = false)
 public class GATKKeyIntegrationTest extends WalkerTest {
 
     public static final String BASE_COMMAND = String.format("-T PrintReads -R %s -I %s -o %%s",

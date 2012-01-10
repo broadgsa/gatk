@@ -31,7 +31,7 @@ public enum GATKReportVersion {
      * Differences between other versions:
      * - Does not allow spaces in cells.
      * - Mostly fixed width but has a bug where the string width of floating point
-     *   values was not measured correctly leading to columns that aren't aligned
+     * values was not measured correctly leading to columns that aren't aligned
      */
     V0_1("v0.1"),
 
@@ -40,7 +40,15 @@ public enum GATKReportVersion {
      * - Spaces allowed in cells, for example in sample names with spaces in them ex: "C507/FG-CR 6".
      * - Fixed width fixed for floating point values
      */
-    V0_2("v0.2");
+    V0_2("v0.2"),
+
+    /*
+    * Differences between v0.x
+    * - Added table and report headers
+    * - Headers changed format, include the numbe rof tables, rows, and metadata for gathering
+    * - IS GATHERABLE
+    */
+    V1_0("v1.0");
 
     public final String versionString;
 
@@ -53,8 +61,13 @@ public enum GATKReportVersion {
         return versionString;
     }
 
+    public boolean equals(GATKReportVersion that) {
+        return (versionString.equals(that.versionString));
+    }
+
     /**
      * Returns the GATK Report Version from the file header.
+     *
      * @param header Header from the file starting with ##:GATKReport.v[version]
      * @return The version as an enum.
      */
@@ -64,6 +77,9 @@ public enum GATKReportVersion {
 
         if (header.startsWith("##:GATKReport.v0.2 "))
             return GATKReportVersion.V0_2;
+
+        if (header.startsWith("#:GATKReport.v1.0"))
+            return GATKReportVersion.V1_0;
 
         throw new ReviewedStingException("Unknown GATK report version in header: " + header);
     }

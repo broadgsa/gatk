@@ -14,15 +14,15 @@ import java.util.concurrent.ConcurrentMap;
 
 @Analysis(description = "Computes different estimates of theta based on variant sites and genotypes")
 public class ThetaVariantEvaluator extends VariantEvaluator {
-    @DataPoint(description = "Average heterozygosity at variant sites; note that missing genotypes are ignored when computing this value")
+    @DataPoint(description = "Average heterozygosity at variant sites; note that missing genotypes are ignored when computing this value", format = "%.8f")
     double avgHet = 0.0;
-    @DataPoint(description = "Average pairwise differences at aligned sequences; averaged over both number of sequeneces and number of variant sites; note that missing genotypes are ignored when computing this value")
+    @DataPoint(description = "Average pairwise differences at aligned sequences; averaged over both number of sequeneces and number of variant sites; note that missing genotypes are ignored when computing this value", format = "%.8f")
     double avgAvgDiffs = 0.0;
-    @DataPoint(description = "Sum of heterozygosity over all variant sites; divide this by total target to get estimate of per base theta")
+    @DataPoint(description = "Sum of heterozygosity over all variant sites; divide this by total target to get estimate of per base theta", format = "%.8f")
     double totalHet = 0.0;
-    @DataPoint(description = "Sum of pairwise diffs over all variant sites; divide this by total target to get estimate of per base theta")
+    @DataPoint(description = "Sum of pairwise diffs over all variant sites; divide this by total target to get estimate of per base theta", format = "%.8f")
     double totalAvgDiffs = 0.0;
-    @DataPoint(description = "Theta for entire region estimated based on number of segregating sites; divide ths by total target to get estimate of per base theta")
+    @DataPoint(description = "Theta for entire region estimated based on number of segregating sites; divide ths by total target to get estimate of per base theta", format = "%.8f")
     double thetaRegionNumSites = 0.0;
 
     //helper variables
