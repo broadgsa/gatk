@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -69,7 +69,7 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
     if ( function.nCoresRequest.getOrElse(1) > 1 ) {
       if ( function.qSettings.dontRequestMultipleCores )
         logger.warn("Sending multicore job %s to farm without requesting appropriate number of cores (%d)".format(
-          function.jobName, function.nCoresRequest.get))
+          function.shortDescription, function.nCoresRequest.get))
       else
         nativeSpec += " -pe %s %d".format(function.qSettings.parallelEnvironmentName, function.nCoresRequest.get)
     }

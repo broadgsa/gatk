@@ -32,14 +32,17 @@ import org.broadinstitute.sting.queue.function.QFunction
  * Base class for Scatter functions.
  */
 trait ScatterFunction extends QFunction {
+  analysisName = "Scatter"
+
   var originalFunction: ScatterGatherableFunction = _
 
   @Input(doc="Original inputs to scatter")
   var originalInputs: Set[File] = _
 
+  override def shortDescription = analysisName + ": %s ...".format(firstOutput.getName)
+
   /**
    * Called to initialize scatter function values after all other values have been setup for this function.
-   * @param originalFunction The original function to with inputs bind to this scatter function.
    */
   def init() {}
 

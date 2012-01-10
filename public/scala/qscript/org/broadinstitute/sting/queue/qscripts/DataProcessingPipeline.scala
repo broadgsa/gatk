@@ -29,14 +29,14 @@ class DataProcessingPipeline extends QScript {
   var reference: File = _
 
   @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
-  var dbSNP: List[File] = List()
+  var dbSNP: Seq[File] = Seq()
 
   /****************************************************************************
   * Optional Parameters
   ****************************************************************************/
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
-  var indels: List[File] = List()
+  var indels: Seq[File] = Seq()
 
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
@@ -118,13 +118,13 @@ class DataProcessingPipeline extends QScript {
   // Because the realignment only happens after these scripts are executed, in case you are using
   // bwa realignment, this function will operate over the original bam files and output over the
   // (to be realigned) bam files.
-  def createSampleFiles(bamFiles: List[File], realignedBamFiles: List[File]): Map[String, List[File]] = {
+  def createSampleFiles(bamFiles: Seq[File], realignedBamFiles: Seq[File]): Map[String, Seq[File]] = {
 
     // Creating a table with SAMPLE information from each input BAM file
-    val sampleTable = scala.collection.mutable.Map.empty[String, List[File]]
+    val sampleTable = scala.collection.mutable.Map.empty[String, Seq[File]]
     val realignedIterator = realignedBamFiles.iterator
     for (bam <- bamFiles) {
-      val rBam = realignedIterator.next  // advance to next element in the realignedBam list so they're in sync.
+      val rBam = realignedIterator.next()  // advance to next element in the realignedBam list so they're in sync.
 
       val samReader = new SAMFileReader(bam)
       val header = samReader.getFileHeader
@@ -138,12 +138,12 @@ class DataProcessingPipeline extends QScript {
       for (rg <- readGroups) {
         val sample = rg.getSample
         if (!sampleTable.contains(sample))
-          sampleTable(sample) = List(rBam)
+          sampleTable(sample) = Seq(rBam)
         else if ( !sampleTable(sample).contains(rBam))
           sampleTable(sample) :+= rBam
       }
     }
-    return sampleTable.toMap
+    sampleTable.toMap
   }
 
   // Rebuilds the Read Group string to give BWA
@@ -161,8 +161,8 @@ class DataProcessingPipeline extends QScript {
 
   // Takes a list of processed BAM files and realign them using the BWA option requested  (bwase or bwape).
   // Returns a list of realigned BAM files.
-  def performAlignment(bams: List[File]): List[File] = {
-    var realignedBams: List[File] = List()
+  def performAlignment(bams: Seq[File]): Seq[File] = {
+    var realignedBams: Seq[File] = Seq()
     var index = 1
     for (bam <- bams) {
       // first revert the BAM file to the original qualities
@@ -194,10 +194,10 @@ class DataProcessingPipeline extends QScript {
       realignedBams :+= rgRealignedBamFile
       index = index + 1
     }
-    return realignedBams
+    realignedBams
   }
 
-  def getIndelCleaningModel(): ConsensusDeterminationModel = {
+  def getIndelCleaningModel: ConsensusDeterminationModel = {
     if (cleaningModel == "KNOWNS_ONLY")
       ConsensusDeterminationModel.KNOWNS_ONLY
     else if (cleaningModel == "USE_SW")
@@ -206,17 +206,17 @@ class DataProcessingPipeline extends QScript {
       ConsensusDeterminationModel.USE_READS
   }
 
-  def revertBams(bams: List[File], removeAlignmentInformation: Boolean): List[File] = {
-    var revertedBAMList: List[File] = List()
+  def revertBams(bams: Seq[File], removeAlignmentInformation: Boolean): Seq[File] = {
+    var revertedBAMList: Seq[File] = Seq()
     for (bam <- bams)
       revertedBAMList :+= revertBAM(bam, removeAlignmentInformation)
-    return revertedBAMList
+    revertedBAMList
   }
 
   def revertBAM(bam: File, removeAlignmentInformation: Boolean): File = {
     val revertedBAM = swapExt(bam, ".bam", ".reverted.bam")
     add(revert(bam, revertedBAM, removeAlignmentInformation))
-    return revertedBAM
+    revertedBAM
   }
 
   /****************************************************************************
@@ -224,22 +224,22 @@ class DataProcessingPipeline extends QScript {
   ****************************************************************************/
 
 
-  def script = {
+  def script() {
     // final output list of processed bam files
-    var cohortList: List[File] = List()
+    var cohortList: Seq[File] = Seq()
 
     // sets the model for the Indel Realigner
-    cleanModelEnum = getIndelCleaningModel()
+    cleanModelEnum = getIndelCleaningModel
 
     // keep a record of the number of contigs in the first bam file in the list
-    val bams = QScriptUtils.createListFromFile(input)
+    val bams = QScriptUtils.createSeqFromFile(input)
     if (nContigs < 0)
      nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
     val realignedBAMs = if (useBWApe || useBWAse  || useBWAsw) {performAlignment(bams)} else {revertBams(bams, false)}
 
     // generate a BAM file per sample joining all per lane files if necessary
-    val sampleBAMFiles: Map[String, List[File]] = createSampleFiles(bams, realignedBAMs)
+    val sampleBAMFiles: Map[String, Seq[File]] = createSampleFiles(bams, realignedBAMs)
 
     // if this is a 'knowns only' indel realignment run, do it only once for all samples.
     val globalIntervals = new File(outputDir + projectName + ".intervals")
@@ -317,7 +317,7 @@ class DataProcessingPipeline extends QScript {
       this.maxRecordsInRam = 100000
   }
 
-  case class target (inBams: List[File], outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
+  case class target (inBams: Seq[File], outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
     if (cleanModelEnum != ConsensusDeterminationModel.KNOWNS_ONLY)
       this.input_file = inBams
     this.out = outIntervals
@@ -330,7 +330,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outIntervals + ".target"
   }
 
-  case class clean (inBams: List[File], tIntervals: File, outBam: File) extends IndelRealigner with CommandLineGATKArgs {
+  case class clean (inBams: Seq[File], tIntervals: File, outBam: File) extends IndelRealigner with CommandLineGATKArgs {
     this.input_file = inBams
     this.targetIntervals = tIntervals
     this.out = outBam
@@ -347,11 +347,11 @@ class DataProcessingPipeline extends QScript {
 
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
     this.knownSites ++= qscript.dbSNP
-    this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
+    this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
     if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
-    if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
+    if (!qscript.intervalString.isEmpty) this.intervalsString ++= Seq(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
@@ -363,7 +363,7 @@ class DataProcessingPipeline extends QScript {
     this.recal_file = inRecalFile
     this.baq = CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
-    if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
+    if (!qscript.intervalString.isEmpty) this.intervalsString ++= Seq(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.no_pg_tag = qscript.testMode
     this.scatterCount = nContigs
@@ -395,7 +395,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".dedup"
   }
 
-  case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles with ExternalCommonArgs {
+  case class joinBams (inBams: Seq[File], outBam: File) extends MergeSamFiles with ExternalCommonArgs {
     this.input = inBams
     this.output = outBam
     this.analysisName = queueLogDir + outBam + ".joinBams"
@@ -495,7 +495,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".bwasw"
   }
 
-  case class writeList(inBams: List[File], outBamList: File) extends ListWriterFunction {
+  case class writeList(inBams: Seq[File], outBamList: File) extends ListWriterFunction {
     this.inputFiles = inBams
     this.listFile = outBamList
     this.analysisName = queueLogDir + outBamList + ".bamList"

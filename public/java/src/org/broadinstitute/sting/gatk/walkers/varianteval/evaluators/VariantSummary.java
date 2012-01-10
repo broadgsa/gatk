@@ -46,6 +46,7 @@ import java.util.*;
 public class VariantSummary extends VariantEvaluator implements StandardEval {
     final protected static Logger logger = Logger.getLogger(VariantSummary.class);
 
+    /** Indels with size greater than this value are tallied in the CNV column */
     private final static int MAX_INDEL_LENGTH = 50;
     private final static double MIN_CNV_OVERLAP = 0.5;
     private VariantEvalWalker walker;
@@ -196,14 +197,16 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     }
 
     private final boolean overlapsKnownCNV(VariantContext cnv) {
-        final GenomeLoc loc = walker.getGenomeLocParser().createGenomeLoc(cnv, true);
-        IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
+        if ( knownCNVs != null ) {
+            final GenomeLoc loc = walker.getGenomeLocParser().createGenomeLoc(cnv, true);
+            IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
 
-        final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());
-        while ( nodeIt.hasNext() ) {
-            final double overlapP = loc.reciprocialOverlapFraction(nodeIt.next().getValue());
-            if ( overlapP > MIN_CNV_OVERLAP )
-                return true;
+            final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());
+            while ( nodeIt.hasNext() ) {
+                final double overlapP = loc.reciprocialOverlapFraction(nodeIt.next().getValue());
+                if ( overlapP > MIN_CNV_OVERLAP )
+                    return true;
+            }
         }
 
         return false;
@@ -224,7 +227,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         allVariantCounts.inc(type, ALL);
 
         // type specific calculations
-        if ( type == Type.SNP ) {
+        if ( type == Type.SNP && eval.isBiallelic() ) {
             titvTable = VariantContextUtils.isTransition(eval) ? transitionsPerSample : transversionsPerSample;
             titvTable.inc(type, ALL);
         }

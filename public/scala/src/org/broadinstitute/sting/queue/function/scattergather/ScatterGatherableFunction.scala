@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -30,6 +30,7 @@ import org.broadinstitute.sting.commandline.{Gatherer, Gather, ArgumentSource}
 import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.utils.io.IOUtils
+import collection.immutable.ListMap
 
 /**
  * A function that can be run faster by splitting it up into pieces and then joining together the results.
@@ -47,28 +48,28 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Function that returns the class to use for gathering a directory.  If it returns null then @Gather annotation will be used.
-   * @param gatherField Field that is to be gathered.
+   * PartialFunction param gatherField Field that is to be gathered.
    * @return The class of the GatherFunction to be used or null.
    */
   var gatherClass: PartialFunction[ArgumentSource, Class[_ <: GatherFunction]] = _
 
   /**
    * Allows external modification of the ScatterFunction that will create the scatter pieces in the temporary directories.
-   * @param scatterFunction The function that will create the scatter pieces in the temporary directories.
+   * PartialFunction param scatterFunction The function that will create the scatter pieces in the temporary directories.
    */
   var setupScatterFunction: PartialFunction[ScatterFunction, Unit] = _
 
   /**
    * Allows external modification of the GatherFunction that will collect the gather pieces in the temporary directories.
-   * @param gatherFunction The function that will merge the gather pieces from the temporary directories.
-   * @param gatherField The output field being gathered.
+   * PartialFunction param gatherFunction The function that will merge the gather pieces from the temporary directories.
+   * PartialFunction param gatherField The output field being gathered.
    */
   var setupGatherFunction: PartialFunction[(GatherFunction, ArgumentSource), Unit] = _
 
   /**
    * Allows external modification of the cloned function.
-   * @param cloneFunction A clone wrapper of this ScatterGatherableFunction
-   * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
+   * PartialFunction param cloneFunction A clone wrapper of this ScatterGatherableFunction
+   * PartialFunction param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    */
   var setupCloneFunction: PartialFunction[(CloneFunction, Int), Unit] = _
 
@@ -108,8 +109,9 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     scatterFunction.originalFunction = this
     scatterFunction.originalInputs = inputFiles
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
-    scatterFunction.isIntermediate = true
+    scatterFunction.jobOutputFile = new File("scatter.out")
     scatterFunction.addOrder = this.addOrder :+ 1
+    scatterFunction.isIntermediate = true
 
     initScatterFunction(scatterFunction)
     scatterFunction.absoluteCommandDirectory()
@@ -121,69 +123,61 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * Returns a list of scatter / gather and clones of this function
    * that can be run in parallel to produce the same output as this
    * command line function.
-   * @return List[QFunction] to run instead of this function.
+   * @return Seq[QFunction] to run instead of this function.
    */
   def generateFunctions() = {
-    var functions = List.empty[QFunction]
-
-    // Only gather up fields that will have a value
-    val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
-
-    // Create the scatter function based on @Scatter
-    functions :+= scatterFunction
-
     // Ask the scatter function how many clones to create.
     val numClones = scatterFunction.scatterCount
 
-    // List of the log files that are output by this function.
-    var logFiles = List(this.jobOutputFile)
-    if (this.jobErrorFile != null)
-      logFiles :+= this.jobErrorFile
-
     // Create the gather functions for each output field
-    var gatherFunctions = Map.empty[ArgumentSource, GatherFunction]
-    var gatherOutputs = Map.empty[ArgumentSource, File]
+    var gatherFunctions = ListMap.empty[ArgumentSource, GatherFunction]
+    var gatherOutputs = ListMap.empty[ArgumentSource, File]
     var gatherAddOrder = numClones + 2
+
+    // Only track fields that will have a value
+    val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
+
     for (gatherField <- outputFieldsWithValues) {
-      val gatherOutput = getFieldFile(gatherField)
+      gatherOutputs += gatherField -> getFieldFile(gatherField)
+    }
+
+    // Only gather fields that are @Gather(enabled=true)
+    val outputFieldsWithGathers = outputFieldsWithValues.filter(hasGatherFunction(_))
+
+    for (gatherField <- outputFieldsWithGathers) {
+      val gatherOutput = gatherOutputs(gatherField)
 
       val gatherFunction = this.newGatherFunction(gatherField)
       this.copySettingsTo(gatherFunction)
       gatherFunction.originalFunction = this
       gatherFunction.originalOutput = gatherOutput
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
-      // If this is a gather for a log file, make the gather intermediate just in case the log file name changes
-      // Otherwise have the regular output function wait on the log files to gather
-      if (isLogFile(gatherOutput)) {
-        gatherFunction.isIntermediate = true
-        // Only delete the log files if the original function is an intermediate
-        // and the intermediate files are supposed to be deleted
-        gatherFunction.deleteIntermediateOutputs = this.isIntermediate && this.deleteIntermediateOutputs
-      } else {
-        gatherFunction.originalLogFiles = logFiles
-      }
+      gatherFunction.jobOutputFile = new File("gather-" + gatherOutput.getName + ".out")
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
 
       initGatherFunction(gatherFunction, gatherField)
       gatherFunction.absoluteCommandDirectory()
       gatherFunction.init()
 
-      functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
-      gatherOutputs += gatherField -> gatherOutput
 
       gatherAddOrder += 1
     }
 
     // Create the clone functions for running the parallel jobs
-    var cloneFunctions = List.empty[CloneFunction]
+    var cloneFunctions = Seq.empty[CloneFunction]
+    val dirFormat = "temp_%%0%dd_of_%d".format(numClones.toString.length(), numClones)
     for (i <- 1 to numClones) {
       val cloneFunction = this.newCloneFunction()
 
       this.copySettingsTo(cloneFunction)
       cloneFunction.originalFunction = this
+      cloneFunction.analysisName = this.analysisName
       cloneFunction.cloneIndex = i
-      cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+i)
+      cloneFunction.commandDirectory = this.scatterGatherTempDir(dirFormat.format(i))
+      cloneFunction.jobOutputFile = new File(this.jobOutputFile.getName)
+      if (this.jobErrorFile != null)
+        cloneFunction.jobErrorFile = new File(this.jobErrorFile.getName)
       cloneFunction.addOrder = this.addOrder :+ (i+1)
       cloneFunction.isIntermediate = true
 
@@ -200,17 +194,39 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       // If the command directory is relative, insert the run directory ahead of it.
       cloneFunction.absoluteCommandDirectory()
 
-      // Get absolute paths to the files and bind the sg functions to the clone function via the absolute paths.
+      // Allow the scatter function to set the specific input for this clone
       scatterFunction.bindCloneInputs(cloneFunction, i)
+
+      // Set each of the clone outputs to be absolute paths.
       for (gatherField <- outputFieldsWithValues) {
         val gatherPart = IOUtils.absolute(cloneFunction.commandDirectory, cloneFunction.getFieldFile(gatherField))
         cloneFunction.setFieldValue(gatherField, gatherPart)
-        gatherFunctions(gatherField).gatherParts :+= gatherPart
+      }
+
+      // For the outputs that are being gathered add this clone's output to be gathered.
+      for (gatherField <- outputFieldsWithGathers) {
+        gatherFunctions(gatherField).gatherParts :+= cloneFunction.getFieldFile(gatherField)
       }
 
       cloneFunctions :+= cloneFunction
     }
-    functions ++= cloneFunctions
+
+    // Track the functions starting with the scatter function.
+    var functions: Seq[QFunction] = Seq(scatterFunction) ++ cloneFunctions ++ gatherFunctions.values
+
+    // Make all log file paths absolute.
+    for (function <- functions) {
+      function.jobOutputFile = IOUtils.absolute(function.commandDirectory, function.jobOutputFile)
+      if (function.jobErrorFile != null)
+        function.jobErrorFile = IOUtils.absolute(function.commandDirectory, function.jobErrorFile)
+    }
+
+    val jobOutputGather = gatherLogFile(_.jobOutputFile, functions, gatherAddOrder)
+    if (this.jobErrorFile != null) {
+      val jobErrorGather = gatherLogFile(_.jobErrorFile, functions, gatherAddOrder + 1)
+      functions :+= jobErrorGather
+    }
+    functions :+= jobOutputGather
 
     // Return all the various created functions.
     functions
@@ -238,6 +254,25 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   }
 
   /**
+   * Returns true if the field should be gathered.
+   * @param gatherField Field that defined @Gather.
+   * @return true if the field should be gathered.
+   */
+  protected def hasGatherFunction(gatherField: ArgumentSource) : Boolean = {
+    // Check if there is a function that will return the gather class for this field.
+    if (this.gatherClass != null && this.gatherClass.isDefinedAt(gatherField))
+        true
+
+    // Check for an annotation defining the gather class.
+    else if (ReflectionUtils.hasAnnotation(gatherField.field, classOf[Gather]))
+      ReflectionUtils.getAnnotation(gatherField.field, classOf[Gather]).enabled
+
+    // Nothing else to disable this field.
+    else
+      true
+  }
+
+  /**
    * Creates a new GatherFunction for the gatherField.
    * @param gatherField Field that defined @Gather.
    * @return A GatherFunction instantiated from @Gather.
@@ -255,16 +290,18 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       if (ReflectionUtils.hasAnnotation(gatherField.field, classOf[Gather])) {
         gatherClass = ReflectionUtils.getAnnotation(gatherField.field, classOf[Gather]).value
       } else {
-        throw new QException("Missing @Gather annotation: " + gatherField.field)
+        throw new QException("Missing @Gather annotation on %s".format(gatherField.field))
       }
     }
 
-    if (classOf[GatherFunction].isAssignableFrom(gatherClass)) {
+    if (gatherClass == classOf[GatherFunction]) {
+      throw new QException("@Gather did not specify class type on %s".format(gatherField.field))
+    } else if (classOf[GatherFunction].isAssignableFrom(gatherClass)) {
       gatherClass.newInstance.asInstanceOf[GatherFunction]
     } else if (classOf[Gatherer].isAssignableFrom(gatherClass)) {
       new GathererFunction(gatherClass.asSubclass(classOf[Gatherer]))
     } else {
-      throw new QException("Unsupported @Gather class type: " + gatherClass)
+      throw new QException("Unsupported @Gather class type on %s: %s".format(gatherField.field, gatherClass))
     }
   }
 
@@ -299,9 +336,26 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   }
 
   /**
+   * Gathers up the logs files from other functions.
+   * @param logFile Takes the QFunction and return the log file.
+   * @param functions The functions for which the logs will be concatenated.
+   * @param addOrder The order this function should be added in the graph.
+   */
+  private def gatherLogFile(logFile: (QFunction) => File, functions: Seq[QFunction], addOrder: Int) = {
+    val gatherLogFunction = new ConcatenateLogsFunction
+    this.copySettingsTo(gatherLogFunction)
+    gatherLogFunction.logs = functions.map(logFile).filter(_ != null)
+    gatherLogFunction.jobOutputFile = logFile(this)
+    gatherLogFunction.commandDirectory = this.scatterGatherTempDir()
+    gatherLogFunction.addOrder = this.addOrder :+ addOrder
+    gatherLogFunction.isIntermediate = false
+    gatherLogFunction
+  }
+
+  /**
    * Returns a temporary directory under this scatter gather directory.
-   * @param Sub directory under the scatter gather directory.
+   * @param subDir directory under the scatter gather directory.
    * @return temporary directory under this scatter gather directory.
    */
-  private def scatterGatherTempDir(subDir: String) = IOUtils.absolute(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
+  private def scatterGatherTempDir(subDir: String = "") = IOUtils.absolute(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
 }

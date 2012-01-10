@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -24,10 +24,24 @@
 
 package org.broadinstitute.sting.queue.function
 
+import java.io.PrintStream
+
+
 /**
  * Runs a function in process.
  */
 trait InProcessFunction extends QFunction {
+  analysisName = this.getClass.getSimpleName
+
   def run()
-  def description = this.getClass.getSimpleName + " " + this.commandOutputs.mkString(" ")
+
+  /**
+   * During run() this stream will write to the stdout.
+   */
+  var jobOutputStream: PrintStream = null
+
+  /**
+   * Write errors to this stream run().
+   */
+  var jobErrorStream: PrintStream = null
 }
