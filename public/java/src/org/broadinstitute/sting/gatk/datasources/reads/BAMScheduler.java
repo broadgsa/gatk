@@ -256,7 +256,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             // Naive algorithm: find all elements in current contig for proper schedule creation.
             List<GenomeLoc> lociInContig = new LinkedList<GenomeLoc>();
             for(GenomeLoc locus: loci) {
-                if(dataSource.getHeader().getSequence(locus.getContig()).getSequenceIndex() == lastReferenceSequenceLoaded)
+                if(!GenomeLoc.isUnmapped(locus) && dataSource.getHeader().getSequence(locus.getContig()).getSequenceIndex() == lastReferenceSequenceLoaded)
                     lociInContig.add(locus);
             }
 
