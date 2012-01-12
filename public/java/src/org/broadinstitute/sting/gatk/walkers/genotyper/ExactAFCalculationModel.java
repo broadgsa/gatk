@@ -324,12 +324,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             // all possible likelihoods for a given cell from which to choose the max
             final int numPaths = set.ACsetIndexToPLIndex.size() + 1;
             final double[][] log10ConformationLikelihoods = new double[set.log10Likelihoods.length][numPaths]; // TODO can be created just once, since you initialize it
-	    // initialize
-	    for ( int i = 0; i < set.log10Likelihoods.length; i++ )
-		for ( int j = 0; j < numPaths; j++ )
-		    // TODO -- Arrays.fill?
-		    // todo -- is this even necessary?  Why not have as else below?
-		    log10ConformationLikelihoods[i][j] = Double.NEGATIVE_INFINITY;
 
 	    // deal with the non-AA possible conformations
 	    int conformationIndex = 1;
@@ -340,12 +334,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 		ExactACset dependent = indexesToACset.get(mapping.getKey());
 
 		for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
-		    final double[] gl = genotypeLikelihoods.get(j);
 
 		    if ( totalK <= 2*j ) { // skip impossible conformations
-                        log10ConformationLikelihoods[j][conformationIndex] =
+			final double[] gl = genotypeLikelihoods.get(j);
+			log10ConformationLikelihoods[j][conformationIndex] =
 			    determineCoefficient(mapping.getValue(), j, set.ACcounts.getCounts(), totalK) + dependent.log10Likelihoods[j-1] + gl[mapping.getValue()];
-                    }
+                    } else {
+			log10ConformationLikelihoods[j][conformationIndex] = Double.NEGATIVE_INFINITY;
+		    }
                 }
 
 		conformationIndex++;
@@ -353,10 +349,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
 	    // finally, deal with the AA case (which depends on previous cells in this column) and then update the L(j,k) value
 	    for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
-		final double[] gl = genotypeLikelihoods.get(j);
 
-		if ( totalK < 2*j-1 )
+		if ( totalK < 2*j-1 ) {
+		    final double[] gl = genotypeLikelihoods.get(j);
 		    log10ConformationLikelihoods[j][0] = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
+		} else {
+		    log10ConformationLikelihoods[j][0] = Double.NEGATIVE_INFINITY;
+		}
 
 		final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
                 final double log10Max = MathUtils.approximateLog10SumLog10(log10ConformationLikelihoods[j]);
