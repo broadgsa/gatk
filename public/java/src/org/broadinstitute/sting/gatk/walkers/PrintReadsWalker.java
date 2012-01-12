@@ -30,11 +30,13 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -70,12 +72,21 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  *   -I input2.bam \
  *   --read_filter MappingQualityZero
  *
+ * // Prints the first 2000 reads in the BAM file
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T PrintReads \
  *   -o output.bam \
  *   -I input.bam \
  *   -n 2000
+ *
+ * // Downsamples BAM file to 25%
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T PrintReads \
+ *   -o output.bam \
+ *   -I input.bam \
+ *   -ds 0.25
  * </pre>
  *
  */
@@ -95,9 +106,18 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName = "platform", shortName = "platform", doc="Exclude all reads with this platform from the output", required = false)
     String platform = null;
 
+    /**
+     * Only prints the first n reads of the file
+     */
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
 
+    /**
+     * Downsamples the bam file by the given ratio, printing only approximately the given percentage of reads. The downsampling is balanced (over the entire coverage)
+     */
+    @Argument(fullName = "downsample_coverage", shortName = "ds", doc="Downsample BAM to desired coverage", required = false)
+    public double downsampleRatio = 1.0;
+    
     /**
      * Only reads from samples listed in the provided file(s) will be included in the output.
      */
@@ -112,6 +132,8 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
     private boolean SAMPLES_SPECIFIED = false;
+    
+    Random random;
 
     /**
      * The initialize function.
@@ -132,13 +154,15 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         if(!samplesToChoose.isEmpty()) {
             SAMPLES_SPECIFIED = true;
         }
+        
+        random = GenomeAnalysisEngine.getRandomGenerator();
 
     }
 
     /**
      * The reads filter function.
      *
-     * @param ref the reference bases that correspond to our read, if a reference was provided
+     * @param ref  the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
@@ -188,12 +212,13 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @return the read itself
      */
     public SAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
-        return read;
+        return (random.nextDouble() < downsampleRatio) ? read : null;
     }
 
     /**
      * reduceInit is called once before any calls to the map function.  We use it here to setup the output
      * bam file, if it was specified on the command line
+     *
      * @return SAMFileWriter, set to the BAM output file if the command line option was set, null otherwise
      */
     public SAMFileWriter reduceInit() {
@@ -202,12 +227,14 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /**
      * given a read and a output location, reduce by emitting the read
-     * @param read the read itself
+     *
+     * @param read   the read itself
      * @param output the output source
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
     public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
-        output.addAlignment(read);
+        if (read != null)
+            output.addAlignment(read);
         return output;
     }
 

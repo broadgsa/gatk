@@ -60,19 +60,23 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     private ReferenceContext bases = null;
     //private ReferenceContext ref = new ReferenceContext()
 
+    PrintReadsWalker walker;
+    ArtificialSAMFileWriter writer;
+
     @BeforeMethod
     public void before() {
         trav = new ArtificialReadsTraversal();
         readTotal = ( ( trav.endingChr - trav.startingChr ) + 1 ) * trav.readsPerChr + trav.unMappedReads;
+
+        walker = new PrintReadsWalker();
+        writer = new ArtificialSAMFileWriter();
+        walker.out = writer;
+        walker.initialize();
     }
 
     /** test that we get out the same number of reads we put in */
     @Test
     public void testReadCount() {
-        PrintReadsWalker walker = new PrintReadsWalker();
-        ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        walker.out = writer;
-
         trav.traverse(walker, null, writer);
         assertEquals(writer.getRecords().size(), readTotal);
     }
@@ -80,10 +84,6 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     /** test that we're ok with a null read */
     @Test
     public void testNullRead() {
-        PrintReadsWalker walker = new PrintReadsWalker();
-        ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        walker.out = writer;
-
         SAMRecord rec = walker.map(bases, null, null);
         assertTrue(rec == null);
     }
@@ -91,10 +91,6 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     /** tes that we get the read we put into the map function */
     @Test
     public void testReturnRead() {
-        PrintReadsWalker walker = new PrintReadsWalker();
-        ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        walker.out = writer;
-
         SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
         GATKSAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         SAMRecord ret = walker.map(bases, rec, null);
@@ -102,20 +98,6 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
         assertTrue(ret.getReadName().equals(rec.getReadName()));
     }
 
-    /** test that the read makes it to the output source */
-    @Test
-    public void testReducingRead() {
-        PrintReadsWalker walker = new PrintReadsWalker();
-        ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        walker.out = writer;
-
-        SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
-        SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
-        SAMRecord ret = walker.map(bases, null,null);
-        walker.reduce(ret,writer);
-
-        assertTrue(writer.getRecords().size() == 1);
-    }
 
     
 }
