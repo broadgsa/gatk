@@ -83,6 +83,28 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testUnmappedReadInclusion",spec);
     }
 
+    @Test
+    public void testMixedMappedAndUnmapped() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T PrintReads" +
+                        " -I " + validationDataLocation + "MV1994.bam" +
+                        " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
+                        " -L Escherichia_coli_K12:4630000-4639675" +
+                        " -L unmapped" +
+                        " -U",
+                        0, // two output files
+                        Collections.<String>emptyList());
+
+        // our base file
+        File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
+        spec.setOutputFileLocation(baseOutputFile);
+        spec.addAuxFile("083ef1e9ded868e0d12c05a1354c0319",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("fa90ff91ac0cc689c71a3460a3530b8b", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
+
+        executeTest("testUnmappedReadInclusion",spec);
+    }
+
+
     @Test(enabled = false)
     public void testUnmappedReadExclusion() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
