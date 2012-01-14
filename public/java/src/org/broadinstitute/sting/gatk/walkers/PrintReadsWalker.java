@@ -31,18 +31,17 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear in the input file.
@@ -201,18 +200,19 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
             nReadsToPrint--;       // n > 0 means there are still reads to be printed.
         }
 
-        return true;
-	}
+        // if downsample option is turned off (= 1) then don't waste time  getting the next random number.
+        return (downsampleRatio == 1 || random.nextDouble() < downsampleRatio);
+    }
 
     /**
      * The reads map function.
      *
-     * @param ref the reference bases that correspond to our read, if a reference was provided
+     * @param ref  the reference bases that correspond to our read, if a reference was provided
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
     public SAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
-        return (random.nextDouble() < downsampleRatio) ? read : null;
+        return read;
     }
 
     /**
@@ -233,8 +233,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
     public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
-        if (read != null)
-            output.addAlignment(read);
+        output.addAlignment(read);
         return output;
     }
 

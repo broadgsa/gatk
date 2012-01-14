@@ -1,19 +1,18 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
-
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 
 /*
@@ -44,11 +43,11 @@ import org.testng.annotations.Test;
 /**
  * @author aaron
  *         <p/>
- *         Class PrintReadsWalkerUnitTest
+ *         Class PrintReadsUnitTest
  *         <p/>
  *         This tests the print reads walker, using the artificial reads traversal
  */
-public class PrintReadsWalkerUnitTest extends BaseTest {
+public class PrintReadsUnitTest extends BaseTest {
 
     /**
      * our private fake reads traversal.  This traversal seeds the
