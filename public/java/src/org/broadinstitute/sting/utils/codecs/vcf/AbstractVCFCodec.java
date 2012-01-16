@@ -522,7 +522,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         if ( allele == null || allele.length() == 0 )
             generateException("Empty alleles are not permitted in VCF records", lineNo);
 
-        if ( allele.length() > MAX_EXPLICIT_ALLELE_SIZE )
+        if ( MAX_EXPLICIT_ALLELE_SIZE != -1 && allele.length() > MAX_EXPLICIT_ALLELE_SIZE )
             generateException(String.format("Allele detected with length %d, exceeding max size %d.  Please remove this from the VCF file before continuing", allele.length(), MAX_EXPLICIT_ALLELE_SIZE), lineNo);
 
         if ( isSymbolicAllele(allele) ) {
@@ -576,13 +576,12 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
     public static int computeForwardClipping(List<Allele> unclippedAlleles, String ref) {
         boolean clipping = true;
-        final byte ref0 = ref.getBytes()[0];
 
         for ( Allele a : unclippedAlleles ) {
             if ( a.isSymbolic() )
                 continue;
 
-            if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
+            if ( a.length() < 1 || (a.getBases()[0] != ref.getBytes()[0]) ) {
                 clipping = false;
                 break;
             }
@@ -594,7 +593,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     protected static int computeReverseClipping(List<Allele> unclippedAlleles, String ref, int forwardClipping, int lineNo) {
         int clipping = 0;
         boolean stillClipping = true;
-        final byte[] refBytes = ref.getBytes();
 
         while ( stillClipping ) {
             for ( Allele a : unclippedAlleles ) {
@@ -610,7 +608,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                     stillClipping = false;
                 else if ( ref.length() == clipping )
                     generateException("bad alleles encountered", lineNo);
-                else if ( a.getBases()[a.length()-clipping-1] != refBytes[ref.length()-clipping-1] )
+                else if ( a.getBases()[a.length()-clipping-1] != ref.getBytes()[ref.length()-clipping-1] )
                     stillClipping = false;
             }
             if ( stillClipping )
