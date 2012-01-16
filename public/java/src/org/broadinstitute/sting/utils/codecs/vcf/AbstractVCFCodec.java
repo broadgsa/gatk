@@ -18,6 +18,7 @@ import java.util.zip.GZIPInputStream;
 
 
 public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
+    public final static int MAX_EXPLICIT_ALLELE_SIZE = (int)Math.pow(2, 16);
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
@@ -252,7 +253,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
         // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
         if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
-             (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
+                (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
             throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
                     " tokens, and saw " + nParts + " )", lineNo);
 
@@ -518,8 +519,11 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      * @param lineNo  the line number for this record
      */
     private static void checkAllele(String allele, boolean isRef, int lineNo) {
-	if ( allele == null || allele.length() == 0 )
-	    generateException("Empty alleles are not permitted in VCF records", lineNo);
+        if ( allele == null || allele.length() == 0 )
+            generateException("Empty alleles are not permitted in VCF records", lineNo);
+
+        if ( allele.length() > MAX_EXPLICIT_ALLELE_SIZE )
+            generateException(String.format("Allele detected with length %d, exceeding max size %d.  Please remove this from the VCF file before continuing", allele.length(), MAX_EXPLICIT_ALLELE_SIZE), lineNo);
 
         if ( isSymbolicAllele(allele) ) {
             if ( isRef ) {
@@ -572,12 +576,13 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
     public static int computeForwardClipping(List<Allele> unclippedAlleles, String ref) {
         boolean clipping = true;
+        final byte ref0 = ref.getBytes()[0];
 
         for ( Allele a : unclippedAlleles ) {
             if ( a.isSymbolic() )
                 continue;
 
-            if ( a.length() < 1 || (a.getBases()[0] != ref.getBytes()[0]) ) {
+            if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
                 clipping = false;
                 break;
             }
@@ -589,6 +594,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     protected static int computeReverseClipping(List<Allele> unclippedAlleles, String ref, int forwardClipping, int lineNo) {
         int clipping = 0;
         boolean stillClipping = true;
+        final byte[] refBytes = ref.getBytes();
 
         while ( stillClipping ) {
             for ( Allele a : unclippedAlleles ) {
@@ -604,7 +610,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                     stillClipping = false;
                 else if ( ref.length() == clipping )
                     generateException("bad alleles encountered", lineNo);
-                else if ( a.getBases()[a.length()-clipping-1] != ref.getBytes()[ref.length()-clipping-1] )
+                else if ( a.getBases()[a.length()-clipping-1] != refBytes[ref.length()-clipping-1] )
                     stillClipping = false;
             }
             if ( stillClipping )
