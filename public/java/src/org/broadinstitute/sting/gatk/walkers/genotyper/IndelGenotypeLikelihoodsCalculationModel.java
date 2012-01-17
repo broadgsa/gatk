@@ -60,14 +60,14 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private final int maxAlternateAlleles;
     private PairHMMIndelErrorModel pairModel;
 
-    private static ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>> indelLikelihoodMap =
-            new ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>>() {
-                protected synchronized HashMap<PileupElement,LinkedHashMap<Allele,Double>> initialValue() {
-                    return new HashMap<PileupElement,LinkedHashMap<Allele,Double>>();
+    private static ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>> indelLikelihoodMap =
+            new ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>>() {
+                protected synchronized HashMap<PileupElement, LinkedHashMap<Allele, Double>> initialValue() {
+                    return new HashMap<PileupElement, LinkedHashMap<Allele, Double>>();
                 }
             };
 
-    private LinkedHashMap<Allele,Haplotype> haplotypeMap;
+    private LinkedHashMap<Allele, Haplotype> haplotypeMap;
 
     // gdebug removeme
     // todo -cleanup
@@ -75,13 +75,13 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private ArrayList<Allele> alleleList;
 
     static {
-        indelLikelihoodMap.set(new HashMap<PileupElement,LinkedHashMap<Allele,Double>>());
+        indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
     }
 
 
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
-        pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
+        pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY, UAC.INDEL_GAP_CONTINUATION_PENALTY,
                 UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
@@ -91,7 +91,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         maxAlternateAlleles = UAC.MAX_ALTERNATE_ALLELES;
         doMultiAllelicCalls = UAC.MULTI_ALLELIC;
 
-        haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
+        haplotypeMap = new LinkedHashMap<Allele, Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
     }
 
@@ -99,15 +99,15 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                       Map<String, AlignmentContext> contexts,
                                                       AlignmentContextUtils.ReadOrientation contextType, GenomeLocParser locParser) {
-        Allele refAllele=null, altAllele=null;
+        Allele refAllele = null, altAllele = null;
         GenomeLoc loc = ref.getLocus();
         ArrayList<Allele> aList = new ArrayList<Allele>();
 
-        HashMap<String,Integer> consensusIndelStrings = new HashMap<String,Integer>();
+        HashMap<String, Integer> consensusIndelStrings = new HashMap<String, Integer>();
 
         int insCount = 0, delCount = 0;
         // quick check of total number of indels in pileup
-        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+        for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
             final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
@@ -118,21 +118,19 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
             return aList;
 
-        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+        for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             // todo -- warning, can be duplicating expensive partition here
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
             final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
 
 
-
-
-            for ( ExtendedEventPileupElement p : indelPileup.toExtendedIterable() ) {
+            for (ExtendedEventPileupElement p : indelPileup.toExtendedIterable()) {
                 //SAMRecord read = p.getRead();
                 GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;
-                if(ReadUtils.is454Read(read)) {
+                if (ReadUtils.is454Read(read)) {
                     continue;
                 }
 
@@ -151,62 +149,57 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                         // In this case, the read could have any of the inserted bases and we need to build a consensus
                         for (String s : consensusIndelStrings.keySet()) {
                             int cnt = consensusIndelStrings.get(s);
-                            if (s.startsWith(indelString)){
+                            if (s.startsWith(indelString)) {
                                 // case 1: current insertion is prefix of indel in hash map
-                                consensusIndelStrings.put(s,cnt+1);
+                                consensusIndelStrings.put(s, cnt + 1);
                                 foundKey = true;
                                 break;
-                            }
-                            else if (indelString.startsWith(s)) {
+                            } else if (indelString.startsWith(s)) {
                                 // case 2: indel stored in hash table is prefix of current insertion
                                 // In this case, new bases are new key.
                                 consensusIndelStrings.remove(s);
-                                consensusIndelStrings.put(indelString,cnt+1);
+                                consensusIndelStrings.put(indelString, cnt + 1);
                                 foundKey = true;
                                 break;
                             }
                         }
                         if (!foundKey)
                             // none of the above: event bases not supported by previous table, so add new key
-                            consensusIndelStrings.put(indelString,1);
+                            consensusIndelStrings.put(indelString, 1);
 
-                    }
-                    else if (read.getAlignmentStart() == loc.getStart()+1) {
+                    } else if (read.getAlignmentStart() == loc.getStart() + 1) {
                         // opposite corner condition: read will start at current locus with an insertion
                         for (String s : consensusIndelStrings.keySet()) {
                             int cnt = consensusIndelStrings.get(s);
-                            if (s.endsWith(indelString)){
+                            if (s.endsWith(indelString)) {
                                 // case 1: current insertion is suffix of indel in hash map
-                                consensusIndelStrings.put(s,cnt+1);
+                                consensusIndelStrings.put(s, cnt + 1);
                                 foundKey = true;
                                 break;
-                            }
-                            else if (indelString.endsWith(s)) {
+                            } else if (indelString.endsWith(s)) {
                                 // case 2: indel stored in hash table is suffix of current insertion
                                 // In this case, new bases are new key.
 
                                 consensusIndelStrings.remove(s);
-                                consensusIndelStrings.put(indelString,cnt+1);
+                                consensusIndelStrings.put(indelString, cnt + 1);
                                 foundKey = true;
                                 break;
                             }
                         }
                         if (!foundKey)
                             // none of the above: event bases not supported by previous table, so add new key
-                            consensusIndelStrings.put(indelString,1);
+                            consensusIndelStrings.put(indelString, 1);
 
-                    }
-                    else {
+                    } else {
                         // normal case: insertion somewhere in the middle of a read: add count to hash map
-                        int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
-                        consensusIndelStrings.put(indelString,cnt+1);
+                        int cnt = consensusIndelStrings.containsKey(indelString) ? consensusIndelStrings.get(indelString) : 0;
+                        consensusIndelStrings.put(indelString, cnt + 1);
                     }
 
-                }
-                else if (p.isDeletion()) {
-                    indelString = String.format("D%d",p.getEventLength());
-                    int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
-                    consensusIndelStrings.put(indelString,cnt+1);
+                } else if (p.isDeletion()) {
+                    indelString = String.format("D%d", p.getEventLength());
+                    int cnt = consensusIndelStrings.containsKey(indelString) ? consensusIndelStrings.get(indelString) : 0;
+                    consensusIndelStrings.put(indelString, cnt + 1);
 
                 }
             }
@@ -227,18 +220,17 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 // get deletion length
                 int dLen = Integer.valueOf(s.substring(1));
                 // get ref bases of accurate deletion
-                int startIdxInReference = 1+loc.getStart()-ref.getWindow().getStart();
+                int startIdxInReference = 1 + loc.getStart() - ref.getWindow().getStart();
                 stop = loc.getStart() + dLen;
-                byte[] refBases = Arrays.copyOfRange(ref.getBases(),startIdxInReference,startIdxInReference+dLen);
+                byte[] refBases = Arrays.copyOfRange(ref.getBases(), startIdxInReference, startIdxInReference + dLen);
 
                 if (Allele.acceptableAlleleBases(refBases)) {
-                    refAllele = Allele.create(refBases,true);
+                    refAllele = Allele.create(refBases, true);
                     altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
                 }
-            }
-            else {
+            } else {
                 // insertion case
-                if (Allele.acceptableAlleleBases(s))  {
+                if (Allele.acceptableAlleleBases(s)) {
                     refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
                     altAllele = Allele.create(s, false);
                     stop = loc.getStart();
@@ -288,7 +280,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          Allele alternateAlleleToUse,
                                          boolean useBAQedPileup, GenomeLocParser locParser) {
 
-        if ( tracker == null )
+        if (tracker == null)
             return null;
 
         GenomeLoc loc = ref.getLocus();
@@ -299,12 +291,12 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             // starting a new site: clear allele list
             alleleList.clear();
             lastSiteVisited = ref.getLocus();
-            indelLikelihoodMap.set(new HashMap<PileupElement,LinkedHashMap<Allele,Double>>());
+            indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
             haplotypeMap.clear();
 
             if (getAlleleListFromVCF) {
-                for( final VariantContext vc_input : tracker.getValues(UAC.alleles, loc) ) {
-                    if( vc_input != null &&
+                for (final VariantContext vc_input : tracker.getValues(UAC.alleles, loc)) {
+                    if (vc_input != null &&
                             allowableTypes.contains(vc_input.getType()) &&
                             ref.getLocus().getStart() == vc_input.getStart()) {
                         vc = vc_input;
@@ -312,7 +304,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     }
                 }
                 // ignore places where we don't have a variant
-                if ( vc == null )
+                if (vc == null)
                     return null;
 
                 alleleList.clear();
@@ -324,15 +316,13 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                         else
                             alleleList.add(a);
 
-                }
-                else {
+                } else {
                     for (Allele a : vc.getAlleles())
                         alleleList.add(a);
                 }
 
-            }
-            else {
-                alleleList = computeConsensusAlleles(ref,contexts, contextType, locParser);
+            } else {
+                alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser);
                 if (alleleList.isEmpty())
                     return null;
             }
@@ -342,9 +332,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             return null;
 
         // check if there is enough reference window to create haplotypes (can be an issue at end of contigs)
-        if (ref.getWindow().getStop() < loc.getStop()+HAPLOTYPE_SIZE)
+        if (ref.getWindow().getStop() < loc.getStop() + HAPLOTYPE_SIZE)
             return null;
-        if ( !(priors instanceof DiploidIndelGenotypePriors) )
+        if (!(priors instanceof DiploidIndelGenotypePriors))
             throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
 
         if (alleleList.isEmpty())
@@ -355,8 +345,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
         // look for alt allele that has biggest length distance to ref allele
         int maxLenDiff = 0;
-        for (Allele a: alleleList) {
-            if(a.isNonReference())  {
+        for (Allele a : alleleList) {
+            if (a.isNonReference()) {
                 int lenDiff = Math.abs(a.getBaseString().length() - refAllele.getBaseString().length());
                 if (lenDiff > maxLenDiff) {
                     maxLenDiff = lenDiff;
@@ -366,11 +356,11 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         }
 
         final int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
-        final int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
-        final int numPrefBases= ref.getLocus().getStart()-ref.getWindow().getStart()+1;
+        final int hsize = (int) ref.getWindow().size() - Math.abs(eventLength) - 1;
+        final int numPrefBases = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
 
-        if (hsize <=0) {
-            logger.warn(String.format("Warning: event at location %s can't be genotyped, skipping",loc.toString()));
+        if (hsize <= 0) {
+            logger.warn(String.format("Warning: event at location %s can't be genotyped, skipping", loc.toString()));
             return null;
         }
         haplotypeMap = Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
@@ -388,7 +378,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         // For each sample, get genotype likelihoods based on pileup
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
 
-        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+        for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
             ReadBackedPileup pileup = null;
@@ -397,8 +387,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             else if (context.hasBasePileup())
                 pileup = context.getBasePileup();
 
-            if (pileup != null ) {
-                final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+            if (pileup != null) {
+                final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
                 GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(genotypeLikelihoods);
 
                 HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -407,9 +397,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
 
                 if (DEBUG) {
-                    System.out.format("Sample:%s Alleles:%s GL:",sample.getKey(), alleleList.toString());
-                    for (int k=0; k < genotypeLikelihoods.length; k++)
-                        System.out.format("%1.4f ",genotypeLikelihoods[k]);
+                    System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
+                    for (int k = 0; k < genotypeLikelihoods.length; k++)
+                        System.out.format("%1.4f ", genotypeLikelihoods[k]);
                     System.out.println();
                 }
             }
@@ -421,21 +411,21 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
         // for indels, stop location is one more than ref allele length
         boolean hasNullAltAllele = false;
-        for ( Allele a : alleles ) {
-            if ( a.isNull() ) {
+        for (Allele a : alleles) {
+            if (a.isNull()) {
                 hasNullAltAllele = true;
                 break;
             }
         }
 
         int endLoc = loc.getStart() + refAllele.length();
-        if( !hasNullAltAllele )
+        if (!hasNullAltAllele)
             endLoc--;
 
         return endLoc;
     }
 
-    public static HashMap<PileupElement,LinkedHashMap<Allele,Double>> getIndelLikelihoodMap() {
+    public static HashMap<PileupElement, LinkedHashMap<Allele, Double>> getIndelLikelihoodMap() {
         return indelLikelihoodMap.get();
     }
 
@@ -443,8 +433,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     // so that per-sample DP will include deletions covering the event.
     protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;
-        for ( PileupElement p : pileup ) {
-            if (p.isDeletion() || BaseUtils.isRegularBase(p.getBase()) )
+        for (PileupElement p : pileup) {
+            if (p.isDeletion() || p.isInsertionAtBeginningOfRead() || BaseUtils.isRegularBase(p.getBase()))
                 count++;
         }
 

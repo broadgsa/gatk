@@ -27,7 +27,7 @@ public class ArtificialSAMUtils {
      * @param chromosomeSize      how large each chromosome is
      * @param readsPerChomosome   how many reads to make in each chromosome.  They'll be aligned from position 1 to x (which is the number of reads)
      */
-    public static void createArtificialBamFile( String filename, int numberOfChromosomes, int startingChromosome, int chromosomeSize, int readsPerChomosome ) {
+    public static void createArtificialBamFile(String filename, int numberOfChromosomes, int startingChromosome, int chromosomeSize, int readsPerChomosome) {
         SAMFileHeader header = createArtificialSamHeader(numberOfChromosomes, startingChromosome, chromosomeSize);
         File outFile = new File(filename);
 
@@ -51,7 +51,7 @@ public class ArtificialSAMUtils {
      * @param chromosomeSize      how large each chromosome is
      * @param readsPerChomosome   how many reads to make in each chromosome.  They'll be aligned from position 1 to x (which is the number of reads)
      */
-    public static void createArtificialSamFile( String filename, int numberOfChromosomes, int startingChromosome, int chromosomeSize, int readsPerChomosome ) {
+    public static void createArtificialSamFile(String filename, int numberOfChromosomes, int startingChromosome, int chromosomeSize, int readsPerChomosome) {
         SAMFileHeader header = createArtificialSamHeader(numberOfChromosomes, startingChromosome, chromosomeSize);
         File outFile = new File(filename);
 
@@ -72,16 +72,15 @@ public class ArtificialSAMUtils {
      * @param numberOfChromosomes the number of chromosomes to create
      * @param startingChromosome  the starting number for the chromosome (most likely set to 1)
      * @param chromosomeSize      the length of each chromosome
-     *
      * @return
      */
-    public static SAMFileHeader createArtificialSamHeader( int numberOfChromosomes, int startingChromosome, int chromosomeSize ) {
+    public static SAMFileHeader createArtificialSamHeader(int numberOfChromosomes, int startingChromosome, int chromosomeSize) {
         SAMFileHeader header = new SAMFileHeader();
         header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
         SAMSequenceDictionary dict = new SAMSequenceDictionary();
         // make up some sequence records
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
-            SAMSequenceRecord rec = new SAMSequenceRecord("chr" + ( x ), chromosomeSize /* size */);
+            SAMSequenceRecord rec = new SAMSequenceRecord("chr" + (x), chromosomeSize /* size */);
             rec.setSequenceLength(chromosomeSize);
             dict.addSequence(rec);
         }
@@ -95,10 +94,9 @@ public class ArtificialSAMUtils {
      * @param header      the header to set
      * @param readGroupID the read group ID tag
      * @param sampleName  the sample name
-     *
      * @return the adjusted SAMFileHeader
      */
-    public static SAMFileHeader createDefaultReadGroup( SAMFileHeader header, String readGroupID, String sampleName ) {
+    public static SAMFileHeader createDefaultReadGroup(SAMFileHeader header, String readGroupID, String sampleName) {
         SAMReadGroupRecord rec = new SAMReadGroupRecord(readGroupID);
         rec.setSample(sampleName);
         List<SAMReadGroupRecord> readGroups = new ArrayList<SAMReadGroupRecord>();
@@ -113,10 +111,9 @@ public class ArtificialSAMUtils {
      * @param header       the header to set
      * @param readGroupIDs the read group ID tags
      * @param sampleNames  the sample names
-     *
      * @return the adjusted SAMFileHeader
      */
-    public static SAMFileHeader createEnumeratedReadGroups( SAMFileHeader header, List<String> readGroupIDs, List<String> sampleNames ) {
+    public static SAMFileHeader createEnumeratedReadGroups(SAMFileHeader header, List<String> readGroupIDs, List<String> sampleNames) {
         if (readGroupIDs.size() != sampleNames.size()) {
             throw new ReviewedStingException("read group count and sample name count must be the same");
         }
@@ -137,18 +134,16 @@ public class ArtificialSAMUtils {
     /**
      * Create an artificial read based on the parameters.  The cigar string will be *M, where * is the length of the read
      *
-     *
      * @param header         the SAM header to associate the read with
      * @param name           the name of the read
      * @param refIndex       the reference index, i.e. what chromosome to associate it with
      * @param alignmentStart where to start the alignment
      * @param length         the length of the read
-     *
      * @return the artificial read
      */
     public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, int length) {
-        if( (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
-                (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
+        if ((refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
+                (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START))
             throw new ReviewedStingException("Invalid alignment start for artificial read, start = " + alignmentStart);
         GATKSAMRecord record = new GATKSAMRecord(header);
         record.setReadName(name);
@@ -183,10 +178,9 @@ public class ArtificialSAMUtils {
      * @param alignmentStart where to start the alignment
      * @param bases          the sequence of the read
      * @param qual           the qualities of the read
-     *
      * @return the artificial read
      */
-    public static GATKSAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual ) {
+    public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual) {
         if (bases.length != qual.length) {
             throw new ReviewedStingException("Passed in read string is different length then the quality array");
         }
@@ -210,10 +204,9 @@ public class ArtificialSAMUtils {
      * @param bases          the sequence of the read
      * @param qual           the qualities of the read
      * @param cigar          the cigar string of the read
-     *
      * @return the artificial read
      */
-    public static GATKSAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual, String cigar ) {
+    public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual, String cigar) {
         GATKSAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases, qual);
         rec.setCigarString(cigar);
         return rec;
@@ -221,22 +214,21 @@ public class ArtificialSAMUtils {
 
     /**
      * Create an artificial read with the following default parameters :
-     *    header:
-     *     numberOfChromosomes = 1
-     *     startingChromosome = 1
-     *     chromosomeSize = 1000000
-     *    read:
-     *     name = "default_read"
-     *     refIndex = 0
-     *     alignmentStart = 1
+     * header:
+     * numberOfChromosomes = 1
+     * startingChromosome = 1
+     * chromosomeSize = 1000000
+     * read:
+     * name = "default_read"
+     * refIndex = 0
+     * alignmentStart = 1
      *
-     * @param bases          the sequence of the read
-     * @param qual           the qualities of the read
-     * @param cigar          the cigar string of the read
-     *
+     * @param bases the sequence of the read
+     * @param qual  the qualities of the read
+     * @param cigar the cigar string of the read
      * @return the artificial read
      */
-    public static GATKSAMRecord createArtificialRead( byte[] bases, byte[] qual, String cigar ) {
+    public static GATKSAMRecord createArtificialRead(byte[] bases, byte[] qual, String cigar) {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
         return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 10000, bases, qual, cigar);
     }
@@ -253,7 +245,7 @@ public class ArtificialSAMUtils {
         right.setProperPairFlag(true);
 
         left.setFirstOfPairFlag(leftIsFirst);
-        right.setFirstOfPairFlag(! leftIsFirst);
+        right.setFirstOfPairFlag(!leftIsFirst);
 
         left.setReadNegativeStrandFlag(leftIsNegative);
         left.setMateNegativeStrandFlag(!leftIsNegative);
@@ -279,11 +271,10 @@ public class ArtificialSAMUtils {
      * @param startingChr the chromosome (reference ID) to start from
      * @param endingChr   the id to end with
      * @param readCount   the number of reads per chromosome
-     *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static StingSAMIterator mappedReadIterator( int startingChr, int endingChr, int readCount ) {
-        SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
+    public static StingSAMIterator mappedReadIterator(int startingChr, int endingChr, int readCount) {
+        SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, 0, header);
     }
@@ -295,11 +286,10 @@ public class ArtificialSAMUtils {
      * @param endingChr         the id to end with
      * @param readCount         the number of reads per chromosome
      * @param unmappedReadCount the count of unmapped reads to place at the end of the iterator, like in a sorted bam file
-     *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static StingSAMIterator mappedAndUnmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
-        SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
+    public static StingSAMIterator mappedAndUnmappedReadIterator(int startingChr, int endingChr, int readCount, int unmappedReadCount) {
+        SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
     }
@@ -310,11 +300,10 @@ public class ArtificialSAMUtils {
      * @param startingChr the chromosome (reference ID) to start from
      * @param endingChr   the id to end with
      * @param readCount   the number of reads per chromosome
-     *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static ArtificialSAMQueryIterator queryReadIterator( int startingChr, int endingChr, int readCount ) {
-        SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
+    public static ArtificialSAMQueryIterator queryReadIterator(int startingChr, int endingChr, int readCount) {
+        SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, 0, header);
     }
@@ -326,11 +315,10 @@ public class ArtificialSAMUtils {
      * @param endingChr         the id to end with
      * @param readCount         the number of reads per chromosome
      * @param unmappedReadCount the count of unmapped reads to place at the end of the iterator, like in a sorted bam file
-     *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static StingSAMIterator queryReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
-        SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
+    public static StingSAMIterator queryReadIterator(int startingChr, int endingChr, int readCount, int unmappedReadCount) {
+        SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
     }
@@ -345,6 +333,7 @@ public class ArtificialSAMUtils {
      * reads created that have readLen bases.  Pairs are sampled from a gaussian distribution with mean insert
      * size of insertSize and variation of insertSize / 10.  The first read will be in the pileup, and the second
      * may be, depending on where this sampled insertSize puts it.
+     *
      * @param header
      * @param loc
      * @param readLen
@@ -360,22 +349,22 @@ public class ArtificialSAMUtils {
         final int pos = loc.getStart();
 
         final List<PileupElement> pileupElements = new ArrayList<PileupElement>();
-        for ( int i = 0; i < pileupSize / 2; i++ ) {
+        for (int i = 0; i < pileupSize / 2; i++) {
             final String readName = "read" + i;
             final int leftStart = ranIntInclusive(ran, 1, pos);
-            final int fragmentSize = (int)(ran.nextGaussian() * insertSizeVariation + insertSize);
+            final int fragmentSize = (int) (ran.nextGaussian() * insertSizeVariation + insertSize);
             final int rightStart = leftStart + fragmentSize - readLen;
 
-            if ( rightStart <= 0 ) continue;
+            if (rightStart <= 0) continue;
 
             List<GATKSAMRecord> pair = createPair(header, readName, readLen, leftStart, rightStart, leftIsFirst, leftIsNegative);
             final GATKSAMRecord left = pair.get(0);
             final GATKSAMRecord right = pair.get(1);
 
-            pileupElements.add(new PileupElement(left, pos - leftStart));
+            pileupElements.add(new PileupElement(left, pos - leftStart, false));
 
-            if ( pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd() ) {
-                pileupElements.add(new PileupElement(right, pos - rightStart));
+            if (pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd()) {
+                pileupElements.add(new PileupElement(right, pos - rightStart, false));
             }
         }
 
