@@ -8,11 +8,13 @@
 #include "bwa_gateway.h"
 #include "org_broadinstitute_sting_alignment_bwa_c_BWACAligner.h"
 
+typedef void (BWA::*boolean_setter)();
 typedef void (BWA::*int_setter)(int value);
 typedef void (BWA::*float_setter)(float value);
 
 static jobject convert_to_java_alignment(JNIEnv* env, const jbyte* read_bases, const jsize read_length, const Alignment& alignment);
 static jstring get_configuration_file(JNIEnv* env, jobject configuration, const char* field_name);
+static void set_boolean_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, boolean_setter setter);
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
 static void throw_config_value_exception(JNIEnv* env, const char* field_name, const char* message);
@@ -99,6 +101,10 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner
   set_int_configuration_param(env, configuration, "gapOpenPenalty", bwa, &BWA::set_gap_open_penalty);
   if(env->ExceptionCheck()) return; 
   set_int_configuration_param(env, configuration, "gapExtensionPenalty", bwa, &BWA::set_gap_extension_penalty);
+  if(env->ExceptionCheck()) return;
+  set_boolean_configuration_param(env, configuration, "nonStopMode", bwa, &BWA::set_mode_nonstop);
+  if(env->ExceptionCheck()) return;
+  set_int_configuration_param(env, configuration, "maxEntriesInQueue", bwa, &BWA::set_max_entries_in_queue);
   if(env->ExceptionCheck()) return;
 }
 
@@ -355,6 +361,36 @@ static jstring get_configuration_file(JNIEnv* env, jobject configuration, const 
   env->DeleteLocalRef(configuration_file);
 
   return path;
+}
+
+static void set_boolean_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, boolean_setter setter) {
+  jclass configuration_class = env->GetObjectClass(configuration);
+  if(configuration_class == NULL) return;
+
+  jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/Boolean;");
+  if(configuration_field == NULL) return;
+
+  jobject boxed_value = env->GetObjectField(configuration,configuration_field);
+  if(env->ExceptionCheck()) return;
+
+  if(boxed_value != NULL) {
+    jclass boolean_box_class = env->FindClass("java/lang/Boolean");
+    if(boolean_box_class == NULL) return;
+
+    jmethodID boolean_extractor = env->GetMethodID(boolean_box_class,"booleanValue", "()Z");
+    if(boolean_extractor == NULL) return;
+
+    jboolean value = env->CallBooleanMethod(boxed_value,boolean_extractor);
+    if(env->ExceptionCheck()) return;
+
+    if(value)
+      (bwa->*setter)();
+
+    env->DeleteLocalRef(boolean_box_class);
+  }
+
+  env->DeleteLocalRef(boxed_value);
+  env->DeleteLocalRef(configuration_class);
 }
 
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter) {

@@ -233,6 +233,8 @@ void BWA::set_disallow_indel_within_range(int indel_range) { options.indel_end_s
 void BWA::set_mismatch_penalty(int penalty) { options.s_mm = penalty; }
 void BWA::set_gap_open_penalty(int penalty) { options.s_gapo = penalty; }
 void BWA::set_gap_extension_penalty(int penalty) { options.s_gape = penalty; }
+void BWA::set_mode_nonstop() { options.mode |= BWA_MODE_NONSTOP; options.max_top2 = 0x7fffffff; }
+void BWA::set_max_entries_in_queue(int max_entries) { options.max_entries = max_entries; }
 
 /**
  * Create a sequence with a set of reasonable initial defaults.  
