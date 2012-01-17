@@ -41,4 +41,14 @@ public class BWAConfiguration {
      * What is the scoring penalty for a gap extension?
      */
     public Integer gapExtensionPenalty = null;
+
+    /**
+     * Enter bwa's 'non-stop' mode (equivalent to bwa aln -N parameter).
+     */
+    public Boolean nonStopMode = false;
+
+    /**
+     * Set the max queue size that bwa will use when searching for matches (equivalent to bwa aln -m parameter).
+     */
+    public Integer maxEntriesInQueue = null;
 }
