@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,15 +25,14 @@
 package org.broadinstitute.sting.queue
 
 import java.io.File
-import org.broadinstitute.sting.commandline.{ArgumentCollection, Argument}
-import org.broadinstitute.sting.queue.util.{SystemUtils, EmailSettings}
+import org.broadinstitute.sting.commandline.Argument
 
 /**
  * Default settings settable on the command line and passed to CommandLineFunctions.
  */
 class QSettings {
-  @Argument(fullName="job_name_prefix", shortName="jobPrefix", doc="Default name prefix for compute farm jobs.", required=false)
-  var jobNamePrefix: String = QSettings.processNamePrefix
+  @Argument(fullName="run_name", shortName="runName", doc="A name for this run used for various status messages.", required=false)
+  var runName: String = _
 
   @Argument(fullName="job_project", shortName="jobProject", doc="Default project for compute farm jobs.", required=false)
   var jobProject: String = _
@@ -45,13 +44,13 @@ class QSettings {
   var jobPriority: Option[Int] = None
 
   @Argument(fullName="job_native_arg", shortName="jobNative", doc="Native arguments to pass to the job runner.", required=false)
-  var jobNativeArgs: List[String] = Nil
+  var jobNativeArgs: Seq[String] = Nil
 
   @Argument(fullName="job_resource_request", shortName="jobResReq", doc="Resource requests to pass to the job runner.", required=false)
-  var jobResourceRequests: List[String] = Nil
+  var jobResourceRequests: Seq[String] = Nil
 
   @Argument(fullName="job_environment_name", shortName="jobEnv", doc="Environment names for the job runner.", required=false)
-  var jobEnvironmentNames: List[String] = Nil
+  var jobEnvironmentNames: Seq[String] = Nil
 
   @Argument(fullName="memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
   var memoryLimit: Option[Double] = None
@@ -77,15 +76,4 @@ class QSettings {
 
   @Argument(fullName="job_scatter_gather_directory", shortName="jobSGDir", doc="Default directory to place scatter gather output for compute farm jobs.", required=false)
   var jobScatterGatherDirectory: File = _
-
-  @ArgumentCollection
-  val emailSettings = new EmailSettings
-}
-
-/**
- * Default settings settable on the command line and passed to CommandLineFunctions.
- */
-object QSettings {
-  /** A semi-unique job prefix using the host name and the process id. */
-  private val processNamePrefix = "Q-" + SystemUtils.pidAtHost
 }

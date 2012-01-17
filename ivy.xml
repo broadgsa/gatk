@@ -1,3 +1,26 @@
+<!--
+  ~ Copyright (c) 2012, The Broad Institute
+  ~
+  ~ Permission is hereby granted, free of charge, to any person
+  ~ obtaining a copy of this software and associated documentation
+  ~ files (the "Software"), to deal in the Software without
+  ~ restriction, including without limitation the rights to use,
+  ~ copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the
+  ~ Software is furnished to do so, subject to the following
+  ~ conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be
+  ~ included in all copies or substantial portions of the Software.
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  ~ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  ~ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  ~ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  ~ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  ~ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  ~ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  ~ OTHER DEALINGS IN THE SOFTWARE.
+  -->
 
 <ivy-module version="1.0">
   <info organisation="org.broadinstitute" module="Sting"/>
@@ -21,7 +44,6 @@
     <dependency org="jboss" name="javassist" rev="3.7.ga"/>
     <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4"/>
     <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
-    <dependency org="org.yaml" name="snakeyaml" rev="1.7"/>
 
     <!-- Dependencies for reflections mvn repository -->
     <dependency org="org.reflections" name="reflections" rev="0.9.5-RC2"/>
@@ -40,7 +62,7 @@
     <dependency org="org.apache.commons" name="commons-jexl" rev="2.0"/>
     <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
-    <dependency org="commons-io" name="commons-io" rev="2.0"/>
+    <dependency org="commons-io" name="commons-io" rev="2.1"/>
     <dependency org="org.apache.commons" name="commons-math" rev="2.2" />
 
     <!-- Lucene core utilities -->

@@ -186,17 +186,21 @@ public class ReadUtils {
      * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the mate is mapped to another contig.
      */
     public static Integer getAdaptorBoundary(final SAMRecord read) {
+        final int MAXIMUM_ADAPTOR_LENGTH = 8;
         final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
 
-        if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another
-            return null;                                                  // chromosome or unmapped pairs
-
-        int adaptorBoundary;                                              // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
+        if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another chromosome or unmapped pairs
+            return null;                                                  
+        
+        Integer adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
         if (read.getReadNegativeStrandFlag())
             adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
         else
             adaptorBoundary = read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
 
+        if ( (adaptorBoundary < read.getAlignmentStart() - MAXIMUM_ADAPTOR_LENGTH) || (adaptorBoundary > read.getAlignmentEnd() + MAXIMUM_ADAPTOR_LENGTH) )
+            adaptorBoundary = null;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
+        
         return adaptorBoundary;
     }
 

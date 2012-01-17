@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.runtime.{ProcessSettings, OutputStreamSett
 
 /**
  * Runs jobs one at a time locally
+ * @param function Command to run.
  */
 class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
   // Controller on the thread that started the job
@@ -39,13 +40,12 @@ class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRu
 
   /**
    * Runs the function on the local shell.
-   * @param function Command to run.
    */
   def start() {
     val commandLine = Array("sh", jobScript.getAbsolutePath)
     val stdoutSettings = new OutputStreamSettings
     val stderrSettings = new OutputStreamSettings
-    val mergeError = (function.jobErrorFile != null)
+    val mergeError = (function.jobErrorFile == null)
 
     stdoutSettings.setOutputFile(function.jobOutputFile, true)
     if (function.jobErrorFile != null)

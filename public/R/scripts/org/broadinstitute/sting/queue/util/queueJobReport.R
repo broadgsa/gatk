@@ -1,6 +1,7 @@
 library(gsalib)
-require("ggplot2")
-require("gplots")
+library(ggplot2)
+library(gplots)
+library(tools)
 
 #
 # Standard command line switch.  Can we loaded interactively for development
@@ -201,4 +202,7 @@ for ( group in gatkReportData ) {
   
 if ( ! is.na(outputPDF) ) {
   dev.off()
-} 
+  if (exists("compactPDF")) {
+    compactPDF(outputPDF)
+  }
+}

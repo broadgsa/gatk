@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.engine
 
 import org.broadinstitute.sting.queue.function.QFunction
@@ -29,14 +53,17 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
   val myRunInfo: JobRunInfo = JobRunInfo.default // purely for dryRun testing
 
   /**
+   * When using reset status this variable tracks the old status
+   */
+  var resetFromStatus: RunnerStatus.Value = null
+
+  /**
    * Initializes with the current status of the function.
    */
   private var currentStatus = {
-    val isDone = function.isDone
-    val isFail = function.isFail
-    if (isFail.isDefined && isFail.get)
+    if (function.isFail)
       RunnerStatus.FAILED
-    else if (isDone.isDefined && isDone.get)
+    else if (function.isDone)
       RunnerStatus.DONE
     else
       RunnerStatus.PENDING
@@ -136,13 +163,15 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
    * Resets the edge to pending status.
    */
   def resetToPending(cleanOutputs: Boolean) {
+    if (resetFromStatus == null)
+      resetFromStatus = currentStatus
     currentStatus = RunnerStatus.PENDING
     if (cleanOutputs)
       function.deleteOutputs()
     runner = null
   }
 
-  override def dotString = function.dotString
+  override def shortDescription = function.shortDescription
 
   /**
    * Returns the path to the file to use for logging errors.

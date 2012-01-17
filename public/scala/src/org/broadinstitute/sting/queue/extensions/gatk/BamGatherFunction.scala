@@ -53,6 +53,9 @@ class BamGatherFunction extends GatherFunction with PicardBamFunction {
     val disableIndex = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME)
     this.createIndex = Some(!originalGATK.getFieldValue(disableIndex).asInstanceOf[Boolean])
 
-    super.freezeFieldValues
+    val enableMD5 = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME)
+    this.createMD5 = Some(originalGATK.getFieldValue(enableMD5).asInstanceOf[Boolean])
+
+    super.freezeFieldValues()
   }
 }

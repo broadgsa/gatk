@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -42,7 +42,7 @@ trait JavaCommandLineFunction extends CommandLineFunction {
    * Class path for the main class.
    * Defaults to the current classpath.
    */
-  var javaClasspath: List[String] = Nil
+  var javaClasspath: Seq[String] = Nil
 
   /**
    * Memory limit for the java executable, or if None will use the default memoryLimit.
@@ -82,5 +82,5 @@ trait JavaCommandLineFunction extends CommandLineFunction {
 
 object JavaCommandLineFunction {
   val currentClasspath = System.getProperty("java.class.path")
-    .split(File.pathSeparatorChar).map(path => IOUtils.absolute(new File(path)).getPath).toList
+    .split(File.pathSeparatorChar).map(path => IOUtils.absolute(new File(path)).getPath).toSeq
 }

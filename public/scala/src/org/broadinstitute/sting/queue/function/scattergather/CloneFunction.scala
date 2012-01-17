@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.commandline.ArgumentSource
-import java.io.File
 import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 
 /**
@@ -62,9 +61,8 @@ class CloneFunction extends CommandLineFunction {
     }
   }
 
-  override def commandOutputs = withScatterPart(() => originalFunction.commandOutputs)
-  override def dotString = withScatterPart(() => originalFunction.dotString)
   override def description = withScatterPart(() => originalFunction.description)
+  override def shortDescription = withScatterPart(() => originalFunction.shortDescription)
   override protected def functionFieldClass = originalFunction.getClass
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
@@ -75,30 +73,22 @@ class CloneFunction extends CommandLineFunction {
   }
 
   override def getFieldValue(source: ArgumentSource): AnyRef = {
-    source.field.getName match {
-      case "jobOutputFile" => jobOutputFile
-      case "jobErrorFile" => jobErrorFile
-      case _ => overriddenFields.get(source) match {
-        case Some(value) => value.asInstanceOf[AnyRef]
-        case None => {
-          val value = originalFunction.getFieldValue(source)
-          overriddenFields += source -> value
-          value
-        }
+    overriddenFields.get(source) match {
+      case Some(value) => value.asInstanceOf[AnyRef]
+      case None => {
+        val value = originalFunction.getFieldValue(source)
+        overriddenFields += source -> value
+        value
       }
     }
   }
 
-  def setFieldValue(field: String, value: Any): Unit = {
+  def setFieldValue(field: String, value: Any) {
     val source = QFunction.findField(originalFunction.getClass, field)
     setFieldValue(source, value)
   }
 
-  override def setFieldValue(source: ArgumentSource, value: Any): Unit = {
-    source.field.getName match {
-      case "jobOutputFile" => jobOutputFile = value.asInstanceOf[File]
-      case "jobErrorFile" => jobErrorFile = value.asInstanceOf[File]
-      case _ => overriddenFields += source -> value
-    }
+  override def setFieldValue(source: ArgumentSource, value: Any) {
+    overriddenFields += source -> value
   }
 }

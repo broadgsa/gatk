@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.io.IOUtils
 import org.broadinstitute.sting.utils.help.ApplicationDetails
 import java.util.{ResourceBundle, Arrays}
 import org.broadinstitute.sting.utils.text.TextFormattingUtils
+import org.apache.commons.io.FilenameUtils
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -61,6 +62,7 @@ object QCommandLine extends Logging {
       CommandLineProgram.start(qCommandLine, argv)
       try {
         Runtime.getRuntime.removeShutdownHook(shutdownHook)
+        qCommandLine.shutdown()
       } catch {
         case _ => /* ignore, example 'java.lang.IllegalStateException: Shutdown in progress' */
       }
@@ -78,10 +80,10 @@ object QCommandLine extends Logging {
 class QCommandLine extends CommandLineProgram with Logging {
   @Input(fullName="script", shortName="S", doc="QScript scala file", required=true)
   @ClassType(classOf[File])
-  private var scripts = List.empty[File]
+  var scripts = Seq.empty[File]
 
   @ArgumentCollection
-  private val settings = new QGraphSettings
+  val settings = new QGraphSettings
 
   private val qScriptManager = new QScriptManager
   private val qGraph = new QGraph
@@ -91,7 +93,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   private lazy val pluginManager = {
     qScriptClasses = IOUtils.tempDir("Q-Classes-", "", settings.qSettings.tempDirectory)
     qScriptManager.loadScripts(scripts, qScriptClasses)
-    new PluginManager[QScript](classOf[QScript], List(qScriptClasses.toURI.toURL))
+    new PluginManager[QScript](classOf[QScript], Seq(qScriptClasses.toURI.toURL))
   }
 
   QFunction.parsingEngine = new ParsingEngine(this)
@@ -101,12 +103,16 @@ class QCommandLine extends CommandLineProgram with Logging {
    * functions, and then builds and runs a QGraph based on the dependencies.
    */
   def execute = {
+    if (settings.qSettings.runName == null)
+      settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
+
     qGraph.settings = settings
 
     val allQScripts = pluginManager.createAllTypes();
     for (script <- allQScripts) {
       logger.info("Scripting " + pluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
+      script.qSettings = settings.qSettings
       try {
         script.script()
       } catch {
@@ -120,22 +126,34 @@ class QCommandLine extends CommandLineProgram with Logging {
     // Execute the job graph
     qGraph.run()
 
+    val functionsAndStatus = qGraph.getFunctionsAndStatus
+    val success = qGraph.success
+
     // walk over each script, calling onExecutionDone
     for (script <- allQScripts) {
-      script.onExecutionDone(qGraph.getFunctionsAndStatus(script.functions), qGraph.success)
-      if ( ! settings.disableJobReport ) {
-        val jobStringName = (QScriptUtils.?(settings.jobReportFile)).getOrElse(settings.qSettings.jobNamePrefix + ".jobreport.txt")
+      val scriptFunctions = functionsAndStatus.filterKeys(f => script.functions.contains(f))
+      script.onExecutionDone(scriptFunctions, success)
+    }
 
-        if (!shuttingDown) {
-          val reportFile = new File(jobStringName)
-          logger.info("Writing JobLogging GATKReport to file " + reportFile)
-          QJobReport.printReport(qGraph.getFunctionsAndStatus(script.functions), reportFile)
+    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
 
-          if ( settings.run ) {
-            val pdfFile = new File(jobStringName + ".pdf")
-            logger.info("Plotting JobLogging GATKReport to file " + pdfFile)
-            QJobReport.plotReport(reportFile, pdfFile)
-          }
+    if (!settings.disableJobReport) {
+      val jobStringName = {
+        if (settings.jobReportFile != null)
+          settings.jobReportFile
+        else
+          settings.qSettings.runName + ".jobreport.txt"
+      }
+
+      if (!shuttingDown) {
+        val reportFile = IOUtils.absolute(settings.qSettings.runDirectory, jobStringName)
+        logger.info("Writing JobLogging GATKReport to file " + reportFile)
+        QJobReport.printReport(functionsAndStatus, reportFile)
+
+        if (settings.run) {
+          val pdfFile = IOUtils.absolute(settings.qSettings.runDirectory, FilenameUtils.removeExtension(jobStringName) + ".pdf")
+          logger.info("Plotting JobLogging GATKReport to file " + pdfFile)
+          QJobReport.plotReport(reportFile, pdfFile)
         }
       }
     }
@@ -179,20 +197,20 @@ class QCommandLine extends CommandLineProgram with Logging {
 
   override def getApplicationDetails : ApplicationDetails = {
     new ApplicationDetails(createQueueHeader(),
-                           List.empty[String],
+                           Seq.empty[String],
                            ApplicationDetails.createDefaultRunningInstructions(getClass.asInstanceOf[Class[CommandLineProgram]]),
                            "")
   }
 
-  private def createQueueHeader() : List[String] = {
-    List(String.format("Queue v%s, Compiled %s", getQueueVersion, getBuildTimestamp),
-         "Copyright (c) 2011 The Broad Institute",
+  private def createQueueHeader() : Seq[String] = {
+    Seq(String.format("Queue v%s, Compiled %s", getQueueVersion, getBuildTimestamp),
+         "Copyright (c) 2012 The Broad Institute",
          "Please view our documentation at http://www.broadinstitute.org/gsa/wiki",
          "For support, please view our support site at http://getsatisfaction.com/gsa")
   }
 
   private def getQueueVersion : String = {
-    var stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
+    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
 
     if ( stingResources.containsKey("org.broadinstitute.sting.queue.QueueVersion.version") ) {
       stingResources.getString("org.broadinstitute.sting.queue.QueueVersion.version")
@@ -203,7 +221,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   }
 
   private def getBuildTimestamp : String = {
-    var stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
+    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
 
     if ( stingResources.containsKey("build.timestamp") ) {
       stingResources.getString("build.timestamp")

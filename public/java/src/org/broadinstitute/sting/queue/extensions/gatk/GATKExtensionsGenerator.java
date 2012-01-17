@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -34,13 +34,11 @@ import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -85,7 +83,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
             "%n" +
             "/** A dynamicly generated list of classes that the GATK Extensions depend on, but are not be detected by default by BCEL. */%n" +
             "class %s {%n" +
-            "val types = List(%n%s)%n" +
+            "val types = Seq(%n%s)%n" +
             "}%n";
 
     @Output(fullName="output_directory", shortName="outDir", doc="Directory to output the generated scala", required=true)
@@ -95,10 +93,6 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
     WalkerManager walkerManager = new WalkerManager();
     FilterManager filterManager = new FilterManager();
-    // HACK: We're currently relying on the fact that RMDTrackBuilder is used only from RMD type lookups, not
-    //       RMD track location.  Therefore, no sequence dictionary is required.  In the future, we should separate
-    //       RMD track lookups from track creation.
-    RMDTrackBuilder trackBuilder = new RMDTrackBuilder(null,null,ValidationExclusion.TYPE.ALL);
 
     /**
      * Required main method implementation.
@@ -147,7 +141,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                     String clpConstructor = String.format("analysisName = \"%s\"%njavaMainClass = \"%s\"%n", clpClassName, clp.getName());
 
                     writeClass("org.broadinstitute.sting.queue.function.JavaCommandLineFunction", clpClassName,
-                            false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents, false);
+                            false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
 
                     if (clp == CommandLineGATK.class) {
                         for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
@@ -169,7 +163,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                                     }
 
                                     writeClass(GATK_EXTENSIONS_PACKAGE_NAME + "." + clpClassName, walkerName,
-                                            isScatter, constructor, argumentFields, dependents, true);
+                                            isScatter, constructor, argumentFields, dependents);
                                 } catch (Exception e) {
                                     throw new ReviewedStingException("Error generating wrappers for walker " + walkerType, e);
                                 }
@@ -242,8 +236,8 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private void writeClass(String baseClass, String className, boolean isScatter,
                             String constructor, List<? extends ArgumentField> argumentFields,
-                            Set<Class<?>> dependents, boolean isGATKWalker) throws IOException {
-        String content = getContent(CLASS_TEMPLATE, baseClass, className, constructor, isScatter, "", argumentFields, dependents, isGATKWalker);
+                            Set<Class<?>> dependents) throws IOException {
+        String content = getContent(CLASS_TEMPLATE, baseClass, className, constructor, isScatter, "", argumentFields, dependents);
         writeFile(GATK_EXTENSIONS_PACKAGE_NAME + "." + className, content);
     }
 
@@ -257,7 +251,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private void writeFilter(String className, List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) throws IOException {
         String content = getContent(TRAIT_TEMPLATE, "org.broadinstitute.sting.queue.function.CommandLineFunction",
-                className, "", false, String.format(" + \" -read_filter %s\"", className), argumentFields, dependents, false);
+                className, "", false, String.format(" + \" -read_filter %s\"", className), argumentFields, dependents);
         writeFile(GATK_EXTENSIONS_PACKAGE_NAME + "." + className, content);
     }
 
@@ -351,8 +345,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private static String getContent(String scalaTemplate, String baseClass, String className,
                                      String constructor, boolean isScatter, String commandLinePrefix,
-                                     List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents,
-                                     boolean isGATKWalker) {
+                                     List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) {
         StringBuilder arguments = new StringBuilder();
         StringBuilder commandLine = new StringBuilder(commandLinePrefix);
 
@@ -376,9 +369,6 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         if (isGather)
             importSet.add("import org.broadinstitute.sting.commandline.Gather");
 
-        // Needed for ShellUtils.escapeShellArgument()
-        importSet.add("import org.broadinstitute.sting.queue.util.ShellUtils");
-
         // Sort the imports so that the are always in the same order.
         List<String> sortedImports = new ArrayList<String>(importSet);
         Collections.sort(sortedImports);
@@ -386,10 +376,8 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         StringBuffer freezeFieldOverride = new StringBuffer();
         for (String freezeField: freezeFields)
             freezeFieldOverride.append(freezeField);
-        if (freezeFieldOverride.length() > 0 || isGATKWalker) {
-            freezeFieldOverride.insert(0, String.format("override def freezeFieldValues = {%nsuper.freezeFieldValues%n"));
-            if ( isGATKWalker )
-                freezeFieldOverride.append(String.format("if ( num_threads.isDefined ) nCoresRequest = num_threads%n"));
+        if (freezeFieldOverride.length() > 0) {
+            freezeFieldOverride.insert(0, String.format("override def freezeFieldValues() {%nsuper.freezeFieldValues()%n"));
             freezeFieldOverride.append(String.format("}%n%n"));
         }
 

@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.function
 
 import org.broadinstitute.sting.queue.util._
@@ -27,13 +51,13 @@ trait CommandLineFunction extends QFunction with Logging {
   var jobQueue: String = _
 
   /** Native arguments to pass to the job runner */
-  var jobNativeArgs: List[String] = Nil
+  var jobNativeArgs: Seq[String] = Nil
 
   /** Native arguments to pass to the job runner */
-  var jobResourceRequests: List[String] = Nil
+  var jobResourceRequests: Seq[String] = Nil
 
   /** Environment names to pass to the job runner */
-  var jobEnvironmentNames: List[String] = Nil
+  var jobEnvironmentNames: Seq[String] = Nil
 
   override def copySettingsTo(function: QFunction) {
     super.copySettingsTo(function)
@@ -270,7 +294,7 @@ trait CommandLineFunction extends QFunction with Logging {
     }
 
     // Trim leading and trailing whitespace off our three tokens, and unwrap Some(x) to x for the param
-    val trimmedValues : List[String] = List((if ( prefix != null ) prefix.trim else ""),
+    val trimmedValues : Seq[String] = Seq((if ( prefix != null ) prefix.trim else ""),
                                             (param match {
                                               case Some(x) => paramFormat.format(x).trim
                                               case x => paramFormat.format(x).trim

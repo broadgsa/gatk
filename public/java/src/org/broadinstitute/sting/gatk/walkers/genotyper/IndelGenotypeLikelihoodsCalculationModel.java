@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -54,17 +55,17 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private final boolean getAlleleListFromVCF;
 
     private boolean DEBUG = false;
-
+    private final boolean doMultiAllelicCalls;
     private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
-
+    private final int maxAlternateAlleles;
     private PairHMMIndelErrorModel pairModel;
 
     private static ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>> indelLikelihoodMap =
             new ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>>() {
-            protected synchronized HashMap<PileupElement,LinkedHashMap<Allele,Double>> initialValue() {
-                return new HashMap<PileupElement,LinkedHashMap<Allele,Double>>();
-        }
-    };
+                protected synchronized HashMap<PileupElement,LinkedHashMap<Allele,Double>> initialValue() {
+                    return new HashMap<PileupElement,LinkedHashMap<Allele,Double>>();
+                }
+            };
 
     private LinkedHashMap<Allele,Haplotype> haplotypeMap;
 
@@ -81,12 +82,14 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.BANDED_INDEL_COMPUTATION);
+                UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
         HAPLOTYPE_SIZE = UAC.INDEL_HAPLOTYPE_SIZE;
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
+        maxAlternateAlleles = UAC.MAX_ALTERNATE_ALLELES;
+        doMultiAllelicCalls = UAC.MULTI_ALLELIC;
 
         haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
@@ -95,7 +98,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     private ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                       Map<String, AlignmentContext> contexts,
-                                                      AlignmentContextUtils.ReadOrientation contextType) {
+                                                      AlignmentContextUtils.ReadOrientation contextType, GenomeLocParser locParser) {
         Allele refAllele=null, altAllele=null;
         GenomeLoc loc = ref.getLocus();
         ArrayList<Allele> aList = new ArrayList<Allele>();
@@ -114,7 +117,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
         if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
             return aList;
-        
+
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             // todo -- warning, can be duplicating expensive partition here
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
@@ -126,9 +129,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             for ( ExtendedEventPileupElement p : indelPileup.toExtendedIterable() ) {
                 //SAMRecord read = p.getRead();
-                 GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
+                GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
-                    continue;     
+                    continue;
                 if(ReadUtils.is454Read(read)) {
                     continue;
                 }
@@ -208,63 +211,69 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 }
             }
 
-/*            if (DEBUG) {
-                int icount = indelPileup.getNumberOfInsertions();
-                int dcount = indelPileup.getNumberOfDeletions();
-                if (icount + dcount > 0)
-                {
-                    List<Pair<String,Integer>> eventStrings = indelPileup.getEventStringsWithCounts(ref.getBases());
-                    System.out.format("#ins: %d, #del:%d\n", insCount, delCount);
-
-                    for (int i=0 ; i < eventStrings.size() ; i++ ) {
-                        System.out.format("%s:%d,",eventStrings.get(i).first,eventStrings.get(i).second);
-                        //                int k=0;
-                    }
-                    System.out.println();
-                }
-            }             */
         }
 
+        Collection<VariantContext> vcs = new ArrayList<VariantContext>();
         int maxAlleleCnt = 0;
         String bestAltAllele = "";
+
         for (String s : consensusIndelStrings.keySet()) {
-            int curCnt = consensusIndelStrings.get(s);
-            if (curCnt > maxAlleleCnt) {
-                maxAlleleCnt = curCnt;
-                bestAltAllele = s;
+            int curCnt = consensusIndelStrings.get(s), stop = 0;
+            // if observed count if above minimum threshold, we will genotype this allele
+            if (curCnt < minIndelCountForGenotyping)
+                continue;
+
+            if (s.startsWith("D")) {
+                // get deletion length
+                int dLen = Integer.valueOf(s.substring(1));
+                // get ref bases of accurate deletion
+                int startIdxInReference = 1+loc.getStart()-ref.getWindow().getStart();
+                stop = loc.getStart() + dLen;
+                byte[] refBases = Arrays.copyOfRange(ref.getBases(),startIdxInReference,startIdxInReference+dLen);
+
+                if (Allele.acceptableAlleleBases(refBases)) {
+                    refAllele = Allele.create(refBases,true);
+                    altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
+                }
             }
-//            if (DEBUG)
-//                System.out.format("Key:%s, number: %d\n",s,consensusIndelStrings.get(s)  );
-        }         //gdebug-
+            else {
+                // insertion case
+                if (Allele.acceptableAlleleBases(s))  {
+                    refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
+                    altAllele = Allele.create(s, false);
+                    stop = loc.getStart();
+                }
+            }
 
-        if (maxAlleleCnt <  minIndelCountForGenotyping)
-            return aList;
 
-        if (bestAltAllele.startsWith("D")) {
-            // get deletion length
-            int dLen = Integer.valueOf(bestAltAllele.substring(1));
-            // get ref bases of accurate deletion
-            int startIdxInReference = 1+loc.getStart()-ref.getWindow().getStart();
+            ArrayList vcAlleles = new ArrayList<Allele>();
+            vcAlleles.add(refAllele);
+            vcAlleles.add(altAllele);
 
-            //System.out.println(new String(ref.getBases()));
-            byte[] refBases = Arrays.copyOfRange(ref.getBases(),startIdxInReference,startIdxInReference+dLen);
+            final VariantContextBuilder builder = new VariantContextBuilder().source("");
+            builder.loc(loc.getContig(), loc.getStart(), stop);
+            builder.alleles(vcAlleles);
+            builder.referenceBaseForIndel(ref.getBase());
+            builder.noGenotypes();
+            if (doMultiAllelicCalls)
+                vcs.add(builder.make());
+            else {
+                if (curCnt > maxAlleleCnt) {
+                    maxAlleleCnt = curCnt;
+                    vcs.clear();
+                    vcs.add(builder.make());
+                }
 
-            if (Allele.acceptableAlleleBases(refBases)) {
-                refAllele = Allele.create(refBases,true);
-                altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
             }
         }
-        else {
-            // insertion case
-            if (Allele.acceptableAlleleBases(bestAltAllele))  {
-                refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-                altAllele = Allele.create(bestAltAllele, false);
-            }
-        }
-        if (refAllele != null && altAllele != null) {
-            aList.add(0,refAllele);
-            aList.add(1,altAllele);
-        }
+
+        if (vcs.isEmpty())
+            return aList; // nothing else to do, no alleles passed minimum count criterion
+
+        VariantContext mergedVC = VariantContextUtils.simpleMerge(locParser, vcs, null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, VariantContextUtils.GenotypeMergeType.UNSORTED, false, false, null, false, false);
+
+        aList = new ArrayList<Allele>(mergedVC.getAlleles());
+
         return aList;
 
     }
@@ -277,7 +286,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          AlignmentContextUtils.ReadOrientation contextType,
                                          GenotypePriors priors,
                                          Allele alternateAlleleToUse,
-                                         boolean useBAQedPileup) {
+                                         boolean useBAQedPileup, GenomeLocParser locParser) {
 
         if ( tracker == null )
             return null;
@@ -294,17 +303,17 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             haplotypeMap.clear();
 
             if (getAlleleListFromVCF) {
-                 for( final VariantContext vc_input : tracker.getValues(UAC.alleles, loc) ) {
-                      if( vc_input != null &&
-                              allowableTypes.contains(vc_input.getType()) &&
-                              ref.getLocus().getStart() == vc_input.getStart()) {
-                         vc = vc_input;
-                         break;
-                     }
-                 }
-                 // ignore places where we don't have a variant
-                 if ( vc == null )
-                     return null;
+                for( final VariantContext vc_input : tracker.getValues(UAC.alleles, loc) ) {
+                    if( vc_input != null &&
+                            allowableTypes.contains(vc_input.getType()) &&
+                            ref.getLocus().getStart() == vc_input.getStart()) {
+                        vc = vc_input;
+                        break;
+                    }
+                }
+                // ignore places where we don't have a variant
+                if ( vc == null )
+                    return null;
 
                 alleleList.clear();
                 if (ignoreSNPAllelesWhenGenotypingIndels) {
@@ -323,7 +332,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             }
             else {
-                alleleList = computeConsensusAlleles(ref,contexts, contextType);
+                alleleList = computeConsensusAlleles(ref,contexts, contextType, locParser);
                 if (alleleList.isEmpty())
                     return null;
             }
@@ -340,7 +349,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
         if (alleleList.isEmpty())
             return null;
-        
+
         refAllele = alleleList.get(0);
         altAllele = alleleList.get(1);
 

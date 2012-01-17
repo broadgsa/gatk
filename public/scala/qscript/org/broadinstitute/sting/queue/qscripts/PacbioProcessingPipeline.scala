@@ -53,9 +53,9 @@ class PacbioProcessingPipeline extends QScript {
 
   val queueLogDir: String = ".qlog/"
 
-  def script = {
+  def script() {
 
-    val fileList: List[File] = QScriptUtils.createListFromFile(input)
+    val fileList: Seq[File] = QScriptUtils.createSeqFromFile(input)
 
     for (file: File <- fileList) {
 
