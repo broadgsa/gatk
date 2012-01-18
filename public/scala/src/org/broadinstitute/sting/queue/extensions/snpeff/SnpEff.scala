@@ -47,12 +47,16 @@ class SnpEff extends JavaCommandLineFunction {
   @Argument(doc="verbose", required=false)
   var verbose = true
 
+  @Argument(doc="onlyCoding", required=false)
+  var onlyCoding = true
+
   @Output(doc="snp eff output")
   var outVcf: File = _
 
   override def commandLine = super.commandLine +
                              required("eff") +
                              conditional(verbose, "-v") +
+                             required("-onlyCoding", onlyCoding.toString) +
                              optional("-c", config) +
                              required("-i", "vcf") +
                              required("-o", "vcf") +
