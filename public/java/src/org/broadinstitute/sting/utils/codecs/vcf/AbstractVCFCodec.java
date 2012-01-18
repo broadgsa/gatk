@@ -18,7 +18,7 @@ import java.util.zip.GZIPInputStream;
 
 
 public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
-    public final static int MAX_EXPLICIT_ALLELE_SIZE = (int)Math.pow(2, 16);
+    public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
@@ -522,8 +522,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         if ( allele == null || allele.length() == 0 )
             generateException("Empty alleles are not permitted in VCF records", lineNo);
 
-        if ( MAX_EXPLICIT_ALLELE_SIZE != -1 && allele.length() > MAX_EXPLICIT_ALLELE_SIZE )
-            generateException(String.format("Allele detected with length %d, exceeding max size %d.  Please remove this from the VCF file before continuing", allele.length(), MAX_EXPLICIT_ALLELE_SIZE), lineNo);
+        if ( MAX_ALLELE_SIZE_BEFORE_WARNING != -1 && allele.length() > MAX_ALLELE_SIZE_BEFORE_WARNING )
+            log.warn(String.format("Allele detected with length %d exceeding max size %d at approximately line %d, likely resulting in degraded VCF processing performance", allele.length(), MAX_ALLELE_SIZE_BEFORE_WARNING, lineNo));
 
         if ( isSymbolicAllele(allele) ) {
             if ( isRef ) {
@@ -576,12 +576,13 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
     public static int computeForwardClipping(List<Allele> unclippedAlleles, String ref) {
         boolean clipping = true;
+        final byte ref0 = (byte)ref.charAt(0);
 
         for ( Allele a : unclippedAlleles ) {
             if ( a.isSymbolic() )
                 continue;
 
-            if ( a.length() < 1 || (a.getBases()[0] != ref.getBytes()[0]) ) {
+            if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
                 clipping = false;
                 break;
             }
@@ -608,7 +609,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                     stillClipping = false;
                 else if ( ref.length() == clipping )
                     generateException("bad alleles encountered", lineNo);
-                else if ( a.getBases()[a.length()-clipping-1] != ref.getBytes()[ref.length()-clipping-1] )
+                else if ( a.getBases()[a.length()-clipping-1] != ((byte)ref.charAt(ref.length()-clipping-1)) )
                     stillClipping = false;
             }
             if ( stillClipping )
