@@ -617,6 +617,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
         return clipping;
     }
+
     /**
      * clip the alleles, based on the reference
      *
