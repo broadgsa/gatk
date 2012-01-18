@@ -147,13 +147,13 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 ActiveRegion bestRegion = activeRegion;
                 for( final ActiveRegion otherRegionToTest : workQueue ) {
                     if( otherRegionToTest.getLocation().sizeOfOverlap(readLoc) >= maxOverlap ) {
-                        maxOverlap = otherRegionToTest.getLocation().sizeOfOverlap(readLoc);
+                        maxOverlap = otherRegionToTest.getLocation().sizeOfOverlap( readLoc );
                         bestRegion = otherRegionToTest;
                     }
                 }
                 bestRegion.add( (GATKSAMRecord) read, true );
 
-                // The read is also added to all other region in which it overlaps but marked as non-primary
+                // The read is also added to all other regions in which it overlaps but marked as non-primary
                 if( !bestRegion.equals(activeRegion) ) {
                     activeRegion.add( (GATKSAMRecord) read, false );
                 }
