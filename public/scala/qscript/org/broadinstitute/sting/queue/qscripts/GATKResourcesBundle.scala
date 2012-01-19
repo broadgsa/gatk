@@ -134,8 +134,8 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/1kg/processing/official_release/phase1/ALL.wgs.VQSR_consensus_biallelic.20101123.indels.sites.vcf",
       "1000G_biallelic.indels", b37, true, false))
 
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Mills_Devine_Indels_2011/ALL.wgs.indels_mills_devine_hg19_leftAligned_collapsed_double_hit.sites.vcf",
-      "Mills_Devine_2hit.indels", b37, true, true))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
+      "Mills_and_1000G_gold_standard.indels", b37, true, true))
     
     //
     // example call set for wiki tutorial

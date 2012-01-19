@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -18,7 +17,7 @@ import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
- * User: rpoplin
+ * User: rpoplin, lfran
  * Date: 11/14/11
  */
 
@@ -28,6 +27,7 @@ public class TransmissionDisequilibriumTest extends InfoFieldAnnotation implemen
     private final static int REF = 0;
     private final static int HET = 1;
     private final static int HOM = 2;
+    private final static int MIN_NUM_VALID_TRIOS = 5; // don't calculate this population-level statistic if there are less than X trios with full genotype likelihood information
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( trios == null ) {
@@ -50,7 +50,9 @@ public class TransmissionDisequilibriumTest extends InfoFieldAnnotation implemen
             }
         }
 
-        toRet.put("TDT", calculateTDT( vc, triosToTest ));
+        if( triosToTest.size() >= MIN_NUM_VALID_TRIOS ) {
+            toRet.put("TDT", calculateTDT( vc, triosToTest ));
+        }
 
         return toRet;
     }

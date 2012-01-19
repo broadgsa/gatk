@@ -63,14 +63,18 @@ public class MathUtils {
 	return (d > 0) ? (int)(d + 0.5d) : (int)(d - 0.5d);
     }
 
-    public static double approximateLog10SumLog10(double[] vals) {
+    public static double approximateLog10SumLog10(final double[] vals) {
+	return approximateLog10SumLog10(vals, vals.length);
+    }
 
-	final int maxElementIndex = MathUtils.maxElementIndex(vals);
+    public static double approximateLog10SumLog10(final double[] vals, final int endIndex) {
+
+	final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
 	double approxSum = vals[maxElementIndex];
         if ( approxSum == Double.NEGATIVE_INFINITY )
             return approxSum;
 
-        for ( int i = 0; i < vals.length; i++ ) {
+        for ( int i = 0; i < endIndex; i++ ) {
 	    if ( i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY )
 		continue;
 
@@ -582,11 +586,15 @@ public class MathUtils {
         return normalizeFromLog10(array, false);
     }
 
-    public static int maxElementIndex(double[] array) {
+    public static int maxElementIndex(final double[] array) {
+	return maxElementIndex(array, array.length);
+    }
+
+    public static int maxElementIndex(final double[] array, final int endIndex) {
         if (array == null) throw new IllegalArgumentException("Array cannot be null!");
 
         int maxI = -1;
-        for (int i = 0; i < array.length; i++) {
+        for (int i = 0; i < endIndex; i++) {
             if (maxI == -1 || array[i] > array[maxI])
                 maxI = i;
         }
@@ -594,11 +602,15 @@ public class MathUtils {
         return maxI;
     }
 
-    public static int maxElementIndex(int[] array) {
+    public static int maxElementIndex(final int[] array) {
+	return maxElementIndex(array, array.length);
+    }
+
+    public static int maxElementIndex(final int[] array, int endIndex) {
         if (array == null) throw new IllegalArgumentException("Array cannot be null!");
 
         int maxI = -1;
-        for (int i = 0; i < array.length; i++) {
+        for (int i = 0; i < endIndex; i++) {
             if (maxI == -1 || array[i] > array[maxI])
                 maxI = i;
         }

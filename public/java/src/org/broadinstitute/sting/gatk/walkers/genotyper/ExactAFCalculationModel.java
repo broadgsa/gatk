@@ -35,7 +35,7 @@ import java.util.*;
 
 public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
-    private final static boolean DEBUG = false;
+    // private final static boolean DEBUG = false;
 
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
@@ -177,12 +177,18 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         ACqueue.add(zeroSet);
         indexesToACset.put(zeroSet.ACcounts, zeroSet);
 
+	// optimization: create the temporary storage for computing L(j,k) just once
+	final int maxPossibleDependencies = numAlternateAlleles + (numAlternateAlleles * (numAlternateAlleles + 1) / 2) + 1;
+	final double[][] tempLog10ConformationLikelihoods = new double[numSamples+1][maxPossibleDependencies];
+	for ( int i = 0; i < maxPossibleDependencies; i++ )
+	    tempLog10ConformationLikelihoods[0][i] = Double.NEGATIVE_INFINITY;
+
         // keep processing while we have AC conformations that need to be calculated
         double maxLog10L = Double.NEGATIVE_INFINITY;
         while ( !ACqueue.isEmpty() ) {
             // compute log10Likelihoods
             final ExactACset set = ACqueue.remove();
-            final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, maxLog10L, numChr, preserveData, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result);
+            final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, maxLog10L, numChr, preserveData, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result, tempLog10ConformationLikelihoods);
 
             // adjust max likelihood seen if needed
             maxLog10L = Math.max(maxLog10L, log10LofKs);
@@ -197,20 +203,21 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                            final Queue<ExactACset> ACqueue,
                                                            final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                                            final double[][] log10AlleleFrequencyPriors,
-                                                           final AlleleFrequencyCalculationResult result) {
+                                                           final AlleleFrequencyCalculationResult result,
+							   final double[][] tempLog10ConformationLikelihoods) {
 
-        if ( DEBUG )
-            System.out.printf(" *** computing LofK for set=%s%n", set.ACcounts);
+        //if ( DEBUG )
+        //    System.out.printf(" *** computing LofK for set=%s%n", set.ACcounts);
 
         // compute the log10Likelihoods
-        computeLofK(set, genotypeLikelihoods, indexesToACset, log10AlleleFrequencyPriors, result);
+        computeLofK(set, genotypeLikelihoods, indexesToACset, log10AlleleFrequencyPriors, result, tempLog10ConformationLikelihoods);
 
         // clean up memory
         if ( !preserveData ) {
             for ( ExactACcounts index : set.dependentACsetsToDelete ) {
                 indexesToACset.put(index, null);
-                if ( DEBUG )
-                    System.out.printf(" *** removing used set=%s after seeing final dependent set=%s%n", index, set.ACcounts);
+                //if ( DEBUG )
+                //    System.out.printf(" *** removing used set=%s after seeing final dependent set=%s%n", index, set.ACcounts);
             }
         }
 
@@ -218,8 +225,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // can we abort early because the log10Likelihoods are so small?
         if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
-            if ( DEBUG )
-                System.out.printf(" *** breaking early set=%s log10L=%.2f maxLog10L=%.2f%n", set.ACcounts, log10LofK, maxLog10L);
+            //if ( DEBUG )
+            //    System.out.printf(" *** breaking early set=%s log10L=%.2f maxLog10L=%.2f%n", set.ACcounts, log10LofK, maxLog10L);
 
             // no reason to keep this data around because nothing depends on it
             if ( !preserveData )
@@ -262,8 +269,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // if the last dependent set was not at the back of the queue (i.e. not just added), then we need to iterate
         // over all the dependent sets to find the last one in the queue (otherwise it will be cleaned up too early)
         if ( !preserveData && lastSet == null ) {
-            if ( DEBUG )
-                System.out.printf(" *** iterating over dependent sets for set=%s%n", set.ACcounts);
+            //if ( DEBUG )
+            //    System.out.printf(" *** iterating over dependent sets for set=%s%n", set.ACcounts);
             lastSet = determineLastDependentSetInQueue(set.ACcounts, ACqueue);
         }
         if ( lastSet != null )
@@ -309,7 +316,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                     final ArrayList<double[]> genotypeLikelihoods,
                                     final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                     final double[][] log10AlleleFrequencyPriors,
-                                    final AlleleFrequencyCalculationResult result) {
+                                    final AlleleFrequencyCalculationResult result,
+				    final double[][] tempLog10ConformationLikelihoods) {
 
         set.log10Likelihoods[0] = 0.0; // the zero case
         final int totalK = set.getACsum();
@@ -321,38 +329,41 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
         // k > 0 for at least one k
         else {
-            // all possible likelihoods for a given cell from which to choose the max
-            final int numPaths = set.ACsetIndexToPLIndex.size() + 1;
-            final double[] log10ConformationLikelihoods = new double[numPaths]; // TODO can be created just once, since you initialize it
+	    // deal with the non-AA possible conformations
+	    int conformationIndex = 1;
+	    for ( Map.Entry<ExactACcounts, Integer> mapping : set.ACsetIndexToPLIndex.entrySet() ) {
+		//if ( DEBUG )
+		//    System.out.printf(" *** evaluating set=%s which depends on set=%s%n", set.ACcounts, mapping.getKey());
 
-            for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
-                final double[] gl = genotypeLikelihoods.get(j);
-                final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
+		ExactACset dependent = indexesToACset.get(mapping.getKey());
 
-                // initialize
-                for ( int i = 0; i < numPaths; i++ )
-                    // TODO -- Arrays.fill?
-                    // todo -- is this even necessary?  Why not have as else below?
-                    log10ConformationLikelihoods[i] = Double.NEGATIVE_INFINITY;
+		for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
 
-                // deal with the AA case first
-                if ( totalK < 2*j-1 )
-                    log10ConformationLikelihoods[0] = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
-
-                // deal with the other possible conformations now
-                if ( totalK <= 2*j ) { // skip impossible conformations
-                    int conformationIndex = 1;
-                    for ( Map.Entry<ExactACcounts, Integer> mapping : set.ACsetIndexToPLIndex.entrySet() ) {
-                        if ( DEBUG )
-                            System.out.printf(" *** evaluating set=%s which depends on set=%s%n", set.ACcounts, mapping.getKey());
-                        log10ConformationLikelihoods[conformationIndex++] =
-                                determineCoefficient(mapping.getValue(), j, set.ACcounts.getCounts(), totalK) + indexesToACset.get(mapping.getKey()).log10Likelihoods[j-1] + gl[mapping.getValue()];
-                    }
+		    if ( totalK <= 2*j ) { // skip impossible conformations
+			final double[] gl = genotypeLikelihoods.get(j);
+			tempLog10ConformationLikelihoods[j][conformationIndex] =
+			    determineCoefficient(mapping.getValue(), j, set.ACcounts.getCounts(), totalK) + dependent.log10Likelihoods[j-1] + gl[mapping.getValue()];
+                    } else {
+			tempLog10ConformationLikelihoods[j][conformationIndex] = Double.NEGATIVE_INFINITY;
+		    }
                 }
 
-                final double log10Max = MathUtils.approximateLog10SumLog10(log10ConformationLikelihoods);
+		conformationIndex++;
+	    }
 
-                // finally, update the L(j,k) value
+	    // finally, deal with the AA case (which depends on previous cells in this column) and then update the L(j,k) value
+            final int numPaths = set.ACsetIndexToPLIndex.size() + 1;
+	    for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
+
+		if ( totalK < 2*j-1 ) {
+		    final double[] gl = genotypeLikelihoods.get(j);
+		    tempLog10ConformationLikelihoods[j][0] = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
+		} else {
+		    tempLog10ConformationLikelihoods[j][0] = Double.NEGATIVE_INFINITY;
+		}
+
+		final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
+                final double log10Max = MathUtils.approximateLog10SumLog10(tempLog10ConformationLikelihoods[j], numPaths);
                 set.log10Likelihoods[j] = log10Max - logDenominator;
             }
         }
@@ -523,7 +534,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             lastK = k;
             maxLog10L = Math.max(maxLog10L, log10LofK);
             if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
-                if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
+                //if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
                 done = true;
             }
 

@@ -60,6 +60,8 @@ class BWA {
   void set_mismatch_penalty(int penalty);
   void set_gap_open_penalty(int penalty);
   void set_gap_extension_penalty(int penalty);
+  void set_mode_nonstop();
+  void set_max_entries_in_queue(int max_entries);
 
   // Perform the alignment
   Alignment* generate_single_alignment(const char* bases, 
