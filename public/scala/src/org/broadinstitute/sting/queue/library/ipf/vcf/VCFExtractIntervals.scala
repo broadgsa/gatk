@@ -44,6 +44,7 @@ class VCFExtractIntervals(inVCF: File, outList: File, useFilterSites: Boolean) e
         }
       }
     }
+    out.printf("%s%n",cur)
 
     out.close
   }
