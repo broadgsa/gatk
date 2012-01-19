@@ -39,8 +39,6 @@ class VCFExtractIntervals(inVCF: File, outList: File, useFilterSites: Boolean) e
         if ( elems.hasNext ) {
           prev = cur
           cur = elems.next
-        } else {
-          out.printf("%s%n",cur)
         }
       }
     }
