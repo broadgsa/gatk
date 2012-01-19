@@ -26,23 +26,23 @@ class VCFExtractIntervals(inVCF: File, outList: File, useFilterSites: Boolean) e
     var cur : String = null
     if ( elems.hasNext ) {
       cur = elems.next
-    } else {
-      out.printf("%s%n",prev)
-    }
-    while ( elems.hasNext ) {
-      out.printf("%s%n",prev)
-      while ( cur.equals(prev) && elems.hasNext && !cur.equals("") ) {
-        cur = elems.next
-      }
-      
-      if ( ! cur.equals(prev) ) {
-        if ( elems.hasNext ) {
-          prev = cur
+      while ( elems.hasNext ) {
+        out.printf("%s%n",prev)
+        while ( cur.equals(prev) && elems.hasNext && !cur.equals("") ) {
           cur = elems.next
-        } else {
-          out.printf("%s%n",cur)
+        }
+
+        if ( ! cur.equals(prev) ) {
+          if ( elems.hasNext ) {
+            prev = cur
+            cur = elems.next
+          }
         }
       }
+      out.printf("%s%n",prev)
+      out.printf("%s%n",cur)
+    } else {
+      out.printf("%s%n",prev)
     }
 
     out.close

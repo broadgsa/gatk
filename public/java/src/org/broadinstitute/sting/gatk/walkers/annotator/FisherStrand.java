@@ -54,7 +54,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
     private static final double MIN_PVALUE = 1E-320;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( ! vc.isVariant() || vc.isFiltered() )
+        if ( !vc.isVariant() )
             return null;
 
         int[][] table;
