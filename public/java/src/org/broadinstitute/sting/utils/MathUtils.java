@@ -1557,4 +1557,48 @@ public class MathUtils {
         }
         return shuffled;
     }
+
+    /**
+     * Vector operations
+     */
+    public static double[] vectorSum(double v1[], double v2[]) {
+        if (v1.length != v2.length)
+            throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
+
+        double result[] = new double[v1.length];
+        for (int k=0; k < v1.length; k++)
+            result[k] = v1[k]+v2[k];
+
+        return result;
+    }
+
+    public static double[] scalarTimesIntVector(double a, int[] v1) {
+
+        double result[] = new double[v1.length];
+        for (int k=0; k < v1.length; k++)
+            result[k] = a*v1[k];
+
+        return result;
+    }
+
+    public static double dotProduct(double v1[], double v2[]) {
+        if (v1.length != v2.length)
+            throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
+
+        double result = 0.0;
+        for (int k=0; k < v1.length; k++)
+            result += v1[k]*v2[k];
+
+        return result;
+
+    }
+
+    public static double[] vectorLog10(double v1[]) {
+        double result[] = new double[v1.length];
+        for (int k=0; k < v1.length; k++)
+            result[k] = Math.log10(v1[k]);
+
+        return result;
+
+    }
 }
