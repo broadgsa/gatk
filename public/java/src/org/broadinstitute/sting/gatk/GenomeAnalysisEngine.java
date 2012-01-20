@@ -443,14 +443,22 @@ public class GenomeAnalysisEngine {
             if(!readsDataSource.hasIndex() && intervals != null && !argCollection.allowIntervalsWithUnindexedBAM)
                 throw new UserException.CommandLineException("Cannot perform interval processing when reads are present but no index is available.");
 
-            if(walker instanceof LocusWalker || walker instanceof ActiveRegionWalker) {
+            if(walker instanceof LocusWalker) {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 if(intervals == null)
                     return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
                 else
                     return readsDataSource.createShardIteratorOverIntervals(intervals,new LocusShardBalancer());
-            }
+            } 
+            else if(walker instanceof ActiveRegionWalker) {
+                if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
+                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Active region walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
+                if(intervals == null)
+                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                else
+                    return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new LocusShardBalancer());
+            } 
             else if(walker instanceof ReadWalker || walker instanceof ReadPairWalker || walker instanceof DuplicateWalker) {
                 // Apply special validation to read pair walkers.
                 if(walker instanceof ReadPairWalker) {

@@ -18,21 +18,25 @@ public class ActiveRegion implements HasGenomeLocation {
 
     private final ArrayList<ActiveRead> reads = new ArrayList<ActiveRead>();
     private byte[] reference = null;
-    private final GenomeLoc loc;
-    private GenomeLoc referenceLoc = null;
+    private final GenomeLoc activeRegionLoc;
+    private final GenomeLoc extendedLoc;
+    private final int extension;
+    private GenomeLoc fullExtentReferenceLoc = null;
     private final GenomeLocParser genomeLocParser;
     public final boolean isActive;
 
-    public ActiveRegion( final GenomeLoc loc, final boolean isActive, final GenomeLocParser genomeLocParser ) {
-        this.loc = loc;
+    public ActiveRegion( final GenomeLoc activeRegionLoc, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
+        this.activeRegionLoc = activeRegionLoc;
         this.isActive = isActive;
         this.genomeLocParser = genomeLocParser;
-        referenceLoc = loc;
+        this.extension = extension;
+        extendedLoc = genomeLocParser.createGenomeLoc(activeRegionLoc.getContig(), activeRegionLoc.getStart() - extension, activeRegionLoc.getStop() + extension);
+        fullExtentReferenceLoc = extendedLoc;
     }
 
-    // add each read to the bin and extend the reference genome loc if needed
+    // add each read to the bin and extend the reference genome activeRegionLoc if needed
     public void add( final GATKSAMRecord read, final boolean isPrimaryRegion  ) {
-        referenceLoc = referenceLoc.union( genomeLocParser.createGenomeLoc( read ) );
+        fullExtentReferenceLoc = fullExtentReferenceLoc.union( genomeLocParser.createGenomeLoc( read ) );
         reads.add( new ActiveRead(read, isPrimaryRegion) );
     }
 
@@ -41,15 +45,18 @@ public class ActiveRegion implements HasGenomeLocation {
     public byte[] getReference( final IndexedFastaSequenceFile referenceReader ) {
         // set up the reference if we haven't done so yet
         if ( reference == null ) {
-            reference = referenceReader.getSubsequenceAt(referenceLoc.getContig(), referenceLoc.getStart(), referenceLoc.getStop()).getBases();
+            reference = referenceReader.getSubsequenceAt(fullExtentReferenceLoc.getContig(), fullExtentReferenceLoc.getStart(), fullExtentReferenceLoc.getStop()).getBases();
         }
 
         return reference;
     }
 
-    public GenomeLoc getLocation() { return loc; }
-    
-    public GenomeLoc getReferenceLocation() { return referenceLoc; }
+    @Override
+    public GenomeLoc getLocation() { return activeRegionLoc; }
 
+    public GenomeLoc getExtendedLoc() { return extendedLoc; }
+    public GenomeLoc getReferenceLoc() { return fullExtentReferenceLoc; }
+
+    public int getExtension() { return extension; }
     public int size() { return reads.size(); }
 }

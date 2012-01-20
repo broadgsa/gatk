@@ -464,7 +464,11 @@ public class VariantContextUtils {
         /**
          * Requires all records present at site to be unfiltered. VCF files that don't contain the record don't influence this.
          */
-        KEEP_IF_ALL_UNFILTERED
+        KEEP_IF_ALL_UNFILTERED,
+        /**
+         * If any record is present at this site (regardless of possibly being filtered), then all such records are kept and the filters are reset.
+         */
+        KEEP_UNCONDITIONAL
     }
 
     /**
@@ -635,7 +639,7 @@ public class VariantContextUtils {
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
-        if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
+        if ( (filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size()) || filteredRecordMergeType == FilteredRecordMergeType.KEEP_UNCONDITIONAL )
             filters.clear();
 
 
