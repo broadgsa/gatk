@@ -467,6 +467,6 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     public long sizeOfOverlap( final GenomeLoc that ) {
-        return ( this.overlapsP(that) ? Math.min( getStop(), that.getStop() ) - Math.max( getStart(), that.getStart() ) : 0L );
+        return ( this.overlapsP(that) ? Math.min( getStop(), that.getStop() ) - Math.max( getStart(), that.getStart() ) + 1L : 0L );
     }
 }
