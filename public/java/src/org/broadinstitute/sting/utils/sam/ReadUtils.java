@@ -608,7 +608,7 @@ public class ReadUtils {
      *    Example: Locus => {read1, read2, ..., readN}
      *
      *  - Second: readToLocusMap -- a HashMap that describes for each read what loci it contributes to the coverage.
-     *    Note: Locus is a boolean array, indexed from 0 (= startLocation) to N (= stopLocation), with true meaning it contributes to the coverage.
+     *    Note: Locus is a boolean array, indexed from 0 (= startLocation) to N (= stopLocation), with value==true meaning it contributes to the coverage.
      *    Example: Read => {true, true, false, ... false}
      *
      * @param readList the list of reads to generate the association mappings
