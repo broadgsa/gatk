@@ -320,8 +320,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             og = a1+"/"+a2;
 
             // See if Beagle switched genotypes
-            if (!((bglAlleleA.equals(originalAlleleA) && bglAlleleB.equals(originalAlleleB) ||
-                    (bglAlleleA.equals(originalAlleleB) && bglAlleleB.equals(originalAlleleA))))){
+            if (! originalAlleleA.equals(Allele.NO_CALL) && beagleSwitchedGenotypes(bglAlleleA,originalAlleleA,bglAlleleB,originalAlleleB)){
                 originalAttributes.put("OG",og);
                 numGenotypesChangedByBeagle++;
             }
@@ -362,6 +361,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         vcfWriter.add(builder.make());
 
         return 1;
+    }
+
+    private boolean beagleSwitchedGenotypes(Allele bglAlleleA, Allele originalAlleleA, Allele bglAlleleB, Allele originalAlleleB) {
+       return !((bglAlleleA.equals(originalAlleleA) && bglAlleleB.equals(originalAlleleB) ||
+                    (bglAlleleA.equals(originalAlleleB) && bglAlleleB.equals(originalAlleleA))));
     }
 
     public Integer reduceInit() {
