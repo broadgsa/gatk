@@ -241,6 +241,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             String alleleA = beagleGenotypePairs.get(0);
             String alleleB = beagleGenotypePairs.get(1);
 
+            if ( alleleA.equals("null") || alleleB.equals("null") ) {
+                logger.warn("Beagle produced 'null' alleles at location "+ref.getLocus().toString()+". Ignoring.");
+                return 0;
+            }
+
             // Beagle always produces genotype strings based on the strings we input in the likelihood file.
             String refString = vc_input.getReference().getDisplayString();
             if (refString.length() == 0) // ref was null
