@@ -46,7 +46,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         logger.debug(String.format("TraverseActiveRegion.traverse: Shard is %s", dataProvider));
 
         final LocusView locusView = getLocusView( walker, dataProvider );
-        final GenomeLocSortedSet initialIntervals = engine.getIntervals();
+        final GenomeLocSortedSet initialIntervals = engine.getIntervals(); // BUGBUG: unfortunate inefficiency that needs to be removed
 
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         final int activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
@@ -166,20 +166,22 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                         bestRegion = otherRegionToTest;
                     }
                 }
-                bestRegion.add( (GATKSAMRecord) read, true );
+                bestRegion.add( (GATKSAMRecord) read );
 
                 // The read is also added to all other regions in which it overlaps but marked as non-primary
-                if( !bestRegion.equals(activeRegion) ) {
-                    activeRegion.add( (GATKSAMRecord) read, false );
-                }
-                for( final ActiveRegion otherRegionToTest : workQueue ) {
-                    if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
-                        activeRegion.add( (GATKSAMRecord) read, false );
+                if( walker.wantsNonPrimaryReads() ) {
+                    if( !bestRegion.equals(activeRegion) ) {
+                        activeRegion.add( (GATKSAMRecord) read );
+                    }
+                    for( final ActiveRegion otherRegionToTest : workQueue ) {
+                        if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
+                            activeRegion.add( (GATKSAMRecord) read );
+                        }
                     }
                 }
                 placedReads.add( read );
-            } else if( activeRegion.getExtendedLoc().overlapsP( readLoc ) ) {
-                activeRegion.add( (GATKSAMRecord) read, false );
+            } else if( activeRegion.getExtendedLoc().overlapsP( readLoc ) && walker.wantsNonPrimaryReads() ) {
+                activeRegion.add( (GATKSAMRecord) read );
             }
         }
         reads.removeAll( placedReads ); // remove all the reads which have been placed into their active region
@@ -207,7 +209,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
     }
 
-    // integrate active regions into contiguous chunks based on active status
+    // integrate active regions into contiguous chunks with identical active status
     private ArrayList<ActiveRegion> integrateActiveList( final ArrayList<ActiveRegion> activeList ) {
         final ArrayList<ActiveRegion> returnList = new ArrayList<ActiveRegion>();
         if( activeList.size() == 0 ) {

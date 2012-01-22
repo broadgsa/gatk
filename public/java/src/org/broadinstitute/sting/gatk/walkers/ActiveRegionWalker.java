@@ -37,6 +37,10 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         return true;    // We are keeping all the reads
     }
 
+    public boolean wantsNonPrimaryReads() {
+        return false;
+    }
+
     // Determine active status over the AlignmentContext
     public abstract boolean isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 

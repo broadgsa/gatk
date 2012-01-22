@@ -16,8 +16,7 @@ import java.util.ArrayList;
 
 public class ActiveRegion implements HasGenomeLocation {
 
-    private final ArrayList<ActiveRead> reads = new ArrayList<ActiveRead>();
-    private byte[] reference = null;
+    private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
     private final GenomeLoc activeRegionLoc;
     private final GenomeLoc extendedLoc;
     private final int extension;
@@ -35,28 +34,31 @@ public class ActiveRegion implements HasGenomeLocation {
     }
 
     // add each read to the bin and extend the reference genome activeRegionLoc if needed
-    public void add( final GATKSAMRecord read, final boolean isPrimaryRegion  ) {
+    public void add( final GATKSAMRecord read ) {
         fullExtentReferenceLoc = fullExtentReferenceLoc.union( genomeLocParser.createGenomeLoc( read ) );
-        reads.add( new ActiveRead(read, isPrimaryRegion) );
+        reads.add( read );
     }
 
-    public ArrayList<ActiveRead> getReads() { return reads; }
+    public ArrayList<GATKSAMRecord> getReads() { return reads; }
 
     public byte[] getReference( final IndexedFastaSequenceFile referenceReader ) {
-        // set up the reference if we haven't done so yet
-        if ( reference == null ) {
-            reference = referenceReader.getSubsequenceAt(fullExtentReferenceLoc.getContig(), fullExtentReferenceLoc.getStart(), fullExtentReferenceLoc.getStop()).getBases();
-        }
+        return getReference( referenceReader, 0 );
+    }
 
-        return reference;
+    public byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+       return referenceReader.getSubsequenceAt( fullExtentReferenceLoc.getContig(),
+               Math.max(1, fullExtentReferenceLoc.getStart() - padding), 
+               Math.min(referenceReader.getSequenceDictionary().getSequence(fullExtentReferenceLoc.getContig()).getSequenceLength(), fullExtentReferenceLoc.getStop() + padding) ).getBases();
     }
 
     @Override
     public GenomeLoc getLocation() { return activeRegionLoc; }
-
     public GenomeLoc getExtendedLoc() { return extendedLoc; }
     public GenomeLoc getReferenceLoc() { return fullExtentReferenceLoc; }
 
     public int getExtension() { return extension; }
     public int size() { return reads.size(); }
+    public void clearReads() { reads.clear(); }
+    public void remove( final GATKSAMRecord read ) { reads.remove( read ); }
+    public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
 }
