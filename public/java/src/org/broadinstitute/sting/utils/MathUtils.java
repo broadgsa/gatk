@@ -1572,34 +1572,37 @@ public class MathUtils {
 
     /**
      * Vector operations
+     * @param v1 first numerical array
+     * @param v2 second numerical array
+      * @return a new array with the elements added
      */
-    public static double[] vectorSum(double v1[], double v2[]) {
+    public static <E extends Number> Double[] vectorSum(E v1[], E v2[]) {
         if (v1.length != v2.length)
             throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
 
-        double result[] = new double[v1.length];
+        Double[] result = new Double[v1.length];
         for (int k=0; k < v1.length; k++)
-            result[k] = v1[k]+v2[k];
+            result[k] = v1[k].doubleValue()+v2[k].doubleValue();
 
         return result;
     }
 
-    public static double[] scalarTimesIntVector(double a, int[] v1) {
+    public static <E extends Number> Double[] scalarTimesVector(E a, E[] v1) {
 
-        double result[] = new double[v1.length];
+        Double result[] = new Double[v1.length];
         for (int k=0; k < v1.length; k++)
-            result[k] = a*v1[k];
+            result[k] = a.doubleValue()*v1[k].doubleValue();
 
         return result;
     }
 
-    public static double dotProduct(double v1[], double v2[]) {
+    public static <E extends Number> Double  dotProduct(E[] v1, E[] v2) {
         if (v1.length != v2.length)
             throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
 
-        double result = 0.0;
+        Double result = 0.0;
         for (int k=0; k < v1.length; k++)
-            result += v1[k]*v2[k];
+            result +=  v1[k].doubleValue() *v2[k].doubleValue();
 
         return result;
 
@@ -1613,4 +1616,15 @@ public class MathUtils {
         return result;
 
     }
+
+    // todo - silly overloading, just because Java can't unbox/box arrays of primitive types, and we can't do generics with primitive types!
+    public static Double[] vectorLog10(Double v1[]) {
+        Double result[] = new Double[v1.length];
+        for (int k=0; k < v1.length; k++)
+            result[k] = Math.log10(v1[k]);
+
+        return result;
+
+    }
+
 }
