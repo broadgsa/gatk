@@ -1,9 +1,15 @@
 package org.broadinstitute.sting.utils.fragments;
 
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -121,4 +127,63 @@ public class FragmentUtils {
         return create(reads, reads.size(), SamRecordGetter);
     }
 
+    public final static List<GATKSAMRecord> mergeOverlappingPairedFragments( List<GATKSAMRecord> overlappingPair ) {
+        final byte MIN_QUAL_BAD_OVERLAP = 16;
+        if( overlappingPair.size() != 2 ) { throw new ReviewedStingException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
+
+        GATKSAMRecord firstRead = overlappingPair.get(0);
+        GATKSAMRecord secondRead = overlappingPair.get(1);
+        if( !(secondRead.getUnclippedStart() <= firstRead.getUnclippedEnd() && secondRead.getUnclippedStart() >= firstRead.getUnclippedStart() && secondRead.getUnclippedEnd() >= firstRead.getUnclippedEnd()) ) {
+            firstRead = overlappingPair.get(1);
+            secondRead = overlappingPair.get(0);
+        }
+        if( !(secondRead.getUnclippedStart() <= firstRead.getUnclippedEnd() && secondRead.getUnclippedStart() >= firstRead.getUnclippedStart() && secondRead.getUnclippedEnd() >= firstRead.getUnclippedEnd()) ) {
+            return overlappingPair; // can't merge them, yet:  AAAAAAAAAAA-BBBBBBBBBBB-AAAAAAAAAAAAAA, B is contained entirely inside A
+        }
+        if( firstRead.getCigarString().contains("I") || firstRead.getCigarString().contains("D") || secondRead.getCigarString().contains("I") || secondRead.getCigarString().contains("D") ) {
+            return overlappingPair; // fragments contain indels so don't merge them
+        }
+
+        final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getSoftStart());
+
+        final int firstReadStop = ( pair.getSecond() ? pair.getFirst() + 1 : pair.getFirst() );
+        final int numBases = firstReadStop + secondRead.getReadLength();
+        final byte[] bases = new byte[numBases];
+        final byte[] quals = new byte[numBases];
+        final byte[] firstReadBases = firstRead.getReadBases();
+        final byte[] firstReadQuals = firstRead.getBaseQualities();
+        final byte[] secondReadBases = secondRead.getReadBases();
+        final byte[] secondReadQuals = secondRead.getBaseQualities();
+        for(int iii = 0; iii < firstReadStop; iii++) {
+            bases[iii] = firstReadBases[iii];
+            quals[iii] = firstReadQuals[iii];
+        }
+        for(int iii = firstReadStop; iii < firstRead.getReadLength(); iii++) {
+            if( firstReadQuals[iii] > MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] > MIN_QUAL_BAD_OVERLAP && firstReadBases[iii] != secondReadBases[iii-firstReadStop] ) {
+                return overlappingPair;// high qual bases don't match exactly, probably indel in only one of the fragments, so don't merge them
+            }
+            bases[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadBases[iii] : secondReadBases[iii-firstReadStop] );
+            quals[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadQuals[iii] : secondReadQuals[iii-firstReadStop] );
+        }
+        for(int iii = firstRead.getReadLength(); iii < numBases; iii++) {
+            bases[iii] = secondReadBases[iii-firstReadStop];
+            quals[iii] = secondReadQuals[iii-firstReadStop];
+        }
+
+        final GATKSAMRecord returnRead = new GATKSAMRecord(firstRead.getHeader());
+        returnRead.setAlignmentStart(firstRead.getUnclippedStart());
+        returnRead.setReadBases( bases );
+        returnRead.setBaseQualities( quals );
+        returnRead.setReadGroup( firstRead.getReadGroup() );
+        returnRead.setReferenceName( firstRead.getReferenceName() );
+        final CigarElement c = new CigarElement(bases.length, CigarOperator.M);
+        final ArrayList<CigarElement> cList = new ArrayList<CigarElement>();
+        cList.add(c);
+        returnRead.setCigar( new Cigar( cList ));
+        returnRead.setMappingQuality( firstRead.getMappingQuality() );
+
+        final ArrayList<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>();
+        returnList.add(returnRead);
+        return returnList;
+    }
 }

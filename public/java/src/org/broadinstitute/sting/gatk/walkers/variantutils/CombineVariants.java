@@ -105,7 +105,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
      * and each named argument will be labeled as such in the output (i.e., set=name rather than
      * set=variants2).  The order of arguments does not matter unless except for the naming, so
      * if you provide an rod priority list and no explicit names than variants, variants2, etc
-     * are techincally order dependent.  It is strongly recommended to provide explicit names when
+     * are technically order dependent.  It is strongly recommended to provide explicit names when
      * a rod priority list is provided.
      */
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)

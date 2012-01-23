@@ -155,7 +155,9 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     /////////////////////////////
     /**
      * This algorithm treats every reference mismatch as an indication of error. However, real genetic variation is expected to mismatch the reference,
-     * so it is critical that a database of known polymorphic sites is given to the tool in order to skip over those sites.
+     * so it is critical that a database of known polymorphic sites is given to the tool in order to skip over those sites. This tool accepts any number of RodBindings (VCF, Bed, etc.)
+     * for use as this database. For users wishing to exclude an interval list of known variation simply use -XL my.interval.list to skip over processing those sites.
+     * Please note however that the statistics reported by the tool will not accurately reflected those sites skipped by the -XL argument.
      */
     @Input(fullName="knownSites", shortName = "knownSites", doc="A database of known polymorphic sites to skip over in the recalibration algorithm", required=false)
     public List<RodBinding<Feature>> knownSites = Collections.emptyList();

@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.List;
 
@@ -126,7 +125,7 @@ public class VariantRecalibratorEngine {
             iteration++;
             model.maximizationStep( data );
             currentChangeInMixtureCoefficients = model.normalizePMixtureLog10();
-            model.expectationStep(data);
+            model.expectationStep( data );
             if( iteration % 5 == 0 ) { // cut down on the number of output lines so that users can read the warning messages
                 logger.info("Finished iteration " + iteration + ". \tCurrent change in mixture coefficients = " + String.format("%.5f", currentChangeInMixtureCoefficients));
             }

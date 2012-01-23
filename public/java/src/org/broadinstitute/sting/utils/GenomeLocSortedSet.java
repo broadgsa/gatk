@@ -128,6 +128,21 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     }
 
     /**
+     * Determine if the given loc overlaps any loc in the sorted set
+     *
+     * @param loc the location to test
+     * @return
+     */
+    public boolean overlaps(final GenomeLoc loc) {
+        for(final GenomeLoc e : mArray) {
+            if(e.overlapsP(loc)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * add a genomeLoc to the collection, simply inserting in order into the set
      *
      * @param e the GenomeLoc to add

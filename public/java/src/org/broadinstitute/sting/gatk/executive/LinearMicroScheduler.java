@@ -77,7 +77,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             done = walker.isDone();
         }
 
-        // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we push this functionality more into the engine
+        // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we eventually push this functionality more into the engine
         if( traversalEngine instanceof TraverseActiveRegions ) {
             final Object result = ((TraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
             accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
