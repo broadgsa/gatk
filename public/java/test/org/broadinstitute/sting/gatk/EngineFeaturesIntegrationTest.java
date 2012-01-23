@@ -54,4 +54,23 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @Test() private void testBadRODBindingInputTypeUnknownType() {
         testBadRODBindingInput("bedXXX", "Unknown input to VCF expecting walker", UserException.UnknownTribbleType.class);
     }
+
+    private void testMissingFile(String name, String missingBinding) {
+        WalkerTestSpec spec = new WalkerTestSpec(missingBinding + " -R " + b37KGReference + " -o %s",
+                1, UserException.CouldNotReadInputFile.class);
+        executeTest(name, spec);
+    }
+
+    @Test() private void testMissingBAMnt1() {
+        testMissingFile("missing BAM", "-T UnifiedGenotyper -I missing.bam -nt 1");
+    }
+    @Test() private void testMissingBAMnt4() {
+        testMissingFile("missing BAM", "-T UnifiedGenotyper -I missing.bam -nt 4");
+    }
+    @Test() private void testMissingVCF() {
+        testMissingFile("missing VCF", "-T SelectVariants -V missing.vcf");
+    }
+    @Test() private void testMissingInterval() {
+        testMissingFile("missing interval", "-T UnifiedGenotyper -L missing.interval_list -I " + b37GoodBAM);
+    }
 }

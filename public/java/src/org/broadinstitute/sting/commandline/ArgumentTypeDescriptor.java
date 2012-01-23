@@ -436,9 +436,12 @@ class RodBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     String.format("Failed to parse value %s for argument %s.",
                             value, source.field.getName()));
         } catch (Exception e) {
-            throw new UserException.CommandLineException(
-                    String.format("Failed to parse value %s for argument %s. Message: %s",
-                            value, source.field.getName(), e.getMessage()));
+            if ( e instanceof UserException )
+                throw ((UserException)e);
+            else
+                throw new UserException.CommandLineException(
+                        String.format("Failed to parse value %s for argument %s. Message: %s",
+                                value, source.field.getName(), e.getMessage()));
         }
     }
 }
