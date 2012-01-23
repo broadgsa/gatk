@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -37,6 +37,7 @@ import java.util.*;
 
 public class IOUtils {
     private static Logger logger = Logger.getLogger(IOUtils.class);
+    private static final File DEV_DIR = new File("/dev");
 
     /**
      * Checks if the temp directory has been setup and throws an exception if they user hasn't set it correctly.
@@ -301,12 +302,17 @@ public class IOUtils {
     }
 
     /**
-     * Tries to delete a file. Emits a warning if the file was unable to be deleted.
+     * Tries to delete a file. Emits a warning if the file
+     * is not a special file and was unable to be deleted.
      *
      * @param file File to delete.
      * @return true if the file was deleted.
      */
     public static boolean tryDelete(File file) {
+        if (isSpecialFile(file)) {
+            logger.debug("Not trying to delete " + file);
+            return false;
+        }
         boolean deleted = FileUtils.deleteQuietly(file);
         if (deleted)
             logger.debug("Deleted " + file);
@@ -384,5 +390,14 @@ public class IOUtils {
             throw new UserException.CouldNotReadInputFile(file, e);
         }
 
+    }
+
+    /**
+     * Returns true if the file is a special file.
+     * @param file File path to check.
+     * @return true if the file is a special file.
+     */
+    public static boolean isSpecialFile(File file) {
+        return file != null && (file.getAbsolutePath().startsWith("/dev/") || file.equals(DEV_DIR));
     }
 }

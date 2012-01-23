@@ -163,7 +163,9 @@ trait QFunction extends Logging with QJobReport {
    * Returns prefixes for hidden done/fail files.
    * @return prefixes.
    */
-  private def statusPrefixes = statusPaths.map(file => file.getParentFile + "/." + file.getName)
+  private def statusPrefixes = statusPaths.
+    filter(file => !IOUtils.isSpecialFile(file)).
+    map(file => file.getParentFile + "/." + file.getName)
 
   /**
    * Returns the output files for this function.
@@ -236,7 +238,7 @@ trait QFunction extends Logging with QJobReport {
    * Deletes the output files and all the status files for this function.
    */
   def deleteOutputs() {
-    outputs.foreach(file => IOUtils.tryDelete(file))
+    outputs.filter(file => !IOUtils.isSpecialFile(file)).foreach(file => IOUtils.tryDelete(file))
     doneOutputs.foreach(file => IOUtils.tryDelete(file))
     failOutputs.foreach(file => IOUtils.tryDelete(file))
   }
@@ -346,7 +348,7 @@ trait QFunction extends Logging with QJobReport {
 
     if (jobOutputFile == null) {
       jobOutputFile = firstOutput match {
-        case file: File => new File(file.getParentFile, file.getName + ".out")
+        case file: File if (!IOUtils.isSpecialFile(file)) => new File(file.getParentFile, file.getName + ".out")
         case _ => new File(jobName + ".out")
       }
     }

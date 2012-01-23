@@ -71,6 +71,14 @@ import org.broadinstitute.sting.jna.clibrary.LibC;
 public class LibBat {
 
     static {
+        // via Platform LSF Configuration Reference, by default quiet the BSUB output.
+        if ("Y".equals(System.getProperty("BSUB_QUIET", "Y")))
+            LibC.setenv("BSUB_QUIET", "Y", 1);
+        String lsfLibDir = System.getenv("LSF_LIBDIR");
+        if (lsfLibDir != null) {
+            NativeLibrary.addSearchPath("lsf", lsfLibDir);
+            NativeLibrary.addSearchPath("bat", lsfLibDir);
+        }
         /*
         LSF 7.0.6 on the mac is missing the unsatisfied exported symbol for environ which was removed on MacOS X 10.5+.
         nm $LSF_LIBDIR/liblsf.dylib | grep environ
@@ -79,16 +87,14 @@ public class LibBat {
         */
         if (Platform.isMac())
             NativeLibrary.getInstance("environhack");
-        String lsfLibDir = System.getenv("LSF_LIBDIR");
-        if (lsfLibDir != null) {
-            NativeLibrary.addSearchPath("lsf", lsfLibDir);
-            NativeLibrary.addSearchPath("bat", lsfLibDir);
-        }
-        NativeLibrary.getInstance("lsf");
-        // via Platform LSF Configuration Reference, by default quiet the BSUB output.
-        if ("Y".equals(System.getProperty("BSUB_QUIET", "Y")))
-            LibC.setenv("BSUB_QUIET", "Y", 1);
+        NativeLibrary liblsf = NativeLibrary.getInstance("lsf");
         Native.register("bat");
+        // HACK: Running into a weird error:
+        //   java.lang.UnsatisfiedLinkError: Unable to load library 'bat': <$LSF_LIBDIR>/libbat.so: undefined symbol: xdr_resourceInfoReq
+        // This function is very clearly unsatisfied by running 'nm $LSF_LIBDIR/libbat.so | grep xdr_resourceInfoReq' but is
+        // found in liblsf.so when running 'nm $LSF_LIBDIR/liblsf.so | grep xdr_resourceInfoReq'. For now holding on to a reference
+        // to the LSF lib just in case this is a problem with the NativeLibrary's internal WeakReferences and the library being unloaded?
+        liblsf.getFunction("xdr_resourceInfoReq").getName();
     }
 
     // Via support@platform.com:

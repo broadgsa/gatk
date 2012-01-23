@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,24 +22,28 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.sting.queue.qscripts.examples
 
-import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
-import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.sting.queue.extensions.gatk._
 
-class ExampleUnifiedGenotyperPipelineTest {
-  @Test
-  def testUnifiedGenotyper() {
-    val spec = new PipelineTestSpec
-    spec.name = "unifiedgenotyper"
-    spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -I " + BaseTest.testDir + "exampleBAM.bam",
-      " -filter QD",
-      " -filterExpression 'QD < 2.0'").mkString
-    spec.jobRunners = PipelineTest.allJobRunners
-    PipelineTest.executeTest(spec)
+/**
+ * Script used for testing output to /dev/null
+ */
+class DevNullOutput extends QScript {
+  @Input(doc="The reference file for the bam files.", shortName="R")
+  var referenceFile: File = _
+
+  @Input(doc="Bam file to genotype.", shortName="I")
+  var bamFile: File = _
+
+  def script() {
+    val genotyper = new UnifiedGenotyper
+    genotyper.reference_sequence = referenceFile
+    genotyper.memoryLimit = 2
+    genotyper.scatterCount = 3
+    genotyper.input_file :+= bamFile
+    genotyper.out = "/dev/null"
+    add(genotyper)
   }
 }
