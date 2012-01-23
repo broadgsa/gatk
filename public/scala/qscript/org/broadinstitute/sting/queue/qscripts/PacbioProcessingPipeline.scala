@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.util.QScriptUtils
 import net.sf.samtools.SAMFileHeader.SortOrder
 import org.broadinstitute.sting.utils.exceptions.UserException
@@ -60,12 +59,15 @@ class PacbioProcessingPipeline extends QScript {
     for (file: File <- fileList) {
 
       var USE_BWA: Boolean = false
+      var resetQuals: Boolean = true
 
       if (file.endsWith(".fasta") || file.endsWith(".fq")) {
         if (bwaPath == null) {
           throw new UserException("You provided a fasta/fastq file but didn't provide the path for BWA");
         }
         USE_BWA = true
+        if (file.endsWith(".fq"))
+          resetQuals = false
       }
 
       // FASTA -> BAM steps
@@ -99,7 +101,7 @@ class PacbioProcessingPipeline extends QScript {
 
       add(cov(bam, recalFile1),
           recal(bam, recalFile1, recalBam),
-          cov(recalBam, recalFile2),
+          cov(recalBam, recalFile2, resetQuals),
           analyzeCovariates(recalFile1, path1),
           analyzeCovariates(recalFile2, path2))
     }
@@ -158,8 +160,9 @@ class PacbioProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.DBQ = dbq
+  case class cov (inBam: File, outRecalFile: File, resetQuals: Boolean) extends CountCovariates with CommandLineGATKArgs {
+    if (resetQuals) 
+      this.DBQ = dbq
     this.knownSites :+= dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
