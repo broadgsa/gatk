@@ -6,6 +6,7 @@ import net.sf.samtools.SAMFileHeader.SortOrder
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.commandline.Hidden
 import org.broadinstitute.sting.queue.extensions.picard.{ReorderSam, SortSam, AddOrReplaceReadGroups}
+import org.broadinstitute.sting.queue.extensions.gatk._
 
 /**
  * Created by IntelliJ IDEA.
@@ -99,9 +100,9 @@ class PacbioProcessingPipeline extends QScript {
 
       val bam = if (BLASR_BAM) {mqBAM} else {bamBase}
 
-      add(cov(bam, recalFile1),
+      add(cov(bam, recalFile1, resetQuals),
           recal(bam, recalFile1, recalBam),
-          cov(recalBam, recalFile2, resetQuals),
+          cov(recalBam, recalFile2, false),
           analyzeCovariates(recalFile1, path1),
           analyzeCovariates(recalFile2, path2))
     }
