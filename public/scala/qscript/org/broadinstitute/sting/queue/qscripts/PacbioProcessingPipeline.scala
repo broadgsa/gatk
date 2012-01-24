@@ -62,12 +62,12 @@ class PacbioProcessingPipeline extends QScript {
       var USE_BWA: Boolean = false
       var resetQuals: Boolean = true
 
-      if (file.endsWith(".fasta") || file.endsWith(".fq")) {
+      if (file.endsWith(".fasta") || file.endsWith(".fq") || file.endsWith(".fastq")) {
         if (bwaPath == null) {
           throw new UserException("You provided a fasta/fastq file but didn't provide the path for BWA");
         }
         USE_BWA = true
-        if (file.endsWith(".fq"))
+        if (file.endsWith(".fq") || file.endsWith(".fastq"))
           resetQuals = false
       }
 
