@@ -962,19 +962,19 @@
         <property name="testng.classpath" value="testng.default.classpath" />
     </target>
 
-    <target name="alltests">
+    <target name="committests">
         <antcall target="test" inheritAll="false"/>
         <antcall target="integrationtest" inheritAll="false"/>
         <antcall target="pipelinetest" inheritAll="false"/>
     </target>
 
-    <target name="alltests.public">
+    <target name="committests.public">
         <antcall target="test.public" inheritAll="false"/>
         <antcall target="integrationtest.public" inheritAll="false"/>
         <antcall target="pipelinetest.public" inheritAll="false"/>
     </target>
 
-    <target name="alltests.gatk.packagejar" depends="init.buildpublic,package">
+    <target name="releasetests.gatk.packagejar" depends="init.buildpublic,package">
         <antcall target="test.public" inheritAll="false">
             <param name="testng.classpath" value="testng.gatk.releasetest.classpath" />
         </antcall>
@@ -983,7 +983,7 @@
         </antcall>
     </target>
 
-    <target name="alltests.queue.packagejar" depends="init.buildpublic,queue">
+    <target name="releasetests.queue.packagejar" depends="init.buildpublic,queue">
         <antcall target="package" inheritAll="false">
             <param name="executable" value="Queue" />
         </antcall>
