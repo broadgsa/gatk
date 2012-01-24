@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.util.QScriptUtils
 import net.sf.samtools.SAMFileHeader.SortOrder
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.commandline.Hidden
 import org.broadinstitute.sting.queue.extensions.picard.{ReorderSam, SortSam, AddOrReplaceReadGroups}
+import org.broadinstitute.sting.queue.extensions.gatk._
 
 /**
  * Created by IntelliJ IDEA.
@@ -60,12 +60,15 @@ class PacbioProcessingPipeline extends QScript {
     for (file: File <- fileList) {
 
       var USE_BWA: Boolean = false
+      var resetQuals: Boolean = true
 
-      if (file.endsWith(".fasta") || file.endsWith(".fq")) {
+      if (file.endsWith(".fasta") || file.endsWith(".fq") || file.endsWith(".fastq")) {
         if (bwaPath == null) {
           throw new UserException("You provided a fasta/fastq file but didn't provide the path for BWA");
         }
         USE_BWA = true
+        if (file.endsWith(".fq") || file.endsWith(".fastq"))
+          resetQuals = false
       }
 
       // FASTA -> BAM steps
@@ -97,9 +100,9 @@ class PacbioProcessingPipeline extends QScript {
 
       val bam = if (BLASR_BAM) {mqBAM} else {bamBase}
 
-      add(cov(bam, recalFile1),
+      add(cov(bam, recalFile1, resetQuals),
           recal(bam, recalFile1, recalBam),
-          cov(recalBam, recalFile2),
+          cov(recalBam, recalFile2, false),
           analyzeCovariates(recalFile1, path1),
           analyzeCovariates(recalFile2, path2))
     }
@@ -158,8 +161,9 @@ class PacbioProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
-    this.DBQ = dbq
+  case class cov (inBam: File, outRecalFile: File, resetQuals: Boolean) extends CountCovariates with CommandLineGATKArgs {
+    if (resetQuals) 
+      this.DBQ = dbq
     this.knownSites :+= dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam

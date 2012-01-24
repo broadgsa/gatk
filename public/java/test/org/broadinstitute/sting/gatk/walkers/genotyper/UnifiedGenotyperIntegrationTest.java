@@ -28,7 +28,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("d61c7055bd09024abb8902bde6bd3960"));
+                Arrays.asList("653172b43b19003d9f7df6dab21f4b09"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
@@ -227,7 +227,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L 1:10,000,000-10,500,000",
                 1,
-                Arrays.asList("b11df6587e4e16cb819d76a900446946"));
+                Arrays.asList("bd9d3d50a1f49605d7cd592a0f446899"));
 
         executeTest(String.format("test indel caller in SLX"), spec);
     }
@@ -255,7 +255,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                          " -o %s" +
                          " -L 1:10,000,000-10,500,000",
                  1,
-                 Arrays.asList("59068bc8888ad5f08790946066d76602"));
+                 Arrays.asList("91cd6d2e3972b0b8e4064bb35a33241f"));
 
          executeTest(String.format("test indel calling, multiple technologies"), spec);
      }
@@ -294,7 +294,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("fcd590a55f5fec2a9b7e628187d6b8a8"));
+                Arrays.asList("877de5b0cc61dc54636062df6399b978"));
         executeTest("test MultiSample Phase1 indels with complicated records", spec4);
     }
 

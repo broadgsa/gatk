@@ -30,11 +30,11 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
     static final boolean DEBUG = false;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( stratifiedContexts.size() == 0 )
+        if (stratifiedContexts.size() == 0)
             return null;
-         
+
         final GenotypesContext genotypes = vc.getGenotypes();
-        if ( genotypes == null || genotypes.size() == 0 )
+        if (genotypes == null || genotypes.size() == 0)
             return null;
 
 
@@ -43,19 +43,18 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
 
         if (vc.isSNP() && vc.isBiallelic()) {
             // todo - no current support for multiallelic snps
-            for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
+            for (final Genotype genotype : genotypes.iterateInSampleNameOrder()) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-                if ( context == null ) {
+                if (context == null) {
                     continue;
                 }
                 fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).getBases()[0], context.getBasePileup(), refQuals, altQuals);
             }
-        }
-        else if (vc.isIndel() || vc.isMixed()) {
+        } else if (vc.isIndel() || vc.isMixed()) {
 
-            for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
+            for (final Genotype genotype : genotypes.iterateInSampleNameOrder()) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-                if ( context == null ) {
+                if (context == null) {
                     continue;
                 }
 
@@ -74,46 +73,47 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
 
                 fillIndelQualsFromPileup(pileup, refQuals, altQuals);
             }
-        }
-        else
+        } else
             return null;
 
         final MannWhitneyU mannWhitneyU = new MannWhitneyU();
-        for ( final Double qual : altQuals ) {
+        for (final Double qual : altQuals) {
             mannWhitneyU.add(qual, MannWhitneyU.USet.SET1);
         }
-        for ( final Double qual : refQuals ) {
+        for (final Double qual : refQuals) {
             mannWhitneyU.add(qual, MannWhitneyU.USet.SET2);
         }
 
         if (DEBUG) {
-            System.out.format("%s, REF QUALS:",this.getClass().getName());
-            for ( final Double qual : refQuals )
-                System.out.format("%4.1f ",qual);
+            System.out.format("%s, REF QUALS:", this.getClass().getName());
+            for (final Double qual : refQuals)
+                System.out.format("%4.1f ", qual);
             System.out.println();
-            System.out.format("%s, ALT QUALS:",this.getClass().getName());            
-            for ( final Double qual : altQuals )
-                System.out.format("%4.1f ",qual);
+            System.out.format("%s, ALT QUALS:", this.getClass().getName());
+            for (final Double qual : altQuals)
+                System.out.format("%4.1f ", qual);
             System.out.println();
 
         }
         // we are testing that set1 (the alt bases) have lower quality scores than set2 (the ref bases)
-        final Pair<Double,Double> testResults = mannWhitneyU.runOneSidedTest( MannWhitneyU.USet.SET1 );
+        final Pair<Double, Double> testResults = mannWhitneyU.runOneSidedTest(MannWhitneyU.USet.SET1);
 
         final Map<String, Object> map = new HashMap<String, Object>();
-        if ( ! Double.isNaN(testResults.first) )
+        if (!Double.isNaN(testResults.first))
             map.put(getKeyNames().get(0), String.format("%.3f", testResults.first));
         return map;
 
     }
 
     protected abstract void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
+
     protected abstract void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
 
-    protected static boolean isUsableBase( final PileupElement p ) {
-        return !( p.isDeletion() ||
-                  p.getMappingQual() == 0 ||
-                  p.getMappingQual() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE ||
-                  ((int)p.getQual()) < QualityUtils.MIN_USABLE_Q_SCORE ); // need the unBAQed quality score here
+    protected static boolean isUsableBase(final PileupElement p) {
+        return !(p.isInsertionAtBeginningOfRead() ||
+                 p.isDeletion() ||
+                 p.getMappingQual() == 0 ||
+                 p.getMappingQual() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE ||
+                 ((int) p.getQual()) < QualityUtils.MIN_USABLE_Q_SCORE); // need the unBAQed quality score here
     }
 }

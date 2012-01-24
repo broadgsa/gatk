@@ -80,6 +80,10 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return getName() + ": <table>";
     }
 
+    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        return update2(eval,comp,tracker,ref,context,null);
+    }
+
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
     //public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
         Reasons interesting = new Reasons();

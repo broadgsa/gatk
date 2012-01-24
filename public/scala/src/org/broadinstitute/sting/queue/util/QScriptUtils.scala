@@ -45,9 +45,12 @@ object QScriptUtils {
    * to have empty lines and comment lines (lines starting with #).
    */
   def createSeqFromFile(in: File):Seq[File] = {
-    // If the file provided ends with .bam, .fasta or .fq, it is not a bam list, we treat it as a single file.
+    // If the file provided ends with .bam, .fasta, fastq or .fq, it is not a bam list, we treat it as a single file.
     // and return a list with only this file.
-    if (in.toString.endsWith(".bam") || in.toString.endsWith(".fasta") || in.toString.endsWith(".fq"))
+    if (in.toString.toUpperCase.endsWith(".BAM")   ||
+        in.toString.toUpperCase.endsWith(".FASTA") ||
+        in.toString.toUpperCase.endsWith(".FQ")    ||
+        in.toString.toUpperCase.endsWith("FASTQ") )
       return Seq(in)
 
     var list: Seq[File] = Seq()

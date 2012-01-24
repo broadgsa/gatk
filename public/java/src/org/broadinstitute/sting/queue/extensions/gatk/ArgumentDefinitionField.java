@@ -468,7 +468,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFreezeFields() {
             return String.format(
-                    ("if (%2$s != null)%n" +
+                    ("if (%2$s != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (!org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
                             "    %1$s = new File(%2$s.getPath + \"%3$s\")%n"),
                     auxFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
@@ -481,7 +481,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFreezeFields() {
             return String.format(
-                    ("if (%2$s != null)%n" +
+                    ("if (%2$s != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (!%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath.stripSuffix(\".bam\") + \"%4$s\")%n"),
                     auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME, BAMIndex.BAMIndexSuffix);
@@ -494,7 +494,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFreezeFields() {
             return String.format(
-                    ("if (%2$s != null)%n" +
+                    ("if (%2$s != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath + \"%4$s\")%n"),
                     auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME, ".md5");

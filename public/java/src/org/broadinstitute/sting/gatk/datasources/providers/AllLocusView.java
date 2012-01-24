@@ -23,7 +23,7 @@ import java.util.NoSuchElementException;
  */
 
 /**
- * A LocusView over which the user can iterate.  
+ * A LocusView over which the user can iterate.
  */
 
 public class AllLocusView extends LocusView {
@@ -47,12 +47,13 @@ public class AllLocusView extends LocusView {
 
     /**
      * Create a new queue of locus contexts.
+     *
      * @param provider
      */
-    public AllLocusView(LocusShardDataProvider provider) {                
-        super( provider );
+    public AllLocusView(LocusShardDataProvider provider) {
+        super(provider);
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
-        locusIterator = new GenomeLocusIterator(genomeLocParser,provider.getLocus());
+        locusIterator = new GenomeLocusIterator(genomeLocParser, provider.getLocus());
     }
 
     public boolean hasNext() {
@@ -63,7 +64,7 @@ public class AllLocusView extends LocusView {
     public AlignmentContext next() {
         advance();
 
-        if(nextPosition == null)
+        if (nextPosition == null)
             throw new NoSuchElementException("No next is available in the all locus view");
 
         // Flag to the iterator that no data is waiting in the queue to be processed.
@@ -72,7 +73,7 @@ public class AllLocusView extends LocusView {
         AlignmentContext currentLocus;
 
         // If actual data is present, return it.  Otherwise, return empty data.
-        if( nextLocus != null && nextLocus.getLocation().equals(nextPosition) )
+        if (nextLocus != null && nextLocus.getLocation().equals(nextPosition))
             currentLocus = nextLocus;
         else
             currentLocus = createEmptyLocus(nextPosition);
@@ -82,15 +83,15 @@ public class AllLocusView extends LocusView {
 
     private void advance() {
         // Already at the next element?  Don't move forward.
-        if(atNextElement)
+        if (atNextElement)
             return;
 
         // Out of elements?
-        if(nextPosition == null && !locusIterator.hasNext())
-            return;        
+        if (nextPosition == null && !locusIterator.hasNext())
+            return;
 
         // If nextLocus has been consumed, clear it out to make room for the next incoming locus.
-        if(nextPosition != null && nextLocus != null && !nextLocus.getLocation().isPast(nextPosition)) {
+        if (nextPosition != null && nextLocus != null && !nextLocus.getLocation().isPast(nextPosition)) {
             nextLocus = null;
 
             // Determine the next locus. The trick is that we may have more than one alignment context at the same
@@ -98,9 +99,9 @@ public class AllLocusView extends LocusView {
             // is still at the current position, we do not increment current position and wait for next call to next() to return
             // that context. If we know that next context is past the current position, we are done with current
             // position
-            if(hasNextLocus()) {
+            if (hasNextLocus()) {
                 nextLocus = nextLocus();
-                if(nextPosition.equals(nextLocus.getLocation())) {
+                if (nextPosition.equals(nextLocus.getLocation())) {
                     atNextElement = true;
                     return;
                 }
@@ -108,7 +109,7 @@ public class AllLocusView extends LocusView {
         }
 
         // No elements left in queue?  Clear out the position state tracker and return.
-        if(!locusIterator.hasNext()) {
+        if (!locusIterator.hasNext()) {
             nextPosition = null;
             return;
         }
@@ -119,9 +120,9 @@ public class AllLocusView extends LocusView {
 
         // Crank the iterator to (if possible) or past the next context.  Be careful not to hold a reference to nextLocus
         // while using the hasNextLocus() / nextLocus() machinery; this will cause us to use more memory than is optimal. 
-        while(nextLocus == null || nextLocus.getLocation().isBefore(nextPosition)) {
+        while (nextLocus == null || nextLocus.getLocation().isBefore(nextPosition)) {
             nextLocus = null;
-            if(!hasNextLocus())
+            if (!hasNextLocus())
                 break;
             nextLocus = nextLocus();
         }
@@ -129,12 +130,15 @@ public class AllLocusView extends LocusView {
 
     /**
      * Creates a blank locus context at the specified location.
+     *
      * @param site Site at which to create the blank locus context.
      * @return empty context.
      */
     private final static List<GATKSAMRecord> EMPTY_PILEUP_READS = Collections.emptyList();
     private final static List<Integer> EMPTY_PILEUP_OFFSETS = Collections.emptyList();
-    private AlignmentContext createEmptyLocus( GenomeLoc site ) {
-        return new AlignmentContext(site,new ReadBackedPileupImpl(site, EMPTY_PILEUP_READS, EMPTY_PILEUP_OFFSETS));
+    private final static List<Boolean> EMPTY_DELETION_STATUS = Collections.emptyList();
+
+    private AlignmentContext createEmptyLocus(GenomeLoc site) {
+        return new AlignmentContext(site, new ReadBackedPileupImpl(site, EMPTY_PILEUP_READS, EMPTY_PILEUP_OFFSETS));
     }
 }

@@ -42,12 +42,12 @@ public class ReadUtilsUnitTest extends BaseTest {
 
     @Test
     public void testReducedReadPileupElement() {
-        PileupElement readp = new PileupElement(read, 0);
-        PileupElement reducedreadp = new PileupElement(reducedRead, 0);
+        PileupElement readp = new PileupElement(read, 0, false);
+        PileupElement reducedreadp = new PileupElement(reducedRead, 0, false);
 
-        Assert.assertFalse(readp.isReducedRead());
+        Assert.assertFalse(readp.getRead().isReducedRead());
 
-        Assert.assertTrue(reducedreadp.isReducedRead());
+        Assert.assertTrue(reducedreadp.getRead().isReducedRead());
         Assert.assertEquals(reducedreadp.getRepresentativeCount(), REDUCED_READ_COUNTS[0]);
         Assert.assertEquals(reducedreadp.getQual(), readp.getQual());
     }

@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk;
 
+import net.sf.picard.PicardException;
+import net.sf.samtools.SAMException;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
@@ -95,7 +97,11 @@ public class CommandLineGATK extends CommandLineExecutable {
             // We can generate Tribble Exceptions in weird places when e.g. VCF genotype fields are
             //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
-        } catch (net.sf.samtools.SAMException e) {
+        } catch(PicardException e) {
+            // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedStingExceptions?
+            exitSystemWithError(e);
+        }
+        catch (SAMException e) {
             checkForTooManyOpenFilesProblem(e.getMessage());
             exitSystemWithSamError(e);
         } catch (Throwable t) {

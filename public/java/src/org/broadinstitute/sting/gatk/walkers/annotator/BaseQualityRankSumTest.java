@@ -25,13 +25,13 @@ public class BaseQualityRankSumTest extends RankSumTest {
     protected void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
         for ( final PileupElement p : pileup ) {
             if( isUsableBase(p) ) {
-                if ( p.getBase() == ref ) {
+                if ( p.getBase() == ref )
                     refQuals.add((double)p.getQual());
-                } else if ( p.getBase() == alt ) {
+                else if ( p.getBase() == alt )
                     altQuals.add((double)p.getQual());
-                }
             }
         }
+
     }
     protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
         // equivalent is whether indel likelihoods for reads corresponding to ref allele are more likely than reads corresponding to alt allele ?
@@ -57,8 +57,6 @@ public class BaseQualityRankSumTest extends RankSumTest {
                     refQuals.add(-10.0*refLikelihood);
                 else if (altLikelihood > refLikelihood + INDEL_LIKELIHOOD_THRESH)
                     altQuals.add(-10.0*altLikelihood);
-
-
             }
         }
     }

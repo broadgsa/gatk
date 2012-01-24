@@ -134,8 +134,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     var gatherOutputs = ListMap.empty[ArgumentSource, File]
     var gatherAddOrder = numClones + 2
 
-    // Only track fields that will have a value
-    val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
+    // Only track fields that will have an output file
+    val outputFieldsWithValues = this.outputFields.
+      filter(hasFieldValue(_)).
+      filter(gatherField => !IOUtils.isSpecialFile(getFieldFile(gatherField)))
 
     for (gatherField <- outputFieldsWithValues) {
       gatherOutputs += gatherField -> getFieldFile(gatherField)
@@ -175,9 +177,9 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       cloneFunction.analysisName = this.analysisName
       cloneFunction.cloneIndex = i
       cloneFunction.commandDirectory = this.scatterGatherTempDir(dirFormat.format(i))
-      cloneFunction.jobOutputFile = new File(this.jobOutputFile.getName)
+      cloneFunction.jobOutputFile = if (IOUtils.isSpecialFile(this.jobOutputFile)) this.jobOutputFile else new File(this.jobOutputFile.getName)
       if (this.jobErrorFile != null)
-        cloneFunction.jobErrorFile = new File(this.jobErrorFile.getName)
+        cloneFunction.jobErrorFile = if (IOUtils.isSpecialFile(this.jobErrorFile)) this.jobErrorFile else new File(this.jobErrorFile.getName)
       cloneFunction.addOrder = this.addOrder :+ (i+1)
       cloneFunction.isIntermediate = true
 
