@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
@@ -194,6 +195,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
+    private static final class DependentSet {
+        public final int[] ACcounts;
+        public final int PLindex;
+        
+        public DependentSet(final int[] ACcounts, final int PLindex) {
+            this.ACcounts = ACcounts;
+            this.PLindex = PLindex;
+        }
+    }
+
     private static double calculateAlleleCountConformation(final ExactACset set,
                                                            final ArrayList<double[]> genotypeLikelihoods,
                                                            final double maxLog10L,
@@ -255,24 +266,27 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // add conformations for the k+2 case if it makes sense; note that the 2 new alleles may be the same or different
         if ( ACwiggle > 1 ) {
-            // IMPORTANT: we must first add the cases where the 2 new alleles are different so that the queue maintains its ordering
-            for ( int allele_i = 0; allele_i < numAltAlleles - 1; allele_i++ ) {
-                for ( int allele_j = allele_i + 1; allele_j < numAltAlleles; allele_j++ ) {
-                    if ( allele_i == allele_j )
-                        continue;
+            final ArrayList<DependentSet> differentAlleles = new ArrayList<DependentSet>(numAltAlleles * numAltAlleles);
+            final ArrayList<DependentSet> sameAlleles = new ArrayList<DependentSet>(numAltAlleles);
+
+            for ( int allele_i = 0; allele_i < numAltAlleles; allele_i++ ) {
+                for ( int allele_j = allele_i; allele_j < numAltAlleles; allele_j++ ) {
                     final int[] ACcountsClone = set.ACcounts.getCounts().clone();
                     ACcountsClone[allele_i]++;
                     ACcountsClone[allele_j]++;
-                    lastSet = updateACset(ACcountsClone, numChr, set, ++PLindex , ACqueue, indexesToACset);
+
+                    if ( allele_i == allele_j )
+                        sameAlleles.add(new DependentSet(ACcountsClone, ++PLindex));
+                    else
+                        differentAlleles.add(new DependentSet(ACcountsClone, ++PLindex));
                 }
             }
 
-            // now we can deal with the case where the 2 new alleles are the same
-            for ( int allele_i = 0; allele_i < numAltAlleles; allele_i++ ) {
-                final int[] ACcountsClone = set.ACcounts.getCounts().clone();
-                ACcountsClone[allele_i] += 2;
-                lastSet = updateACset(ACcountsClone, numChr, set, ++PLindex , ACqueue, indexesToACset);
-            }
+            // IMPORTANT: we must first add the cases where the 2 new alleles are different so that the queue maintains its ordering
+            for ( DependentSet dependent : differentAlleles )
+                lastSet = updateACset(dependent.ACcounts, numChr, set, dependent.PLindex, ACqueue, indexesToACset);
+            for ( DependentSet dependent : sameAlleles )
+                lastSet = updateACset(dependent.ACcounts, numChr, set, dependent.PLindex, ACqueue, indexesToACset);
         }
 
         // if the last dependent set was not at the back of the queue (i.e. not just added), then we need to iterate
