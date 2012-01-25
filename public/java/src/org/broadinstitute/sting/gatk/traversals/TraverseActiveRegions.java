@@ -92,7 +92,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
                 // Call the walkers isActive function for this locus and add them to the list to be integrated later
                 if( initialIntervals.overlaps(location) ) {
-                    final boolean isActive = walker.isActive( tracker, refContext, locus );
+                    final boolean isActive = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus ) : walker.presetActiveRegions.overlaps(location) );
                     isActiveList.add( new ActiveRegion(location, isActive, engine.getGenomeLocParser(), activeRegionExtension ) );
                 }
                 
@@ -109,7 +109,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 if( !locusView.hasNext() ) {
                     // Call the walkers isActive function for this locus and add them to the list to be integrated later
                     if( initialIntervals.overlaps(location) ) {
-                        final boolean isActive = walker.isActive( tracker, refContext, locus );
+                        final boolean isActive = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus ) : walker.presetActiveRegions.overlaps(location) );
                         isActiveList.add( new ActiveRegion(location, isActive, engine.getGenomeLocParser(), activeRegionExtension ) );
                     }
 
