@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
@@ -39,6 +38,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
+    // TODO: PERMITS WALKER USED TO HAVE A TEMPORARY FIX to prevent NullPointerException caused by bug:
+    public static boolean PRESERVE_AC_DATA = false;
 
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
@@ -51,7 +52,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         final int numAlleles = alleles.size();
 
         //linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
-        linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, result, false);
+        linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, result, PRESERVE_AC_DATA);
     }
 
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
