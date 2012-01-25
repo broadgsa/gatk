@@ -126,10 +126,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
-    public RodBinding<VariantContext> getVariantRodBinding() { return null; }
     public RodBinding<VariantContext> getSnpEffRodBinding() { return null; }
     public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
+    public boolean alwaysAppendDbsnpId() { return false; }
 
     /**
      * A raw, unfiltered, highly specific callset in VCF format.

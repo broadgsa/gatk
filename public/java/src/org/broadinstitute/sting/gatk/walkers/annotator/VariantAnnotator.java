@@ -32,7 +32,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -84,7 +83,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
-    public RodBinding<VariantContext> getVariantRodBinding() { return variantCollection.variants; }
 
     /**
      * The INFO field will be annotated with information on the most biologically-significant effect
@@ -162,6 +160,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
     protected Boolean LIST = false;
+
+    /**
+     * By default, the dbSNP ID is added only when the ID field in the variant VCF is empty.
+     */
+    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="In conjunction with the dbSNP binding, append the dbSNP ID even when the variant VCF already has the ID field populated")
+    protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
+    public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 
     @Hidden
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
