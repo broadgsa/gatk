@@ -214,7 +214,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // clean up memory
         if ( !preserveData ) {
             for ( ExactACcounts index : set.dependentACsetsToDelete ) {
-                indexesToACset.put(index, null);
+                indexesToACset.remove(index);
                 //if ( DEBUG )
                 //    System.out.printf(" *** removing used set=%s after seeing final dependent set=%s%n", index, set.ACcounts);
             }
@@ -229,7 +229,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             // no reason to keep this data around because nothing depends on it
             if ( !preserveData )
-                indexesToACset.put(set.ACcounts, null);
+                indexesToACset.remove(set.ACcounts);
 
             return log10LofK;
         }
