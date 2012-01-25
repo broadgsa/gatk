@@ -40,7 +40,7 @@ import java.util.List;
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
 
     @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)
-    protected PrintStream activeRegionOutStream = null;
+    public PrintStream activeRegionOutStream = null;
 
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
     protected List<IntervalBinding<Feature>> activeRegionBindings = null;
