@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
@@ -166,7 +166,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         final int numChr = 2*numSamples;
 
         // queue of AC conformations to process
-        final Queue<ExactACset> ACqueue = new LinkedList<ExactACset>();
+        final LinkedList<ExactACset> ACqueue = new LinkedList<ExactACset>();
 
         // mapping of ExactACset indexes to the objects
         final HashMap<ExactACcounts, ExactACset> indexesToACset = new HashMap<ExactACcounts, ExactACset>(numChr+1);
@@ -210,7 +210,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                            final double maxLog10L,
                                                            final int numChr,
                                                            final boolean preserveData,
-                                                           final Queue<ExactACset> ACqueue,
+                                                           final LinkedList<ExactACset> ACqueue,
                                                            final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                                            final double[][] log10AlleleFrequencyPriors,
                                                            final AlleleFrequencyCalculationResult result,
@@ -250,7 +250,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( ACwiggle == 0 ) // all alternate alleles already sum to 2N so we cannot possibly go to higher frequencies
             return log10LofK;
 
-        ExactACset lastSet = null; // keep track of the last set placed in the queue so that we can tell it to clean us up when done processing
         final int numAltAlleles = set.ACcounts.getCounts().length;
 
         // genotype likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
@@ -261,7 +260,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         for ( int allele = 0; allele < numAltAlleles; allele++ ) {
             final int[] ACcountsClone = set.ACcounts.getCounts().clone();
             ACcountsClone[allele]++;
-            lastSet = updateACset(ACcountsClone, numChr, set, ++PLindex, ACqueue, indexesToACset);
+            updateACset(ACcountsClone, numChr, set, ++PLindex, ACqueue, indexesToACset);
         }
 
         // add conformations for the k+2 case if it makes sense; note that the 2 new alleles may be the same or different
@@ -284,20 +283,17 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             // IMPORTANT: we must first add the cases where the 2 new alleles are different so that the queue maintains its ordering
             for ( DependentSet dependent : differentAlleles )
-                lastSet = updateACset(dependent.ACcounts, numChr, set, dependent.PLindex, ACqueue, indexesToACset);
+                updateACset(dependent.ACcounts, numChr, set, dependent.PLindex, ACqueue, indexesToACset);
             for ( DependentSet dependent : sameAlleles )
-                lastSet = updateACset(dependent.ACcounts, numChr, set, dependent.PLindex, ACqueue, indexesToACset);
+                updateACset(dependent.ACcounts, numChr, set, dependent.PLindex, ACqueue, indexesToACset);
         }
 
-        // if the last dependent set was not at the back of the queue (i.e. not just added), then we need to iterate
-        // over all the dependent sets to find the last one in the queue (otherwise it will be cleaned up too early)
-        if ( !preserveData && lastSet == null ) {
-            //if ( DEBUG )
-            //    System.out.printf(" *** iterating over dependent sets for set=%s%n", set.ACcounts);
-            lastSet = determineLastDependentSetInQueue(set.ACcounts, ACqueue);
+        // determine which is the last dependent set in the queue (not necessarily the last one added above) so we can know when it is safe to clean up this column
+        if ( !preserveData ) {
+            final ExactACset lastSet = determineLastDependentSetInQueue(set.ACcounts, ACqueue);
+            if ( lastSet != null )
+                lastSet.dependentACsetsToDelete.add(set.ACcounts);
         }
-        if ( lastSet != null )
-            lastSet.dependentACsetsToDelete.add(set.ACcounts);
 
         return log10LofK;
     }
@@ -305,19 +301,17 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     // adds the ExactACset represented by the ACcounts to the ACqueue if not already there (creating it if needed) and
     // also adds it as a dependency to the given callingSetIndex.
     // returns the ExactACset if that set was not already in the queue and null otherwise.
-    private static ExactACset updateACset(final int[] ACcounts,
-                                          final int numChr,
-                                          final ExactACset callingSet,
-                                          final int PLsetIndex,
-                                          final Queue<ExactACset> ACqueue,
-                                          final HashMap<ExactACcounts, ExactACset> indexesToACset) {
+    private static void updateACset(final int[] ACcounts,
+                                    final int numChr,
+                                    final ExactACset callingSet,
+                                    final int PLsetIndex,
+                                    final Queue<ExactACset> ACqueue,
+                                    final HashMap<ExactACcounts, ExactACset> indexesToACset) {
         final ExactACcounts index = new ExactACcounts(ACcounts);
-        boolean wasInQueue = true;
         if ( !indexesToACset.containsKey(index) ) {
             ExactACset set = new ExactACset(numChr/2 +1, index);
             indexesToACset.put(index, set);
             ACqueue.add(set);
-            wasInQueue = false;
         }
 
         // add the given dependency to the set
@@ -325,16 +319,18 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         //    System.out.println(" *** adding dependency from " + index + " to " + callingSet.ACcounts);
         final ExactACset set = indexesToACset.get(index);
         set.ACsetIndexToPLIndex.put(callingSet.ACcounts, PLsetIndex);
-        return wasInQueue ? null : set;
     }
 
-    private static ExactACset determineLastDependentSetInQueue(final ExactACcounts callingSetIndex, final Queue<ExactACset> ACqueue) {
-        ExactACset set = null;
-        for ( ExactACset queued : ACqueue ) {
-            if ( queued.dependentACsetsToDelete.contains(callingSetIndex) )
-                set = queued;
+    private static ExactACset determineLastDependentSetInQueue(final ExactACcounts callingSetIndex, final LinkedList<ExactACset> ACqueue) {
+        Iterator<ExactACset> reverseIterator = ACqueue.descendingIterator();
+        while ( reverseIterator.hasNext() ) {
+            final ExactACset queued = reverseIterator.next();
+            if ( queued.ACsetIndexToPLIndex.containsKey(callingSetIndex) )
+                return queued;
         }
-        return set;
+
+        // shouldn't get here
+        throw new ReviewedStingException("Error: no sets in the queue currently hold " + callingSetIndex + " as a dependent!");
     }
 
     private static void computeLofK(final ExactACset set,
