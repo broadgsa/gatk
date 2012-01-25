@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAnnotation;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -23,7 +24,7 @@ import java.util.*;
  * Time: 12:24 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MVLikelihoodRatio extends InfoFieldAnnotation implements ExperimentalAnnotation {
+public class MVLikelihoodRatio extends InfoFieldAnnotation implements ExperimentalAnnotation, RodRequiringAnnotation {
 
     private MendelianViolation mendelianViolation = null;
     private String motherId;

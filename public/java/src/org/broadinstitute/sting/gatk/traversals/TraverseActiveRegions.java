@@ -92,7 +92,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
                 // Call the walkers isActive function for this locus and add them to the list to be integrated later
                 if( initialIntervals.overlaps(location) ) {
-                    final boolean isActive = walker.isActive( tracker, refContext, locus );
+                    final boolean isActive = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus ) : walker.presetActiveRegions.overlaps(location) );
                     isActiveList.add( new ActiveRegion(location, isActive, engine.getGenomeLocParser(), activeRegionExtension ) );
                 }
                 
@@ -109,7 +109,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 if( !locusView.hasNext() ) {
                     // Call the walkers isActive function for this locus and add them to the list to be integrated later
                     if( initialIntervals.overlaps(location) ) {
-                        final boolean isActive = walker.isActive( tracker, refContext, locus );
+                        final boolean isActive = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus ) : walker.presetActiveRegions.overlaps(location) );
                         isActiveList.add( new ActiveRegion(location, isActive, engine.getGenomeLocParser(), activeRegionExtension ) );
                     }
 
@@ -128,7 +128,16 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             // add these blocks of work to the work queue
             final ArrayList<ActiveRegion> activeRegions = integrateActiveList( isActiveList );
             logger.debug("Integrated " + isActiveList.size() + " isActive calls into " + activeRegions.size() + " regions." );
-            workQueue.addAll( activeRegions );
+            if( walker.activeRegionOutStream == null ) { 
+                workQueue.addAll( activeRegions ); 
+            } else { // Just want to output the active regions to a file, not actually process them
+                for( final ActiveRegion activeRegion : activeRegions ) {
+                    if( activeRegion.isActive ) {
+                        walker.activeRegionOutStream.println( activeRegion.getLocation() );
+                    }
+                }
+            }
+            
 
             // Since we've sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
             if( !workQueue.isEmpty() ) {
