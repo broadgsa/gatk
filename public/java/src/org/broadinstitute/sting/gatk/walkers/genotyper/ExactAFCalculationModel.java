@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
@@ -177,11 +176,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         ACqueue.add(zeroSet);
         indexesToACset.put(zeroSet.ACcounts, zeroSet);
 
-	// optimization: create the temporary storage for computing L(j,k) just once
-	final int maxPossibleDependencies = numAlternateAlleles + (numAlternateAlleles * (numAlternateAlleles + 1) / 2) + 1;
-	final double[][] tempLog10ConformationLikelihoods = new double[numSamples+1][maxPossibleDependencies];
-	for ( int i = 0; i < maxPossibleDependencies; i++ )
-	    tempLog10ConformationLikelihoods[0][i] = Double.NEGATIVE_INFINITY;
+	    // optimization: create the temporary storage for computing L(j,k) just once
+	    final int maxPossibleDependencies = numAlternateAlleles + (numAlternateAlleles * (numAlternateAlleles + 1) / 2) + 1;
+	    final double[][] tempLog10ConformationLikelihoods = new double[numSamples+1][maxPossibleDependencies];
+	    for ( int i = 0; i < maxPossibleDependencies; i++ )
+	        tempLog10ConformationLikelihoods[0][i] = Double.NEGATIVE_INFINITY;
 
         // keep processing while we have AC conformations that need to be calculated
         double maxLog10L = Double.NEGATIVE_INFINITY;
@@ -204,7 +203,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                            final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                                            final double[][] log10AlleleFrequencyPriors,
                                                            final AlleleFrequencyCalculationResult result,
-							   final double[][] tempLog10ConformationLikelihoods) {
+                                                           final double[][] tempLog10ConformationLikelihoods) {
 
         //if ( DEBUG )
         //    System.out.printf(" *** computing LofK for set=%s%n", set.ACcounts);
@@ -256,13 +255,23 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         // add conformations for the k+2 case if it makes sense; note that the 2 new alleles may be the same or different
         if ( ACwiggle > 1 ) {
-            for ( int allele_i = 0; allele_i < numAltAlleles; allele_i++ ) {
-                for ( int allele_j = allele_i; allele_j < numAltAlleles; allele_j++ ) {
+            // IMPORTANT: we must first add the cases where the 2 new alleles are different so that the queue maintains its ordering
+            for ( int allele_i = 0; allele_i < numAltAlleles - 1; allele_i++ ) {
+                for ( int allele_j = allele_i + 1; allele_j < numAltAlleles; allele_j++ ) {
+                    if ( allele_i == allele_j )
+                        continue;
                     final int[] ACcountsClone = set.ACcounts.getCounts().clone();
                     ACcountsClone[allele_i]++;
                     ACcountsClone[allele_j]++;
                     lastSet = updateACset(ACcountsClone, numChr, set, ++PLindex , ACqueue, indexesToACset);
                 }
+            }
+
+            // now we can deal with the case where the 2 new alleles are the same
+            for ( int allele_i = 0; allele_i < numAltAlleles; allele_i++ ) {
+                final int[] ACcountsClone = set.ACcounts.getCounts().clone();
+                ACcountsClone[allele_i] += 2;
+                lastSet = updateACset(ACcountsClone, numChr, set, ++PLindex , ACqueue, indexesToACset);
             }
         }
 
@@ -298,6 +307,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         // add the given dependency to the set
+        //if ( DEBUG )
+        //    System.out.println(" *** adding dependency from " + index + " to " + callingSet.ACcounts);
         final ExactACset set = indexesToACset.get(index);
         set.ACsetIndexToPLIndex.put(callingSet.ACcounts, PLsetIndex);
         return wasInQueue ? null : set;
@@ -317,7 +328,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                     final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                     final double[][] log10AlleleFrequencyPriors,
                                     final AlleleFrequencyCalculationResult result,
-				    final double[][] tempLog10ConformationLikelihoods) {
+                                    final double[][] tempLog10ConformationLikelihoods) {
 
         set.log10Likelihoods[0] = 0.0; // the zero case
         final int totalK = set.getACsum();
@@ -329,40 +340,40 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
         // k > 0 for at least one k
         else {
-	    // deal with the non-AA possible conformations
-	    int conformationIndex = 1;
-	    for ( Map.Entry<ExactACcounts, Integer> mapping : set.ACsetIndexToPLIndex.entrySet() ) {
-		//if ( DEBUG )
-		//    System.out.printf(" *** evaluating set=%s which depends on set=%s%n", set.ACcounts, mapping.getKey());
+	        // deal with the non-AA possible conformations
+            int conformationIndex = 1;
+            for ( Map.Entry<ExactACcounts, Integer> mapping : set.ACsetIndexToPLIndex.entrySet() ) {
+		        //if ( DEBUG )
+		        //    System.out.printf(" *** evaluating set=%s which depends on set=%s%n", set.ACcounts, mapping.getKey());
 
-		ExactACset dependent = indexesToACset.get(mapping.getKey());
+                ExactACset dependent = indexesToACset.get(mapping.getKey());
 
-		for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
+                for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
 
-		    if ( totalK <= 2*j ) { // skip impossible conformations
-			final double[] gl = genotypeLikelihoods.get(j);
-			tempLog10ConformationLikelihoods[j][conformationIndex] =
-			    determineCoefficient(mapping.getValue(), j, set.ACcounts.getCounts(), totalK) + dependent.log10Likelihoods[j-1] + gl[mapping.getValue()];
+                    if ( totalK <= 2*j ) { // skip impossible conformations
+                        final double[] gl = genotypeLikelihoods.get(j);
+                        tempLog10ConformationLikelihoods[j][conformationIndex] =
+                                determineCoefficient(mapping.getValue(), j, set.ACcounts.getCounts(), totalK) + dependent.log10Likelihoods[j-1] + gl[mapping.getValue()];
                     } else {
-			tempLog10ConformationLikelihoods[j][conformationIndex] = Double.NEGATIVE_INFINITY;
-		    }
+                        tempLog10ConformationLikelihoods[j][conformationIndex] = Double.NEGATIVE_INFINITY;
+                    }
                 }
 
-		conformationIndex++;
-	    }
+                conformationIndex++;
+            }
 
-	    // finally, deal with the AA case (which depends on previous cells in this column) and then update the L(j,k) value
+	        // finally, deal with the AA case (which depends on previous cells in this column) and then update the L(j,k) value
             final int numPaths = set.ACsetIndexToPLIndex.size() + 1;
-	    for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
+            for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
 
-		if ( totalK < 2*j-1 ) {
-		    final double[] gl = genotypeLikelihoods.get(j);
-		    tempLog10ConformationLikelihoods[j][0] = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
-		} else {
-		    tempLog10ConformationLikelihoods[j][0] = Double.NEGATIVE_INFINITY;
-		}
+                if ( totalK < 2*j-1 ) {
+                    final double[] gl = genotypeLikelihoods.get(j);
+                    tempLog10ConformationLikelihoods[j][0] = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
+                } else {
+                    tempLog10ConformationLikelihoods[j][0] = Double.NEGATIVE_INFINITY;
+                }
 
-		final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
+                final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
                 final double log10Max = MathUtils.approximateLog10SumLog10(tempLog10ConformationLikelihoods[j], numPaths);
                 set.log10Likelihoods[j] = log10Max - logDenominator;
             }
