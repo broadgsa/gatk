@@ -1073,6 +1073,14 @@ public class VariantContextUtils {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
     }
 
+    public static boolean isTransition(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSITION;
+    }
+
+    public static boolean isTransversion(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
+    }
+
     /**
      * create a genome location, given a variant context
      * @param genomeLocParser parser
