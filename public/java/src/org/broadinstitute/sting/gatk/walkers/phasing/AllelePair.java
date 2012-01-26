@@ -36,7 +36,7 @@ public class AllelePair {
 
     public AllelePair(Genotype gt) {
         if (gt.getPloidy() != 2)
-            throw new ReviewedStingException("AllelePair must have ploidy of 2!");
+            throw new ReviewedStingException("AllelePair must have ploidy of 2! incoming gt was"+gt.toBriefString());
 
         this.top = gt.getAllele(0);
         this.bottom = gt.getAllele(1);
