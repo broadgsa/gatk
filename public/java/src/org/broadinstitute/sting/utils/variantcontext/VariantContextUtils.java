@@ -29,6 +29,7 @@ import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -469,6 +470,18 @@ public class VariantContextUtils {
          * If any record is present at this site (regardless of possibly being filtered), then all such records are kept and the filters are reset.
          */
         KEEP_UNCONDITIONAL
+    }
+
+    @Hidden
+    public enum MultipleAllelesMergeType {
+        /**
+         * Combine only alleles of the same type (SNP, indel, etc.) into a single VCF record.
+         */
+        BY_TYPE,
+        /**
+         * Merge all allele types at the same start position into the same VCF record.
+         */
+        MIX_TYPES
     }
 
     /**
@@ -1058,6 +1071,14 @@ public class VariantContextUtils {
      */
     public static boolean isTransversion(VariantContext context) {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
+    }
+
+    public static boolean isTransition(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSITION;
+    }
+
+    public static boolean isTransversion(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
     }
 
     /**
