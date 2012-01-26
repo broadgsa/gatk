@@ -31,6 +31,8 @@ import java.util.Arrays;
  * Time: 2:57:55 PM
  * To change this template use File | Settings | File Templates.
  */
+
+// Extended events are slated for removal
 public class ExtendedEventPileupElement extends PileupElement {
     public enum Type {
         NOEVENT, DELETION, INSERTION
@@ -46,7 +48,7 @@ public class ExtendedEventPileupElement extends PileupElement {
 
 
     public ExtendedEventPileupElement(GATKSAMRecord read, int offset, int eventLength, String eventBases, Type type) {
-        super(read, offset, type == Type.DELETION);
+        super(read, offset, type == Type.DELETION, false, false); // extended events are slated for removal
         this.read = read;
         this.offset = offset;
         this.eventLength = eventLength;

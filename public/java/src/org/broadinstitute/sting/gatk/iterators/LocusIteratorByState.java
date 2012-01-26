@@ -176,6 +176,10 @@ public class LocusIteratorByState extends LocusIterator {
             return String.format("%s ro=%d go=%d co=%d cec=%d %s", read.getReadName(), readOffset, genomeOffset, cigarOffset, cigarElementCounter, curElement);
         }
 
+        public CigarOperator peekForwardOnGenome() {
+            return ( cigarElementCounter + 1 > curElement.getLength() && cigarOffset + 1 < nCigarElements ? cigar.getCigarElement(cigarOffset + 1) : curElement ).getOperator();
+        }
+
         public CigarOperator stepForwardOnGenome() {
             // we enter this method with readOffset = index of the last processed base on the read
             // (-1 if we did not process a single base yet); this can be last matching base, or last base of an insertion
@@ -455,6 +459,7 @@ public class LocusIteratorByState extends LocusIterator {
                         final SAMRecordState state = iterator.next();                 // state object with the read/offset information
                         final GATKSAMRecord read = (GATKSAMRecord) state.getRead();   // the actual read
                         final CigarOperator op = state.getCurrentCigarOperator();     // current cigar operator
+                        final CigarOperator nextOp = state.peekForwardOnGenome();     // next cigar operator
                         final int readOffset = state.getReadOffset();                 // the base offset on this read
                         final int eventStartOffset = state.getReadEventStartOffset(); // this will be -1 if base is not a deletion, or if base is the first deletion in the event. Otherwise, it will give the last base before the deletion began.
 
@@ -467,13 +472,13 @@ public class LocusIteratorByState extends LocusIterator {
                         if (op == CigarOperator.D) {
                             if (readInfo.includeReadsWithDeletionAtLoci()) {          // only add deletions to the pileup if we are authorized to do so
                                 int leftAlignedStart = (eventStartOffset < 0) ? readOffset : eventStartOffset;
-                                pile.add(new PileupElement(read, leftAlignedStart, true));
+                                pile.add(new PileupElement(read, leftAlignedStart, true, nextOp == CigarOperator.I, false));
                                 size++;
                                 nDeletions++;
                             }
                         } else {
                             if (!filterBaseInRead(read, location.getStart())) {
-                                pile.add(new PileupElement(read, readOffset, false));
+                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.I, op == CigarOperator.S));
                                 size++;
                             }
                         }

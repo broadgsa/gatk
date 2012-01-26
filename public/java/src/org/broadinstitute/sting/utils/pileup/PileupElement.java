@@ -23,45 +23,44 @@ public class PileupElement implements Comparable<PileupElement> {
     protected final GATKSAMRecord read;
     protected final int offset;
     protected final boolean isDeletion;
+    protected final boolean isBeforeInsertion;
+    protected final boolean isSoftClipped;
 
 
     /**
      * Creates a new pileup element.
      *
-     * @param read       the read we are adding to the pileup
-     * @param offset     the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
-     * @param isDeletion whether or not this base is a deletion
+     * @param read              the read we are adding to the pileup
+     * @param offset            the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
+     * @param isDeletion        whether or not this base is a deletion
+     * @param isBeforeInsertion whether or not this base is before an insertion
+     * @param isSoftClipped     whether or not this base was softclipped
      */
     @Requires({
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement(GATKSAMRecord read, int offset, boolean isDeletion) {
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeInsertion, final boolean isSoftClipped) {
         if (offset < 0 && isDeletion)
             throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
 
         this.read = read;
         this.offset = offset;
         this.isDeletion = isDeletion;
+        this.isBeforeInsertion = isBeforeInsertion;
+        this.isSoftClipped = isSoftClipped;
     }
 
-    //    /**
-//     * Creates a NON DELETION pileup element.
-//     *
-//     * use this constructor only for insertions and matches/mismatches.
-//     * @param read   the read we are adding to the pileup
-//     * @param offset the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
-//     */
-//    @Requires({
-//            "read != null",
-//            "offset >= -1",
-//            "offset <= read.getReadLength()"})
-//    public PileupElement( GATKSAMRecord read, int offset ) {
-//        this(read, offset, false);
-//    }
-//
     public boolean isDeletion() {
         return isDeletion;
+    }
+
+    public boolean isBeforeInsertion() {
+        return isBeforeInsertion;
+    }
+
+    public boolean isSoftClipped() {
+        return isSoftClipped;
     }
 
     public boolean isInsertionAtBeginningOfRead() {
