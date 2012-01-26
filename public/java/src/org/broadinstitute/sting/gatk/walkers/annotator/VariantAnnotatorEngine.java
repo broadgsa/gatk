@@ -195,11 +195,20 @@ public class VariantAnnotatorEngine {
     private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
-                String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
+                final String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
+                
+                // put the DB key into the INFO field
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
-                // annotate dbsnp id if available and not already there
-                if ( rsID != null && vc.emptyID() )
-                    vc = new VariantContextBuilder(vc).id(rsID).make();
+                
+                // add the ID if appropriate
+                if ( rsID != null ) {
+                    if ( vc.emptyID() ) {
+                        vc = new VariantContextBuilder(vc).id(rsID).make();
+                    } else if ( walker.alwaysAppendDbsnpId() && vc.getID().indexOf(rsID) == -1 ) {
+                        final String newRsID = vc.getID() + VCFConstants.ID_FIELD_SEPARATOR + rsID;
+                        vc = new VariantContextBuilder(vc).id(newRsID).make();
+                    }
+                }
             } else {
                 boolean overlapsComp = false;
                 for ( VariantContext comp : tracker.getValues(dbSet.getKey(), ref.getLocus()) ) {

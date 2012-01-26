@@ -111,6 +111,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testMultipleIdsWithDbsnp() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " --alwaysAppendDbsnpId --dbsnp " + b36dbSNP129 + " -G Standard --variant " + validationDataLocation + "vcfexample3withIDs.vcf -L " + validationDataLocation + "vcfexample3withIDs.vcf", 1,
+                Arrays.asList("cd7e3d43b8f5579c461b3e588a295fa8"));
+        executeTest("adding multiple IDs with dbSNP", spec);
+    }
+
+    @Test
     public void testDBTagWithHapMap() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --comp:H3 " + validationDataLocation + "fakeHM3.vcf -G Standard --variant " + validationDataLocation + "vcfexample3empty.vcf -L " + validationDataLocation + "vcfexample3empty.vcf", 1,

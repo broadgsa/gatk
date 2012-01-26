@@ -54,8 +54,9 @@ public class UnifiedGenotyperEngine {
         EMIT_VARIANTS_ONLY,
         /** produces calls at variant sites and confident reference sites */
         EMIT_ALL_CONFIDENT_SITES,
-        /** produces calls at any callable site regardless of confidence; this argument is intended for point
-         * mutations (SNPs) only and while some indel calls may be produced they are by no means comprehensive */
+        /** produces calls at any callable site regardless of confidence; this argument is intended only for point
+         * mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by
+         * no means produce a comprehensive set of indels in DISCOVERY mode */
         EMIT_ALL_SITES
     }
 
