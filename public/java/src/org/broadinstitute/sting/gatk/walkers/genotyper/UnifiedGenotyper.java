@@ -169,9 +169,11 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     private VariantAnnotatorEngine annotationEngine;
 
     // enable deletions in the pileup
+    @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
+    @Override
     public boolean generateExtendedEvents() {
         return (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES);
     }

@@ -73,8 +73,8 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         return false;
     }
 
-    // Determine active status over the AlignmentContext
-    public abstract boolean isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
+    // Determine probability of active status over the AlignmentContext
+    public abstract double isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
     public abstract MapType map(final ActiveRegion activeRegion, final ReadMetaDataTracker metaDataTracker);

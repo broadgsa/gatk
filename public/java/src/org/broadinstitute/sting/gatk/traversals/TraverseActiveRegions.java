@@ -10,14 +10,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,7 +52,8 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
 
             int minStart = Integer.MAX_VALUE;
-            final ArrayList<ActiveRegion> isActiveList = new ArrayList<ActiveRegion>();
+            final ArrayList<Double> isActiveList = new ArrayList<Double>();
+            GenomeLoc firstIsActiveStart = null;
 
             //ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
             ReferenceOrderedView referenceOrderedDataView = null;
@@ -91,11 +90,15 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation(), refContext);
 
                 // Call the walkers isActive function for this locus and add them to the list to be integrated later
-                if( initialIntervals.overlaps(location) ) {
-                    final boolean isActive = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus ) : walker.presetActiveRegions.overlaps(location) );
-                    isActiveList.add( new ActiveRegion(location, isActive, engine.getGenomeLocParser(), activeRegionExtension ) );
+                if( initialIntervals.overlaps( location ) ) {
+                    final double isActiveProb = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus )
+                                                                                     : ( walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0 ) );
+                    isActiveList.add( isActiveProb );
+                    if( firstIsActiveStart == null ) {
+                        firstIsActiveStart = locus.getLocation();
+                    }
                 }
-                
+
                 // Grab all the previously unseen reads from this pileup and add them to the massive read list
                 for( final PileupElement p : locus.getBasePileup() ) {
                     final SAMRecord read = p.getRead();
@@ -104,15 +107,9 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     }
                 }
 
-                // If this is the last pileup for this shard then need to first do a special walker.isActive() call
-                // and then calculate the minimum alignment start so that we know which active regions in the work queue are now safe to process
+                // If this is the last pileup for this shard calculate the minimum alignment start so that we know 
+                //   which active regions in the work queue are now safe to process
                 if( !locusView.hasNext() ) {
-                    // Call the walkers isActive function for this locus and add them to the list to be integrated later
-                    if( initialIntervals.overlaps(location) ) {
-                        final boolean isActive = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus ) : walker.presetActiveRegions.overlaps(location) );
-                        isActiveList.add( new ActiveRegion(location, isActive, engine.getGenomeLocParser(), activeRegionExtension ) );
-                    }
-
                     for( final PileupElement p : locus.getBasePileup() ) {
                         final SAMRecord read = p.getRead();
                         if( !myReads.contains(read) ) {
@@ -121,12 +118,12 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                         if( read.getAlignmentStart() < minStart ) { minStart = read.getAlignmentStart(); }
                     }
                 }
-                printProgress(dataProvider.getShard(),locus.getLocation());
+                printProgress(dataProvider.getShard(), locus.getLocation());
             }
 
             // Take the individual isActive calls and integrate them into contiguous active regions and
             // add these blocks of work to the work queue
-            final ArrayList<ActiveRegion> activeRegions = integrateActiveList( isActiveList );
+            final ArrayList<ActiveRegion> activeRegions = integrateActiveList( isActiveList, firstIsActiveStart, activeRegionExtension );
             logger.debug("Integrated " + isActiveList.size() + " isActive calls into " + activeRegions.size() + " regions." );
             if( walker.activeRegionOutStream == null ) { 
                 workQueue.addAll( activeRegions ); 
@@ -137,14 +134,11 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     }
                 }
             }
-            
 
             // Since we've sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
-            if( !workQueue.isEmpty() ) {
-                while( workQueue.peek().getExtendedLoc().getStop() < minStart || !workQueue.peek().getExtendedLoc().getContig().equals(dataProvider.getLocus().getContig()) ) {
-                    final ActiveRegion activeRegion = workQueue.remove();
-                    sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
-                }
+            while( workQueue.peek() != null && (workQueue.peek().getExtendedLoc().getStop() < minStart || !workQueue.peek().getExtendedLoc().getContig().equals(dataProvider.getLocus().getContig())) ) {
+                final ActiveRegion activeRegion = workQueue.remove();
+                sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
             }
         }
 
@@ -184,7 +178,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     }
                     for( final ActiveRegion otherRegionToTest : workQueue ) {
                         if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
-                            activeRegion.add( (GATKSAMRecord) read );
+                            otherRegionToTest.add( (GATKSAMRecord) read );
                         }
                     }
                 }
@@ -218,31 +212,43 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
     }
 
-    // integrate active regions into contiguous chunks with identical active status
-    private ArrayList<ActiveRegion> integrateActiveList( final ArrayList<ActiveRegion> activeList ) {
+    // band-pass filter the list of isActive probabilities and turn into active regions
+    private ArrayList<ActiveRegion> integrateActiveList( final ArrayList<Double> activeList, final GenomeLoc firstIsActiveStart, final int activeRegionExtension ) {
+
+        final double ACTIVE_PROB_THRESHOLD = 0.2;
         final ArrayList<ActiveRegion> returnList = new ArrayList<ActiveRegion>();
         if( activeList.size() == 0 ) {
             return returnList;
         } else if( activeList.size() == 1 ) {
-            returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(activeList.get(0).getLocation().getContig(), activeList.get(0).getLocation().getStart(), activeList.get(0).getLocation().getStart()),
-                    activeList.get(0).isActive, engine.getGenomeLocParser(), activeList.get(0).getExtension() ) );
+            returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart(), firstIsActiveStart.getStart()),
+                    activeList.get(0) > ACTIVE_PROB_THRESHOLD, engine.getGenomeLocParser(), activeRegionExtension ) );
             return returnList;
         } else {
-            ActiveRegion prevLocus = activeList.get(0);
-            ActiveRegion startLocus = prevLocus;
-            for( final ActiveRegion thisLocus : activeList ) {
-                if( prevLocus.isActive != thisLocus.isActive || !prevLocus.getLocation().contiguousP( thisLocus.getLocation() ) ) {
-                    returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(startLocus.getLocation().getContig(), startLocus.getLocation().getStart(), prevLocus.getLocation().getStart()),
-                                                      prevLocus.isActive, engine.getGenomeLocParser(), startLocus.getExtension() ) );
-                    startLocus = thisLocus;
+            final Double[] activeProbArray = activeList.toArray(new Double[activeList.size()]);
+            final double[] filteredProbArray = new double[activeProbArray.length];
+            final int FILTER_SIZE = 10;
+            final int MAX_ACTIVE_REGION = 200;
+            for( int iii = 0; iii < activeProbArray.length; iii++ ) {
+                double maxVal = 0;
+                for( int jjj = Math.max( 0, iii-FILTER_SIZE); jjj < Math.min( activeList.size(), iii+FILTER_SIZE); jjj++ ) {
+                    if( activeProbArray[jjj] > maxVal ) { maxVal = activeProbArray[jjj]; }
                 }
-                prevLocus = thisLocus;
+                filteredProbArray[iii] = maxVal;
             }
-            // output the last region if necessary
-            if( startLocus != prevLocus ) {
-                returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(startLocus.getLocation().getContig(), startLocus.getLocation().getStart(), prevLocus.getLocation().getStart()),
-                                                  prevLocus.isActive, engine.getGenomeLocParser(), startLocus.getExtension() ) );
+    
+            boolean curStatus = filteredProbArray[0] > ACTIVE_PROB_THRESHOLD;
+            int curStart = 0;
+            for(int iii = 1; iii < filteredProbArray.length; iii++ ) {
+                final boolean thisStatus = filteredProbArray[iii] > ACTIVE_PROB_THRESHOLD;
+                if( curStatus != thisStatus || (iii-curStart) > MAX_ACTIVE_REGION ) {
+                    returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (iii-1)),
+                            curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
+                    curStatus = thisStatus;
+                    curStart = iii;
+                }
             }
+            returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (filteredProbArray.length-1)),
+                    curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
             return returnList;
         }
     }
