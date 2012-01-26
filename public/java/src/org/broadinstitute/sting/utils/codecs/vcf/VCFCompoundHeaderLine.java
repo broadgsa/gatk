@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
@@ -149,7 +150,11 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
             count = Integer.valueOf(numberStr);
 
         }
-        type = VCFHeaderLineType.valueOf(mapping.get("Type"));
+        try {
+            type = VCFHeaderLineType.valueOf(mapping.get("Type"));
+        } catch (Exception e) {
+            throw new TribbleException(mapping.get("Type") + " is not a valid type in the VCF specification (note that types are case-sensitive)");
+        }
         if (type == VCFHeaderLineType.Flag && !allowFlagValues())
             throw new IllegalArgumentException("Flag is an unsupported type for this kind of field");
 
