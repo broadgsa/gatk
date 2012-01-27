@@ -42,8 +42,8 @@ public class GATKSAMRecordUnitTest extends BaseTest {
 
     @Test
     public void testReducedReadPileupElement() {
-        PileupElement readp = new PileupElement(read, 0, false);
-        PileupElement reducedreadp = new PileupElement(reducedRead, 0, false);
+        PileupElement readp = new PileupElement(read, 0, false, false, false);
+        PileupElement reducedreadp = new PileupElement(reducedRead, 0, false, false, false);
 
         Assert.assertFalse(readp.getRead().isReducedRead());
 
