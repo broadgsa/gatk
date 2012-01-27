@@ -83,7 +83,7 @@ public class QCRefWalker extends RefWalker<Integer, Integer> {
     }
 
     private final void throwError(ReferenceContext ref, String message) {
-        throw new StingException(String.format("Site %s failed: %s", ref, message));
+        throw new StingException(String.format("Site %s failed: %s", ref.getLocus(), message));
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -92,13 +92,13 @@ public class QCRefWalker extends RefWalker<Integer, Integer> {
             contigName = locusContigName;
             ReferenceSequence refSeq = uncachedRef.getSequence(contigName);
             contigStart = 1;
-            contigEnd = contigStart + refSeq.length();
+            contigEnd = contigStart + refSeq.length() - 1;
             uncachedBases = uncachedRef.getSubsequenceAt(contigName, contigStart, contigEnd).getBases();
-            logger.warn(String.format("Loading contig %s (%d-%d)", contigName, contigStart, contigEnd));
+            logger.info(String.format("Loading contig %s (%d-%d)", contigName, contigStart, contigEnd));
         }
 
         final byte refBase = ref.getBase();
-        if (! ( BaseUtils.isRegularBase(refBase) || BaseUtils.isNBase(refBase) ) )
+        if (! ( BaseUtils.isRegularBase(refBase) || isExtendFastaBase(refBase) ) )
             throwError(ref, String.format("Refbase isn't a regular base (%d %c)", refBase, (char)refBase));
 
         // check bases are equal
@@ -112,6 +112,28 @@ public class QCRefWalker extends RefWalker<Integer, Integer> {
                     refBase, (char)refBase, uncachedBase, (char)uncachedBase));
 
         return 1;
+    }
+
+    private static final boolean isExtendFastaBase(final byte b) {
+        switch ( b ) {
+            case 'U':
+            case 'R':
+            case 'Y':
+            case 'K':
+            case 'M':
+            case 'S':
+            case 'W':
+            case 'B':
+            case 'D':
+            case 'H':
+            case 'V':
+            case 'N':
+            case 'X':
+            case '-':
+                return true;
+            default:
+                return false;
+        }
     }
 
     public Integer reduceInit() {
