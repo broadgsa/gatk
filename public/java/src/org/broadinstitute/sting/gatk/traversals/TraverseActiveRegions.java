@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -63,24 +62,25 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 referenceOrderedDataView = (RodLocusView)locusView;
 
             // We keep processing while the next reference location is within the interval
+            GenomeLoc prevLoc = null;
             while( locusView.hasNext() ) {
                 final AlignmentContext locus = locusView.next();
                 GenomeLoc location = locus.getLocation();
+                if(prevLoc != null) {
+                    for(int iii = prevLoc.getStart() + 1; iii < location.getStart(); iii++ ) {       
+                        final GenomeLoc fakeLoc = engine.getGenomeLocParser().createGenomeLoc(prevLoc.getContig(), iii, iii);
+                        if( initialIntervals.overlaps( fakeLoc ) ) {
+                            final double isActiveProb = ( walker.presetActiveRegions == null ? walker.isActive( null, null, null )
+                                    : ( walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 ) );
+                            isActiveList.add( isActiveProb );
+                            if( firstIsActiveStart == null ) {
+                                firstIsActiveStart = fakeLoc;
+                            }
+                        }
+                    }
+                }
 
                 dataProvider.getShard().getReadMetrics().incrementNumIterations();
-
-                if ( locus.hasExtendedEventPileup() ) {
-                    // if the alignment context we received holds an "extended" pileup (i.e. pileup of insertions/deletions
-                    // associated with the current site), we need to update the location. The updated location still starts
-                    // at the current genomic position, but it has to span the length of the longest deletion (if any).
-                    location = engine.getGenomeLocParser().setStop(location,location.getStop()+locus.getExtendedEventPileup().getMaxDeletionLength());
-
-                    // it is possible that the new expanded location spans the current shard boundary; the next method ensures
-                    // that when it is the case, the reference sequence held by the ReferenceView will be reloaded so that
-                    // the view has all the bases we are gonna need. If the location fits within the current view bounds,
-                    // the next call will not do anything to the view:
-                    referenceView.expandBoundsToAccomodateLoc(location);
-                }
 
                 // create reference context. Note that if we have a pileup of "extended events", the context will
                 // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
@@ -95,7 +95,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                                                                                      : ( walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0 ) );
                     isActiveList.add( isActiveProb );
                     if( firstIsActiveStart == null ) {
-                        firstIsActiveStart = locus.getLocation();
+                        firstIsActiveStart = location;
                     }
                 }
 
@@ -118,6 +118,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                         if( read.getAlignmentStart() < minStart ) { minStart = read.getAlignmentStart(); }
                     }
                 }
+                prevLoc = location;
                 printProgress(dataProvider.getShard(), locus.getLocation());
             }
 
@@ -230,7 +231,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             final int MAX_ACTIVE_REGION = 200;
             for( int iii = 0; iii < activeProbArray.length; iii++ ) {
                 double maxVal = 0;
-                for( int jjj = Math.max( 0, iii-FILTER_SIZE); jjj < Math.min( activeList.size(), iii+FILTER_SIZE); jjj++ ) {
+                for( int jjj = Math.max(0, iii-FILTER_SIZE); jjj < Math.min(activeList.size(), iii+FILTER_SIZE); jjj++ ) {
                     if( activeProbArray[jjj] > maxVal ) { maxVal = activeProbArray[jjj]; }
                 }
                 filteredProbArray[iii] = maxVal;
@@ -241,14 +242,18 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             for(int iii = 1; iii < filteredProbArray.length; iii++ ) {
                 final boolean thisStatus = filteredProbArray[iii] > ACTIVE_PROB_THRESHOLD;
                 if( curStatus != thisStatus || (iii-curStart) > MAX_ACTIVE_REGION ) {
-                    returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (iii-1)),
+                    returnList.add( new ActiveRegion(
+                            engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (iii-1)),
                             curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
                     curStatus = thisStatus;
                     curStart = iii;
                 }
             }
-            returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (filteredProbArray.length-1)),
-                    curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
+            if( curStart != filteredProbArray.length-1 ) {
+                returnList.add( new ActiveRegion(
+                        engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (filteredProbArray.length-1)),
+                        curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
+            }
             return returnList;
         }
     }
