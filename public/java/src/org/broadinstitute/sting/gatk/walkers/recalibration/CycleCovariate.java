@@ -159,7 +159,7 @@ public class CycleCovariate implements StandardCovariate {
             }
         }
         else  {
-            throw new IllegalStateException("This method hasn't been implemented yet for " + read.getReadGroup().getPlatform());
+            throw new UserException("The platform (" + read.getReadGroup().getPlatform() + ") associated with read group " + read.getReadGroup() + " is not a recognized platform. Implemented options are e.g. illumina, 454, and solid");
         }
     }
 

@@ -43,7 +43,10 @@ import java.util.Map;
  *
  */
 public class GATKSAMRecord extends BAMRecord {
-    public static final String REDUCED_READ_CONSENSUS_TAG = "RR";
+    // ReduceReads specific attribute tags
+    public static final String REDUCED_READ_CONSENSUS_TAG = "RR";                   // marks a synthetic read produced by the ReduceReads tool
+    public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT = "OP";  // reads that are clipped may use this attribute to keep track of their original alignment start
+    public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -322,6 +325,36 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     /**
+     * Determines the original alignment start of a previously clipped read.
+     * 
+     * This is useful for reads that have been trimmed to a variant region and lost the information of it's original alignment end
+     * 
+     * @return the alignment start of a read before it was clipped
+     */
+    public int getOriginalAlignmentStart() {
+        int originalAlignmentStart = getUnclippedStart();
+        Integer alignmentShift = (Integer) getAttribute(REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT);
+        if (alignmentShift != null)
+            originalAlignmentStart += alignmentShift;
+        return originalAlignmentStart;    
+    }
+
+    /**
+     * Determines the original alignment end of a previously clipped read.
+     *
+     * This is useful for reads that have been trimmed to a variant region and lost the information of it's original alignment end
+     * 
+     * @return the alignment end of a read before it was clipped
+     */
+    public int getOriginalAlignmentEnd() {
+        int originalAlignmentEnd = getUnclippedEnd();
+        Integer alignmentShift = (Integer) getAttribute(REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT);
+        if (alignmentShift != null)
+            originalAlignmentEnd -= alignmentShift;
+        return originalAlignmentEnd;
+    }
+
+    /**
      * Creates an empty GATKSAMRecord with the read's header, read group and mate
      * information, but empty (not-null) fields:
      *  - Cigar String
@@ -363,4 +396,21 @@ public class GATKSAMRecord extends BAMRecord {
         return emptyRead;
     }
 
+    /**
+     * Shallow copy of everything, except for the attribute list and the temporary attributes. 
+     * A new list of the attributes is created for both, but the attributes themselves are copied by reference.  
+     * This should be safe because callers should never modify a mutable value returned by any of the get() methods anyway.
+     * 
+     * @return a shallow copy of the GATKSAMRecord
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
+        if (temporaryAttributes != null) {
+            for (Object attribute : temporaryAttributes.keySet())
+                clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
+        }
+        return clone;
+    }
 }

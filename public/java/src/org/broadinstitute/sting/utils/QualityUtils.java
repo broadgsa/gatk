@@ -17,7 +17,7 @@ public class QualityUtils {
 
     private static double qualToErrorProbCache[] = new double[256];
     static {
-        for (int i = 0; i < 256; i++) qualToErrorProbCache[i] = qualToErrorProbRaw((byte)i);
+        for (int i = 0; i < 256; i++) qualToErrorProbCache[i] = qualToErrorProbRaw(i);
     }
 
     /**
@@ -44,15 +44,15 @@ public class QualityUtils {
      * Convert a quality score to a probability of error.  This is the Phred-style
      * conversion, *not* the Illumina-style conversion (though asymptotically, they're the same).
      *
-     * @param qual a quality score (0-40)
-     * @return a probability (0.0-1.0)
+     * @param qual a quality score (0 - 255)
+     * @return a probability (0.0 - 1.0)
      */
-    static public double qualToErrorProbRaw(byte qual) {
+    static private double qualToErrorProbRaw(int qual) {
         return Math.pow(10.0, ((double) qual)/-10.0);
     }
 
     static public double qualToErrorProb(byte qual) {
-        return qualToErrorProbCache[qual];
+        return qualToErrorProbCache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
     /**

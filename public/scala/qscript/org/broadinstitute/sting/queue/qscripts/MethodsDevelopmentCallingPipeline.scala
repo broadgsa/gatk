@@ -25,9 +25,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="noIndels", doc="do not call indels with the Unified Genotyper", required=false)
   var noIndels: Boolean = false
 
-  @Argument(shortName="LOCAL_ET", doc="Doesn't use the AWS S3 storage for ET option", required=false)
-  var LOCAL_ET: Boolean = false
-
   @Argument(shortName="mbq", doc="The minimum Phred-Scaled quality score threshold to be considered a good base.", required=false)
   var minimumBaseQuality: Int = -1
 
@@ -203,7 +200,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
     logging_level = "INFO";
     memoryLimit = 4;
-    phone_home = if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3
+    phone_home = GATKRunReport.PhoneHomeOption.NO_ET
   }
 
   def bai(bam: File) = new File(bam + ".bai")
