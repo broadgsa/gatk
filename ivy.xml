@@ -72,7 +72,7 @@
     <dependency org="net.java.dev.jna" name="jna" rev="3.2.7"/>
 
     <!-- Dependencies for amazon.com S3 support -->
-    <dependency org="net.java.dev.jets3t" name="jets3t" rev="0.8.0"/>
+    <dependency org="net.java.dev.jets3t" name="jets3t" rev="0.8.1"/>
 
     <!-- Dependencies for GridEngine -->
     <dependency org="net.sf.gridscheduler" name="drmaa" rev="latest.integration"/>
