@@ -204,7 +204,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     protected abstract AbstractReadBackedPileup<RBP, PE> createNewPileup(GenomeLoc loc, PileupElementTracker<PE> pileupElementTracker);
 
-    protected abstract PE createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeInsertion, boolean isSoftClipped);
+    protected abstract PE createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip);
 
     // --------------------------------------------------------
     //

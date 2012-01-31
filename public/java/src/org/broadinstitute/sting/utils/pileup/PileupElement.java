@@ -24,7 +24,7 @@ public class PileupElement implements Comparable<PileupElement> {
     protected final int offset;
     protected final boolean isDeletion;
     protected final boolean isBeforeInsertion;
-    protected final boolean isSoftClipped;
+    protected final boolean isNextToSoftClip;
 
 
     /**
@@ -34,13 +34,13 @@ public class PileupElement implements Comparable<PileupElement> {
      * @param offset            the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
      * @param isDeletion        whether or not this base is a deletion
      * @param isBeforeInsertion whether or not this base is before an insertion
-     * @param isSoftClipped     whether or not this base was softclipped
+     * @param isNextToSoftClip  whether or not this base is next to a soft clipped base
      */
     @Requires({
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeInsertion, final boolean isSoftClipped) {
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip) {
         if (offset < 0 && isDeletion)
             throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
 
@@ -48,7 +48,7 @@ public class PileupElement implements Comparable<PileupElement> {
         this.offset = offset;
         this.isDeletion = isDeletion;
         this.isBeforeInsertion = isBeforeInsertion;
-        this.isSoftClipped = isSoftClipped;
+        this.isNextToSoftClip = isNextToSoftClip;
     }
 
     public boolean isDeletion() {
@@ -59,8 +59,8 @@ public class PileupElement implements Comparable<PileupElement> {
         return isBeforeInsertion;
     }
 
-    public boolean isSoftClipped() {
-        return isSoftClipped;
+    public boolean isNextToSoftClip() {
+        return isNextToSoftClip;
     }
 
     public boolean isInsertionAtBeginningOfRead() {

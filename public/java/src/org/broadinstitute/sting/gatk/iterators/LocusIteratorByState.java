@@ -472,13 +472,13 @@ public class LocusIteratorByState extends LocusIterator {
                         if (op == CigarOperator.D) {
                             if (readInfo.includeReadsWithDeletionAtLoci()) {          // only add deletions to the pileup if we are authorized to do so
                                 int leftAlignedStart = (eventStartOffset < 0) ? readOffset : eventStartOffset;
-                                pile.add(new PileupElement(read, leftAlignedStart, true, nextOp == CigarOperator.I, false));
+                                pile.add(new PileupElement(read, leftAlignedStart, true, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
                                 size++;
                                 nDeletions++;
                             }
                         } else {
                             if (!filterBaseInRead(read, location.getStart())) {
-                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.I, op == CigarOperator.S));
+                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
                                 size++;
                             }
                         }
