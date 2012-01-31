@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
@@ -101,7 +102,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         while (isShardTraversePending() || isTreeReducePending()) {
             // Check for errors during execution.
             if(hasTraversalErrorOccurred())
-                throw new ReviewedStingException("An error has occurred during the traversal.",getTraversalError());
+                throw getTraversalError();
 
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
@@ -344,10 +345,15 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         return error != null;
     }
 
-    private synchronized Throwable getTraversalError() {
+    private synchronized StingException getTraversalError() {
         if(!hasTraversalErrorOccurred())
             throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
-        return error;
+
+        // If the error is already a StingException, pass it along as is.  Otherwise, wrap it.
+        if(error instanceof StingException)
+            return (StingException)error;
+        else
+            return new ReviewedStingException("An error occurred during the traversal.",error);
     }
 
     /**

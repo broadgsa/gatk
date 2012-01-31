@@ -74,16 +74,15 @@ public class LocusIteratorByState extends LocusIterator {
 
     static private class SAMRecordState {
         SAMRecord read;
-        int readOffset = -1;     // how far are we offset from the start of the read bases?
-        int genomeOffset = -1;   // how far are we offset from the alignment start on the genome?
+        int readOffset = -1;                    // how far are we offset from the start of the read bases?
+        int genomeOffset = -1;                  // how far are we offset from the alignment start on the genome?
 
         Cigar cigar = null;
         int cigarOffset = -1;
         CigarElement curElement = null;
         int nCigarElements = 0;
 
-        // how far are we into a single cigarElement
-        int cigarElementCounter = -1;
+        int cigarElementCounter = -1;           // how far are we into a single cigarElement
 
         // The logical model for generating extended events is as follows: the "record state" implements the traversal
         // along the reference; thus stepForwardOnGenome() returns on every and only on actual reference bases. This
@@ -93,19 +92,19 @@ public class LocusIteratorByState extends LocusIterator {
         // stepForwardOnGenome(). The next call to stepForwardOnGenome() will clear that memory (as we remember only extended
         // events immediately preceding the current reference base).
 
-        boolean generateExtendedEvents = true; // should we generate an additional,  special pile for indels between the ref bases?
-        // the only purpose of this flag is to shield away a few additional lines of code
-        // when extended piles are not needed, it may not be even worth it...
+        boolean generateExtendedEvents = true;  // should we generate an additional,  special pile for indels between the ref bases?
+                                                // the only purpose of this flag is to shield away a few additional lines of code
+                                                // when extended piles are not needed, it may not be even worth it...
 
-        byte[] insertedBases = null;           // remember full inserted sequence if we are generating piles of extended events (indels)
-        int eventLength = -1;                  // will be set to the length of insertion/deletion if we are generating piles of extended events
-        byte eventDelayedFlag = 0;             // will be set to non-0 if there was an event (indel) right before the
-        // current base on the ref. We use a counter-like variable here since clearing the indel event is
-        // delayed by one base, so we need to remember how long ago we have seen the actual event
+        byte[] insertedBases = null;            // remember full inserted sequence if we are generating piles of extended events (indels)
+        int eventLength = -1;                   // will be set to the length of insertion/deletion if we are generating piles of extended events
+        byte eventDelayedFlag = 0;              // will be set to non-0 if there was an event (indel) right before the
+                                                // current base on the ref. We use a counter-like variable here since clearing the indel event is
+                                                // delayed by one base, so we need to remember how long ago we have seen the actual event
 
-        int eventStart = -1;                   // where on the read the extended event starts (i.e. the last position on the read prior to the
-        // event, or -1 if alignment starts with an insertion); this one is easy to recompute on the fly,
-        // we cache it here mainly for convenience
+        int eventStart = -1;                    // where on the read the extended event starts (i.e. the last position on the read prior to the
+                                                // event, or -1 if alignment starts with an insertion); this one is easy to recompute on the fly,
+                                                // we cache it here mainly for convenience
 
 
         public SAMRecordState(SAMRecord read, boolean extended) {
@@ -241,6 +240,8 @@ public class LocusIteratorByState extends LocusIterator {
                     readOffset += curElement.getLength();
                     break;
                 case D: // deletion w.r.t. the reference
+                    if (readOffset < 0)             // we don't want reads starting with deletion, this is a malformed cigar string
+                        throw new UserException.MalformedBAM(read, "Read starting with deletion. Cigar: " + read.getCigarString());
                     if (generateExtendedEvents) {
                         if (cigarElementCounter == 1) {
                             // generate an extended event only if we just stepped into the deletion (i.e. don't
@@ -403,9 +404,9 @@ public class LocusIteratorByState extends LocusIterator {
                         final int eventStartOffset = state.getReadEventStartOffset(); // this will be -1 if base is not a deletion, or if base is the first deletion in the event. Otherwise, it will give the last base before the deletion began.
                         final int eventLength = state.getEventLength();
 
-//                        if (op != CigarOperator.N)                                    // N's are never added to any pileup
-//                                continue;
-//                        
+                        if (op == CigarOperator.N)                                    // N's are never added to any pileup
+                                continue;
+
                         if (state.hadIndel()) {                                       // this read has an indel associated with the previous position on the ref
                             size++;
                             ExtendedEventPileupElement pileupElement;
@@ -413,27 +414,26 @@ public class LocusIteratorByState extends LocusIterator {
                                 nDeletions++;
                                 maxDeletionLength = Math.max(maxDeletionLength, state.getEventLength());
                                 pileupElement = new ExtendedEventPileupElement(read, eventStartOffset, eventLength);
-                            } 
+                            }
                             else {                                                    // Insertion event
                                 nInsertions++;
                                 pileupElement = new ExtendedEventPileupElement(read, eventStartOffset, eventLength, state.getEventBases());
                             }
+                            if (read.getMappingQuality() == 0)
+                                nMQ0Reads++;
 
                             indelPile.add(pileupElement);
                         }
 
-                        // this read has no indel associated with the previous position on the ref. Criteria to include in the pileup are:
-                        //   we only add reads that are not N's
-                        //   we only include deletions to the pileup if the walker requests it
-                        else if ( (op != CigarOperator.N) && (op != CigarOperator.D || readInfo.includeReadsWithDeletionAtLoci())) {
+                        // this read has no indel so add it to the pileup as a NOEVENT:
+                        //   a deletion that didn't start here (therefore, not an extended event)
+                        //   we add (mis)matches as no events.
+                        else if (op != CigarOperator.D || readInfo.includeReadsWithDeletionAtLoci()) {
                             size++;
                             indelPile.add(new ExtendedEventPileupElement((GATKSAMRecord) state.getRead(), readOffset));
+                            if (read.getMappingQuality() == 0)
+                                nMQ0Reads++;
                         }
-
-
-                        if (state.getRead().getMappingQuality() == 0)
-                            nMQ0Reads++;
-
                     }
 
                     if (indelPile.size() != 0)
@@ -461,25 +461,25 @@ public class LocusIteratorByState extends LocusIterator {
                         final CigarOperator op = state.getCurrentCigarOperator();     // current cigar operator
                         final CigarOperator nextOp = state.peekForwardOnGenome();     // next cigar operator
                         final int readOffset = state.getReadOffset();                 // the base offset on this read
-                        final int eventStartOffset = state.getReadEventStartOffset(); // this will be -1 if base is not a deletion, or if base is the first deletion in the event. Otherwise, it will give the last base before the deletion began.
 
                         if (op == CigarOperator.N)                                    // N's are never added to any pileup
                             continue;
 
-                        if (read.getMappingQuality() == 0)
-                            nMQ0Reads++;
-
                         if (op == CigarOperator.D) {
                             if (readInfo.includeReadsWithDeletionAtLoci()) {          // only add deletions to the pileup if we are authorized to do so
-                                int leftAlignedStart = (eventStartOffset < 0) ? readOffset : eventStartOffset;
-                                pile.add(new PileupElement(read, leftAlignedStart, true, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
+                                pile.add(new PileupElement(read, readOffset, true, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
                                 size++;
                                 nDeletions++;
+                                if (read.getMappingQuality() == 0)
+                                    nMQ0Reads++;
                             }
-                        } else {
+                        }
+                        else {
                             if (!filterBaseInRead(read, location.getStart())) {
                                 pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
                                 size++;
+                                if (read.getMappingQuality() == 0)
+                                    nMQ0Reads++;
                             }
                         }
                     }
