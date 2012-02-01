@@ -31,7 +31,7 @@ class VcfToPed extends QScript {
   var intervals : File = _
 
   @Argument(shortName="R",fullName="Ref",required=false,doc="Reference file")
-  var ref : File = new File("/humgen/1kg/references/human_g1k_v37.fasta")
+  var ref : File = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
 
   @Argument(shortName="D",fullName="dbsnp",required=false,doc="dbsnp file")
   var dbsnp : File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b37.vcf")
