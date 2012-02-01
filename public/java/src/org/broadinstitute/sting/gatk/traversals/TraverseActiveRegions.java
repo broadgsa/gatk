@@ -216,7 +216,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     // band-pass filter the list of isActive probabilities and turn into active regions
     private ArrayList<ActiveRegion> integrateActiveList( final ArrayList<Double> activeList, final GenomeLoc firstIsActiveStart, final int activeRegionExtension ) {
 
-        final double ACTIVE_PROB_THRESHOLD = 0.2;
+        final double ACTIVE_PROB_THRESHOLD = 0.2; // BUGBUG: needs to be set-able by the walker author
         final ArrayList<ActiveRegion> returnList = new ArrayList<ActiveRegion>();
         if( activeList.size() == 0 ) {
             return returnList;
@@ -227,8 +227,8 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         } else {
             final Double[] activeProbArray = activeList.toArray(new Double[activeList.size()]);
             final double[] filteredProbArray = new double[activeProbArray.length];
-            final int FILTER_SIZE = 10;
-            final int MAX_ACTIVE_REGION = 200;
+            final int FILTER_SIZE = 50; // BUGBUG: needs to be set-able by the walker author
+            final int MAX_ACTIVE_REGION = 425; // BUGBUG: needs to be set-able by the walker author
             for( int iii = 0; iii < activeProbArray.length; iii++ ) {
                 double maxVal = 0;
                 for( int jjj = Math.max(0, iii-FILTER_SIZE); jjj < Math.min(activeList.size(), iii+FILTER_SIZE); jjj++ ) {

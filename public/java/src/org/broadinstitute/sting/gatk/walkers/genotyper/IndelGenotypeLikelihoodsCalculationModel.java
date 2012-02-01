@@ -335,7 +335,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         if (ref.getWindow().getStop() < loc.getStop() + HAPLOTYPE_SIZE)
             return null;
         if (!(priors instanceof DiploidIndelGenotypePriors))
-            throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
+            throw new StingException("Only diploid-based Indel priors are supported in the INDEL GL model");
 
         if (alleleList.isEmpty())
             return null;

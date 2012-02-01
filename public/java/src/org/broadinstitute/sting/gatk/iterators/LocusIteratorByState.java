@@ -82,7 +82,6 @@ public class LocusIteratorByState extends LocusIterator {
         CigarElement curElement = null;
         int nCigarElements = 0;
 
-
         int cigarElementCounter = -1;           // how far are we into a single cigarElement
 
         // The logical model for generating extended events is as follows: the "record state" implements the traversal
@@ -468,7 +467,7 @@ public class LocusIteratorByState extends LocusIterator {
 
                         if (op == CigarOperator.D) {
                             if (readInfo.includeReadsWithDeletionAtLoci()) {          // only add deletions to the pileup if we are authorized to do so
-                                pile.add(new PileupElement(read, readOffset, true, nextOp == CigarOperator.I, false));
+                                pile.add(new PileupElement(read, readOffset, true, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
                                 size++;
                                 nDeletions++;
                                 if (read.getMappingQuality() == 0)
@@ -477,7 +476,7 @@ public class LocusIteratorByState extends LocusIterator {
                         }
                         else {
                             if (!filterBaseInRead(read, location.getStart())) {
-                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.I, op == CigarOperator.S));
+                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
                                 size++;
                                 if (read.getMappingQuality() == 0)
                                     nMQ0Reads++;

@@ -15,7 +15,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
  * @Author chartl
  * @Date May 26, 2010
  */
-@Analysis(name = "Indel length histograms", description = "Shows the distrbution of insertion/deletion event lengths (negative for deletion, positive for insertion)")
+@Analysis(name = "Indel length histograms", description = "Shows the distribution of insertion/deletion event lengths (negative for deletion, positive for insertion)")
 public class IndelLengthHistogram extends VariantEvaluator {
     private static final int SIZE_LIMIT = 100;
     @DataPoint(description="Histogram of indel lengths")
