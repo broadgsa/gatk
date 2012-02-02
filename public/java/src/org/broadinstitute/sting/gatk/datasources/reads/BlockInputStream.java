@@ -443,7 +443,16 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
 //            }
 //        }
 
-        return eof() ? -1 : length-remaining;
+        // If any data was copied into the buffer, return the amount of data copied.
+        if(remaining < length)
+            return length - remaining;
+
+        // Otherwise, if at eof(), return -1.
+        else if(eof())
+            return -1;
+
+        // Otherwise, we must've hit a bug in the system.
+        throw new ReviewedStingException("BUG: read returned no data, but eof() reports false.");
     }
 
     public void close() {
