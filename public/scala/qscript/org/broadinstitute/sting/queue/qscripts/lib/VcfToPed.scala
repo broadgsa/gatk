@@ -103,7 +103,20 @@ class VcfToPed extends QScript {
         toPed.reference_sequence = ref
         toPed.intervals :+= new File(subListFile)
         toPed.dbsnp = dbsnp
-        toPed.variant = variants
+        if ( samFile != null ) {
+          val base : String = bed.getName.stripSuffix(".bed")+"_%d".format(chunk)
+          val extract : SelectVariants = new SelectVariants
+          extract.reference_sequence = ref
+          extract.memoryLimit = 2
+          extract.intervals :+= subListFile
+          extract.variant = variants
+          extract.out = new File(tmpdir,base+"_extract%d.vcf".format(chunk))
+          extract.sample_file :+= samFile
+          add(extract)
+          toPed.variant = extract.out
+        } else {
+          toPed.variant = variants
+        }
         toPed.metaData = meta
         val base : String = bed.getName.stripSuffix(".bed")+"_%d".format(chunk)
         val tBed = new File(tmpdir,base+".bed")
