@@ -137,6 +137,10 @@ public class MathUtils {
 
         return size;
     }
+    
+    public static double average(Collection<Integer> x) {
+        return (double) sum(x) / x.size();
+    }
 
     public static double average(Collection<Number> numbers, boolean ignoreNan) {
         if (ignoreNan) {
@@ -174,6 +178,13 @@ public class MathUtils {
         double s = 0.0;
         for (double v : values) s += v;
         return s;
+    }
+
+    public static long sum(int[] x) {
+        long total = 0;
+        for (int v : x)
+            total += v;
+        return total;
     }
 
 
@@ -722,6 +733,13 @@ public class MathUtils {
         return average(vals, vals.size());
     }
 
+    public static double average(int[] x) {
+        int sum = 0;
+        for (int v : x)
+            sum += v;
+        return (double) sum / x.length;
+    }
+
     public static byte average(byte[] vals) {
         int sum = 0;
         for (byte v : vals) {
@@ -1077,6 +1095,13 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int) Math.floor(reads.size() / 2.));
+    }
+
+    public static long sum(Collection<Integer> x) {
+        long sum = 0;
+        for (int v : x)
+            sum += v;        
+        return sum;
     }
 
     /**
