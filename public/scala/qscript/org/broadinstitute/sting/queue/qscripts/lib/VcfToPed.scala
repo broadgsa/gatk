@@ -118,6 +118,7 @@ class VcfToPed extends QScript {
           toPed.variant = variants
         }
         toPed.metaData = meta
+        toPed.memoryLimit = 2
         val base : String = bed.getName.stripSuffix(".bed")+"_%d".format(chunk)
         val tBed = new File(tmpdir,base+".bed")
         val bim = new File(tmpdir,base+".bim")
