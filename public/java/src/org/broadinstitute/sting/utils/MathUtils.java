@@ -49,7 +49,6 @@ public class MathUtils {
      * high precision 
      */
 
-
     /**
      * Private constructor.  No instantiating this class!
      */
@@ -60,48 +59,48 @@ public class MathUtils {
     // under/overflow checking, so this shouldn't be used in the general case (but is fine
     // if one is already make those checks before calling in to the rounding).
     public static int fastRound(double d) {
-	return (d > 0) ? (int)(d + 0.5d) : (int)(d - 0.5d);
+        return (d > 0) ? (int) (d + 0.5d) : (int) (d - 0.5d);
     }
 
     public static double approximateLog10SumLog10(final double[] vals) {
-	return approximateLog10SumLog10(vals, vals.length);
+        return approximateLog10SumLog10(vals, vals.length);
     }
 
     public static double approximateLog10SumLog10(final double[] vals, final int endIndex) {
 
-	final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
-	double approxSum = vals[maxElementIndex];
-        if ( approxSum == Double.NEGATIVE_INFINITY )
+        final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
+        double approxSum = vals[maxElementIndex];
+        if (approxSum == Double.NEGATIVE_INFINITY)
             return approxSum;
 
-        for ( int i = 0; i < endIndex; i++ ) {
-	    if ( i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY )
-		continue;
+        for (int i = 0; i < endIndex; i++) {
+            if (i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY)
+                continue;
 
-	    final double diff = approxSum - vals[i];
-	    if ( diff < MathUtils.MAX_JACOBIAN_TOLERANCE ) {
-		// See notes from the 2-inout implementation below
-		final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
-		approxSum += MathUtils.jacobianLogTable[ind];
-	    }
-	}
+            final double diff = approxSum - vals[i];
+            if (diff < MathUtils.MAX_JACOBIAN_TOLERANCE) {
+                // See notes from the 2-inout implementation below
+                final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+                approxSum += MathUtils.jacobianLogTable[ind];
+            }
+        }
 
         return approxSum;
     }
 
     public static double approximateLog10SumLog10(double small, double big) {
         // make sure small is really the smaller value
-        if ( small > big ) {
+        if (small > big) {
             final double t = big;
             big = small;
             small = t;
         }
 
-        if ( small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY )
+        if (small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY)
             return big;
 
-	final double diff = big - small;
-        if ( diff >= MathUtils.MAX_JACOBIAN_TOLERANCE )
+        final double diff = big - small;
+        if (diff >= MathUtils.MAX_JACOBIAN_TOLERANCE)
             return big;
 
         // OK, so |y-x| < tol: we use the following identity then:
@@ -137,7 +136,7 @@ public class MathUtils {
 
         return size;
     }
-    
+
     public static double average(Collection<Integer> x) {
         return (double) sum(x) / x.size();
     }
@@ -145,7 +144,8 @@ public class MathUtils {
     public static double average(Collection<Number> numbers, boolean ignoreNan) {
         if (ignoreNan) {
             return sum(numbers, true) / nonNanSize(numbers);
-        } else {
+        }
+        else {
             return sum(numbers, false) / nonNanSize(numbers);
         }
     }
@@ -176,7 +176,8 @@ public class MathUtils {
 
     public static double sum(double[] values) {
         double s = 0.0;
-        for (double v : values) s += v;
+        for (double v : values)
+            s += v;
         return s;
     }
 
@@ -186,7 +187,6 @@ public class MathUtils {
             total += v;
         return total;
     }
-
 
     /**
      * Calculates the log10 cumulative sum of an array with log10 probabilities
@@ -229,21 +229,23 @@ public class MathUtils {
 
     public static double sumDoubles(List<Double> values) {
         double s = 0.0;
-        for (double v : values) s += v;
+        for (double v : values)
+            s += v;
         return s;
     }
 
     public static int sumIntegers(List<Integer> values) {
         int s = 0;
-        for (int v : values) s += v;
+        for (int v : values)
+            s += v;
         return s;
     }
 
     public static double sumLog10(double[] log10values) {
         return Math.pow(10.0, log10sumLog10(log10values));
-//        double s = 0.0;
-//        for ( double v : log10values) s += Math.pow(10.0, v);
-//        return s;
+        //        double s = 0.0;
+        //        for ( double v : log10values) s += Math.pow(10.0, v);
+        //        return s;
     }
 
     public static double log10sumLog10(double[] log10values) {
@@ -456,7 +458,6 @@ public class MathUtils {
         return Math.sqrt(rms);
     }
 
-
     /**
      * calculate the Root Mean Square of an array of integers
      *
@@ -517,7 +518,6 @@ public class MathUtils {
         return result;
     }
 
-
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
@@ -554,7 +554,8 @@ public class MathUtils {
             sum += normalized[i];
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
-            if (takeLog10OfOutput) x = Math.log10(x);
+            if (takeLog10OfOutput)
+                x = Math.log10(x);
             normalized[i] = x;
         }
 
@@ -576,7 +577,8 @@ public class MathUtils {
             sum += normalized[i];
         for (int i = 0; i < array.size(); i++) {
             double x = normalized[i] / sum;
-            if (takeLog10OfOutput) x = Math.log10(x);
+            if (takeLog10OfOutput)
+                x = Math.log10(x);
             normalized[i] = x;
         }
 
@@ -598,11 +600,12 @@ public class MathUtils {
     }
 
     public static int maxElementIndex(final double[] array) {
-	return maxElementIndex(array, array.length);
+        return maxElementIndex(array, array.length);
     }
 
     public static int maxElementIndex(final double[] array, final int endIndex) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
 
         int maxI = -1;
         for (int i = 0; i < endIndex; i++) {
@@ -614,11 +617,12 @@ public class MathUtils {
     }
 
     public static int maxElementIndex(final int[] array) {
-	return maxElementIndex(array, array.length);
+        return maxElementIndex(array, array.length);
     }
 
     public static int maxElementIndex(final int[] array, int endIndex) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
 
         int maxI = -1;
         for (int i = 0; i < endIndex; i++) {
@@ -646,7 +650,8 @@ public class MathUtils {
     }
 
     public static int minElementIndex(double[] array) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
 
         int minI = -1;
         for (int i = 0; i < array.length; i++) {
@@ -658,7 +663,8 @@ public class MathUtils {
     }
 
     public static int minElementIndex(byte[] array) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
 
         int minI = -1;
         for (int i = 0; i < array.length; i++) {
@@ -670,7 +676,8 @@ public class MathUtils {
     }
 
     public static int minElementIndex(int[] array) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
 
         int minI = -1;
         for (int i = 0; i < array.length; i++) {
@@ -682,20 +689,26 @@ public class MathUtils {
     }
 
     public static int arrayMaxInt(List<Integer> array) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
-        if (array.size() == 0) throw new IllegalArgumentException("Array size cannot be 0!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
+        if (array.size() == 0)
+            throw new IllegalArgumentException("Array size cannot be 0!");
 
         int m = array.get(0);
-        for (int e : array) m = Math.max(m, e);
+        for (int e : array)
+            m = Math.max(m, e);
         return m;
     }
 
     public static double arrayMaxDouble(List<Double> array) {
-        if (array == null) throw new IllegalArgumentException("Array cannot be null!");
-        if (array.size() == 0) throw new IllegalArgumentException("Array size cannot be 0!");
+        if (array == null)
+            throw new IllegalArgumentException("Array cannot be null!");
+        if (array.size() == 0)
+            throw new IllegalArgumentException("Array size cannot be 0!");
 
         double m = array.get(0);
-        for (double e : array) m = Math.max(m, e);
+        for (double e : array)
+            m = Math.max(m, e);
         return m;
     }
 
@@ -816,7 +829,6 @@ public class MathUtils {
         return permutation;
     }
 
-
     public static int[] permuteArray(int[] array, Integer[] permutation) {
         int[] output = new int[array.length];
         for (int i = 0; i < output.length; i++) {
@@ -856,7 +868,6 @@ public class MathUtils {
         }
         return output;
     }
-
 
     /**
      * Draw N random elements from list.
@@ -923,7 +934,8 @@ public class MathUtils {
     public static <T> int countOccurrences(T x, List<T> l) {
         int count = 0;
         for (T y : l) {
-            if (x.equals(y)) count++;
+            if (x.equals(y))
+                count++;
         }
 
         return count;
@@ -1031,9 +1043,11 @@ public class MathUtils {
         for (Comparable y : list) {
             if (x.compareTo(y) > 0) {
                 lessThanX.add(y);
-            } else if (x.compareTo(y) < 0) {
+            }
+            else if (x.compareTo(y) < 0) {
                 greaterThanX.add(y);
-            } else
+            }
+            else
                 equalToX.add(y);
         }
 
@@ -1045,7 +1059,6 @@ public class MathUtils {
             return orderStatisticSearch(orderStat - lessThanX.size() - equalToX.size(), greaterThanX);
 
     }
-
 
     public static Object getMedian(List<Comparable> list) {
         return orderStatisticSearch((int) Math.ceil(list.size() / 2), list);
@@ -1076,10 +1089,12 @@ public class MathUtils {
             if (quality < qk) {
                 lessThanQReads.add(read);
                 lessThanQOffsets.add(offset);
-            } else if (quality > qk) {
+            }
+            else if (quality > qk) {
                 greaterThanQReads.add(read);
                 greaterThanQOffsets.add(offset);
-            } else {
+            }
+            else {
                 equalToQReads.add(reads.get(iter));
             }
         }
@@ -1100,7 +1115,7 @@ public class MathUtils {
     public static long sum(Collection<Integer> x) {
         long sum = 0;
         for (int v : x)
-            sum += v;        
+            sum += v;
         return sum;
     }
 
@@ -1209,8 +1224,7 @@ public class MathUtils {
             log10Cache[k] = Math.log10(k);
 
         for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
-            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k)
-                    * JACOBIAN_LOG_TABLE_STEP));
+            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
 
         }
     }
@@ -1257,7 +1271,8 @@ public class MathUtils {
         else if (diff >= 0) {
             int ind = (int) (diff * INV_JACOBIAN_LOG_TABLE_STEP + 0.5);
             return x + jacobianLogTable[ind];
-        } else {
+        }
+        else {
             int ind = (int) (-diff * INV_JACOBIAN_LOG_TABLE_STEP + 0.5);
             return y + jacobianLogTable[ind];
         }
@@ -1298,71 +1313,7 @@ public class MathUtils {
     /**
      * Constants to simplify the log gamma function calculation.
      */
-    private static final double
-            zero = 0.0,
-            one = 1.0,
-            half = .5,
-            a0 = 7.72156649015328655494e-02,
-            a1 = 3.22467033424113591611e-01,
-            a2 = 6.73523010531292681824e-02,
-            a3 = 2.05808084325167332806e-02,
-            a4 = 7.38555086081402883957e-03,
-            a5 = 2.89051383673415629091e-03,
-            a6 = 1.19270763183362067845e-03,
-            a7 = 5.10069792153511336608e-04,
-            a8 = 2.20862790713908385557e-04,
-            a9 = 1.08011567247583939954e-04,
-            a10 = 2.52144565451257326939e-05,
-            a11 = 4.48640949618915160150e-05,
-            tc = 1.46163214496836224576e+00,
-            tf = -1.21486290535849611461e-01,
-            tt = -3.63867699703950536541e-18,
-            t0 = 4.83836122723810047042e-01,
-            t1 = -1.47587722994593911752e-01,
-            t2 = 6.46249402391333854778e-02,
-            t3 = -3.27885410759859649565e-02,
-            t4 = 1.79706750811820387126e-02,
-            t5 = -1.03142241298341437450e-02,
-            t6 = 6.10053870246291332635e-03,
-            t7 = -3.68452016781138256760e-03,
-            t8 = 2.25964780900612472250e-03,
-            t9 = -1.40346469989232843813e-03,
-            t10 = 8.81081882437654011382e-04,
-            t11 = -5.38595305356740546715e-04,
-            t12 = 3.15632070903625950361e-04,
-            t13 = -3.12754168375120860518e-04,
-            t14 = 3.35529192635519073543e-04,
-            u0 = -7.72156649015328655494e-02,
-            u1 = 6.32827064025093366517e-01,
-            u2 = 1.45492250137234768737e+00,
-            u3 = 9.77717527963372745603e-01,
-            u4 = 2.28963728064692451092e-01,
-            u5 = 1.33810918536787660377e-02,
-            v1 = 2.45597793713041134822e+00,
-            v2 = 2.12848976379893395361e+00,
-            v3 = 7.69285150456672783825e-01,
-            v4 = 1.04222645593369134254e-01,
-            v5 = 3.21709242282423911810e-03,
-            s0 = -7.72156649015328655494e-02,
-            s1 = 2.14982415960608852501e-01,
-            s2 = 3.25778796408930981787e-01,
-            s3 = 1.46350472652464452805e-01,
-            s4 = 2.66422703033638609560e-02,
-            s5 = 1.84028451407337715652e-03,
-            s6 = 3.19475326584100867617e-05,
-            r1 = 1.39200533467621045958e+00,
-            r2 = 7.21935547567138069525e-01,
-            r3 = 1.71933865632803078993e-01,
-            r4 = 1.86459191715652901344e-02,
-            r5 = 7.77942496381893596434e-04,
-            r6 = 7.32668430744625636189e-06,
-            w0 = 4.18938533204672725052e-01,
-            w1 = 8.33333333333329678849e-02,
-            w2 = -2.77777777728775536470e-03,
-            w3 = 7.93650558643019558500e-04,
-            w4 = -5.95187557450339963135e-04,
-            w5 = 8.36339918996282139126e-04,
-            w6 = -1.63092934096575273989e-03;
+    private static final double zero = 0.0, one = 1.0, half = .5, a0 = 7.72156649015328655494e-02, a1 = 3.22467033424113591611e-01, a2 = 6.73523010531292681824e-02, a3 = 2.05808084325167332806e-02, a4 = 7.38555086081402883957e-03, a5 = 2.89051383673415629091e-03, a6 = 1.19270763183362067845e-03, a7 = 5.10069792153511336608e-04, a8 = 2.20862790713908385557e-04, a9 = 1.08011567247583939954e-04, a10 = 2.52144565451257326939e-05, a11 = 4.48640949618915160150e-05, tc = 1.46163214496836224576e+00, tf = -1.21486290535849611461e-01, tt = -3.63867699703950536541e-18, t0 = 4.83836122723810047042e-01, t1 = -1.47587722994593911752e-01, t2 = 6.46249402391333854778e-02, t3 = -3.27885410759859649565e-02, t4 = 1.79706750811820387126e-02, t5 = -1.03142241298341437450e-02, t6 = 6.10053870246291332635e-03, t7 = -3.68452016781138256760e-03, t8 = 2.25964780900612472250e-03, t9 = -1.40346469989232843813e-03, t10 = 8.81081882437654011382e-04, t11 = -5.38595305356740546715e-04, t12 = 3.15632070903625950361e-04, t13 = -3.12754168375120860518e-04, t14 = 3.35529192635519073543e-04, u0 = -7.72156649015328655494e-02, u1 = 6.32827064025093366517e-01, u2 = 1.45492250137234768737e+00, u3 = 9.77717527963372745603e-01, u4 = 2.28963728064692451092e-01, u5 = 1.33810918536787660377e-02, v1 = 2.45597793713041134822e+00, v2 = 2.12848976379893395361e+00, v3 = 7.69285150456672783825e-01, v4 = 1.04222645593369134254e-01, v5 = 3.21709242282423911810e-03, s0 = -7.72156649015328655494e-02, s1 = 2.14982415960608852501e-01, s2 = 3.25778796408930981787e-01, s3 = 1.46350472652464452805e-01, s4 = 2.66422703033638609560e-02, s5 = 1.84028451407337715652e-03, s6 = 3.19475326584100867617e-05, r1 = 1.39200533467621045958e+00, r2 = 7.21935547567138069525e-01, r3 = 1.71933865632803078993e-01, r4 = 1.86459191715652901344e-02, r5 = 7.77942496381893596434e-04, r6 = 7.32668430744625636189e-06, w0 = 4.18938533204672725052e-01, w1 = 8.33333333333329678849e-02, w2 = -2.77777777728775536470e-03, w3 = 7.93650558643019558500e-04, w4 = -5.95187557450339963135e-04, w5 = 8.36339918996282139126e-04, w6 = -1.63092934096575273989e-03;
 
     /**
      * Efficient rounding functions to simplify the log gamma function calculation
@@ -1393,14 +1344,17 @@ public class MathUtils {
 
         /* purge off +-inf, NaN, +-0, and negative arguments */
         int ix = hx & 0x7fffffff;
-        if (ix >= 0x7ff00000) return Double.POSITIVE_INFINITY;
-        if ((ix | lx) == 0 || hx < 0) return Double.NaN;
+        if (ix >= 0x7ff00000)
+            return Double.POSITIVE_INFINITY;
+        if ((ix | lx) == 0 || hx < 0)
+            return Double.NaN;
         if (ix < 0x3b900000) {    /* |x|<2**-70, return -log(|x|) */
             return -Math.log(x);
         }
 
         /* purge off 1 and 2 */
-        if ((((ix - 0x3ff00000) | lx) == 0) || (((ix - 0x40000000) | lx) == 0)) r = 0;
+        if ((((ix - 0x3ff00000) | lx) == 0) || (((ix - 0x40000000) | lx) == 0))
+            r = 0;
             /* for x < 2.0 */
         else if (ix < 0x40000000) {
             if (ix <= 0x3feccccc) {     /* lgamma(x) = lgamma(x+1)-log(x) */
@@ -1408,22 +1362,27 @@ public class MathUtils {
                 if (ix >= 0x3FE76944) {
                     y = one - x;
                     i = 0;
-                } else if (ix >= 0x3FCDA661) {
+                }
+                else if (ix >= 0x3FCDA661) {
                     y = x - (tc - one);
                     i = 1;
-                } else {
+                }
+                else {
                     y = x;
                     i = 2;
                 }
-            } else {
+            }
+            else {
                 r = zero;
                 if (ix >= 0x3FFBB4C3) {
                     y = 2.0 - x;
                     i = 0;
-                } /* [1.7316,2] */ else if (ix >= 0x3FF3B4C4) {
+                } /* [1.7316,2] */
+                else if (ix >= 0x3FF3B4C4) {
                     y = x - tc;
                     i = 1;
-                } /* [1.23,1.73] */ else {
+                } /* [1.23,1.73] */
+                else {
                     y = x - one;
                     i = 2;
                 }
@@ -1451,7 +1410,8 @@ public class MathUtils {
                     p2 = one + y * (v1 + y * (v2 + y * (v3 + y * (v4 + y * v5))));
                     r += (-0.5 * y + p1 / p2);
             }
-        } else if (ix < 0x40200000) {             /* x < 8.0 */
+        }
+        else if (ix < 0x40200000) {             /* x < 8.0 */
             i = (int) x;
             t = zero;
             y = x - (double) i;
@@ -1474,13 +1434,15 @@ public class MathUtils {
                     break;
             }
             /* 8.0 <= x < 2**58 */
-        } else if (ix < 0x43900000) {
+        }
+        else if (ix < 0x43900000) {
             t = Math.log(x);
             z = one / x;
             y = z * z;
             w = w0 + z * (w1 + y * (w2 + y * (w3 + y * (w4 + y * (w5 + y * w6)))));
             r = (x - half) * (t - one) + w;
-        } else
+        }
+        else
             /* 2**58 <= x <= inf */
             r = x * (Math.log(x) - one);
         return r;
@@ -1514,7 +1476,6 @@ public class MathUtils {
         double log10OneMinusP = Math.log10(1 - Math.pow(10, log10p));
         return log10BinomialCoefficient(n, k) + log10p * k + log10OneMinusP * (n - k);
     }
-
 
     /**
      * Calculates the log10 of the multinomial coefficient. Designed to prevent
@@ -1559,7 +1520,6 @@ public class MathUtils {
         return log10Gamma(x + 1);
     }
 
-
     /**
      * Adds two arrays together and returns a new array with the sum.
      *
@@ -1597,17 +1557,18 @@ public class MathUtils {
 
     /**
      * Vector operations
+     *
      * @param v1 first numerical array
      * @param v2 second numerical array
-      * @return a new array with the elements added
+     * @return a new array with the elements added
      */
     public static <E extends Number> Double[] vectorSum(E v1[], E v2[]) {
         if (v1.length != v2.length)
             throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
 
         Double[] result = new Double[v1.length];
-        for (int k=0; k < v1.length; k++)
-            result[k] = v1[k].doubleValue()+v2[k].doubleValue();
+        for (int k = 0; k < v1.length; k++)
+            result[k] = v1[k].doubleValue() + v2[k].doubleValue();
 
         return result;
     }
@@ -1615,19 +1576,19 @@ public class MathUtils {
     public static <E extends Number> Double[] scalarTimesVector(E a, E[] v1) {
 
         Double result[] = new Double[v1.length];
-        for (int k=0; k < v1.length; k++)
-            result[k] = a.doubleValue()*v1[k].doubleValue();
+        for (int k = 0; k < v1.length; k++)
+            result[k] = a.doubleValue() * v1[k].doubleValue();
 
         return result;
     }
 
-    public static <E extends Number> Double  dotProduct(E[] v1, E[] v2) {
+    public static <E extends Number> Double dotProduct(E[] v1, E[] v2) {
         if (v1.length != v2.length)
             throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
 
         Double result = 0.0;
-        for (int k=0; k < v1.length; k++)
-            result +=  v1[k].doubleValue() *v2[k].doubleValue();
+        for (int k = 0; k < v1.length; k++)
+            result += v1[k].doubleValue() * v2[k].doubleValue();
 
         return result;
 
@@ -1635,7 +1596,7 @@ public class MathUtils {
 
     public static double[] vectorLog10(double v1[]) {
         double result[] = new double[v1.length];
-        for (int k=0; k < v1.length; k++)
+        for (int k = 0; k < v1.length; k++)
             result[k] = Math.log10(v1[k]);
 
         return result;
@@ -1645,7 +1606,7 @@ public class MathUtils {
     // todo - silly overloading, just because Java can't unbox/box arrays of primitive types, and we can't do generics with primitive types!
     public static Double[] vectorLog10(Double v1[]) {
         Double result[] = new Double[v1.length];
-        for (int k=0; k < v1.length; k++)
+        for (int k = 0; k < v1.length; k++)
             result[k] = Math.log10(v1[k]);
 
         return result;
