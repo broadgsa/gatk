@@ -6,7 +6,7 @@ import org.broadinstitute.sting.queue.library.ipf.vcf.VCFExtractIntervals
 import org.broadinstitute.sting.utils.text.XReadLines
 import collection.JavaConversions._
 import java.io._
-import org.broadinstitute.sting.queue.extensions.gatk.VariantsToPed
+import org.broadinstitute.sting.queue.extensions.gatk.{SelectVariants, VariantsToPed}
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,6 +36,9 @@ class VcfToPed extends QScript {
   @Argument(shortName="D",fullName="dbsnp",required=false,doc="dbsnp file")
   var dbsnp : File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b37.vcf")
 
+  @Argument(shortName="sf",fullName="sampleFile",required=false,doc="sample file")
+  var samFile : File = _
+
   val tmpdir : File = System.getProperty("java.io.tmpdir")
 
   def script = {
@@ -59,9 +62,22 @@ class VcfToPed extends QScript {
           val toPed : VariantsToPed = new VariantsToPed
           toPed.memoryLimit = 2
           toPed.reference_sequence = ref
-          toPed.intervals :+= new File(subListFile)
+          toPed.intervals :+= subListFile
           toPed.dbsnp = dbsnp
-          toPed.variant = variants
+          if ( samFile != null ) {
+            val base : String = bed.getName.stripSuffix(".bed")+"_%d".format(chunk)
+            val extract : SelectVariants = new SelectVariants
+            extract.reference_sequence = ref
+            extract.memoryLimit = 2
+            extract.intervals :+= subListFile
+            extract.variant = variants
+            extract.out = new File(tmpdir,base+"_extract%d.vcf".format(chunk))
+            extract.sample_file :+= samFile
+            add(extract)
+            toPed.variant = extract.out
+          } else {
+            toPed.variant = variants
+          }
           toPed.metaData = meta
           val base : String = bed.getName.stripSuffix(".bed")+"_%d".format(chunk)
           val tBed = new File(tmpdir,base+".bed")
