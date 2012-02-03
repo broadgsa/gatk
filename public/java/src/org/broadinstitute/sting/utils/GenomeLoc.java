@@ -436,7 +436,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *         never be < 1.
      */
     @Ensures("result > 0")
-    public long size() {
+    public int size() {
         return stop - start + 1;
     }
 

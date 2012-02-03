@@ -8,13 +8,12 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.testng.Assert;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -341,7 +340,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test
     public void testGetContigLengths() {
-        Map<String, Long> lengths = IntervalUtils.getContigSizes(new File(BaseTest.hg18Reference));
+        Map<String, Integer> lengths = IntervalUtils.getContigSizes(new File(BaseTest.hg18Reference));
         Assert.assertEquals((long)lengths.get("chr1"), 247249719);
         Assert.assertEquals((long)lengths.get("chr2"), 242951149);
         Assert.assertEquals((long)lengths.get("chr3"), 199501827);
