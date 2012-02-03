@@ -354,7 +354,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
         if( tracker.getValues(knownSites).size() == 0 ) { // If something here is in one of the knownSites tracks then skip over it, otherwise proceed
             // For each read at this locus
             for( final PileupElement p : context.getBasePileup() ) {
-                final GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
+                final GATKSAMRecord gatkRead = p.getRead();
                 int offset = p.getOffset();
 
                 if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE ) ) {

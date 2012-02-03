@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -29,7 +28,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
     private final Queue<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
-    private final LinkedHashSet<SAMRecord> myReads = new LinkedHashSet<SAMRecord>();
+    private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
     @Override
     protected String getTraversalType() {
@@ -101,7 +100,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
                 // Grab all the previously unseen reads from this pileup and add them to the massive read list
                 for( final PileupElement p : locus.getBasePileup() ) {
-                    final SAMRecord read = p.getRead();
+                    final GATKSAMRecord read = p.getRead();
                     if( !myReads.contains(read) ) {
                         myReads.add(read);
                     }
@@ -111,7 +110,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 //   which active regions in the work queue are now safe to process
                 if( !locusView.hasNext() ) {
                     for( final PileupElement p : locus.getBasePileup() ) {
-                        final SAMRecord read = p.getRead();
+                        final GATKSAMRecord read = p.getRead();
                         if( !myReads.contains(read) ) {
                             myReads.add(read);
                         }
@@ -156,9 +155,9 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         return sum;
     }
 
-    private T processActiveRegion( final ActiveRegion activeRegion, final LinkedHashSet<SAMRecord> reads, final Queue<ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
-        final ArrayList<SAMRecord> placedReads = new ArrayList<SAMRecord>();
-        for( final SAMRecord read : reads ) {
+    private T processActiveRegion( final ActiveRegion activeRegion, final LinkedHashSet<GATKSAMRecord> reads, final Queue<ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
+        final ArrayList<GATKSAMRecord> placedReads = new ArrayList<GATKSAMRecord>();
+        for( final GATKSAMRecord read : reads ) {
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
             if( activeRegion.getLocation().overlapsP( readLoc ) ) {
                 // The region which the highest amount of overlap is chosen as the primary region for the read (tie breaking is done as right most region)
@@ -170,22 +169,22 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                         bestRegion = otherRegionToTest;
                     }
                 }
-                bestRegion.add( (GATKSAMRecord) read );
+                bestRegion.add( read );
 
                 // The read is also added to all other regions in which it overlaps but marked as non-primary
                 if( walker.wantsNonPrimaryReads() ) {
                     if( !bestRegion.equals(activeRegion) ) {
-                        activeRegion.add( (GATKSAMRecord) read );
+                        activeRegion.add( read );
                     }
                     for( final ActiveRegion otherRegionToTest : workQueue ) {
                         if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
-                            otherRegionToTest.add( (GATKSAMRecord) read );
+                            otherRegionToTest.add( read );
                         }
                     }
                 }
                 placedReads.add( read );
             } else if( activeRegion.getExtendedLoc().overlapsP( readLoc ) && walker.wantsNonPrimaryReads() ) {
-                activeRegion.add( (GATKSAMRecord) read );
+                activeRegion.add( read );
             }
         }
         reads.removeAll( placedReads ); // remove all the reads which have been placed into their active region
