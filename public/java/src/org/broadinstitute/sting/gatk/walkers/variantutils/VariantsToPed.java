@@ -114,7 +114,7 @@ public class VariantsToPed extends RodWalker<Integer,Integer> {
                 String mid = mVals.containsKey("mom") ? mVals.get("mom") : String.format("dummy_%d",++dummyID);
                 String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
                 String pheno = mVals.get("phenotype");
-                outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,pid,sample,mid,sex,pheno);
+                outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
             }
         }
     }
