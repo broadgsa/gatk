@@ -357,11 +357,11 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
                 final GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
                 int offset = p.getOffset();
 
-                if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE  ) ) {
+                if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE ) ) {
                     continue;
                 }
 
-                if( !gatkRead.containsTemporaryAttribute( SEEN_ATTRIBUTE  ) )
+                if( !gatkRead.containsTemporaryAttribute( SEEN_ATTRIBUTE ) )
                 {
                     gatkRead.setTemporaryAttribute( SEEN_ATTRIBUTE, true );
                     RecalDataManager.parseSAMRecord( gatkRead, RAC );
@@ -376,7 +376,6 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
                     gatkRead.setTemporaryAttribute( COVARS_ATTRIBUTE,
                             RecalDataManager.computeCovariates( gatkRead, requestedCovariates ));
                 }
-
 
                 // Skip this position if base quality is zero
                 if( gatkRead.getBaseQualities()[offset] > 0 ) {
