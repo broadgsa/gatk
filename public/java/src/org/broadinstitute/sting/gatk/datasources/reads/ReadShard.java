@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class ReadShard extends Shard {
     /**
-     * What is the maximum number of reads which should go into a read shard.
+     * What is the maximum number of reads per BAM file which should go into a read shard.
      */
     public static int MAX_READS = 10000;
 

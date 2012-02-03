@@ -44,12 +44,12 @@ public class BGZFBlockLoadingDispatcher {
 
     private final ExecutorService threadPool;
 
-    private final Queue<SAMReaderPosition> inputQueue;
+    private final Queue<BAMAccessPlan> inputQueue;
 
     public BGZFBlockLoadingDispatcher(final int numThreads, final int numFileHandles) {
         threadPool = Executors.newFixedThreadPool(numThreads);
         fileHandleCache = new FileHandleCache(numFileHandles);
-        inputQueue = new LinkedList<SAMReaderPosition>();
+        inputQueue = new LinkedList<BAMAccessPlan>();
 
         threadPool.execute(new BlockLoader(this,fileHandleCache,true));
     }
@@ -58,7 +58,7 @@ public class BGZFBlockLoadingDispatcher {
      * Initiates a request for a new block load.
       * @param readerPosition Position at which to load.
      */
-    void queueBlockLoad(final SAMReaderPosition readerPosition) {
+    void queueBlockLoad(final BAMAccessPlan readerPosition) {
         synchronized(inputQueue) {
             inputQueue.add(readerPosition);
             inputQueue.notify();
@@ -69,7 +69,7 @@ public class BGZFBlockLoadingDispatcher {
      * Claims the next work request from the queue.
      * @return The next work request, or null if none is available.
      */
-    SAMReaderPosition claimNextWorkRequest() {
+    BAMAccessPlan claimNextWorkRequest() {
         synchronized(inputQueue) {
             while(inputQueue.isEmpty()) {
                 try {

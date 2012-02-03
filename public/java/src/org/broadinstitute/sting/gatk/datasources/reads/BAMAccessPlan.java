@@ -27,8 +27,10 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKChunk;
+import net.sf.samtools.util.BlockCompressedFilePointerUtil;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -38,7 +40,7 @@ import java.util.List;
 * Time: 10:47 PM
 * To change this template use File | Settings | File Templates.
 */
-class SAMReaderPosition {
+class BAMAccessPlan {
     private final SAMReaderID reader;
     private final BlockInputStream inputStream;
 
@@ -51,7 +53,7 @@ class SAMReaderPosition {
     private long nextBlockAddress;
 
 
-    SAMReaderPosition(final SAMReaderID reader, final BlockInputStream inputStream, GATKBAMFileSpan fileSpan) {
+    BAMAccessPlan(final SAMReaderID reader, final BlockInputStream inputStream, GATKBAMFileSpan fileSpan) {
         this.reader = reader;
         this.inputStream = inputStream;
 
@@ -84,11 +86,45 @@ class SAMReaderPosition {
     }
 
     /**
-     * Retrieves the last offset of interest in the block returned by getBlockAddress().
-     * @return First block of interest in this segment.
+     * Gets the spans overlapping the given block; used to copy the contents of the block into the circular buffer.
+     * @param blockAddress Block address for which to search.
+     * @param filePosition Block address at which to terminate the last chunk if the last chunk goes beyond this span.
+     * @return list of chunks containing that block.
      */
-    public int getLastOffsetInBlock() {
-        return (nextBlockAddress == positionIterator.peek().getBlockEnd()) ? positionIterator.peek().getBlockOffsetEnd() : 65536;
+    public List<GATKChunk> getSpansOverlappingBlock(long blockAddress, long filePosition) {
+        List<GATKChunk> spansOverlapping = new LinkedList<GATKChunk>();
+        // While the position iterator overlaps the given block, pull out spans to report.
+        while(positionIterator.hasNext() && positionIterator.peek().getBlockStart() <= blockAddress) {
+            // Create a span over as much of the block as is covered by this chunk.
+            int blockOffsetStart = (blockAddress == positionIterator.peek().getBlockStart()) ? positionIterator.peek().getBlockOffsetStart() : 0;
+
+            // Calculate the end of this span.  If the span extends past this block, cap it using the current file position.
+            long blockEnd;
+            int blockOffsetEnd;
+            if(blockAddress < positionIterator.peek().getBlockEnd()) {
+                blockEnd = filePosition;
+                blockOffsetEnd = 0;
+            }
+            else {
+                blockEnd = positionIterator.peek().getBlockEnd();
+                blockOffsetEnd = positionIterator.peek().getBlockOffsetEnd();
+            }
+
+            GATKChunk newChunk = new GATKChunk(blockAddress,blockOffsetStart,blockEnd,blockOffsetEnd);
+
+            if(newChunk.getChunkStart() <= newChunk.getChunkEnd())
+                spansOverlapping.add(new GATKChunk(blockAddress,blockOffsetStart,blockEnd,blockOffsetEnd));
+
+            // If the value currently stored in the position iterator ends past the current block, we must be done.  Abort.
+            if(!positionIterator.hasNext() ||  positionIterator.peek().getBlockEnd() > blockAddress)
+                break;
+
+            // If the position iterator ends before the block ends, pull the position iterator forward.
+            if(positionIterator.peek().getBlockEnd() <= blockAddress)
+                positionIterator.next();
+        }
+
+        return spansOverlapping;
     }
 
     public void reset() {
@@ -111,20 +147,16 @@ class SAMReaderPosition {
      * @param filePosition The current position within the file.
      */
     void advancePosition(final long filePosition) {
-        nextBlockAddress = filePosition >> 16;
+        nextBlockAddress = BlockCompressedFilePointerUtil.getBlockAddress(filePosition);
 
         // Check the current file position against the iterator; if the iterator is before the current file position,
         // draw the iterator forward.  Remember when performing the check that coordinates are half-open!
-        while(positionIterator.hasNext() && isFilePositionPastEndOfChunk(filePosition,positionIterator.peek())) {
+        while(positionIterator.hasNext() && isFilePositionPastEndOfChunk(filePosition,positionIterator.peek()))
             positionIterator.next();
 
-            // If the block iterator has shot past the file pointer, bring the file pointer flush with the start of the current block.
-            if(positionIterator.hasNext() && filePosition < positionIterator.peek().getChunkStart()) {
-                nextBlockAddress = positionIterator.peek().getBlockStart();
-                //System.out.printf("SAMReaderPosition: next block address advanced to %d%n",nextBlockAddress);
-                break;
-            }
-        }
+        // If the block iterator has shot past the file pointer, bring the file pointer flush with the start of the current block.
+        if(positionIterator.hasNext() && filePosition < positionIterator.peek().getChunkStart())
+            nextBlockAddress = positionIterator.peek().getBlockStart();
 
         // If we've shot off the end of the block pointer, notify consumers that iteration is complete.
         if(!positionIterator.hasNext())

@@ -26,24 +26,21 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKChunk;
-import net.sf.samtools.util.BAMInputStream;
-import net.sf.samtools.util.BlockCompressedFilePointerUtil;
 import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.RuntimeEOFException;
-import net.sf.samtools.util.SeekableStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Presents decompressed blocks to the SAMFileReader.
  */
-public class BlockInputStream extends SeekableStream implements BAMInputStream {
+public class BlockInputStream extends InputStream {
     /**
      * Mechanism for triggering block loads.
      */
@@ -65,9 +62,9 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
     private Throwable error;
 
     /**
-     * Current position.
+     * Current accessPlan.
      */
-    private SAMReaderPosition position;
+    private BAMAccessPlan accessPlan;
 
     /**
      * A stream of compressed data blocks.
@@ -95,11 +92,6 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
     private final BlockCompressedInputStream validatingInputStream;
 
     /**
-     * Has the buffer been filled since last request?
-     */
-    private boolean bufferFilled = false;
-
-    /**
      * Create a new block presenting input stream with a dedicated buffer.
      * @param dispatcher the block loading messenger.
      * @param reader the reader for which to load data.
@@ -118,7 +110,7 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
 
         this.dispatcher = dispatcher;
         // TODO: Kill the region when all we want to do is start at the beginning of the stream and run to the end of the stream.
-        this.position = new SAMReaderPosition(reader,this,new GATKBAMFileSpan(new GATKChunk(0,Long.MAX_VALUE)));
+        this.accessPlan = new BAMAccessPlan(reader,this,new GATKBAMFileSpan(new GATKChunk(0,Long.MAX_VALUE)));
 
         // The block offsets / block positions guarantee that the ending offset/position in the data structure maps to
         // the point in the file just following the last read.  These two arrays should never be empty; initializing
@@ -151,7 +143,7 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
         synchronized(lock) {
             // Find the current block within the input stream.
             int blockIndex;
-            for(blockIndex = 0; blockIndex+1 < blockOffsets.size() && buffer.position() >= blockOffsets.get(blockIndex + 1); blockIndex++)
+            for(blockIndex = 0; blockIndex+1 < blockOffsets.size() && buffer.position() > blockOffsets.get(blockIndex+1); blockIndex++)
                 ;
             filePointer = blockPositions.get(blockIndex) + (buffer.position()-blockOffsets.get(blockIndex));
         }
@@ -164,51 +156,8 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
         return filePointer;
     }
 
-    public void seek(long target) {
-        //System.out.printf("Thread %s, BlockInputStream %s: seeking to block %d, offset %d%n",Thread.currentThread().getId(),this,BlockCompressedFilePointerUtil.getBlockAddress(target),BlockCompressedFilePointerUtil.getBlockOffset(target));
-        synchronized(lock) {
-            clearBuffers();
-
-            // Ensure that the position filled in by submitAccessPlan() is in sync with the seek target just specified.
-            position.advancePosition(target);
-
-            // If the position advances past the end of the target, that must mean that we seeked to a point at the end
-            // of one of the chunk list's subregions.  Make a note of our current position and punt on loading any data.
-            if(target < position.getBlockAddress() << 16) {
-                blockOffsets.clear();
-                blockOffsets.add(0);
-                blockPositions.clear();
-                blockPositions.add(target);
-            }
-            else {
-                waitForBufferFill();
-                // A buffer fill will load the relevant data from the shard, but the buffer position still needs to be
-                // advanced as appropriate.
-                Iterator<Integer> blockOffsetIterator = blockOffsets.descendingIterator();
-                Iterator<Long> blockPositionIterator = blockPositions.descendingIterator();
-                while(blockOffsetIterator.hasNext() && blockPositionIterator.hasNext()) {
-                    final int blockOffset = blockOffsetIterator.next();
-                    final long blockPosition = blockPositionIterator.next();
-                    if((blockPosition >> 16) == (target >> 16) && (blockPosition&0xFFFF) < (target&0xFFFF)) {
-                        buffer.position(blockOffset + (int)(target&0xFFFF)-(int)(blockPosition&0xFFFF));
-                        break;
-                    }
-                }
-            }
-
-            if(validatingInputStream != null) {
-                try {
-                    validatingInputStream.seek(target);
-                }
-                catch(IOException ex) {
-                    throw new ReviewedStingException("Unable to validate against Picard input stream",ex);
-                }
-            }
-        }
-    }
-
     private void clearBuffers() {
-        this.position.reset();
+        this.accessPlan.reset();
 
         // Buffer semantics say that outside of a lock, buffer should always be prepared for reading.
         // Indicate no data to be read.
@@ -225,28 +174,40 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
     public boolean eof() {
         synchronized(lock) {
             // TODO: Handle multiple empty BGZF blocks at end of the file.
-            return position != null && (position.getBlockAddress() < 0 || position.getBlockAddress() >= length);
+            return accessPlan != null && (accessPlan.getBlockAddress() < 0 || accessPlan.getBlockAddress() >= length);
         }
-    }
-
-    public void setCheckCrcs(final boolean check) {
-        // TODO: Implement
     }
 
     /**
-     * Submits a new access plan for the given dataset.
-     * @param position The next seek point for BAM data in this reader.
+     * Submits a new access plan for the given dataset and seeks to the given point.
+     * @param accessPlan The next seek point for BAM data in this reader.
      */
-    public void submitAccessPlan(final SAMReaderPosition position) {
+    public void submitAccessPlan(final BAMAccessPlan accessPlan) {
         //System.out.printf("Thread %s: submitting access plan for block at position: %d%n",Thread.currentThread().getId(),position.getBlockAddress());
-        synchronized(lock) {
-            // Assume that the access plan is going to tell us to start where we are and move forward.
-            // If this isn't the case, we'll soon receive a seek request and the buffer will be forced to reset.
-            if(this.position != null && position.getBlockAddress() < this.position.getBlockAddress())
-                position.advancePosition(this.position.getBlockAddress() << 16);
+        this.accessPlan = accessPlan;
+        accessPlan.reset();
+
+        clearBuffers();
+
+        // Pull the iterator past any oddball chunks at the beginning of the shard (chunkEnd < chunkStart, empty chunks, etc).
+        // TODO: Don't pass these empty chunks in.
+        accessPlan.advancePosition(makeFilePointer(accessPlan.getBlockAddress(),0));
+
+        if(accessPlan.getBlockAddress() >= 0) {
+            waitForBufferFill();
         }
-        this.position = position;
+
+        if(validatingInputStream != null) {
+            try {
+                validatingInputStream.seek(makeFilePointer(accessPlan.getBlockAddress(),0));
+            }
+            catch(IOException ex) {
+                throw new ReviewedStingException("Unable to validate against Picard input stream",ex);
+            }
+        }
+
     }
+
 
     private void compactBuffer() {
         // Compact buffer to maximize storage space.
@@ -286,27 +247,14 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
      * Push contents of incomingBuffer into the end of this buffer.
      * MUST be called from a thread that is NOT the reader thread.
      * @param incomingBuffer The data being pushed into this input stream.
-     * @param position target position for the data.
+     * @param accessPlan target access plan for the data.
      * @param filePosition the current position of the file pointer
      */
-    public void copyIntoBuffer(final ByteBuffer incomingBuffer, final SAMReaderPosition position, final long filePosition) {
+    public void copyIntoBuffer(final ByteBuffer incomingBuffer, final BAMAccessPlan accessPlan, final long filePosition) {
         synchronized(lock) {
             try {
-                compactBuffer();
-                // Open up the buffer for more reading.
-                buffer.limit(buffer.capacity());
-
-                // Advance the position to take the most recent read into account.
-                final long lastBlockAddress = position.getBlockAddress();
-                final int blockOffsetStart = position.getFirstOffsetInBlock();
-                final int blockOffsetEnd = position.getLastOffsetInBlock();
-
-                // Where did this read end?  It either ended in the middle of a block (for a bounding chunk) or it ended at the start of the next block.
-                final long endOfRead = (blockOffsetEnd < incomingBuffer.remaining()) ? (lastBlockAddress << 16) | blockOffsetEnd : filePosition << 16;
-
-                byte[] validBytes = null;
                 if(validatingInputStream != null) {
-                    validBytes = new byte[incomingBuffer.remaining()];
+                    byte[] validBytes = new byte[incomingBuffer.remaining()];
 
                     byte[] currentBytes = new byte[incomingBuffer.remaining()];
                     int pos = incomingBuffer.position();
@@ -317,7 +265,7 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
                     incomingBuffer.position(pos);
 
                     long currentFilePointer = validatingInputStream.getFilePointer();
-                    validatingInputStream.seek(lastBlockAddress << 16);
+                    validatingInputStream.seek(makeFilePointer(accessPlan.getBlockAddress(), 0));
                     validatingInputStream.read(validBytes);
                     validatingInputStream.seek(currentFilePointer);
 
@@ -325,33 +273,41 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
                         throw new ReviewedStingException(String.format("Bytes being inserted into BlockInputStream %s are incorrect",this));
                 }
 
-                this.position = position;
-                position.advancePosition(filePosition << 16);
+                compactBuffer();
+                // Open up the buffer for more reading.
+                buffer.limit(buffer.capacity());
 
-                if(buffer.remaining() < incomingBuffer.remaining()) {
-                    //System.out.printf("Thread %s: waiting for available space in buffer; buffer remaining = %d, incoming buffer remaining = %d%n",Thread.currentThread().getId(),buffer.remaining(),incomingBuffer.remaining());
+                // Get the spans overlapping this particular block...
+                List<GATKChunk> spansOverlapping = accessPlan.getSpansOverlappingBlock(accessPlan.getBlockAddress(),filePosition);
+
+                // ...and advance the block
+                this.accessPlan = accessPlan;
+                accessPlan.advancePosition(makeFilePointer(filePosition, 0));
+
+                if(buffer.remaining() < incomingBuffer.remaining())
                     lock.wait();
-                    //System.out.printf("Thread %s: waited for available space in buffer; buffer remaining = %d, incoming buffer remaining = %d%n", Thread.currentThread().getId(), buffer.remaining(), incomingBuffer.remaining());
+
+                final int bytesInIncomingBuffer = incomingBuffer.limit();
+
+                for(GATKChunk spanOverlapping: spansOverlapping) {
+                    // Clear out the endcap tracking state and add in the starting position for this transfer.
+                    blockOffsets.removeLast();
+                    blockOffsets.add(buffer.position());
+                    blockPositions.removeLast();
+                    blockPositions.add(spanOverlapping.getChunkStart());
+
+                    // Stream the buffer into the data stream.
+                    incomingBuffer.limit((spanOverlapping.getBlockEnd() > spanOverlapping.getBlockStart()) ? bytesInIncomingBuffer : spanOverlapping.getBlockOffsetEnd());
+                    incomingBuffer.position(spanOverlapping.getBlockOffsetStart());
+                    buffer.put(incomingBuffer);
+
+                    // Add the endcap for this transfer.
+                    blockOffsets.add(buffer.position());
+                    blockPositions.add(spanOverlapping.getChunkEnd());
                 }
-
-                // Remove the last position in the list and add in the last read position, in case the two are different.
-                blockOffsets.removeLast();
-                blockOffsets.add(buffer.position());
-                blockPositions.removeLast();
-                blockPositions.add(lastBlockAddress << 16 | blockOffsetStart);
-
-                // Stream the buffer into the data stream.
-                incomingBuffer.position(blockOffsetStart);
-                incomingBuffer.limit(Math.min(incomingBuffer.limit(),blockOffsetEnd));
-                buffer.put(incomingBuffer);
-
-                // Then, add the last position read to the very end of the list, just past the end of the last buffer.
-                blockOffsets.add(buffer.position());
-                blockPositions.add(endOfRead);
 
                 // Set up the buffer for reading.
                 buffer.flip();
-                bufferFilled = true;
 
                 lock.notify();
             }
@@ -447,12 +403,8 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
         if(remaining < length)
             return length - remaining;
 
-        // Otherwise, if at eof(), return -1.
-        else if(eof())
-            return -1;
-
-        // Otherwise, we must've hit a bug in the system.
-        throw new ReviewedStingException("BUG: read returned no data, but eof() reports false.");
+        // Otherwise, return -1.
+        return -1;
     }
 
     public void close() {
@@ -472,20 +424,26 @@ public class BlockInputStream extends SeekableStream implements BAMInputStream {
 
     private void waitForBufferFill() {
         synchronized(lock) {
-            bufferFilled = false;
             if(buffer.remaining() == 0 && !eof()) {
                 //System.out.printf("Thread %s is waiting for a buffer fill from position %d to buffer %s%n",Thread.currentThread().getId(),position.getBlockAddress(),this);
-                dispatcher.queueBlockLoad(position);
+                dispatcher.queueBlockLoad(accessPlan);
                 try {
                     lock.wait();
                 }
                 catch(InterruptedException ex) {
                     throw new ReviewedStingException("Interrupt occurred waiting for buffer to fill",ex);
                 }
-
-                if(bufferFilled && buffer.remaining() == 0)
-                    throw new RuntimeEOFException("No more data left in InputStream");
             }
         }
+    }
+
+    /**
+     * Create an encoded BAM file pointer given the address of a BGZF block and an offset.
+     * @param blockAddress Physical address on disk of a BGZF block.
+     * @param blockOffset Offset into the uncompressed data stored in the BGZF block.
+     * @return 64-bit pointer encoded according to the BAM spec.
+     */
+    public static long makeFilePointer(final long blockAddress, final int blockOffset) {
+        return blockAddress << 16 | blockOffset;
     }
 }

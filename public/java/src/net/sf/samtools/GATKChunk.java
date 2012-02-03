@@ -40,6 +40,10 @@ public class GATKChunk extends Chunk {
         super(start,stop);
     }
 
+    public GATKChunk(final long blockStart, final int blockOffsetStart, final long blockEnd, final int blockOffsetEnd) {
+        super(blockStart << 16 | blockOffsetStart,blockEnd << 16 | blockOffsetEnd);
+    }
+
     public GATKChunk(final Chunk chunk) {
         super(chunk.getChunkStart(),chunk.getChunkEnd());
     }

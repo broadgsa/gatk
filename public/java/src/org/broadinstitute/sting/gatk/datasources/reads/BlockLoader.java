@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -70,29 +70,29 @@ class BlockLoader implements Runnable {
 
     public void run() {
         for(;;) {
-            SAMReaderPosition readerPosition = null;
+            BAMAccessPlan accessPlan = null;
             try {
-                readerPosition = dispatcher.claimNextWorkRequest();
-                FileInputStream inputStream = fileHandleCache.claimFileInputStream(readerPosition.getReader());
+                accessPlan = dispatcher.claimNextWorkRequest();
+                FileInputStream inputStream = fileHandleCache.claimFileInputStream(accessPlan.getReader());
 
-                long blockAddress = readerPosition.getBlockAddress();
+                //long blockAddress = readerPosition.getBlockAddress();
                 //System.out.printf("Thread %s: BlockLoader: copying bytes from %s at position %d into %s%n",Thread.currentThread().getId(),inputStream,blockAddress,readerPosition.getInputStream());
 
-                ByteBuffer compressedBlock = readBGZFBlock(inputStream,readerPosition.getBlockAddress());
+                ByteBuffer compressedBlock = readBGZFBlock(inputStream,accessPlan.getBlockAddress());
                 long nextBlockAddress = position(inputStream);
-                fileHandleCache.releaseFileInputStream(readerPosition.getReader(),inputStream);
+                fileHandleCache.releaseFileInputStream(accessPlan.getReader(),inputStream);
 
                 ByteBuffer block = decompress ? decompressBGZFBlock(compressedBlock) : compressedBlock;
                 int bytesCopied = block.remaining();
 
-                BlockInputStream bamInputStream = readerPosition.getInputStream();
-                bamInputStream.copyIntoBuffer(block,readerPosition,nextBlockAddress);
+                BlockInputStream bamInputStream = accessPlan.getInputStream();
+                bamInputStream.copyIntoBuffer(block,accessPlan,nextBlockAddress);
 
                 //System.out.printf("Thread %s: BlockLoader: copied %d bytes from %s at position %d into %s%n",Thread.currentThread().getId(),bytesCopied,inputStream,blockAddress,readerPosition.getInputStream());
             }
             catch(Throwable error) {
-                if(readerPosition != null && readerPosition.getInputStream() != null)
-                    readerPosition.getInputStream().reportException(error);
+                if(accessPlan != null && accessPlan.getInputStream() != null)
+                    accessPlan.getInputStream().reportException(error);
             }
         }
 

@@ -567,17 +567,20 @@ public class SAMDataSource {
 
             if(threadAllocation.getNumIOThreads() > 0) {
                 BlockInputStream inputStream = readers.getInputStream(id);
-                inputStream.submitAccessPlan(new SAMReaderPosition(id,inputStream,(GATKBAMFileSpan)shard.getFileSpans().get(id)));
+                inputStream.submitAccessPlan(new BAMAccessPlan(id, inputStream, (GATKBAMFileSpan) shard.getFileSpans().get(id)));
+                BAMRecordCodec codec = new BAMRecordCodec(getHeader(id),factory);
+                codec.setInputStream(inputStream);
+                iterator = new BAMCodecIterator(inputStream,readers.getReader(id),codec);
             }
-            iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            else {
+                iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            }
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
             iteratorMap.put(readers.getReader(id), iterator);
         }
 
         MergingSamRecordIterator mergingIterator = readers.createMergingIterator(iteratorMap);
-
-
 
         return applyDecoratingIterators(shard.getReadMetrics(),
                 enableVerification,
@@ -590,6 +593,49 @@ public class SAMDataSource {
                 readProperties.getBAQQualityMode(),
                 readProperties.getRefReader(),
                 readProperties.defaultBaseQualities());
+    }
+
+    private class BAMCodecIterator implements CloseableIterator<SAMRecord> {
+        private final BlockInputStream inputStream;
+        private final SAMFileReader reader;
+        private final BAMRecordCodec codec;
+        private SAMRecord nextRead;
+
+        private BAMCodecIterator(final BlockInputStream inputStream, final SAMFileReader reader, final BAMRecordCodec codec) {
+            this.inputStream = inputStream;
+            this.reader = reader;
+            this.codec = codec;
+            advance();
+        }
+
+        public boolean hasNext() {
+            return nextRead != null;
+        }
+
+        public SAMRecord next() {
+            if(!hasNext())
+                throw new NoSuchElementException("Unable to retrieve next record from BAMCodecIterator; input stream is empty");
+            SAMRecord currentRead = nextRead;
+            advance();
+            return currentRead;
+        }
+
+        public void close() {
+            // NO-OP.
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException("Unable to remove from BAMCodecIterator");
+        }
+
+        private void advance() {
+            final long startCoordinate = inputStream.getFilePointer();
+            nextRead = codec.decode();
+            final long stopCoordinate = inputStream.getFilePointer();
+
+            if(reader != null && nextRead != null)
+                PicardNamespaceUtils.setFileSource(nextRead,new SAMFileSource(reader,new GATKBAMFileSpan(new GATKChunk(startCoordinate,stopCoordinate))));
+        }
     }
 
     /**
@@ -871,12 +917,9 @@ public class SAMDataSource {
         public ReaderInitializer call() {
             final File indexFile = findIndexFile(readerID.samFile);
             try {
-                if (threadAllocation.getNumIOThreads() > 0) {
+                if (threadAllocation.getNumIOThreads() > 0)
                     blockInputStream = new BlockInputStream(dispatcher,readerID,false);
-                    reader = new SAMFileReader(blockInputStream,indexFile,false);
-                }
-                else
-                    reader = new SAMFileReader(readerID.samFile,indexFile,false);
+                reader = new SAMFileReader(readerID.samFile,indexFile,false);
             } catch ( RuntimeIOException e ) {
                 if ( e.getCause() != null && e.getCause() instanceof FileNotFoundException )
                     throw new UserException.CouldNotReadInputFile(readerID.samFile, e);
