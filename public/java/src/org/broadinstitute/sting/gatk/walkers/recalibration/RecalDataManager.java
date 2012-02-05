@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -86,14 +85,14 @@ public class RecalDataManager {
         PURGE_READ
     }
 
-    RecalDataManager() {
+    public RecalDataManager() {
         data = new NestedHashMap();
         dataCollapsedReadGroup = null;
         dataCollapsedQualityScore = null;
         dataCollapsedByCovariate = null;
     }
 
-    RecalDataManager( final boolean createCollapsedTables, final int numCovariates ) {
+    public RecalDataManager( final boolean createCollapsedTables, final int numCovariates ) {
         if( createCollapsedTables ) { // Initialize all the collapsed tables, only used by TableRecalibrationWalker
             data = null;
             dataCollapsedReadGroup = new NestedHashMap();

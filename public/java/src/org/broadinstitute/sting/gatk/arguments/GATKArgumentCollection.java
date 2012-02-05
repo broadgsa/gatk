@@ -185,6 +185,15 @@ public class GATKArgumentCollection {
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;
 
+    /**
+     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
+     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
+     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
+     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     */
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Filename for the input covariates table recalibration .csv file which enables on the fly base quality score recalibration")
+    public File RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
+
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;
 

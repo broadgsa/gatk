@@ -55,6 +55,14 @@ public class QualityUtils {
         return qualToErrorProbCache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
+    static public double[] qualArrayToLog10ErrorProb(byte[] quals) {
+        double[] returnArray = new double[quals.length];
+        for( int iii = 0; iii < quals.length; iii++ ) {
+            returnArray[iii] = ((double) quals[iii])/-10.0;
+        }
+        return returnArray;
+    }
+    
     /**
      * Convert a probability to a quality score.  Note, this is capped at Q40.
      *

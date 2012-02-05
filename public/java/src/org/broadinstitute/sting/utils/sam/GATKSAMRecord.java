@@ -25,8 +25,10 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,6 +49,11 @@ public class GATKSAMRecord extends BAMRecord {
     public static final String REDUCED_READ_CONSENSUS_TAG = "RR";                   // marks a synthetic read produced by the ReduceReads tool
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT = "OP";  // reads that are clipped may use this attribute to keep track of their original alignment start
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
+
+    // Base Quality Score Recalibrator specific attribute tags
+    public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";
+    public static final String BQSR_BASE_DELETION_QUALITIES = "BD";
+    public static final String BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG = "BR";
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -153,6 +160,60 @@ public class GATKSAMRecord extends BAMRecord {
 
         // note that we do not consider the GATKSAMRecord internal state at all
         return super.equals(o);
+    }
+
+    /*
+    @Override
+    public byte[] getBaseQualities() {
+        if( getAttribute( BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG ) != null ) {
+            return super.getBaseQualities();
+        } else {
+            // if the recal data was populated in the engine then recalibrate the quality scores on the fly
+            if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
+                final byte[] quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, super.getBaseQualities() );
+                setBaseQualities(quals);
+                setAttribute( BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG, true );
+                return quals;
+            } else { // just use the qualities that are in the read since we don't have the sufficient information to recalibrate on the fly
+                return super.getBaseQualities();
+            }
+        }
+    }
+    */
+
+    /**
+     * Accessors for base insertion and base deletion quality scores
+     */
+    public byte[] getBaseInsertionQualities() {
+        byte[] quals = getByteArrayAttribute( BQSR_BASE_INSERTION_QUALITIES );
+        if( quals == null ) {
+            quals = new byte[getBaseQualities().length];
+            Arrays.fill(quals, (byte) 45); // allow for differing default values between BaseInsertions and BaseDeletions
+            // if the recal data was populated in the engine then recalibrate the quality scores on the fly
+            // else give default values which are flat Q45
+            if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
+                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
+            }
+            // add the qual array to the read so that we don't have to do the recalibration work again
+            setAttribute( BQSR_BASE_INSERTION_QUALITIES, quals );
+        }
+        return quals;
+    }
+
+    public byte[] getBaseDeletionQualities() {
+        byte[] quals = getByteArrayAttribute( BQSR_BASE_DELETION_QUALITIES );
+        if( quals == null ) {
+            quals = new byte[getBaseQualities().length];
+            Arrays.fill(quals, (byte) 45);
+            // if the recal data was populated in the engine then recalibrate the quality scores on the fly
+            // else give default values which are flat Q45
+            if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
+                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
+            }
+            // add the qual array to the read so that we don't have to do the recalibration work again
+            setAttribute( BQSR_BASE_DELETION_QUALITIES, quals );
+        }
+        return quals;
     }
 
     /**
