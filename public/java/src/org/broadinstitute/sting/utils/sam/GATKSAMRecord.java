@@ -162,9 +162,11 @@ public class GATKSAMRecord extends BAMRecord {
         return super.equals(o);
     }
 
-    /*
+
     @Override
     public byte[] getBaseQualities() {
+        return super.getBaseQualities();
+        /*
         if( getAttribute( BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG ) != null ) {
             return super.getBaseQualities();
         } else {
@@ -178,8 +180,8 @@ public class GATKSAMRecord extends BAMRecord {
                 return super.getBaseQualities();
             }
         }
+        */
     }
-    */
 
     /**
      * Accessors for base insertion and base deletion quality scores

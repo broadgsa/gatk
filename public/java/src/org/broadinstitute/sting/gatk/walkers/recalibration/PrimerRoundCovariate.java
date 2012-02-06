@@ -40,11 +40,12 @@ import net.sf.samtools.SAMRecord;
 public class PrimerRoundCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
+    private final Comparable getValue( final SAMRecord read, final int offset ) {
         if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "ABI_SOLID" ) ) {
             int pos = offset;
             if( read.getReadNegativeStrandFlag() ) {
@@ -57,14 +58,16 @@ public class PrimerRoundCovariate implements ExperimentalCovariate {
 
     }
 
-    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
-    }
-
+    @Override
     public void getValues(SAMRecord read, Comparable[] comparable) {
         for(int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
+    }
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
+    public final Comparable getValue( final String str ) {
+        return Integer.parseInt( str );
     }
 }

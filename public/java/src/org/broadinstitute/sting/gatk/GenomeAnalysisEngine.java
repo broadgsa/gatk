@@ -215,8 +215,8 @@ public class GenomeAnalysisEngine {
             resetRandomGenerator(System.currentTimeMillis());
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
-        if (this.getArguments().RECAL_FILE != null)
-            setBaseRecalibration(this.getArguments().RECAL_FILE);
+        if (this.getArguments().BQSR_RECAL_FILE != null)
+            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();

@@ -41,12 +41,14 @@ public class ContextCovariate implements Covariate {
     String allN = "";
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         for( int iii = 0; iii < CONTEXT_SIZE; iii++ ) {
             allN += "N";
         }
     }
 
+    @Override
     public void getValues(SAMRecord read, Comparable[] comparable) {
         byte[] bases = read.getReadBases();
         for(int i = 0; i < read.getReadLength(); i++) {
@@ -55,8 +57,8 @@ public class ContextCovariate implements Covariate {
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
     public final Comparable getValue( final String str ) {
         return str;
     }
-
 }

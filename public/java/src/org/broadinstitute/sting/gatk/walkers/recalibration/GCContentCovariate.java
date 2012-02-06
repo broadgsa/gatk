@@ -41,12 +41,13 @@ public class GCContentCovariate implements ExperimentalCovariate {
     int numBack = 7;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         numBack = RAC.HOMOPOLYMER_NBACK;
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
+    private final Comparable getValue( final SAMRecord read, final int offset ) {
 
         // ATTGCCCCGTAAAAAAAGAGAA
         // 0000123456654321001122
@@ -75,7 +76,8 @@ public class GCContentCovariate implements ExperimentalCovariate {
             return -1;
         }
     }
-    
+
+    @Override
     public void getValues(SAMRecord read, Comparable[] comparable) {
         for(int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
@@ -83,10 +85,8 @@ public class GCContentCovariate implements ExperimentalCovariate {
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );
     }
-
-
-
 }

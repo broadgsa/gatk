@@ -192,7 +192,7 @@ public class GATKArgumentCollection {
      * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
      */
     @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Filename for the input covariates table recalibration .csv file which enables on the fly base quality score recalibration")
-    public File RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
+    public File BQSR_RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
 
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;

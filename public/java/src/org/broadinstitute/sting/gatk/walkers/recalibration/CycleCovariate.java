@@ -51,6 +51,7 @@ public class CycleCovariate implements StandardCovariate {
     private final static EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454,  NGSPlatform.ION_TORRENT);
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         if( RAC.DEFAULT_PLATFORM != null ) {
             if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
@@ -63,6 +64,7 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
+    @Override
     public void getValues(SAMRecord read, Comparable[] comparable) {
 
         //-----------------------------
@@ -164,6 +166,7 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );
     }

@@ -48,6 +48,7 @@ public class DinucCovariate implements StandardCovariate {
     private HashMap<Integer, Dinuc> dinucHashMap;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         final byte[] BASES = { (byte)'A', (byte)'C', (byte)'G', (byte)'T' };
         dinucHashMap = new HashMap<Integer, Dinuc>();
@@ -60,44 +61,10 @@ public class DinucCovariate implements StandardCovariate {
         dinucHashMap.put( Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC );
     }
 
-    /*
-    // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
-
-        byte base;
-        byte prevBase;
-        final byte[] bases = read.getReadBases();
-        // If this is a negative strand read then we need to reverse the direction for our previous base
-        if( read.getReadNegativeStrandFlag() ) {
-            // No dinuc at the beginning of the read
-            if( offset == bases.length-1 ) {
-                return NO_DINUC;
-            }
-            base = (byte)BaseUtils.simpleComplement( (char)(bases[offset]) );
-            // Note: We are using the previous base in the read, not the previous base in the reference. This is done in part to be consistent with unmapped reads.
-            prevBase = (byte)BaseUtils.simpleComplement( (char)(bases[offset + 1]) );
-        } else {
-            // No dinuc at the beginning of the read
-            if( offset == 0 ) {
-                return NO_DINUC;
-            }
-            base = bases[offset];
-            // Note: We are using the previous base in the read, not the previous base in the reference. This is done in part to be consistent with unmapped reads.
-            prevBase = bases[offset - 1];
-        }
-
-        // Make sure the previous base is good
-        if( !BaseUtils.isRegularBase( prevBase ) ) {
-            return NO_DINUC;
-        }
-
-        return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
-    }
-    */
-
     /**
      * Takes an array of size (at least) read.getReadLength() and fills it with the covariate values for each position in the read.
      */
+    @Override
     public void getValues( SAMRecord read, Comparable[] result ) {
         final HashMap<Integer, Dinuc> dinucHashMapRef = this.dinucHashMap; //optimize access to dinucHashMap
         final int readLength = read.getReadLength();
@@ -134,6 +101,7 @@ public class DinucCovariate implements StandardCovariate {
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
     public final Comparable getValue( final String str ) {
         byte[] bytes = str.getBytes();
         final Dinuc returnDinuc = dinucHashMap.get( Dinuc.hashBytes( bytes[0], bytes[1] ) );
@@ -142,7 +110,6 @@ public class DinucCovariate implements StandardCovariate {
         }
         return returnDinuc;
     }
-
 
     /**
      * Reverses the given array in place.
