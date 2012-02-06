@@ -71,25 +71,24 @@ public class KeepAFSpectrumFrequencySelector extends FrequencyModeSelector {
             // recompute AF,AC,AN based on genotypes:
             // todo - - maybe too inefficient??
             VariantContextUtils.calculateChromosomeCounts(vc, attributes, false);
-            afArray =  new double[] {Double.valueOf((String)attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY))};
-        }   else {
-            // sites-only vc or we explicitly tell to ignore genotypes; we trust the AF field if present
-            if ( vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
-                String afo = vc.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY, null);
+        }
 
-                if (afo.contains(",")) {
-                    String[] afs = afo.split(",");
-                    afs[0] = afs[0].substring(1,afs[0].length());
-                    afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
+        // sites-only vc or we explicitly tell to ignore genotypes; we trust the AF field if present
+        if ( vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
+            String afo = vc.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY, null);
 
-                    afArray = new double[afs.length];
+            if (afo.contains(",")) {
+                String[] afs = afo.split(",");
+                afs[0] = afs[0].substring(1,afs[0].length());
+                afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
 
-                    for (int k=0; k < afArray.length; k++)
-                        afArray[k] = Double.valueOf(afs[k]);
-                }
-                else
-                    afArray = new double[] {Double.valueOf(afo)};
+                afArray = new double[afs.length];
+
+                for (int k=0; k < afArray.length; k++)
+                    afArray[k] = Double.valueOf(afs[k]);
             }
+            else
+                afArray = new double[] {Double.valueOf(afo)};
         }
 
 

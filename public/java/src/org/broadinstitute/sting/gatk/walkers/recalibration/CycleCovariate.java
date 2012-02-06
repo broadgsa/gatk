@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.EnumSet;
@@ -51,6 +52,7 @@ public class CycleCovariate implements StandardCovariate {
     private final static EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454,  NGSPlatform.ION_TORRENT);
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         if( RAC.DEFAULT_PLATFORM != null ) {
             if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
@@ -63,7 +65,8 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public void getValues(SAMRecord read, Comparable[] comparable) {
+    @Override
+    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
 
         //-----------------------------
         // Illumina, Solid, PacBio, and Complete Genomics
@@ -164,6 +167,7 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );
     }

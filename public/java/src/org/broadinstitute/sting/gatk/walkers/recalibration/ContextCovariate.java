@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 import java.util.Arrays;
 
@@ -35,19 +36,21 @@ import java.util.Arrays;
  * Date: 9/26/11
  */
 
-public class ContextCovariate implements Covariate {
+public class ContextCovariate implements ExperimentalCovariate {
 
     final int CONTEXT_SIZE = 8;
     String allN = "";
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         for( int iii = 0; iii < CONTEXT_SIZE; iii++ ) {
             allN += "N";
         }
     }
 
-    public void getValues(SAMRecord read, Comparable[] comparable) {
+    @Override
+    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
         byte[] bases = read.getReadBases();
         for(int i = 0; i < read.getReadLength(); i++) {
             comparable[i] = ( i-CONTEXT_SIZE < 0 ? allN : new String(Arrays.copyOfRange(bases,i-CONTEXT_SIZE,i)) );
@@ -55,8 +58,8 @@ public class ContextCovariate implements Covariate {
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
     public final Comparable getValue( final String str ) {
         return str;
     }
-
 }

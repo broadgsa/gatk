@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -571,7 +572,7 @@ public class RecalDataManager {
      * value for the ith position in the read and the jth covariate in
      * reqeustedCovariates list.
      */
-     public static Comparable[][] computeCovariates(final GATKSAMRecord gatkRead, final List<Covariate> requestedCovariates) {
+     public static Comparable[][] computeCovariates( final GATKSAMRecord gatkRead, final List<Covariate> requestedCovariates, final BaseRecalibration.BaseRecalibrationType modelType ) {
          //compute all covariates for this read
          final List<Covariate> requestedCovariatesRef = requestedCovariates;
          final int numRequestedCovariates = requestedCovariatesRef.size();
@@ -582,7 +583,7 @@ public class RecalDataManager {
 
          // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
          for( int i = 0; i < numRequestedCovariates; i++ ) {
-             requestedCovariatesRef.get(i).getValues( gatkRead, tempCovariateValuesHolder );
+             requestedCovariatesRef.get(i).getValues( gatkRead, tempCovariateValuesHolder, modelType );
              for(int j = 0; j < readLength; j++) {
                  //copy values into a 2D array that allows all covar types to be extracted at once for
                  //an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.

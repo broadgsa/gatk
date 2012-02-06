@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -162,9 +163,11 @@ public class GATKSAMRecord extends BAMRecord {
         return super.equals(o);
     }
 
-    /*
+
     @Override
     public byte[] getBaseQualities() {
+        return super.getBaseQualities();
+        /*
         if( getAttribute( BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG ) != null ) {
             return super.getBaseQualities();
         } else {
@@ -178,8 +181,8 @@ public class GATKSAMRecord extends BAMRecord {
                 return super.getBaseQualities();
             }
         }
+        */
     }
-    */
 
     /**
      * Accessors for base insertion and base deletion quality scores
@@ -192,7 +195,7 @@ public class GATKSAMRecord extends BAMRecord {
             // if the recal data was populated in the engine then recalibrate the quality scores on the fly
             // else give default values which are flat Q45
             if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
-                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
+                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals, BaseRecalibration.BaseRecalibrationType.BASE_INSERTION ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
             }
             // add the qual array to the read so that we don't have to do the recalibration work again
             setAttribute( BQSR_BASE_INSERTION_QUALITIES, quals );
@@ -208,7 +211,7 @@ public class GATKSAMRecord extends BAMRecord {
             // if the recal data was populated in the engine then recalibrate the quality scores on the fly
             // else give default values which are flat Q45
             if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
-                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
+                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals, BaseRecalibration.BaseRecalibrationType.BASE_DELETION ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
             }
             // add the qual array to the read so that we don't have to do the recalibration work again
             setAttribute( BQSR_BASE_DELETION_QUALITIES, quals );

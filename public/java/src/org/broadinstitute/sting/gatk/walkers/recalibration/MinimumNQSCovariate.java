@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -41,12 +42,13 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
     private int windowReach; // How far in each direction from the current base to look
 
     // Initialize any member variables using the command-line arguments passed to the walkers
+    @Override
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         windowReach = RAC.WINDOW_SIZE / 2; // integer division
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
+    private final Comparable getValue( final SAMRecord read, final int offset ) {
 
         // Loop over the list of base quality scores in the window and find the minimum
         final byte[] quals = read.getBaseQualities();
@@ -61,14 +63,16 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
         return minQual;
     }
 
-    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
-    }
-
-    public void getValues(SAMRecord read, Comparable[] comparable) {
+    @Override
+    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
         for(int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
+    }
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
+    public final Comparable getValue( final String str ) {
+        return Integer.parseInt( str );
     }
 }
