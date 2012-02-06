@@ -73,10 +73,11 @@ public class TransmissionDisequilibriumTest extends InfoFieldAnnotation implemen
         // for each pair of alleles, add the likelihoods
         int numAlleles = vc.getNAlleles();
         for ( int allele1 = 0; allele1 < numAlleles; allele1++ ) {
+            final int HOM1index = determineHomIndex(allele1, numAlleles);
+
             for ( int allele2 = allele1 + 1; allele2 < numAlleles; allele2++ ) {
 
                 // TODO -- cache these for better performance
-                final int HOM1index = determineHomIndex(allele1, numAlleles);
                 final int HETindex = HOM1index + (allele2 - allele1);
                 final int HOM2index = determineHomIndex(allele2, numAlleles);
 
