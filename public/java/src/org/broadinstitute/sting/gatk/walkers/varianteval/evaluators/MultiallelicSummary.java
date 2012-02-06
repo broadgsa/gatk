@@ -90,8 +90,11 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
     @DataPoint(description = "Multi-allelic Indel Novelty Rate")
     public String indelNoveltyRate = "NA";
 
-    @DataPoint(description="Histogram of allele frequencies")
-    AFHistogram AFhistogram = new AFHistogram();
+    @DataPoint(description="Histogram of allele frequencies for most common alternate allele")
+    AFHistogram AFhistogramMax = new AFHistogram();
+
+    @DataPoint(description="Histogram of allele frequencies for less common alternate alleles")
+    AFHistogram AFhistogramMin = new AFHistogram();
 
     /*
      * AF histogram table object
@@ -130,18 +133,10 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
 
         public String getName() { return "AFHistTable"; }
 
-        public void update(VariantContext vc) {
-            final Object obj = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY, null);
-            if ( obj == null || !(obj instanceof List) )
-                return;
-
-            List<String> list = (List<String>)obj;
-            for ( String str : list ) {
-                final double AF = Double.valueOf(str);
-                final int bin = (int)(numBins * MathUtils.round(AF, 2));
-                AFhistogram[bin]++;
-            }
-        }
+        public void update(final double AF) {
+            final int bin = (int)(numBins * MathUtils.round(AF, 2));
+            AFhistogram[bin]++;
+       }
     }
 
     public void initialize(VariantEvalWalker walker) {}
@@ -180,7 +175,7 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
             default:
                 throw new UserException.BadInput("Unexpected variant context type: " + eval);
         }
-        AFhistogram.update(eval);
+        updateAFhistogram(eval);
         
         return null; // we don't capture any interesting sites
     }
@@ -213,6 +208,24 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
     private void calculateIndelPairwiseNovelty(VariantContext eval, VariantContext comp) {
     }
 
+    private void updateAFhistogram(VariantContext vc) {
+
+        final Object obj = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY, null);
+        if ( obj == null || !(obj instanceof List) )
+            return;
+
+        List<String> list = (List<String>)obj;
+        ArrayList<Double> AFs = new ArrayList<Double>(list.size());
+        for ( String str : list ) {
+            AFs.add(Double.valueOf(str));
+        }
+
+        Collections.sort(AFs);
+        AFhistogramMax.update(AFs.get(AFs.size()-1));
+        for ( int i = 0; i < AFs.size() - 1; i++ )
+            AFhistogramMin.update(AFs.get(i));
+    }
+    
     private final String noveltyRate(final int all, final int known) {
         final int novel = all - known;
         final double rate = (novel / (1.0 * all));
