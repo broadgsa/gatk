@@ -41,6 +41,7 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
@@ -374,7 +375,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
 
                     RecalDataManager.parseColorSpace( gatkRead );
                     gatkRead.setTemporaryAttribute( COVARS_ATTRIBUTE,
-                            RecalDataManager.computeCovariates( gatkRead, requestedCovariates ));
+                            RecalDataManager.computeCovariates( gatkRead, requestedCovariates, BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION ));
                 }
 
                 // Skip this position if base quality is zero

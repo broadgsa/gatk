@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.EnumSet;
@@ -65,7 +66,7 @@ public class CycleCovariate implements StandardCovariate {
 
     // Used to pick out the covariate's value from attributes of the read
     @Override
-    public void getValues(SAMRecord read, Comparable[] comparable) {
+    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
 
         //-----------------------------
         // Illumina, Solid, PacBio, and Complete Genomics

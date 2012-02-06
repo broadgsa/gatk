@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 import java.util.HashMap;
 
@@ -65,7 +66,7 @@ public class DinucCovariate implements StandardCovariate {
      * Takes an array of size (at least) read.getReadLength() and fills it with the covariate values for each position in the read.
      */
     @Override
-    public void getValues( SAMRecord read, Comparable[] result ) {
+    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
         final HashMap<Integer, Dinuc> dinucHashMapRef = this.dinucHashMap; //optimize access to dinucHashMap
         final int readLength = read.getReadLength();
         final boolean negativeStrand = read.getReadNegativeStrandFlag();
@@ -78,7 +79,7 @@ public class DinucCovariate implements StandardCovariate {
         if(negativeStrand) {
             bases = BaseUtils.simpleReverseComplement(bases); //this is NOT in-place
         }
-        result[0] = NO_DINUC; // No dinuc at the beginning of the read
+        comparable[0] = NO_DINUC; // No dinuc at the beginning of the read
 
         prevBase = bases[0];
         offset++;
@@ -87,16 +88,16 @@ public class DinucCovariate implements StandardCovariate {
              // previous base in the reference. This is done in part to be consistent with unmapped reads.
              base = bases[offset];
              if( BaseUtils.isRegularBase( prevBase ) ) {
-                 result[offset] = dinucHashMapRef.get( Dinuc.hashBytes( prevBase, base ) );
+                 comparable[offset] = dinucHashMapRef.get( Dinuc.hashBytes( prevBase, base ) );
              } else {
-                 result[offset] = NO_DINUC;
+                 comparable[offset] = NO_DINUC;
              }
 
              offset++;
              prevBase = base;
         }
         if(negativeStrand) {
-            reverse( result );
+            reverse( comparable );
         }
     }
 

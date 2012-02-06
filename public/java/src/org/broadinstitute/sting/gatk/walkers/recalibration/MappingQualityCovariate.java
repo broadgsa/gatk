@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -54,7 +55,7 @@ public class MappingQualityCovariate implements ExperimentalCovariate {
     }
 
     @Override
-    public void getValues(SAMRecord read, Comparable[] comparable) {
+    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
         for(int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }

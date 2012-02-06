@@ -177,13 +177,13 @@ public class BaseRecalibration {
         dataManager.addToAllTables( key, datum, QualityUtils.MIN_USABLE_Q_SCORE ); //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
     }
     
-    public byte[] recalibrateRead( final GATKSAMRecord read, final byte[] originalQuals ) {
+    public byte[] recalibrateRead( final GATKSAMRecord read, final byte[] originalQuals, final BaseRecalibrationType modelType ) {
 
         final byte[] recalQuals = originalQuals.clone();
         
         //compute all covariate values for this read
         final Comparable[][] covariateValues_offset_x_covar =
-                RecalDataManager.computeCovariates(read, requestedCovariates);
+                RecalDataManager.computeCovariates(read, requestedCovariates, modelType);
     
         // For each base in the read
         for( int offset = 0; offset < read.getReadLength(); offset++ ) {
