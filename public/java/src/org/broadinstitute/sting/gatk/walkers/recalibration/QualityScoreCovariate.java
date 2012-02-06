@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
 
@@ -42,25 +42,26 @@ public class QualityScoreCovariate implements RequiredCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    public void initialize(final RecalibrationArgumentCollection RAC) {
     }
 
     @Override
-    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
-        if( modelType == BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION ) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        if (modelType == BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION) {
             byte[] baseQualities = read.getBaseQualities();
-            for(int i = 0; i < read.getReadLength(); i++) {
+            for (int i = 0; i < read.getReadLength(); i++) {
                 comparable[i] = (int) baseQualities[i];
             }
-        } else { // model == BASE_INSERTION || model == BASE_DELETION
+        }
+        else { // model == BASE_INSERTION || model == BASE_DELETION
             Arrays.fill(comparable, 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-                                         // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     @Override
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
 }

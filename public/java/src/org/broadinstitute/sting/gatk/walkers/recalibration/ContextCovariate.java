@@ -25,8 +25,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
 
@@ -38,28 +39,32 @@ import java.util.Arrays;
 
 public class ContextCovariate implements ExperimentalCovariate {
 
-    final int CONTEXT_SIZE = 8;
-    String allN = "";
+    private int CONTEXT_SIZE;
+    private String allN = "";
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
-        for( int iii = 0; iii < CONTEXT_SIZE; iii++ ) {
+    public void initialize(final RecalibrationArgumentCollection RAC) {
+        CONTEXT_SIZE = RAC.CONTEXT_SIZE;
+
+        if (CONTEXT_SIZE <= 0)
+            throw new UserException("Context Size must be positive, if you don't want to use the context covariate, just turn it off instead");
+
+        // initialize allN given the size of the context
+        for (int i = 0; i < CONTEXT_SIZE; i++)
             allN += "N";
-        }
     }
 
     @Override
-    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
         byte[] bases = read.getReadBases();
-        for(int i = 0; i < read.getReadLength(); i++) {
-            comparable[i] = ( i-CONTEXT_SIZE < 0 ? allN : new String(Arrays.copyOfRange(bases,i-CONTEXT_SIZE,i)) );
-        }
+        for (int i = 0; i < read.getReadLength(); i++)
+            comparable[i] = (i < CONTEXT_SIZE) ? allN : new String(Arrays.copyOfRange(bases, i - CONTEXT_SIZE, i));
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     @Override
-    public final Comparable getValue( final String str ) {
+    public final Comparable getValue(final String str) {
         return str;
     }
 }

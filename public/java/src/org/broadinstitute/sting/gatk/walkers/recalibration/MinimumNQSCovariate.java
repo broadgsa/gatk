@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -43,20 +44,20 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    public void initialize(final RecalibrationArgumentCollection RAC) {
         windowReach = RAC.WINDOW_SIZE / 2; // integer division
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    private final Comparable getValue( final SAMRecord read, final int offset ) {
+    private Comparable getValue(final SAMRecord read, final int offset) {
 
         // Loop over the list of base quality scores in the window and find the minimum
         final byte[] quals = read.getBaseQualities();
         int minQual = quals[offset];
         final int minIndex = Math.max(offset - windowReach, 0);
         final int maxIndex = Math.min(offset + windowReach, quals.length - 1);
-        for ( int iii = minIndex; iii < maxIndex; iii++ ) {
-            if( quals[iii] < minQual ) {
+        for (int iii = minIndex; iii < maxIndex; iii++) {
+            if (quals[iii] < minQual) {
                 minQual = quals[iii];
             }
         }
@@ -64,15 +65,15 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
     }
 
     @Override
-    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
-        for(int iii = 0; iii < read.getReadLength(); iii++) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        for (int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     @Override
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
 }

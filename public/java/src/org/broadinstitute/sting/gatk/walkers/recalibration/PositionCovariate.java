@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -41,28 +42,28 @@ public class PositionCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    public void initialize(final RecalibrationArgumentCollection RAC) {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    private final Comparable getValue( final SAMRecord read, final int offset ) {
+    private Comparable getValue(final SAMRecord read, final int offset) {
         int cycle = offset;
-        if( read.getReadNegativeStrandFlag() ) {
+        if (read.getReadNegativeStrandFlag()) {
             cycle = read.getReadLength() - (offset + 1);
         }
         return cycle;
     }
 
     @Override
-    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
-        for(int iii = 0; iii < read.getReadLength(); iii++) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        for (int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     @Override
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
 }

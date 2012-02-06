@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -38,24 +38,22 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 public class ReadGroupCovariate implements RequiredCovariate {
 
-    public static final String defaultReadGroup = "DefaultReadGroup";
-
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    public void initialize(final RecalibrationArgumentCollection RAC) {
     }
 
     @Override
-    public void getValues( final SAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType ) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
         final String readGroupId = read.getReadGroup().getReadGroupId();
-        for(int i = 0; i < read.getReadLength(); i++) {
+        for (int i = 0; i < read.getReadLength(); i++) {
             comparable[i] = readGroupId;
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     @Override
-    public final Comparable getValue( final String str ) {
+    public final Comparable getValue(final String str) {
         return str;
     }
 }
