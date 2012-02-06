@@ -83,11 +83,12 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
     @DataPoint(description = "Multi-allelic SNP Novelty Rate")
     public String SNPNoveltyRate = "NA";
 
-    @DataPoint(description = "Multi-allelic Indels partially known")
+    //TODO -- implement me
+    //@DataPoint(description = "Multi-allelic Indels partially known")
     public int knownIndelsPartial = 0;
-    @DataPoint(description = "Multi-allelic Indels completely known")
+    //@DataPoint(description = "Multi-allelic Indels completely known")
     public int knownIndelsComplete = 0;
-    @DataPoint(description = "Multi-allelic Indel Novelty Rate")
+    //@DataPoint(description = "Multi-allelic Indel Novelty Rate")
     public String indelNoveltyRate = "NA";
 
     @DataPoint(description="Histogram of allele frequencies for most common alternate allele")
