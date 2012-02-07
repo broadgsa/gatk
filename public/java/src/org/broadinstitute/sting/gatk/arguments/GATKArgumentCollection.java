@@ -75,6 +75,7 @@ public class GATKArgumentCollection {
      * Using this option one can instruct the GATK engine to traverse over only part of the genome.  This argument can be specified multiple times.
      * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
      * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
+     * To specify the completely unmapped reads in the BAM file (i.e. those without a reference contig) use -L unmapped.
      */
     @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
     public List<IntervalBinding<Feature>> intervals = null;
