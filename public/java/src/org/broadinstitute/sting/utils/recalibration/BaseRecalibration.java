@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.recalibration;
 import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
+import org.broadinstitute.sting.gatk.walkers.recalibration.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
@@ -121,8 +122,9 @@ public class BaseRecalibration {
                         final boolean createCollapsedTables = true;
 
                         // Initialize any covariate member variables using the shared argument collection
+                        RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
                         for( Covariate cov : requestedCovariates ) {
-                            cov.initialize( null ); // BUGBUG: do any of the used covariates actually need the RecalibrationArgumentCollection?
+                            cov.initialize( RAC );
                         }
                         // Initialize the data hashMaps
                         dataManager = new RecalDataManager( createCollapsedTables, requestedCovariates.size() );

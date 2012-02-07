@@ -87,6 +87,6 @@ public class RecalibrationArgumentCollection {
      * The context covariate will use a context of this size to calculate it's covariate value
      */
     @Argument(fullName = "context_size", shortName = "cs", doc = "size of the k-mer context to be used", required = false)
-    int CONTEXT_SIZE = 8;
+    public int CONTEXT_SIZE = 8;
 
 }
