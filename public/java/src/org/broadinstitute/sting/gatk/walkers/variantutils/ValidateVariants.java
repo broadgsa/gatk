@@ -128,13 +128,13 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
         // get the true reference allele
         Allele reportedRefAllele = vc.getReference();
-        Allele observedRefAllele;
+        Allele observedRefAllele = null;
         // insertions
         if ( vc.isSimpleInsertion() ) {
             observedRefAllele = Allele.create(Allele.NULL_ALLELE_STRING);
         }
         // deletions
-        else if ( vc.isSimpleDeletion() || vc.isMixed() || vc.isMNP() ) {
+        else if ( vc.isSimpleDeletion() || vc.isMNP() ) {
             // we can't validate arbitrarily long deletions
             if ( reportedRefAllele.length() > 100 ) {
                 logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", reportedRefAllele.length(), vc.getChr(), vc.getStart()));
@@ -143,16 +143,15 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
             // deletions are associated with the (position of) the last (preceding) non-deleted base;
             // hence to get actually deleted bases we need offset = 1
-            int offset = 1 ;
-            if ( vc.isMNP() ) offset = 0; // if it's an MNP, the reported position IS the first modified base
+            int offset = vc.isMNP() ? 0 : 1;
             byte[] refBytes = ref.getBases();
             byte[] trueRef = new byte[reportedRefAllele.length()];
             for (int i = 0; i < reportedRefAllele.length(); i++)
                 trueRef[i] = refBytes[i+offset];
             observedRefAllele = Allele.create(trueRef, true);
         }
-        // SNPs, etc.
-        else {
+        // SNPs, etc. but not mixed types because they are too difficult
+        else if ( !vc.isMixed() ) {
             byte[] refByte = new byte[1];
             refByte[0] = ref.getBase();
             observedRefAllele = Allele.create(refByte, true);
