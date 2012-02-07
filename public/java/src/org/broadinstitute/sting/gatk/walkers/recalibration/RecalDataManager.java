@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -284,7 +285,7 @@ public class RecalDataManager {
     public static void parseColorSpace(final GATKSAMRecord read) {
 
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
-        if (read.getReadGroup().getPlatform().toUpperCase().contains("SOLID")) {
+        if (ReadUtils.isSOLiDRead(read)) {
             if (read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null) { // Haven't calculated the inconsistency array yet for this read
                 final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
                 if (attr != null) {
@@ -382,7 +383,7 @@ public class RecalDataManager {
     }
 
     public static boolean checkNoCallColorSpace(final GATKSAMRecord read) {
-        if (read.getReadGroup().getPlatform().toUpperCase().contains("SOLID")) {
+        if (ReadUtils.isSOLiDRead(read)) {
             final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
             if (attr != null) {
                 byte[] colorSpace;
@@ -611,21 +612,17 @@ public class RecalDataManager {
         final Comparable[][] covariateValues_offset_x_covar = new Comparable[readLength][numRequestedCovariates];
         final Comparable[] tempCovariateValuesHolder = new Comparable[readLength];
 
-        // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
-        for (int i = 0; i < numRequestedCovariates; i++) {
+        for (int i = 0; i < numRequestedCovariates; i++) {                              // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
             requestedCovariates.get(i).getValues(gatkRead, tempCovariateValuesHolder, modelType);
-            for (int j = 0; j < readLength; j++) {
-                //copy values into a 2D array that allows all covar types to be extracted at once for
-                //an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.
-                covariateValues_offset_x_covar[j][i] = tempCovariateValuesHolder[j];
-            }
+            for (int j = 0; j < readLength; j++)
+                covariateValues_offset_x_covar[j][i] = tempCovariateValuesHolder[j];    // copy values into a 2D array that allows all covar types to be extracted at once for an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.
         }
 
         return covariateValues_offset_x_covar;
     }
 
     /**
-     * Perform a ceratin transversion (A <-> C or G <-> T) on the base.
+     * Perform a certain transversion (A <-> C or G <-> T) on the base.
      *
      * @param base the base [AaCcGgTt]
      * @return the transversion of the base, or the input base if it's not one of the understood ones
