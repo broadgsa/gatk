@@ -256,32 +256,6 @@ public class RecalDataManager {
     public static void parseSAMRecord(final GATKSAMRecord read, final RecalibrationArgumentCollection RAC) {
         GATKSAMReadGroupRecord readGroup = ((GATKSAMRecord) read).getReadGroup();
 
-        // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments
-        if (readGroup == null) {
-            if (RAC.DEFAULT_READ_GROUP != null && RAC.DEFAULT_PLATFORM != null) {
-                if (!warnUserNullReadGroup && RAC.FORCE_READ_GROUP == null) {
-                    Utils.warnUser("The input .bam file contains reads with no read group. " +
-                            "Defaulting to read group ID = " + RAC.DEFAULT_READ_GROUP + " and platform = " + RAC.DEFAULT_PLATFORM + ". " +
-                            "First observed at read with name = " + read.getReadName());
-                    warnUserNullReadGroup = true;
-                }
-                // There is no readGroup so defaulting to these values
-                readGroup = new GATKSAMReadGroupRecord(RAC.DEFAULT_READ_GROUP);
-                readGroup.setPlatform(RAC.DEFAULT_PLATFORM);
-                ((GATKSAMRecord) read).setReadGroup(readGroup);
-            }
-            else {
-                throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName());
-            }
-        }
-
-        if (RAC.FORCE_READ_GROUP != null && !readGroup.getReadGroupId().equals(RAC.FORCE_READ_GROUP)) { // Collapse all the read groups into a single common String provided by the user
-            final String oldPlatform = readGroup.getPlatform();
-            readGroup = new GATKSAMReadGroupRecord(RAC.FORCE_READ_GROUP);
-            readGroup.setPlatform(oldPlatform);
-            ((GATKSAMRecord) read).setReadGroup(readGroup);
-        }
-
         if (RAC.FORCE_PLATFORM != null && (readGroup.getPlatform() == null || !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM))) {
             readGroup.setPlatform(RAC.FORCE_PLATFORM);
         }
