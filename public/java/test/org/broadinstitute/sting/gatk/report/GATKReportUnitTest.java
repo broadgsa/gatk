@@ -30,7 +30,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class GATKReportUnitTest extends BaseTest {
-    @Test
+    @Test(enabled = false)
     public void testParse() throws Exception {
         String reportPath = validationDataLocation + "exampleGATKReport.eval";
         GATKReport report = new GATKReport(reportPath);
