@@ -89,6 +89,6 @@ class GATKIntervalsUnitTest {
   }
 
   private def testSortAndMergeIntervals(actual: Seq[String], expected: Seq[String]) {
-    Assert.assertEquals(new GATKIntervals(hg18Reference, actual.toList).locs.toSeq, expected.map(hg18GenomeLocParser.parseGenomeLoc(_)))
+    Assert.assertEquals(new GATKIntervals(hg18Reference, actual).locs.toSeq, expected.map(hg18GenomeLocParser.parseGenomeLoc(_)))
   }
 }
