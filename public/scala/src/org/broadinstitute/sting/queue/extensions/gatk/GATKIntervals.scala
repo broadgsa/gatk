@@ -26,7 +26,7 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import java.io.File
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.interval.IntervalUtils
+import org.broadinstitute.sting.utils.interval.{IntervalMergingRule, IntervalUtils}
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource
 import net.sf.samtools.SAMFileHeader
 import java.util.Collections
@@ -51,6 +51,8 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
         IntervalUtils.parseIntervalArguments(parser, intervals)
     Collections.sort(parsedLocs)
     Collections.unmodifiableList(parsedLocs)
+    val mergedLocs = IntervalUtils.mergeIntervalLocations(parsedLocs, IntervalMergingRule.OVERLAPPING_ONLY)
+    Collections.unmodifiableList(mergedLocs)
   }
 
   lazy val contigs = locs.map(_.getContig).distinct.toList
