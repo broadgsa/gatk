@@ -24,6 +24,7 @@ public class PileupElement implements Comparable<PileupElement> {
     protected final GATKSAMRecord read;
     protected final int offset;
     protected final boolean isDeletion;
+    protected final boolean isBeforeDeletion;
     protected final boolean isBeforeInsertion;
     protected final boolean isNextToSoftClip;
 
@@ -33,6 +34,7 @@ public class PileupElement implements Comparable<PileupElement> {
      * @param read              the read we are adding to the pileup
      * @param offset            the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
      * @param isDeletion        whether or not this base is a deletion
+     * @param isBeforeDeletion  whether or not this base is before a deletion
      * @param isBeforeInsertion whether or not this base is before an insertion
      * @param isNextToSoftClip  whether or not this base is next to a soft clipped base
      */
@@ -40,19 +42,24 @@ public class PileupElement implements Comparable<PileupElement> {
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip) {
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip) {
         if (offset < 0 && isDeletion)
             throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
 
         this.read = read;
         this.offset = offset;
         this.isDeletion = isDeletion;
+        this.isBeforeDeletion = isBeforeDeletion;
         this.isBeforeInsertion = isBeforeInsertion;
         this.isNextToSoftClip = isNextToSoftClip;
     }
 
     public boolean isDeletion() {
         return isDeletion;
+    }
+
+    public boolean isBeforeDeletion() {
+        return isBeforeDeletion;
     }
 
     public boolean isBeforeInsertion() {

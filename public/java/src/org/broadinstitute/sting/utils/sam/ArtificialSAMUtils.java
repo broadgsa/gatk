@@ -361,10 +361,10 @@ public class ArtificialSAMUtils {
             final GATKSAMRecord left = pair.get(0);
             final GATKSAMRecord right = pair.get(1);
 
-            pileupElements.add(new PileupElement(left, pos - leftStart, false, false, false));
+            pileupElements.add(new PileupElement(left, pos - leftStart, false, false, false, false));
 
             if (pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd()) {
-                pileupElements.add(new PileupElement(right, pos - rightStart, false, false, false));
+                pileupElements.add(new PileupElement(right, pos - rightStart, false, false, false, false));
             }
         }
 

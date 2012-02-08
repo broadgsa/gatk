@@ -87,7 +87,7 @@ public enum NGSPlatform {
     /**
      * Returns the NGSPlatform corresponding to the PL tag in the read group
      * @param plFromRG -- the PL field (or equivalent) in a ReadGroup object
-     * @return an NGSPlatform object matching the PL field of the header, of UNKNOWN if there was no match
+     * @return an NGSPlatform object matching the PL field of the header, or UNKNOWN if there was no match
      */
     public static final NGSPlatform fromReadGroupPL(final String plFromRG) {
         if ( plFromRG == null ) return UNKNOWN;
@@ -104,5 +104,15 @@ public enum NGSPlatform {
         }
 
         return UNKNOWN;
+    }
+
+    /**
+     * checks whether or not the requested platform is listed in the set (and is not unknown)
+     *
+     * @param platform the read group string that describes the platform used
+     * @return true if the platform is known (i.e. it's in the list and is not UNKNOWN)
+     */
+    public static final boolean isKnown (final String platform) {
+        return fromReadGroupPL(platform) != UNKNOWN;
     }
 }

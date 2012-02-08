@@ -177,7 +177,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         for (int i = 0; i < reads.size(); i++) {
             GATKSAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-            pileup.add(createNewPileupElement(read, offset, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
+            pileup.add(createNewPileupElement(read, offset, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
         }
 
         return pileup;
@@ -196,7 +196,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
         UnifiedPileupElementTracker<PE> pileup = new UnifiedPileupElementTracker<PE>();
         for (GATKSAMRecord read : reads) {
-            pileup.add(createNewPileupElement(read, offset, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
+            pileup.add(createNewPileupElement(read, offset, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
         }
 
         return pileup;
@@ -204,7 +204,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     protected abstract AbstractReadBackedPileup<RBP, PE> createNewPileup(GenomeLoc loc, PileupElementTracker<PE> pileupElementTracker);
 
-    protected abstract PE createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip);
+    protected abstract PE createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip);
 
     // --------------------------------------------------------
     //
