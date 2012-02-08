@@ -55,9 +55,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private final boolean getAlleleListFromVCF;
 
     private boolean DEBUG = false;
-    private final boolean doMultiAllelicCalls;
+    private final boolean doMultiAllelicCalls = true;
     private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
-    private final int maxAlternateAlleles;
     private PairHMMIndelErrorModel pairModel;
 
     private static ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>> indelLikelihoodMap =
@@ -88,8 +87,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
         HAPLOTYPE_SIZE = UAC.INDEL_HAPLOTYPE_SIZE;
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
-        maxAlternateAlleles = UAC.MAX_ALTERNATE_ALLELES;
-        doMultiAllelicCalls = UAC.MULTI_ALLELIC;
 
         haplotypeMap = new LinkedHashMap<Allele, Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;

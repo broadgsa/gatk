@@ -84,8 +84,8 @@ public class UnifiedArgumentCollection {
     /**
      * This argument is not enabled by default because it increases the runtime by an appreciable amount.
      */
-    @Argument(fullName = "computeSLOD", shortName = "sl", doc = "If provided, we will calculate the SLOD", required = false)
-    public boolean COMPUTE_SLOD = false;
+    @Argument(fullName = "noSLOD", shortName = "nosl", doc = "If provided, we will not calculate the SLOD", required = false)
+    public boolean NO_SLOD = false;
 
     /**
      * When the UnifiedGenotyper is put into GENOTYPE_GIVEN_ALLELES mode it will genotype the samples using only the alleles provide in this rod binding
@@ -104,20 +104,11 @@ public class UnifiedArgumentCollection {
     public Double MAX_DELETION_FRACTION = 0.05;
 
     /**
-     * The default behavior of the Unified Genotyper is to allow the genotyping of just one alternate allele in discovery mode; using this flag
-     * will enable the discovery of multiple alternate alleles.  Please note that this works for SNPs only and that it is still highly experimental.
-     * For advanced users only.
-     */
-    @Advanced
-    @Argument(fullName = "multiallelic", shortName = "multiallelic", doc = "Allow the discovery of multiple alleles", required = false)
-    public boolean MULTI_ALLELIC = false;
-
-    /**
      * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
-     * then this site will be skipped and a warning printed.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
+     * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
      */
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
-    public int MAX_ALTERNATE_ALLELES = 5;
+    public int MAX_ALTERNATE_ALLELES = 3;
 
     // indel-related arguments
     /**
@@ -168,7 +159,7 @@ public class UnifiedArgumentCollection {
         uac.PCR_error = PCR_error;
         uac.GenotypingMode = GenotypingMode;
         uac.OutputMode = OutputMode;
-        uac.COMPUTE_SLOD = COMPUTE_SLOD;
+        uac.NO_SLOD = NO_SLOD;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
@@ -185,7 +176,6 @@ public class UnifiedArgumentCollection {
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
         uac.DONT_DO_BANDED_INDEL_COMPUTATION = DONT_DO_BANDED_INDEL_COMPUTATION;
-        uac.MULTI_ALLELIC = MULTI_ALLELIC;
         return uac;
     }
 

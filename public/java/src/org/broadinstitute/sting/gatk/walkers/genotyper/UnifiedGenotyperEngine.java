@@ -407,7 +407,7 @@ public class UnifiedGenotyperEngine {
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
 
-        if ( UAC.COMPUTE_SLOD && !limitedContext && !bestGuessIsRef ) {
+        if ( !UAC.NO_SLOD && !limitedContext && !bestGuessIsRef ) {
             //final boolean DEBUG_SLOD = false;
 
             // the overall lod
