@@ -83,29 +83,39 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
     @DataPoint(description = "Multi-allelic SNP Novelty Rate")
     public String SNPNoveltyRate = "NA";
 
-    @DataPoint(description = "Multi-allelic Indels partially known")
+    //TODO -- implement me
+    //@DataPoint(description = "Multi-allelic Indels partially known")
     public int knownIndelsPartial = 0;
-    @DataPoint(description = "Multi-allelic Indels completely known")
+    //@DataPoint(description = "Multi-allelic Indels completely known")
     public int knownIndelsComplete = 0;
-    @DataPoint(description = "Multi-allelic Indel Novelty Rate")
+    //@DataPoint(description = "Multi-allelic Indel Novelty Rate")
     public String indelNoveltyRate = "NA";
 
-    @DataPoint(description="Histogram of allele frequencies")
-    AFHistogram AFhistogram = new AFHistogram();
+    @DataPoint(description="Histogram of allele frequencies for most common SNP alternate allele")
+    AFHistogram AFhistogramMaxSnp = new AFHistogram();
+
+    @DataPoint(description="Histogram of allele frequencies for less common SNP alternate alleles")
+    AFHistogram AFhistogramMinSnp = new AFHistogram();
+
+    @DataPoint(description="Histogram of allele frequencies for most common Indel alternate allele")
+    AFHistogram AFhistogramMaxIndel = new AFHistogram();
+
+    @DataPoint(description="Histogram of allele frequencies for less common Indel alternate alleles")
+    AFHistogram AFhistogramMinIndel = new AFHistogram();
 
     /*
      * AF histogram table object
      */
     static class AFHistogram implements TableType {
-        private Object[] colKeys, rowKeys = {"pairwise_AF"};
+        private Object[] rowKeys, colKeys = {"count"};
         private int[] AFhistogram;
 
         private static final double AFincrement = 0.01;
         private static final int numBins = (int)(1.00 / AFincrement);
 
         public AFHistogram() {
-            colKeys = initColKeys();
-            AFhistogram = new int[colKeys.length];
+            rowKeys = initRowKeys();
+            AFhistogram = new int[rowKeys.length];
         }
 
         public Object[] getColumnKeys() {
@@ -117,10 +127,10 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
         }
 
         public Object getCell(int row, int col) {
-            return AFhistogram[col];
+            return AFhistogram[row];
         }
 
-        private static Object[] initColKeys() {
+        private static Object[] initRowKeys() {
             ArrayList<String> keyList = new ArrayList<String>(numBins + 1);
             for ( double a = 0.00; a <= 1.01; a += AFincrement ) {
                 keyList.add(String.format("%.2f", a));
@@ -130,18 +140,10 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
 
         public String getName() { return "AFHistTable"; }
 
-        public void update(VariantContext vc) {
-            final Object obj = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY, null);
-            if ( obj == null || !(obj instanceof List) )
-                return;
-
-            List<String> list = (List<String>)obj;
-            for ( String str : list ) {
-                final double AF = Double.valueOf(str);
-                final int bin = (int)(numBins * MathUtils.round(AF, 2));
-                AFhistogram[bin]++;
-            }
-        }
+        public void update(final double AF) {
+            final int bin = (int)(numBins * MathUtils.round(AF, 2));
+            AFhistogram[bin]++;
+       }
     }
 
     public void initialize(VariantEvalWalker walker) {}
@@ -168,6 +170,7 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
                     nMultiSNPs++;
                     calculatePairwiseTiTv(eval);
                     calculateSNPPairwiseNovelty(eval, comp);
+                    updateAFhistogram(eval, AFhistogramMaxSnp, AFhistogramMinSnp);
                 }
                 break;
             case INDEL:
@@ -175,13 +178,13 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
                 if ( !eval.isBiallelic() ) {
                     nMultiIndels++;
                     calculateIndelPairwiseNovelty(eval, comp);
+                    updateAFhistogram(eval, AFhistogramMaxIndel, AFhistogramMinIndel);
                 }
                 break;
             default:
                 throw new UserException.BadInput("Unexpected variant context type: " + eval);
         }
-        AFhistogram.update(eval);
-        
+
         return null; // we don't capture any interesting sites
     }
 
@@ -213,6 +216,24 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
     private void calculateIndelPairwiseNovelty(VariantContext eval, VariantContext comp) {
     }
 
+    private void updateAFhistogram(VariantContext vc, AFHistogram max, AFHistogram min) {
+
+        final Object obj = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY, null);
+        if ( obj == null || !(obj instanceof List) )
+            return;
+
+        List<String> list = (List<String>)obj;
+        ArrayList<Double> AFs = new ArrayList<Double>(list.size());
+        for ( String str : list ) {
+            AFs.add(Double.valueOf(str));
+        }
+
+        Collections.sort(AFs);
+        max.update(AFs.get(AFs.size()-1));
+        for ( int i = 0; i < AFs.size() - 1; i++ )
+            min.update(AFs.get(i));
+    }
+    
     private final String noveltyRate(final int all, final int known) {
         final int novel = all - known;
         final double rate = (novel / (1.0 * all));

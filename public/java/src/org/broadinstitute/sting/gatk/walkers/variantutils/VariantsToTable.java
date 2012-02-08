@@ -272,12 +272,11 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("POS", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getStart()); } });
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
-                String x = "";
-                if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() ) {
-                    Byte refByte = vc.getReferenceBaseForIndel();
-                    x=x+new String(new byte[]{refByte});
-                }
-                return x+vc.getReference().getDisplayString();
+                StringBuilder x = new StringBuilder();
+                if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() )
+                    x.append((char)vc.getReferenceBaseForIndel().byteValue());
+                x.append(vc.getReference().getDisplayString());
+                return x.toString();
             }
         });
         getters.put("ALT", new Getter() {
@@ -285,13 +284,11 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 StringBuilder x = new StringBuilder();
                 int n = vc.getAlternateAlleles().size();
                 if ( n == 0 ) return ".";
-                if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() ) {
-                    Byte refByte = vc.getReferenceBaseForIndel();
-                    x.append(new String(new byte[]{refByte}));
-                }
 
                 for ( int i = 0; i < n; i++ ) {
                     if ( i != 0 ) x.append(",");
+                    if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() )
+                        x.append((char)vc.getReferenceBaseForIndel().byteValue());
                     x.append(vc.getAlternateAllele(i).getDisplayString());
                 }
                 return x.toString();

@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -38,55 +40,57 @@ import net.sf.samtools.SAMRecord;
 
 public class GCContentCovariate implements ExperimentalCovariate {
 
-    int numBack = 7;
+    private int numBack = 7;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    @Override
+    public void initialize(final RecalibrationArgumentCollection RAC) {
         numBack = RAC.HOMOPOLYMER_NBACK;
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
+    private Comparable getValue(final SAMRecord read, final int offset) {
 
         // ATTGCCCCGTAAAAAAAGAGAA
         // 0000123456654321001122
 
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SLX" ) ) {
+        if (read.getReadGroup().getPlatform().equalsIgnoreCase("ILLUMINA") || read.getReadGroup().getPlatform().equalsIgnoreCase("SLX")) {
             int numGC = 0;
-            int startPos = 0;
-            int stopPos = 0;
+            int startPos;
+            int stopPos;
             final byte[] bases = read.getReadBases();
-            if( !read.getReadNegativeStrandFlag() ) { // Forward direction
+            if (!read.getReadNegativeStrandFlag()) { // Forward direction
                 startPos = Math.max(offset - numBack, 0);
                 stopPos = Math.max(offset - 1, 0);
-            } else { // Negative direction
+            }
+            else { // Negative direction
                 startPos = Math.min(offset + 2, bases.length);
                 stopPos = Math.min(offset + numBack + 1, bases.length);
             }
 
-            for( int iii = startPos; iii < stopPos; iii++ ) {
-                if( bases[iii] == (byte)'G' || bases[iii] == (byte)'C' ) {
+            for (int iii = startPos; iii < stopPos; iii++) {
+                if (bases[iii] == (byte) 'G' || bases[iii] == (byte) 'C') {
                     numGC++;
                 }
             }
 
             return numGC;
-        } else { // This effect is specific to the Illumina platform
+        }
+        else { // This effect is specific to the Illumina platform
             return -1;
         }
     }
-    
-    public void getValues(SAMRecord read, Comparable[] comparable) {
-        for(int iii = 0; iii < read.getReadLength(); iii++) {
+
+    @Override
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        for (int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
-
-
-
 }

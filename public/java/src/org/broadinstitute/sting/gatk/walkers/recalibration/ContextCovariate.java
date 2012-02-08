@@ -1,12 +1,5 @@
-package org.broadinstitute.sting.gatk.walkers.recalibration;
-
-import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-
-import java.util.Arrays;
-
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2011 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,42 +19,52 @@ import java.util.Arrays;
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+package org.broadinstitute.sting.gatk.walkers.recalibration;
+
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 3, 2009
- *
- * The Reported Quality Score covariate.
+ * Date: 9/26/11
  */
 
-public class QualityScoreCovariate implements RequiredCovariate {
+public class ContextCovariate implements ExperimentalCovariate {
+
+    private int CONTEXT_SIZE;
+    private String allN = "";
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
+        CONTEXT_SIZE = RAC.CONTEXT_SIZE;
+
+        if (CONTEXT_SIZE <= 0)
+            throw new UserException("Context Size must be positive, if you don't want to use the context covariate, just turn it off instead");
+
+        // initialize allN given the size of the context
+        for (int i = 0; i < CONTEXT_SIZE; i++)
+            allN += "N";
     }
 
     @Override
     public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
-        if (modelType == BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION) {
-            byte[] baseQualities = read.getBaseQualities();
-            for (int i = 0; i < read.getReadLength(); i++) {
-                comparable[i] = (int) baseQualities[i];
-            }
-        }
-        else { // model == BASE_INSERTION || model == BASE_DELETION
-            Arrays.fill(comparable, 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-        }
+        byte[] bases = read.getReadBases();
+        for (int i = 0; i < read.getReadLength(); i++)
+            comparable[i] = (i < CONTEXT_SIZE) ? allN : new String(Arrays.copyOfRange(bases, i - CONTEXT_SIZE, i));
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     @Override
     public final Comparable getValue(final String str) {
-        return Integer.parseInt(str);
+        return str;
     }
 }

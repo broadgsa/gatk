@@ -920,6 +920,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public void validateReferenceBases(Allele reference, Byte paddedRefBase) {
+        if ( reference == null )
+            return;
+
         // don't validate if we're a complex event
         if ( !isComplexIndel() && !reference.isNull() && !reference.basesMatch(getReference()) ) {
             throw new TribbleException.InternalCodecException(String.format("the REF allele is incorrect for the record at position %s:%d, fasta says %s vs. VCF says %s", getChr(), getStart(), reference.getBaseString(), getReference().getBaseString()));
@@ -963,6 +966,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public void validateChromosomeCounts() {
+        if ( !hasGenotypes() )
+            return;
+        
         // AN
         if ( hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) ) {
             int reportedAN = Integer.valueOf(getAttribute(VCFConstants.ALLELE_NUMBER_KEY).toString());
@@ -993,7 +999,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
                     throw new TribbleException.InternalCodecException(String.format("the Allele Count (AC) tag doesn't have the correct number of values for the record at position %s:%d, %d vs. %d", getChr(), getStart(), reportedACs.size(), observedACs.size()));
                 for (int i = 0; i < observedACs.size(); i++) {
                     if ( Integer.valueOf(reportedACs.get(i).toString()) != observedACs.get(i) )
-                        throw new TribbleException.InternalCodecException(String.format("the Allele Count (AC) tag is incorrect for the record at position %s:%d, %d vs. %d", getChr(), getStart(), reportedACs.get(i), observedACs.get(i)));
+                        throw new TribbleException.InternalCodecException(String.format("the Allele Count (AC) tag is incorrect for the record at position %s:%d, %s vs. %d", getChr(), getStart(), reportedACs.get(i), observedACs.get(i)));
                 }
             } else {
                 if ( observedACs.size() != 1 )

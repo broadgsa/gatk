@@ -27,7 +27,6 @@ public class PileupElement implements Comparable<PileupElement> {
     protected final boolean isBeforeInsertion;
     protected final boolean isNextToSoftClip;
 
-
     /**
      * Creates a new pileup element.
      *
@@ -89,6 +88,14 @@ public class PileupElement implements Comparable<PileupElement> {
     public byte getQual() {
         return getQual(offset);
     }
+    
+    public byte getBaseInsertionQual() {
+        return getBaseInsertionQual(offset);
+    }
+
+    public byte getBaseDeletionQual() {
+        return getBaseDeletionQual(offset);
+    }
 
     public int getMappingQual() {
         return read.getMappingQuality();
@@ -109,6 +116,14 @@ public class PileupElement implements Comparable<PileupElement> {
 
     protected byte getQual(final int offset) {
         return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseQualities()[offset];
+    }
+
+    protected byte getBaseInsertionQual(final int offset) {
+        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseInsertionQualities()[offset];
+    }
+
+    protected byte getBaseDeletionQual(final int offset) {
+        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseDeletionQualities()[offset];
     }
 
     @Override

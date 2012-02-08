@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -40,15 +42,16 @@ import net.sf.samtools.SAMRecord;
 
 public class HomopolymerCovariate implements ExperimentalCovariate {
 
-    int numBack = 7;
+    private int numBack;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    @Override
+    public void initialize(final RecalibrationArgumentCollection RAC) {
         numBack = RAC.HOMOPOLYMER_NBACK;
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
+    private Comparable getValue(final SAMRecord read, final int offset) {
 
         // This block of code is for if you don't want to only count consecutive bases
         // ATTGCCCCGTAAAAAAAAATA
@@ -75,13 +78,14 @@ public class HomopolymerCovariate implements ExperimentalCovariate {
         int numAgree = 0; // The number of consecutive bases that agree with you in the previous numBack bases of the read
         final byte[] bases = read.getReadBases();
         int iii = offset;
-        if( !read.getReadNegativeStrandFlag() ) { // Forward direction
-            while( iii <= bases.length-2 && bases[iii] == bases[iii+1] && numAgree < numBack ) {
+        if (!read.getReadNegativeStrandFlag()) { // Forward direction
+            while (iii <= bases.length - 2 && bases[iii] == bases[iii + 1] && numAgree < numBack) {
                 numAgree++;
                 iii++;
             }
-        } else { // Negative direction
-            while( iii >= 1 && bases[iii] == bases[iii-1] && numAgree < numBack ) {
+        }
+        else { // Negative direction
+            while (iii >= 1 && bases[iii] == bases[iii - 1] && numAgree < numBack) {
                 numAgree++;
                 iii--;
             }
@@ -90,15 +94,16 @@ public class HomopolymerCovariate implements ExperimentalCovariate {
         return numAgree;
     }
 
-    public void getValues(SAMRecord read, Comparable[] comparable) {
-        for(int iii = 0; iii < read.getReadLength(); iii++) {
+    @Override
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        for (int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
-
 }

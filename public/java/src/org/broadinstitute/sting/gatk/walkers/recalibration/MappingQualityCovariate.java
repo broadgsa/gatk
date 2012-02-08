@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -38,23 +39,25 @@ import net.sf.samtools.SAMRecord;
 public class MappingQualityCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    @Override
+    public void initialize(final RecalibrationArgumentCollection RAC) {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
+    private Comparable getValue(final GATKSAMRecord read) {
         return read.getMappingQuality();
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
 
-    public void getValues(SAMRecord read, Comparable[] comparable) {
-        for(int iii = 0; iii < read.getReadLength(); iii++) {
-            comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
+    @Override
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        for (int iii = 0; iii < read.getReadLength(); iii++) {
+            comparable[iii] = getValue(read); // BUGBUG: this can be optimized
         }
     }
-
 }

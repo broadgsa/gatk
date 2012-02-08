@@ -75,6 +75,7 @@ public class GATKArgumentCollection {
      * Using this option one can instruct the GATK engine to traverse over only part of the genome.  This argument can be specified multiple times.
      * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
      * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
+     * To specify the completely unmapped reads in the BAM file (i.e. those without a reference contig) use -L unmapped.
      */
     @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
     public List<IntervalBinding<Feature>> intervals = null;
@@ -184,6 +185,15 @@ public class GATKArgumentCollection {
 
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;
+
+    /**
+     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
+     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
+     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
+     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     */
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Filename for the input covariates table recalibration .csv file which enables on the fly base quality score recalibration")
+    public File BQSR_RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
 
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;

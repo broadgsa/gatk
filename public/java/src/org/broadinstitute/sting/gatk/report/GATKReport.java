@@ -24,7 +24,8 @@ public class GATKReport {
 
     /**
      * Create a new GATKReport with the contents of a GATKReport on disk.
-     * @param filename  the path to the file to load
+     *
+     * @param filename the path to the file to load
      */
     public GATKReport(String filename) {
         this(new File(filename));
@@ -32,7 +33,8 @@ public class GATKReport {
 
     /**
      * Create a new GATKReport with the contents of a GATKReport on disk.
-     * @param file  the file to load
+     *
+     * @param file the file to load
      */
     public GATKReport(File file) {
         loadReport(file);
@@ -40,7 +42,8 @@ public class GATKReport {
 
     /**
      * Load a GATKReport file from disk
-     * @param file  the file to load
+     *
+     * @param file the file to load
      */
     private void loadReport(File file) {
         try {
@@ -48,12 +51,11 @@ public class GATKReport {
 
             GATKReportTable table = null;
             String[] header = null;
-            int id = 0;
             GATKReportVersion version = null;
             List<Integer> columnStarts = null;
 
             String line;
-            while ( (line = reader.readLine()) != null ) {
+            while ((line = reader.readLine()) != null) {
 
                 if (line.startsWith(GATKREPORT_HEADER_PREFIX)) {
 
@@ -71,7 +73,7 @@ public class GATKReport {
 
                     header = null;
                     columnStarts = null;
-                } else if ( line.trim().isEmpty() ) {
+                } else if (line.trim().isEmpty()) {
                     // do nothing
                 } else {
                     if (table != null) {
@@ -97,19 +99,22 @@ public class GATKReport {
                         if (header == null) {
                             header = splitLine;
 
-                            table.addPrimaryKey("id", false);
-
-                            for ( String columnName : header ) {
-                                table.addColumn(columnName, "");
+                            // Set the first column as the primary key
+                            table.addPrimaryKey(header[0]);
+                            // Set every other column as column
+                            for (int i = 1; i < header.length; i++) {
+                                table.addColumn(header[i], "");
                             }
 
-                            id = 0;
                         } else {
-                            for (int columnIndex = 0; columnIndex < header.length; columnIndex++) {
-                                table.set(id, header[columnIndex], splitLine[columnIndex]);
+                            //Get primary key Value from the current line array
+                            String primaryKey = splitLine[0];
+                            //Input all the remaining values
+                            for (int columnIndex = 1; columnIndex < header.length; columnIndex++) {
+                                table.set(primaryKey, header[columnIndex], splitLine[columnIndex]);
                             }
 
-                            id++;
+
                         }
                     }
                 }
@@ -124,8 +129,8 @@ public class GATKReport {
     /**
      * Add a new table to the collection
      *
-     * @param tableName  the name of the table
-     * @param tableDescription  the description of the table
+     * @param tableName        the name of the table
+     * @param tableDescription the description of the table
      */
     public void addTable(String tableName, String tableDescription) {
         addTable(tableName, tableDescription, true);
@@ -139,7 +144,7 @@ public class GATKReport {
     /**
      * Return true if table with a given name exists
      *
-     * @param tableName  the name of the table
+     * @param tableName the name of the table
      * @return true if the table exists, false otherwise
      */
     public boolean hasTable(String tableName) {
@@ -149,8 +154,8 @@ public class GATKReport {
     /**
      * Return a table with a given name
      *
-     * @param tableName  the name of the table
-     * @return  the table object
+     * @param tableName the name of the table
+     * @return the table object
      */
     public GATKReportTable getTable(String tableName) {
         GATKReportTable table = tables.get(tableName);
@@ -162,7 +167,7 @@ public class GATKReport {
     /**
      * Print all tables contained within this container to a PrintStream
      *
-     * @param out  the PrintStream to which the tables should be written
+     * @param out the PrintStream to which the tables should be written
      */
     public void print(PrintStream out) {
         for (GATKReportTable table : tables.values()) {
@@ -174,5 +179,25 @@ public class GATKReport {
 
     public Collection<GATKReportTable> getTables() {
         return tables.values();
+    }
+
+    public void combineWith(GATKReport input) {
+
+        // For every input table, add values
+        System.out.println("This.tables: keySet");
+        for (String s : tables.keySet())
+            System.out.println(s);
+
+        // todo test tables exist
+
+
+        for (String tableName : input.tables.keySet()) {
+            System.out.println("Input table key: " + tableName);
+            if (tables.containsKey(tableName))
+                tables.get(tableName).mergeRows(input.getTable(tableName));
+            else
+                throw new ReviewedStingException("Failed to combine GATKReport, tables don't match!");
+        }
+
     }
 }

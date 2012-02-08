@@ -253,7 +253,7 @@ public class UnifiedGenotyperEngine {
             VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, rawContext.getLocation(), false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
-            vc = new VariantContextBuilder(vcInput).source("UG_call").noID().referenceBaseForIndel(ref.getBase()).make();
+            vc = new VariantContextBuilder(vcInput).source("UG_call").noID().referenceBaseForIndel(ref.getBase()).attributes(new HashMap<String, Object>()).filters(new HashSet<String>()).make();
         } else {
             // deal with bad/non-standard reference bases
             if ( !Allele.acceptableAlleleBases(new byte[]{ref.getBase()}) )

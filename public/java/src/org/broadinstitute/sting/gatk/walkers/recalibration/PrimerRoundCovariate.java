@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -33,38 +35,42 @@ import net.sf.samtools.SAMRecord;
  * Date: Nov 13, 2009
  *
  * The Primer Round covariate.
- *  For Solexa and 454 this is the same value of the length of the read.
- *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+ * For Solexa and 454 this is the same value of the length of the read.
+ * For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
  */
 
 public class PrimerRoundCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    @Override
+    public void initialize(final RecalibrationArgumentCollection RAC) {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "ABI_SOLID" ) ) {
+    private Comparable getValue(final SAMRecord read, final int offset) {
+        if (read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") || read.getReadGroup().getPlatform().equalsIgnoreCase("ABI_SOLID")) {
             int pos = offset;
-            if( read.getReadNegativeStrandFlag() ) {
+            if (read.getReadNegativeStrandFlag()) {
                 pos = read.getReadLength() - (offset + 1);
             }
             return pos % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-        } else {
+        }
+        else {
             return 1; // nothing to do here because it is always the same
         }
 
     }
 
-    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
-    }
-
-    public void getValues(SAMRecord read, Comparable[] comparable) {
-        for(int iii = 0; iii < read.getReadLength(); iii++) {
+    @Override
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+        for (int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }
+    }
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
 }
