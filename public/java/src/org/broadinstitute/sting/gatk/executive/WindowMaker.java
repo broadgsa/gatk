@@ -17,9 +17,21 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
- * Buffer shards of data which may or may not contain multiple loci into
- * iterators of all data which cover an interval.  Its existence is an homage
- * to Mark's stillborn WindowMaker, RIP 2009.
+ * Transforms an iterator of reads which overlap the given interval list into an iterator of covered single-base loci
+ * completely contained within the interval list.  To do this, it creates a LocusIteratorByState which will emit a single-bp
+ * locus for every base covered by the read iterator, then uses the WindowMakerIterator.advance() to filter down that stream of
+ * loci to only those covered by the given interval list.
+ *
+ * Example:
+ * Incoming stream of reads: A:chr20:1-5, B:chr20:2-6, C:chr20:2-7, D:chr20:3-8, E:chr20:5-10
+ * Incoming intervals: chr20:3-7
+ *
+ * Locus iterator by state will produce the following stream of data:
+ *  chr1:1 {A}, chr1:2 {A,B,C}, chr1:3 {A,B,C,D}, chr1:4 {A,B,C,D}, chr1:5 {A,B,C,D,E},
+ *  chr1:6 {B,C,D,E}, chr1:7 {C,D,E}, chr1:8 {D,E}, chr1:9 {E}, chr1:10 {E}
+ *
+ * WindowMakerIterator will then filter the incoming stream, emitting the following stream:
+ *  chr1:3 {A,B,C,D}, chr1:4 {A,B,C,D}, chr1:5 {A,B,C,D,E}, chr1:6 {B,C,D,E}, chr1:7 {C,D,E}
  *
  * @author mhanna
  * @version 0.1
