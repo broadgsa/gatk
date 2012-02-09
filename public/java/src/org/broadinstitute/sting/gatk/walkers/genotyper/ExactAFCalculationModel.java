@@ -47,7 +47,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                         final double[][] log10AlleleFrequencyPriors,
                                         final AlleleFrequencyCalculationResult result) {
 
-        final GenotypesContext GLs = vc.getGenotypes();
+        GenotypesContext GLs = vc.getGenotypes();
         List<Allele> alleles = vc.getAlleles();
 
         // don't try to genotype too many alternate alleles
@@ -58,7 +58,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             alleles.add(vc.getReference());
             for ( int i = 0; i < MAX_ALTERNATE_ALLELES_TO_GENOTYPE; i++ )
                 alleles.add(vc.getAlternateAllele(i));
-            UnifiedGenotyperEngine.subsetAlleles(vc, alleles, false);
+            GLs = UnifiedGenotyperEngine.subsetAlleles(vc, alleles, false);
         }
 
         //linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);

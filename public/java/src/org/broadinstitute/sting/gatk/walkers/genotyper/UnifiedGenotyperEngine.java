@@ -795,6 +795,10 @@ public class UnifiedGenotyperEngine {
         // then we can keep the PLs as is; otherwise, we determine which ones to keep
         if ( numNewAltAlleles != numOriginalAltAlleles && numNewAltAlleles > 0 ) {
             likelihoodIndexesToUse = new ArrayList<Integer>(30);
+
+            // make sure that we've cached enough data
+            if ( numOriginalAltAlleles > PLIndexToAlleleIndex.length - 1 )
+                calculatePLcache(numOriginalAltAlleles);
             final int[][] PLcache = PLIndexToAlleleIndex[numOriginalAltAlleles];
 
             final boolean[] altAlleleIndexToUse = new boolean[numOriginalAltAlleles];
@@ -834,20 +838,29 @@ public class UnifiedGenotyperEngine {
                 newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
             }
 
-            // if there is no mass on the (new) likelihoods or we weren't asked to assign a genotype, then just no-call the sample
-            if ( !assignGenotypes || MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
+            // if there is no mass on the (new) likelihoods, then just no-call the sample
+            if ( MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
                 newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
-                continue;
             }
+            else {
+                Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+                if ( numNewAltAlleles == 0 )
+                    attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+                else
+                    attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(newLikelihoods));
 
-            final Genotype newGT = assignGenotype(g, newLikelihoods, allelesToUse, numNewAltAlleles);
-            newGTs.add(newGT);
+                // if we weren't asked to assign a genotype, then just no-call the sample
+                if ( !assignGenotypes || MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL )
+                    newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, attrs, false));
+                else
+                    newGTs.add(assignGenotype(g, newLikelihoods, allelesToUse, numNewAltAlleles, attrs));
+            }
         }
         
         return newGTs;
     }
      
-    protected static Genotype assignGenotype(Genotype originalGT, double[] newLikelihoods, List<Allele> allelesToUse, int numNewAltAlleles) {
+    protected static Genotype assignGenotype(Genotype originalGT, double[] newLikelihoods, List<Allele> allelesToUse, int numNewAltAlleles, Map<String, Object> attrs) {
         // find the genotype with maximum likelihoods
         int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
         int[] alleles = PLIndexToAlleleIndex[numNewAltAlleles][PLindex];
@@ -857,11 +870,6 @@ public class UnifiedGenotyperEngine {
         myAlleles.add(allelesToUse.get(alleles[1]));
 
         final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(PLindex, newLikelihoods);
-        Map<String, Object> attrs = new HashMap<String, Object>(originalGT.getAttributes());
-        if ( numNewAltAlleles == 0 )
-            attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
-        else
-            attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(newLikelihoods));
         return new Genotype(originalGT.getSampleName(), myAlleles, qual, null, attrs, false);
     }
 }
