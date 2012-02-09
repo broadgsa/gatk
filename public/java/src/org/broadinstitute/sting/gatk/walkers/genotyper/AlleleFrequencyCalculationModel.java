@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -41,10 +41,11 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     public enum Model {
         /** The default model with the best performance in all cases */
-        EXACT,
+        EXACT
     }
 
     protected int N;
+    protected int MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
 
     protected Logger logger;
     protected PrintStream verboseWriter;
@@ -53,20 +54,21 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
 
-    protected AlleleFrequencyCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
+    protected AlleleFrequencyCalculationModel(final UnifiedArgumentCollection UAC, final int N, final Logger logger, final PrintStream verboseWriter) {
         this.N = N;
+        this.MAX_ALTERNATE_ALLELES_TO_GENOTYPE = UAC.MAX_ALTERNATE_ALLELES;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
     }
 
     /**
      * Must be overridden by concrete subclasses
-     * @param GLs                               genotype likelihoods
-     * @param Alleles                           Alleles corresponding to GLs
+     * @param vc                                variant context with alleles and genotype likelihoods
      * @param log10AlleleFrequencyPriors        priors
      * @param result                            (pre-allocated) object to store likelihoods results
+     * @return the alleles used for genotyping
      */
-    protected abstract void getLog10PNonRef(GenotypesContext GLs,  List<Allele> Alleles,
-                                            double[][] log10AlleleFrequencyPriors,
-                                            AlleleFrequencyCalculationResult result);
+    protected abstract List<Allele> getLog10PNonRef(final VariantContext vc,
+                                                    final double[][] log10AlleleFrequencyPriors,
+                                                    final AlleleFrequencyCalculationResult result);
 }

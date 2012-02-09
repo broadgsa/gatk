@@ -43,14 +43,28 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public void getLog10PNonRef(final GenotypesContext GLs,
-                                final List<Allele> alleles,
-                                final double[][] log10AlleleFrequencyPriors,
-                                final AlleleFrequencyCalculationResult result) {
-        final int numAlleles = alleles.size();
+    public List<Allele> getLog10PNonRef(final VariantContext vc,
+                                        final double[][] log10AlleleFrequencyPriors,
+                                        final AlleleFrequencyCalculationResult result) {
+
+        final GenotypesContext GLs = vc.getGenotypes();
+        List<Allele> alleles = vc.getAlleles();
+
+        // don't try to genotype too many alternate alleles
+        if ( vc.getAlternateAlleles().size() > MAX_ALTERNATE_ALLELES_TO_GENOTYPE ) {
+            logger.warn("this tool is currently set to genotype at most " + MAX_ALTERNATE_ALLELES_TO_GENOTYPE + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+
+            alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
+            alleles.add(vc.getReference());
+            for ( int i = 0; i < MAX_ALTERNATE_ALLELES_TO_GENOTYPE; i++ )
+                alleles.add(vc.getAlternateAllele(i));
+            UnifiedGenotyperEngine.subsetAlleles(vc, alleles, false);
+        }
 
         //linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
-        linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, result, false);
+        linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result, false);
+
+        return alleles;
     }
 
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
