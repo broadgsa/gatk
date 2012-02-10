@@ -767,7 +767,7 @@ public class UnifiedGenotyperEngine {
 
     /**
      * @param vc                 variant context with genotype likelihoods
-     * @param allelesToUse       which alleles from the vc are okay to use
+     * @param allelesToUse       which alleles from the vc are okay to use; *** must be in the same relative order as those in the original VC ***
      * @param assignGenotypes    true if we should change the genotypes based on the (subsetted) PLs
      * @return genotypes
      */
@@ -860,7 +860,7 @@ public class UnifiedGenotyperEngine {
         return newGTs;
     }
      
-    protected static Genotype assignGenotype(Genotype originalGT, double[] newLikelihoods, List<Allele> allelesToUse, int numNewAltAlleles, Map<String, Object> attrs) {
+    protected static Genotype assignGenotype(final Genotype originalGT, final double[] newLikelihoods, final List<Allele> allelesToUse, final int numNewAltAlleles, final Map<String, Object> attrs) {
         // find the genotype with maximum likelihoods
         int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
         int[] alleles = PLIndexToAlleleIndex[numNewAltAlleles][PLindex];

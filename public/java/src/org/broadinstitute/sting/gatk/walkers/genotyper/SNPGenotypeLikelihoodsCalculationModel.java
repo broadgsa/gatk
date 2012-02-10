@@ -45,20 +45,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
     private final boolean useAlleleFromVCF;
 
-    final LikelihoodSum[] likelihoodSums = new LikelihoodSum[4];
-
-    private final class LikelihoodSum implements Comparable<LikelihoodSum> {
-        public double sum = 0.0;
-        public Allele base;
-
-        public LikelihoodSum(Allele base) { this.base = base; }
-
-        public int compareTo(LikelihoodSum other) {
-            final double diff = sum - other.sum;
-            return ( diff < 0.0 ) ? 1 : (diff > 0.0 ) ? -1 : 0;
-        }
-    }
-
+    private final double[] likelihoodSums = new double[4];
+    
     protected SNPGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
@@ -176,27 +164,26 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         final int baseIndexOfRef = BaseUtils.simpleBaseToBaseIndex(ref);
         final int PLindexOfRef = DiploidGenotype.createDiploidGenotype(ref, ref).ordinal();
         for ( int i = 0; i < 4; i++ )
-            likelihoodSums[i] = new LikelihoodSum(Allele.create(BaseUtils.baseIndexToSimpleBase(i), false));
-
-        // based on the GLs, find the alternate alleles with the most probability
+            likelihoodSums[i] = 0.0;
+        
+        // based on the GLs, find the alternate alleles with enough probability
         for ( SampleGenotypeData sampleData : sampleDataList ) {
             final double[] likelihoods = sampleData.GL.getLikelihoods();
             final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
             if ( PLindexOfBestGL != PLindexOfRef ) {
                 int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[3][PLindexOfBestGL];
                 if ( alleles[0] != baseIndexOfRef )
-                    likelihoodSums[alleles[0]].sum += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
+                    likelihoodSums[alleles[0]] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
                 // don't double-count it
                 if ( alleles[1] != baseIndexOfRef && alleles[1] != alleles[0] )
-                    likelihoodSums[alleles[1]].sum += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
+                    likelihoodSums[alleles[1]] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
             }
         }
 
-        Collections.sort(Arrays.asList(likelihoodSums));
         final List<Allele> allelesToUse = new ArrayList<Allele>(3);
-        for ( LikelihoodSum sum : likelihoodSums ) {
-            if ( sum.sum > 0.0 )
-                allelesToUse.add(sum.base);
+        for ( int i = 0; i < 4; i++ ) {
+            if ( likelihoodSums[i] > 0.0 )
+                allelesToUse.add(Allele.create(BaseUtils.baseIndexToSimpleBase(i), false));
         }
 
         return allelesToUse;
