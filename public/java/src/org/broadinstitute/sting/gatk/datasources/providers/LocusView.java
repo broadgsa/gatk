@@ -25,9 +25,14 @@ import java.util.NoSuchElementException;
  */
 
 /**
- * A queue of locus context entries.
+ * The two goals of the LocusView are as follows:
+ * 1) To provide a 'trigger track' iteration interface so that TraverseLoci can easily switch
+ *    between iterating over all bases in a region, only covered bases in a region covered by
+ *    reads, only bases in a region covered by RODs, or any other sort of trigger track
+ *    implementation one can think of.
+ * 2) To manage the copious number of iterators that have to be jointly pulled through the
+ *    genome to make a locus traversal function.
  */
-
 public abstract class LocusView extends LocusIterator implements View {
     /**
      * The locus bounding this view.

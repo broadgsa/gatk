@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -256,32 +257,6 @@ public class RecalDataManager {
     public static void parseSAMRecord(final GATKSAMRecord read, final RecalibrationArgumentCollection RAC) {
         GATKSAMReadGroupRecord readGroup = ((GATKSAMRecord) read).getReadGroup();
 
-        // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments
-        if (readGroup == null) {
-            if (RAC.DEFAULT_READ_GROUP != null && RAC.DEFAULT_PLATFORM != null) {
-                if (!warnUserNullReadGroup && RAC.FORCE_READ_GROUP == null) {
-                    Utils.warnUser("The input .bam file contains reads with no read group. " +
-                            "Defaulting to read group ID = " + RAC.DEFAULT_READ_GROUP + " and platform = " + RAC.DEFAULT_PLATFORM + ". " +
-                            "First observed at read with name = " + read.getReadName());
-                    warnUserNullReadGroup = true;
-                }
-                // There is no readGroup so defaulting to these values
-                readGroup = new GATKSAMReadGroupRecord(RAC.DEFAULT_READ_GROUP);
-                readGroup.setPlatform(RAC.DEFAULT_PLATFORM);
-                ((GATKSAMRecord) read).setReadGroup(readGroup);
-            }
-            else {
-                throw new UserException.MalformedBAM(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName());
-            }
-        }
-
-        if (RAC.FORCE_READ_GROUP != null && !readGroup.getReadGroupId().equals(RAC.FORCE_READ_GROUP)) { // Collapse all the read groups into a single common String provided by the user
-            final String oldPlatform = readGroup.getPlatform();
-            readGroup = new GATKSAMReadGroupRecord(RAC.FORCE_READ_GROUP);
-            readGroup.setPlatform(oldPlatform);
-            ((GATKSAMRecord) read).setReadGroup(readGroup);
-        }
-
         if (RAC.FORCE_PLATFORM != null && (readGroup.getPlatform() == null || !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM))) {
             readGroup.setPlatform(RAC.FORCE_PLATFORM);
         }
@@ -310,7 +285,7 @@ public class RecalDataManager {
     public static void parseColorSpace(final GATKSAMRecord read) {
 
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
-        if (read.getReadGroup().getPlatform().toUpperCase().contains("SOLID")) {
+        if (ReadUtils.isSOLiDRead(read)) {
             if (read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null) { // Haven't calculated the inconsistency array yet for this read
                 final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
                 if (attr != null) {
@@ -408,7 +383,7 @@ public class RecalDataManager {
     }
 
     public static boolean checkNoCallColorSpace(final GATKSAMRecord read) {
-        if (read.getReadGroup().getPlatform().toUpperCase().contains("SOLID")) {
+        if (ReadUtils.isSOLiDRead(read)) {
             final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
             if (attr != null) {
                 byte[] colorSpace;
@@ -637,21 +612,17 @@ public class RecalDataManager {
         final Comparable[][] covariateValues_offset_x_covar = new Comparable[readLength][numRequestedCovariates];
         final Comparable[] tempCovariateValuesHolder = new Comparable[readLength];
 
-        // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
-        for (int i = 0; i < numRequestedCovariates; i++) {
+        for (int i = 0; i < numRequestedCovariates; i++) {                              // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
             requestedCovariates.get(i).getValues(gatkRead, tempCovariateValuesHolder, modelType);
-            for (int j = 0; j < readLength; j++) {
-                //copy values into a 2D array that allows all covar types to be extracted at once for
-                //an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.
-                covariateValues_offset_x_covar[j][i] = tempCovariateValuesHolder[j];
-            }
+            for (int j = 0; j < readLength; j++)
+                covariateValues_offset_x_covar[j][i] = tempCovariateValuesHolder[j];    // copy values into a 2D array that allows all covar types to be extracted at once for an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.
         }
 
         return covariateValues_offset_x_covar;
     }
 
     /**
-     * Perform a ceratin transversion (A <-> C or G <-> T) on the base.
+     * Perform a certain transversion (A <-> C or G <-> T) on the base.
      *
      * @param base the base [AaCcGgTt]
      * @return the transversion of the base, or the input base if it's not one of the understood ones
