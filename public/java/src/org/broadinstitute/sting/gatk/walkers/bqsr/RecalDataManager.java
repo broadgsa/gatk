@@ -181,7 +181,7 @@ public class RecalDataManager {
         }
 
         // Create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
-        for (int iii = 0; iii < dataCollapsedByCovariate.size(); iii++) {
+        for (int iii = 0; iii < dataCollapsedByCovariate.get(errorModel).size(); iii++) {
             covariateCollapsedKey[0] = key[0]; // Make a new key with the read group ...
             covariateCollapsedKey[1] = key[1]; //                                    and quality score ...
             final Object theCovariateElement = key[iii + 2]; //                                        and the given covariate
