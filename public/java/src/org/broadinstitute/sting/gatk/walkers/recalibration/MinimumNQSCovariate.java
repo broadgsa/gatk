@@ -65,7 +65,7 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
     }
 
     @Override
-    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
         for (int iii = 0; iii < read.getReadLength(); iii++) {
             comparable[iii] = getValue(read, iii); // BUGBUG: this can be optimized
         }

@@ -98,4 +98,9 @@ public class ContextCovariate implements StandardCovariate {
         return s;
     }
 
+    // Used to get the covariate's value from input csv file during on-the-fly recalibration
+    @Override
+    public final Comparable getValue(final String str) {
+        return str;
+    }
 }

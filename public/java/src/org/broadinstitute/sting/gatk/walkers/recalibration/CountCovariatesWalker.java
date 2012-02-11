@@ -378,7 +378,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
                     }
 
                     RecalDataManager.parseColorSpace(gatkRead);
-                    gatkRead.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalDataManager.computeCovariates(gatkRead, requestedCovariates, BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION));
+                    gatkRead.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalDataManager.computeCovariates(gatkRead, requestedCovariates));
                 }
 
                 // Skip this position if base quality is zero

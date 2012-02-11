@@ -46,16 +46,10 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
-    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
-        if (modelType == BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION) {
-            byte[] baseQualities = read.getBaseQualities();
-            for (int i = 0; i < read.getReadLength(); i++) {
-                comparable[i] = (int) baseQualities[i];
-            }
-        }
-        else { // model == BASE_INSERTION || model == BASE_DELETION
-            Arrays.fill(comparable, 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
+        byte[] baseQualities = read.getBaseQualities();
+        for (int i = 0; i < read.getReadLength(); i++) {
+            comparable[i] = (int) baseQualities[i];
         }
     }
 

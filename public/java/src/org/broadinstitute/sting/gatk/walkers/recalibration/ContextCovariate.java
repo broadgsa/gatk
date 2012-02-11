@@ -56,7 +56,7 @@ public class ContextCovariate implements ExperimentalCovariate {
     }
 
     @Override
-    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
         byte[] bases = read.getReadBases();
         for (int i = 0; i < read.getReadLength(); i++)
             comparable[i] = (i < CONTEXT_SIZE) ? allN : new String(Arrays.copyOfRange(bases, i - CONTEXT_SIZE, i));

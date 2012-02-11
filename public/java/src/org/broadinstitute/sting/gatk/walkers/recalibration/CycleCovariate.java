@@ -66,7 +66,7 @@ public class CycleCovariate implements StandardCovariate {
 
     // Used to pick out the covariate's value from attributes of the read
     @Override
-    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
 
         //-----------------------------
         // Illumina, Solid, PacBio, and Complete Genomics

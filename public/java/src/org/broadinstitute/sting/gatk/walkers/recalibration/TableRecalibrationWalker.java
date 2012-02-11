@@ -405,7 +405,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         //compute all covariate values for this read
-        final Comparable[][] covariateValues_offset_x_covar = RecalDataManager.computeCovariates(read, requestedCovariates, BaseRecalibration.BaseRecalibrationType.BASE_SUBSTITUTION);
+        final Comparable[][] covariateValues_offset_x_covar = RecalDataManager.computeCovariates(read, requestedCovariates);
 
         // For each base in the read
         for (int offset = 0; offset < read.getReadLength(); offset++) {
