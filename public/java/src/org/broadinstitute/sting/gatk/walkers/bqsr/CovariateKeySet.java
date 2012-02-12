@@ -15,18 +15,18 @@ public class CovariateKeySet {
 
     private int nextCovariateIndex;
     
-    private final String mismatchesCovariateName = "M";
-    private final String insertionsCovariateName = "I";
-    private final String  deletionsCovariateName = "D";
+    public final static String mismatchesCovariateName = "M";
+    public final static String insertionsCovariateName = "I";
+    public final static String  deletionsCovariateName = "D";
 
     public CovariateKeySet(int readLength, int numberOfCovariates) {
         numberOfCovariates++;                                               // +1 because we are adding the mismatch covariate (to comply with the molten table format)
         this.mismatchesKeySet = new Object[readLength][numberOfCovariates]; 
         this.insertionsKeySet = new Object[readLength][numberOfCovariates];
         this.deletionsKeySet  = new Object[readLength][numberOfCovariates];
-        initializeCovariateKeySet(this.mismatchesKeySet, this.mismatchesCovariateName);
-        initializeCovariateKeySet(this.insertionsKeySet, this.insertionsCovariateName);
-        initializeCovariateKeySet(this.deletionsKeySet,  this.deletionsCovariateName);
+        initializeCovariateKeySet(this.mismatchesKeySet, mismatchesCovariateName);
+        initializeCovariateKeySet(this.insertionsKeySet, insertionsCovariateName);
+        initializeCovariateKeySet(this.deletionsKeySet,  deletionsCovariateName);
         this.nextCovariateIndex = 0;
     }
     

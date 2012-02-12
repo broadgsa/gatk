@@ -25,14 +25,12 @@
 
 package org.broadinstitute.sting.utils.recalibration;
 
-import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
-import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager;
-import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
-import org.broadinstitute.sting.gatk.walkers.recalibration.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.bqsr.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -52,19 +50,13 @@ import java.util.regex.Pattern;
 
 public class BaseRecalibration {
 
-    public enum BaseRecalibrationType {
-        BASE_SUBSTITUTION,
-        BASE_INSERTION,
-        BASE_DELETION
-    }
-
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // List of covariates to be used in this calculation
     public static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     public static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
     public static final String EOF_MARKER = "EOF";
     private static final int MAX_QUALITY_SCORE = 65; //BUGBUG: what value to use here?
-    private NestedHashMap qualityScoreByFullCovariateKey = new NestedHashMap(); // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
+    private NestedHashMap qualityScoreByFullCovariateKey = new NestedHashMap(); // Caches the result of performSequentialQualityCalculation(...) for all sets of covariate values.
 
     public BaseRecalibration( final File RECAL_FILE ) {
         // Get a list of all available covariates
@@ -89,7 +81,7 @@ public class BaseRecalibration {
                         throw new UserException.MalformedFile( RECAL_FILE, "Malformed input recalibration file. Found covariate names intermingled with data in file: " + RECAL_FILE );
                     } else { // Found the covariate list in input file, loop through all of them and instantiate them
                         String[] vals = line.split(",");
-                        for( int iii = 0; iii < vals.length - 3; iii++ ) { // There are n-3 covariates. The last three items are nObservations, nMismatch, and Qempirical
+                        for( int iii = 0; iii < vals.length - 4; iii++ ) { // There are n-4 covariates. The last four items are ErrorModel, nObservations, nMismatch, and Qempirical
                             boolean foundClass = false;
                             for( Class<?> covClass : classes ) {
                                 if( (vals[iii] + "Covariate").equalsIgnoreCase( covClass.getSimpleName() ) ) {
@@ -160,7 +152,7 @@ public class BaseRecalibration {
         final String[] vals = line.split(",");
 
         // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
-        if( vals.length != requestedCovariates.size() + 3 ) { // +3 because of nObservations, nMismatch, and Qempirical
+        if( vals.length != requestedCovariates.size() + 4 ) { // +4 because of ErrorModel, nObservations, nMismatch, and Qempirical
             throw new UserException.MalformedFile(file, "Malformed input recalibration file. Found data line with too many fields: " + line +
                     " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
         }
@@ -172,39 +164,63 @@ public class BaseRecalibration {
             cov = requestedCovariates.get( iii );
             key[iii] = cov.getValue( vals[iii] );
         }
-
+        final String modelString = vals[iii++];
+        final RecalDataManager.BaseRecalibrationType errorModel = ( modelString.equals(CovariateKeySet.mismatchesCovariateName) ? RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION :
+            ( modelString.equals(CovariateKeySet.insertionsCovariateName) ? RecalDataManager.BaseRecalibrationType.BASE_INSERTION :
+            ( modelString.equals(CovariateKeySet.deletionsCovariateName) ? RecalDataManager.BaseRecalibrationType.BASE_DELETION : null ) ) );
+                
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
         final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
-        dataManager.addToAllTables( key, datum, QualityUtils.MIN_USABLE_Q_SCORE ); //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
+        
+        dataManager.addToAllTables( key, datum, QualityUtils.MIN_USABLE_Q_SCORE, errorModel ); //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
     }
     
-    public byte[] recalibrateRead( final GATKSAMRecord read, final byte[] originalQuals, final BaseRecalibrationType modelType ) {
+    public void recalibrateRead( final GATKSAMRecord read ) {
 
-        final byte[] recalQuals = originalQuals.clone();
-        
         //compute all covariate values for this read
-        final Comparable[][] covariateValues_offset_x_covar =
-                RecalDataManager.computeCovariates(read, requestedCovariates, modelType);
-    
-        // For each base in the read
-        for( int offset = 0; offset < read.getReadLength(); offset++ ) {
-    
-            final Object[] fullCovariateKey = covariateValues_offset_x_covar[offset];
-    
-            Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
-            if(qualityScore == null)
-            {
-                qualityScore = performSequentialQualityCalculation( fullCovariateKey );
-                qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
-            }
-    
-            recalQuals[offset] = qualityScore;
-        }
-    
-        preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
+        RecalDataManager.computeCovariates(read, requestedCovariates);
+        final CovariateKeySet covariateKeySet = RecalDataManager.getAllCovariateValuesFor( read );
+
+        for( final RecalDataManager.BaseRecalibrationType errorModel : RecalDataManager.BaseRecalibrationType.values() ) {
+            final byte[] originalQuals = ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION ? read.getBaseQualities() :
+                ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_INSERTION ? read.getBaseDeletionQualities() :
+                ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_DELETION ? read.getBaseDeletionQualities() : null ) ) );
+            final byte[] recalQuals = originalQuals.clone();
+
+            // For each base in the read
+            for( int offset = 0; offset < read.getReadLength(); offset++ ) {
         
-        return recalQuals;
+                final Object[] fullCovariateKey =
+                        ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION ? covariateKeySet.getMismatchesKeySet(offset) :
+                        ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_INSERTION ? covariateKeySet.getInsertionsKeySet(offset) :
+                        ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_DELETION ? covariateKeySet.getDeletionsKeySet(offset) : null ) ) );
+        
+                Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
+                if( qualityScore == null ) {
+                    qualityScore = performSequentialQualityCalculation( errorModel, fullCovariateKey );
+                    qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
+                }
+        
+                recalQuals[offset] = qualityScore;
+            }
+        
+            preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
+            switch (errorModel) {
+                case BASE_SUBSTITUTION:
+                    read.setBaseQualities( recalQuals );
+                    break;
+                case BASE_INSERTION:
+                    read.setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, recalQuals );
+                    break;
+                case BASE_DELETION:
+                    read.setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, recalQuals );
+                    break;
+                default:
+                    throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+            }
+        }
+       
     }
 
     /**
@@ -222,7 +238,7 @@ public class BaseRecalibration {
      * @param key The list of Comparables that were calculated from the covariates
      * @return A recalibrated quality score as a byte
      */
-    private byte performSequentialQualityCalculation( final Object... key ) {
+    private byte performSequentialQualityCalculation( final RecalDataManager.BaseRecalibrationType errorModel, final Object... key ) {
 
         final byte qualFromRead = (byte)Integer.parseInt(key[1].toString());
         final Object[] readGroupCollapsedKey = new Object[1];
@@ -231,7 +247,7 @@ public class BaseRecalibration {
 
         // The global quality shift (over the read group only)
         readGroupCollapsedKey[0] = key[0];
-        final RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( readGroupCollapsedKey ));
+        final RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0, errorModel).get( readGroupCollapsedKey ));
         double globalDeltaQ = 0.0;
         if( globalRecalDatum != null ) {
             final double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
@@ -242,7 +258,7 @@ public class BaseRecalibration {
         // The shift in quality between reported and empirical
         qualityScoreCollapsedKey[0] = key[0];
         qualityScoreCollapsedKey[1] = key[1];
-        final RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( qualityScoreCollapsedKey ));
+        final RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1, errorModel).get( qualityScoreCollapsedKey ));
         double deltaQReported = 0.0;
         if( qReportedRecalDatum != null ) {
             final double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
@@ -256,7 +272,7 @@ public class BaseRecalibration {
         covariateCollapsedKey[1] = key[1];
         for( int iii = 2; iii < key.length; iii++ ) {
             covariateCollapsedKey[2] =  key[iii]; // The given covariate
-            final RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( covariateCollapsedKey ));
+            final RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii, errorModel).get( covariateCollapsedKey ));
             if( covariateRecalDatum != null ) {
                 deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
                 deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
@@ -265,18 +281,6 @@ public class BaseRecalibration {
 
         final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
         return QualityUtils.boundQual( (int)Math.round(newQuality), (byte)MAX_QUALITY_SCORE );
-
-        // Verbose printouts used to validate with old recalibrator
-        //if(key.contains(null)) {
-        //    System.out.println( key  + String.format(" => %d + %.2f + %.2f + %.2f + %.2f = %d",
-        //                 qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte));
-        //}
-        //else {
-        //    System.out.println( String.format("%s %s %s %s => %d + %.2f + %.2f + %.2f + %.2f = %d",
-        //                 key.get(0).toString(), key.get(3).toString(), key.get(2).toString(), key.get(1).toString(), qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte) );
-        //}
-
-        //return newQualityByte;
     }
 
     /**
@@ -291,5 +295,4 @@ public class BaseRecalibration {
             }
         }
     }
-
 }

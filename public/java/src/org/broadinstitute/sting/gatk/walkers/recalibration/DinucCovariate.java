@@ -66,7 +66,7 @@ public class DinucCovariate implements StandardCovariate {
      * Takes an array of size (at least) read.getReadLength() and fills it with the covariate values for each position in the read.
      */
     @Override
-    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
         final HashMap<Integer, Dinuc> dinucHashMapRef = this.dinucHashMap; //optimize access to dinucHashMap
         final int readLength = read.getReadLength();
         final boolean negativeStrand = read.getReadNegativeStrandFlag();

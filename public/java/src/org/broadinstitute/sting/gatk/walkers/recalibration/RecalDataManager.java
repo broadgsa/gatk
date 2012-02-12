@@ -63,7 +63,6 @@ public class RecalDataManager {
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
     public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS"; // The tag that holds the color space for SOLID bams
     public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC"; // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
-    private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNullPlatform = false;
 
     public enum SOLID_RECAL_MODE {
@@ -604,7 +603,7 @@ public class RecalDataManager {
      *         value for the ith position in the read and the jth covariate in
      *         reqeustedCovariates list.
      */
-    public static Comparable[][] computeCovariates(final GATKSAMRecord gatkRead, final List<Covariate> requestedCovariates, final BaseRecalibration.BaseRecalibrationType modelType) {
+    public static Comparable[][] computeCovariates(final GATKSAMRecord gatkRead, final List<Covariate> requestedCovariates) {
         //compute all covariates for this read
         final int numRequestedCovariates = requestedCovariates.size();
         final int readLength = gatkRead.getReadLength();
@@ -613,7 +612,7 @@ public class RecalDataManager {
         final Comparable[] tempCovariateValuesHolder = new Comparable[readLength];
 
         for (int i = 0; i < numRequestedCovariates; i++) {                              // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
-            requestedCovariates.get(i).getValues(gatkRead, tempCovariateValuesHolder, modelType);
+            requestedCovariates.get(i).getValues(gatkRead, tempCovariateValuesHolder);
             for (int j = 0; j < readLength; j++)
                 covariateValues_offset_x_covar[j][i] = tempCovariateValuesHolder[j];    // copy values into a 2D array that allows all covar types to be extracted at once for an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.
         }

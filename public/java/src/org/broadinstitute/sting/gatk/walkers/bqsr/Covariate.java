@@ -53,6 +53,7 @@ public interface Covariate {
      */
     public CovariateValues getValues(GATKSAMRecord read);
 
+    public Comparable getValue(String str); // Used to get the covariate's value from input csv file during on-the-fly recalibration
 }
 
 interface RequiredCovariate extends Covariate {}

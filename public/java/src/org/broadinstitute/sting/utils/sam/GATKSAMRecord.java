@@ -54,7 +54,6 @@ public class GATKSAMRecord extends BAMRecord {
     // Base Quality Score Recalibrator specific attribute tags
     public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";
     public static final String BQSR_BASE_DELETION_QUALITIES = "BD";
-    public static final String BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG = "BR";
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -163,27 +162,6 @@ public class GATKSAMRecord extends BAMRecord {
         return super.equals(o);
     }
 
-
-    @Override
-    public byte[] getBaseQualities() {
-        return super.getBaseQualities();
-        /*
-        if( getAttribute( BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG ) != null ) {
-            return super.getBaseQualities();
-        } else {
-            // if the recal data was populated in the engine then recalibrate the quality scores on the fly
-            if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
-                final byte[] quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, super.getBaseQualities() );
-                setBaseQualities(quals);
-                setAttribute( BQSR_BASES_HAVE_BEEN_RECALIBRATED_TAG, true );
-                return quals;
-            } else { // just use the qualities that are in the read since we don't have the sufficient information to recalibrate on the fly
-                return super.getBaseQualities();
-            }
-        }
-        */
-    }
-
     /**
      * Accessors for base insertion and base deletion quality scores
      */
@@ -191,13 +169,8 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = getByteArrayAttribute( BQSR_BASE_INSERTION_QUALITIES );
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45); // allow for differing default values between BaseInsertions and BaseDeletions
-            // if the recal data was populated in the engine then recalibrate the quality scores on the fly
-            // else give default values which are flat Q45
-            if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
-                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals, BaseRecalibration.BaseRecalibrationType.BASE_INSERTION ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
-            }
-            // add the qual array to the read so that we don't have to do the recalibration work again
+            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
             setAttribute( BQSR_BASE_INSERTION_QUALITIES, quals );
         }
         return quals;
@@ -207,13 +180,8 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = getByteArrayAttribute( BQSR_BASE_DELETION_QUALITIES );
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45);
-            // if the recal data was populated in the engine then recalibrate the quality scores on the fly
-            // else give default values which are flat Q45
-            if( GenomeAnalysisEngine.hasBaseRecalibration() ) {
-                quals = GenomeAnalysisEngine.getBaseRecalibration().recalibrateRead( this, quals, BaseRecalibration.BaseRecalibrationType.BASE_DELETION ); // the original quals here are the flat base insertion/deletion quals, NOT the original base qualities
-            }
-            // add the qual array to the read so that we don't have to do the recalibration work again
+            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
             setAttribute( BQSR_BASE_DELETION_QUALITIES, quals );
         }
         return quals;

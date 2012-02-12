@@ -39,39 +39,35 @@ import java.util.Arrays;
 
 public class QualityScoreCovariate implements RequiredCovariate {
 
-    private byte defaultMismatchesQuality;                                      // walker parameter. Must be > 0 to be used, otherwise we use the quality from the read.
-    private byte defaultInsertionsQuality;                                      // walker parameter. Must be > 0 to be used, otherwise we use the quality from the read.
-    private byte  defaultDeletionsQuality;                                      // walker parameter. Must be > 0 to be used, otherwise we use the quality from the read.
-        
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
-        defaultMismatchesQuality = RAC.MISMATCHES_DEFAULT_QUALITY;
-        defaultInsertionsQuality = RAC.INSERTIONS_DEFAULT_QUALITY;
-         defaultDeletionsQuality = RAC.DELETIONS_DEFAULT_QUALITY; 
     }
 
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
         int readLength = read.getReadLength();
-        
-        Byte [] mismatches = new Byte[readLength];
-        Byte [] insertions = new Byte[readLength];
-        Byte []  deletions = new Byte[readLength];
-        
+
+        Integer [] mismatches = new Integer[readLength];
+        Integer [] insertions = new Integer[readLength];
+        Integer []  deletions = new Integer[readLength];
+
         byte [] baseQualities = read.getBaseQualities();
+        byte [] baseInsertionQualities = read.getBaseInsertionQualities();
+        byte [] baseDeletionQualities = read.getBaseDeletionQualities();
 
-        if (defaultMismatchesQuality >= 0)
-            Arrays.fill(mismatches, defaultMismatchesQuality);                  // if the user decides to override the base qualities in the read, use the flat value
-        else {
-            for (int i=0; i<baseQualities.length; i++)
-                mismatches[i] = baseQualities[i];
+        for (int i=0; i<baseQualities.length; i++) {
+            mismatches[i] = (int) baseQualities[i];
+            insertions[i] = (int) baseInsertionQualities[i];
+            deletions[i] = (int) baseDeletionQualities[i];
         }
-
-        Arrays.fill(insertions, defaultInsertionsQuality);                      // Some day in the future when base insertion and base deletion quals exist the samtools API will
-        Arrays.fill( deletions, defaultDeletionsQuality);                       // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat value (parameter)
 
         return new CovariateValues(mismatches, insertions, deletions);
     }
 
+    // Used to get the covariate's value from input csv file during on-the-fly recalibration
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
+    }
 }

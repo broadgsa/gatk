@@ -5,14 +5,12 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
 import org.broadinstitute.sting.gatk.filters.FailsVendorQualityCheckFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -77,7 +75,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     public abstract double isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
-    public abstract MapType map(final ActiveRegion activeRegion, final ReadMetaDataTracker metaDataTracker);
+    public abstract MapType map(final ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);
 
     public final GenomeLocSortedSet extendIntervals( final GenomeLocSortedSet intervals, final GenomeLocParser genomeLocParser, IndexedFastaSequenceFile reference ) {
         final int activeRegionExtension = this.getClass().getAnnotation(ActiveRegionExtension.class).extension();

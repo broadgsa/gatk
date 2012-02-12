@@ -44,7 +44,7 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     @Override
-    public void getValues(final GATKSAMRecord read, final Comparable[] comparable, final BaseRecalibration.BaseRecalibrationType modelType) {
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
         final String readGroupId = read.getReadGroup().getReadGroupId();
         for (int i = 0; i < read.getReadLength(); i++) {
             comparable[i] = readGroupId;

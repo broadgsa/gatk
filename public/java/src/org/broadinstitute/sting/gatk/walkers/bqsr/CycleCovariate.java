@@ -196,4 +196,9 @@ public class CycleCovariate implements StandardCovariate {
         return new CovariateValues(cycles, cycles, cycles);
     }
 
+    // Used to get the covariate's value from input csv file during on-the-fly recalibration
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
+    }
 }

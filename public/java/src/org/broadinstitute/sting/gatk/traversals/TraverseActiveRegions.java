@@ -107,7 +107,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 }
 
                 // If this is the last pileup for this shard calculate the minimum alignment start so that we know 
-                //   which active regions in the work queue are now safe to process
+                // which active regions in the work queue are now safe to process
                 if( !locusView.hasNext() ) {
                     for( final PileupElement p : locus.getBasePileup() ) {
                         final GATKSAMRecord read = p.getRead();
@@ -135,7 +135,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 }
             }
 
-            // Since we've sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
+            // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
             while( workQueue.peek() != null && (workQueue.peek().getExtendedLoc().getStop() < minStart || !workQueue.peek().getExtendedLoc().getContig().equals(dataProvider.getLocus().getContig())) ) {
                 final ActiveRegion activeRegion = workQueue.remove();
                 sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
@@ -190,7 +190,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         reads.removeAll( placedReads ); // remove all the reads which have been placed into their active region
 
         logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
-        final M x = walker.map( activeRegion, null ); // BUGBUG: tracker needs to be filled in and passed to the walker
+        final M x = walker.map( activeRegion, null );
         return walker.reduce( x, sum );
     }
 
