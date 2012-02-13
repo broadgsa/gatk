@@ -39,6 +39,14 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
                 " -L chr1 -o %s" + moreArgs;
     }
 
+    private String variantsToTableMultiAllelicCmd(String moreArgs) {
+        return "-R " + b37KGReference +
+                " --variant " + validationDataLocation + "/multiallelic.vcf" +
+                " -T VariantsToTable" +
+                " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
+                " -o %s" + moreArgs;
+    }
+
     @Test(enabled = true)
     public void testComplexVariantsToTable() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableCmd(" -AMD"),
@@ -50,5 +58,19 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testComplexVariantsToTableFail() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableCmd(""), 1, UserException.class);
         executeTest("testComplexVariantsToTable-FAIL", spec);
+    }
+
+    @Test(enabled = true)
+    public void testMultiAllelicOneRecord() {
+        WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(""),
+                Arrays.asList("13dd36c08be6c800f23988e6000d963e"));
+        executeTest("testMultiAllelicOneRecord", spec).getFirst();
+    }
+
+    @Test(enabled = true)
+    public void testMultiAllelicSplitRecords() {
+        WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(" -SMA"),
+                Arrays.asList("17a0fc80409d2fc00ad2bbb94b3a346b"));
+        executeTest("testMultiAllelicSplitRecords", spec).getFirst();
     }
 }

@@ -194,7 +194,9 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
         for ( String field : fields ) {
 
-            if ( getters.containsKey(field) ) {
+            if ( splitMultiAllelic && field.equals("ALT") ) { // we need to special case the ALT field when splitting out multi-allelic records
+                addFieldValue(splitAltAlleles(vc), records);
+            } else if ( getters.containsKey(field) ) {
                 addFieldValue(getters.get(field).get(vc), records);
             } else if ( vc.hasAttribute(field) ) {
                 addFieldValue(vc.getAttribute(field, null), records);
@@ -271,9 +273,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 StringBuilder x = new StringBuilder();
-                if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() )
-                    x.append((char)vc.getReferenceBaseForIndel().byteValue());
-                x.append(vc.getReference().getDisplayString());
+                x.append(getAlleleDisplayString(vc, vc.getReference()));
                 return x.toString();
             }
         });
@@ -285,9 +285,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
                 for ( int i = 0; i < n; i++ ) {
                     if ( i != 0 ) x.append(",");
-                    if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() )
-                        x.append((char)vc.getReferenceBaseForIndel().byteValue());
-                    x.append(vc.getAlternateAllele(i).getDisplayString());
+                    x.append(getAlleleDisplayString(vc, vc.getAlternateAllele(i)));
                 }
                 return x.toString();
             }
@@ -325,5 +323,23 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             return String.format("%.2f", -10 * vc.getGenotype(0).getLog10PError());
         }});
     }
+    
+    private static String getAlleleDisplayString(VariantContext vc, Allele allele) {
+        StringBuilder sb = new StringBuilder();
+        if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() )
+            sb.append((char)vc.getReferenceBaseForIndel().byteValue());
+        sb.append(allele.getDisplayString());
+        return sb.toString();
+    }
+    
+    private static Object splitAltAlleles(VariantContext vc) {
+        final int numAltAlleles = vc.getAlternateAlleles().size();
+        if ( numAltAlleles == 1 )
+            return getAlleleDisplayString(vc, vc.getAlternateAllele(0));
 
+        final List<String> alleles = new ArrayList<String>(numAltAlleles);
+        for ( Allele allele : vc.getAlternateAlleles() )
+            alleles.add(getAlleleDisplayString(vc, allele));
+        return alleles;
+    }
 }
