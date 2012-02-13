@@ -308,6 +308,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
+                null, // no BQSR
                 (byte) -1
         );
     }

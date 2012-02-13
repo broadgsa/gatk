@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 import java.util.Collection;
 /**
@@ -27,23 +28,20 @@ import java.util.Collection;
  * information about how they should be downsampled, sorted, and filtered.
  */
 public class ReadProperties {
-    private Collection<SAMReaderID> readers = null;
-    private SAMFileHeader header = null;
-    private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
-    private DownsamplingMethod downsamplingMethod = null;
-    private ValidationExclusion exclusionList = null;
-    private Collection<ReadFilter> supplementalFilters = null;
-    private boolean includeReadsWithDeletionAtLoci = false;
-    private boolean useOriginalBaseQualities = false;
-    private boolean generateExtendedEvents = false;
-    private BAQ.CalculationMode cmode = BAQ.CalculationMode.OFF;
-    private BAQ.QualityMode qmode = BAQ.QualityMode.DONT_MODIFY;
-    IndexedFastaSequenceFile refReader = null; // read for BAQ, if desired
-    private byte defaultBaseQualities;
-
-    // do we want to generate additional piles of "extended" events (indels)
-// immediately after the reference base such event is associated with?
-
+    private final Collection<SAMReaderID> readers;
+    private final SAMFileHeader header;
+    private final SAMFileReader.ValidationStringency validationStringency;
+    private final DownsamplingMethod downsamplingMethod;
+    private final ValidationExclusion exclusionList;
+    private final Collection<ReadFilter> supplementalFilters;
+    private final boolean includeReadsWithDeletionAtLoci;
+    private final boolean useOriginalBaseQualities;
+    private final boolean generateExtendedEvents;
+    private final BAQ.CalculationMode cmode;
+    private final BAQ.QualityMode qmode;
+    private final IndexedFastaSequenceFile refReader; // read for BAQ, if desired
+    private final BaseRecalibration bqsrApplier;
+    private final byte defaultBaseQualities;
 
     /**
      * Return true if the walker wants to see reads that contain deletions when looking at locus pileups
@@ -126,6 +124,8 @@ public class ReadProperties {
         return refReader;
     }
 
+    public BaseRecalibration getBQSRApplier() { return bqsrApplier; }
+
     /**
      * @return Default base quality value to fill reads missing base quality information.
      */
@@ -165,8 +165,9 @@ public class ReadProperties {
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents,
            BAQ.CalculationMode cmode,
-           BAQ.QualityMode qmode,
+           BAQ.QualityMode qmode,           
            IndexedFastaSequenceFile refReader,
+           BaseRecalibration bqsrApplier,
            byte defaultBaseQualities) {
         this.readers = samFiles;
         this.header = header;
@@ -180,6 +181,7 @@ public class ReadProperties {
         this.cmode = cmode;
         this.qmode = qmode;
         this.refReader = refReader;
+        this.bqsrApplier = bqsrApplier;
         this.defaultBaseQualities = defaultBaseQualities;
     }
 }

@@ -25,9 +25,9 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
 import org.broadinstitute.sting.utils.NGSPlatform;
-import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -163,8 +163,37 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     /**
-     * Accessors for base insertion and base deletion quality scores
+     * Setters and Accessors for base insertion and base deletion quality scores
      */
+    public void setBaseQualities( final byte[] quals, final RecalDataManager.BaseRecalibrationType errorModel ) {
+        switch( errorModel ) {
+            case BASE_SUBSTITUTION:
+                setBaseQualities(quals);
+                break;
+            case BASE_INSERTION:
+                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, quals );
+                break;
+            case BASE_DELETION:
+                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, quals );
+                break;
+            default:
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
+    public byte[] getBaseQualities( final RecalDataManager.BaseRecalibrationType errorModel ) {
+        switch( errorModel ) {
+            case BASE_SUBSTITUTION:
+                return getBaseQualities();
+            case BASE_INSERTION:
+                return getBaseInsertionQualities();
+            case BASE_DELETION:
+                return getBaseDeletionQualities();
+            default:
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
     public byte[] getBaseInsertionQualities() {
         byte[] quals = getByteArrayAttribute( BQSR_BASE_INSERTION_QUALITIES );
         if( quals == null ) {

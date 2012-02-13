@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -165,10 +166,8 @@ public class BaseRecalibration {
             key[iii] = cov.getValue( vals[iii] );
         }
         final String modelString = vals[iii++];
-        final RecalDataManager.BaseRecalibrationType errorModel = ( modelString.equals(CovariateKeySet.mismatchesCovariateName) ? RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION :
-            ( modelString.equals(CovariateKeySet.insertionsCovariateName) ? RecalDataManager.BaseRecalibrationType.BASE_INSERTION :
-            ( modelString.equals(CovariateKeySet.deletionsCovariateName) ? RecalDataManager.BaseRecalibrationType.BASE_DELETION : null ) ) );
-                
+        final RecalDataManager.BaseRecalibrationType errorModel = CovariateKeySet.getErrorModelFromString(modelString);
+
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
         final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
@@ -183,19 +182,16 @@ public class BaseRecalibration {
         final CovariateKeySet covariateKeySet = RecalDataManager.getAllCovariateValuesFor( read );
 
         for( final RecalDataManager.BaseRecalibrationType errorModel : RecalDataManager.BaseRecalibrationType.values() ) {
-            final byte[] originalQuals = ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION ? read.getBaseQualities() :
-                ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_INSERTION ? read.getBaseDeletionQualities() :
-                ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_DELETION ? read.getBaseDeletionQualities() : null ) ) );
+            final byte[] originalQuals = read.getBaseQualities( errorModel );
             final byte[] recalQuals = originalQuals.clone();
 
             // For each base in the read
             for( int offset = 0; offset < read.getReadLength(); offset++ ) {
         
-                final Object[] fullCovariateKey =
-                        ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION ? covariateKeySet.getMismatchesKeySet(offset) :
-                        ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_INSERTION ? covariateKeySet.getInsertionsKeySet(offset) :
-                        ( errorModel == RecalDataManager.BaseRecalibrationType.BASE_DELETION ? covariateKeySet.getDeletionsKeySet(offset) : null ) ) );
-        
+                final Object[] fullCovariateKeyWithErrorMode = covariateKeySet.getKeySet(offset, errorModel);
+
+                final Object[] fullCovariateKey = Arrays.copyOfRange(fullCovariateKeyWithErrorMode, 0, fullCovariateKeyWithErrorMode.length-1); // need to strip off the error mode which was appended to the list of covariates
+
                 Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
                 if( qualityScore == null ) {
                     qualityScore = performSequentialQualityCalculation( errorModel, fullCovariateKey );
@@ -206,21 +202,8 @@ public class BaseRecalibration {
             }
         
             preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
-            switch (errorModel) {
-                case BASE_SUBSTITUTION:
-                    read.setBaseQualities( recalQuals );
-                    break;
-                case BASE_INSERTION:
-                    read.setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, recalQuals );
-                    break;
-                case BASE_DELETION:
-                    read.setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, recalQuals );
-                    break;
-                default:
-                    throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
-            }
+            read.setBaseQualities( recalQuals, errorModel );
         }
-       
     }
 
     /**

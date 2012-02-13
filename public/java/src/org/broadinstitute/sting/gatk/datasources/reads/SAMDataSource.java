@@ -46,6 +46,8 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.BQSRSamIterator;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
@@ -201,6 +203,7 @@ public class SAMDataSource {
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
+                null, // no BQSR
                 (byte) -1);
     }
 
@@ -237,6 +240,7 @@ public class SAMDataSource {
             BAQ.CalculationMode cmode,
             BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader,
+            BaseRecalibration bqsrApplier,
             byte defaultBaseQualities) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
@@ -309,6 +313,7 @@ public class SAMDataSource {
                 cmode,
                 qmode,
                 refReader,
+                bqsrApplier,
                 defaultBaseQualities);
 
         // cache the read group id (original) -> read group id (merged)
@@ -591,6 +596,7 @@ public class SAMDataSource {
                 readProperties.getBAQCalculationMode(),
                 readProperties.getBAQQualityMode(),
                 readProperties.getRefReader(),
+                readProperties.getBQSRApplier(),
                 readProperties.defaultBaseQualities());
     }
 
@@ -660,9 +666,10 @@ public class SAMDataSource {
                                                         BAQ.CalculationMode cmode,
                                                         BAQ.QualityMode qmode,
                                                         IndexedFastaSequenceFile refReader,
+                                                        BaseRecalibration bqsrApplier,
                                                         byte defaultBaseQualities) {
-        if ( useOriginalBaseQualities || defaultBaseQualities >= 0 )
-            // only wrap if we are replacing the original qualitiies or using a default base quality
+        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
+            // only wrap if we are replacing the original qualities or using a default base quality
             wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
@@ -674,6 +681,9 @@ public class SAMDataSource {
         // verify the read ordering by applying a sort order iterator
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
+
+        if (bqsrApplier != null)
+            wrappedIterator = new BQSRSamIterator(wrappedIterator, bqsrApplier);
 
         if (cmode != BAQ.CalculationMode.OFF)
             wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, cmode, qmode);

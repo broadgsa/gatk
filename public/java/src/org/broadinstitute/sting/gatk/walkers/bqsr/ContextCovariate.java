@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -68,18 +69,33 @@ public class ContextCovariate implements StandardCovariate {
         String[] mismatches = new String [l];
         String[] insertions = new String [l];
         String[]  deletions = new String [l];
-        
+
+        final boolean negativeStrand = read.getReadNegativeStrandFlag();
         byte[] bases = read.getReadBases();
+        if (negativeStrand) {
+            bases = BaseUtils.simpleReverseComplement(bases); //this is NOT in-place
+        }
         for (int i = 0; i < read.getReadLength(); i++) {
             mismatches[i] = contextWith(bases, i, mismatchesContextSize, mismatchesNoContext);
             insertions[i] = contextWith(bases, i, insertionsContextSize, insertionsNoContext);
             deletions[i]  = contextWith(bases, i,  deletionsContextSize,  deletionsNoContext);
         }
+        if (negativeStrand) {
+            reverse(mismatches);
+            reverse(insertions);
+            reverse(deletions);
+        }
         return new CovariateValues(mismatches, insertions, deletions);
     }
 
+    // Used to get the covariate's value from input csv file during on-the-fly recalibration
+    @Override
+    public final Comparable getValue(final String str) {
+        return str;
+    }
+
     /**
-     * calculates the context of a base indenpendent of the covariate mode
+     * calculates the context of a base independent of the covariate mode
      *
      * @param bases           the bases in the read to build the context from
      * @param offset          the position in the read to calculate the context for
@@ -98,9 +114,17 @@ public class ContextCovariate implements StandardCovariate {
         return s;
     }
 
-    // Used to get the covariate's value from input csv file during on-the-fly recalibration
-    @Override
-    public final Comparable getValue(final String str) {
-        return str;
+    /**
+     * Reverses the given array in place.
+     *
+     * @param array any array
+     */
+    private static void reverse(final Comparable[] array) {
+        final int arrayLength = array.length;
+        for (int l = 0, r = arrayLength - 1; l < r; l++, r--) {
+            final Comparable temp = array[l];
+            array[l] = array[r];
+            array[r] = temp;
+        }
     }
 }

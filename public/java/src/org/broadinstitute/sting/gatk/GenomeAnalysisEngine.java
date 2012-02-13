@@ -185,12 +185,12 @@ public class GenomeAnalysisEngine {
     public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
 
     /**
-     *  Static base quality score recalibration helper object
+     *  Base Quality Score Recalibration helper object
      */
-    private static BaseRecalibration baseRecalibration = null;
-    public static BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
-    public static boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public static void setBaseRecalibration(File recalFile) { baseRecalibration = new BaseRecalibration(recalFile); }
+    private BaseRecalibration baseRecalibration = null;
+    public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
+    public boolean hasBaseRecalibration() { return baseRecalibration != null; }
+    public void setBaseRecalibration(File recalFile) { baseRecalibration = new BaseRecalibration(recalFile); }
 
     /**
      * Actually run the GATK with the specified walker.
@@ -770,6 +770,7 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,
+                getBaseRecalibration(),
                 argCollection.defaultBaseQualities);
     }
 
