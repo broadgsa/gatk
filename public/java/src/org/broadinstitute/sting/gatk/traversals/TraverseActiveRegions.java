@@ -68,7 +68,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 if(prevLoc != null) {
                     for(int iii = prevLoc.getStart() + 1; iii < location.getStart(); iii++ ) {       
                         final GenomeLoc fakeLoc = engine.getGenomeLocParser().createGenomeLoc(prevLoc.getContig(), iii, iii);
-                        if( initialIntervals.overlaps( fakeLoc ) ) {
+                        if( initialIntervals == null || initialIntervals.overlaps( fakeLoc ) ) {
                             final double isActiveProb = ( walker.presetActiveRegions == null ? walker.isActive( null, null, null )
                                     : ( walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 ) );
                             isActiveList.add( isActiveProb );
@@ -89,7 +89,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation(), refContext);
 
                 // Call the walkers isActive function for this locus and add them to the list to be integrated later
-                if( initialIntervals.overlaps( location ) ) {
+                if( initialIntervals == null || initialIntervals.overlaps( location ) ) {
                     final double isActiveProb = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus )
                                                                                      : ( walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0 ) );
                     isActiveList.add( isActiveProb );

@@ -79,7 +79,7 @@ public class ContextCovariate implements StandardCovariate {
     }
 
     /**
-     * calculates the context of a base indenpendent of the covariate mode
+     * calculates the context of a base independent of the covariate mode
      *
      * @param bases           the bases in the read to build the context from
      * @param offset          the position in the read to calculate the context for

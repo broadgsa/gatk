@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
 /**
  * The object temporarily held by a read that describes all of it's covariates. 
  * 
@@ -15,9 +17,9 @@ public class CovariateKeySet {
 
     private int nextCovariateIndex;
     
-    public final static String mismatchesCovariateName = "M";
-    public final static String insertionsCovariateName = "I";
-    public final static String  deletionsCovariateName = "D";
+    private static String mismatchesCovariateName = "M";
+    private static String insertionsCovariateName = "I";
+    private static String  deletionsCovariateName = "D";
 
     public CovariateKeySet(int readLength, int numberOfCovariates) {
         numberOfCovariates++;                                               // +1 because we are adding the mismatch covariate (to comply with the molten table format)
@@ -36,7 +38,30 @@ public class CovariateKeySet {
         transposeCovariateValues(deletionsKeySet,  covariate.getDeletions());
         nextCovariateIndex++;
     }
-    
+
+    public static RecalDataManager.BaseRecalibrationType getErrorModelFromString(final String modelString) {
+        if (modelString.equals(mismatchesCovariateName))
+            return RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION;
+        else if (modelString.equals(insertionsCovariateName))
+            return RecalDataManager.BaseRecalibrationType.BASE_INSERTION;
+        else if (modelString.equals(deletionsCovariateName))
+            return RecalDataManager.BaseRecalibrationType.BASE_DELETION;
+        throw new ReviewedStingException("Unrecognized Base Recalibration model string: " + modelString);
+    }
+
+    public Object[] getKeySet(final int readPosition, final RecalDataManager.BaseRecalibrationType errorModel) {
+        switch (errorModel) {
+            case BASE_SUBSTITUTION:
+                    return getMismatchesKeySet(readPosition);
+            case BASE_INSERTION:
+                    return getInsertionsKeySet(readPosition);
+            case BASE_DELETION:
+                    return getDeletionsKeySet(readPosition);
+            default:
+                    throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
     public Object[] getMismatchesKeySet(int readPosition) {
         return mismatchesKeySet[readPosition];
     }

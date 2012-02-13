@@ -4,6 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -150,13 +151,23 @@ public class FragmentUtils {
         final int numBases = firstReadStop + secondRead.getReadLength();
         final byte[] bases = new byte[numBases];
         final byte[] quals = new byte[numBases];
+        // BUGBUG: too verbose, clean this up.
+        final byte[] insertionQuals = new byte[numBases];
+        final byte[] deletionQuals = new byte[numBases];
         final byte[] firstReadBases = firstRead.getReadBases();
         final byte[] firstReadQuals = firstRead.getBaseQualities();
+        final byte[] firstReadInsertionQuals = firstRead.getBaseInsertionQualities();
+        final byte[] firstReadDeletionQuals = firstRead.getBaseDeletionQualities();
         final byte[] secondReadBases = secondRead.getReadBases();
         final byte[] secondReadQuals = secondRead.getBaseQualities();
+        final byte[] secondReadInsertionQuals = secondRead.getBaseInsertionQualities();
+        final byte[] secondReadDeletionQuals = secondRead.getBaseDeletionQualities();
+
         for(int iii = 0; iii < firstReadStop; iii++) {
             bases[iii] = firstReadBases[iii];
             quals[iii] = firstReadQuals[iii];
+            insertionQuals[iii] = firstReadInsertionQuals[iii];
+            deletionQuals[iii] = firstReadDeletionQuals[iii];
         }
         for(int iii = firstReadStop; iii < firstRead.getReadLength(); iii++) {
             if( firstReadQuals[iii] > MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] > MIN_QUAL_BAD_OVERLAP && firstReadBases[iii] != secondReadBases[iii-firstReadStop] ) {
@@ -164,16 +175,22 @@ public class FragmentUtils {
             }
             bases[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadBases[iii] : secondReadBases[iii-firstReadStop] );
             quals[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadQuals[iii] : secondReadQuals[iii-firstReadStop] );
+            insertionQuals[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadInsertionQuals[iii] : secondReadInsertionQuals[iii-firstReadStop] ); // Purposefully checking the highest base quality score
+            deletionQuals[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadDeletionQuals[iii] : secondReadDeletionQuals[iii-firstReadStop] ); // Purposefully checking the highest base quality score
         }
         for(int iii = firstRead.getReadLength(); iii < numBases; iii++) {
             bases[iii] = secondReadBases[iii-firstReadStop];
             quals[iii] = secondReadQuals[iii-firstReadStop];
+            insertionQuals[iii] = secondReadInsertionQuals[iii-firstReadStop];
+            deletionQuals[iii] = secondReadDeletionQuals[iii-firstReadStop];
         }
 
         final GATKSAMRecord returnRead = new GATKSAMRecord(firstRead.getHeader());
         returnRead.setAlignmentStart(firstRead.getUnclippedStart());
         returnRead.setReadBases( bases );
-        returnRead.setBaseQualities( quals );
+        returnRead.setBaseQualities( quals, RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION );
+        returnRead.setBaseQualities( insertionQuals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION );
+        returnRead.setBaseQualities( deletionQuals, RecalDataManager.BaseRecalibrationType.BASE_DELETION );
         returnRead.setReadGroup( firstRead.getReadGroup() );
         returnRead.setReferenceName( firstRead.getReferenceName() );
         final CigarElement c = new CigarElement(bases.length, CigarOperator.M);
