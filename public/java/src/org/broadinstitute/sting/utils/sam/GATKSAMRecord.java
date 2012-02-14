@@ -171,10 +171,10 @@ public class GATKSAMRecord extends BAMRecord {
                 setBaseQualities(quals);
                 break;
             case BASE_INSERTION:
-                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, quals );
+                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, SAMUtils.phredToFastq(quals) );
                 break;
             case BASE_DELETION:
-                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, quals );
+                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, SAMUtils.phredToFastq(quals) );
                 break;
             default:
                 throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
@@ -195,23 +195,23 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     public byte[] getBaseInsertionQualities() {
-        byte[] quals = getByteArrayAttribute( BQSR_BASE_INSERTION_QUALITIES );
+        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_INSERTION_QUALITIES ) );
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setAttribute( BQSR_BASE_INSERTION_QUALITIES, quals );
+            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION);
         }
         return quals;
     }
 
     public byte[] getBaseDeletionQualities() {
-        byte[] quals = getByteArrayAttribute( BQSR_BASE_DELETION_QUALITIES );
+        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setAttribute( BQSR_BASE_DELETION_QUALITIES, quals );
+            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_DELETION);
         }
         return quals;
     }
@@ -259,11 +259,9 @@ public class GATKSAMRecord extends BAMRecord {
         return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////
     // *** GATKSAMRecord specific methods                                     ***//
     ///////////////////////////////////////////////////////////////////////////////
-
 
     /**
      * Checks whether an attribute has been set for the given key.

@@ -30,7 +30,6 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -189,13 +188,12 @@ public class BaseRecalibration {
             for( int offset = 0; offset < read.getReadLength(); offset++ ) {
         
                 final Object[] fullCovariateKeyWithErrorMode = covariateKeySet.getKeySet(offset, errorModel);
-
                 final Object[] fullCovariateKey = Arrays.copyOfRange(fullCovariateKeyWithErrorMode, 0, fullCovariateKeyWithErrorMode.length-1); // need to strip off the error mode which was appended to the list of covariates
 
-                Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
+                Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKeyWithErrorMode);
                 if( qualityScore == null ) {
                     qualityScore = performSequentialQualityCalculation( errorModel, fullCovariateKey );
-                    qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
+                    qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKeyWithErrorMode);
                 }
         
                 recalQuals[offset] = qualityScore;

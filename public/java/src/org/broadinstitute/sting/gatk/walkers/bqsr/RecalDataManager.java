@@ -58,6 +58,7 @@ public class RecalDataManager {
     private final HashMap<BaseRecalibrationType, NestedHashMap> dataCollapsedQualityScore;              // Table where everything except read group and quality score has been collapsed
     private final HashMap<BaseRecalibrationType, ArrayList<NestedHashMap>> dataCollapsedByCovariate;    // Tables where everything except read group, quality score, and given covariate has been collapsed
 
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";   // The tag that holds the color space quality scores for SOLID bams
     public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";        // The tag that holds the color space for SOLID bams
     public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";    // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color

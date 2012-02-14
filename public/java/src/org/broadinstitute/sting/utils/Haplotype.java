@@ -109,6 +109,10 @@ public class Haplotype {
         return isReference;
     }
 
+    public byte[] insertAllele( final Allele a ) {
+        return getBases();
+    }
+
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
                                                                final int haplotypeSize, final int numPrefBases) {
 
