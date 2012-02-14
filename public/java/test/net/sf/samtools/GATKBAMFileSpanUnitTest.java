@@ -50,12 +50,80 @@ public class GATKBAMFileSpanUnitTest {
     }
 
     @Test
-    public void testUnionOfOverlappingFileSpans() {
+    public void testUnionOfContiguousFileSpans() {
+        // Region 1 ends at position adjacent to Region 2 start:
+        // |---1----|---2----|
+
         GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,1<<16));
         GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|65535));
         GATKBAMFileSpan union = regionOne.union(regionTwo);
         Assert.assertEquals(union.getGATKChunks().size(),1,"Elements to be merged were not.");
         Assert.assertEquals(union.getGATKChunks().get(0),new GATKChunk(0,(1<<16)|65535));
+    }
+
+    @Test
+    public void testUnionOfFileSpansFirstRegionEndsWithinSecondRegion() {
+        // Region 1 ends within Region 2:
+        //        |---2----|
+        // |---1----|
+
+        GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,(1<<16)|32767));
+        GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|65535));
+        GATKBAMFileSpan union = regionOne.union(regionTwo);
+        Assert.assertEquals(union.getGATKChunks().size(),1,"Elements to be merged were not.");
+        Assert.assertEquals(union.getGATKChunks().get(0),new GATKChunk(0,(1<<16)|65535));
+    }
+
+    @Test
+    public void testUnionOfFileSpansFirstRegionEndsAtSecondRegionEnd() {
+        // Region 1 ends at Region 2 end:
+        //        |---2----|
+        // |---1-----------|
+
+        GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,(1<<16)|65535));
+        GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|65535));
+        GATKBAMFileSpan union = regionOne.union(regionTwo);
+        Assert.assertEquals(union.getGATKChunks().size(),1,"Elements to be merged were not.");
+        Assert.assertEquals(union.getGATKChunks().get(0),new GATKChunk(0,(1<<16)|65535));
+    }
+
+    @Test
+    public void testUnionOfFileSpansFirstRegionEndsAfterSecondRegionEnd() {
+        // Region 1 ends after Region 2 end:
+        //        |---2----|
+        // |---1---------------|
+
+        GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,(1<<16)|65535));
+        GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|32767));
+        GATKBAMFileSpan union = regionOne.union(regionTwo);
+        Assert.assertEquals(union.getGATKChunks().size(),1,"Elements to be merged were not.");
+        Assert.assertEquals(union.getGATKChunks().get(0),new GATKChunk(0,(1<<16)|65535));
+    }
+
+    @Test
+    public void testUnionOfFileSpansFirstRegionStartsAtSecondRegionStart() {
+        // Region 1 starts at Region 2 start, but ends before Region 2:
+        // |---2--------|
+        // |---1----|
+
+        GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|32767));
+        GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|65535));
+        GATKBAMFileSpan union = regionOne.union(regionTwo);
+        Assert.assertEquals(union.getGATKChunks().size(),1,"Elements to be merged were not.");
+        Assert.assertEquals(union.getGATKChunks().get(0),new GATKChunk(1<<16,(1<<16)|65535));
+    }
+
+    @Test
+    public void testUnionOfFileSpansFirstRegionEqualToSecondRegion() {
+        // Region 1 and Region 2 represent the same region:
+        // |---2----|
+        // |---1----|
+
+        GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|65535));
+        GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,(1<<16)|65535));
+        GATKBAMFileSpan union = regionOne.union(regionTwo);
+        Assert.assertEquals(union.getGATKChunks().size(),1,"Elements to be merged were not.");
+        Assert.assertEquals(union.getGATKChunks().get(0),new GATKChunk(1<<16,(1<<16)|65535));
     }
 
     @Test

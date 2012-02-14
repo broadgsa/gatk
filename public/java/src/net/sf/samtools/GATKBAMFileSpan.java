@@ -143,10 +143,14 @@ public class GATKBAMFileSpan extends BAMFileSpan {
         List<GATKChunk> mergedUnion = new ArrayList<GATKChunk>();
         GATKChunk currentChunk = unmergedUnion.remove();
         while(!unmergedUnion.isEmpty()) {
-            // Find the end of this range of chunks.
-            while(!unmergedUnion.isEmpty() && currentChunk.getChunkEnd() >= unmergedUnion.peek().getChunkStart()) {
+
+            // While the current chunk can be merged with the next chunk:
+            while( ! unmergedUnion.isEmpty() &&
+                   (currentChunk.overlaps(unmergedUnion.peek()) || currentChunk.isAdjacentTo(unmergedUnion.peek())) ) {
+
+                // Merge the current chunk with the next chunk:
                 GATKChunk nextChunk = unmergedUnion.remove();
-                currentChunk = new GATKChunk(currentChunk.getChunkStart(),nextChunk.getChunkEnd());
+                currentChunk = currentChunk.merge(nextChunk);
             }
             // Add the accumulated range.
             mergedUnion.add(currentChunk);
