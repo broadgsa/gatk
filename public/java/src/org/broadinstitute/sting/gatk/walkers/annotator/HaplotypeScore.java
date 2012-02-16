@@ -52,8 +52,7 @@ import java.util.*;
 /**
  * Consistency of the site with two (and only two) segregating haplotypes. Higher scores
  * are indicative of regions with bad alignments, often leading to artifactual SNP and indel calls.
- * Note that the Haplotype Score is only calculated for sites with read coverage; also, for SNPs, the
- * site must be bi-allelic.
+ * Note that the Haplotype Score is only calculated for sites with read coverage.
  */
 public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation {
     private final static boolean DEBUG = false;
@@ -65,12 +64,9 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         if (stratifiedContexts.size() == 0) // size 0 means that call was made by someone else and we have no data here
             return null;
 
-        if (vc.isSNP() && !vc.isBiallelic())
-            return null;
-
         final AlignmentContext context = AlignmentContextUtils.joinContexts(stratifiedContexts.values());
 
-        final int contextWingSize = Math.min(((int) ref.getWindow().size() - 1) / 2, MIN_CONTEXT_WING_SIZE);
+        final int contextWingSize = Math.min((ref.getWindow().size() - 1) / 2, MIN_CONTEXT_WING_SIZE);
         final int contextSize = contextWingSize * 2 + 1;
 
         final int locus = ref.getLocus().getStart() + (ref.getLocus().getStop() - ref.getLocus().getStart()) / 2;
