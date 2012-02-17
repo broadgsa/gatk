@@ -152,15 +152,13 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                 // case 1: current insertion is prefix of indel in hash map
                                 consensusIndelStrings.put(s,cnt+1);
                                 foundKey = true;
-                                break;
-                            }
+                             }
                             else if (indelString.startsWith(s)) {
                                 // case 2: indel stored in hash table is prefix of current insertion
                                 // In this case, new bases are new key.
                                 consensusIndelStrings.remove(s);
                                 consensusIndelStrings.put(indelString,cnt+1);
                                 foundKey = true;
-                                break;
                             }
                         }
                         if (!foundKey)
@@ -176,8 +174,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                 // case 1: current insertion is suffix of indel in hash map
                                 consensusIndelStrings.put(s,cnt+1);
                                 foundKey = true;
-                                break;
-                            }
+                             }
                             else if (indelString.endsWith(s)) {
                                 // case 2: indel stored in hash table is suffix of current insertion
                                 // In this case, new bases are new key.
@@ -185,7 +182,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                 consensusIndelStrings.remove(s);
                                 consensusIndelStrings.put(indelString,cnt+1);
                                 foundKey = true;
-                                break;
                             }
                         }
                         if (!foundKey)
@@ -233,9 +229,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 maxAlleleCnt = curCnt;
                 bestAltAllele = s;
             }
-//            if (DEBUG)
-//                System.out.format("Key:%s, number: %d\n",s,consensusIndelStrings.get(s)  );
-        }         //gdebug-
+        }
 
         if (maxAlleleCnt <  minIndelCountForGenotyping)
             return aList;
