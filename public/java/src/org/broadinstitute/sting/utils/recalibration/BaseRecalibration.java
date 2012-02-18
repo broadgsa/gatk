@@ -190,11 +190,12 @@ public class BaseRecalibration {
                 final Object[] fullCovariateKeyWithErrorMode = covariateKeySet.getKeySet(offset, errorModel);
                 final Object[] fullCovariateKey = Arrays.copyOfRange(fullCovariateKeyWithErrorMode, 0, fullCovariateKeyWithErrorMode.length-1); // need to strip off the error mode which was appended to the list of covariates
 
-                Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKeyWithErrorMode);
-                if( qualityScore == null ) {
-                    qualityScore = performSequentialQualityCalculation( errorModel, fullCovariateKey );
-                    qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKeyWithErrorMode);
-                }
+                // BUGBUG: This caching seems to put the entire key set into memory which negates the benefits of storing the delta delta tables?
+                //Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKeyWithErrorMode);
+                //if( qualityScore == null ) {
+                    final byte qualityScore = performSequentialQualityCalculation( errorModel, fullCovariateKey );
+                //    qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKeyWithErrorMode);
+                //}
         
                 recalQuals[offset] = qualityScore;
             }
