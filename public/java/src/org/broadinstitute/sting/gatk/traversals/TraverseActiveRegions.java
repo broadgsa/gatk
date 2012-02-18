@@ -69,8 +69,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     for(int iii = prevLoc.getStart() + 1; iii < location.getStart(); iii++ ) {       
                         final GenomeLoc fakeLoc = engine.getGenomeLocParser().createGenomeLoc(prevLoc.getContig(), iii, iii);
                         if( initialIntervals == null || initialIntervals.overlaps( fakeLoc ) ) {
-                            final double isActiveProb = ( walker.presetActiveRegions == null ? walker.isActive( null, null, null )
-                                    : ( walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 ) );
+                            final double isActiveProb = ( walker.presetActiveRegions == null ? 0.0 : ( walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 ) );
                             isActiveList.add( isActiveProb );
                             if( firstIsActiveStart == null ) {
                                 firstIsActiveStart = fakeLoc;
