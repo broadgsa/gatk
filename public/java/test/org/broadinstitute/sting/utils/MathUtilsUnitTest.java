@@ -205,6 +205,16 @@ public class MathUtilsUnitTest extends BaseTest {
         }
     }
 
+    @Test(enabled = true)
+    public void testIntAndBitSetConversion() {
+        Assert.assertEquals(428,    MathUtils.intFrom(MathUtils.bitSetFrom(428)));
+        Assert.assertEquals(239847, MathUtils.intFrom(MathUtils.bitSetFrom(239847)));
+        Assert.assertEquals(12726,  MathUtils.intFrom(MathUtils.bitSetFrom(12726)));
+        Assert.assertEquals(0,      MathUtils.intFrom(MathUtils.bitSetFrom(0)));
+        Assert.assertEquals(1,      MathUtils.intFrom(MathUtils.bitSetFrom(1)));
+        Assert.assertEquals(65536,  MathUtils.intFrom(MathUtils.bitSetFrom(65536)));
+    }
+
     private boolean hasUniqueElements(Object[] x) {
         for (int i = 0; i < x.length; i++)
             for (int j = i + 1; j < x.length; j++)
@@ -220,10 +230,10 @@ public class MathUtilsUnitTest extends BaseTest {
         return set.isEmpty();
     }
 
-
     private void p (Object []x) {
         for (Object v: x)
             System.out.print((Integer) v + " ");
         System.out.println();
     }
+
 }
