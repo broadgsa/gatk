@@ -673,7 +673,7 @@ public class BAQ {
     }
 
     /**
-     * Returns true if we don't think this read is eligable for the BAQ calculation.  Examples include non-PF reads,
+     * Returns true if we don't think this read is eligible for the BAQ calculation.  Examples include non-PF reads,
      * duplicates, or unmapped reads.  Used by baqRead to determine if a read should fall through the calculation.
      *
      * @param read

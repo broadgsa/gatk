@@ -139,10 +139,10 @@ public class AnalyzeCovariates extends CommandLineProgram {
      */
     @Argument(fullName="max_histogram_value", shortName="maxHist", required = false, doc="If supplied, this value will be the max value of the histogram plots")
     private int MAX_HISTOGRAM_VALUE = 0;
+
     @Hidden
     @Argument(fullName="do_indel_quality", shortName="indels", required = false, doc="If supplied, do indel quality plotting")
     private boolean DO_INDEL_QUALITY = false;
-
 
     /////////////////////////////
     // Private Member Variables
@@ -274,7 +274,6 @@ public class AnalyzeCovariates extends CommandLineProgram {
         RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
         dataManager.addToAllTables( key, datum, IGNORE_QSCORES_LESS_THAN );
-
     }
 
     private void writeDataTables() {
@@ -341,7 +340,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
 
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
-                    Covariate cov = requestedCovariates.get(iii);
+                    final Covariate cov = requestedCovariates.get(iii);
                     final File outputFile = new File(OUTPUT_DIR, readGroup + "." + cov.getClass().getSimpleName()+ ".dat");
                     if (DO_INDEL_QUALITY) {
                         RScriptExecutor executor = new RScriptExecutor();
@@ -349,7 +348,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
                         // The second argument is the name of the covariate in order to make the plots look nice
                         executor.addArgs(outputFile, cov.getClass().getSimpleName().split("Covariate")[0]);
                         executor.exec();
-                    }   else {
+                    } else {
                         if( iii == 1 ) {
                             // Analyze reported quality
                             RScriptExecutor executor = new RScriptExecutor();

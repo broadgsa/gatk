@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
+import java.util.Arrays;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -38,26 +41,21 @@ import net.sf.samtools.SAMRecord;
 public class QualityScoreCovariate implements RequiredCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
-    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    @Override
+    public void initialize(final RecalibrationArgumentCollection RAC) {
     }
 
-    /*
-    // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
-        return (int)(read.getBaseQualities()[offset]);
-    }
-    */
-
-    public void getValues(SAMRecord read, Comparable[] comparable) {
+    @Override
+    public void getValues(final GATKSAMRecord read, final Comparable[] comparable) {
         byte[] baseQualities = read.getBaseQualities();
-        for(int i = 0; i < read.getReadLength(); i++) {
+        for (int i = 0; i < read.getReadLength(); i++) {
             comparable[i] = (int) baseQualities[i];
         }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
-    public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+    @Override
+    public final Comparable getValue(final String str) {
+        return Integer.parseInt(str);
     }
-
 }

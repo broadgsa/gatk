@@ -15,9 +15,9 @@ import java.util.Map;
 
 public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
-    private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
+    private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -28,7 +28,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("653172b43b19003d9f7df6dab21f4b09"));
+                Arrays.asList("202b337ebbea3def1be8495eb363dfa8"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
@@ -54,6 +54,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000", 1,
                 Arrays.asList("ae29b9c9aacce8046dc780430540cd62"));
         executeTest("test SingleSample Pilot2", spec);
+    }
+
+    @Test
+    public void testMultipleSNPAlleles() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm BOTH --dbsnp " + b37dbSNP129 + " -I " + validationDataLocation + "multiallelic.snps.bam -o %s -L " + validationDataLocation + "multiallelic.snps.intervals", 1,
+                Arrays.asList("b53cb55a5f868663068812b13578af57"));
+        executeTest("test Multiple SNP alleles", spec);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -114,8 +122,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testCallingParameters() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "--min_base_quality_score 26", "7acb1a5aee5fdadb0cc0ea07a212efc6" );
-        e.put( "--computeSLOD", "6172d2f3d370132f4c57a26aa94c256e" );
+        e.put( "--min_base_quality_score 26", "258c1b33349eb3b2d395ec4d69302725" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -123,6 +130,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                     Arrays.asList(entry.getValue()));
             executeTest(String.format("test calling parameter[%s]", entry.getKey()), spec);
         }
+    }
+
+    @Test
+    public void testSLOD() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129 + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
+                Arrays.asList("6172d2f3d370132f4c57a26aa94c256e"));
+        executeTest("test SLOD", spec);
     }
 
     @Test
@@ -285,7 +300,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,080,000", 1,
-                Arrays.asList("d356cbaf240d7025d1aecdabaff3a3e0"));
+                Arrays.asList("c9897b80615c53a4ea10a4b193d56d9c"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
     }
 
@@ -294,7 +309,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("1d1956fd7b0f0d30935674b2f5019860"));
+                Arrays.asList("5282fdb1711a532d726c13507bf80a21"));
         executeTest("test MultiSample Phase1 indels with complicated records", spec4);
     }
 

@@ -52,13 +52,16 @@ public class UniformSamplingFrequencySelector extends FrequencyModeSelector {
             if (! selectedInTargetSamples && !IGNORE_POLYMORPHIC)
                 return;
         } else  {
-            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )  {
-                int ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
-                if (ac == 0) return; // site not polymorphic
+            if (!IGNORE_POLYMORPHIC) {
+                if (vc.getAttributes().containsKey(VCFConstants.ALLELE_COUNT_KEY))
+                {
+                    int ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
+                    if (ac == 0) return; // site not polymorphic
+                }
+                else
+                    // no allele count field in VC
+                    return;
             }
-            else
-                return;
-
         }
         // create bare-bones event and log in corresponding bin
         // attributes contains AC,AF,AN pulled from original vc, and we keep them here and log in output file for bookkeeping purposes

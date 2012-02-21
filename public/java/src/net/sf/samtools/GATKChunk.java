@@ -40,6 +40,10 @@ public class GATKChunk extends Chunk {
         super(start,stop);
     }
 
+    public GATKChunk(final long blockStart, final int blockOffsetStart, final long blockEnd, final int blockOffsetEnd) {
+        super(blockStart << 16 | blockOffsetStart,blockEnd << 16 | blockOffsetEnd);
+    }
+
     public GATKChunk(final Chunk chunk) {
         super(chunk.getChunkStart(),chunk.getChunkEnd());
     }
@@ -95,5 +99,17 @@ public class GATKChunk extends Chunk {
         final long chunkSpan = Math.round(((getChunkEnd()>>16)-(getChunkStart()>>16))/AVERAGE_BAM_COMPRESSION_RATIO);
         final int offsetSpan = (int)((getChunkEnd()&0xFFFF)-(getChunkStart()&0xFFFF));
         return chunkSpan + offsetSpan;
+    }
+
+    /**
+     * Merges two chunks together. The caller is responsible for testing whether the
+     * chunks overlap/are adjacent before calling this method!
+     *
+     * @param other the chunk to merge with this chunk
+     * @return a new chunk representing the union of the two chunks (provided the chunks were
+     *         overlapping/adjacent)
+     */
+    public GATKChunk merge ( GATKChunk other ) {
+        return new GATKChunk(Math.min(getChunkStart(), other.getChunkStart()), Math.max(getChunkEnd(), other.getChunkEnd()));
     }
 }

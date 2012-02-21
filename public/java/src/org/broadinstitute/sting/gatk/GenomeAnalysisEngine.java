@@ -53,6 +53,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 import java.io.File;
 import java.util.*;
@@ -179,10 +180,18 @@ public class GenomeAnalysisEngine {
      */
     private static final long GATK_RANDOM_SEED = 47382911L;
     private static Random randomGenerator = new Random(GATK_RANDOM_SEED);
-
     public static Random getRandomGenerator() { return randomGenerator; }
     public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
     public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
+
+    /**
+     *  Base Quality Score Recalibration helper object
+     */
+    private BaseRecalibration baseRecalibration = null;
+    public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
+    public boolean hasBaseRecalibration() { return baseRecalibration != null; }
+    public void setBaseRecalibration(File recalFile) { baseRecalibration = new BaseRecalibration(recalFile); }
+
     /**
      * Actually run the GATK with the specified walker.
      *
@@ -205,6 +214,10 @@ public class GenomeAnalysisEngine {
         if (this.getArguments().nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
+        // if the use specified an input BQSR recalibration table then enable on the fly recalibration
+        if (this.getArguments().BQSR_RECAL_FILE != null)
+            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE);
+
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
 
@@ -224,7 +237,7 @@ public class GenomeAnalysisEngine {
         // create temp directories as necessary
         initializeTempDirectory();
 
-        // create the output streams                     "
+        // create the output streams
         initializeOutputStreams(microScheduler.getOutputTracker());
 
         Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
@@ -757,6 +770,7 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,
+                getBaseRecalibration(),
                 argCollection.defaultBaseQualities);
     }
 

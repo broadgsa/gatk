@@ -27,10 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
-import org.testng.annotations.DataProvider;
 
 import java.util.*;
-import java.io.File;
 
 public class VariantsToTableIntegrationTest extends WalkerTest {
     private String variantsToTableCmd(String moreArgs) {
@@ -38,7 +36,15 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
                 " --variant:vcf " + validationDataLocation + "/soap_gatk_annotated.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F TRANSITION -F DP -F SB -F set -F RankSumP -F refseq.functionalClass*" +
-                " -L chr1 -KMA -o %s" + moreArgs;
+                " -L chr1 -o %s" + moreArgs;
+    }
+
+    private String variantsToTableMultiAllelicCmd(String moreArgs) {
+        return "-R " + b37KGReference +
+                " --variant " + validationDataLocation + "/multiallelic.vcf" +
+                " -T VariantsToTable" +
+                " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
+                " -o %s" + moreArgs;
     }
 
     @Test(enabled = true)
@@ -52,5 +58,19 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testComplexVariantsToTableFail() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableCmd(""), 1, UserException.class);
         executeTest("testComplexVariantsToTable-FAIL", spec);
+    }
+
+    @Test(enabled = true)
+    public void testMultiAllelicOneRecord() {
+        WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(""),
+                Arrays.asList("13dd36c08be6c800f23988e6000d963e"));
+        executeTest("testMultiAllelicOneRecord", spec).getFirst();
+    }
+
+    @Test(enabled = true)
+    public void testMultiAllelicSplitRecords() {
+        WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(" -SMA"),
+                Arrays.asList("17a0fc80409d2fc00ad2bbb94b3a346b"));
+        executeTest("testMultiAllelicSplitRecords", spec).getFirst();
     }
 }

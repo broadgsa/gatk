@@ -22,8 +22,8 @@ import java.util.*;
  * User: chartl
  * Date: 9/14/11
  * Time: 12:24 PM
- * To change this template use File | Settings | File Templates.
  */
+
 public class MVLikelihoodRatio extends InfoFieldAnnotation implements ExperimentalAnnotation, RodRequiringAnnotation {
 
     private MendelianViolation mendelianViolation = null;

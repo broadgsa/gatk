@@ -43,16 +43,81 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public void getLog10PNonRef(final GenotypesContext GLs,
-                                final List<Allele> alleles,
-                                final double[][] log10AlleleFrequencyPriors,
-                                final AlleleFrequencyCalculationResult result) {
-        final int numAlleles = alleles.size();
+    public List<Allele> getLog10PNonRef(final VariantContext vc,
+                                        final double[][] log10AlleleFrequencyPriors,
+                                        final AlleleFrequencyCalculationResult result) {
+
+        GenotypesContext GLs = vc.getGenotypes();
+        List<Allele> alleles = vc.getAlleles();
+
+        // don't try to genotype too many alternate alleles
+        if ( vc.getAlternateAlleles().size() > MAX_ALTERNATE_ALLELES_TO_GENOTYPE ) {
+            logger.warn("this tool is currently set to genotype at most " + MAX_ALTERNATE_ALLELES_TO_GENOTYPE + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+
+            alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
+            alleles.add(vc.getReference());
+            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
+            GLs = UnifiedGenotyperEngine.subsetAlleles(vc, alleles, false);
+        }
 
         //linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
-        linearExactMultiAllelic(GLs, numAlleles - 1, log10AlleleFrequencyPriors, result, false);
+        linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result, false);
+
+        return alleles;
     }
 
+    private static final class LikelihoodSum implements Comparable<LikelihoodSum> {
+        public double sum = 0.0;
+        public Allele allele;
+
+        public LikelihoodSum(Allele allele) { this.allele = allele; }
+
+        public int compareTo(LikelihoodSum other) {
+            final double diff = sum - other.sum;
+            return ( diff < 0.0 ) ? 1 : (diff > 0.0 ) ? -1 : 0;
+        }
+    }
+
+    private static final int PL_INDEX_OF_HOM_REF = 0;
+    private static final List<Allele> chooseMostLikelyAlternateAlleles(VariantContext vc, int numAllelesToChoose) {
+        final int numOriginalAltAlleles = vc.getAlternateAlleles().size();
+        final LikelihoodSum[] likelihoodSums = new LikelihoodSum[numOriginalAltAlleles];
+        for ( int i = 0; i < numOriginalAltAlleles; i++ )
+            likelihoodSums[i] = new LikelihoodSum(vc.getAlternateAllele(i));
+
+        // make sure that we've cached enough data
+        if ( numOriginalAltAlleles > UnifiedGenotyperEngine.PLIndexToAlleleIndex.length - 1 )
+            UnifiedGenotyperEngine.calculatePLcache(numOriginalAltAlleles);
+
+        // based on the GLs, find the alternate alleles with the most probability; sum the GLs for the most likely genotype
+        final ArrayList<double[]> GLs = getGLs(vc.getGenotypes());
+        for ( final double[] likelihoods : GLs ) {
+            final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
+            if ( PLindexOfBestGL != PL_INDEX_OF_HOM_REF ) {
+                int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[numOriginalAltAlleles][PLindexOfBestGL];
+                if ( alleles[0] != 0 )
+                    likelihoodSums[alleles[0]-1].sum += likelihoods[PLindexOfBestGL] - likelihoods[PL_INDEX_OF_HOM_REF];
+                // don't double-count it
+                if ( alleles[1] != 0 && alleles[1] != alleles[0] )
+                    likelihoodSums[alleles[1]-1].sum += likelihoods[PLindexOfBestGL] - likelihoods[PL_INDEX_OF_HOM_REF];
+            }
+        }
+
+        // sort them by probability mass and choose the best ones
+        Collections.sort(Arrays.asList(likelihoodSums));
+        final ArrayList<Allele> bestAlleles = new ArrayList<Allele>(numAllelesToChoose);
+        for ( int i = 0; i < numAllelesToChoose; i++ )
+            bestAlleles.add(likelihoodSums[i].allele);
+
+        final ArrayList<Allele> orderedBestAlleles = new ArrayList<Allele>(numAllelesToChoose);
+        for ( Allele allele : vc.getAlternateAlleles() ) {
+            if ( bestAlleles.contains(allele) )
+                orderedBestAlleles.add(allele);
+        }
+        
+        return orderedBestAlleles;
+    }
+    
     private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
         ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size());
 

@@ -25,8 +25,11 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
 import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,6 +50,10 @@ public class GATKSAMRecord extends BAMRecord {
     public static final String REDUCED_READ_CONSENSUS_TAG = "RR";                   // marks a synthetic read produced by the ReduceReads tool
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT = "OP";  // reads that are clipped may use this attribute to keep track of their original alignment start
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
+
+    // Base Quality Score Recalibrator specific attribute tags
+    public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";
+    public static final String BQSR_BASE_DELETION_QUALITIES = "BD";
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -156,6 +163,60 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     /**
+     * Setters and Accessors for base insertion and base deletion quality scores
+     */
+    public void setBaseQualities( final byte[] quals, final RecalDataManager.BaseRecalibrationType errorModel ) {
+        switch( errorModel ) {
+            case BASE_SUBSTITUTION:
+                setBaseQualities(quals);
+                break;
+            case BASE_INSERTION:
+                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                break;
+            case BASE_DELETION:
+                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                break;
+            default:
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
+    public byte[] getBaseQualities( final RecalDataManager.BaseRecalibrationType errorModel ) {
+        switch( errorModel ) {
+            case BASE_SUBSTITUTION:
+                return getBaseQualities();
+            case BASE_INSERTION:
+                return getBaseInsertionQualities();
+            case BASE_DELETION:
+                return getBaseDeletionQualities();
+            default:
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
+    public byte[] getBaseInsertionQualities() {
+        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_INSERTION_QUALITIES ) );
+        if( quals == null ) {
+            quals = new byte[getBaseQualities().length];
+            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION);
+        }
+        return quals;
+    }
+
+    public byte[] getBaseDeletionQualities() {
+        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
+        if( quals == null ) {
+            quals = new byte[getBaseQualities().length];
+            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_DELETION);
+        }
+        return quals;
+    }
+
+    /**
      * Efficient caching accessor that returns the GATK NGSPlatform of this read
      * @return
      */
@@ -198,11 +259,9 @@ public class GATKSAMRecord extends BAMRecord {
         return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////
     // *** GATKSAMRecord specific methods                                     ***//
     ///////////////////////////////////////////////////////////////////////////////
-
 
     /**
      * Checks whether an attribute has been set for the given key.

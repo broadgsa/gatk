@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAn
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAnnotation;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -58,40 +59,33 @@ public class TransmissionDisequilibriumTest extends InfoFieldAnnotation implemen
     // return the descriptions used for the VCF INFO meta field
     public List<String> getKeyNames() { return Arrays.asList("TDT"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("TDT", 1, VCFHeaderLineType.Float, "Test statistic from Wittkowski transmission disequilibrium test.")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("TDT", VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Test statistic from Wittkowski transmission disequilibrium test.")); }
 
     // Following derivation in http://en.wikipedia.org/wiki/Transmission_disequilibrium_test#A_modified_version_of_the_TDT
-    private double calculateTDT( final VariantContext vc, final Set<Sample> triosToTest ) {
+    private List<Double> calculateTDT( final VariantContext vc, final Set<Sample> triosToTest ) {
 
-        double nABGivenABandBB = 0.0;
-        double nBBGivenABandBB = 0.0;
-        double nAAGivenABandAB = 0.0;
-        double nBBGivenABandAB = 0.0;
-        double nAAGivenAAandAB = 0.0;
-        double nABGivenAAandAB = 0.0;
+        List<Double> pairwiseTDTs = new ArrayList<Double>(10);
+        final int HomRefIndex = 0;
 
         // for each pair of alleles, add the likelihoods
-        int numAlleles = vc.getNAlleles();
-        for ( int allele1 = 0; allele1 < numAlleles; allele1++ ) {
-            for ( int allele2 = allele1 + 1; allele2 < numAlleles; allele2++ ) {
+        int numAltAlleles = vc.getAlternateAlleles().size();
+        for ( int alt = 1; alt <= numAltAlleles; alt++ ) {
+            final int HetIndex = alt;
+            final int HomVarIndex = determineHomIndex(alt, numAltAlleles+1);
 
-                // TODO -- cache these for better performance
-                final int HOM1index = determineHomIndex(allele1, numAlleles);
-                final int HETindex = HOM1index + (allele2 - allele1);
-                final int HOM2index = determineHomIndex(allele2, numAlleles);
+            final double nABGivenABandBB = calculateNChildren(vc, triosToTest, HetIndex, HetIndex, HomVarIndex) + calculateNChildren(vc, triosToTest, HetIndex, HomVarIndex, HetIndex);
+            final double nBBGivenABandBB = calculateNChildren(vc, triosToTest, HomVarIndex, HetIndex, HomVarIndex) + calculateNChildren(vc, triosToTest, HomVarIndex, HomVarIndex, HetIndex);
+            final double nAAGivenABandAB = calculateNChildren(vc, triosToTest, HomRefIndex, HetIndex, HetIndex);
+            final double nBBGivenABandAB = calculateNChildren(vc, triosToTest, HomVarIndex, HetIndex, HetIndex);
+            final double nAAGivenAAandAB = calculateNChildren(vc, triosToTest, HomRefIndex, HomRefIndex, HetIndex) + calculateNChildren(vc, triosToTest, HomRefIndex, HetIndex, HomRefIndex);
+            final double nABGivenAAandAB = calculateNChildren(vc, triosToTest, HetIndex, HomRefIndex, HetIndex) + calculateNChildren(vc, triosToTest, HetIndex, HetIndex, HomRefIndex);
 
-                nABGivenABandBB += calculateNChildren(vc, triosToTest, HETindex, HETindex, HOM2index) + calculateNChildren(vc, triosToTest, HETindex, HOM2index, HETindex);
-                nBBGivenABandBB += calculateNChildren(vc, triosToTest, HOM2index, HETindex, HOM2index) + calculateNChildren(vc, triosToTest, HOM2index, HOM2index, HETindex);
-                nAAGivenABandAB += calculateNChildren(vc, triosToTest, HOM1index, HETindex, HETindex);
-                nBBGivenABandAB += calculateNChildren(vc, triosToTest, HOM2index, HETindex, HETindex);
-                nAAGivenAAandAB += calculateNChildren(vc, triosToTest, HOM1index, HOM1index, HETindex) + calculateNChildren(vc, triosToTest, HOM1index, HETindex, HOM1index);
-                nABGivenAAandAB += calculateNChildren(vc, triosToTest, HETindex, HOM1index, HETindex) + calculateNChildren(vc, triosToTest, HETindex, HETindex, HOM1index);
-            }
+            final double numer = (nABGivenABandBB - nBBGivenABandBB) + 2.0 * (nAAGivenABandAB - nBBGivenABandAB) + (nAAGivenAAandAB - nABGivenAAandAB);
+            final double denom = (nABGivenABandBB + nBBGivenABandBB) + 4.0 * (nAAGivenABandAB + nBBGivenABandAB) + (nAAGivenAAandAB + nABGivenAAandAB);
+            pairwiseTDTs.add((numer * numer) / denom);
         }
 
-        final double numer = (nABGivenABandBB - nBBGivenABandBB) + 2.0 * (nAAGivenABandAB - nBBGivenABandAB) + (nAAGivenAAandAB - nABGivenAAandAB);
-        final double denom = (nABGivenABandBB + nBBGivenABandBB) + 4.0 * (nAAGivenABandAB + nBBGivenABandAB) + (nAAGivenAAandAB + nABGivenAAandAB);
-        return (numer * numer) / denom;
+        return pairwiseTDTs;
     }
 
     private double calculateNChildren( final VariantContext vc, final Set<Sample> triosToTest, final int childIdx, final int momIdx, final int dadIdx ) {

@@ -39,7 +39,6 @@ import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.SimpleTimer;
@@ -47,6 +46,8 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.BQSRSamIterator;
+import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
@@ -202,6 +203,7 @@ public class SAMDataSource {
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
+                null, // no BQSR
                 (byte) -1);
     }
 
@@ -238,6 +240,7 @@ public class SAMDataSource {
             BAQ.CalculationMode cmode,
             BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader,
+            BaseRecalibration bqsrApplier,
             byte defaultBaseQualities) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
@@ -310,6 +313,7 @@ public class SAMDataSource {
                 cmode,
                 qmode,
                 refReader,
+                bqsrApplier,
                 defaultBaseQualities);
 
         // cache the read group id (original) -> read group id (merged)
@@ -567,17 +571,20 @@ public class SAMDataSource {
 
             if(threadAllocation.getNumIOThreads() > 0) {
                 BlockInputStream inputStream = readers.getInputStream(id);
-                inputStream.submitAccessPlan(new SAMReaderPosition(id,inputStream,(GATKBAMFileSpan)shard.getFileSpans().get(id)));
+                inputStream.submitAccessPlan(new BAMAccessPlan(id, inputStream, (GATKBAMFileSpan) shard.getFileSpans().get(id)));
+                BAMRecordCodec codec = new BAMRecordCodec(getHeader(id),factory);
+                codec.setInputStream(inputStream);
+                iterator = new BAMCodecIterator(inputStream,readers.getReader(id),codec);
             }
-            iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            else {
+                iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            }
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
             iteratorMap.put(readers.getReader(id), iterator);
         }
 
         MergingSamRecordIterator mergingIterator = readers.createMergingIterator(iteratorMap);
-
-
 
         return applyDecoratingIterators(shard.getReadMetrics(),
                 enableVerification,
@@ -589,7 +596,51 @@ public class SAMDataSource {
                 readProperties.getBAQCalculationMode(),
                 readProperties.getBAQQualityMode(),
                 readProperties.getRefReader(),
+                readProperties.getBQSRApplier(),
                 readProperties.defaultBaseQualities());
+    }
+
+    private class BAMCodecIterator implements CloseableIterator<SAMRecord> {
+        private final BlockInputStream inputStream;
+        private final SAMFileReader reader;
+        private final BAMRecordCodec codec;
+        private SAMRecord nextRead;
+
+        private BAMCodecIterator(final BlockInputStream inputStream, final SAMFileReader reader, final BAMRecordCodec codec) {
+            this.inputStream = inputStream;
+            this.reader = reader;
+            this.codec = codec;
+            advance();
+        }
+
+        public boolean hasNext() {
+            return nextRead != null;
+        }
+
+        public SAMRecord next() {
+            if(!hasNext())
+                throw new NoSuchElementException("Unable to retrieve next record from BAMCodecIterator; input stream is empty");
+            SAMRecord currentRead = nextRead;
+            advance();
+            return currentRead;
+        }
+
+        public void close() {
+            // NO-OP.
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException("Unable to remove from BAMCodecIterator");
+        }
+
+        private void advance() {
+            final long startCoordinate = inputStream.getFilePointer();
+            nextRead = codec.decode();
+            final long stopCoordinate = inputStream.getFilePointer();
+
+            if(reader != null && nextRead != null)
+                PicardNamespaceUtils.setFileSource(nextRead,new SAMFileSource(reader,new GATKBAMFileSpan(new GATKChunk(startCoordinate,stopCoordinate))));
+        }
     }
 
     /**
@@ -615,9 +666,10 @@ public class SAMDataSource {
                                                         BAQ.CalculationMode cmode,
                                                         BAQ.QualityMode qmode,
                                                         IndexedFastaSequenceFile refReader,
+                                                        BaseRecalibration bqsrApplier,
                                                         byte defaultBaseQualities) {
-        if ( useOriginalBaseQualities || defaultBaseQualities >= 0 )
-            // only wrap if we are replacing the original qualitiies or using a default base quality
+        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
+            // only wrap if we are replacing the original qualities or using a default base quality
             wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
@@ -629,6 +681,9 @@ public class SAMDataSource {
         // verify the read ordering by applying a sort order iterator
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
+
+        if (bqsrApplier != null)
+            wrappedIterator = new BQSRSamIterator(wrappedIterator, bqsrApplier);
 
         if (cmode != BAQ.CalculationMode.OFF)
             wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, cmode, qmode);
@@ -871,12 +926,9 @@ public class SAMDataSource {
         public ReaderInitializer call() {
             final File indexFile = findIndexFile(readerID.samFile);
             try {
-                if (threadAllocation.getNumIOThreads() > 0) {
+                if (threadAllocation.getNumIOThreads() > 0)
                     blockInputStream = new BlockInputStream(dispatcher,readerID,false);
-                    reader = new SAMFileReader(blockInputStream,indexFile,false);
-                }
-                else
-                    reader = new SAMFileReader(readerID.samFile,indexFile,false);
+                reader = new SAMFileReader(readerID.samFile,indexFile,false);
             } catch ( RuntimeIOException e ) {
                 if ( e.getCause() != null && e.getCause() instanceof FileNotFoundException )
                     throw new UserException.CouldNotReadInputFile(readerID.samFile, e);
@@ -932,167 +984,6 @@ public class SAMDataSource {
      * Maps read groups in the original SAMFileReaders to read groups in
      */
     private class ReadGroupMapping extends HashMap<String,String> {}
-
-    /**
-     * Filters out reads that do not overlap the current GenomeLoc.
-     * Note the custom implementation: BAM index querying returns all reads that could
-     * possibly overlap the given region (and quite a few extras).  In order not to drag
-     * down performance, this implementation is highly customized to its task.
-     */
-    private class IntervalOverlapFilteringIterator implements CloseableIterator<SAMRecord> {
-        /**
-         * The wrapped iterator.
-         */
-        private CloseableIterator<SAMRecord> iterator;
-
-        /**
-         * The next read, queued up and ready to go.
-         */
-        private SAMRecord nextRead;
-
-        /**
-         * Rather than using the straight genomic bounds, use filter out only mapped reads.
-         */
-        private boolean keepOnlyUnmappedReads;
-
-        /**
-         * Custom representation of interval bounds.
-         * Makes it simpler to track current position.
-         */
-        private int[] intervalContigIndices;
-        private int[] intervalStarts;
-        private int[] intervalEnds;
-
-        /**
-         * Position within the interval list.
-         */
-        private int currentBound = 0;
-
-        public IntervalOverlapFilteringIterator(CloseableIterator<SAMRecord> iterator, List<GenomeLoc> intervals) {
-            this.iterator = iterator;
-
-            // Look at the interval list to detect whether we should worry about unmapped reads.
-            // If we find a mix of mapped/unmapped intervals, throw an exception.
-            boolean foundMappedIntervals = false;
-            for(GenomeLoc location: intervals) {
-                if(! GenomeLoc.isUnmapped(location))
-                    foundMappedIntervals = true;
-                keepOnlyUnmappedReads |= GenomeLoc.isUnmapped(location);
-            }
-
-
-            if(foundMappedIntervals) {
-                if(keepOnlyUnmappedReads)
-                    throw new ReviewedStingException("Tried to apply IntervalOverlapFilteringIterator to a mixed of mapped and unmapped intervals.  Please apply this filter to only mapped or only unmapped reads");
-                this.intervalContigIndices = new int[intervals.size()];
-                this.intervalStarts = new int[intervals.size()];
-                this.intervalEnds = new int[intervals.size()];
-                int i = 0;
-                for(GenomeLoc interval: intervals) {
-                    intervalContigIndices[i] = interval.getContigIndex();
-                    intervalStarts[i] = interval.getStart();
-                    intervalEnds[i] = interval.getStop();
-                    i++;
-                }
-            }
-
-            advance();
-        }
-
-        public boolean hasNext() {
-            return nextRead != null;
-        }
-
-        public SAMRecord next() {
-            if(nextRead == null)
-                throw new NoSuchElementException("No more reads left in this iterator.");
-            SAMRecord currentRead = nextRead;
-            advance();
-            return currentRead;
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException("Cannot remove from an IntervalOverlapFilteringIterator");
-        }
-
-
-        public void close() {
-            iterator.close();
-        }
-
-        private void advance() {
-            nextRead = null;
-
-            if(!iterator.hasNext())
-                return;
-
-            SAMRecord candidateRead = iterator.next();
-            while(nextRead == null && (keepOnlyUnmappedReads || currentBound < intervalStarts.length)) {
-                if(!keepOnlyUnmappedReads) {
-                    // Mapped read filter; check against GenomeLoc-derived bounds.
-                    if(readEndsOnOrAfterStartingBound(candidateRead)) {
-                        // This read ends after the current interval begins.
-                        // Promising, but this read must be checked against the ending bound.
-                        if(readStartsOnOrBeforeEndingBound(candidateRead)) {
-                            // Yes, this read is within both bounds.  This must be our next read.
-                            nextRead = candidateRead;
-                            break;
-                        }
-                        else {
-                            // Oops, we're past the end bound.  Increment the current bound and try again.
-                            currentBound++;
-                            continue;
-                        }
-                    }
-                }
-                else {
-                    // Found an unmapped read.  We're done.
-                    if(candidateRead.getReadUnmappedFlag()) {
-                        nextRead = candidateRead;
-                        break;
-                    }
-                }
-
-                // No more reads available.  Stop the search.
-                if(!iterator.hasNext())
-                    break;
-
-                // No reasonable read found; advance the iterator.
-                candidateRead = iterator.next();
-            }
-        }
-
-        /**
-         * Check whether the read lies after the start of the current bound.  If the read is unmapped but placed, its
-         * end will be distorted, so rely only on the alignment start.
-         * @param read The read to position-check.
-         * @return True if the read starts after the current bounds.  False otherwise.
-         */
-        private boolean readEndsOnOrAfterStartingBound(final SAMRecord read) {
-            return
-                    // Read ends on a later contig, or...
-                    read.getReferenceIndex() > intervalContigIndices[currentBound] ||
-                            // Read ends of this contig...
-                            (read.getReferenceIndex() == intervalContigIndices[currentBound] &&
-                                    // either after this location, or...
-                                    (read.getAlignmentEnd() >= intervalStarts[currentBound] ||
-                                            // read is unmapped but positioned and alignment start is on or after this start point.
-                                            (read.getReadUnmappedFlag() && read.getAlignmentStart() >= intervalStarts[currentBound])));
-        }
-
-        /**
-         * Check whether the read lies before the end of the current bound.
-         * @param read The read to position-check.
-         * @return True if the read starts after the current bounds.  False otherwise.
-         */
-        private boolean readStartsOnOrBeforeEndingBound(final SAMRecord read) {
-            return
-                    // Read starts on a prior contig, or...
-                    read.getReferenceIndex() < intervalContigIndices[currentBound] ||
-                            // Read starts on this contig and the alignment start is registered before this end point.
-                            (read.getReferenceIndex() == intervalContigIndices[currentBound] && read.getAlignmentStart() <= intervalEnds[currentBound]);
-        }
-    }
 
     /**
      * Locates the index file alongside the given BAM, if present.

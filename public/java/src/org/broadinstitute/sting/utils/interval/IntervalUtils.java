@@ -314,10 +314,10 @@ public class IntervalUtils {
      * @param reference The reference for the intervals.
      * @return A map of contig names with their sizes.
      */
-    public static Map<String, Long> getContigSizes(File reference) {
+    public static Map<String, Integer> getContigSizes(File reference) {
         ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
         List<GenomeLoc> locs = GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference().getSequenceDictionary()).toList();
-        Map<String, Long> lengths = new LinkedHashMap<String, Long>();
+        Map<String, Integer> lengths = new LinkedHashMap<String, Integer>();
         for (GenomeLoc loc: locs)
             lengths.put(loc.getContig(), loc.size());
         return lengths;
