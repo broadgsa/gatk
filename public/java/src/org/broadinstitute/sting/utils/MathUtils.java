@@ -1613,4 +1613,36 @@ public class MathUtils {
 
     }
 
+    /**
+     * Creates an integer out of a bitset
+     *
+     * @param bitSet the bitset
+     * @return an integer with the bitset representation
+     */
+    public static int intFrom(final BitSet bitSet) {
+        int integer = 0;
+        for (int bitIndex = bitSet.nextSetBit(0); bitIndex >= 0; bitIndex = bitSet.nextSetBit(bitIndex+1))
+            integer |= 1 << bitIndex;
+
+        return integer;
+    }
+
+    /**
+     * Creates a BitSet representation of a given integer
+     *
+     * @param integer the number to turn into a bitset
+     * @return a bitset representation of the integer
+     */
+    public static BitSet bitSetFrom(int integer) {
+        BitSet bitSet = new BitSet((int) Math.ceil(Math.sqrt(integer)));
+        int bitIndex = 0;
+        while (integer > 0) {
+            if (integer%2 > 0)
+                bitSet.set(bitIndex);
+            bitIndex++;
+            integer /= 2;
+        }
+        return bitSet;
+    }
+
 }
