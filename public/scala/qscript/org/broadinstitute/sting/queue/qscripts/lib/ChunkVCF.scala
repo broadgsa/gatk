@@ -23,7 +23,7 @@ class ChunkVCF extends QScript {
   @Input(shortName="N",fullName="numEntriesInChunk",doc="The number of variants per chunk",required=true)
   var numEntries : Int = _
 
-  @Input(shortName="I",fullName="Intervals",doc="The SNP interval list to chunk. If not provided, one will be created for you to provide in a second run.")
+  @Input(shortName="I",fullName="Intervals",doc="The SNP interval list to chunk. If not provided, one will be created for you to provide in a second run.",required=false)
   var intervals : File = _
 
   @Input(fullName="preserveChromosomes",doc="Restrict chunks to one chromosome (smaller chunk at end of chromosome)",required=false)
@@ -40,8 +40,8 @@ class ChunkVCF extends QScript {
   def script = {
     if ( intervals == null ) {
       // create an interval list from the VCF
-      val ivals : File = swapExt(variants,".vcf",".intervals.list")
-      val extract : VCFExtractIntervals = new VCFExtractIntervals(variants,ivals,false)
+      val ivals : File = swapExt(inVCF,".vcf",".intervals.list")
+      val extract : VCFExtractIntervals = new VCFExtractIntervals(inVCF,ivals,false)
       add(extract)
     } else {
       var chunkNum = 1
@@ -54,11 +54,12 @@ class ChunkVCF extends QScript {
         if ( ( preserve && ! int.split(":")(0).equals(chromosome) ) || numLinesInChunk > numEntries ) {
           chunkWriter.close()
           val chunkSelect : SelectVariants = new SelectVariants
+          chunkSelect.variant = inVCF
           chunkSelect.reference_sequence = ref
           chunkSelect.memoryLimit = 2
           chunkSelect.intervals :+= chunkFile
           if ( extractSamples != null )
-            chunkSelect.sample_file = extractSamples
+            chunkSelect.sample_file :+= extractSamples
           chunkSelect.out = swapExt(inVCF,".vcf",".chunk%d.vcf".format(chunkNum))
           add(chunkSelect)
           chunkNum += 1
@@ -74,12 +75,13 @@ class ChunkVCF extends QScript {
       if ( numLinesInChunk > 0 ) {
         // some work to do
         val chunkSelect : SelectVariants = new SelectVariants
+        chunkSelect.variant = inVCF
         chunkSelect.reference_sequence = ref
         chunkSelect.memoryLimit = 2
         chunkSelect.intervals :+= chunkFile
         chunkWriter.close()
         if ( extractSamples != null )
-          chunkSelect.sample_file = extractSamples
+          chunkSelect.sample_file :+= extractSamples
         chunkSelect.out = swapExt(inVCF,".vcf",".chunk%d.vcf".format(chunkNum))
         add(chunkSelect)
       }

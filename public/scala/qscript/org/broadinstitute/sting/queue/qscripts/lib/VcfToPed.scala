@@ -47,9 +47,14 @@ class VcfToPed extends QScript {
       val extract : VCFExtractIntervals = new VCFExtractIntervals(variants,ivals,false)
       add(extract)
     } else {
+      val IS_GZ : Boolean = variants.getName.endsWith(".vcf.gz")
       var iXRL = new XReadLines(intervals)
       var chunk = 1;
-      var subListFile = swapExt(tmpdir,variants,".vcf",".chunk%d.list".format(chunk))
+      var subListFile : File = null
+      if ( IS_GZ )
+        subListFile = swapExt(tmpdir,variants,".vcf.gz",".chunk%d.list".format(chunk))
+      else
+        subListFile = swapExt(tmpdir,variants,".vcf",".chunk%d.list".format(chunk))
       var subList = new PrintStream(subListFile)
       var nL = 0;
       var bedOuts : List[File] = Nil;
@@ -58,7 +63,7 @@ class VcfToPed extends QScript {
       while ( iXRL.hasNext ) {
         subList.printf("%s%n",iXRL.next())
         nL = nL + 1
-        if ( nL > 100000 ) {
+        if ( nL > 10000 ) {
           val toPed : VariantsToPed = new VariantsToPed
           toPed.memoryLimit = 2
           toPed.reference_sequence = ref
@@ -89,7 +94,10 @@ class VcfToPed extends QScript {
           add(toPed)
           subList.close()
           chunk = chunk + 1
-          subListFile = swapExt(tmpdir,variants,".vcf",".chunk%d.list".format(chunk))
+          if ( IS_GZ  )
+            subListFile = swapExt(tmpdir,variants,".vcf.gz",".chunk%d.list".format(chunk))
+          else
+            subListFile = swapExt(tmpdir,variants,".vcf",".chunk%d.list".format(chunk))
           subList = new PrintStream(subListFile)
           bedOuts :+= tBed
           bimOuts :+= bim

@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -141,62 +142,76 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 String indelString = p.getEventBases();
                 if (p.isInsertion()) {
                     boolean foundKey = false;
+                    // copy of hashmap into temp arrayList
+                    ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();
+                    for (String s : consensusIndelStrings.keySet()) {
+                        cList.add(new Pair<String, Integer>(s,consensusIndelStrings.get(s)));
+                    }
+
                     if (read.getAlignmentEnd() == loc.getStart()) {
                         // first corner condition: a read has an insertion at the end, and we're right at the insertion.
                         // In this case, the read could have any of the inserted bases and we need to build a consensus
-                        for (String s : consensusIndelStrings.keySet()) {
-                            int cnt = consensusIndelStrings.get(s);
+
+                        for (int k=0; k < cList.size(); k++) {
+                            String s = cList.get(k).getFirst();
+                            int cnt = cList.get(k).getSecond();
+                            // case 1: current insertion is prefix of indel in hash map
                             if (s.startsWith(indelString)) {
-                                // case 1: current insertion is prefix of indel in hash map
-                                consensusIndelStrings.put(s, cnt + 1);
+                                cList.set(k,new Pair<String, Integer>(s,cnt+1));
                                 foundKey = true;
-                                break;
-                            } else if (indelString.startsWith(s)) {
+                            }
+                            else if (indelString.startsWith(s)) {
                                 // case 2: indel stored in hash table is prefix of current insertion
                                 // In this case, new bases are new key.
-                                consensusIndelStrings.remove(s);
-                                consensusIndelStrings.put(indelString, cnt + 1);
                                 foundKey = true;
-                                break;
+                                cList.set(k,new Pair<String, Integer>(indelString,cnt+1));
                             }
                         }
                         if (!foundKey)
                             // none of the above: event bases not supported by previous table, so add new key
-                            consensusIndelStrings.put(indelString, 1);
+                            cList.add(new Pair<String, Integer>(indelString,1));
 
-                    } else if (read.getAlignmentStart() == loc.getStart() + 1) {
+                    }
+                    else if (read.getAlignmentStart() == loc.getStart()+1) {
                         // opposite corner condition: read will start at current locus with an insertion
-                        for (String s : consensusIndelStrings.keySet()) {
-                            int cnt = consensusIndelStrings.get(s);
+                        for (int k=0; k < cList.size(); k++) {
+                            String s = cList.get(k).getFirst();
+                            int cnt = cList.get(k).getSecond();
                             if (s.endsWith(indelString)) {
-                                // case 1: current insertion is suffix of indel in hash map
-                                consensusIndelStrings.put(s, cnt + 1);
+                                // case 1: current insertion (indelString) is suffix of indel in hash map (s)
+                                cList.set(k,new Pair<String, Integer>(s,cnt+1));
                                 foundKey = true;
-                                break;
-                            } else if (indelString.endsWith(s)) {
-                                // case 2: indel stored in hash table is suffix of current insertion
+                            }
+                            else if (indelString.endsWith(s)) {
+                                // case 2: indel stored in hash table is prefix of current insertion
                                 // In this case, new bases are new key.
-
-                                consensusIndelStrings.remove(s);
-                                consensusIndelStrings.put(indelString, cnt + 1);
                                 foundKey = true;
-                                break;
+                                cList.set(k,new Pair<String, Integer>(indelString,cnt+1));
                             }
                         }
                         if (!foundKey)
                             // none of the above: event bases not supported by previous table, so add new key
-                            consensusIndelStrings.put(indelString, 1);
+                            cList.add(new Pair<String, Integer>(indelString,1));
 
-                    } else {
-                        // normal case: insertion somewhere in the middle of a read: add count to hash map
-                        int cnt = consensusIndelStrings.containsKey(indelString) ? consensusIndelStrings.get(indelString) : 0;
-                        consensusIndelStrings.put(indelString, cnt + 1);
+
+                    }
+                    else {
+                        // normal case: insertion somewhere in the middle of a read: add count to arrayList
+                        int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
+                        cList.add(new Pair<String, Integer>(indelString,cnt+1));
                     }
 
-                } else if (p.isDeletion()) {
-                    indelString = String.format("D%d", p.getEventLength());
-                    int cnt = consensusIndelStrings.containsKey(indelString) ? consensusIndelStrings.get(indelString) : 0;
-                    consensusIndelStrings.put(indelString, cnt + 1);
+                    // copy back arrayList into hashMap
+                    consensusIndelStrings.clear();
+                    for (Pair<String,Integer> pair : cList) {
+                        consensusIndelStrings.put(pair.getFirst(),pair.getSecond());
+                    }
+
+                }
+                else if (p.isDeletion()) {
+                    indelString = String.format("D%d",p.getEventLength());
+                    int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
+                    consensusIndelStrings.put(indelString,cnt+1);
 
                 }
             }
