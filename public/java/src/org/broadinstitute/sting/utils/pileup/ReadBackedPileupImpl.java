@@ -71,7 +71,13 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
     }
 
     @Override
-    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip) {
-        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip);
+    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion,
+                                                   boolean isNextToSoftClip) {
+        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, null,0);
+    }
+
+    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, 
+                                                   boolean isNextToSoftClip,String nextEventBases, final int nextEventLength) {
+        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, nextEventBases,nextEventLength);
     }
 }
