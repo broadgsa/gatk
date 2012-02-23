@@ -28,9 +28,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
@@ -133,7 +131,7 @@ public class Haplotype {
                 }
             } else if( refAllele.length() < altAllele.length() ) { // insertion
                 final int altAlleleLength = altAllele.length();
-                for( int iii = newHaplotype.length -1; iii > haplotypeInsertLocation + altAlleleLength; iii-- ) {
+                for( int iii = newHaplotype.length - 1; iii > haplotypeInsertLocation + altAlleleLength - 1; iii-- ) {
                     newHaplotype[iii] = newHaplotype[iii-altAlleleLength];
                 }
                 for( int iii = 0; iii < altAlleleLength; iii++ ) {
