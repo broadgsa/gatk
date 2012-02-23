@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -44,6 +45,9 @@ public class VariantsToPed extends RodWalker<Integer,Integer> {
 
     @Output(shortName="fam",fullName="fam",required=true,doc="output fam file")
     PrintStream outFam;
+
+    @Argument(shortName="mgq",fullName="minGenotypeQuality",required=true,doc="If genotype quality is lower than this value, output NO_CALL")
+    int minGenotypeQuality = 0;
 
     private ValidateVariants vv = new ValidateVariants();
 
@@ -173,9 +177,11 @@ public class VariantsToPed extends RodWalker<Integer,Integer> {
         return 0;
     }
 
-    private static byte getEncoding(Genotype g, int offset) {
+    private byte getEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.isHomRef() ) {
+        if ( g.hasAttribute(VCFConstants.GENOTYPE_QUALITY_KEY) && ((Integer) g.getAttribute(VCFConstants.GENOTYPE_QUALITY_KEY)) < minGenotypeQuality ) {
+            b = NO_CALL;
+        } else if ( g.isHomRef() ) {
             b = HOM_REF;
         } else if ( g.isHomVar() ) {
             b = HOM_VAR;
