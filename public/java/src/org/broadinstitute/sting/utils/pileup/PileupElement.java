@@ -69,6 +69,9 @@ public class PileupElement implements Comparable<PileupElement> {
             eventLength = -1;
     }
 
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip) {
+        this(read,offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, null, -1);
+    }
     public boolean isDeletion() {
         return isDeletion;
     }
