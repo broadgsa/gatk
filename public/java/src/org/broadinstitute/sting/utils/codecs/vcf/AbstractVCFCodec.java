@@ -544,12 +544,15 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     }
 
     /**
-     * return true if this is a symbolic allele (e.g. <SOMETAG>) otherwise false
+     * return true if this is a symbolic allele (e.g. <SOMETAG>) or
+     * structural variation breakend (with [ or ]), otherwise false
      * @param allele the allele to check
      * @return true if the allele is a symbolic allele, otherwise false
      */
     private static boolean isSymbolicAllele(String allele) {
-        return (allele != null && allele.startsWith("<") && allele.endsWith(">") && allele.length() > 2);
+        return (allele != null && allele.length() > 2 &&
+                ((allele.startsWith("<") && allele.endsWith(">")) ||
+                        (allele.contains("[") || allele.contains("]"))));
     }
 
     /**
