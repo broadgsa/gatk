@@ -465,7 +465,7 @@ public class LocusIteratorByState extends LocusIterator {
                         final CigarElement nextElement = state.peekForwardOnGenome();     // next cigar element
                         final CigarOperator nextOp = nextElement.getOperator();
                         final int readOffset = state.getReadOffset();                 // the base offset on this read
-                        byte[] insertedBases = Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + nextElement.getLength());
+
                         int nextElementLength = nextElement.getLength();
 
                         if (op == CigarOperator.N)                                    // N's are never added to any pileup
@@ -483,8 +483,12 @@ public class LocusIteratorByState extends LocusIterator {
                         }
                         else {
                             if (!filterBaseInRead(read, location.getStart())) {
+                                String insertedBaseString = null;
+                                if (nextOp == CigarOperator.I) {
+                                    insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + nextElement.getLength()));
+                                }
                                 pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.D, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart()),
-                                        new String(insertedBases),nextElementLength));
+                                        insertedBaseString,nextElementLength));
                                 size++;
                                 if (read.getMappingQuality() == 0)
                                     nMQ0Reads++;
