@@ -39,4 +39,14 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest("Test reading and writing breakpoint VCF", spec1);
     }
 
+    @Test
+    public void testReadingAndWritingSamtools() {
+        String testVCF = validationDataLocation + "samtools.vcf";
+
+        String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
+
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("87d5b180ef5f9dc5aaee4b02601b43a2"));
+        executeTest("Test reading and writing samtools vcf", spec1);
+    }
 }
