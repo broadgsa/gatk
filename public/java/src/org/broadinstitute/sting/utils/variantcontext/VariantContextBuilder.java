@@ -29,6 +29,7 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -102,9 +103,10 @@ public class VariantContextBuilder {
      * Returns a new builder based on parent -- the new VC will have all fields initialized
      * to their corresponding values in parent.  This is the best way to create a derived VariantContext
      *
-     * @param parent
+     * @param parent  Cannot be null
      */
     public VariantContextBuilder(VariantContext parent) {
+        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContext parent argument cannot be null in VariantContextBuilder")
         this.alleles = parent.alleles;
         this.attributes = parent.getAttributes();
         this.attributesCanBeModified = false;
