@@ -31,8 +31,6 @@ interface VCFLineParser {
  * a class that handles the to and from disk for VCF 4 lines
  */
 class VCF4Parser implements VCFLineParser {
-    Set<String> bracketed = new HashSet<String>();
-
     /**
      * parse a VCF4 line
      * @param valueLine the line
