@@ -682,7 +682,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         for (String sample : sub.getSampleNames()) {
             Genotype g = sub.getGenotype(sample);
 
-            if (g.isNotFiltered() && g.isCalled()) {
+            if ( g.isNotFiltered() ) {
 
                 String dp = (String) g.getAttribute("DP");
                 if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {

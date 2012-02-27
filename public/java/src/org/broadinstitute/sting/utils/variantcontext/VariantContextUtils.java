@@ -65,8 +65,10 @@ public class VariantContextUtils {
      * @return the attributes map provided as input, returned for programming convenience
      */
     public static Map<String, Object> calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
+        final int AN = vc.getCalledChrCount();
+
         // if everyone is a no-call, remove the old attributes if requested
-        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
+        if ( AN == 0 && removeStaleValues ) {
             if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
                 attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
             if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
@@ -77,19 +79,22 @@ public class VariantContextUtils {
         }
 
         if ( vc.hasGenotypes() ) {
-            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
+            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, AN);
 
             // if there are alternate alleles, record the relevant tags
             if ( vc.getAlternateAlleles().size() > 0 ) {
-                ArrayList<String> alleleFreqs = new ArrayList<String>();
-                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-                double totalChromosomes = (double)vc.getCalledChrCount();
+                final ArrayList<String> alleleFreqs = new ArrayList<String>();
+                final ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
                 for ( Allele allele : vc.getAlternateAlleles() ) {
                     int altChromosomes = vc.getCalledChrCount(allele);
                     alleleCounts.add(altChromosomes);
-                    // todo -- this is a performance problem
-                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
-                    alleleFreqs.add(freq);
+                    if ( AN == 0 ) {
+                        alleleFreqs.add("0.0");
+                    } else {
+                        // todo -- this is a performance problem
+                        final String freq = String.format(makePrecisionFormatStringFromDenominatorValue((double)AN), ((double)altChromosomes / (double)AN));
+                        alleleFreqs.add(freq);
+                    }
                 }
 
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
@@ -113,41 +118,8 @@ public class VariantContextUtils {
      */
     public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues) {
         final VariantContext vc = builder.make();
-
-        // if everyone is a no-call, remove the old attributes if requested
-        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
-            if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-                builder.rmAttribute(VCFConstants.ALLELE_COUNT_KEY);
-            if ( vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                builder.rmAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
-            if ( vc.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
-                builder.rmAttribute(VCFConstants.ALLELE_NUMBER_KEY);
-            return;
-        }
-
-        if ( vc.hasGenotypes() ) {
-            builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
-
-            // if there are alternate alleles, record the relevant tags
-            if ( vc.getAlternateAlleles().size() > 0 ) {
-                ArrayList<String> alleleFreqs = new ArrayList<String>();
-                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-                double totalChromosomes = (double)vc.getCalledChrCount();
-                for ( Allele allele : vc.getAlternateAlleles() ) {
-                    int altChromosomes = vc.getCalledChrCount(allele);
-                    alleleCounts.add(altChromosomes);
-                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
-                    alleleFreqs.add(freq);
-                }
-
-                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
-                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
-            }
-            else {
-                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, 0);
-                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
-            }
-        }
+        final Map<String, Object> attrs = calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues);
+        builder.attributes(attrs);
     }
 
     private static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {
