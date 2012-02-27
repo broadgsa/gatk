@@ -1229,12 +1229,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public Allele getAltAlleleWithHighestAlleleCount() {
-        // first idea: get two alleles with highest AC
+        // optimization: for bi-allelic sites, just return the 1only alt allele
+        if ( isBiallelic() )
+            return getAlternateAllele(0);
+        
         Allele best = null;
         int maxAC1 = 0;
-        for (Allele a:this.getAlternateAlleles()) {
-            int ac = this.getCalledChrCount(a);
-            if (ac >=maxAC1) {
+        for ( Allele a : getAlternateAlleles() ) {
+            final int ac = getCalledChrCount(a);
+            if ( ac >= maxAC1 ) {
                 maxAC1 = ac;
                 best = a;
             }
@@ -1244,6 +1247,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public int[] getGLIndecesOfAllele(Allele inputAllele) {
+
+        // TODO -- this information is cached statically by the UnifiedGenotyperEngine; pull it out into a common utils class for all to use
+
         int[] idxVector = new int[3];
         int numAlleles =  this.getAlleles().size();
 

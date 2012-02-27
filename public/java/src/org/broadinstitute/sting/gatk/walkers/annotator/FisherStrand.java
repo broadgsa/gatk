@@ -59,10 +59,10 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         int[][] table;
 
-        if (vc.isBiallelic() && vc.isSNP())
-            table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAlternateAllele(0));
-        else if (vc.isIndel() || vc.isMixed()) {
-            table = getIndelContingencyTable(stratifiedContexts, vc);
+        if ( vc.isSNP() )
+            table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+        else if ( vc.isIndel() || vc.isMixed() ) {
+            table = getIndelContingencyTable(stratifiedContexts);
             if (table == null)
                 return null;
         }
@@ -234,7 +234,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getIndelContingencyTable(Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    private static int[][] getIndelContingencyTable(Map<String, AlignmentContext> stratifiedContexts) {
         final double INDEL_LIKELIHOOD_THRESH = 0.3;
         final HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
 
