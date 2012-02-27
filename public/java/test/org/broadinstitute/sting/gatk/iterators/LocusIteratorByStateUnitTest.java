@@ -6,6 +6,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
@@ -84,6 +85,55 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         }
 
         Assert.assertTrue(foundExtendedEventPileup,"Extended event pileup not found");
+    }
+    @Test
+    public void testIndelsInRegularPileup() {
+        final byte[] bases = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
+        final byte[] indelBases = new byte[] {'A','A','A','A','C','T','A','A','A','A','A','A'};
+
+        // create a test version of the Reads object
+        ReadProperties readAttributes = createTestReadProperties();
+        JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
+
+        SAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
+        before.setReadBases(bases);
+        before.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
+        before.setCigarString("10M");
+
+        SAMRecord during = ArtificialSAMUtils.createArtificialRead(header,"during",0,2,10);
+        during.setReadBases(indelBases);
+        during.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20,20,20});
+        during.setCigarString("4M2I6M");
+
+        SAMRecord after  = ArtificialSAMUtils.createArtificialRead(header,"after",0,3,10);
+        after.setReadBases(bases);
+        after.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
+        after.setCigarString("10M");
+
+        List<SAMRecord> reads = Arrays.asList(before,during,after);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(reads,readAttributes);
+
+        boolean foundIndel = false;
+        while (li.hasNext()) {
+            AlignmentContext context = li.next();
+            if(!context.hasBasePileup())
+                continue;
+
+            ReadBackedPileup pileup = context.getBasePileup().getBaseFilteredPileup(10);
+            for (PileupElement p : pileup) {
+                if (p.isBeforeInsertion()) {
+                    foundIndel = true;
+                    Assert.assertEquals(p.getEventLength(), 2, "Wrong event length");
+                    Assert.assertEquals(p.getEventBases(), "CT", "Inserted bases are incorrect");
+                    break;
+               }
+            }
+
+         }
+
+         Assert.assertTrue(foundIndel,"Indel in pileup not found");
     }
 
     /**

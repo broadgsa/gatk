@@ -175,8 +175,8 @@ public class LocusIteratorByState extends LocusIterator {
             return String.format("%s ro=%d go=%d co=%d cec=%d %s", read.getReadName(), readOffset, genomeOffset, cigarOffset, cigarElementCounter, curElement);
         }
 
-        public CigarOperator peekForwardOnGenome() {
-            return ( cigarElementCounter + 1 > curElement.getLength() && cigarOffset + 1 < nCigarElements ? cigar.getCigarElement(cigarOffset + 1) : curElement ).getOperator();
+        public CigarElement peekForwardOnGenome() {
+            return ( cigarElementCounter + 1 > curElement.getLength() && cigarOffset + 1 < nCigarElements ? cigar.getCigarElement(cigarOffset + 1) : curElement );
         }
 
         public CigarOperator stepForwardOnGenome() {
@@ -462,15 +462,19 @@ public class LocusIteratorByState extends LocusIterator {
                         final SAMRecordState state = iterator.next();                 // state object with the read/offset information
                         final GATKSAMRecord read = (GATKSAMRecord) state.getRead();   // the actual read
                         final CigarOperator op = state.getCurrentCigarOperator();     // current cigar operator
-                        final CigarOperator nextOp = state.peekForwardOnGenome();     // next cigar operator
+                        final CigarElement nextElement = state.peekForwardOnGenome();     // next cigar element
+                        final CigarOperator nextOp = nextElement.getOperator();
                         final int readOffset = state.getReadOffset();                 // the base offset on this read
+
+                        int nextElementLength = nextElement.getLength();
 
                         if (op == CigarOperator.N)                                    // N's are never added to any pileup
                             continue;
 
                         if (op == CigarOperator.D) {
                             if (readInfo.includeReadsWithDeletionAtLoci()) {          // only add deletions to the pileup if we are authorized to do so
-                                pile.add(new PileupElement(read, readOffset, true, nextOp == CigarOperator.D, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
+                                pile.add(new PileupElement(read, readOffset, true, nextOp == CigarOperator.D, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart()),
+                                        null,nextOp == CigarOperator.D? nextElementLength:-1));
                                 size++;
                                 nDeletions++;
                                 if (read.getMappingQuality() == 0)
@@ -479,7 +483,12 @@ public class LocusIteratorByState extends LocusIterator {
                         }
                         else {
                             if (!filterBaseInRead(read, location.getStart())) {
-                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.D, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart())));
+                                String insertedBaseString = null;
+                                if (nextOp == CigarOperator.I) {
+                                    insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + nextElement.getLength()));
+                                }
+                                pile.add(new PileupElement(read, readOffset, false, nextOp == CigarOperator.D, nextOp == CigarOperator.I, nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart()),
+                                        insertedBaseString,nextElementLength));
                                 size++;
                                 if (read.getMappingQuality() == 0)
                                     nMQ0Reads++;

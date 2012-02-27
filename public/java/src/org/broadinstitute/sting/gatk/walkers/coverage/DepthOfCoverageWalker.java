@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -119,21 +120,6 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
     Map<DoCOutputType,PrintStream> out;
     
-    /**
-     * Sets the low-coverage cutoff for granular binning. All loci with depth < START are counted in the first bin.
-     */
-    @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
-    int start = 1;
-    /**
-     * Sets the high-coverage cutoff for granular binning. All loci with depth > END are counted in the last bin.
-     */
-    @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
-    int stop = 500;
-    /**
-     * Sets the number of bins for granular binning
-     */
-    @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
-    int nBins = 499;
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to -1.", required = false)
     int minMappingQuality = -1;
     @Argument(fullName = "maxMappingQuality", doc = "Maximum mapping quality of reads to count towards depth. Defaults to 2^31-1 (Integer.MAX_VALUE).", required = false)
@@ -142,16 +128,19 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     byte minBaseQuality = -1;
     @Argument(fullName = "maxBaseQuality", doc = "Maximum quality of bases to count towards depth. Defaults to 127 (Byte.MAX_VALUE).", required = false)
     byte maxBaseQuality = Byte.MAX_VALUE;
+
     /**
      * Instead of reporting depth, report the base pileup at each locus
      */
     @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
     boolean printBaseCounts = false;
+
     /**
      * Do not tabulate locus statistics (# loci covered by sample by coverage)
      */
     @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
     boolean omitLocusTable = false;
+
     /**
      * Do not tabulate interval statistics (mean, median, quartiles AND # intervals by sample by coverage)
      */
@@ -162,8 +151,52 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
      */
     @Argument(fullName = "omitDepthOutputAtEachBase", shortName = "omitBaseOutput", doc = "Will omit the output of the depth of coverage at each base, which should result in speedup", required = false)
     boolean omitDepthOutput = false;
+
+    /**
+     * Path to the RefSeq file for use in aggregating coverage statistics over genes
+     */
+    @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate the coverage statistics over this list of genes. Currently accepts RefSeq.", required = false)
+    File refSeqGeneList = null;
+
+    /**
+     * The format of the output file
+     */
+    @Argument(fullName = "outputFormat", doc = "the format of the output file (e.g. csv, table, rtable); defaults to r-readable table", required = false)
+    String outputFormat = "rtable";
+
+
+    // ---------------------------------------------------------------------------
+    //
+    // Advanced arguments
+    //
+    // ---------------------------------------------------------------------------
+    @Advanced
+    @Argument(fullName = "includeRefNSites", doc = "If provided, sites with reference N bases but with coverage from neighboring reads will be included in DoC calculations.", required = false)
+    boolean includeRefNBases = false;
+
+    @Advanced
     @Argument(fullName = "printBinEndpointsAndExit", doc = "Prints the bin values and exits immediately. Use to calibrate what bins you want before running on data.", required = false)
     boolean printBinEndpointsAndExit = false;
+
+    /**
+     * Sets the low-coverage cutoff for granular binning. All loci with depth < START are counted in the first bin.
+     */
+    @Advanced
+    @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
+    int start = 1;
+    /**
+     * Sets the high-coverage cutoff for granular binning. All loci with depth > END are counted in the last bin.
+     */
+    @Advanced
+    @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
+    int stop = 500;
+    /**
+     * Sets the number of bins for granular binning
+     */
+    @Advanced
+    @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
+    int nBins = 499;
+
     /**
      * Do not tabulate the sample summary statistics (total, mean, median, quartile coverage per sample)
      */
@@ -174,27 +207,22 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
      */
     @Argument(fullName = "partitionType", shortName = "pt", doc = "Partition type for depth of coverage. Defaults to sample. Can be any combination of sample, readgroup, library.", required = false)
     Set<DoCOutputType.Partition> partitionTypes = EnumSet.of(DoCOutputType.Partition.sample);
+
     /**
      * Consider a spanning deletion as contributing to coverage. Also enables deletion counts in per-base output.
      */
+    @Advanced
     @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
     boolean includeDeletions = false;
+
+    @Advanced
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
     boolean ignoreDeletionSites = false;
     
     /**
-     * Path to the RefSeq file for use in aggregating coverage statistics over genes
-     */
-    @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate the coverage statistics over this list of genes. Currently accepts RefSeq.", required = false)
-    File refSeqGeneList = null;
-    /**
-     * The format of the output file
-     */
-    @Argument(fullName = "outputFormat", doc = "the format of the output file (e.g. csv, table, rtable); defaults to r-readable table", required = false)
-    String outputFormat = "rtable";
-    /**
      * A coverage threshold for summarizing (e.g. % bases >= CT for each sample)
      */
+    @Advanced
     @Argument(fullName = "summaryCoverageThreshold", shortName = "ct", doc = "for summary file outputs, report the % of bases coverd to >= this number. Defaults to 15; can take multiple arguments.", required = false)
     int[] coverageThresholds = {15};
 
@@ -334,24 +362,29 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     }
 
     public Map<DoCOutputType.Partition,Map<String,int[]>> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if (includeRefNBases || BaseUtils.isRegularBase(ref.getBase())) {
+            if ( ! omitDepthOutput ) {
+                getCorrectStream(null, DoCOutputType.Aggregation.locus, DoCOutputType.FileType.summary).printf("%s",ref.getLocus()); // yes: print locus in map, and the rest of the info in reduce (for eventual cumulatives)
+                //System.out.printf("\t[log]\t%s",ref.getLocus());
+            }
 
-        if ( ! omitDepthOutput ) {
-            getCorrectStream(null, DoCOutputType.Aggregation.locus, DoCOutputType.FileType.summary).printf("%s",ref.getLocus()); // yes: print locus in map, and the rest of the info in reduce (for eventual cumulatives)
-            //System.out.printf("\t[log]\t%s",ref.getLocus());
+            return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,maxMappingQuality,minBaseQuality,maxBaseQuality,partitionTypes);
+        } else {
+            return null;
         }
-
-        return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,maxMappingQuality,minBaseQuality,maxBaseQuality,partitionTypes);
     }
 
     public CoveragePartitioner reduce(Map<DoCOutputType.Partition,Map<String,int[]>> thisMap, CoveragePartitioner prevReduce) {
-        if ( ! omitDepthOutput ) {
-            //checkOrder(prevReduce); // tests prevReduce.getIdentifiersByType().get(t) against the initialized header order
-            printDepths(getCorrectStream(null, DoCOutputType.Aggregation.locus, DoCOutputType.FileType.summary),thisMap,prevReduce.getIdentifiersByType());
-            // this is an additional iteration through thisMap, plus dealing with IO, so should be much slower without
-            // turning on omit
-        }
+        if ( thisMap != null ) { // skip sites we didn't want to include in the calculation (ref Ns)
+            if ( ! omitDepthOutput ) {
+                //checkOrder(prevReduce); // tests prevReduce.getIdentifiersByType().get(t) against the initialized header order
+                printDepths(getCorrectStream(null, DoCOutputType.Aggregation.locus, DoCOutputType.FileType.summary),thisMap,prevReduce.getIdentifiersByType());
+                // this is an additional iteration through thisMap, plus dealing with IO, so should be much slower without
+                // turning on omit
+            }
 
-        prevReduce.update(thisMap); // note that in "useBoth" cases, this method alters the thisMap object
+            prevReduce.update(thisMap); // note that in "useBoth" cases, this method alters the thisMap object
+        }
 
         return prevReduce;
     }

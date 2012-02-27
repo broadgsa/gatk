@@ -36,8 +36,10 @@ public class AlignmentStartWithNoTiesComparator implements Comparator<SAMRecord>
                 result = cmpContig;
 
             else {
-                if (r1.getAlignmentStart() < r2.getAlignmentStart()) result = -1;
-                else result = 1;
+                if (r1.getAlignmentStart() < r2.getAlignmentStart())
+                    result = -1;
+                else
+                    result = 1;
             }
         }
 

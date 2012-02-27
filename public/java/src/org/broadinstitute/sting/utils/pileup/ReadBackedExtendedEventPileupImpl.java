@@ -99,6 +99,11 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
     protected ExtendedEventPileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip) {
         throw new UnsupportedOperationException("Not enough information provided to create a new pileup element");
     }
+    @Override
+    protected ExtendedEventPileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion,
+                                                                boolean isNextToSoftClip,String nextEventBases, int nextEventLength) {
+        throw new UnsupportedOperationException("Not enough information provided to create a new pileup element");
+    }
 
 
     /**

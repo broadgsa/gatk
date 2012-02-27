@@ -94,4 +94,14 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
         execute("testNoCoverageDueToFiltering",spec);
     }
+
+    public void testRefNHandling(boolean includeNs, final String md5) {
+        String command = "-R " + b37KGReference + " -L 20:26,319,565-26,319,575 -I " + validationDataLocation + "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam -T DepthOfCoverage -baseCounts --omitIntervalStatistics --omitLocusTable --omitPerSampleStats -o %s";
+        if ( includeNs ) command += " --includeRefNSites";
+        WalkerTestSpec spec = new WalkerTestSpec(command, 1, Arrays.asList(md5));
+        executeTest("Testing DoC " + (includeNs ? "with" : "without") + " reference Ns", spec);
+    }
+
+    @Test public void testRefNWithNs() { testRefNHandling(true, "24cd2da2e4323ce6fd76217ba6dc2834"); }
+    @Test public void testRefNWithoutNs() { testRefNHandling(false, "4fc0f1a2e968f777d693abcefd4fb7af"); }
 }
