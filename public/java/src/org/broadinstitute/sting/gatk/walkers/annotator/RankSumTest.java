@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -41,16 +42,19 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         final ArrayList<Double> refQuals = new ArrayList<Double>();
         final ArrayList<Double> altQuals = new ArrayList<Double>();
 
-        if (vc.isSNP() && vc.isBiallelic()) {
-            // todo - no current support for multiallelic snps
-            for (final Genotype genotype : genotypes.iterateInSampleNameOrder()) {
+        if ( vc.isSNP() ) {
+            for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-                if (context == null) {
+                if ( context == null )
                     continue;
-                }
-                fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).getBases()[0], context.getBasePileup(), refQuals, altQuals);
+
+                final List<Byte> altAlleles = new ArrayList<Byte>();
+                for ( final Allele a : vc.getAlternateAlleles() )
+                    altAlleles.add(a.getBases()[0]);
+                
+                fillQualsFromPileup(ref.getBase(), altAlleles, context.getBasePileup(), refQuals, altQuals);
             }
-        } else if (vc.isIndel() || vc.isMixed()) {
+        } else if ( vc.isIndel() || vc.isMixed() ) {
 
             for (final Genotype genotype : genotypes.iterateInSampleNameOrder()) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
@@ -105,7 +109,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
 
     }
 
-    protected abstract void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
+    protected abstract void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
 
     protected abstract void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
 

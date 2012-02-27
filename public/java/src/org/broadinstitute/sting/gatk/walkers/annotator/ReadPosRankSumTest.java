@@ -32,7 +32,7 @@ public class ReadPosRankSumTest extends RankSumTest {
         return Arrays.asList(new VCFInfoHeaderLine("ReadPosRankSum", 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias"));
     }
 
-    protected void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
+    protected void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
         for (final PileupElement p : pileup) {
             if (isUsableBase(p)) {
                 int readPos = AlignmentUtils.calcAlignmentByteArrayOffset(p.getRead().getCigar(), p, 0, 0);
@@ -41,11 +41,10 @@ public class ReadPosRankSumTest extends RankSumTest {
                     readPos = numAlignedBases - (readPos + 1);
 
 
-                if (p.getBase() == ref)
+                if ( p.getBase() == ref )
                     refQuals.add((double) readPos);
-                else if (p.getBase() == alt)
+                else if ( alts.contains(p.getBase()) )
                     altQuals.add((double) readPos);
-
             }
         }
     }
