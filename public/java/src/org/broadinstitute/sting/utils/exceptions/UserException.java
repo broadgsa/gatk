@@ -140,6 +140,10 @@ public class UserException extends ReviewedStingException {
             super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, e.getMessage()));
         }
 
+        public CouldNotCreateOutputFile(File file, String message) {
+            super(String.format("Couldn't write file %s because %s", file.getAbsolutePath(), message));
+        }
+
         public CouldNotCreateOutputFile(String filename, String message, Exception e) {
             super(String.format("Couldn't write file %s because %s with exception %s", filename, message, e.getMessage()));
         }
