@@ -98,8 +98,8 @@ public final class IntervalBinding<T extends Feature> {
                     intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(feature));
                     line = lineReader.readLine();
                 }
-            } catch (IOException e) {
-                throw new UserException("Problem reading the interval file " + featureIntervals.getSource() + "; " + e.getMessage());
+            } catch (Exception e) {
+                throw new UserException.MalformedFile(featureIntervals.getSource(), "Problem reading the interval file", e);
             }
 
         } else {

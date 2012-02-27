@@ -27,13 +27,15 @@ public class NBaseCount extends InfoFieldAnnotation {
         int countNBaseSolid = 0;
         int countRegularBaseSolid = 0;
 
-        for( final Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            for( final PileupElement p : sample.getValue().getBasePileup()) {
-                if( p.getRead().getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
-                    if( BaseUtils.isNBase( p.getBase() ) ) {
-                        countNBaseSolid++;
-                    } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
-                        countRegularBaseSolid++;
+        for( final AlignmentContext context : stratifiedContexts.values() ) {
+            if ( context.hasBasePileup() ) { // must be called as getBasePileup may throw error when pileup has no bases
+                for( final PileupElement p : context.getBasePileup()) {
+                    if( p.getRead().getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
+                        if( BaseUtils.isNBase( p.getBase() ) ) {
+                            countNBaseSolid++;
+                        } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
+                            countRegularBaseSolid++;
+                        }
                     }
                 }
             }

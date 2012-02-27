@@ -31,6 +31,7 @@ import net.sf.samtools.GATKChunk;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
@@ -193,7 +194,28 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             scheduleFileChannel.close();
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to close schedule file.");
+            throw makeIOFailureException(true, "Unable to close schedule file.", ex);
+        }
+    }
+
+    /**
+     * Convenience routine for creating UserExceptions
+     * @param wasWriting
+     * @param message
+     * @param e
+     * @return
+     */
+    private final StingException makeIOFailureException(final boolean wasWriting, final String message, final Exception e) {
+        if ( wasWriting ) {
+            if ( e == null )
+                return new UserException.CouldNotCreateOutputFile(scheduleFile, message);
+            else
+                return new UserException.CouldNotCreateOutputFile(scheduleFile, message, e);
+        } else {
+            if ( e == null )
+                return new UserException.CouldNotReadInputFile(scheduleFile, message);
+            else
+                return new UserException.CouldNotReadInputFile(scheduleFile, message, e);
         }
     }
 
@@ -297,7 +319,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             return scheduleFileChannel.read(buffer);
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to read data from BAM schedule file..",ex);
+            throw makeIOFailureException(false, "Unable to read data from BAM schedule file.", ex);
         }
     }
 
@@ -305,10 +327,10 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
         try {
             scheduleFileChannel.write(buffer);
             if(buffer.remaining() > 0)
-                throw new ReviewedStingException("Unable to write entire buffer to file.");
+                throw makeIOFailureException(true, "Unable to write entire buffer to file.", null);
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to write data to BAM schedule file.",ex);
+            throw makeIOFailureException(true, "Unable to write data to BAM schedule file.", ex);
         }
     }
 
@@ -321,7 +343,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             return scheduleFileChannel.position();
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to retrieve position of BAM schedule file.",ex);
+            throw makeIOFailureException(false, "Unable to retrieve position of BAM schedule file.", ex);
         }
     }
 
@@ -334,7 +356,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             scheduleFileChannel.position(position);
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to position BAM schedule file.",ex);
+            throw makeIOFailureException(false, "Unable to position BAM schedule file.",ex);
         }
     }
 
