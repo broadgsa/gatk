@@ -570,6 +570,7 @@ public class SAMDataSource {
                 inputStream.submitAccessPlan(new SAMReaderPosition(id,inputStream,(GATKBAMFileSpan)shard.getFileSpans().get(id)));
             }
             iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            iterator = new MalformedBAMErrorReformatingIterator(id.samFile, iterator);
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
             mergingIterator.addIterator(readers.getReader(id),iterator);
@@ -873,6 +874,8 @@ public class SAMDataSource {
                     throw new UserException.CouldNotReadInputFile(readerID.samFile, e);
                 else
                     throw e;
+            } catch ( SAMFormatException e ) {
+                throw new UserException.MalformedBAM(readerID.samFile, e.getMessage());
             }
             reader.setSAMRecordFactory(factory);
             reader.enableFileSource(true);
