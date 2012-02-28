@@ -29,7 +29,7 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
-        if ( alleles == null || alleles.size() == 0 )
+        if ( alleles == null || alleles.isEmpty() )
             this.alleles = Collections.emptyList();
         else
             this.alleles = Collections.unmodifiableList(alleles);
