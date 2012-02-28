@@ -29,8 +29,9 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
-        if ( alleles != null )
-            this.alleles = Collections.unmodifiableList(alleles);
+        if ( alleles == null )
+            alleles = new ArrayList<Allele>(0);
+        this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new CommonInfo(sampleName, log10PError, filters, attributes);
         if ( log10Likelihoods != null )
             commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
