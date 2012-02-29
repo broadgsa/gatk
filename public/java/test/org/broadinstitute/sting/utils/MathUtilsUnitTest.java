@@ -207,13 +207,33 @@ public class MathUtilsUnitTest extends BaseTest {
 
     @Test(enabled = true)
     public void testIntAndBitSetConversion() {
-        Assert.assertEquals(428,    MathUtils.intFrom(MathUtils.bitSetFrom(428)));
-        Assert.assertEquals(239847, MathUtils.intFrom(MathUtils.bitSetFrom(239847)));
-        Assert.assertEquals(12726,  MathUtils.intFrom(MathUtils.bitSetFrom(12726)));
-        Assert.assertEquals(0,      MathUtils.intFrom(MathUtils.bitSetFrom(0)));
-        Assert.assertEquals(1,      MathUtils.intFrom(MathUtils.bitSetFrom(1)));
-        Assert.assertEquals(65536,  MathUtils.intFrom(MathUtils.bitSetFrom(65536)));
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(428)),       428);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(239847)),    239847);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(12726)),     12726);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(0)),         0);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(1)),         1);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(65536)),     65536);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(Long.MAX_VALUE)), Long.MAX_VALUE);
     }
+
+    @Test(enabled = true)
+    public void testDNAAndBitSetConversion() {
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("ACGT")),                    "ACGT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AGGTGTTGT")),               "AGGTGTTGT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("A")),                       "A");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("C")),                       "C");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("G")),                       "G");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("T")),                       "T");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("CC")),                      "CC");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AA")),                      "AA");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AAAA")),                    "AAAA");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("CCCCCCCCCCCCCC")),          "CCCCCCCCCCCCCC");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("GGGGGGGGGGGGGG")),          "GGGGGGGGGGGGGG");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("TTTTTTTTTTTTTT")),          "TTTTTTTTTTTTTT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("GTAGACCGATCTCAGCTAGT")),    "GTAGACCGATCTCAGCTAGT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AACGTCAATGCAGTCAAGTCAGACGTGGGTT")),    "AACGTCAATGCAGTCAAGTCAGACGTGGGTT");  // testing max precision (length == 31)
+    }
+
 
     private boolean hasUniqueElements(Object[] x) {
         for (int i = 0; i < x.length; i++)
