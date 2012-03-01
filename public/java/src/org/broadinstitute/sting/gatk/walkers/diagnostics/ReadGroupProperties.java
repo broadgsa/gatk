@@ -40,8 +40,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Emits a GATKReport containing read group, sample, library, platform, center, median insert size and
- * median read length for each read group in every BAM file.
+ * Emits a GATKReport containing read group, sample, library, platform, center, paired end status,
+ * simple read type name (e.g. 2x76) median insert size and median read length for each read group
+ * in every provided BAM file
  *
  * Note that this walker stops when all read groups have been observed at least a few thousand times so that
  * the median statistics are well determined.  It is safe to run it WG and it'll finish in an appropriate
@@ -60,23 +61,23 @@ import java.util.Map;
  *
  *      <pre>
  *      ##:GATKReport.v0.2 ReadGroupProperties : Table of read group properties
- *      readgroup  sample   library       platform  center  median.read.length  median.insert.size
- *      20FUK.1    NA12878  Solexa-18483  illumina  BI                     101                 387
- *      20FUK.2    NA12878  Solexa-18484  illumina  BI                     101                 415
- *      20FUK.3    NA12878  Solexa-18483  illumina  BI                     101                 388
- *      20FUK.4    NA12878  Solexa-18484  illumina  BI                     101                 415
- *      20FUK.5    NA12878  Solexa-18483  illumina  BI                     101                 387
- *      20FUK.6    NA12878  Solexa-18484  illumina  BI                     101                 415
- *      20FUK.7    NA12878  Solexa-18483  illumina  BI                     101                 388
- *      20FUK.8    NA12878  Solexa-18484  illumina  BI                     101                 415
- *      20GAV.1    NA12878  Solexa-18483  illumina  BI                     101                 388
- *      20GAV.2    NA12878  Solexa-18484  illumina  BI                     101                 415
- *      20GAV.3    NA12878  Solexa-18483  illumina  BI                     101                 388
- *      20GAV.4    NA12878  Solexa-18484  illumina  BI                     101                 416
- *      20GAV.5    NA12878  Solexa-18483  illumina  BI                     101                 388
- *      20GAV.6    NA12878  Solexa-18484  illumina  BI                     101                 415
- *      20GAV.7    NA12878  Solexa-18483  illumina  BI                     101                 387
- *      20GAV.8    NA12878  Solexa-18484  illumina  BI                     101                 414
+ *      readgroup  sample   library       platform  center  has.any.reads  is.paired.end  n.reads.analyzed  simple.read.type  median.read.length  median.insert.size
+ *      20FUK.1    NA12878  Solexa-18483  illumina  BI      true           true                      10100  2x101                            101                 387
+ *      20FUK.2    NA12878  Solexa-18484  illumina  BI      true           true                      10115  2x101                            101                 415
+ *      20FUK.3    NA12878  Solexa-18483  illumina  BI      true           true                      10090  2x101                            101                 388
+ *      20FUK.4    NA12878  Solexa-18484  illumina  BI      true           true                      10081  2x101                            101                 415
+ *      20FUK.5    NA12878  Solexa-18483  illumina  BI      true           true                      10078  2x101                            101                 387
+ *      20FUK.6    NA12878  Solexa-18484  illumina  BI      true           true                      10072  2x101                            101                 415
+ *      20FUK.7    NA12878  Solexa-18483  illumina  BI      true           true                      10086  2x101                            101                 388
+ *      20FUK.8    NA12878  Solexa-18484  illumina  BI      true           true                      10097  2x101                            101                 415
+ *      20GAV.1    NA12878  Solexa-18483  illumina  BI      true           true                      10135  2x101                            101                 388
+ *      20GAV.2    NA12878  Solexa-18484  illumina  BI      true           true                      10172  2x101                            101                 415
+ *      20GAV.3    NA12878  Solexa-18483  illumina  BI      true           true                      10141  2x101                            101                 388
+ *      20GAV.4    NA12878  Solexa-18484  illumina  BI      true           true                      10251  2x101                            101                 416
+ *      20GAV.5    NA12878  Solexa-18483  illumina  BI      true           true                      10145  2x101                            101                 388
+ *      20GAV.6    NA12878  Solexa-18484  illumina  BI      true           true                      10184  2x101                            101                 415
+ *      20GAV.7    NA12878  Solexa-18483  illumina  BI      true           true                      10174  2x101                            101                 387
+ *      20GAV.8    NA12878  Solexa-18484  illumina  BI      true           true                      10141  2x101                            101                 414
  *      </pre>
  *  </p>
  *
@@ -103,14 +104,22 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     public int MAX_VALUES_FOR_MEDIAN = 10000;
 
     private final static String TABLE_NAME = "ReadGroupProperties";
-    private final Map<String, Median<Integer>> readLengths = new HashMap<String, Median<Integer>>();
-    private final Map<String, Median<Integer>> insertSizes = new HashMap<String, Median<Integer>>();
+    private final Map<String, PerReadGroupInfo> readGroupInfo = new HashMap<String, PerReadGroupInfo>();
+
+    private class PerReadGroupInfo {
+        public final Median<Integer> readLength = new Median<Integer>(MAX_VALUES_FOR_MEDIAN);
+        public final Median<Integer> insertSize = new Median<Integer>(MAX_VALUES_FOR_MEDIAN);
+        public int nReadsSeen = 0, nReadsPaired = 0;
+
+        public boolean needsMoreData() {
+            return ! readLength.isFull() || ! insertSize.isFull();
+        }
+    }
 
     @Override
     public void initialize() {
         for ( final SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
-            readLengths.put(rg.getId(), new Median<Integer>(MAX_VALUES_FOR_MEDIAN));
-            insertSizes.put(rg.getId(), new Median<Integer>(MAX_VALUES_FOR_MEDIAN));
+            readGroupInfo.put(rg.getId(), new PerReadGroupInfo());
         }
     }
 
@@ -121,31 +130,28 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
 
     @Override
     public boolean isDone() {
-        // TODO -- this is far too slow!
-        return ! (anyMedianNeedsData(readLengths) || anyMedianNeedsData(insertSizes));
-    }
-
-    private final boolean anyMedianNeedsData(Map<String, Median<Integer>> medianMap) {
-        for ( Median<Integer> median : medianMap.values() ) {
-            if ( ! median.isFull() )
-                return true;
+        for ( PerReadGroupInfo info : readGroupInfo.values() ) {
+            if ( info.needsMoreData() )
+                return false;
         }
 
-        return false;
-    }
-
-    private final void updateMedian(final Median<Integer> median, final int value) {
-        median.add(value);
+        return true;
     }
 
     @Override
     public Integer map(ReferenceContext referenceContext, GATKSAMRecord read, ReadMetaDataTracker readMetaDataTracker) {
-        final String rg = read.getReadGroup().getId();
+        final String rgID = read.getReadGroup().getId();
+        final PerReadGroupInfo info = readGroupInfo.get(rgID);
 
-        updateMedian(readLengths.get(rg), read.getReadLength());
-        if ( read.getReadPairedFlag() && read.getInferredInsertSize() != 0) {
-            //logger.info(rg + " => " + Math.abs(read.getInferredInsertSize()));
-            updateMedian(insertSizes.get(rg), Math.abs(read.getInferredInsertSize()));
+        if ( info.needsMoreData() ) {
+            info.readLength.add(read.getReadLength());
+            info.nReadsSeen++;
+            if ( read.getReadPairedFlag() ) {
+                info.nReadsPaired++;
+                if ( read.getInferredInsertSize() != 0) {
+                    info.insertSize.add(Math.abs(read.getInferredInsertSize()));
+                }
+            }
         }
 
         return null;
@@ -174,17 +180,32 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
         table.addColumn("library", "NA");
         table.addColumn("platform", "NA");
         table.addColumn("center", "NA");
+        table.addColumn("has.any.reads", "false");
+        table.addColumn("is.paired.end", "false");
+        table.addColumn("n.reads.analyzed", "NA");
+        table.addColumn("simple.read.type", "NA");
         table.addColumn("median.read.length", Integer.valueOf(0));
         table.addColumn("median.insert.size", Integer.valueOf(0));
 
         for ( final SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
             final String rgID = rg.getId();
+            PerReadGroupInfo info = readGroupInfo.get(rgID);
+
+            // we are paired if > 25% of reads are paired
+            final boolean isPaired = info.nReadsPaired / (1.0 * (info.nReadsSeen+1)) > 0.25;
+            final boolean hasAnyReads = info.nReadsSeen > 0;
+            final int readLength = info.readLength.getMedian(0);
+
             table.set(rgID, "sample", rg.getSample());
             table.set(rgID, "library", rg.getLibrary());
             table.set(rgID, "platform", rg.getPlatform());
             table.set(rgID, "center", rg.getSequencingCenter());
-            table.set(rgID, "median.read.length", readLengths.get(rgID).getMedian(0));
-            table.set(rgID, "median.insert.size", insertSizes.get(rgID).getMedian(0));
+            table.set(rgID, "has.any.reads", hasAnyReads);
+            table.set(rgID, "is.paired.end", isPaired);
+            table.set(rgID, "n.reads.analyzed", info.nReadsSeen);
+            table.set(rgID, "simple.read.type", hasAnyReads ? String.format("%dx%d", isPaired ? 2 : 1, readLength) : "NA");
+            table.set(rgID, "median.read.length", hasAnyReads ? readLength : "NA" );
+            table.set(rgID, "median.insert.size", hasAnyReads && isPaired ? info.insertSize.getMedian(0) : "NA" );
         }
 
         report.print(out);
