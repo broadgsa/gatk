@@ -141,7 +141,7 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
-        private String name;
+        protected String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C
