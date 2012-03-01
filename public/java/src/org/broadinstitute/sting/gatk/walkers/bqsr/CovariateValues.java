@@ -12,25 +12,25 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * @since 2/8/12
  */
 public class CovariateValues {
-    private Comparable[] mismatches;
-    private Comparable[] insertions;
-    private Comparable[] deletions;
+    private Object[] mismatches;
+    private Object[] insertions;
+    private Object[] deletions;
 
-    public CovariateValues(Comparable[] mismatch, Comparable[] insertion, Comparable[] deletion) {
+    public CovariateValues(Object[] mismatch, Object[] insertion, Object[] deletion) {
         this.mismatches = mismatch;
         this.insertions = insertion;
         this.deletions = deletion;
     }
 
-    public Comparable[] getMismatches() {
+    public Object[] getMismatches() {
         return mismatches;
     }
 
-    public Comparable[] getInsertions() {
+    public Object[] getInsertions() {
         return insertions;
     }
 
-    public Comparable[] getDeletions() {
+    public Object[] getDeletions() {
         return deletions;
     }
 

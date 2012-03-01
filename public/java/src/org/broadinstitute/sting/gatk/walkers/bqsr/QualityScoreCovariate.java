@@ -2,8 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.Arrays;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -67,7 +65,7 @@ public class QualityScoreCovariate implements RequiredCovariate {
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
-    public final Comparable getValue(final String str) {
+    public final Object getValue(final String str) {
         return Integer.parseInt(str);
     }
 }

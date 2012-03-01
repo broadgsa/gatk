@@ -29,6 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.math.BigDecimal;
@@ -1619,30 +1620,120 @@ public class MathUtils {
      * @param bitSet the bitset
      * @return an integer with the bitset representation
      */
-    public static int intFrom(final BitSet bitSet) {
-        int integer = 0;
+    public static long intFrom(final BitSet bitSet) {
+        long number = 0;
         for (int bitIndex = bitSet.nextSetBit(0); bitIndex >= 0; bitIndex = bitSet.nextSetBit(bitIndex+1))
-            integer |= 1 << bitIndex;
+            number |= 1L << bitIndex;
 
-        return integer;
+        return number;
     }
 
     /**
      * Creates a BitSet representation of a given integer
      *
-     * @param integer the number to turn into a bitset
+     * @param number the number to turn into a bitset
      * @return a bitset representation of the integer
      */
-    public static BitSet bitSetFrom(int integer) {
-        BitSet bitSet = new BitSet((int) Math.ceil(Math.sqrt(integer)));
+    public static BitSet bitSetFrom(long number) {
+        BitSet bitSet = new BitSet();
         int bitIndex = 0;
-        while (integer > 0) {
-            if (integer%2 > 0)
+        while (number > 0) {
+            if (number%2 > 0)
                 bitSet.set(bitIndex);
             bitIndex++;
-            integer /= 2;
+            number /= 2;
         }
         return bitSet;
     }
+
+    /**
+     * Converts a BitSet into the dna string representation.
+     *
+     * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
+     * be longer than 31 bases. To increase this limit, use BigNumbers instead of long and create
+     * a bitSetFrom(BigNumber) method.
+     *
+     * We calculate the length of the resulting DNA sequence by looking at the sum(4^i) that exceeds the
+     * base_10 representation of the sequence. This is important for us to know how to bring the number
+     * to a quasi-canonical base_4 representation, and to fill in leading A's (since A's are represented
+     * as 0's and leading 0's are omitted).
+     *
+     * quasi-canonical because A is represented by a 0, therefore,
+     *  instead of : 0, 1, 2, 3, 10, 11, 12, ...
+     *  we have    : 0, 1, 2, 3, 00, 01, 02, ...
+     *
+     * but we can correctly decode it because we know the final length.
+     *
+     * @param bitSet the bitset representation of the dna sequence
+     * @return the dna sequence represented by the bitset
+     */
+    public static String dnaFrom(final BitSet bitSet) {
+        long number = intFrom(bitSet);      // the base_10 representation of the bit set
+        long preContext = 0;                // the number of combinations skipped to get to the quasi-canonical representation (we keep it to subtract later)
+        long nextContext = 4;               // the next context (we advance it so we know which one was preceding it).
+        int i = 1;                          // the calculated length of the DNA sequence given the base_10 representation of its BitSet.
+        while (nextContext <= number) {     // find the length of the dna string (i)
+            preContext = nextContext;       // keep track of the number of combinations in the preceding context
+            nextContext += Math.pow(4, ++i);// calculate the next context
+        }
+        number -= preContext;               // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
+
+        String dna = "";
+        while (number > 0) {                // perform a simple base_10 to base_4 conversion (quasi-canonical)
+            byte base = (byte) (number % 4);
+            switch (base) {
+                case 0 : dna = "A" + dna; break;
+                case 1 : dna = "C" + dna; break;
+                case 2 : dna = "G" + dna; break;
+                case 3 : dna = "T" + dna; break;
+            }
+            number /= 4;
+        }
+        for (int j = dna.length(); j < i; j++)
+            dna = "A" + dna;                // add leading A's as necessary (due to the "quasi" canonical status, see description above)
+
+        return dna;
+    }
+
+    /**
+     * Creates a BitSet representation of a given dna string.
+     *
+     * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
+     * be longer than 31 bases. To increase this limit, use BigNumbers instead of long and create
+     * a bitSetFrom(BigNumber) method.
+     *
+     * The bit representation of a dna string is the simple:
+     * 0 A      4 AA     8 CA
+     * 1 C      5 AC     ...
+     * 2 G      6 AG     1343 TTGGT
+     * 3 T      7 AT     1364 TTTTT
+     *
+     * To convert from dna to number, we convert the dna string to base10 and add all combinations that
+     * preceded the string (with smaller lengths). 
+     * 
+     * @param dna the dna sequence
+     * @return the bitset representing the dna sequence 
+     */
+    public static BitSet bitSetFrom(String dna) {
+        if (dna.length() > 31)
+            throw new ReviewedStingException(String.format("DNA Length cannot be bigger than 31. dna: %s (%d)", dna, dna.length()));
+        
+        long baseTen = 0;                       // the number in base_10 that we are going to use to generate the bit set 
+        long preContext = 0;                    // the sum of all combinations that preceded the length of the dna string
+        for (int i=0; i<dna.length(); i++) {
+            baseTen *= 4;
+            switch(dna.charAt(i)) {
+                case 'A': baseTen += 0; break;
+                case 'C': baseTen += 1; break;
+                case 'G': baseTen += 2; break;
+                case 'T': baseTen += 3; break;
+            }
+            if (i>0)
+                preContext += Math.pow(4, i);   // each length will have 4^i combinations (e.g 1 = 4, 2 = 16, 3 = 64, ...) 
+        }
+
+        return bitSetFrom(baseTen+preContext);  // the number representing this DNA string is the base_10 representation plus all combinations that preceded this string length.
+    }
+    
 
 }
