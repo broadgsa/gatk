@@ -199,19 +199,28 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
             final boolean hasAnyReads = info.nReadsSeen > 0;
             final int readLength = info.readLength.getMedian(0);
 
-            table.set(rgID, "sample", rg.getSample());
-            table.set(rgID, "library", rg.getLibrary());
-            table.set(rgID, "platform", rg.getPlatform());
-            table.set(rgID, "center", rg.getSequencingCenter());
-            table.set(rgID, "date", dateFormatter.format(rg.getRunDate()));
-            table.set(rgID, "has.any.reads", hasAnyReads);
-            table.set(rgID, "is.paired.end", isPaired);
-            table.set(rgID, "n.reads.analyzed", info.nReadsSeen);
-            table.set(rgID, "simple.read.type", hasAnyReads ? String.format("%dx%d", isPaired ? 2 : 1, readLength) : "NA");
-            table.set(rgID, "median.read.length", hasAnyReads ? readLength : "NA" );
-            table.set(rgID, "median.insert.size", hasAnyReads && isPaired ? info.insertSize.getMedian(0) : "NA" );
+            setTableValue(table, rgID, "sample", rg.getSample());
+            setTableValue(table, rgID, "library", rg.getLibrary());
+            setTableValue(table, rgID, "platform", rg.getPlatform());
+            setTableValue(table, rgID, "center", rg.getSequencingCenter());
+            try {
+                setTableValue(table, rgID, "date", rg.getRunDate() != null ? dateFormatter.format(rg.getRunDate()) : "NA");
+            } catch ( NullPointerException e ) {
+                // TODO: remove me when bug in Picard is fixed that causes NPE when date isn't present
+                setTableValue(table, rgID, "date", "NA");
+            }
+            setTableValue(table, rgID, "has.any.reads", hasAnyReads);
+            setTableValue(table, rgID, "is.paired.end", isPaired);
+            setTableValue(table, rgID, "n.reads.analyzed", info.nReadsSeen);
+            setTableValue(table, rgID, "simple.read.type", hasAnyReads ? String.format("%dx%d", isPaired ? 2 : 1, readLength) : "NA");
+            setTableValue(table, rgID, "median.read.length", hasAnyReads ? readLength : "NA" );
+            setTableValue(table, rgID, "median.insert.size", hasAnyReads && isPaired ? info.insertSize.getMedian(0) : "NA" );
         }
 
         report.print(out);
+    }
+
+    private final void setTableValue(GATKReportTable table, final String rgID, final String key, final Object value) {
+        table.set(rgID, key, value == null ? "NA" : value);
     }
 }
