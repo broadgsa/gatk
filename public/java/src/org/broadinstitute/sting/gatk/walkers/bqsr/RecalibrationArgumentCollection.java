@@ -25,8 +25,14 @@
 
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.walkers.recalibration.CountCovariatesGatherer;
+
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -38,6 +44,63 @@ import org.broadinstitute.sting.commandline.Hidden;
  */
 
 public class RecalibrationArgumentCollection {
+
+    /**
+     * This algorithm treats every reference mismatch as an indication of error. However, real genetic variation is expected to mismatch the reference,
+     * so it is critical that a database of known polymorphic sites is given to the tool in order to skip over those sites. This tool accepts any number of RodBindings (VCF, Bed, etc.)
+     * for use as this database. For users wishing to exclude an interval list of known variation simply use -XL my.interval.list to skip over processing those sites.
+     * Please note however that the statistics reported by the tool will not accurately reflected those sites skipped by the -XL argument.
+     */
+    @Input(fullName = "knownSites", shortName = "knownSites", doc = "A database of known polymorphic sites to skip over in the recalibration algorithm", required = false)
+    protected List<RodBinding<Feature>> knownSites = Collections.emptyList();
+
+    /**
+     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
+     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
+     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
+     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     */
+    @Gather(CountCovariatesGatherer.class)
+    @Output
+    protected PrintStream RECAL_FILE;
+
+    /**
+     * List all implemented covariates.
+     */
+    @Argument(fullName = "list", shortName = "ls", doc = "List the available covariates and exit", required = false)
+    protected boolean LIST_ONLY = false;
+
+    /**
+     * Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you. See the list of covariates with -list.
+     */
+    @Argument(fullName = "covariate", shortName = "cov", doc = "Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required = false)
+    protected String[] COVARIATES = null;
+
+    /*
+     * Use the standard set of covariates in addition to the ones listed using the -cov argument
+     */
+    @Argument(fullName = "standard_covs", shortName = "standard", doc = "Use the standard set of covariates in addition to the ones listed using the -cov argument", required = false)
+    protected boolean USE_STANDARD_COVARIATES = true;
+
+    /////////////////////////////
+    // Debugging-only Arguments
+    /////////////////////////////
+    /**
+     * This calculation is critically dependent on being able to skip over known polymorphic sites. Please be sure that you know what you are doing if you use this option.
+     */
+    @Hidden
+    @Argument(fullName = "run_without_dbsnp_potentially_ruining_quality", shortName = "run_without_dbsnp_potentially_ruining_quality", required = false, doc = "If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
+    protected boolean RUN_WITHOUT_DBSNP = false;
+
+    /////////////////////////////
+    // protected Member Variables
+    /////////////////////////////
+    protected final RecalDataManager dataManager = new RecalDataManager();                // Holds the data HashMap used to create collapsed data hashmaps (delta delta tables)
+    protected final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();// A list to hold the covariate objects that were requested
+
+    protected final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                // used to label reads that should be skipped.
+    protected final String SEEN_ATTRIBUTE = "SEEN";                                       // used to label reads as processed.
+
 
     /**
      * CountCovariates and TableRecalibration accept a --solid_recal_mode <MODE> flag which governs how the recalibrator handles the
