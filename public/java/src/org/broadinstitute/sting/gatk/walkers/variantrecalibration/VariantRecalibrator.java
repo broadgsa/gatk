@@ -372,6 +372,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         stream.println("library(ggplot2)");
         // For compactPDF in R 2.13+
         stream.println("library(tools)");
+        // For graphical functions R 2.14.2+
+        stream.println("library(grid)");
 
         createArrangeFunction( stream );
 
