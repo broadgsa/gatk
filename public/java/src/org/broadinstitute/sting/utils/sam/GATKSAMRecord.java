@@ -194,6 +194,10 @@ public class GATKSAMRecord extends BAMRecord {
         }
     }
 
+    public boolean hasBaseIndelQualities() {
+        return getAttribute( BQSR_BASE_INSERTION_QUALITIES ) != null || getAttribute( BQSR_BASE_DELETION_QUALITIES ) != null;
+    }
+
     public byte[] getBaseInsertionQualities() {
         byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_INSERTION_QUALITIES ) );
         if( quals == null ) {

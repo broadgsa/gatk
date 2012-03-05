@@ -4,6 +4,7 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -314,6 +315,15 @@ public class ClippingOp {
         if (start == 0)
             hardClippedRead.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), cigarShift.cigar));
 
+        if (read.hasBaseIndelQualities()) {
+            byte[] newBaseInsertionQuals = new byte[newLength];
+            byte[] newBaseDeletionQuals = new byte[newLength];
+            System.arraycopy(read.getBaseInsertionQualities(), copyStart, newBaseInsertionQuals, 0, newLength);
+            System.arraycopy(read.getBaseDeletionQualities(), copyStart, newBaseDeletionQuals, 0, newLength);
+            hardClippedRead.setBaseQualities(newBaseInsertionQuals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION);
+            hardClippedRead.setBaseQualities(newBaseDeletionQuals, RecalDataManager.BaseRecalibrationType.BASE_DELETION);
+        }
+        
         return hardClippedRead;
 
     }
