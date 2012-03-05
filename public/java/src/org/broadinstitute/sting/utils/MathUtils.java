@@ -41,19 +41,33 @@ import java.util.*;
  * @author Kiran Garimella
  */
 public class MathUtils {
-    /** Public constants - used for the Lanczos approximation to the factorial function
-     *  (for the calculation of the binomial/multinomial probability in logspace)
-     * @param LANC_SEQ[] - an array holding the constants which correspond to the product
-     * of Chebyshev Polynomial coefficients, and points on the Gamma function (for interpolation)
-     * [see A Precision Approximation of the Gamma Function J. SIAM Numer. Anal. Ser. B, Vol. 1 1964. pp. 86-96]
-     * @param LANC_G - a value for the Lanczos approximation to the gamma function that works to
-     * high precision 
-     */
 
     /**
      * Private constructor.  No instantiating this class!
      */
     private MathUtils() {
+    }
+
+    public static final double[] log10Cache;
+    private static final double[] jacobianLogTable;
+    private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
+    private static final double MAX_JACOBIAN_TOLERANCE = 10.0;
+    private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
+    private static final int MAXN = 11000;
+    private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
+
+    static {
+        log10Cache = new double[LOG10_CACHE_SIZE];
+        jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
+
+        log10Cache[0] = Double.NEGATIVE_INFINITY;
+        for (int k = 1; k < LOG10_CACHE_SIZE; k++)
+            log10Cache[k] = Math.log10(k);
+
+        for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
+            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
+
+        }
     }
 
     // A fast implementation of the Math.round() method.  This method does not perform
@@ -536,7 +550,7 @@ public class MathUtils {
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = Utils.findMaxEntry(array);
 
-        // we may decide to just normalize in log space with converting to linear space
+        // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
             for (int i = 0; i < array.length; i++)
                 array[i] -= maxValue;
@@ -563,29 +577,6 @@ public class MathUtils {
         return normalized;
     }
 
-    public static double[] normalizeFromLog10(List<Double> array, boolean takeLog10OfOutput) {
-        double[] normalized = new double[array.size()];
-
-        // for precision purposes, we need to add (or really subtract, since they're
-        // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = MathUtils.arrayMaxDouble(array);
-        for (int i = 0; i < array.size(); i++)
-            normalized[i] = Math.pow(10, array.get(i) - maxValue);
-
-        // normalize
-        double sum = 0.0;
-        for (int i = 0; i < array.size(); i++)
-            sum += normalized[i];
-        for (int i = 0; i < array.size(); i++) {
-            double x = normalized[i] / sum;
-            if (takeLog10OfOutput)
-                x = Math.log10(x);
-            normalized[i] = x;
-        }
-
-        return normalized;
-    }
-
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
@@ -593,10 +584,6 @@ public class MathUtils {
      * @return a newly allocated array corresponding the normalized values in array
      */
     public static double[] normalizeFromLog10(double[] array) {
-        return normalizeFromLog10(array, false);
-    }
-
-    public static double[] normalizeFromLog10(List<Double> array) {
         return normalizeFromLog10(array, false);
     }
 
@@ -1207,76 +1194,9 @@ public class MathUtils {
         return ((double) num) / (Math.max(denom, 1));
     }
 
-    public static final double[] log10Cache;
-    public static final double[] jacobianLogTable;
-    public static final int JACOBIAN_LOG_TABLE_SIZE = 101;
-    public static final double JACOBIAN_LOG_TABLE_STEP = 0.1;
-    public static final double INV_JACOBIAN_LOG_TABLE_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
-    public static final double MAX_JACOBIAN_TOLERANCE = 10.0;
-    private static final int MAXN = 11000;
-    private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
-
-    static {
-        log10Cache = new double[LOG10_CACHE_SIZE];
-        jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
-
-        log10Cache[0] = Double.NEGATIVE_INFINITY;
-        for (int k = 1; k < LOG10_CACHE_SIZE; k++)
-            log10Cache[k] = Math.log10(k);
-
-        for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
-            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
-
-        }
-    }
-
-    static public double softMax(final double[] vec) {
-        double acc = vec[0];
-        for (int k = 1; k < vec.length; k++)
-            acc = softMax(acc, vec[k]);
-
-        return acc;
-
-    }
-
     static public double max(double x0, double x1, double x2) {
         double a = Math.max(x0, x1);
         return Math.max(a, x2);
-    }
-
-    static public double softMax(final double x0, final double x1, final double x2) {
-        // compute naively log10(10^x[0] + 10^x[1]+...)
-        //        return Math.log10(MathUtils.sumLog10(vec));
-
-        // better approximation: do Jacobian logarithm function on data pairs
-        double a = softMax(x0, x1);
-        return softMax(a, x2);
-    }
-
-    static public double softMax(final double x, final double y) {
-        // we need to compute log10(10^x + 10^y)
-        // By Jacobian logarithm identity, this is equal to
-        // max(x,y) + log10(1+10^-abs(x-y))
-        // we compute the second term as a table lookup
-        // with integer quantization
-
-        // slow exact version:
-        // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
-
-        double diff = x - y;
-
-        if (diff > MAX_JACOBIAN_TOLERANCE)
-            return x;
-        else if (diff < -MAX_JACOBIAN_TOLERANCE)
-            return y;
-        else if (diff >= 0) {
-            int ind = (int) (diff * INV_JACOBIAN_LOG_TABLE_STEP + 0.5);
-            return x + jacobianLogTable[ind];
-        }
-        else {
-            int ind = (int) (-diff * INV_JACOBIAN_LOG_TABLE_STEP + 0.5);
-            return y + jacobianLogTable[ind];
-        }
     }
 
     public static double phredScaleToProbability(byte q) {
@@ -1734,6 +1654,4 @@ public class MathUtils {
 
         return bitSetFrom(baseTen+preContext);  // the number representing this DNA string is the base_10 representation plus all combinations that preceded this string length.
     }
-    
-
 }
