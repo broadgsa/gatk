@@ -113,24 +113,27 @@ public class Haplotype {
         return isReference;
     }
 
-    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation, final byte[] paddedRef, final int refStart,
-                                final Cigar haplotypeCigar, final int numBasesAddedToStartOfHaplotype, final int refHaplotypeLength ) {
+    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation, final int hapStart, final Cigar haplotypeCigar ) {
         
         if( refAllele.length() != altAllele.length() ) { refInsertLocation++; }
-        int haplotypeInsertLocation = getHaplotypeCoordinateForReferenceCoordinate(refStart + numBasesAddedToStartOfHaplotype, haplotypeCigar, refInsertLocation);
+        int haplotypeInsertLocation = getHaplotypeCoordinateForReferenceCoordinate(hapStart, haplotypeCigar, refInsertLocation);
         if( haplotypeInsertLocation == -1 ) { // desired change falls inside deletion so don't bother creating a new haplotype
-            return getBases().clone();
+            return bases.clone();
         }
-        haplotypeInsertLocation += numBasesAddedToStartOfHaplotype;
-        final byte[] newHaplotype = getBases().clone();
+        byte[] newHaplotype;
 
         try {
             if( refAllele.length() == altAllele.length() ) { // SNP or MNP
+                newHaplotype = bases.clone();
                 for( int iii = 0; iii < altAllele.length(); iii++ ) {
                     newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
                 }
-            } else if( refAllele.length() < altAllele.length() ) { // insertion
+            } else if( refAllele.length() < altAllele.length() ) { // insertion                
                 final int altAlleleLength = altAllele.length();
+                newHaplotype = new byte[bases.length + altAlleleLength];
+                for( int iii = 0; iii < bases.length; iii++ ) {
+                    newHaplotype[iii] = bases[iii];
+                }
                 for( int iii = newHaplotype.length - 1; iii > haplotypeInsertLocation + altAlleleLength - 1; iii-- ) {
                     newHaplotype[iii] = newHaplotype[iii-altAlleleLength];
                 }
@@ -138,24 +141,17 @@ public class Haplotype {
                     newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
                 }
             } else { // deletion
-                int refHaplotypeOffset = 0;
-                for( final CigarElement ce : haplotypeCigar.getCigarElements()) {
-                    if(ce.getOperator() == CigarOperator.D) { refHaplotypeOffset += ce.getLength(); }
-                    else if(ce.getOperator() == CigarOperator.I) { refHaplotypeOffset -= ce.getLength(); }
-                }
-                for( int iii = 0; iii < altAllele.length(); iii++ ) {
-                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
-                }
                 final int shift = refAllele.length() - altAllele.length();
-                for( int iii = haplotypeInsertLocation + altAllele.length(); iii < newHaplotype.length - shift; iii++ ) {
-                    newHaplotype[iii] = newHaplotype[iii+shift];
+                newHaplotype = new byte[bases.length - shift];
+                for( int iii = 0; iii < haplotypeInsertLocation + altAllele.length(); iii++ ) {
+                    newHaplotype[iii] = bases[iii];
                 }
-                for( int iii = 0; iii < shift; iii++ ) {
-                    newHaplotype[iii+newHaplotype.length-shift] = paddedRef[refStart+refHaplotypeLength+refHaplotypeOffset+iii];
+                for( int iii = haplotypeInsertLocation + altAllele.length(); iii < newHaplotype.length; iii++ ) {
+                    newHaplotype[iii] = bases[iii+shift];
                 }
             }
         } catch (Exception e) { // event already on haplotype is too large/complex to insert another allele, most likely because of not enough reference padding
-            return getBases().clone();
+            return bases.clone();
         }
         
         return newHaplotype;

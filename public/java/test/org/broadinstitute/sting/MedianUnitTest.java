@@ -29,7 +29,6 @@ package org.broadinstitute.sting;
 // the imports for unit testing.
 
 
-import org.broadinstitute.sting.gatk.walkers.haplotypecaller.LikelihoodCalculationEngine;
 import org.broadinstitute.sting.utils.Median;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
@@ -42,12 +41,6 @@ import java.util.List;
 
 
 public class MedianUnitTest extends BaseTest {
-    LikelihoodCalculationEngine engine;
-
-    @BeforeSuite
-    public void before() {
-        engine = new LikelihoodCalculationEngine(0, 0, false);
-    }
 
     // --------------------------------------------------------------------------------
     //
