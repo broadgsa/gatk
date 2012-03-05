@@ -2,87 +2,107 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.BitSet;
+import java.util.HashMap;
+
 /**
- * The object temporarily held by a read that describes all of it's covariates. 
- * 
+ * The object temporarily held by a read that describes all of it's covariates.
+ *
  * In essence, this is an array of CovariateValues, but it also has some functionality to deal with the optimizations of the NestedHashMap
  *
  * @author Mauricio Carneiro
  * @since 2/8/12
  */
 public class CovariateKeySet {
-    private Object[][] mismatchesKeySet;
-    private Object[][] insertionsKeySet;
-    private Object[][]  deletionsKeySet;
+    private BitSet[][] mismatchesKeySet;
+    private BitSet[][] insertionsKeySet;
+    private BitSet[][] deletionsKeySet;
 
     private int nextCovariateIndex;
-    
-    private static String mismatchesCovariateName = "M";
-    private static String insertionsCovariateName = "I";
-    private static String  deletionsCovariateName = "D";
+
+    //    private static String mismatchesCovariateName = "M";
+    //    private static String insertionsCovariateName = "I";
+    //    private static String deletionsCovariateName  = "D";
+    //
+    //    private static BitSet mismatchesCovariateBitSet = BitSetUtils.bitSetFrom(0);
+    //    private static BitSet insertionsCovariateBitSet = BitSetUtils.bitSetFrom(1);
+    //    private static BitSet deletionsCovariateBitSet = BitSetUtils.bitSetFrom(2);
+
+    private static HashMap<String, RecalDataManager.BaseRecalibrationType> nameToType = new HashMap<String, RecalDataManager.BaseRecalibrationType>();
+    private static HashMap<BitSet, String> bitSetToName = new HashMap<BitSet, String>();
 
     public CovariateKeySet(int readLength, int numberOfCovariates) {
-        numberOfCovariates++;                                               // +1 because we are adding the mismatch covariate (to comply with the molten table format)
-        this.mismatchesKeySet = new Object[readLength][numberOfCovariates]; 
-        this.insertionsKeySet = new Object[readLength][numberOfCovariates];
-        this.deletionsKeySet  = new Object[readLength][numberOfCovariates];
-        initializeCovariateKeySet(this.mismatchesKeySet, mismatchesCovariateName);
-        initializeCovariateKeySet(this.insertionsKeySet, insertionsCovariateName);
-        initializeCovariateKeySet(this.deletionsKeySet,  deletionsCovariateName);
+        //        numberOfCovariates++;                                               // +1 because we are adding the mismatch covariate (to comply with the molten table format)
+        this.mismatchesKeySet = new BitSet[readLength][numberOfCovariates];
+        this.insertionsKeySet = new BitSet[readLength][numberOfCovariates];
+        this.deletionsKeySet = new BitSet[readLength][numberOfCovariates];
+        //        initializeCovariateKeySet(this.mismatchesKeySet, mismatchesCovariateBitSet);
+        //        initializeCovariateKeySet(this.insertionsKeySet, insertionsCovariateBitSet);
+        //        initializeCovariateKeySet(this.deletionsKeySet, deletionsCovariateBitSet);
         this.nextCovariateIndex = 0;
+
+        //        nameToType.put(mismatchesCovariateName, RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION);
+        //        nameToType.put(insertionsCovariateName, RecalDataManager.BaseRecalibrationType.BASE_INSERTION);
+        //        nameToType.put(deletionsCovariateName,  RecalDataManager.BaseRecalibrationType.BASE_DELETION);
+        //
+        //        bitSetToName.put(BitSetUtils.bitSetFrom(0), mismatchesCovariateName);
+        //        bitSetToName.put(BitSetUtils.bitSetFrom(1), insertionsCovariateName);
+        //        bitSetToName.put(BitSetUtils.bitSetFrom(2), deletionsCovariateName);
     }
-    
+
     public void addCovariate(CovariateValues covariate) {
         transposeCovariateValues(mismatchesKeySet, covariate.getMismatches());
         transposeCovariateValues(insertionsKeySet, covariate.getInsertions());
-        transposeCovariateValues(deletionsKeySet,  covariate.getDeletions());
+        transposeCovariateValues(deletionsKeySet, covariate.getDeletions());
         nextCovariateIndex++;
     }
 
-    public static RecalDataManager.BaseRecalibrationType getErrorModelFromString(final String modelString) {
-        if (modelString.equals(mismatchesCovariateName))
-            return RecalDataManager.BaseRecalibrationType.BASE_SUBSTITUTION;
-        else if (modelString.equals(insertionsCovariateName))
-            return RecalDataManager.BaseRecalibrationType.BASE_INSERTION;
-        else if (modelString.equals(deletionsCovariateName))
-            return RecalDataManager.BaseRecalibrationType.BASE_DELETION;
-        throw new ReviewedStingException("Unrecognized Base Recalibration model string: " + modelString);
+    public static RecalDataManager.BaseRecalibrationType errorModelFrom(final String modelString) {
+        if (!nameToType.containsKey(modelString))
+            throw new ReviewedStingException("Unrecognized Base Recalibration model string: " + modelString);
+        return nameToType.get(modelString);
     }
 
-    public Object[] getKeySet(final int readPosition, final RecalDataManager.BaseRecalibrationType errorModel) {
+    public static String eventNameFrom(final BitSet bitSet) {
+        if (!bitSetToName.containsKey(bitSet))
+            throw new ReviewedStingException("Unrecognized Event Type BitSet: " + bitSet);
+        return bitSetToName.get(bitSet);
+    }
+
+    public BitSet[] getKeySet(final int readPosition, final RecalDataManager.BaseRecalibrationType errorModel) {
         switch (errorModel) {
             case BASE_SUBSTITUTION:
-                    return getMismatchesKeySet(readPosition);
+                return getMismatchesKeySet(readPosition);
             case BASE_INSERTION:
-                    return getInsertionsKeySet(readPosition);
+                return getInsertionsKeySet(readPosition);
             case BASE_DELETION:
-                    return getDeletionsKeySet(readPosition);
+                return getDeletionsKeySet(readPosition);
             default:
-                    throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel);
         }
     }
 
-    public Object[] getMismatchesKeySet(int readPosition) {
+    public BitSet[] getMismatchesKeySet(int readPosition) {
         return mismatchesKeySet[readPosition];
     }
 
-    public Object[] getInsertionsKeySet(int readPosition) {
+    public BitSet[] getInsertionsKeySet(int readPosition) {
         return insertionsKeySet[readPosition];
     }
 
-    public Object[] getDeletionsKeySet(int readPosition) {
+    public BitSet[] getDeletionsKeySet(int readPosition) {
         return deletionsKeySet[readPosition];
     }
 
-    private void transposeCovariateValues (Object [][] keySet, Object [] covariateValues) {
-        for (int i=0; i<covariateValues.length; i++) 
-            keySet[i][nextCovariateIndex] = covariateValues[i];        
+    private void transposeCovariateValues(BitSet[][] keySet, BitSet[] covariateValues) {
+        for (int i = 0; i < covariateValues.length; i++)
+            keySet[i][nextCovariateIndex] = covariateValues[i];
     }
-    
-    private void initializeCovariateKeySet (Object[][] keySet, String covariateName) {
+
+    private void initializeCovariateKeySet(BitSet[][] keySet, BitSet covariateName) {
         int readLength = keySet.length;
         int lastCovariateIndex = keySet[0].length - 1;
-        for (int i = 0; i < readLength; i++) 
+        for (int i = 0; i < readLength; i++)
             keySet[i][lastCovariateIndex] = covariateName;
     }
 }

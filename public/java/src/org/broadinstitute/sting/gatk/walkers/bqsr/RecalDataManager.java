@@ -58,18 +58,44 @@ public class RecalDataManager {
     private final HashMap<BaseRecalibrationType, NestedHashMap> dataCollapsedQualityScore;              // Table where everything except read group and quality score has been collapsed
     private final HashMap<BaseRecalibrationType, ArrayList<NestedHashMap>> dataCollapsedByCovariate;    // Tables where everything except read group, quality score, and given covariate has been collapsed
 
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
-    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";   // The tag that holds the color space quality scores for SOLID bams
-    public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";        // The tag that holds the color space for SOLID bams
-    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";    // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";                                      // The tag that holds the original quality scores
+    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                                   // The tag that holds the color space quality scores for SOLID bams
+    public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                                        // The tag that holds the color space for SOLID bams
+    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                                    // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
 
-    private static final String COVARS_ATTRIBUTE = "COVARS";                   // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+    private static final String COVARS_ATTRIBUTE = "COVARS";                                            // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     public enum BaseRecalibrationType {
-        BASE_SUBSTITUTION,
-        BASE_INSERTION,
-        BASE_DELETION
+        BASE_SUBSTITUTION(0, "M"),
+        BASE_INSERTION(1, "I"),
+        BASE_DELETION(2, "D");
+
+        public int index;
+        public String representation;
+
+        private BaseRecalibrationType(int index, String representation) {
+            this.index = index;
+            this.representation = representation;
+        }
+
+        public static BaseRecalibrationType eventFrom(int index) {
+            switch (index) {
+                case 0:
+                    return BASE_SUBSTITUTION;
+                case 1:
+                    return BASE_INSERTION;
+                case 2:
+                    return BASE_DELETION;
+                default:
+                    throw new ReviewedStingException(String.format("Event %d does not exist.", index));
+            }
+        }
+
+        @Override
+        public String toString() {
+            return representation;
+        }
     }
 
     public enum SOLID_RECAL_MODE {
@@ -119,7 +145,7 @@ public class RecalDataManager {
             dataCollapsedReadGroup = new HashMap<BaseRecalibrationType, NestedHashMap>();
             dataCollapsedQualityScore = new HashMap<BaseRecalibrationType, NestedHashMap>();
             dataCollapsedByCovariate = new HashMap<BaseRecalibrationType, ArrayList<NestedHashMap>>();
-            for ( final BaseRecalibrationType errorModel : BaseRecalibrationType.values() ) {
+            for (final BaseRecalibrationType errorModel : BaseRecalibrationType.values()) {
                 dataCollapsedReadGroup.put(errorModel, new NestedHashMap());
                 dataCollapsedQualityScore.put(errorModel, new NestedHashMap());
                 dataCollapsedByCovariate.put(errorModel, new ArrayList<NestedHashMap>());
@@ -136,10 +162,10 @@ public class RecalDataManager {
         }
     }
 
-    public static CovariateKeySet getAllCovariateValuesFor(GATKSAMRecord read) {
+    public static CovariateKeySet covariateKeySetFrom(GATKSAMRecord read) {
         return (CovariateKeySet) read.getTemporaryAttribute(COVARS_ATTRIBUTE);
     }
-    
+
     /**
      * Add the given mapping to all of the collapsed hash tables
      *
@@ -147,7 +173,7 @@ public class RecalDataManager {
      * @param fullDatum                  The RecalDatum which is the data for this mapping
      * @param PRESERVE_QSCORES_LESS_THAN The threshold in report quality for adding to the aggregate collapsed table
      */
-    public final void addToAllTables(final Object[] key, final RecalDatum fullDatum, final int PRESERVE_QSCORES_LESS_THAN, final BaseRecalibrationType errorModel ) {
+    public final void addToAllTables(final Object[] key, final RecalDatum fullDatum, final int PRESERVE_QSCORES_LESS_THAN, final BaseRecalibrationType errorModel) {
 
         // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
         //data.put(key, thisDatum); // add the mapping to the main table
@@ -208,7 +234,7 @@ public class RecalDataManager {
      */
     public final void generateEmpiricalQualities(final int smoothing, final int maxQual) {
 
-        for( final BaseRecalibrationType errorModel : BaseRecalibrationType.values() ) {
+        for (final BaseRecalibrationType errorModel : BaseRecalibrationType.values()) {
             recursivelyGenerateEmpiricalQualities(dataCollapsedReadGroup.get(errorModel).data, smoothing, maxQual);
             recursivelyGenerateEmpiricalQualities(dataCollapsedQualityScore.get(errorModel).data, smoothing, maxQual);
             for (NestedHashMap map : dataCollapsedByCovariate.get(errorModel)) {
@@ -551,6 +577,7 @@ public class RecalDataManager {
     /**
      * Given the base and the color calculate the next base in the sequence
      *
+     * @param read     the read
      * @param prevBase The base
      * @param color    The color
      * @return The next base in the sequence
@@ -615,11 +642,12 @@ public class RecalDataManager {
      * Computes all requested covariates for every offset in the given read
      * by calling covariate.getValues(..).
      *
+     * It populates an array of covariate values where result[i][j] is the covariate
+     * value for the ith position in the read and the jth covariate in
+     * reqeustedCovariates list.
+     *
      * @param read                The read for which to compute covariate values.
      * @param requestedCovariates The list of requested covariates.
-     * @return An array of covariate values where result[i][j] is the covariate
-     *         value for the ith position in the read and the jth covariate in
-     *         reqeustedCovariates list.
      */
     public static void computeCovariates(final GATKSAMRecord read, final List<Covariate> requestedCovariates) {
         final int numRequestedCovariates = requestedCovariates.size();

@@ -213,8 +213,8 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
+                                            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
             setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_DELETION);
         }
         return quals;

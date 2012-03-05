@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -43,7 +43,10 @@ public class ContextCovariate implements StandardCovariate {
 
     private int mismatchesContextSize;
     private int insertionsContextSize;
-    private int  deletionsContextSize;
+    private int deletionsContextSize;
+
+    private final BitSet NO_CONTEXT_BITSET = BitSetUtils.bitSetFrom(-1L);
+    protected final String NO_CONTEXT_VALUE = "N";                          // protected so we can UNIT TEST it
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
@@ -62,7 +65,7 @@ public class ContextCovariate implements StandardCovariate {
         int l = read.getReadLength();
         BitSet[] mismatches = new BitSet[l];
         BitSet[] insertions = new BitSet[l];
-        BitSet[] deletions  = new BitSet[l];
+        BitSet[] deletions = new BitSet[l];
 
         final boolean negativeStrand = read.getReadNegativeStrandFlag();
         byte[] bases = read.getReadBases();
@@ -72,7 +75,7 @@ public class ContextCovariate implements StandardCovariate {
         for (int i = 0; i < read.getReadLength(); i++) {
             mismatches[i] = contextWith(bases, i, mismatchesContextSize);
             insertions[i] = contextWith(bases, i, insertionsContextSize);
-            deletions[i]  = contextWith(bases, i,  deletionsContextSize);
+            deletions[i] = contextWith(bases, i, deletionsContextSize);
         }
 
         if (negativeStrand) {
@@ -89,24 +92,35 @@ public class ContextCovariate implements StandardCovariate {
         return str;
     }
 
+    @Override
+    public String keyFromBitSet(BitSet key) {
+        if (key.equals(NO_CONTEXT_BITSET))
+            return NO_CONTEXT_VALUE;
+        return BitSetUtils.dnaFrom(key);
+    }
+
+    @Override
+    public int numberOfBits() {
+        return Long.bitCount(-1L);
+    }
+
     /**
-     * calculates the context of a base independent of the covariate mode
+     * calculates the context of a base independent of the covariate mode (mismatch, insertion or deletion)
      *
-     * @param bases           the bases in the read to build the context from
-     * @param offset          the position in the read to calculate the context for
-     * @param contextSize     context size to use building the context
-     * @return
+     * @param bases       the bases in the read to build the context from
+     * @param offset      the position in the read to calculate the context for
+     * @param contextSize context size to use building the context
+     * @return the bitSet representing the Context
      */
-    private BitSet contextWith(byte [] bases, int offset, int contextSize) {
-        if (offset < contextSize)
-            return null;
-        
-        String context = new String(Arrays.copyOfRange(bases, offset - contextSize, offset));
-        if (context.contains("N"))
-            return null;
-        
-        return MathUtils.bitSetFrom(context);
-    } 
+    private BitSet contextWith(byte[] bases, int offset, int contextSize) {
+        BitSet result = NO_CONTEXT_BITSET;
+        if (offset >= contextSize) {
+            String context = new String(Arrays.copyOfRange(bases, offset - contextSize, offset));
+            if (!context.contains("N"))
+                result = BitSetUtils.bitSetFrom(context);
+        }
+        return result;
+    }
 
     /**
      * Reverses the given array in place.

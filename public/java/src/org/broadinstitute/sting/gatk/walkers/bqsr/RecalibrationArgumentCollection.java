@@ -30,7 +30,6 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.walkers.recalibration.CountCovariatesGatherer;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -92,16 +91,6 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "run_without_dbsnp_potentially_ruining_quality", shortName = "run_without_dbsnp_potentially_ruining_quality", required = false, doc = "If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
     protected boolean RUN_WITHOUT_DBSNP = false;
 
-    /////////////////////////////
-    // protected Member Variables
-    /////////////////////////////
-    protected final RecalDataManager dataManager = new RecalDataManager();                // Holds the data HashMap used to create collapsed data hashmaps (delta delta tables)
-    protected final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();// A list to hold the covariate objects that were requested
-
-    protected final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                // used to label reads that should be skipped.
-    protected final String SEEN_ATTRIBUTE = "SEEN";                                       // used to label reads as processed.
-
-
     /**
      * CountCovariates and TableRecalibration accept a --solid_recal_mode <MODE> flag which governs how the recalibrator handles the
      * reads which have had the reference inserted because of color space inconsistencies.
@@ -153,13 +142,11 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "deletions_default_quality", shortName = "ddq", doc = "default quality for the base deletions covariate", required = false)
     public byte DELETIONS_DEFAULT_QUALITY = 45;
 
-
     @Hidden
     @Argument(fullName = "default_platform", shortName = "dP", required = false, doc = "If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
     public String DEFAULT_PLATFORM = null;
     @Hidden
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
-
 
 }

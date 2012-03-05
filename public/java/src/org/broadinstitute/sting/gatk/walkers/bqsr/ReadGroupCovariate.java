@@ -1,8 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 
 /*
@@ -39,7 +41,7 @@ import java.util.HashMap;
  */
 
 public class ReadGroupCovariate implements RequiredCovariate {
-    
+
     private final HashMap<String, Short> readGroupLookupTable = new HashMap<String, Short>();
     private final HashMap<Short, String> readGroupReverseLookupTable = new HashMap<Short, String>();
     private short nextId = 0;
@@ -54,7 +56,7 @@ public class ReadGroupCovariate implements RequiredCovariate {
         final int l = read.getReadLength();
         final String readGroupId = read.getReadGroup().getReadGroupId();
         short shortId;
-        if (readGroupLookupTable.containsKey(readGroupId)) 
+        if (readGroupLookupTable.containsKey(readGroupId))
             shortId = readGroupLookupTable.get(readGroupId);
         else {
             shortId = nextId;
@@ -62,8 +64,9 @@ public class ReadGroupCovariate implements RequiredCovariate {
             readGroupReverseLookupTable.put(nextId, readGroupId);
             nextId++;
         }
-        Short [] readGroups = new Short[l];
-        Arrays.fill(readGroups, shortId);
+        BitSet rg = BitSetUtils.bitSetFrom(shortId);  // All objects must output a BitSet, so we convert the "compressed" representation of the Read Group into a bitset
+        BitSet[] readGroups = new BitSet[l];
+        Arrays.fill(readGroups, rg);
         return new CovariateValues(readGroups, readGroups, readGroups);
     }
 
@@ -72,9 +75,19 @@ public class ReadGroupCovariate implements RequiredCovariate {
     public final Object getValue(final String str) {
         return str;
     }
-    
+
+    @Override
+    public String keyFromBitSet(BitSet key) {
+        return decodeReadGroup((short) BitSetUtils.longFrom(key));
+    }
+
     public final String decodeReadGroup(final short id) {
         return readGroupReverseLookupTable.get(id);
+    }
+
+    @Override
+    public int numberOfBits() {
+        return BitSetUtils.numberOfBitsToRepresent(Short.MAX_VALUE);
     }
 }
 

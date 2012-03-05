@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
 
 /**
  * Utility methods to facilitate on-the-fly base quality score recalibration.
- * 
+ *
  * User: rpoplin
  * Date: 2/4/12
  */
@@ -58,7 +58,7 @@ public class BaseRecalibration {
     private static final int MAX_QUALITY_SCORE = 65; //BUGBUG: what value to use here?
     private NestedHashMap qualityScoreByFullCovariateKey = new NestedHashMap(); // Caches the result of performSequentialQualityCalculation(...) for all sets of covariate values.
 
-    public BaseRecalibration( final File RECAL_FILE ) {
+    public BaseRecalibration(final File RECAL_FILE) {
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = new PluginManager<Covariate>(Covariate.class).getPlugins();
 
@@ -68,27 +68,29 @@ public class BaseRecalibration {
         // Read in the data from the csv file and populate the data map and covariates list
         boolean sawEOF = false;
         try {
-            for ( String line : new XReadLines(RECAL_FILE) ) {
+            for (String line : new XReadLines(RECAL_FILE)) {
                 lineNumber++;
-                if ( EOF_MARKER.equals(line) ) {
+                if (EOF_MARKER.equals(line)) {
                     sawEOF = true;
-                } else if( COMMENT_PATTERN.matcher(line).matches() )  {
+                }
+                else if (COMMENT_PATTERN.matcher(line).matches()) {
                     ; // Skip over the comment lines, (which start with '#')
                 }
                 // Read in the covariates that were used from the input file
-                else if( COVARIATE_PATTERN.matcher(line).matches() ) { // The line string is either specifying a covariate or is giving csv data
-                    if( foundAllCovariates ) {
-                        throw new UserException.MalformedFile( RECAL_FILE, "Malformed input recalibration file. Found covariate names intermingled with data in file: " + RECAL_FILE );
-                    } else { // Found the covariate list in input file, loop through all of them and instantiate them
+                else if (COVARIATE_PATTERN.matcher(line).matches()) { // The line string is either specifying a covariate or is giving csv data
+                    if (foundAllCovariates) {
+                        throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration file. Found covariate names intermingled with data in file: " + RECAL_FILE);
+                    }
+                    else { // Found the covariate list in input file, loop through all of them and instantiate them
                         String[] vals = line.split(",");
-                        for( int iii = 0; iii < vals.length - 4; iii++ ) { // There are n-4 covariates. The last four items are ErrorModel, nObservations, nMismatch, and Qempirical
+                        for (int iii = 0; iii < vals.length - 4; iii++) { // There are n-4 covariates. The last four items are ErrorModel, nObservations, nMismatch, and Qempirical
                             boolean foundClass = false;
-                            for( Class<?> covClass : classes ) {
-                                if( (vals[iii] + "Covariate").equalsIgnoreCase( covClass.getSimpleName() ) ) {
+                            for (Class<?> covClass : classes) {
+                                if ((vals[iii] + "Covariate").equalsIgnoreCase(covClass.getSimpleName())) {
                                     foundClass = true;
                                     try {
-                                        Covariate covariate = (Covariate)covClass.newInstance();
-                                        requestedCovariates.add( covariate );
+                                        Covariate covariate = (Covariate) covClass.newInstance();
+                                        requestedCovariates.add(covariate);
                                     } catch (Exception e) {
                                         throw new DynamicClassResolutionException(covClass, e);
                                     }
@@ -96,63 +98,65 @@ public class BaseRecalibration {
                                 }
                             }
 
-                            if( !foundClass ) {
-                                throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration file. The requested covariate type (" + (vals[iii] + "Covariate") + ") isn't a valid covariate option." );
+                            if (!foundClass) {
+                                throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration file. The requested covariate type (" + (vals[iii] + "Covariate") + ") isn't a valid covariate option.");
                             }
                         }
                     }
 
-                } else { // Found a line of data
-                    if( !foundAllCovariates ) {
+                }
+                else { // Found a line of data
+                    if (!foundAllCovariates) {
                         foundAllCovariates = true;
 
                         // At this point all the covariates should have been found and initialized
-                        if( requestedCovariates.size() < 2 ) {
-                            throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Covariate names can't be found in file: " + RECAL_FILE );
+                        if (requestedCovariates.size() < 2) {
+                            throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Covariate names can't be found in file: " + RECAL_FILE);
                         }
 
                         final boolean createCollapsedTables = true;
 
                         // Initialize any covariate member variables using the shared argument collection
                         RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
-                        for( Covariate cov : requestedCovariates ) {
-                            cov.initialize( RAC );
+                        for (Covariate cov : requestedCovariates) {
+                            cov.initialize(RAC);
                         }
                         // Initialize the data hashMaps
-                        dataManager = new RecalDataManager( createCollapsedTables, requestedCovariates.size() );
+                        dataManager = new RecalDataManager(createCollapsedTables, requestedCovariates.size());
 
                     }
                     addCSVData(RECAL_FILE, line); // Parse the line and add the data to the HashMap
                 }
             }
 
-        } catch ( FileNotFoundException e ) {
+        } catch (FileNotFoundException e) {
             throw new UserException.CouldNotReadInputFile(RECAL_FILE, "Can not find input file", e);
-        } catch ( NumberFormatException e ) {
+        } catch (NumberFormatException e) {
             throw new UserException.MalformedFile(RECAL_FILE, "Error parsing recalibration data at line " + lineNumber + ". Perhaps your table was generated by an older version of CovariateCounterWalker.");
         }
 
-        if ( !sawEOF ) {
+        if (!sawEOF) {
             final String errorMessage = "No EOF marker was present in the recal covariates table; this could mean that the file is corrupted or was generated with an old version of the CountCovariates tool.";
             throw new UserException.MalformedFile(RECAL_FILE, errorMessage);
         }
 
-        if( dataManager == null ) {
+        if (dataManager == null) {
             throw new UserException.MalformedFile(RECAL_FILE, "Can't initialize the data manager. Perhaps the recal csv file contains no data?");
         }
 
-        dataManager.generateEmpiricalQualities( 1, MAX_QUALITY_SCORE );
+        dataManager.generateEmpiricalQualities(1, MAX_QUALITY_SCORE);
     }
-    
+
     /**
      * For each covariate read in a value and parse it. Associate those values with the data itself (num observation and num mismatches)
+     *
      * @param line A line of CSV data read from the recalibration table data file
      */
     private void addCSVData(final File file, final String line) {
         final String[] vals = line.split(",");
 
         // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
-        if( vals.length != requestedCovariates.size() + 4 ) { // +4 because of ErrorModel, nObservations, nMismatch, and Qempirical
+        if (vals.length != requestedCovariates.size() + 4) { // +4 because of ErrorModel, nObservations, nMismatch, and Qempirical
             throw new UserException.MalformedFile(file, "Malformed input recalibration file. Found data line with too many fields: " + line +
                     " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
         }
@@ -160,48 +164,48 @@ public class BaseRecalibration {
         final Object[] key = new Object[requestedCovariates.size()];
         Covariate cov;
         int iii;
-        for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
-            cov = requestedCovariates.get( iii );
-            key[iii] = cov.getValue( vals[iii] );
+        for (iii = 0; iii < requestedCovariates.size(); iii++) {
+            cov = requestedCovariates.get(iii);
+            key[iii] = cov.getValue(vals[iii]);
         }
         final String modelString = vals[iii++];
-        final RecalDataManager.BaseRecalibrationType errorModel = CovariateKeySet.getErrorModelFromString(modelString);
+        final RecalDataManager.BaseRecalibrationType errorModel = CovariateKeySet.errorModelFrom(modelString);
 
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
-        final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
+        final RecalDatum datum = new RecalDatum(Long.parseLong(vals[iii]), Long.parseLong(vals[iii + 1]), Double.parseDouble(vals[1]), 0.0);
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
-        
-        dataManager.addToAllTables( key, datum, QualityUtils.MIN_USABLE_Q_SCORE, errorModel ); //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
+
+        dataManager.addToAllTables(key, datum, QualityUtils.MIN_USABLE_Q_SCORE, errorModel); //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
     }
-    
-    public void recalibrateRead( final GATKSAMRecord read ) {
+
+    public void recalibrateRead(final GATKSAMRecord read) {
 
         //compute all covariate values for this read
         RecalDataManager.computeCovariates(read, requestedCovariates);
-        final CovariateKeySet covariateKeySet = RecalDataManager.getAllCovariateValuesFor( read );
+        final CovariateKeySet covariateKeySet = RecalDataManager.covariateKeySetFrom(read);
 
-        for( final RecalDataManager.BaseRecalibrationType errorModel : RecalDataManager.BaseRecalibrationType.values() ) {
-            final byte[] originalQuals = read.getBaseQualities( errorModel );
+        for (final RecalDataManager.BaseRecalibrationType errorModel : RecalDataManager.BaseRecalibrationType.values()) {
+            final byte[] originalQuals = read.getBaseQualities(errorModel);
             final byte[] recalQuals = originalQuals.clone();
 
             // For each base in the read
-            for( int offset = 0; offset < read.getReadLength(); offset++ ) {
-        
+            for (int offset = 0; offset < read.getReadLength(); offset++) {
+
                 final Object[] fullCovariateKeyWithErrorMode = covariateKeySet.getKeySet(offset, errorModel);
-                final Object[] fullCovariateKey = Arrays.copyOfRange(fullCovariateKeyWithErrorMode, 0, fullCovariateKeyWithErrorMode.length-1); // need to strip off the error mode which was appended to the list of covariates
+                final Object[] fullCovariateKey = Arrays.copyOfRange(fullCovariateKeyWithErrorMode, 0, fullCovariateKeyWithErrorMode.length - 1); // need to strip off the error mode which was appended to the list of covariates
 
                 // BUGBUG: This caching seems to put the entire key set into memory which negates the benefits of storing the delta delta tables?
                 //Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKeyWithErrorMode);
                 //if( qualityScore == null ) {
-                    final byte qualityScore = performSequentialQualityCalculation( errorModel, fullCovariateKey );
+                final byte qualityScore = performSequentialQualityCalculation(errorModel, fullCovariateKey);
                 //    qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKeyWithErrorMode);
                 //}
-        
+
                 recalQuals[offset] = qualityScore;
             }
-        
-            preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
-            read.setBaseQualities( recalQuals, errorModel );
+
+            preserveQScores(originalQuals, recalQuals); // Overwrite the work done if original quality score is too low
+            read.setBaseQualities(recalQuals, errorModel);
         }
     }
 
@@ -211,27 +215,28 @@ public class BaseRecalibration {
      *
      * Given the full recalibration table, we perform the following preprocessing steps:
      *
-     *   - calculate the global quality score shift across all data [DeltaQ]
-     *   - calculate for each of cycle and dinuc the shift of the quality scores relative to the global shift
-     *      -- i.e., DeltaQ(dinuc) = Sum(pos) Sum(Qual) Qempirical(pos, qual, dinuc) - Qreported(pos, qual, dinuc) / Npos * Nqual
-     *   - The final shift equation is:
+     * - calculate the global quality score shift across all data [DeltaQ]
+     * - calculate for each of cycle and dinuc the shift of the quality scores relative to the global shift
+     * -- i.e., DeltaQ(dinuc) = Sum(pos) Sum(Qual) Qempirical(pos, qual, dinuc) - Qreported(pos, qual, dinuc) / Npos * Nqual
+     * - The final shift equation is:
      *
-     *      Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... )
+     * Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... )
+     *
      * @param key The list of Comparables that were calculated from the covariates
      * @return A recalibrated quality score as a byte
      */
-    private byte performSequentialQualityCalculation( final RecalDataManager.BaseRecalibrationType errorModel, final Object... key ) {
+    private byte performSequentialQualityCalculation(final RecalDataManager.BaseRecalibrationType errorModel, final Object... key) {
 
-        final byte qualFromRead = (byte)Integer.parseInt(key[1].toString());
+        final byte qualFromRead = (byte) Integer.parseInt(key[1].toString());
         final Object[] readGroupCollapsedKey = new Object[1];
         final Object[] qualityScoreCollapsedKey = new Object[2];
         final Object[] covariateCollapsedKey = new Object[3];
 
         // The global quality shift (over the read group only)
         readGroupCollapsedKey[0] = key[0];
-        final RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0, errorModel).get( readGroupCollapsedKey ));
+        final RecalDatum globalRecalDatum = ((RecalDatum) dataManager.getCollapsedTable(0, errorModel).get(readGroupCollapsedKey));
         double globalDeltaQ = 0.0;
-        if( globalRecalDatum != null ) {
+        if (globalRecalDatum != null) {
             final double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
             final double aggregrateQReported = globalRecalDatum.getEstimatedQReported();
             globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
@@ -240,9 +245,9 @@ public class BaseRecalibration {
         // The shift in quality between reported and empirical
         qualityScoreCollapsedKey[0] = key[0];
         qualityScoreCollapsedKey[1] = key[1];
-        final RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1, errorModel).get( qualityScoreCollapsedKey ));
+        final RecalDatum qReportedRecalDatum = ((RecalDatum) dataManager.getCollapsedTable(1, errorModel).get(qualityScoreCollapsedKey));
         double deltaQReported = 0.0;
-        if( qReportedRecalDatum != null ) {
+        if (qReportedRecalDatum != null) {
             final double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
             deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
         }
@@ -252,27 +257,28 @@ public class BaseRecalibration {
         double deltaQCovariateEmpirical;
         covariateCollapsedKey[0] = key[0];
         covariateCollapsedKey[1] = key[1];
-        for( int iii = 2; iii < key.length; iii++ ) {
-            covariateCollapsedKey[2] =  key[iii]; // The given covariate
-            final RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii, errorModel).get( covariateCollapsedKey ));
-            if( covariateRecalDatum != null ) {
+        for (int iii = 2; iii < key.length; iii++) {
+            covariateCollapsedKey[2] = key[iii]; // The given covariate
+            final RecalDatum covariateRecalDatum = ((RecalDatum) dataManager.getCollapsedTable(iii, errorModel).get(covariateCollapsedKey));
+            if (covariateRecalDatum != null) {
                 deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
-                deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
+                deltaQCovariates += (deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported));
             }
         }
 
         final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
-        return QualityUtils.boundQual( (int)Math.round(newQuality), (byte)MAX_QUALITY_SCORE );
+        return QualityUtils.boundQual((int) Math.round(newQuality), (byte) MAX_QUALITY_SCORE);
     }
 
     /**
      * Loop over the list of qualities and overwrite the newly recalibrated score to be the original score if it was less than some threshold
+     *
      * @param originalQuals The list of original base quality scores
-     * @param recalQuals A list of the new recalibrated quality scores
+     * @param recalQuals    A list of the new recalibrated quality scores
      */
-    private void preserveQScores( final byte[] originalQuals, final byte[] recalQuals ) {
-        for( int iii = 0; iii < recalQuals.length; iii++ ) {
-            if( originalQuals[iii] < QualityUtils.MIN_USABLE_Q_SCORE ) { //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
+    private void preserveQScores(final byte[] originalQuals, final byte[] recalQuals) {
+        for (int iii = 0; iii < recalQuals.length; iii++) {
+            if (originalQuals[iii] < QualityUtils.MIN_USABLE_Q_SCORE) { //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
                 recalQuals[iii] = originalQuals[iii];
             }
         }
