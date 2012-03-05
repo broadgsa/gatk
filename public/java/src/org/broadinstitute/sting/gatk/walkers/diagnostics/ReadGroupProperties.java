@@ -36,13 +36,14 @@ import org.broadinstitute.sting.utils.Median;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
+import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Emits a GATKReport containing read group, sample, library, platform, center, paired end status,
- * simple read type name (e.g. 2x76) median insert size and median read length for each read group
- * in every provided BAM file
+ * Emits a GATKReport containing read group, sample, library, platform, center, sequencing data,
+ * paired end status, simple read type name (e.g. 2x76) median insert size and median read length
+ * for each read group in every provided BAM file
  *
  * Note that this walker stops when all read groups have been observed at least a few thousand times so that
  * the median statistics are well determined.  It is safe to run it WG and it'll finish in an appropriate
@@ -61,23 +62,23 @@ import java.util.Map;
  *
  *      <pre>
  *      ##:GATKReport.v0.2 ReadGroupProperties : Table of read group properties
- *      readgroup  sample   library       platform  center  has.any.reads  is.paired.end  n.reads.analyzed  simple.read.type  median.read.length  median.insert.size
- *      20FUK.1    NA12878  Solexa-18483  illumina  BI      true           true                      10100  2x101                            101                 387
- *      20FUK.2    NA12878  Solexa-18484  illumina  BI      true           true                      10115  2x101                            101                 415
- *      20FUK.3    NA12878  Solexa-18483  illumina  BI      true           true                      10090  2x101                            101                 388
- *      20FUK.4    NA12878  Solexa-18484  illumina  BI      true           true                      10081  2x101                            101                 415
- *      20FUK.5    NA12878  Solexa-18483  illumina  BI      true           true                      10078  2x101                            101                 387
- *      20FUK.6    NA12878  Solexa-18484  illumina  BI      true           true                      10072  2x101                            101                 415
- *      20FUK.7    NA12878  Solexa-18483  illumina  BI      true           true                      10086  2x101                            101                 388
- *      20FUK.8    NA12878  Solexa-18484  illumina  BI      true           true                      10097  2x101                            101                 415
- *      20GAV.1    NA12878  Solexa-18483  illumina  BI      true           true                      10135  2x101                            101                 388
- *      20GAV.2    NA12878  Solexa-18484  illumina  BI      true           true                      10172  2x101                            101                 415
- *      20GAV.3    NA12878  Solexa-18483  illumina  BI      true           true                      10141  2x101                            101                 388
- *      20GAV.4    NA12878  Solexa-18484  illumina  BI      true           true                      10251  2x101                            101                 416
- *      20GAV.5    NA12878  Solexa-18483  illumina  BI      true           true                      10145  2x101                            101                 388
- *      20GAV.6    NA12878  Solexa-18484  illumina  BI      true           true                      10184  2x101                            101                 415
- *      20GAV.7    NA12878  Solexa-18483  illumina  BI      true           true                      10174  2x101                            101                 387
- *      20GAV.8    NA12878  Solexa-18484  illumina  BI      true           true                      10141  2x101                            101                 414
+ *      readgroup  sample   library       platform  center  date     has.any.reads  is.paired.end  n.reads.analyzed  simple.read.type  median.read.length  median.insert.size
+ *      20FUK.1    NA12878  Solexa-18483  illumina  BI      2/2/10   true           true                        498  2x101                            101                 386
+ *      20FUK.2    NA12878  Solexa-18484  illumina  BI      2/2/10   true           true                        476  2x101                            101                 417
+ *      20FUK.3    NA12878  Solexa-18483  illumina  BI      2/2/10   true           true                        407  2x101                            101                 387
+ *      20FUK.4    NA12878  Solexa-18484  illumina  BI      2/2/10   true           true                        389  2x101                            101                 415
+ *      20FUK.5    NA12878  Solexa-18483  illumina  BI      2/2/10   true           true                        433  2x101                            101                 386
+ *      20FUK.6    NA12878  Solexa-18484  illumina  BI      2/2/10   true           true                        480  2x101                            101                 418
+ *      20FUK.7    NA12878  Solexa-18483  illumina  BI      2/2/10   true           true                        450  2x101                            101                 386
+ *      20FUK.8    NA12878  Solexa-18484  illumina  BI      2/2/10   true           true                        438  2x101                            101                 418
+ *      20GAV.1    NA12878  Solexa-18483  illumina  BI      1/26/10  true           true                        490  2x101                            101                 391
+ *      20GAV.2    NA12878  Solexa-18484  illumina  BI      1/26/10  true           true                        485  2x101                            101                 417
+ *      20GAV.3    NA12878  Solexa-18483  illumina  BI      1/26/10  true           true                        460  2x101                            101                 392
+ *      20GAV.4    NA12878  Solexa-18484  illumina  BI      1/26/10  true           true                        434  2x101                            101                 415
+ *      20GAV.5    NA12878  Solexa-18483  illumina  BI      1/26/10  true           true                        479  2x101                            101                 389
+ *      20GAV.6    NA12878  Solexa-18484  illumina  BI      1/26/10  true           true                        461  2x101                            101                 416
+ *      20GAV.7    NA12878  Solexa-18483  illumina  BI      1/26/10  true           true                        509  2x101                            101                 386
+ *      20GAV.8    NA12878  Solexa-18484  illumina  BI      1/26/10  true           true                        476  2x101                            101                 410                           101                 414
  *      </pre>
  *  </p>
  *
@@ -172,6 +173,7 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
         final GATKReport report = new GATKReport();
         report.addTable(TABLE_NAME, "Table of read group properties");
         GATKReportTable table = report.getTable(TABLE_NAME);
+        DateFormat dateFormatter = DateFormat.getDateInstance(DateFormat.SHORT);
 
         table.addPrimaryKey("readgroup");
         //* Emits a GATKReport containing read group, sample, library, platform, center, median insert size and
@@ -180,6 +182,7 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
         table.addColumn("library", "NA");
         table.addColumn("platform", "NA");
         table.addColumn("center", "NA");
+        table.addColumn("date", "NA");
         table.addColumn("has.any.reads", "false");
         table.addColumn("is.paired.end", "false");
         table.addColumn("n.reads.analyzed", "NA");
@@ -196,18 +199,28 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
             final boolean hasAnyReads = info.nReadsSeen > 0;
             final int readLength = info.readLength.getMedian(0);
 
-            table.set(rgID, "sample", rg.getSample());
-            table.set(rgID, "library", rg.getLibrary());
-            table.set(rgID, "platform", rg.getPlatform());
-            table.set(rgID, "center", rg.getSequencingCenter());
-            table.set(rgID, "has.any.reads", hasAnyReads);
-            table.set(rgID, "is.paired.end", isPaired);
-            table.set(rgID, "n.reads.analyzed", info.nReadsSeen);
-            table.set(rgID, "simple.read.type", hasAnyReads ? String.format("%dx%d", isPaired ? 2 : 1, readLength) : "NA");
-            table.set(rgID, "median.read.length", hasAnyReads ? readLength : "NA" );
-            table.set(rgID, "median.insert.size", hasAnyReads && isPaired ? info.insertSize.getMedian(0) : "NA" );
+            setTableValue(table, rgID, "sample", rg.getSample());
+            setTableValue(table, rgID, "library", rg.getLibrary());
+            setTableValue(table, rgID, "platform", rg.getPlatform());
+            setTableValue(table, rgID, "center", rg.getSequencingCenter());
+            try {
+                setTableValue(table, rgID, "date", rg.getRunDate() != null ? dateFormatter.format(rg.getRunDate()) : "NA");
+            } catch ( NullPointerException e ) {
+                // TODO: remove me when bug in Picard is fixed that causes NPE when date isn't present
+                setTableValue(table, rgID, "date", "NA");
+            }
+            setTableValue(table, rgID, "has.any.reads", hasAnyReads);
+            setTableValue(table, rgID, "is.paired.end", isPaired);
+            setTableValue(table, rgID, "n.reads.analyzed", info.nReadsSeen);
+            setTableValue(table, rgID, "simple.read.type", hasAnyReads ? String.format("%dx%d", isPaired ? 2 : 1, readLength) : "NA");
+            setTableValue(table, rgID, "median.read.length", hasAnyReads ? readLength : "NA" );
+            setTableValue(table, rgID, "median.insert.size", hasAnyReads && isPaired ? info.insertSize.getMedian(0) : "NA" );
         }
 
         report.print(out);
+    }
+
+    private final void setTableValue(GATKReportTable table, final String rgID, final String key, final Object value) {
+        table.set(rgID, key, value == null ? "NA" : value);
     }
 }

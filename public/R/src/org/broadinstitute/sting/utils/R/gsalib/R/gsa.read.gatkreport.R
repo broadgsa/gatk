@@ -4,11 +4,9 @@
     colnames(d) = tableHeader;
 
     for (i in 1:ncol(d)) {
-        v = suppressWarnings(as.numeric(d[,i]));
-
-        if (length(na.omit(as.numeric(v))) == length(d[,i])) {
-            d[,i] = v;
-        }
+        # use the general type.convert infrastructure of read.table to convert column data to R types 
+        v = type.convert(d[,i])
+        d[,i] = v;
     }
 
     usedNames = ls(envir=tableEnv, pattern=tableName);

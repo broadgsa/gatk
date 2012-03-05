@@ -111,6 +111,13 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     boolean lowerCaseSNPs = false;
 
     /**
+     * If onlyOutputValidAmplicons is true, the output fasta file will contain only valid sequences.
+     * Useful for producing delivery-ready files.
+     */
+    @Argument(doc="Only output valid sequences.",fullName="onlyOutputValidAmplicons",required=false)
+    boolean onlyOutputValidAmplicons = false;
+
+    /**
      * BWA single-end alignment is used as a primer specificity proxy. Low-complexity regions (that don't align back to themselves as a best hit) are lowercased.
      * This changes the size of the k-mer used for alignment.
      */
@@ -486,14 +493,16 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
             valid = "Valid";
         }
 
-        String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
 
-        if (!sequenomOutput)
-            out.printf(">%s %s %s%n%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
-        else {
-            seqIdentity = seqIdentity.replace("*",""); // identifier < 20 letters long, no * in ref allele, one line per record
-            probeName = probeName.replace("amplicon_","a");
-            out.printf("%s_%s %s%n", allelePos != null ? allelePos.toString() : "multiple", probeName, seqIdentity);
+        if (!onlyOutputValidAmplicons || !sequenceInvalid) {
+            String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
+            if (!sequenomOutput)
+                out.printf(">%s %s %s%n%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
+            else {
+                seqIdentity = seqIdentity.replace("*",""); // identifier < 20 letters long, no * in ref allele, one line per record
+                probeName = probeName.replace("amplicon_","a");
+                out.printf("%s_%s %s%n", allelePos != null ? allelePos.toString() : "multiple", probeName, seqIdentity);
+            }
         }
     }
 }
