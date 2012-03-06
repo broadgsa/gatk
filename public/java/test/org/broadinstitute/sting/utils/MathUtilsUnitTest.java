@@ -205,16 +205,9 @@ public class MathUtilsUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
-    public void testIntAndBitSetConversion() {
-        Assert.assertEquals(428,    MathUtils.intFrom(MathUtils.bitSetFrom(428)));
-        Assert.assertEquals(239847, MathUtils.intFrom(MathUtils.bitSetFrom(239847)));
-        Assert.assertEquals(12726,  MathUtils.intFrom(MathUtils.bitSetFrom(12726)));
-        Assert.assertEquals(0,      MathUtils.intFrom(MathUtils.bitSetFrom(0)));
-        Assert.assertEquals(1,      MathUtils.intFrom(MathUtils.bitSetFrom(1)));
-        Assert.assertEquals(65536,  MathUtils.intFrom(MathUtils.bitSetFrom(65536)));
-    }
-
+    /**
+     * Private functions used by testArrayShuffle()
+     */
     private boolean hasUniqueElements(Object[] x) {
         for (int i = 0; i < x.length; i++)
             for (int j = i + 1; j < x.length; j++)
@@ -230,10 +223,100 @@ public class MathUtilsUnitTest extends BaseTest {
         return set.isEmpty();
     }
 
-    private void p (Object []x) {
-        for (Object v: x)
-            System.out.print((Integer) v + " ");
-        System.out.println();
+    @Test(enabled = true)
+    public void testIntAndBitSetConversion() {
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(428)),       428);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(239847)),    239847);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(12726)),     12726);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(0)),         0);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(1)),         1);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(65536)),     65536);
+        Assert.assertEquals(MathUtils.intFrom(MathUtils.bitSetFrom(Long.MAX_VALUE)), Long.MAX_VALUE);
     }
 
+    @Test(enabled = true)
+    public void testDNAAndBitSetConversion() {
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("ACGT")),                    "ACGT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AGGTGTTGT")),               "AGGTGTTGT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("A")),                       "A");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("C")),                       "C");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("G")),                       "G");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("T")),                       "T");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("CC")),                      "CC");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AA")),                      "AA");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AAAA")),                    "AAAA");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("CCCCCCCCCCCCCC")),          "CCCCCCCCCCCCCC");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("GGGGGGGGGGGGGG")),          "GGGGGGGGGGGGGG");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("TTTTTTTTTTTTTT")),          "TTTTTTTTTTTTTT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("GTAGACCGATCTCAGCTAGT")),    "GTAGACCGATCTCAGCTAGT");
+        Assert.assertEquals(MathUtils.dnaFrom(MathUtils.bitSetFrom("AACGTCAATGCAGTCAAGTCAGACGTGGGTT")),    "AACGTCAATGCAGTCAAGTCAGACGTGGGTT");  // testing max precision (length == 31)
+    }
+
+    @Test
+    public void testApproximateLog10SumLog10() {
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(0.0, 0.0), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-1.0, 0.0), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, 0.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(0.0, -1.0), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, -1.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-2.2, -3.5), Math.log10(Math.pow(10.0, -2.2) + Math.pow(10.0, -3.5)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-1.0, -7.1), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, -7.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(5.0, 6.2), Math.log10(Math.pow(10.0, 5.0) + Math.pow(10.0, 6.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(38.1, 16.2), Math.log10(Math.pow(10.0, 38.1) + Math.pow(10.0, 16.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-38.1, 6.2), Math.log10(Math.pow(10.0, -38.1) + Math.pow(10.0, 6.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-19.1, -37.1), Math.log10(Math.pow(10.0, -19.1) + Math.pow(10.0, -37.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-29.1, -27.6), Math.log10(Math.pow(10.0, -29.1) + Math.pow(10.0, -27.6)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-0.12345, -0.23456), Math.log10(Math.pow(10.0, -0.12345) + Math.pow(10.0, -0.23456)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-15.7654, -17.0101), Math.log10(Math.pow(10.0, -15.7654) + Math.pow(10.0, -17.0101)), 1e-3);
+
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{0.0, 0.0}), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-1.0, 0.0}), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, 0.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{0.0, -1.0}), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, -1.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-2.2, -3.5}), Math.log10(Math.pow(10.0, -2.2) + Math.pow(10.0, -3.5)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-1.0, -7.1}), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, -7.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{5.0, 6.2}), Math.log10(Math.pow(10.0, 5.0) + Math.pow(10.0, 6.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{38.1, 16.2}), Math.log10(Math.pow(10.0, 38.1) + Math.pow(10.0, 16.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-38.1, 6.2}), Math.log10(Math.pow(10.0, -38.1) + Math.pow(10.0, 6.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-19.1, -37.1}), Math.log10(Math.pow(10.0, -19.1) + Math.pow(10.0, -37.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-29.1, -27.6}), Math.log10(Math.pow(10.0, -29.1) + Math.pow(10.0, -27.6)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-0.12345, -0.23456}), Math.log10(Math.pow(10.0, -0.12345) + Math.pow(10.0, -0.23456)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-15.7654, -17.0101}), Math.log10(Math.pow(10.0, -15.7654) + Math.pow(10.0, -17.0101)), 1e-3);
+
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{0.0, 0.0, 0.0}), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-1.0, 0.0, 0.0}), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{0.0, -1.0, -2.5}), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, -1.0) + Math.pow(10.0, -2.5)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-2.2, -3.5, -1.1}), Math.log10(Math.pow(10.0, -2.2) + Math.pow(10.0, -3.5) + Math.pow(10.0, -1.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-1.0, -7.1, 0.5}), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, -7.1) + Math.pow(10.0, 0.5)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{5.0, 6.2, 1.3}), Math.log10(Math.pow(10.0, 5.0) + Math.pow(10.0, 6.2) + Math.pow(10.0, 1.3)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{38.1, 16.2, 18.1}), Math.log10(Math.pow(10.0, 38.1) + Math.pow(10.0, 16.2) + Math.pow(10.0, 18.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-38.1, 6.2, 26.6}), Math.log10(Math.pow(10.0, -38.1) + Math.pow(10.0, 6.2) + Math.pow(10.0, 26.6)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-19.1, -37.1, -45.1}), Math.log10(Math.pow(10.0, -19.1) + Math.pow(10.0, -37.1) + Math.pow(10.0, -45.1)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-29.1, -27.6, -26.2}), Math.log10(Math.pow(10.0, -29.1) + Math.pow(10.0, -27.6) + Math.pow(10.0, -26.2)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-0.12345, -0.23456, -0.34567}), Math.log10(Math.pow(10.0, -0.12345) + Math.pow(10.0, -0.23456) + Math.pow(10.0, -0.34567)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[]{-15.7654, -17.0101, -17.9341}), Math.log10(Math.pow(10.0, -15.7654) + Math.pow(10.0, -17.0101) + Math.pow(10.0, -17.9341)), 1e-3);
+    }
+
+    @Test
+    public void testNormalizeFromLog10() {
+        Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[]{0.0, 0.0, -1.0, -1.1, -7.8}, false, true), new double[]{0.0, 0.0, -1.0, -1.1, -7.8}));
+        Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[]{-1.0, -1.0, -1.0, -1.1, -7.8}, false, true), new double[]{0.0, 0.0, 0.0, -0.1, -6.8}));
+        Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[]{-10.0, -7.8, -10.5, -1.1, -10.0}, false, true), new double[]{-8.9, -6.7, -9.4, 0.0, -8.9}));
+
+        Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[]{-1.0, -1.0, -1.0, -1.0}), new double[]{0.25, 0.25, 0.25, 0.25}));
+        Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[]{-1.0, -3.0, -1.0, -1.0}), new double[]{0.1 * 1.0 / 0.301, 0.001 * 1.0 / 0.301, 0.1 * 1.0 / 0.301, 0.1 * 1.0 / 0.301}));
+        Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[]{-1.0, -3.0, -1.0, -2.0}), new double[]{0.1 * 1.0 / 0.211, 0.001 * 1.0 / 0.211, 0.1 * 1.0 / 0.211, 0.01 * 1.0 / 0.211}));
+    }
+
+    /**
+     * Private function used by testNormalizeFromLog10()
+     */
+    private boolean compareDoubleArrays(double[] b1, double[] b2) {
+        if( b1.length != b2.length ) {
+            return false; // sanity check
+        }
+
+        for( int i=0; i < b1.length; i++ ){
+            if ( MathUtils.compareDoubles(b1[i], b2[i]) != 0 )
+                return false;
+        }
+        return true;
+    }
 }

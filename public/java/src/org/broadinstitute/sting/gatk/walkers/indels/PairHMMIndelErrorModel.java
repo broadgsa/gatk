@@ -166,18 +166,17 @@ public class PairHMMIndelErrorModel {
 
             final double pBaseRead =  (x == y)? baseMatchArray[(int)qual]:baseMismatchArray[(int)qual];
 
-            matchMetricArray[indI][indJ] = MathUtils.softMax(matchMetricArray[im1][jm1] + pBaseRead, XMetricArray[im1][jm1] + pBaseRead,
-                    YMetricArray[im1][jm1] + pBaseRead);
+            matchMetricArray[indI][indJ] = pBaseRead + MathUtils.approximateLog10SumLog10(new double[]{matchMetricArray[im1][jm1], XMetricArray[im1][jm1], YMetricArray[im1][jm1]});
 
             final double c1 = indJ == Y_METRIC_LENGTH-1 ? END_GAP_COST : currentGOP[jm1];
             final double d1 = indJ == Y_METRIC_LENGTH-1 ? END_GAP_COST : currentGCP[jm1];
 
-            XMetricArray[indI][indJ] = MathUtils.softMax(matchMetricArray[im1][indJ] + c1, XMetricArray[im1][indJ] + d1);
+            XMetricArray[indI][indJ] = MathUtils.approximateLog10SumLog10(matchMetricArray[im1][indJ] + c1, XMetricArray[im1][indJ] + d1);
 
             // update Y array
             final double c2 = indI == X_METRIC_LENGTH-1 ? END_GAP_COST : currentGOP[jm1];
             final double d2 = indI == X_METRIC_LENGTH-1 ? END_GAP_COST : currentGCP[jm1];
-            YMetricArray[indI][indJ] = MathUtils.softMax(matchMetricArray[indI][jm1] + c2, YMetricArray[indI][jm1] + d2);
+            YMetricArray[indI][indJ] = MathUtils.approximateLog10SumLog10(matchMetricArray[indI][jm1] + c2, YMetricArray[indI][jm1] + d2);
         }
     }
 
@@ -316,9 +315,7 @@ public class PairHMMIndelErrorModel {
 
 
         final int bestI = X_METRIC_LENGTH - 1, bestJ = Y_METRIC_LENGTH - 1;
-        final double bestMetric = MathUtils.softMax(matchMetricArray[bestI][bestJ],
-                XMetricArray[bestI][bestJ],
-                YMetricArray[bestI][bestJ]);
+        final double bestMetric = MathUtils.approximateLog10SumLog10(new double[]{ matchMetricArray[bestI][bestJ], XMetricArray[bestI][bestJ], YMetricArray[bestI][bestJ] });
 
         /*
         if (DEBUG) {
@@ -651,7 +648,7 @@ public class PairHMMIndelErrorModel {
     private final static double[] getHaplotypeLikelihoods(final int numHaplotypes, final int readCounts[], final double readLikelihoods[][]) {
         final double[][] haplotypeLikehoodMatrix = new double[numHaplotypes][numHaplotypes];
 
-        // todo: MAD 09/26/11 -- I'm almost certain this calculation can be simplied to just a single loop without the intermediate NxN matrix
+        // todo: MAD 09/26/11 -- I'm almost certain this calculation can be simplified to just a single loop without the intermediate NxN matrix
         for (int i=0; i < numHaplotypes; i++) {
             for (int j=i; j < numHaplotypes; j++){
                 // combine likelihoods of haplotypeLikelihoods[i], haplotypeLikelihoods[j]
@@ -665,7 +662,7 @@ public class PairHMMIndelErrorModel {
                     final double li = readLikelihoods[readIdx][i];
                     final double lj = readLikelihoods[readIdx][j];
                     final int readCount = readCounts[readIdx];
-                    haplotypeLikehoodMatrix[i][j] += readCount * (MathUtils.softMax(li, lj) + LOG_ONE_HALF);
+                    haplotypeLikehoodMatrix[i][j] += readCount * (MathUtils.approximateLog10SumLog10(li, lj) + LOG_ONE_HALF);
                 }
             }
         }
@@ -678,7 +675,7 @@ public class PairHMMIndelErrorModel {
             }
         }
 
-        // renormalize   so that max element is zero.
+        // renormalize so that max element is zero.
         return MathUtils.normalizeFromLog10(genotypeLikelihoods, false, true);
     }
 }

@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
 
@@ -87,6 +88,9 @@ public abstract class BaseTest {
     public static final File testDirFile = new File("public/testdata/");
     public static final String testDir = testDirFile.getAbsolutePath() + "/";
 
+    public static final String keysDataLocation = validationDataLocation + "keys/";
+    public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
+
     /** before the class starts up */
     static {
         // setup a basic log configuration
@@ -141,7 +145,7 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
-        private String name;
+        protected String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C

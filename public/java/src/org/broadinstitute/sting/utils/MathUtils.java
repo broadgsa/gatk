@@ -29,6 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.math.BigDecimal;
@@ -40,19 +41,33 @@ import java.util.*;
  * @author Kiran Garimella
  */
 public class MathUtils {
-    /** Public constants - used for the Lanczos approximation to the factorial function
-     *  (for the calculation of the binomial/multinomial probability in logspace)
-     * @param LANC_SEQ[] - an array holding the constants which correspond to the product
-     * of Chebyshev Polynomial coefficients, and points on the Gamma function (for interpolation)
-     * [see A Precision Approximation of the Gamma Function J. SIAM Numer. Anal. Ser. B, Vol. 1 1964. pp. 86-96]
-     * @param LANC_G - a value for the Lanczos approximation to the gamma function that works to
-     * high precision 
-     */
 
     /**
      * Private constructor.  No instantiating this class!
      */
     private MathUtils() {
+    }
+
+    public static final double[] log10Cache;
+    private static final double[] jacobianLogTable;
+    private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
+    private static final double MAX_JACOBIAN_TOLERANCE = 10.0;
+    private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
+    private static final int MAXN = 11000;
+    private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
+
+    static {
+        log10Cache = new double[LOG10_CACHE_SIZE];
+        jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
+
+        log10Cache[0] = Double.NEGATIVE_INFINITY;
+        for (int k = 1; k < LOG10_CACHE_SIZE; k++)
+            log10Cache[k] = Math.log10(k);
+
+        for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
+            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
+
+        }
     }
 
     // A fast implementation of the Math.round() method.  This method does not perform
@@ -535,7 +550,7 @@ public class MathUtils {
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = Utils.findMaxEntry(array);
 
-        // we may decide to just normalize in log space with converting to linear space
+        // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
             for (int i = 0; i < array.length; i++)
                 array[i] -= maxValue;
@@ -562,29 +577,6 @@ public class MathUtils {
         return normalized;
     }
 
-    public static double[] normalizeFromLog10(List<Double> array, boolean takeLog10OfOutput) {
-        double[] normalized = new double[array.size()];
-
-        // for precision purposes, we need to add (or really subtract, since they're
-        // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = MathUtils.arrayMaxDouble(array);
-        for (int i = 0; i < array.size(); i++)
-            normalized[i] = Math.pow(10, array.get(i) - maxValue);
-
-        // normalize
-        double sum = 0.0;
-        for (int i = 0; i < array.size(); i++)
-            sum += normalized[i];
-        for (int i = 0; i < array.size(); i++) {
-            double x = normalized[i] / sum;
-            if (takeLog10OfOutput)
-                x = Math.log10(x);
-            normalized[i] = x;
-        }
-
-        return normalized;
-    }
-
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
@@ -592,10 +584,6 @@ public class MathUtils {
      * @return a newly allocated array corresponding the normalized values in array
      */
     public static double[] normalizeFromLog10(double[] array) {
-        return normalizeFromLog10(array, false);
-    }
-
-    public static double[] normalizeFromLog10(List<Double> array) {
         return normalizeFromLog10(array, false);
     }
 
@@ -1206,76 +1194,9 @@ public class MathUtils {
         return ((double) num) / (Math.max(denom, 1));
     }
 
-    public static final double[] log10Cache;
-    public static final double[] jacobianLogTable;
-    public static final int JACOBIAN_LOG_TABLE_SIZE = 101;
-    public static final double JACOBIAN_LOG_TABLE_STEP = 0.1;
-    public static final double INV_JACOBIAN_LOG_TABLE_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
-    public static final double MAX_JACOBIAN_TOLERANCE = 10.0;
-    private static final int MAXN = 11000;
-    private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
-
-    static {
-        log10Cache = new double[LOG10_CACHE_SIZE];
-        jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
-
-        log10Cache[0] = Double.NEGATIVE_INFINITY;
-        for (int k = 1; k < LOG10_CACHE_SIZE; k++)
-            log10Cache[k] = Math.log10(k);
-
-        for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
-            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
-
-        }
-    }
-
-    static public double softMax(final double[] vec) {
-        double acc = vec[0];
-        for (int k = 1; k < vec.length; k++)
-            acc = softMax(acc, vec[k]);
-
-        return acc;
-
-    }
-
     static public double max(double x0, double x1, double x2) {
         double a = Math.max(x0, x1);
         return Math.max(a, x2);
-    }
-
-    static public double softMax(final double x0, final double x1, final double x2) {
-        // compute naively log10(10^x[0] + 10^x[1]+...)
-        //        return Math.log10(MathUtils.sumLog10(vec));
-
-        // better approximation: do Jacobian logarithm function on data pairs
-        double a = softMax(x0, x1);
-        return softMax(a, x2);
-    }
-
-    static public double softMax(final double x, final double y) {
-        // we need to compute log10(10^x + 10^y)
-        // By Jacobian logarithm identity, this is equal to
-        // max(x,y) + log10(1+10^-abs(x-y))
-        // we compute the second term as a table lookup
-        // with integer quantization
-
-        // slow exact version:
-        // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
-
-        double diff = x - y;
-
-        if (diff > MAX_JACOBIAN_TOLERANCE)
-            return x;
-        else if (diff < -MAX_JACOBIAN_TOLERANCE)
-            return y;
-        else if (diff >= 0) {
-            int ind = (int) (diff * INV_JACOBIAN_LOG_TABLE_STEP + 0.5);
-            return x + jacobianLogTable[ind];
-        }
-        else {
-            int ind = (int) (-diff * INV_JACOBIAN_LOG_TABLE_STEP + 0.5);
-            return y + jacobianLogTable[ind];
-        }
     }
 
     public static double phredScaleToProbability(byte q) {
@@ -1619,30 +1540,118 @@ public class MathUtils {
      * @param bitSet the bitset
      * @return an integer with the bitset representation
      */
-    public static int intFrom(final BitSet bitSet) {
-        int integer = 0;
+    public static long intFrom(final BitSet bitSet) {
+        long number = 0;
         for (int bitIndex = bitSet.nextSetBit(0); bitIndex >= 0; bitIndex = bitSet.nextSetBit(bitIndex+1))
-            integer |= 1 << bitIndex;
+            number |= 1L << bitIndex;
 
-        return integer;
+        return number;
     }
 
     /**
      * Creates a BitSet representation of a given integer
      *
-     * @param integer the number to turn into a bitset
+     * @param number the number to turn into a bitset
      * @return a bitset representation of the integer
      */
-    public static BitSet bitSetFrom(int integer) {
-        BitSet bitSet = new BitSet((int) Math.ceil(Math.sqrt(integer)));
+    public static BitSet bitSetFrom(long number) {
+        BitSet bitSet = new BitSet();
         int bitIndex = 0;
-        while (integer > 0) {
-            if (integer%2 > 0)
+        while (number > 0) {
+            if (number%2 > 0)
                 bitSet.set(bitIndex);
             bitIndex++;
-            integer /= 2;
+            number /= 2;
         }
         return bitSet;
     }
 
+    /**
+     * Converts a BitSet into the dna string representation.
+     *
+     * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
+     * be longer than 31 bases. To increase this limit, use BigNumbers instead of long and create
+     * a bitSetFrom(BigNumber) method.
+     *
+     * We calculate the length of the resulting DNA sequence by looking at the sum(4^i) that exceeds the
+     * base_10 representation of the sequence. This is important for us to know how to bring the number
+     * to a quasi-canonical base_4 representation, and to fill in leading A's (since A's are represented
+     * as 0's and leading 0's are omitted).
+     *
+     * quasi-canonical because A is represented by a 0, therefore,
+     *  instead of : 0, 1, 2, 3, 10, 11, 12, ...
+     *  we have    : 0, 1, 2, 3, 00, 01, 02, ...
+     *
+     * but we can correctly decode it because we know the final length.
+     *
+     * @param bitSet the bitset representation of the dna sequence
+     * @return the dna sequence represented by the bitset
+     */
+    public static String dnaFrom(final BitSet bitSet) {
+        long number = intFrom(bitSet);      // the base_10 representation of the bit set
+        long preContext = 0;                // the number of combinations skipped to get to the quasi-canonical representation (we keep it to subtract later)
+        long nextContext = 4;               // the next context (we advance it so we know which one was preceding it).
+        int i = 1;                          // the calculated length of the DNA sequence given the base_10 representation of its BitSet.
+        while (nextContext <= number) {     // find the length of the dna string (i)
+            preContext = nextContext;       // keep track of the number of combinations in the preceding context
+            nextContext += Math.pow(4, ++i);// calculate the next context
+        }
+        number -= preContext;               // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
+
+        String dna = "";
+        while (number > 0) {                // perform a simple base_10 to base_4 conversion (quasi-canonical)
+            byte base = (byte) (number % 4);
+            switch (base) {
+                case 0 : dna = "A" + dna; break;
+                case 1 : dna = "C" + dna; break;
+                case 2 : dna = "G" + dna; break;
+                case 3 : dna = "T" + dna; break;
+            }
+            number /= 4;
+        }
+        for (int j = dna.length(); j < i; j++)
+            dna = "A" + dna;                // add leading A's as necessary (due to the "quasi" canonical status, see description above)
+
+        return dna;
+    }
+
+    /**
+     * Creates a BitSet representation of a given dna string.
+     *
+     * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
+     * be longer than 31 bases. To increase this limit, use BigNumbers instead of long and create
+     * a bitSetFrom(BigNumber) method.
+     *
+     * The bit representation of a dna string is the simple:
+     * 0 A      4 AA     8 CA
+     * 1 C      5 AC     ...
+     * 2 G      6 AG     1343 TTGGT
+     * 3 T      7 AT     1364 TTTTT
+     *
+     * To convert from dna to number, we convert the dna string to base10 and add all combinations that
+     * preceded the string (with smaller lengths). 
+     * 
+     * @param dna the dna sequence
+     * @return the bitset representing the dna sequence 
+     */
+    public static BitSet bitSetFrom(String dna) {
+        if (dna.length() > 31)
+            throw new ReviewedStingException(String.format("DNA Length cannot be bigger than 31. dna: %s (%d)", dna, dna.length()));
+        
+        long baseTen = 0;                       // the number in base_10 that we are going to use to generate the bit set 
+        long preContext = 0;                    // the sum of all combinations that preceded the length of the dna string
+        for (int i=0; i<dna.length(); i++) {
+            baseTen *= 4;
+            switch(dna.charAt(i)) {
+                case 'A': baseTen += 0; break;
+                case 'C': baseTen += 1; break;
+                case 'G': baseTen += 2; break;
+                case 'T': baseTen += 3; break;
+            }
+            if (i>0)
+                preContext += Math.pow(4, i);   // each length will have 4^i combinations (e.g 1 = 4, 2 = 16, 3 = 64, ...) 
+        }
+
+        return bitSetFrom(baseTen+preContext);  // the number representing this DNA string is the base_10 representation plus all combinations that preceded this string length.
+    }
 }

@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -38,6 +39,10 @@ import java.util.Arrays;
  */
 
 public class ReadGroupCovariate implements RequiredCovariate {
+    
+    private final HashMap<String, Short> readGroupLookupTable = new HashMap<String, Short>();
+    private final HashMap<Short, String> readGroupReverseLookupTable = new HashMap<Short, String>();
+    private short nextId = 0;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
@@ -48,15 +53,28 @@ public class ReadGroupCovariate implements RequiredCovariate {
     public CovariateValues getValues(final GATKSAMRecord read) {
         final int l = read.getReadLength();
         final String readGroupId = read.getReadGroup().getReadGroupId();
-        String [] readGroups = new String[l];
-        Arrays.fill(readGroups, readGroupId);
+        short shortId;
+        if (readGroupLookupTable.containsKey(readGroupId)) 
+            shortId = readGroupLookupTable.get(readGroupId);
+        else {
+            shortId = nextId;
+            readGroupLookupTable.put(readGroupId, nextId);
+            readGroupReverseLookupTable.put(nextId, readGroupId);
+            nextId++;
+        }
+        Short [] readGroups = new Short[l];
+        Arrays.fill(readGroups, shortId);
         return new CovariateValues(readGroups, readGroups, readGroups);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
-    public final Comparable getValue(final String str) {
+    public final Object getValue(final String str) {
         return str;
+    }
+    
+    public final String decodeReadGroup(final short id) {
+        return readGroupReverseLookupTable.get(id);
     }
 }
 

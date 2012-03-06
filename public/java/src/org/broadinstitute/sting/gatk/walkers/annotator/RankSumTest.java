@@ -43,15 +43,15 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         final ArrayList<Double> altQuals = new ArrayList<Double>();
 
         if ( vc.isSNP() ) {
+            final List<Byte> altAlleles = new ArrayList<Byte>();
+            for ( final Allele a : vc.getAlternateAlleles() )
+                altAlleles.add(a.getBases()[0]);
+
             for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
                 if ( context == null )
                     continue;
 
-                final List<Byte> altAlleles = new ArrayList<Byte>();
-                for ( final Allele a : vc.getAlternateAlleles() )
-                    altAlleles.add(a.getBases()[0]);
-                
                 fillQualsFromPileup(ref.getBase(), altAlleles, context.getBasePileup(), refQuals, altQuals);
             }
         } else if ( vc.isIndel() || vc.isMixed() ) {

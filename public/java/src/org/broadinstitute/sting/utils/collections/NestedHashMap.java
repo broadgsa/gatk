@@ -34,7 +34,7 @@ import java.util.Map;
  * Date: Dec 29, 2009
  */
 
-public class NestedHashMap{
+public class NestedHashMap {
 
     public final Map data = new HashMap<Object, Object>();
 

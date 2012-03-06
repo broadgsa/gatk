@@ -154,9 +154,7 @@ public class GATKRunReport {
         /** Standard option.  Writes to local repository if it can be found, or S3 otherwise */
         STANDARD,
         /** Force output to STDOUT.  For debugging only */
-        STDOUT,
-        /** Force output to S3.  For debugging only */
-        AWS_S3   // todo -- remove me -- really just for testing purposes
+        STDOUT
     }
 
     private static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
@@ -239,11 +237,8 @@ public class GATKRunReport {
             case STDOUT:
                 postReportToStream(System.out);
                 break;
-            case AWS_S3:
-                postReportToAWSS3();
-                break;
             default:
-                exceptDuringRunReport("BUG: unexcepted PhoneHomeOption ");
+                exceptDuringRunReport("BUG: unexpected PhoneHomeOption ");
                 break;
         }
     }

@@ -454,8 +454,7 @@ public class HaplotypeIndelErrorModel {
                     // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+x0^x2)-log10(2)
                     // First term is approximated by Jacobian log with table lookup.
                     // Second term is a constant added to both likelihoods so will be ignored
-                    haplotypeLikehoodMatrix[i][j] += MathUtils.softMax(readLikelihood[0],
-                            readLikelihood[1]);
+                    haplotypeLikehoodMatrix[i][j] += MathUtils.approximateLog10SumLog10(readLikelihood[0], readLikelihood[1]);
 
                 }
 

@@ -132,6 +132,10 @@ public class UserException extends ReviewedStingException {
         public CouldNotReadInputFile(File file, Exception e) {
             this(file, e.getMessage());
         }
+
+        public CouldNotReadInputFile(String message) {
+            super(message);
+        }
     }
 
 
@@ -150,6 +154,10 @@ public class UserException extends ReviewedStingException {
 
         public CouldNotCreateOutputFile(File file, Exception e) {
             super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), e.getMessage()));
+        }
+
+        public CouldNotCreateOutputFile(String message, Exception e) {
+            super(message, e);
         }
     }
 
@@ -317,6 +325,34 @@ public class UserException extends ReviewedStingException {
                     "If you are running multiple instances of GATK, another GATK process is " +
                     "probably creating this file now, and has locked it. Please wait until this process finishes " +
                     "and try again.", null);
+        }
+    }
+
+    public static class UnreadableKeyException extends UserException {
+        public UnreadableKeyException ( File f, Exception e ) {
+            super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
+                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
+                                f.getAbsolutePath(), e.getMessage()));
+        }
+
+        public UnreadableKeyException ( String message, Exception e ) {
+            this(String.format("%s. Error was: %s", message, e.getMessage()));
+        }
+
+        public UnreadableKeyException ( String message ) {
+            super(String.format("Key file cannot be read (possibly the key file is corrupt?): %s. " +
+                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
+                                message));
+        }
+    }
+
+    public static class KeySignatureVerificationException extends UserException {
+        public KeySignatureVerificationException ( File f ) {
+            super(String.format("The signature in key file %s failed cryptographic verification. " +
+                                "If this key was valid in the past, it's likely been revoked. " +
+                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home " +
+                                "for help.",
+                                f.getAbsolutePath()));
         }
     }
 }

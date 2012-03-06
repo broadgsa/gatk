@@ -140,15 +140,16 @@ public class GaussianMixtureModel {
         }
 
         for( final VariantDatum datum : data ) {
-            final ArrayList<Double> pVarInGaussianLog10 = new ArrayList<Double>( gaussians.size() );
+            final double[] pVarInGaussianLog10 = new double[gaussians.size()];
+            int gaussianIndex = 0;
             for( final MultivariateGaussian gaussian : gaussians ) {
                 final double pVarLog10 = gaussian.evaluateDatumLog10( datum );
-                pVarInGaussianLog10.add( pVarLog10 );
+                pVarInGaussianLog10[gaussianIndex++] = pVarLog10;
             }
-            final double[] pVarInGaussianNormalized = MathUtils.normalizeFromLog10( pVarInGaussianLog10 );
-            int iii = 0;
+            final double[] pVarInGaussianNormalized = MathUtils.normalizeFromLog10( pVarInGaussianLog10, false );
+            gaussianIndex = 0;
             for( final MultivariateGaussian gaussian : gaussians ) {
-                gaussian.assignPVarInGaussian( pVarInGaussianNormalized[iii++] ); //BUGBUG: to clean up
+                gaussian.assignPVarInGaussian( pVarInGaussianNormalized[gaussianIndex++] );
             }
         }
     }
