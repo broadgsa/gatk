@@ -29,6 +29,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -115,6 +116,7 @@ import java.util.*;
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
+@Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)
 public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partition,Map<String,int[]>>, CoveragePartitioner> implements TreeReducible<CoveragePartitioner> {
     @Output
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
