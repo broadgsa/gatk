@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -113,10 +114,11 @@ public class Haplotype {
         return isReference;
     }
 
-    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation, final int hapStart, final Cigar haplotypeCigar ) {
+    @Requires({"refInsertLocation >= 0", "hapStartInRefCoords >= 0"})
+    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation, final int hapStartInRefCoords, final Cigar haplotypeCigar ) {
         
         if( refAllele.length() != altAllele.length() ) { refInsertLocation++; }
-        int haplotypeInsertLocation = getHaplotypeCoordinateForReferenceCoordinate(hapStart, haplotypeCigar, refInsertLocation);
+        int haplotypeInsertLocation = getHaplotypeCoordinateForReferenceCoordinate(hapStartInRefCoords, haplotypeCigar, refInsertLocation);
         if( haplotypeInsertLocation == -1 ) { // desired change falls inside deletion so don't bother creating a new haplotype
             return bases.clone();
         }
