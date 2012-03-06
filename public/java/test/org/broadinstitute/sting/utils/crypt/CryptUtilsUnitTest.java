@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.crypt;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -64,11 +65,21 @@ public class CryptUtilsUnitTest extends BaseTest {
 
     @Test
     public void testGATKMasterKeyPairMutualDecryption() {
+        if ( gatkPrivateKeyExistsButReadPermissionDenied() ) {
+            throw new SkipException(String.format("Skipping test %s because we do not have permission to read the GATK private key",
+                                    "testGATKMasterKeyPairMutualDecryption"));
+        }
+
         Assert.assertTrue(CryptUtils.keysDecryptEachOther(CryptUtils.loadGATKMasterPrivateKey(), CryptUtils.loadGATKMasterPublicKey()));
     }
 
     @Test
     public void testGATKMasterPrivateKeyWithDistributedPublicKeyMutualDecryption() {
+        if ( gatkPrivateKeyExistsButReadPermissionDenied() ) {
+            throw new SkipException(String.format("Skipping test %s because we do not have permission to read the GATK private key",
+                                    "testGATKMasterPrivateKeyWithDistributedPublicKeyMutualDecryption"));
+        }
+
         Assert.assertTrue(CryptUtils.keysDecryptEachOther(CryptUtils.loadGATKMasterPrivateKey(), CryptUtils.loadGATKDistributedPublicKey()));
     }
 
@@ -156,6 +167,11 @@ public class CryptUtilsUnitTest extends BaseTest {
 
     @Test
     public void testLoadGATKMasterPrivateKey() {
+        if ( gatkPrivateKeyExistsButReadPermissionDenied() ) {
+            throw new SkipException(String.format("Skipping test %s because we do not have permission to read the GATK private key",
+                                    "testLoadGATKMasterPrivateKey"));
+        }
+
         PrivateKey gatkMasterPrivateKey = CryptUtils.loadGATKMasterPrivateKey();
     }
 
@@ -173,5 +189,10 @@ public class CryptUtilsUnitTest extends BaseTest {
         Assert.assertTrue(Arrays.equals(originalKey.getEncoded(), keyFromDisk.getEncoded()));
         Assert.assertEquals(originalKey.getAlgorithm(), keyFromDisk.getAlgorithm());
         Assert.assertEquals(originalKey.getFormat(), keyFromDisk.getFormat());
+    }
+
+    private boolean gatkPrivateKeyExistsButReadPermissionDenied() {
+        File gatkPrivateKey = new File(CryptUtils.GATK_MASTER_PRIVATE_KEY_FILE);
+        return gatkPrivateKey.exists() && ! gatkPrivateKey.canRead();
     }
 }
