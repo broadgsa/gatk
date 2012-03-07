@@ -75,7 +75,7 @@ import java.util.*;
  * <p>
  * This is a simple, counts-and-cutoffs based tool for calling indels from aligned (preferrably MSA cleaned) sequencing
  * data. Supported output formats are: BED format, extended verbose output (tab separated), and VCF. The latter two outputs
- * include additional statistics such as mismtaches and base qualitites around the calls, read strandness (how many
+ * include additional statistics such as mismatches and base qualitites around the calls, read strandness (how many
  * forward/reverse reads support ref and indel alleles) etc. It is highly recommended to use these additional
  * statistics to perform post-filtering of the calls as the tool is tuned for sensitivity (in other words it will
  * attempt to "call" anything remotely reasonable based only on read counts and will generate all the additional
@@ -92,6 +92,16 @@ import java.util.*;
  * bam tagging is not required in this case, and tags are completely ignored if still used: all input bams will be merged
  * on the fly and assumed to represent a single sample - this tool does not check for sample id in the read groups).
  *
+ * Which (putative) calls will make it into the output file(s) is controlled by an expression/list of expressions passed with -filter
+ * flag: if any of the expressions evaluate to TRUE, the site will be discarded. Otherwise the putative call and all the
+ * associated statistics will be printed into the output. Expressions recognize the following variables(in paired-sample
+ * somatic mode variables are prefixed with T_ and N_ for Tumor and Normal, e.g. N_COV and T_COV are defined instead of COV):
+ * COV for coverage at the site, INDEL_F for fraction of reads supporting consensus indel at the site (wrt total coverage),
+ * INDEL_CF for fraction of reads with consensus indel wrt all reads with an indel at the site, CONS_CNT for the count of
+ * reads supporting the consensus indel at the site. Conventional arithmetic and logical operations are supported. For instance,
+ * N_COV<4||T_COV<6||T_INDEL_F<0.3||T_INDEL_CF<0.7 instructs the tool to only output indel calls with at least 30% observed
+ * allelic fraction and with consensus indel making at least 70% of all indel observations at the site, and only at the sites
+ * where tumor coverage and normal coverage are at least 6 and 4, respectively.
  * <h2>Input</h2>
  * <p>
  * Tumor and normal bam files (or single sample bam file(s) in --unpaired mode).
