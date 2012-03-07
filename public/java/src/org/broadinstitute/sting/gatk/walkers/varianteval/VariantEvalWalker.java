@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import com.google.java.contract.Requires;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.IntervalTree;
 import net.sf.samtools.SAMSequenceRecord;
@@ -19,11 +20,8 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.JexlExpression;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
-import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
-import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -32,7 +30,6 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
@@ -389,9 +386,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                     nec.apply(tracker, ref, context, comp, eval);
                                 }
 
-                                // eval=null against all comps of different type
+                                // eval=null against all comps of different type that aren't bound to another eval
                                 for ( VariantContext otherComp : compSet ) {
-                                    if ( otherComp != comp ) {
+                                    if ( otherComp != comp && ! compHasMatchingEval(otherComp, evalSetBySample) ) {
                                         synchronized (nec) {
                                             nec.apply(tracker, ref, context, otherComp, null);
                                         }
@@ -409,6 +406,35 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return null;
     }
 
+    @Requires({"comp != null", "evals != null"})
+    private boolean compHasMatchingEval(final VariantContext comp, final Collection<VariantContext> evals) {
+        // find all of the matching comps
+        for ( final VariantContext eval : evals ) {
+            if ( eval != null && doEvalAndCompMatch(comp, eval, requireStrictAlleleMatch) != EvalCompMatchType.NO_MATCH )
+                return true;
+        }
+
+        // nothing matched
+        return false;
+    }
+
+    private enum EvalCompMatchType { NO_MATCH, STRICT, LENIENT }
+
+    @Requires({"eval != null", "comp != null"})
+    private EvalCompMatchType doEvalAndCompMatch(final VariantContext eval, final VariantContext comp, boolean requireStrictAlleleMatch) {
+        // find all of the matching comps
+        if ( comp.getType() != eval.getType() )
+            return EvalCompMatchType.NO_MATCH;
+
+        // find the comp which matches both the reference allele and alternate allele from eval
+        final Allele altEval = eval.getAlternateAlleles().size() == 0 ? null : eval.getAlternateAllele(0);
+        final Allele altComp = comp.getAlternateAlleles().size() == 0 ? null : comp.getAlternateAllele(0);
+        if ((altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp) && eval.getReference().equals(comp.getReference())))
+            return EvalCompMatchType.STRICT;
+        else
+            return requireStrictAlleleMatch ? EvalCompMatchType.NO_MATCH : EvalCompMatchType.LENIENT;
+    }
+
     private VariantContext findMatchingComp(final VariantContext eval, final Collection<VariantContext> comps) {
         // if no comps, return null
         if ( comps == null || comps.isEmpty() )
@@ -419,26 +445,21 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             return comps.iterator().next();
 
         // find all of the matching comps
-        List<VariantContext> matchingComps = new ArrayList<VariantContext>(comps.size());
-        for ( VariantContext comp : comps ) {
-            if ( comp.getType() == eval.getType() )
-                matchingComps.add(comp);
+        VariantContext lenientMatch = null;
+        for ( final VariantContext comp : comps ) {
+            switch ( doEvalAndCompMatch(comp, eval, requireStrictAlleleMatch) ) {
+                case STRICT:
+                    return comp;
+                case LENIENT:
+                    if ( lenientMatch == null ) lenientMatch = comp;
+                    break;
+                case NO_MATCH:
+                    ;
+            }
         }
 
-        // if no matching comp, return null
-        if ( matchingComps.size() == 0 )
-            return null;
-
-        // find the comp which matches both the reference allele and alternate allele from eval
-        Allele altEval = eval.getAlternateAlleles().size() == 0 ? null : eval.getAlternateAllele(0);
-        for ( VariantContext comp : matchingComps ) {
-            Allele altComp = comp.getAlternateAlleles().size() == 0 ? null : comp.getAlternateAllele(0);
-            if ( (altEval == null && altComp == null) || (altEval != null && altEval.equals(altComp) && eval.getReference().equals(comp.getReference())) )
-                return comp;
-        }
-
-        // if none match, just return the first one unless we require a strict match
-        return (requireStrictAlleleMatch ? null : matchingComps.get(0));
+        // nothing matched, just return lenientMatch, which might be null
+        return lenientMatch;
     }
 
     public Integer treeReduce(Integer lhs, Integer rhs) { return null; }

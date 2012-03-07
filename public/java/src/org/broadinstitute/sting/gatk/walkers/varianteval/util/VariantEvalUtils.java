@@ -417,8 +417,6 @@ public class VariantEvalUtils {
             }
         } else {
             stateKeys.add(stateKey);
-
-            return stateKeys;
         }
 
         return stateKeys;
