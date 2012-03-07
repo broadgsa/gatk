@@ -94,9 +94,6 @@ import java.util.Map;
  *
  * @author Mark DePristo
  */
-
-
-
 public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     @Output
     public PrintStream out;
