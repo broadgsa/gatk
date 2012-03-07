@@ -26,6 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.MapContext;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -178,6 +182,10 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             "GENOMIC/UTR/INTRON/CODING and with the gene name", required=false)
     String RefseqFileName = null;
 
+
+    @Argument(shortName="filter", doc="One or more criteria to use when selecting the data", required=false)
+    public ArrayList<String> FILTER_EXPRESSIONS = new ArrayList<String>();
+
 //@Argument(fullName="blacklistedLanes", shortName="BL",
 //        doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
 //                "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
@@ -221,7 +229,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
     private Writer verboseWriter = null;
 
 
-	private static String annGenomic = "GENOMIC";
+	private static String annGenomic = "GENOMIC\t";
 	private static String annIntron = "INTRON";
 	private static String annUTR = "UTR";
 	private static String annCoding = "CODING";
@@ -245,6 +253,32 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
     private long lastGenotypedPosition = -1; // last position on the currentGenotypeInterval, for which a call was already printed;
                                      // can be 1 base before lastGenotyped start
 
+    private JexlEngine jexlEngine = new JexlEngine();
+    private ArrayList<Expression> jexlExpressions = new ArrayList<Expression>();
+
+    // the following arrays store indel source-specific (normal/tumor) metric names
+    // for fast access when populating JEXL expression contexts (see IndelPrecall.fillContext())
+    private final static String[] normalMetricsCassette = new String[4];
+    private final static String[] tumorMetricsCassette = new String[4];
+    private final static String[] singleMetricsCassette = new String[4];
+    private final static int C_COV=0;
+    private final static int C_CONS_CNT=1;
+    private final static int C_INDEL_F=2;
+    private final static int C_INDEL_CF=3;
+    static {
+        normalMetricsCassette[C_COV] = "N_COV";
+        tumorMetricsCassette[C_COV] = "T_COV";
+        singleMetricsCassette[C_COV] = "COV";
+        normalMetricsCassette[C_CONS_CNT] = "N_CONS_CNT";
+        tumorMetricsCassette[C_CONS_CNT] = "T_CONS_CNT";
+        singleMetricsCassette[C_CONS_CNT] = "CONS_CNT";
+        normalMetricsCassette[C_INDEL_F] = "N_INDEL_F";
+        tumorMetricsCassette[C_INDEL_F] = "T_INDEL_F";
+        singleMetricsCassette[C_INDEL_F] = "INDEL_F";
+        normalMetricsCassette[C_INDEL_CF] = "N_INDEL_CF";
+        tumorMetricsCassette[C_INDEL_CF] = "T_INDEL_CF";
+        singleMetricsCassette[C_INDEL_CF] = "INDEL_CF";
+    }
 
     // "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
 
@@ -389,6 +423,17 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
         vcf_writer.writeHeader(new VCFHeader(getVCFHeaderInfo(), SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader()))) ;
         refData = new ReferenceDataSource(getToolkit().getArguments().referenceFile);
+
+        // Now initialize JEXL expressions:
+        for ( String s : FILTER_EXPRESSIONS ) {
+            try {
+                Expression e = jexlEngine.createExpression(s);
+                jexlExpressions.add(e);
+            } catch (Exception e) {
+                throw new UserException.BadArgumentValue("Filter expression", "Invalid expression used (" + s + "). Please see the JEXL docs for correct syntax.") ;
+            }
+
+        }
 	}
 
 
@@ -828,6 +873,15 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
             IndelPrecall tumorCall = new IndelPrecall(tumor_context,pos,NQS_WIDTH);
             IndelPrecall normalCall = new IndelPrecall(normal_context,pos,NQS_WIDTH);
+
+            JexlContext jc = new MapContext();
+            tumorCall.fillContext(jc,tumorMetricsCassette);
+            normalCall.fillContext(jc,normalMetricsCassette);
+            boolean result = false;
+
+            for ( Expression e : jexlExpressions ) {
+                if  ( ((Boolean)e.evaluate(jc)).booleanValue() ) { result=true; break; }
+            }
 
             if ( tumorCall.getCoverage() < minCoverage && ! genotype ) {
                 if ( DEBUG ) {
@@ -1602,6 +1656,13 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
         public IndelVariant getVariant() { return consensus_indel; }
 
+        public void fillContext(JexlContext context,String[] cassette) {
+            context.set(cassette[C_INDEL_F],((double)consensus_indel_count)/total_coverage);
+            context.set(cassette[C_INDEL_CF],((double)consensus_indel_count/all_indel_count));
+            context.set(cassette[C_COV],total_coverage);
+            context.set(cassette[C_CONS_CNT],consensus_indel_count);
+        }
+
         public boolean isCall() {
             boolean ret =  ( consensus_indel_count >= minIndelCount &&
                     (double)consensus_indel_count > minFraction * total_coverage &&
@@ -1610,8 +1671,9 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                         " total_count="+all_indel_count+" cov="+total_coverage+
                 " minConsensusF="+((double)consensus_indel_count)/all_indel_count+
                     " minF="+((double)consensus_indel_count)/total_coverage);
-            return ret;
 
+            return ret;
+//            return true;
         }
 
         /** Utility method: finds the indel variant with the largest count (ie consensus) among all the observed
