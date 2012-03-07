@@ -151,30 +151,44 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         doc="Lightweight bed output file (only positions and events, no stats/annotations)", required=false)
     java.io.File bedOutput = null;
 
+    @Deprecated
     @Argument(fullName="minCoverage", shortName="minCoverage",
                     doc="indel calls will be made only at sites with tumor coverage of minCoverage or more reads; "+
-            "with --unpaired (single sample) option, this value is used for minimum sample coverage", required=false)
+            "with --unpaired (single sample) option, this value is used for minimum sample coverage. "+
+             "INSTEAD USE: T_COV<cutoff (or COV<cutoff in unpaired mode) in -filter expression (see -filter).",
+            required=false)
     int minCoverage = 6;
 
+    @Deprecated
     @Argument(fullName="minNormalCoverage", shortName="minNormalCoverage",
                     doc="used only in default (somatic) mode;  normal sample must have at least minNormalCoverage "+
-            "or more reads at the site to call germline/somatic indel, otherwise the indel (in tumor) is ignored", required=false)
+            "or more reads at the site to call germline/somatic indel, otherwise the indel (in tumor) is ignored. "+
+            "INSTEAD USE: N_COV<cutoff in -filter expression (see -filter).", required=false)
     int minNormalCoverage = 4;
 
+    @Deprecated
     @Argument(fullName="minFraction", shortName="minFraction",
-                    doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for making a call"+
-                    " (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction)", required=false)
+                    doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, "+
+                        "required for making a call"+
+                    " (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction). "+
+                    "INSTEAD USE: T_INDEL_F<cutoff (or INDEL_F<cutoff in unpaired mode) in -filter expression "+
+                    "(see -filter).", required=false)
     double minFraction = 0.3;
 
+    @Deprecated
     @Argument(fullName="minConsensusFraction", shortName="minConsensusFraction",
                     doc="Indel call is made only if fraction of CONSENSUS indel observations at a site wrt "+
-            "all indel observations at the site exceeds this threshold", required=false)
+            "all indel observations at the site exceeds this threshold. "+
+            "INSTEAD USE: T_INDEL_CF<cutoff (or INDEL_CF<cutoff in unpaired mode) in -filter expression "+
+            "(see -filter).", required=false)
     double minConsensusFraction = 0.7;
 
+    @Deprecated
     @Argument(fullName="minIndelCount", shortName="minCnt",
                     doc="Minimum count of reads supporting consensus indel required for making the call. "+
                     " This filter supercedes minFraction, i.e. indels with acceptable minFraction at low coverage "+
-                    "(minIndelCount not met) will not pass.", required=false)
+                    "(minIndelCount not met) will not pass. INSTEAD USE: T_CONS_CNT<cutoff "+
+                    "(or CONS_CNT<cutoff in unpaired mode) in -filter expression (see -filter).", required=false)
     int minIndelCount = 0;
 
     @Argument(fullName="refseq", shortName="refseq",
@@ -183,7 +197,10 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
     String RefseqFileName = null;
 
 
-    @Argument(shortName="filter", doc="One or more criteria to use when selecting the data", required=false)
+    @Argument(shortName="filter", doc="One or more logical expressions. If any of the expressions is TRUE, " +
+            "putative indel will be discarded and nothing will be printed into the output (unless genotyping "+
+            "at the specific position is explicitly requested, see -genotype). "+
+            "Default: T_COV<6||N_COV<4||T_INDEL_F<0.3||T_INDEL_CF<0.7", required=false)
     public ArrayList<String> FILTER_EXPRESSIONS = new ArrayList<String>();
 
 //@Argument(fullName="blacklistedLanes", shortName="BL",
@@ -425,6 +442,13 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         refData = new ReferenceDataSource(getToolkit().getArguments().referenceFile);
 
         // Now initialize JEXL expressions:
+        if ( FILTER_EXPRESSIONS.size() == 0 ) {
+            if ( call_unpaired ) {
+                FILTER_EXPRESSIONS.add("COV<6||INDEL_F<0.3||INDEL_CF<0.7");
+            } else {
+                FILTER_EXPRESSIONS.add("T_COV<6||N_COV<4||T_INDEL_F<0.3||T_INDEL_CF<0.7");
+            }
+        }
         for ( String s : FILTER_EXPRESSIONS ) {
             try {
                 Expression e = jexlEngine.createExpression(s);
@@ -706,13 +730,25 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                 if ( normal_context.indelsAt(pos).size() == 0 && ! genotype ) continue;
 
                 IndelPrecall normalCall = new IndelPrecall(normal_context,pos,NQS_WIDTH);
+                JexlContext jc = new MapContext();
+                normalCall.fillContext(jc,singleMetricsCassette);
+                boolean discard_event = false;
 
-                if ( normalCall.getCoverage() < minCoverage && ! genotype ) {
-                    if ( DEBUG ) {
-                        System.out.println("DEBUG>> Indel at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
-                    }
-                    continue; // low coverage
+                for ( Expression e : jexlExpressions ) {
+                    if  ( ((Boolean)e.evaluate(jc)).booleanValue() ) { discard_event=true; break; }
                 }
+
+                if ( discard_event && ! genotype ) {
+                    normal_context.indelsAt(pos).clear();
+                    continue; //*
+                }
+
+//                if ( normalCall.getCoverage() < minCoverage && ! genotype ) {
+//                    if ( DEBUG ) {
+//                        System.out.println("DEBUG>> Indel at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
+//                    }
+//                    continue; // low coverage
+//                }
 
                 if ( DEBUG ) System.out.println("DEBUG>> "+(normalCall.getAllVariantCount() == 0?"No Indel":"Indel")+" at "+pos);
 
@@ -742,24 +778,16 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
                 location = getToolkit().getGenomeLocParser().createGenomeLoc(location.getContig(), pos);
 
-                boolean haveCall = normalCall.isCall(); // cache the value
-
-                if ( haveCall || genotype) {
-                    if ( haveCall ) normalCallsMade++;
-                    printVCFLine(vcf_writer,normalCall);
-                    if ( bedWriter != null ) normalCall.printBedLine(bedWriter);
-                    if ( verboseWriter != null ) printVerboseLine(verboseWriter, normalCall);
-                    lastGenotypedPosition = pos;
-                }
+                if ( ! discard_event ) normalCallsMade++;
+                printVCFLine(vcf_writer,normalCall, discard_event);
+                if ( bedWriter != null ) normalCall.printBedLine(bedWriter);
+                if ( verboseWriter != null ) printVerboseLine(verboseWriter, normalCall, discard_event);
+                lastGenotypedPosition = pos;
 
                 normal_context.indelsAt(pos).clear();
                     // we dealt with this indel; don't want to see it again
                     // (we might otherwise in the case when 1) there is another indel that follows
                     // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
-
-//			for ( IndelVariant var : variants ) {
-//				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
-//			}
             }
 
             if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+adjustedPosition+")");
@@ -877,24 +905,29 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             JexlContext jc = new MapContext();
             tumorCall.fillContext(jc,tumorMetricsCassette);
             normalCall.fillContext(jc,normalMetricsCassette);
-            boolean result = false;
+            boolean discard_event = false;
 
             for ( Expression e : jexlExpressions ) {
-                if  ( ((Boolean)e.evaluate(jc)).booleanValue() ) { result=true; break; }
+                if  ( ((Boolean)e.evaluate(jc)).booleanValue() ) { discard_event=true; break; }
             }
 
-            if ( tumorCall.getCoverage() < minCoverage && ! genotype ) {
-                if ( DEBUG ) {
-                    System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in tumor="+tumorCall.getCoverage()+" (SKIPPED)");
-                }
-                continue; // low coverage
+            if ( discard_event && ! genotype ) {
+                tumor_context.indelsAt(pos).clear();
+                normal_context.indelsAt(pos).clear();
+                continue; //*
             }
-            if ( normalCall.getCoverage() < minNormalCoverage && ! genotype ) {
-                if ( DEBUG ) {
-                    System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
-                }
-                continue; // low coverage
-            }
+//            if ( tumorCall.getCoverage() < minCoverage && ! genotype ) {
+//                if ( DEBUG ) {
+//                    System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in tumor="+tumorCall.getCoverage()+" (SKIPPED)");
+//                }
+//                continue; // low coverage
+//            }
+//            if ( normalCall.getCoverage() < minNormalCoverage && ! genotype ) {
+//                if ( DEBUG ) {
+//                    System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
+//                }
+//                continue; // low coverage
+//            }
 
             if ( DEBUG ) {
                 System.out.print("DEBUG>> "+(tumorCall.getAllVariantCount() == 0?"No Indel":"Indel")+" in tumor, ");
@@ -922,32 +955,24 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
             if ( right > tumor_context.getStop() ) right = tumor_context.getStop(); // if indel is too close to the end of the window but we need to emit anyway (force-shift), adjust right
 
-//            location = getToolkit().getGenomeLocParser().setStart(location,pos);
-//            location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
-
             location = getToolkit().getGenomeLocParser().createGenomeLoc(location.getContig(),pos); // retrieve annotation data
 
-            boolean haveCall = tumorCall.isCall(); // cache the value
+//            boolean haveCall = tumorCall.isCall(); // cache the value
 
-            if ( haveCall || genotype ) {
-                if ( haveCall ) tumorCallsMade++;
+            if ( ! discard_event ) tumorCallsMade++;
 
-                printVCFLine(vcf_writer,normalCall,tumorCall);
+            printVCFLine(vcf_writer,normalCall,tumorCall,discard_event);
 
-                if ( bedWriter != null ) tumorCall.printBedLine(bedWriter);
+            if ( bedWriter != null ) tumorCall.printBedLine(bedWriter);
 
-                if ( verboseWriter != null ) printVerboseLine(verboseWriter, normalCall, tumorCall );
-                lastGenotypedPosition = pos;
-            }
+            if ( verboseWriter != null ) printVerboseLine(verboseWriter, normalCall, tumorCall, discard_event );
+            lastGenotypedPosition = pos;
+
             tumor_context.indelsAt(pos).clear();
             normal_context.indelsAt(pos).clear();
                 // we dealt with this indel; don't want to see it again
                 // (we might otherwise in the case when 1) there is another indel that follows
                 // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
-
-//			for ( IndelVariant var : variants ) {
-//				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
-//			}
         }
 
         if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+adjustedPosition+")");
@@ -1001,14 +1026,14 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
     }
 
-    public void printVerboseLine(Writer verboseWriter, IndelPrecall normalCall) {
+    public void printVerboseLine(Writer verboseWriter, IndelPrecall normalCall, boolean discard_event) {
         RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
         String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 
         StringBuilder fullRecord = new StringBuilder();
         fullRecord.append(makeFullRecord(normalCall));
         fullRecord.append(annotationString);
-        if ( ! normalCall.isCall() && normalCall.getVariant() != null ) fullRecord.append("\tFILTERED_NOCALL");
+        if ( discard_event && normalCall.getVariant() != null ) fullRecord.append("\tFILTERED_NOCALL");
         try {
             verboseWriter.write(fullRecord.toString());
             verboseWriter.write('\n');
@@ -1019,7 +1044,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
     }
 
 
-    public void printVerboseLine(Writer verboseWriter, IndelPrecall normalCall, IndelPrecall tumorCall) {
+    public void printVerboseLine(Writer verboseWriter, IndelPrecall normalCall, IndelPrecall tumorCall, boolean discard_event) {
         RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
         String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 
@@ -1067,7 +1092,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         fullRecord.append('\t');
         fullRecord.append(annotationString);
 
-        if ( ! tumorCall.isCall() && tumorCall.getVariant() != null ) fullRecord.append("\tFILTERED_NOCALL");
+        if ( discard_event && tumorCall.getVariant() != null ) fullRecord.append("\tFILTERED_NOCALL");
 
         try {
             verboseWriter.write(fullRecord.toString());
@@ -1077,7 +1102,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
     }
 
-    public void printVCFLine(VCFWriter vcf, IndelPrecall call) {
+    public void printVCFLine(VCFWriter vcf, IndelPrecall call, boolean discard_event) {
 
         long start = call.getPosition()-1;
         // If the beginning of the chromosome is deleted (possible, however unlikely), it's unclear how to proceed.
@@ -1114,14 +1139,14 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
             Map<String,Object> attrs = call.makeStatsAttributes(null);
 
-            if ( call.isCall() ) // we made a call - put actual het genotype here:
+            if ( ! discard_event ) // we made a call - put actual het genotype here:
                 genotypes.add(new Genotype(sample,alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
             else // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all) 
                 genotypes.add(new Genotype(sample, homref_alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
 
         }
         Set<String> filters = null;
-        if ( call.getVariant() != null && ! call.isCall() ) {
+        if ( call.getVariant() != null && discard_event ) {
             filters = new HashSet<String>();
             filters.add("NoCall");
         }
@@ -1149,7 +1174,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
     }
 
-    public void printVCFLine(VCFWriter vcf, IndelPrecall nCall, IndelPrecall tCall) {
+    public void printVCFLine(VCFWriter vcf, IndelPrecall nCall, IndelPrecall tCall, boolean discard_event) {
 
         long start = tCall.getPosition()-1;
         long stop = start;
@@ -1166,7 +1191,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         Map<String,Object> attrs = new HashMap();
 
         boolean isSomatic = false;
-        if ( nCall.getCoverage() >= minNormalCoverage && nCall.getVariant() == null && tCall.getVariant() != null ) {
+        if ( nCall.getVariant() == null && tCall.getVariant() != null ) {
             isSomatic = true;
             attrs.put(VCFConstants.SOMATIC_KEY,true);
         }
@@ -1209,7 +1234,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
 
         Set<String> filters = null;
-        if ( tCall.getVariant() != null && ! tCall.isCall() ) {
+        if ( tCall.getVariant() != null && discard_event ) {
             filters = new HashSet<String>();
             filters.add("NoCall");
         }
@@ -1662,7 +1687,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             context.set(cassette[C_COV],total_coverage);
             context.set(cassette[C_CONS_CNT],consensus_indel_count);
         }
-
+/*
         public boolean isCall() {
             boolean ret =  ( consensus_indel_count >= minIndelCount &&
                     (double)consensus_indel_count > minFraction * total_coverage &&
@@ -1675,7 +1700,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
             return ret;
 //            return true;
         }
-
+*/
         /** Utility method: finds the indel variant with the largest count (ie consensus) among all the observed
          * variants, and sets the counts of consensus observations and all observations of any indels (including non-consensus)
          * @param variants
