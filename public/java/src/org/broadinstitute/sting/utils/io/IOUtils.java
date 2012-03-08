@@ -29,10 +29,13 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
 
 public class IOUtils {
@@ -399,5 +402,174 @@ public class IOUtils {
      */
     public static boolean isSpecialFile(File file) {
         return file != null && (file.getAbsolutePath().startsWith("/dev/") || file.equals(DEV_DIR));
+    }
+
+    /**
+     * Reads the entirety of the given file into a byte array. Uses a read buffer size of 4096 bytes.
+     *
+     * @param source File to read
+     * @return The contents of the file as a byte array
+     */
+    public static byte[] readFileIntoByteArray ( File source ) {
+        return readFileIntoByteArray(source, 4096);
+    }
+
+    /**
+     * Reads the entirety of the given file into a byte array using the requested read buffer size.
+     *
+     * @param source File to read
+     * @param readBufferSize Number of bytes to read in at one time
+     * @return The contents of the file as a byte array
+     */
+    public static byte[] readFileIntoByteArray ( File source, int readBufferSize ) {
+        if ( source == null ) {
+            throw new ReviewedStingException("Source file was null");
+        }
+
+        byte[] fileContents;
+
+        try {
+            fileContents = readStreamIntoByteArray(new FileInputStream(source), readBufferSize);
+        }
+        catch ( FileNotFoundException e ) {
+            throw new UserException.CouldNotReadInputFile(source, e);
+        }
+
+        if ( fileContents.length != source.length() ) {
+            throw new UserException.CouldNotReadInputFile(String.format("Unable to completely read file %s: read only %d/%d bytes",
+                                                          source.getAbsolutePath(), fileContents.length, source.length()));
+        }
+
+        return fileContents;
+    }
+
+    /**
+     * Reads all data from the given stream into a byte array. Uses a read buffer size of 4096 bytes.
+     *
+     * @param in Stream to read data from
+     * @return The contents of the stream as a byte array
+     */
+    public static byte[] readStreamIntoByteArray ( InputStream in ) {
+        return readStreamIntoByteArray(in, 4096);
+    }
+
+    /**
+     * Reads all data from the given stream into a byte array using the requested read buffer size.
+     *
+     * @param in Stream to read data from
+     * @param readBufferSize Number of bytes to read in at one time
+     * @return The contents of the stream as a byte array
+     */
+    public static byte[] readStreamIntoByteArray ( InputStream in, int readBufferSize ) {
+        if ( in == null ) {
+            throw new ReviewedStingException("Input stream was null");
+        }
+        else if ( readBufferSize <= 0 ) {
+            throw new ReviewedStingException("Read buffer size must be > 0");
+        }
+
+        // Use a fixed-size buffer for each read, but a dynamically-growing buffer
+        // to hold the accumulated contents of the file/stream:
+        byte[] readBuffer = new byte[readBufferSize];
+        ByteArrayOutputStream fileBuffer = new ByteArrayOutputStream(readBufferSize * 4);
+
+        try {
+            try {
+                int currentBytesRead;
+
+                while ( (currentBytesRead = in.read(readBuffer, 0, readBuffer.length)) >= 0 ) {
+                    fileBuffer.write(readBuffer, 0, currentBytesRead);
+                }
+            }
+            finally {
+                in.close();
+            }
+        }
+        catch ( IOException e ) {
+            throw new UserException.CouldNotReadInputFile("I/O error reading from input stream", e);
+        }
+
+        return fileBuffer.toByteArray();
+    }
+
+    /**
+     * Writes the given array of bytes to a file
+     *
+     * @param bytes Data to write
+     * @param destination File to write the data to
+     */
+    public static void writeByteArrayToFile ( byte[] bytes, File destination ) {
+        if ( destination == null ) {
+            throw new ReviewedStingException("Destination file was null");
+        }
+
+        try {
+            writeByteArrayToStream(bytes, new FileOutputStream(destination));
+        }
+        catch ( FileNotFoundException e ) {
+            throw new UserException.CouldNotCreateOutputFile(destination, e);
+        }
+    }
+
+    /**
+     * Writes the given array of bytes to a stream
+     *
+     * @param bytes Data to write
+     * @param out Stream to write the data to
+     */
+    public static void writeByteArrayToStream ( byte[] bytes, OutputStream out ) {
+        if ( bytes == null || out == null ) {
+            throw new ReviewedStingException("Data to write or output stream was null");
+        }
+
+        try {
+            try {
+                out.write(bytes);
+            }
+            finally {
+                out.close();
+            }
+        }
+        catch ( IOException e ) {
+            throw new UserException.CouldNotCreateOutputFile("I/O error writing to output stream", e);
+        }
+    }
+
+    /**
+     * Determines the uncompressed size of a GZIP file. Uses the GZIP ISIZE field in the last
+     * 4 bytes of the file to get this information.
+     *
+     * @param gzipFile GZIP-format file whose uncompressed size to determine
+     * @return The uncompressed size (in bytes) of the GZIP file
+     */
+    public static int getGZIPFileUncompressedSize ( File gzipFile ) {
+        if ( gzipFile == null ) {
+            throw new ReviewedStingException("GZIP file to examine was null");
+        }
+
+        try {
+            // The GZIP ISIZE field holds the uncompressed size of the compressed data.
+            // It occupies the last 4 bytes of any GZIP file:
+            RandomAccessFile in = new RandomAccessFile(gzipFile, "r");
+            in.seek(gzipFile.length() - 4);
+            byte[] sizeBytes = new byte[4];
+            in.read(sizeBytes, 0, 4);
+
+            ByteBuffer byteBuf = ByteBuffer.wrap(sizeBytes);
+            byteBuf.order(ByteOrder.LITTLE_ENDIAN);   // The GZIP spec mandates little-endian byte order
+            int uncompressedSize = byteBuf.getInt();
+
+            // If the size read in is negative, we've overflowed our signed integer:
+            if ( uncompressedSize < 0 ) {
+                throw new UserException.CouldNotReadInputFile(String.format("Cannot accurately determine the uncompressed size of file %s " +
+                                                               "because it's either larger than %d bytes or the GZIP ISIZE field is corrupt",
+                                                               gzipFile.getAbsolutePath(), Integer.MAX_VALUE));
+            }
+
+            return uncompressedSize;
+        }
+        catch ( IOException e ) {
+            throw new UserException.CouldNotReadInputFile(gzipFile, e);
+        }
     }
 }

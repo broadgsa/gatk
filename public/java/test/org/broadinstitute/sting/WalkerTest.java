@@ -30,6 +30,7 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -45,7 +46,7 @@ import java.io.File;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
-    private static final boolean ENABLE_REPORTING = false;
+    private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
 
     @BeforeMethod
     public void initializeRandomGenerator() {
@@ -121,11 +122,19 @@ public class WalkerTest extends BaseTest {
     }
 
     public class WalkerTestSpec {
+
+        // Arguments implicitly included in all Walker command lines, unless explicitly
+        // disabled using the disableImplicitArgs() method below.
+        final String IMPLICIT_ARGS = ENABLE_PHONE_HOME_FOR_TESTS ?
+                                     String.format("-et %s", GATKRunReport.PhoneHomeOption.STANDARD) :
+                                     String.format("-et %s -K %s", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile);
+
         String args = "";
         int nOutputFiles = -1;
         List<String> md5s = null;
         List<String> exts = null;
         Class expectedException = null;
+        boolean includeImplicitArgs = true;
 
         // the default output path for the integration test
         private File outputFileLocation = null;
@@ -159,6 +168,10 @@ public class WalkerTest extends BaseTest {
             this.expectedException = expectedException;
         }
 
+        public String getArgsWithImplicitArgs() {
+            return args + (includeImplicitArgs ? " " + IMPLICIT_ARGS : "");
+        }
+
         public void setOutputFileLocation(File outputFileLocation) {
             this.outputFileLocation = outputFileLocation;
         }        
@@ -180,6 +193,9 @@ public class WalkerTest extends BaseTest {
             auxillaryFiles.put(expectededMD5sum, outputfile);
         }
 
+        public void disableImplicitArgs() {
+            includeImplicitArgs = false;
+        }
     }
 
     protected boolean parameterize() {
@@ -213,7 +229,7 @@ public class WalkerTest extends BaseTest {
             tmpFiles.add(fl);
         }
 
-        final String args = String.format(spec.args, tmpFiles.toArray());
+        final String args = String.format(spec.getArgsWithImplicitArgs(), tmpFiles.toArray());
         System.out.println(Utils.dupString('-', 80));
 
         if ( spec.expectsException() ) {
@@ -277,12 +293,9 @@ public class WalkerTest extends BaseTest {
      * @param args     the argument list
      * @param expectedException the expected exception or null
      */
-    public static void executeTest(String name, String args, Class expectedException) {
+    private void executeTest(String name, String args, Class expectedException) {
         CommandLineGATK instance = new CommandLineGATK();
         String[] command = Utils.escapeExpressions(args);
-
-        // add the logging level to each of the integration test commands
-        command = Utils.appendArray(command, "-et", ENABLE_REPORTING ? "STANDARD" : "NO_ET");
 
         // run the executable
         boolean gotAnException = false;

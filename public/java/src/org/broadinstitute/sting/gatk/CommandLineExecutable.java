@@ -35,9 +35,12 @@ import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.crypt.CryptUtils;
+import org.broadinstitute.sting.utils.crypt.GATKKey;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 
+import java.security.PublicKey;
 import java.util.*;
 
 /**
@@ -78,6 +81,9 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         Walker<?,?> walker = engine.getWalkerByName(getAnalysisName());
 
         try {
+            // Make sure a valid GATK user key is present, if required.
+            authorizeGATKRun();
+
             engine.setArguments(getArgumentCollection());
 
             // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
@@ -130,6 +136,28 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         return 0;
     }
 
+    /**
+     * Authorizes this run of the GATK by checking for a valid GATK user key, if required.
+     * Currently, a key is required only if running with the -et NO_ET or -et STDOUT options.
+     */
+    private void authorizeGATKRun() {
+        if ( getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.NO_ET ||
+             getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.STDOUT ) {
+            if ( getArgumentCollection().gatkKeyFile == null ) {
+                throw new UserException("Running with the -et NO_ET or -et STDOUT option requires a GATK Key file. " +
+                                        "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home " +
+                                        "for more information and instructions on how to obtain a key.");
+            }
+            else {
+                PublicKey gatkPublicKey = CryptUtils.loadGATKDistributedPublicKey();
+                GATKKey gatkUserKey = new GATKKey(gatkPublicKey, getArgumentCollection().gatkKeyFile);
+
+                if ( ! gatkUserKey.isValid() ) {
+                    throw new UserException.KeySignatureVerificationException(getArgumentCollection().gatkKeyFile);
+                }
+            }
+        }
+    }
 
     /**
      * Generate the GATK run report for this walker using the current GATKEngine, if -et is enabled.

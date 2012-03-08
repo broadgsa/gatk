@@ -296,6 +296,10 @@ public class GATKReportTable {
         return primaryKeyColumn.contains(primaryKey);
     }
 
+    public Collection<Object> getPrimaryKeys() {
+        return Collections.unmodifiableCollection(primaryKeyColumn);
+    }
+
     /**
      * Set the value for a given position in the table
      *

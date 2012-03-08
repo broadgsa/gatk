@@ -47,6 +47,7 @@
     <property name="R.package.path" value="org/broadinstitute/sting/utils/R" />
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
+    <property name="key.dir" value="${public.dir}/keys" />
 
     <property name="scala.public.source.dir" value="${public.dir}/scala/src" />
     <property name="scala.private.source.dir" value="${private.dir}/scala/src" />
@@ -567,6 +568,7 @@
             </fileset>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/tools/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/picard/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/samtools/**/*.class"/>
@@ -614,6 +616,9 @@
             <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
                 <include name="**/gatk/**/*.R"/>
                 <include name="**/alignment/**/*.R"/>
+            </fileset>
+            <fileset dir="${key.dir}">
+                <include name="**/*.key"/>
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
@@ -879,6 +884,7 @@
         <pathelement location="${R.tar.dir}" />
         <pathelement location="${R.public.scripts.dir}" />
         <pathelement location="${R.private.scripts.dir}" />
+        <pathelement location="${key.dir}" />
         <path refid="external.dependencies" />
     </path>
 
