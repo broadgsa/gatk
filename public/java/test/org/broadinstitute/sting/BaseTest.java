@@ -61,6 +61,8 @@ public abstract class BaseTest {
     public static final String annotationDataLocation = GATKDataLocation + "Annotations/";
 
     public static final String b37GoodBAM = validationDataLocation + "/CEUTrio.HiSeq.b37.chr20.10_11mb.bam";
+    public static final String b37GoodNA12878BAM = validationDataLocation + "/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam";
+    public static final String b37_NA12878_OMNI = validationDataLocation + "/NA12878.omni.vcf";
 
     public static final String refseqAnnotationLocation = annotationDataLocation + "refseq/";
     public static final String hg18Refseq = refseqAnnotationLocation + "refGene-big-table-hg18.txt";
