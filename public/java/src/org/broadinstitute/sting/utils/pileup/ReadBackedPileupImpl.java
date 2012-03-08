@@ -56,6 +56,9 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
      *
      * @param loc
      * @param pileup
+     * @param size
+     * @param nDeletions
+     * @param nMQ0Reads
      */
     public ReadBackedPileupImpl(GenomeLoc loc, List<PileupElement> pileup, int size, int nDeletions, int nMQ0Reads) {
         super(loc, pileup, size, nDeletions, nMQ0Reads);
@@ -71,13 +74,14 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
     }
 
     @Override
-    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion,
-                                                   boolean isNextToSoftClip) {
-        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, null,0);
+    protected PileupElement createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip) {
+        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, 0);
     }
 
-    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, 
-                                                   boolean isNextToSoftClip,String nextEventBases, final int nextEventLength) {
-        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, nextEventBases,nextEventLength);
+    @Override
+    protected PileupElement createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength ) {
+        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, nextEventBases, nextEventLength);
     }
+
+
 }

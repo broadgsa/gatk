@@ -48,7 +48,7 @@ public class ExtendedEventPileupElement extends PileupElement {
 
 
     public ExtendedEventPileupElement(GATKSAMRecord read, int offset, int eventLength, String eventBases, Type type) {
-        super(read, offset, type == Type.DELETION, false, false, false,null,-1); // extended events are slated for removal
+        super(read, offset, type == Type.DELETION, false, false, false, false, false, null, -1); // extended events are slated for removal
         this.read = read;
         this.offset = offset;
         this.eventLength = eventLength;

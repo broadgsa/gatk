@@ -4,7 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
+import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -203,8 +203,8 @@ public class FragmentUtils {
                 insertionQuals[iii] = secondReadInsertionQuals[iii-firstReadStop];
                 deletionQuals[iii] = secondReadDeletionQuals[iii-firstReadStop];
             }
-            returnRead.setBaseQualities( insertionQuals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION );
-            returnRead.setBaseQualities( deletionQuals, RecalDataManager.BaseRecalibrationType.BASE_DELETION );
+            returnRead.setBaseQualities( insertionQuals, EventType.BASE_INSERTION );
+            returnRead.setBaseQualities( deletionQuals, EventType.BASE_DELETION );
         }
 
         final ArrayList<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>();

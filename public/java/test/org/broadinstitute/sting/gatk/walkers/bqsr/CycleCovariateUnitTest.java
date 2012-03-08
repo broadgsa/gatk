@@ -45,15 +45,6 @@ public class CycleCovariateUnitTest {
         values = covariate.getValues(read);
         verifyCovariateArray(values.getMismatches(), readLength, (short) -1);
 
-        read.setReadPairedFlag(true);
-        read.setSecondOfPairFlag(true);
-        values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) -readLength, (short) 1);
-
-        read.setReadNegativeStrandFlag(false);
-        values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) -1, (short) -1);
-
     }
 
     private void verifyCovariateArray(BitSet[] values, short init, short increment) {

@@ -21,15 +21,17 @@ public class PileupElement implements Comparable<PileupElement> {
     public static final byte T_FOLLOWED_BY_INSERTION_BASE = (byte) 89;
     public static final byte G_FOLLOWED_BY_INSERTION_BASE = (byte) 90;
 
-    protected final GATKSAMRecord read;
-    protected final int offset;
-    protected final boolean isDeletion;
-    protected final boolean isBeforeDeletion;
-    protected final boolean isBeforeInsertion;
-    protected final boolean isNextToSoftClip;
-    protected final int eventLength;
-    protected final String eventBases; // if it is a deletion, we do not have information about the actual deleted bases
-    // in the read itself, so we fill the string with D's; for insertions we keep actual inserted bases
+    protected final GATKSAMRecord read;         // the read this base belongs to
+    protected final int offset;                 // the offset in the bases array for this base
+    protected final boolean isDeletion;         // is this base a deletion
+    protected final boolean isBeforeDeletion;   // is the base to the right of this base an deletion
+    protected final boolean isAfterDeletion;    // is the base to the left of this base a deletion
+    protected final boolean isBeforeInsertion;  // is the base to the right of this base an insertion
+    protected final boolean isAfterInsertion;   // is the base to the left of this base an insertion
+    protected final boolean isNextToSoftClip;   // is this base either before or after a soft clipped base
+    protected final int eventLength;            // what is the length of the event (insertion or deletion) *after* this base
+    protected final String eventBases;          // if it is a deletion, we do not have information about the actual deleted bases in the read itself, so we fill the string with D's; for insertions we keep actual inserted bases
+
     
 
     /**
@@ -39,7 +41,9 @@ public class PileupElement implements Comparable<PileupElement> {
      * @param offset            the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
      * @param isDeletion        whether or not this base is a deletion
      * @param isBeforeDeletion  whether or not this base is before a deletion
+     * @param isAfterDeletion   whether or not this base is after a deletion
      * @param isBeforeInsertion whether or not this base is before an insertion
+     * @param isAfterInsertion  whether or not this base is after an insertion
      * @param isNextToSoftClip  whether or not this base is next to a soft clipped base
      * @param nextEventBases    bases in event in case element comes before insertion or deletion 
      * @param nextEventLength   length of next event in case it's insertion or deletion                             
@@ -48,8 +52,7 @@ public class PileupElement implements Comparable<PileupElement> {
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip,
-                         final String nextEventBases, final int nextEventLength) {
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength) {
         if (offset < 0 && isDeletion)
             throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
 
@@ -57,20 +60,22 @@ public class PileupElement implements Comparable<PileupElement> {
         this.offset = offset;
         this.isDeletion = isDeletion;
         this.isBeforeDeletion = isBeforeDeletion;
+        this.isAfterDeletion = isAfterDeletion;
         this.isBeforeInsertion = isBeforeInsertion;
+        this.isAfterInsertion = isAfterInsertion;
         this.isNextToSoftClip = isNextToSoftClip;
         if (isBeforeInsertion)
             eventBases = nextEventBases;
         else
-            eventBases = null; // ignore argument in any other case
+            eventBases = null;                  // ignore argument in any other case
         if (isBeforeDeletion || isBeforeInsertion)
             eventLength = nextEventLength;
         else
             eventLength = -1;
     }
 
-    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip) {
-        this(read,offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, null, -1);
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip) {
+        this(read,offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, -1);
     }
     public boolean isDeletion() {
         return isDeletion;
@@ -80,8 +85,16 @@ public class PileupElement implements Comparable<PileupElement> {
         return isBeforeDeletion;
     }
 
+    public boolean isAfterDeletion() {
+        return isAfterDeletion;
+    }
+
     public boolean isBeforeInsertion() {
         return isBeforeInsertion;
+    }
+
+    public boolean isAfterInsertion() {
+        return isAfterInsertion;
     }
 
     public boolean isNextToSoftClip() {
@@ -123,14 +136,14 @@ public class PileupElement implements Comparable<PileupElement> {
     }
 
     /**
-     * Returns length of the event (number of inserted or deleted bases
+     * @return length of the event (number of inserted or deleted bases
      */
     public int getEventLength() {
         return eventLength;
     }
 
     /**
-     * Returns actual sequence of inserted bases, or a null if the event is a deletion or if there is no event in the associated read.
+     * @return actual sequence of inserted bases, or a null if the event is a deletion or if there is no event in the associated read.
      */
     public String getEventBases() {
         return eventBases;
@@ -185,13 +198,9 @@ public class PileupElement implements Comparable<PileupElement> {
     //
     // --------------------------------------------------------------------------
 
-//    public boolean isReducedRead() {
-//        return read.isReducedRead();
-//    }
-
     /**
      * Returns the number of elements in the pileup element.
-     * <p/>
+     *
      * Unless this is a reduced read, the number of elements in a pileup element is one. In the event of
      * this being a reduced read and a deletion, we return the average number of elements between the left
      * and right elements to the deletion. We assume the deletion to be left aligned.

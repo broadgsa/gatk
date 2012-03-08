@@ -72,6 +72,17 @@ public interface Covariate {
     public String keyFromBitSet(BitSet key);
 
     /**
+     * Converts a key into a bitset
+     *
+     * Only necessary for on-the-fly recalibration when you have the object, but need to store it in memory in bitset format. For counting covariates
+     * the getValues method already returns all values in BitSet format.
+     *
+     * @param key the object corresponding to the covariate
+     * @return a bitset representation of the object
+     */
+    public BitSet bitSetFromKey(Object key);
+
+    /**
      * Each covariate should determine how many bits are necessary to encode it's data
      *
      * @return The number of bits used to represent the values of this covariate.

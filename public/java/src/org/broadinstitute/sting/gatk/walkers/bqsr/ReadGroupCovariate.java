@@ -55,16 +55,7 @@ public class ReadGroupCovariate implements RequiredCovariate {
     public CovariateValues getValues(final GATKSAMRecord read) {
         final int l = read.getReadLength();
         final String readGroupId = read.getReadGroup().getReadGroupId();
-        short shortId;
-        if (readGroupLookupTable.containsKey(readGroupId))
-            shortId = readGroupLookupTable.get(readGroupId);
-        else {
-            shortId = nextId;
-            readGroupLookupTable.put(readGroupId, nextId);
-            readGroupReverseLookupTable.put(nextId, readGroupId);
-            nextId++;
-        }
-        BitSet rg = BitSetUtils.bitSetFrom(shortId);  // All objects must output a BitSet, so we convert the "compressed" representation of the Read Group into a bitset
+        BitSet rg = bitSetForReadGroup(readGroupId);                        // All objects must output a BitSet, so we convert the "compressed" representation of the Read Group into a bitset
         BitSet[] readGroups = new BitSet[l];
         Arrays.fill(readGroups, rg);
         return new CovariateValues(readGroups, readGroups, readGroups);
@@ -81,6 +72,11 @@ public class ReadGroupCovariate implements RequiredCovariate {
         return decodeReadGroup((short) BitSetUtils.longFrom(key));
     }
 
+    @Override
+    public BitSet bitSetFromKey(Object key) {
+        return bitSetForReadGroup((String) key);
+    }
+
     public final String decodeReadGroup(final short id) {
         return readGroupReverseLookupTable.get(id);
     }
@@ -88,6 +84,19 @@ public class ReadGroupCovariate implements RequiredCovariate {
     @Override
     public int numberOfBits() {
         return BitSetUtils.numberOfBitsToRepresent(Short.MAX_VALUE);
+    }
+    
+    private BitSet bitSetForReadGroup(String readGroupId) {
+        short shortId;
+        if (readGroupLookupTable.containsKey(readGroupId))
+            shortId = readGroupLookupTable.get(readGroupId);
+        else {
+            shortId = nextId;
+            readGroupLookupTable.put(readGroupId, nextId);
+            readGroupReverseLookupTable.put(nextId, readGroupId);
+            nextId++;
+        }        
+        return BitSetUtils.bitSetFrom(shortId);
     }
 }
 

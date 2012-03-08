@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.BitSetUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.BitSet;
@@ -40,8 +41,6 @@ import java.util.BitSet;
 
 public class QualityScoreCovariate implements RequiredCovariate {
 
-    private final int MAX_QUAL = 50;
-
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
@@ -71,7 +70,7 @@ public class QualityScoreCovariate implements RequiredCovariate {
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
     public final Object getValue(final String str) {
-        return Integer.parseInt(str);
+        return Byte.parseByte(str);
     }
 
     @Override
@@ -80,7 +79,12 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
+    public BitSet bitSetFromKey(Object key) {
+        return BitSetUtils.bitSetFrom((Byte) key);
+    }
+
+    @Override
     public int numberOfBits() {
-        return BitSetUtils.numberOfBitsToRepresent(MAX_QUAL);
+        return BitSetUtils.numberOfBitsToRepresent(QualityUtils.MAX_QUAL_SCORE);
     }
 }

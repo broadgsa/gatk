@@ -69,35 +69,12 @@ public class CycleCovariate implements StandardCovariate {
             final short init;
             final short increment;
             if (!read.getReadNegativeStrandFlag()) {
-                // Differentiate between first and second of pair.
-                // The sequencing machine cycle keeps incrementing for the second read in a pair. So it is possible for a read group
-                // to have an error affecting quality at a particular cycle on the first of pair which carries over to the second of pair.
-                // Therefore the cycle covariate must differentiate between first and second of pair reads.
-                // This effect can not be corrected by pulling out the first of pair and second of pair flags into a separate covariate because
-                //   the current sequential model would consider the effects independently instead of jointly.
-                if (read.getReadPairedFlag() && read.getSecondOfPairFlag()) {
-                    //second of pair, positive strand
-                    init = -1;
-                    increment = -1;
-                }
-                else {
-                    //first of pair, positive strand
-                    init = 1;
-                    increment = 1;
-                }
-
+                init = 1;
+                increment = 1;
             }
             else {
-                if (read.getReadPairedFlag() && read.getSecondOfPairFlag()) {
-                    //second of pair, negative strand
-                    init = (short) -read.getReadLength();
-                    increment = 1;
-                }
-                else {
-                    //first of pair, negative strand
-                    init = (short) read.getReadLength();
-                    increment = -1;
-                }
+                init = (short) read.getReadLength();
+                increment = -1;
             }
 
             short cycle = init;
@@ -121,7 +98,7 @@ public class CycleCovariate implements StandardCovariate {
             //   the current sequential model would consider the effects independently instead of jointly.
             final boolean multiplyByNegative1 = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 
-            short cycle = multiplyByNegative1 ? (short) -1 : 1;
+            short cycle = multiplyByNegative1 ? (short) -1 : 1;     // todo -- check if this is the right behavior for mate paired reads in flow cycle platforms.
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
             // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
@@ -201,12 +178,17 @@ public class CycleCovariate implements StandardCovariate {
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
     public final Object getValue(final String str) {
-        return Integer.parseInt(str);
+        return Short.parseShort(str);
     }
 
     @Override
     public String keyFromBitSet(BitSet key) {
         return String.format("%d", BitSetUtils.shortFrom(key));
+    }
+
+    @Override
+    public BitSet bitSetFromKey(Object key) {
+        return BitSetUtils.bitSetFrom((Short) key);
     }
 
     @Override

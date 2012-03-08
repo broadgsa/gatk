@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -33,24 +35,22 @@ public class ContextCovariateUnitTest {
     public void testSimpleContexts() {
         byte[] quals = ReadUtils.createRandomReadQuals(10000);
         byte[] bbases = ReadUtils.createRandomReadBases(10000, true);
-        String bases = stringFrom(bbases);
-        //        System.out.println("Read: " + bases);
         GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bbases, quals, bbases.length + "M");
+        GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, RAC.LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);
         CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), RAC.MISMATCHES_CONTEXT_SIZE, bases);
-        verifyCovariateArray(values.getInsertions(), RAC.INSERTIONS_CONTEXT_SIZE, bases);
-        verifyCovariateArray(values.getDeletions(), RAC.DELETIONS_CONTEXT_SIZE, bases);
+        verifyCovariateArray(values.getMismatches(), RAC.MISMATCHES_CONTEXT_SIZE, stringFrom(clippedRead.getReadBases()));
+        verifyCovariateArray(values.getInsertions(), RAC.INSERTIONS_CONTEXT_SIZE, stringFrom(clippedRead.getReadBases()));
+        verifyCovariateArray(values.getDeletions(),  RAC.DELETIONS_CONTEXT_SIZE,  stringFrom(clippedRead.getReadBases()));
     }
 
     private void verifyCovariateArray(BitSet[] values, int contextSize, String bases) {
         for (int i = 0; i < values.length; i++) {
-            String expectedContext = covariate.NO_CONTEXT_VALUE;
+            String expectedContext = null;
             if (i >= contextSize) {
                 String context = bases.substring(i - contextSize, i);
                 if (!context.contains("N"))
                     expectedContext = context;
             }
-            //            System.out.println(String.format("Context [%d]:\n%s\n%s\n", i, covariate.keyFromBitSet(values[i]), expectedContext));
             Assert.assertEquals(covariate.keyFromBitSet(values[i]), expectedContext);
         }
     }

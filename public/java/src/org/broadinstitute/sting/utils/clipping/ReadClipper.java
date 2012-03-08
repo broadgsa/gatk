@@ -231,15 +231,16 @@ public class ReadClipper {
 
 
     /**
-     * Hard clips any contiguous tail (left, right or both) with base quality lower than lowQual.
+     * Clips any contiguous tail (left, right or both) with base quality lower than lowQual using the desired algorithm.
      *
      * This function will look for low quality tails and hard clip them away. A low quality tail
      * ends when a base has base quality greater than lowQual.
      *
+     * @param algorithm the algorithm to use (HardClip, SoftClip, Write N's,...)
      * @param lowQual every base quality lower than or equal to this in the tail of the read will be hard clipped
      * @return a new read without low quality tails
      */
-    private GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
+    private GATKSAMRecord clipLowQualEnds(ClippingRepresentation algorithm, byte lowQual) {
         if (read.isEmpty())
             return read;
 
@@ -254,7 +255,6 @@ public class ReadClipper {
         // if the entire read should be clipped, then return an empty read.
         if (leftClipIndex > rightClipIndex)
             return GATKSAMRecord.emptyRead(read);
-//            return (new GATKSAMRecord(read.getHeader()));
 
         if (rightClipIndex < read.getReadLength() - 1) {
             this.addOp(new ClippingOp(rightClipIndex + 1, read.getReadLength() - 1));
@@ -262,10 +262,17 @@ public class ReadClipper {
         if (leftClipIndex > 0 ) {
             this.addOp(new ClippingOp(0, leftClipIndex - 1));
         }
-        return this.clipRead(ClippingRepresentation.HARDCLIP_BASES);
+        return this.clipRead(algorithm);
+    }
+
+    private GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
+        return this.clipLowQualEnds(ClippingRepresentation.HARDCLIP_BASES, lowQual);
     }
     public static GATKSAMRecord hardClipLowQualEnds(GATKSAMRecord read, byte lowQual) {
         return (new ReadClipper(read)).hardClipLowQualEnds(lowQual);
+    }
+    public static GATKSAMRecord clipLowQualEnds(GATKSAMRecord read, byte lowQual, ClippingRepresentation algorithm) {
+        return (new ReadClipper(read)).clipLowQualEnds(algorithm, lowQual);
     }
 
 
