@@ -648,4 +648,12 @@ public class ReadUtils {
         }
         return new Pair<HashMap<Integer, HashSet<GATKSAMRecord>>, HashMap<GATKSAMRecord, Boolean[]>>(locusToReadMap, readToLocusMap);
     }
+
+    public static String prettyPrintSequenceRecords ( SAMSequenceDictionary sequenceDictionary ) {
+        String[] sequenceRecordNames = new String[sequenceDictionary.size()];
+        int sequenceRecordIndex = 0;
+        for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
+            sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
+        return Arrays.deepToString(sequenceRecordNames);
+    }
 }
