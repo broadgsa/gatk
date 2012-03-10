@@ -25,6 +25,7 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -349,7 +350,18 @@ public class GATKBAMIndex {
 
     private void read(final ByteBuffer buffer) {
         try {
-            fileChannel.read(buffer);
+            int bytesExpected = buffer.limit();
+            int bytesRead = fileChannel.read(buffer);
+
+            // We have a rigid expectation here to read in exactly the number of bytes we've limited
+            // our buffer to -- if we read in fewer bytes than this, or encounter EOF (-1), the index
+            // must be truncated or otherwise corrupt:
+            if ( bytesRead < bytesExpected ) {
+                throw new UserException.MalformedFile(mFile, String.format("Premature end-of-file while reading BAM index file %s. " +
+                                                                           "It's likely that this file is truncated or corrupt -- " +
+                                                                           "Please try re-indexing the corresponding BAM file.",
+                                                                           mFile));
+            }
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to read bytes from index file " + mFile);

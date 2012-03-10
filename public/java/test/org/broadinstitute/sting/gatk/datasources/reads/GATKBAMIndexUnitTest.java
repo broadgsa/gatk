@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -89,6 +90,18 @@ public class GATKBAMIndexUnitTest extends BaseTest {
         // Level 5                                
         Assert.assertEquals(GATKBAMIndex.getFirstBinInLevel(5),4681);
         Assert.assertEquals(bamIndex.getLevelSize(5),37448-4681+1);
+    }
+
+    @Test( expectedExceptions = UserException.MalformedFile.class )
+    public void testDetectTruncatedBamIndexWordBoundary() {
+        GATKBAMIndex index = new GATKBAMIndex(new File(validationDataLocation + "truncated_at_word_boundary.bai"));
+        index.readReferenceSequence(0);
+    }
+
+    @Test( expectedExceptions = UserException.MalformedFile.class )
+    public void testDetectTruncatedBamIndexNonWordBoundary() {
+        GATKBAMIndex index = new GATKBAMIndex(new File(validationDataLocation + "truncated_at_non_word_boundary.bai"));
+        index.readReferenceSequence(0);
     }
 
 }

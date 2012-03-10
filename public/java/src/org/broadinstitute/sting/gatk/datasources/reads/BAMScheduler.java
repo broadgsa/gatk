@@ -34,6 +34,8 @@ import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -245,7 +247,14 @@ public class BAMScheduler implements Iterator<FilePointer> {
         // This will ensure that if the two sets of contigs don't quite match (b36 male vs female ref, hg19 Epstein-Barr), then
         // we'll be using the correct contig index for the BAMs.
         // TODO: Warning: assumes all BAMs use the same sequence dictionary!  Get around this with contig aliasing.
-        final int currentContigIndex = dataSource.getHeader().getSequence(currentLocus.getContig()).getSequenceIndex();
+        SAMSequenceRecord currentContigSequenceRecord = dataSource.getHeader().getSequence(currentLocus.getContig());
+        if ( currentContigSequenceRecord == null ) {
+            throw new UserException(String.format("Contig %s not present in sequence dictionary for merged BAM header: %s",
+                                                  currentLocus.getContig(),
+                                                  ReadUtils.prettyPrintSequenceRecords(dataSource.getHeader().getSequenceDictionary())));
+        }
+
+        final int currentContigIndex = currentContigSequenceRecord.getSequenceIndex();
 
         // Stale reference sequence or first invocation.  (Re)create the binTreeIterator.
         if(lastReferenceSequenceLoaded == null || lastReferenceSequenceLoaded != currentContigIndex) {

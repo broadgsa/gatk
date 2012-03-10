@@ -10,6 +10,8 @@ import net.sf.samtools.SAMUtils;
  */
 public class QualityUtils {
     public final static byte MAX_QUAL_SCORE = SAMUtils.MAX_PHRED_SCORE;
+    public final static double ERROR_RATE_OF_MAX_QUAL_SCORE = qualToErrorProbRaw(MAX_QUAL_SCORE);
+
     public final static double MIN_REASONABLE_ERROR = 0.0001;
     public final static byte MAX_REASONABLE_Q_SCORE = 40;
     public final static byte MIN_USABLE_Q_SCORE = 6;

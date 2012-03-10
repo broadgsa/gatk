@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.crypt;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
@@ -39,6 +40,11 @@ public class GATKKeyUnitTest extends BaseTest {
 
     @Test
     public void testCreateGATKKeyUsingMasterKeyPair() {
+        if ( gatkPrivateKeyExistsButReadPermissionDenied() ) {
+            throw new SkipException(String.format("Skipping test %s because we do not have permission to read the GATK private key",
+                                    "testCreateGATKKeyUsingMasterKeyPair"));
+        }
+
         PrivateKey masterPrivateKey = CryptUtils.loadGATKMasterPrivateKey();
         PublicKey masterPublicKey = CryptUtils.loadGATKMasterPublicKey();
 
@@ -49,6 +55,11 @@ public class GATKKeyUnitTest extends BaseTest {
 
     @Test
     public void testCreateGATKKeyUsingMasterPrivateKeyAndDistributedPublicKey() {
+        if ( gatkPrivateKeyExistsButReadPermissionDenied() ) {
+            throw new SkipException(String.format("Skipping test %s because we do not have permission to read the GATK private key",
+                                    "testCreateGATKKeyUsingMasterPrivateKeyAndDistributedPublicKey"));
+        }
+
         PrivateKey masterPrivateKey = CryptUtils.loadGATKMasterPrivateKey();
         PublicKey distributedPublicKey = CryptUtils.loadGATKDistributedPublicKey();
 
@@ -82,8 +93,7 @@ public class GATKKeyUnitTest extends BaseTest {
         KeyPair keyPair = CryptUtils.generateKeyPair();
 
         // Email addresses cannot contain the NUL byte, since it's used as a sectional delimiter in the key file:
-        GATKKey key = new GATKKey(CryptUtils.loadGATKMasterPrivateKey(), CryptUtils.loadGATKDistributedPublicKey(),
-                                  emailAddressWithNulByte);
+        GATKKey key = new GATKKey(keyPair.getPrivate(), keyPair.getPublic(), emailAddressWithNulByte);
     }
 
     @Test
@@ -109,5 +119,10 @@ public class GATKKeyUnitTest extends BaseTest {
         Assert.assertFalse(nonExistentFile.exists());
 
         GATKKey key = new GATKKey(CryptUtils.loadGATKDistributedPublicKey(), nonExistentFile);
+    }
+
+    private boolean gatkPrivateKeyExistsButReadPermissionDenied() {
+        File gatkPrivateKey = new File(CryptUtils.GATK_MASTER_PRIVATE_KEY_FILE);
+        return gatkPrivateKey.exists() && ! gatkPrivateKey.canRead();
     }
 }
