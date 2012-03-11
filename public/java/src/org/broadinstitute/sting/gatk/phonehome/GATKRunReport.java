@@ -90,18 +90,11 @@ public class GATKRunReport {
     protected static Logger logger = Logger.getLogger(GATKRunReport.class);
 
 
-    // the listing of the fields is somewhat important; this is the order that the simple XML will output them
-    @ElementList(required = true, name = "gatk_header_Information")
-    private List<String> mGATKHeader;
-
     @Element(required = false, name = "id")
     private final String id;
 
     @Element(required = false, name = "exception")
     private final ExceptionToXML mException;
-
-    @Element(required = true, name = "working_directory")
-    private String currentPath;
 
     @Element(required = true, name = "start_time")
     private String startTime = "ND";
@@ -111,9 +104,6 @@ public class GATKRunReport {
 
     @Element(required = true, name = "run_time")
     private long runTime = 0;
-
-    @Element(required = true, name = "command_line")
-    private String cmdLine = "COULD NOT BE DETERMINED";
 
     @Element(required = true, name = "walker_name")
     private String walkerName;
@@ -126,9 +116,6 @@ public class GATKRunReport {
 
     @Element(required = true, name = "max_memory")
     private long maxMemory;
-
-    @Element(required = true, name = "java_tmp_directory")
-    private String tmpDir;
 
     @Element(required = true, name = "user_name")
     private String userName;
@@ -144,9 +131,6 @@ public class GATKRunReport {
 
     @Element(required = true, name = "iterations")
     private long nIterations;
-
-    @Element(required = true, name = "reads")
-    private long nReads;
 
     public enum PhoneHomeOption {
         /** Disable phone home */
@@ -172,15 +156,8 @@ public class GATKRunReport {
 
         logger.debug("Aggregating data for run report");
 
-        mGATKHeader = CommandLineGATK.createApplicationHeader();
-        currentPath = System.getProperty("user.dir");
-
         // what did we run?
         id = org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(32);
-        try {
-            cmdLine = engine.createApproximateCommandLineArgumentString(engine, walker);
-        } catch (Exception ignore) { }
-
         walkerName = engine.getWalkerName(walker.getClass());
         svnVersion = CommandLineGATK.getVersionNumber();
 
@@ -191,7 +168,6 @@ public class GATKRunReport {
             startTime = dateFormat.format(engine.getStartTime());
             runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
         }
-        tmpDir = System.getProperty("java.io.tmpdir");
 
         // deal with memory usage
         Runtime.getRuntime().gc(); // call GC so totalMemory is ~ used memory
@@ -202,12 +178,11 @@ public class GATKRunReport {
         if ( engine.getCumulativeMetrics() != null ) {
             // it's possible we aborted so early that these data structures arent initialized
             nIterations = engine.getCumulativeMetrics().getNumIterations();
-            nReads = engine.getCumulativeMetrics().getNumReadsSeen();
         }
 
         // user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");
-        hostName = "unknown"; // resolveHostname();
+        hostName = Utils.resolveHostname();
 
         // basic java information
         java = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
