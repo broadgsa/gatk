@@ -4,6 +4,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
@@ -38,14 +39,30 @@ public class ActiveRegion implements HasGenomeLocation {
         fullExtentReferenceLoc = fullExtentReferenceLoc.union( genomeLocParser.createGenomeLoc( read ) );
         reads.add( read );
     }
+    
+    public void hardClipToActiveRegion() {
+        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, activeRegionLoc.getStart(), activeRegionLoc.getStop() );
+        reads.clear();
+        reads.addAll(clippedReads);
+    }
 
     public ArrayList<GATKSAMRecord> getReads() { return reads; }
 
-    public byte[] getReference( final IndexedFastaSequenceFile referenceReader ) {
-        return getReference( referenceReader, 0 );
+    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader ) {
+        return getActiveRegionReference(referenceReader, 0);
     }
 
-    public byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+        return referenceReader.getSubsequenceAt( activeRegionLoc.getContig(),
+                Math.max(1, activeRegionLoc.getStart() - padding),
+                Math.min(referenceReader.getSequenceDictionary().getSequence(activeRegionLoc.getContig()).getSequenceLength(), activeRegionLoc.getStop() + padding) ).getBases();
+    }
+
+    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
+        return getFullReference(referenceReader, 0);
+    }
+
+    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
        return referenceReader.getSubsequenceAt( fullExtentReferenceLoc.getContig(),
                Math.max(1, fullExtentReferenceLoc.getStart() - padding), 
                Math.min(referenceReader.getSequenceDictionary().getSequence(fullExtentReferenceLoc.getContig()).getSequenceLength(), fullExtentReferenceLoc.getStop() + padding) ).getBases();
