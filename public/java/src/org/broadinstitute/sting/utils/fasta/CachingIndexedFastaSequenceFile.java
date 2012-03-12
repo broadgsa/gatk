@@ -167,7 +167,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             if ( start < myCache.start || stop > myCache.stop || myCache.seq == null || myCache.seq.getContigIndex() != contigInfo.getSequenceIndex() ) {
                 cacheMisses++;
                 myCache.start = Math.max(start - cacheMissBackup, 0);
-                myCache.stop  = Math.min(myCache.start + cacheSize, contigInfo.getSequenceLength());
+                myCache.stop  = Math.min(start + cacheSize + cacheMissBackup, contigInfo.getSequenceLength());
                 myCache.seq   = super.getSubsequenceAt(contig, myCache.start, myCache.stop);
                 //System.out.printf("New cache at %s %d-%d%n", contig, cacheStart, cacheStop);
             } else {

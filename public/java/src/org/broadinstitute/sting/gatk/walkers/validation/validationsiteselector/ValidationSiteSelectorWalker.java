@@ -106,37 +106,70 @@ public class ValidationSiteSelectorWalker extends RodWalker<Integer, Integer> {
         POLY_BASED_ON_GL
     }
 
+    /**
+     * The input VCF file
+     */
     @Input(fullName="variant", shortName = "V", doc="Input VCF file, can be specified multiple times", required=true)
     public List<RodBinding<VariantContext>> variants;
 
+    /**
+     * The output VCF file
+     */
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
+    /**
+     * Sample name(s) to subset the input VCF to, prior to selecting variants. -sn A -sn B subsets to samples A and B.
+     */
     @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample. Can be specified multiple times", required=false)
     public Set<String> sampleNames = new HashSet<String>(0);
 
+    /**
+     * Sample regexps to subset the input VCF to, prior to selecting variants. -sn NA12* subsets to all samples with prefix NA12
+     */
     @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select many samples from the ROD tracks provided. Can be specified multiple times", required=false)
     public Set<String> sampleExpressions ;
 
+    /**
+     * File containing a list of sample names to subset the input vcf to. Equivalent to specifying the contents of the file separately with -sn
+     */
     @Input(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line) to include. Can be specified multiple times", required=false)
     public Set<File> sampleFiles;
 
+    /**
+     * A mode for selecting sites based on sample-level data. See the wiki documentation for more information.
+     */
     @Argument(fullName="sampleMode", shortName="sampleMode", doc="Sample selection mode", required=false)
     private SAMPLE_SELECTION_MODE sampleMode = SAMPLE_SELECTION_MODE.NONE;
 
+    /**
+     * An P[nonref] threshold for SAMPLE_SELECTION_MODE=POLY_BASED_ON_GL. See the wiki documentation for more information.
+     */
     @Argument(shortName="samplePNonref",fullName="samplePNonref", doc="GL-based selection mode only: the probability" +
             " that a site is non-reference in the samples for which to include the site",required=false)
     private double samplePNonref = 0.99;
 
+    /**
+     * The number of sites in your validation set
+     */
     @Argument(fullName="numValidationSites", shortName="numSites", doc="Number of output validation sites", required=true)
     private int numValidationSites;
 
+    /**
+     * Do not exclude filtered sites (e.g. not PASS or .) from consideration for validation
+     */
     @Argument(fullName="includeFilteredSites", shortName="ifs", doc="If true, will include filtered sites in set to choose variants from", required=false)
     private boolean INCLUDE_FILTERED_SITES = false;
 
+    /**
+     * Argument for the frequency selection mode. (AC/AF/AN) are taken from VCF info field, not recalculated. Typically specified for sites-only VCFs that still have AC/AF/AN information.
+     */
     @Argument(fullName="ignoreGenotypes", shortName="ignoreGenotypes", doc="If true, will ignore genotypes in VCF, will take AC,AF from annotations and will make no sample selection", required=false)
     private boolean IGNORE_GENOTYPES = false;
 
+    /**
+     * Argument for the frequency selection mode. Allows reference (non-polymorphic) sites to be included in the validation set.
+     */
     @Argument(fullName="ignorePolymorphicStatus", shortName="ignorePolymorphicStatus", doc="If true, will ignore polymorphic status in VCF, and will take VCF record directly without pre-selection", required=false)
     private boolean IGNORE_POLYMORPHIC = false;
 
@@ -145,19 +178,14 @@ public class ValidationSiteSelectorWalker extends RodWalker<Integer, Integer> {
     private int numFrequencyBins = 20;
 
     /**
-       * This argument selects allele frequency selection mode:
-     * KEEP_AF_SPECTRUM will choose variants so that the resulting allele frequency spectrum matches as closely as possible the input set
-     * UNIFORM will choose variants uniformly without regard to their allele frequency.
-      *
-       */
+      * This argument selects allele frequency selection mode. See the wiki for more information.
+      */
     @Argument(fullName="frequencySelectionMode", shortName="freqMode", doc="Allele Frequency selection mode", required=false)
     private AF_COMPUTATION_MODE freqMode = AF_COMPUTATION_MODE.KEEP_AF_SPECTRUM;
 
     /**
-       * This argument selects particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
-      * When specified one or more times, a particular type of variant is selected.
-      *
-       */
+      * This argument selects particular kinds of variants (i.e. SNP, INDEL) out of a list. If left unspecified, all types are considered.
+      */
      @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file. Valid types are INDEL, SNP, MIXED, MNP, SYMBOLIC, NO_VARIATION. Can be specified multiple times", required=false)
      private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<VariantContext.Type>();
 

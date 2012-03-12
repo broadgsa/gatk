@@ -139,6 +139,12 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, missing values should be considered failing the expression", required=false)
     protected Boolean FAIL_MISSING_VALUES = false;
 
+    /**
+     * Invalidate previous filters applied to the VariantContext, applying only the filters here
+     */
+    @Argument(fullName="invalidatePreviousFilters",doc="Remove previous filters applied to the VCF",required=false)
+    boolean invalidatePrevious = false;
+
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
@@ -215,6 +221,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         for ( VariantContext vc : VCs ) {
 
+            if ( invalidatePrevious ) {
+                vc = (new VariantContextBuilder(vc)).filters(new HashSet<String>()).make();
+            }
             // filter based on previous mask position
             if ( previousMaskPosition != null &&                                       // we saw a previous mask site
                  previousMaskPosition.getContig().equals(vc.getChr()) &&               // it's on the same contig

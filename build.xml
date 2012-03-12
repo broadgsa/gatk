@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2011, The Broad Institute
+  ~ Copyright (c) 2012, The Broad Institute
   ~
   ~ Permission is hereby granted, free of charge, to any person
   ~ obtaining a copy of this software and associated documentation
@@ -47,6 +47,7 @@
     <property name="R.package.path" value="org/broadinstitute/sting/utils/R" />
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
+    <property name="key.dir" value="${public.dir}/keys" />
 
     <property name="scala.public.source.dir" value="${public.dir}/scala/src" />
     <property name="scala.private.source.dir" value="${private.dir}/scala/src" />
@@ -215,7 +216,7 @@
 
     <target name="git.describe">
       <exec executable="git" outputproperty="git.describe.output" resultproperty="git.describe.exit.value" failonerror="false">
-        <arg line="describe" />
+        <arg line="describe --long" />
       </exec>
       <condition property="git.describe.succeeded">
         <equals arg1="${git.describe.exit.value}" arg2="0" />
@@ -281,6 +282,10 @@
         <equals arg1="${gatk.target}" arg2="private" casesensitive="false" />
       </condition>
 
+      <condition property="include.external">
+          <available file="${external.dir}"/>
+      </condition>
+
       <condition property="include.contracts">
         <equals arg1="${use.contracts}" arg2="true" />
       </condition>
@@ -331,7 +336,7 @@
         </javac>
     </target>
 
-    <target name="gatk.compile.external.source" depends="gatk.compile.public.source,gatk.compile.private.source">
+    <target name="gatk.compile.external.source" depends="gatk.compile.public.source,gatk.compile.private.source" if="include.external">
         <subant target="compile" genericantfile="build.xml">
             <property name="build.dir" value="${external.build.dir}" />
             <property name="dist.dir" value="${external.dist.dir}" />
@@ -563,6 +568,7 @@
             </fileset>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/tools/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/picard/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/samtools/**/*.class"/>
@@ -610,6 +616,9 @@
             <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
                 <include name="**/gatk/**/*.R"/>
                 <include name="**/alignment/**/*.R"/>
+            </fileset>
+            <fileset dir="${key.dir}">
+                <include name="**/*.key"/>
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
@@ -761,6 +770,7 @@
     <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
     <property name="java.public.test.classes" value="${java.test.classes}/public"/>
     <property name="java.private.test.classes" value="${java.test.classes}/private"/>
+    <property name="java.external.test.classes" value="${java.test.classes}/external"/>
     <property name="java.public.test.sources" value="${public.dir}/java/test"/>
     <property name="java.private.test.sources" value="${private.dir}/java/test"/>
     <property name="scala.test.classes" value="${build.dir}/scala/testclasses"/>
@@ -811,7 +821,23 @@
         </javac>
     </target>
 
-    <target name="test.java.compile" depends="test.java.public.compile, test.java.private.compile"/>
+    <target name="test.java.external.compile" depends="dist,test.init.compile,test.java.public.compile" if="include.external">
+        <mkdir dir="${java.external.test.classes}"/>
+        <echo message="Sting: Compiling external test cases!"/>
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.external.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}" srcdir="${external.dir}">
+            <include name="*/test/**/*.java"/>
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement location="${java.public.test.classes}"/>
+                <pathelement location="${java.classes}"/>
+                <pathelement location="${java.contracts}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+            <compilerarg value="-proc:none"/>
+        </javac>
+    </target>
+
+    <target name="test.java.compile" depends="test.java.public.compile, test.java.private.compile, test.java.external.compile"/>
 
     <target name="test.scala.public.compile" depends="test.java.compile,scala.compile" if="scala.include">
         <mkdir dir="${scala.public.test.classes}"/>
@@ -852,11 +878,13 @@
         <pathelement location="${java.contracts}" />
         <pathelement location="${java.public.test.classes}" />
         <pathelement location="${java.private.test.classes}" />
+        <pathelement location="${java.external.test.classes}" />
         <pathelement location="${scala.public.test.classes}" />
         <pathelement location="${scala.private.test.classes}" />
         <pathelement location="${R.tar.dir}" />
         <pathelement location="${R.public.scripts.dir}" />
         <pathelement location="${R.private.scripts.dir}" />
+        <pathelement location="${key.dir}" />
         <path refid="external.dependencies" />
     </path>
 
@@ -933,6 +961,9 @@
                 <classfileset dir="${java.public.test.classes}" includes="**/@{testtype}.class"/>
                 <classfileset dir="${java.private.test.classes}" erroronmissingdir="false">
                     <include name="**/@{testtype}.class" if="include.private"/>
+                </classfileset>
+                <classfileset dir="${java.external.test.classes}" erroronmissingdir="false">
+                    <include name="**/@{testtype}.class" if="include.external"/>
                 </classfileset>
                 <classfileset dir="${scala.public.test.classes}" erroronmissingdir="false">
                     <include name="**/@{testtype}*.class" if="scala.include"/>
@@ -1210,7 +1241,14 @@
     <!-- Build gsalib R module -->
     <target name="gsalib">
       <exec executable="R" failonerror="true">
-        <arg line="R CMD INSTALL -l ${R.library.dir} ${R.public.src.dir}/${R.package.path}/gsalib" />
+        <arg line="R CMD INSTALL --preclean ${R.public.src.dir}/${R.package.path}/gsalib" />
+      </exec>
+    </target>
+
+    <target name="clean.gsalib">
+        <!-- Currently not cleaning out the lib during 'ant clean' -->
+      <exec executable="R" failonerror="false">
+        <arg line="R CMD REMOVE gsalib" />
       </exec>
     </target>
 </project>

@@ -29,48 +29,55 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.util.List;
 import java.util.Map;
 
-public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPileupImpl,PileupElement> implements ReadBackedPileup {
+public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPileupImpl, PileupElement> implements ReadBackedPileup {
 
     public ReadBackedPileupImpl(GenomeLoc loc) {
         super(loc);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, List<GATKSAMRecord> reads, List<Integer> offsets ) {
-        super(loc,reads,offsets);
+    public ReadBackedPileupImpl(GenomeLoc loc, List<GATKSAMRecord> reads, List<Integer> offsets) {
+        super(loc, reads, offsets);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, List<GATKSAMRecord> reads, int offset ) {
-        super(loc,reads,offset);
+    public ReadBackedPileupImpl(GenomeLoc loc, List<GATKSAMRecord> reads, int offset) {
+        super(loc, reads, offset);
     }
 
     public ReadBackedPileupImpl(GenomeLoc loc, List<PileupElement> pileupElements) {
-        super(loc,pileupElements);
+        super(loc, pileupElements);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, Map<String,ReadBackedPileupImpl> pileupElementsBySample) {
-        super(loc,pileupElementsBySample);
+    public ReadBackedPileupImpl(GenomeLoc loc, Map<String, ReadBackedPileupImpl> pileupElementsBySample) {
+        super(loc, pileupElementsBySample);
     }
 
     /**
      * Optimization of above constructor where all of the cached data is provided
+     *
      * @param loc
      * @param pileup
      */
     public ReadBackedPileupImpl(GenomeLoc loc, List<PileupElement> pileup, int size, int nDeletions, int nMQ0Reads) {
-        super(loc,pileup,size,nDeletions,nMQ0Reads);
+        super(loc, pileup, size, nDeletions, nMQ0Reads);
     }
 
     protected ReadBackedPileupImpl(GenomeLoc loc, PileupElementTracker<PileupElement> tracker) {
-        super(loc,tracker);
+        super(loc, tracker);
     }
 
     @Override
     protected ReadBackedPileupImpl createNewPileup(GenomeLoc loc, PileupElementTracker<PileupElement> tracker) {
-        return new ReadBackedPileupImpl(loc,tracker);
+        return new ReadBackedPileupImpl(loc, tracker);
     }
 
     @Override
-    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset) {
-        return new PileupElement(read,offset);
+    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion,
+                                                   boolean isNextToSoftClip) {
+        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, null,0);
+    }
+
+    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, 
+                                                   boolean isNextToSoftClip,String nextEventBases, final int nextEventLength) {
+        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, nextEventBases,nextEventLength);
     }
 }

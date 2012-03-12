@@ -30,6 +30,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -132,6 +133,10 @@ public class UserException extends ReviewedStingException {
         public CouldNotReadInputFile(File file, Exception e) {
             this(file, e.getMessage());
         }
+
+        public CouldNotReadInputFile(String message) {
+            super(message);
+        }
     }
 
 
@@ -150,6 +155,10 @@ public class UserException extends ReviewedStingException {
 
         public CouldNotCreateOutputFile(File file, Exception e) {
             super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), e.getMessage()));
+        }
+
+        public CouldNotCreateOutputFile(String message, Exception e) {
+            super(message, e);
         }
     }
 
@@ -265,7 +274,7 @@ public class UserException extends ReviewedStingException {
     public static class IncompatibleSequenceDictionaries extends UserException {
         public IncompatibleSequenceDictionaries(String message, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
             super(String.format("Input files %s and %s have incompatible contigs: %s.\n  %s contigs = %s\n  %s contigs = %s",
-                    name1, name2, message, name1, prettyPrintSequenceRecords(dict1), name2, prettyPrintSequenceRecords(dict2)));
+                    name1, name2, message, name1, ReadUtils.prettyPrintSequenceRecords(dict1), name2, ReadUtils.prettyPrintSequenceRecords(dict2)));
         }
     }
 
@@ -276,17 +285,11 @@ public class UserException extends ReviewedStingException {
                     + "\nThis is because all distributed GATK resources are sorted in karyotypic order, and your processing will fail when you need to use these files."
                     + "\nYou can use the ReorderSam utility to fix this problem: http://www.broadinstitute.org/gsa/wiki/index.php/ReorderSam"
                     + "\n  %s contigs = %s",
-                    name, name, prettyPrintSequenceRecords(dict)));
+                    name, name, ReadUtils.prettyPrintSequenceRecords(dict)));
         }
     }
 
-    private static String prettyPrintSequenceRecords(SAMSequenceDictionary sequenceDictionary) {
-        String[] sequenceRecordNames = new String[sequenceDictionary.size()];
-        int sequenceRecordIndex = 0;
-        for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
-            sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
-        return Arrays.deepToString(sequenceRecordNames);
-    }
+
 
     public static class MissingWalker extends UserException {
         public MissingWalker(String walkerName, String message) {
@@ -317,6 +320,34 @@ public class UserException extends ReviewedStingException {
                     "If you are running multiple instances of GATK, another GATK process is " +
                     "probably creating this file now, and has locked it. Please wait until this process finishes " +
                     "and try again.", null);
+        }
+    }
+
+    public static class UnreadableKeyException extends UserException {
+        public UnreadableKeyException ( File f, Exception e ) {
+            super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
+                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
+                                f.getAbsolutePath(), e.getMessage()));
+        }
+
+        public UnreadableKeyException ( String message, Exception e ) {
+            this(String.format("%s. Error was: %s", message, e.getMessage()));
+        }
+
+        public UnreadableKeyException ( String message ) {
+            super(String.format("Key file cannot be read (possibly the key file is corrupt?): %s. " +
+                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
+                                message));
+        }
+    }
+
+    public static class KeySignatureVerificationException extends UserException {
+        public KeySignatureVerificationException ( File f ) {
+            super(String.format("The signature in key file %s failed cryptographic verification. " +
+                                "If this key was valid in the past, it's likely been revoked. " +
+                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home " +
+                                "for help.",
+                                f.getAbsolutePath()));
         }
     }
 }

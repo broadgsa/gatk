@@ -24,10 +24,12 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import com.google.java.contract.Ensures;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
 import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +46,14 @@ import java.util.Map;
  *
  */
 public class GATKSAMRecord extends BAMRecord {
-    public static final String REDUCED_READ_CONSENSUS_TAG = "RR";
+    // ReduceReads specific attribute tags
+    public static final String REDUCED_READ_CONSENSUS_TAG = "RR";                   // marks a synthetic read produced by the ReduceReads tool
+    public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT = "OP";  // reads that are clipped may use this attribute to keep track of their original alignment start
+    public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
+
+    // Base Quality Score Recalibrator specific attribute tags
+    public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";
+    public static final String BQSR_BASE_DELETION_QUALITIES = "BD";
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -154,6 +163,64 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     /**
+     * Setters and Accessors for base insertion and base deletion quality scores
+     */
+    public void setBaseQualities( final byte[] quals, final RecalDataManager.BaseRecalibrationType errorModel ) {
+        switch( errorModel ) {
+            case BASE_SUBSTITUTION:
+                setBaseQualities(quals);
+                break;
+            case BASE_INSERTION:
+                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                break;
+            case BASE_DELETION:
+                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                break;
+            default:
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
+    public byte[] getBaseQualities( final RecalDataManager.BaseRecalibrationType errorModel ) {
+        switch( errorModel ) {
+            case BASE_SUBSTITUTION:
+                return getBaseQualities();
+            case BASE_INSERTION:
+                return getBaseInsertionQualities();
+            case BASE_DELETION:
+                return getBaseDeletionQualities();
+            default:
+                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+        }
+    }
+
+    public boolean hasBaseIndelQualities() {
+        return getAttribute( BQSR_BASE_INSERTION_QUALITIES ) != null || getAttribute( BQSR_BASE_DELETION_QUALITIES ) != null;
+    }
+
+    public byte[] getBaseInsertionQualities() {
+        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_INSERTION_QUALITIES ) );
+        if( quals == null ) {
+            quals = new byte[getBaseQualities().length];
+            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION);
+        }
+        return quals;
+    }
+
+    public byte[] getBaseDeletionQualities() {
+        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
+        if( quals == null ) {
+            quals = new byte[getBaseQualities().length];
+            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_DELETION);
+        }
+        return quals;
+    }
+
+    /**
      * Efficient caching accessor that returns the GATK NGSPlatform of this read
      * @return
      */
@@ -184,17 +251,21 @@ public class GATKSAMRecord extends BAMRecord {
         return getReducedReadCounts() != null;
     }
 
+    /**
+     * The number of bases corresponding the i'th base of the reduced read.
+     *
+     * @param i the read based coordinate inside the read
+     * @return the number of bases corresponding to the i'th base of the reduced read
+     */
     public final byte getReducedCount(final int i) {
         byte firstCount = getReducedReadCounts()[0];
         byte offsetCount = getReducedReadCounts()[i];
         return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////
     // *** GATKSAMRecord specific methods                                     ***//
     ///////////////////////////////////////////////////////////////////////////////
-
 
     /**
      * Checks whether an attribute has been set for the given key.
@@ -277,7 +348,6 @@ public class GATKSAMRecord extends BAMRecord {
      *
      * @return the unclipped start of the read taking soft clips (but not hard clips) into account
      */
-    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
     public int getSoftStart() {
         int start = this.getUnclippedStart();
         for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
@@ -286,17 +356,17 @@ public class GATKSAMRecord extends BAMRecord {
             else
                 break;
         }
+
         return start;
     }
 
     /**
      * Calculates the reference coordinate for the end of the read taking into account soft clips but not hard clips.
      *
-     * Note: getUnclippedStart() adds soft and hard clips, this function only adds soft clips.
+     * Note: getUnclippedEnd() adds soft and hard clips, this function only adds soft clips.
      *
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
-    @Ensures({"result >= getUnclippedStart()", "result <= getUnclippedEnd() || ReadUtils.readIsEntirelyInsertion(this)"})
     public int getSoftEnd() {
         int stop = this.getUnclippedStart();
 
@@ -313,7 +383,38 @@ public class GATKSAMRecord extends BAMRecord {
             else
                 shift = 0;
         }
+
         return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    }
+
+    /**
+     * Determines the original alignment start of a previously clipped read.
+     * 
+     * This is useful for reads that have been trimmed to a variant region and lost the information of it's original alignment end
+     * 
+     * @return the alignment start of a read before it was clipped
+     */
+    public int getOriginalAlignmentStart() {
+        int originalAlignmentStart = getUnclippedStart();
+        Integer alignmentShift = (Integer) getAttribute(REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT);
+        if (alignmentShift != null)
+            originalAlignmentStart += alignmentShift;
+        return originalAlignmentStart;    
+    }
+
+    /**
+     * Determines the original alignment end of a previously clipped read.
+     *
+     * This is useful for reads that have been trimmed to a variant region and lost the information of it's original alignment end
+     * 
+     * @return the alignment end of a read before it was clipped
+     */
+    public int getOriginalAlignmentEnd() {
+        int originalAlignmentEnd = getUnclippedEnd();
+        Integer alignmentShift = (Integer) getAttribute(REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT);
+        if (alignmentShift != null)
+            originalAlignmentEnd -= alignmentShift;
+        return originalAlignmentEnd;
     }
 
     /**
@@ -358,4 +459,21 @@ public class GATKSAMRecord extends BAMRecord {
         return emptyRead;
     }
 
+    /**
+     * Shallow copy of everything, except for the attribute list and the temporary attributes. 
+     * A new list of the attributes is created for both, but the attributes themselves are copied by reference.  
+     * This should be safe because callers should never modify a mutable value returned by any of the get() methods anyway.
+     * 
+     * @return a shallow copy of the GATKSAMRecord
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
+        if (temporaryAttributes != null) {
+            for (Object attribute : temporaryAttributes.keySet())
+                clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
+        }
+        return clone;
+    }
 }

@@ -54,15 +54,15 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
     private static final double MIN_PVALUE = 1E-320;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( ! vc.isVariant() || vc.isFiltered() )
+        if ( !vc.isVariant() )
             return null;
 
         int[][] table;
 
-        if (vc.isBiallelic() && vc.isSNP())
-            table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAlternateAllele(0));
-        else if (vc.isIndel() || vc.isMixed()) {
-            table = getIndelContingencyTable(stratifiedContexts, vc);
+        if ( vc.isSNP() )
+            table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+        else if ( vc.isIndel() || vc.isMixed() ) {
+            table = getIndelContingencyTable(stratifiedContexts);
             if (table == null)
                 return null;
         }
@@ -73,7 +73,6 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         if ( pvalue == null )
             return null;
 
-        // use Math.abs to prevent -0's
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
@@ -206,7 +205,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
-                if ( p.isDeletion() || p.isReducedRead() ) // ignore deletions and reduced reads
+                if ( p.isDeletion() || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
                     continue;
 
                 if ( p.getRead().getMappingQuality() < 20 || p.getQual() < 20 )
@@ -235,7 +234,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getIndelContingencyTable(Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    private static int[][] getIndelContingencyTable(Map<String, AlignmentContext> stratifiedContexts) {
         final double INDEL_LIKELIHOOD_THRESH = 0.3;
         final HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
 
@@ -259,7 +258,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                  continue;
 
             for (final PileupElement p: pileup) {
-                if ( p.isReducedRead() ) // ignore reduced reads
+                if ( p.getRead().isReducedRead() ) // ignore reduced reads
                     continue;
                 if ( p.getRead().getMappingQuality() < 20)
                     continue;

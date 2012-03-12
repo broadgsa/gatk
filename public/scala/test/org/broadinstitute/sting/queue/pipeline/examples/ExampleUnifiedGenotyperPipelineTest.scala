@@ -39,6 +39,7 @@ class ExampleUnifiedGenotyperPipelineTest {
       " -I " + BaseTest.testDir + "exampleBAM.bam",
       " -filter QD",
       " -filterExpression 'QD < 2.0'").mkString
+    spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
 }

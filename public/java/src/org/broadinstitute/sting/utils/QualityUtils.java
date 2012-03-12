@@ -10,6 +10,8 @@ import net.sf.samtools.SAMUtils;
  */
 public class QualityUtils {
     public final static byte MAX_QUAL_SCORE = SAMUtils.MAX_PHRED_SCORE;
+    public final static double ERROR_RATE_OF_MAX_QUAL_SCORE = qualToErrorProbRaw(MAX_QUAL_SCORE);
+
     public final static double MIN_REASONABLE_ERROR = 0.0001;
     public final static byte MAX_REASONABLE_Q_SCORE = 40;
     public final static byte MIN_USABLE_Q_SCORE = 6;
@@ -55,6 +57,14 @@ public class QualityUtils {
         return qualToErrorProbCache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
+    static public double[] qualArrayToLog10ErrorProb(byte[] quals) {
+        double[] returnArray = new double[quals.length];
+        for( int iii = 0; iii < quals.length; iii++ ) {
+            returnArray[iii] = ((double) quals[iii])/-10.0;
+        }
+        return returnArray;
+    }
+    
     /**
      * Convert a probability to a quality score.  Note, this is capped at Q40.
      *

@@ -62,7 +62,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalker3() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("4496551d4493857e5153d8172965e527", "b0667e31af9aec02eaf73ca73ec16937"));
+                Arrays.asList("b7d26a470ef906590249f2fa45fd6bdd", "da431d393f7c2b2b3e27556b86c1dbc7"));
         executeTest("formatBed lots of arguments", spec);
     }
 }

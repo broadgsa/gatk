@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -41,9 +41,6 @@ class GATKIntervalsUnitTest {
     createSetFromSequenceDictionary(new ReferenceDataSource(hg18Reference).getReference.getSequenceDictionary).toList
 
   private final lazy val hg19Reference = new File(BaseTest.hg19Reference)
-  private final lazy val hg19GenomeLocParser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(hg19Reference))
-  private final lazy val hg19ReferenceLocs = GenomeLocSortedSet.
-    createSetFromSequenceDictionary(new ReferenceDataSource(hg19Reference).getReference.getSequenceDictionary).toList
 
   @Test
   def testWithIntervals() {
@@ -51,16 +48,14 @@ class GATKIntervalsUnitTest {
     val chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:2-3")
     val chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:3-5")
 
-    val gi = new GATKIntervals(hg18Reference, List("chr1:1-1", "chr2:2-3", "chr3:3-5"))
-    Assert.assertEquals(gi.locs.toList, List(chr1, chr2, chr3))
-    Assert.assertEquals(gi.contigs, List("chr1", "chr2", "chr3"))
-//    Assert.assertEquals(gi.getSplits(2).toList, List(2, 3))
-//    Assert.assertEquals(gi.getSplits(3).toList, List(1, 2, 3))
+    val gi = new GATKIntervals(hg18Reference, Seq("chr1:1-1", "chr2:2-3", "chr3:3-5"))
+    Assert.assertEquals(gi.locs.toSeq, Seq(chr1, chr2, chr3))
+    Assert.assertEquals(gi.contigs, Seq("chr1", "chr2", "chr3"))
   }
 
   @Test(timeOut = 30000L)
   def testIntervalFile() {
-    var gi = new GATKIntervals(hg19Reference, List(BaseTest.hg19Intervals))
+    var gi = new GATKIntervals(hg19Reference, Seq(BaseTest.hg19Intervals))
     Assert.assertEquals(gi.locs.size, 189894)
     // Timeout check is because of bad:
     //   for(Item item: javaConvertedScalaList)
@@ -75,15 +70,13 @@ class GATKIntervalsUnitTest {
     val gi = new GATKIntervals(hg18Reference, Nil)
     Assert.assertEquals(gi.locs, hg18ReferenceLocs)
     Assert.assertEquals(gi.contigs.size, hg18ReferenceLocs.size)
-//    Assert.assertEquals(gi.getSplits(2).toList, List(10, 45))
-//    Assert.assertEquals(gi.getSplits(4).toList, List(5, 10, 16, 45))
   }
 
   @Test
   def testContigCounts() {
     Assert.assertEquals(new GATKIntervals(hg18Reference, Nil).contigs, hg18ReferenceLocs.map(_.getContig))
-    Assert.assertEquals(new GATKIntervals(hg18Reference, List("chr1", "chr2", "chr3")).contigs, List("chr1", "chr2", "chr3"))
-    Assert.assertEquals(new GATKIntervals(hg18Reference, List("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2")).contigs, List("chr1", "chr2", "chr3"))
+    Assert.assertEquals(new GATKIntervals(hg18Reference, Seq("chr1", "chr2", "chr3")).contigs, Seq("chr1", "chr2", "chr3"))
+    Assert.assertEquals(new GATKIntervals(hg18Reference, Seq("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2")).contigs, Seq("chr1", "chr2", "chr3"))
   }
 
   @Test
@@ -96,6 +89,6 @@ class GATKIntervalsUnitTest {
   }
 
   private def testSortAndMergeIntervals(actual: Seq[String], expected: Seq[String]) {
-    Assert.assertEquals(new GATKIntervals(hg18Reference, actual.toList).locs.toSeq, expected.map(hg18GenomeLocParser.parseGenomeLoc(_)))
+    Assert.assertEquals(new GATKIntervals(hg18Reference, actual).locs.toSeq, expected.map(hg18GenomeLocParser.parseGenomeLoc(_)))
   }
 }

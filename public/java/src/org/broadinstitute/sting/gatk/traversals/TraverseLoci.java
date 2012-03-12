@@ -102,7 +102,9 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
     }
 
     /**
-     * Gets the best view of loci for this walker given the available data.
+     * Gets the best view of loci for this walker given the available data.  The view will function as a 'trigger track'
+     * of sorts, providing a consistent interface so that TraverseLoci doesn't need to be reimplemented for any new datatype
+     * that comes along.
      * @param walker walker to interrogate.
      * @param dataProvider Data which which to drive the locus view.
      * @return A view of the locus data, where one iteration of the locus view maps to one iteration of the traversal.

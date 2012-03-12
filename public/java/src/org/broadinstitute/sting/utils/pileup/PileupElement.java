@@ -3,6 +3,8 @@ package org.broadinstitute.sting.utils.pileup;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
@@ -21,25 +23,84 @@ public class PileupElement implements Comparable<PileupElement> {
 
     protected final GATKSAMRecord read;
     protected final int offset;
+    protected final boolean isDeletion;
+    protected final boolean isBeforeDeletion;
+    protected final boolean isBeforeInsertion;
+    protected final boolean isNextToSoftClip;
+    protected final int eventLength;
+    protected final String eventBases; // if it is a deletion, we do not have information about the actual deleted bases
+    // in the read itself, so we fill the string with D's; for insertions we keep actual inserted bases
+    
 
+    /**
+     * Creates a new pileup element.
+     *
+     * @param read              the read we are adding to the pileup
+     * @param offset            the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
+     * @param isDeletion        whether or not this base is a deletion
+     * @param isBeforeDeletion  whether or not this base is before a deletion
+     * @param isBeforeInsertion whether or not this base is before an insertion
+     * @param isNextToSoftClip  whether or not this base is next to a soft clipped base
+     * @param nextEventBases    bases in event in case element comes before insertion or deletion 
+     * @param nextEventLength   length of next event in case it's insertion or deletion                             
+     */
     @Requires({
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
-    public PileupElement( GATKSAMRecord read, int offset ) {
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip,
+                         final String nextEventBases, final int nextEventLength) {
+        if (offset < 0 && isDeletion)
+            throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
+
         this.read = read;
         this.offset = offset;
+        this.isDeletion = isDeletion;
+        this.isBeforeDeletion = isBeforeDeletion;
+        this.isBeforeInsertion = isBeforeInsertion;
+        this.isNextToSoftClip = isNextToSoftClip;
+        if (isBeforeInsertion)
+            eventBases = nextEventBases;
+        else
+            eventBases = null; // ignore argument in any other case
+        if (isBeforeDeletion || isBeforeInsertion)
+            eventLength = nextEventLength;
+        else
+            eventLength = -1;
     }
 
+    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isBeforeInsertion, final boolean isNextToSoftClip) {
+        this(read,offset, isDeletion, isBeforeDeletion, isBeforeInsertion, isNextToSoftClip, null, -1);
+    }
     public boolean isDeletion() {
+        return isDeletion;
+    }
+
+    public boolean isBeforeDeletion() {
+        return isBeforeDeletion;
+    }
+
+    public boolean isBeforeInsertion() {
+        return isBeforeInsertion;
+    }
+
+    public boolean isNextToSoftClip() {
+        return isNextToSoftClip;
+    }
+
+    public boolean isInsertionAtBeginningOfRead() {
         return offset == -1;
     }
 
     @Ensures("result != null")
-    public GATKSAMRecord getRead() { return read; }
+    public GATKSAMRecord getRead() {
+        return read;
+    }
 
     @Ensures("result == offset")
-    public int getOffset() { return offset; }
+    public int getOffset() {
+        return offset;
+    }
 
     public byte getBase() {
         return getBase(offset);
@@ -52,6 +113,28 @@ public class PileupElement implements Comparable<PileupElement> {
     public byte getQual() {
         return getQual(offset);
     }
+    
+    public byte getBaseInsertionQual() {
+        return getBaseInsertionQual(offset);
+    }
+
+    public byte getBaseDeletionQual() {
+        return getBaseDeletionQual(offset);
+    }
+
+    /**
+     * Returns length of the event (number of inserted or deleted bases
+     */
+    public int getEventLength() {
+        return eventLength;
+    }
+
+    /**
+     * Returns actual sequence of inserted bases, or a null if the event is a deletion or if there is no event in the associated read.
+     */
+    public String getEventBases() {
+        return eventBases;
+    }
 
     public int getMappingQual() {
         return read.getMappingQuality();
@@ -59,30 +142,38 @@ public class PileupElement implements Comparable<PileupElement> {
 
     @Ensures("result != null")
     public String toString() {
-        return String.format("%s @ %d = %c Q%d", getRead().getReadName(), getOffset(), (char)getBase(), getQual());
+        return String.format("%s @ %d = %c Q%d", getRead().getReadName(), getOffset(), (char) getBase(), getQual());
     }
 
     protected byte getBase(final int offset) {
-        return isDeletion() ? DELETION_BASE : read.getReadBases()[offset];
+        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_BASE : read.getReadBases()[offset];
     }
 
     protected int getBaseIndex(final int offset) {
-        return BaseUtils.simpleBaseToBaseIndex(isDeletion() ? DELETION_BASE : read.getReadBases()[offset]);
+        return BaseUtils.simpleBaseToBaseIndex((isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_BASE : read.getReadBases()[offset]);
     }
 
     protected byte getQual(final int offset) {
-        return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
+        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseQualities()[offset];
+    }
+
+    protected byte getBaseInsertionQual(final int offset) {
+        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseInsertionQualities()[offset];
+    }
+
+    protected byte getBaseDeletionQual(final int offset) {
+        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseDeletionQualities()[offset];
     }
 
     @Override
     public int compareTo(final PileupElement pileupElement) {
-        if ( offset < pileupElement.offset )
+        if (offset < pileupElement.offset)
             return -1;
-        else if ( offset > pileupElement.offset )
+        else if (offset > pileupElement.offset)
             return 1;
-        else if ( read.getAlignmentStart() < pileupElement.read.getAlignmentStart() )
+        else if (read.getAlignmentStart() < pileupElement.read.getAlignmentStart())
             return -1;
-        else if ( read.getAlignmentStart() > pileupElement.read.getAlignmentStart() )
+        else if (read.getAlignmentStart() > pileupElement.read.getAlignmentStart())
             return 1;
         else
             return 0;
@@ -94,13 +185,29 @@ public class PileupElement implements Comparable<PileupElement> {
     //
     // --------------------------------------------------------------------------
 
-    public boolean isReducedRead() {
-        return read.isReducedRead();
-    }
+//    public boolean isReducedRead() {
+//        return read.isReducedRead();
+//    }
 
+    /**
+     * Returns the number of elements in the pileup element.
+     * <p/>
+     * Unless this is a reduced read, the number of elements in a pileup element is one. In the event of
+     * this being a reduced read and a deletion, we return the average number of elements between the left
+     * and right elements to the deletion. We assume the deletion to be left aligned.
+     *
+     * @return
+     */
     public int getRepresentativeCount() {
-        // TODO -- if we ever decide to reduce the representation of deletions then this will need to be fixed
-        return (!isDeletion() && isReducedRead()) ? read.getReducedCount(offset) : 1;
+        int representativeCount = 1;
+
+        if (read.isReducedRead() && !isInsertionAtBeginningOfRead())     {
+            if (isDeletion() && (offset + 1 >= read.getReadLength()) )  // deletion in the end of the read
+                throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s", read.getReadName(), read.getCigarString()));
+
+            representativeCount = (isDeletion()) ? Math.round((read.getReducedCount(offset) + read.getReducedCount(offset + 1)) / 2) : read.getReducedCount(offset);
+        }
+        return representativeCount;
     }
 
 }

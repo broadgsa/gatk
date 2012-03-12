@@ -29,6 +29,7 @@ import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -64,8 +65,10 @@ public class VariantContextUtils {
      * @return the attributes map provided as input, returned for programming convenience
      */
     public static Map<String, Object> calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
+        final int AN = vc.getCalledChrCount();
+
         // if everyone is a no-call, remove the old attributes if requested
-        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
+        if ( AN == 0 && removeStaleValues ) {
             if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
                 attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
             if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
@@ -76,19 +79,22 @@ public class VariantContextUtils {
         }
 
         if ( vc.hasGenotypes() ) {
-            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
+            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, AN);
 
             // if there are alternate alleles, record the relevant tags
             if ( vc.getAlternateAlleles().size() > 0 ) {
-                ArrayList<String> alleleFreqs = new ArrayList<String>();
-                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-                double totalChromosomes = (double)vc.getCalledChrCount();
+                final ArrayList<String> alleleFreqs = new ArrayList<String>();
+                final ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
                 for ( Allele allele : vc.getAlternateAlleles() ) {
                     int altChromosomes = vc.getCalledChrCount(allele);
                     alleleCounts.add(altChromosomes);
-                    // todo -- this is a performance problem
-                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
-                    alleleFreqs.add(freq);
+                    if ( AN == 0 ) {
+                        alleleFreqs.add("0.0");
+                    } else {
+                        // todo -- this is a performance problem
+                        final String freq = String.format(makePrecisionFormatStringFromDenominatorValue((double)AN), ((double)altChromosomes / (double)AN));
+                        alleleFreqs.add(freq);
+                    }
                 }
 
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
@@ -112,41 +118,8 @@ public class VariantContextUtils {
      */
     public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues) {
         final VariantContext vc = builder.make();
-
-        // if everyone is a no-call, remove the old attributes if requested
-        if ( vc.getCalledChrCount() == 0 && removeStaleValues ) {
-            if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-                builder.rmAttribute(VCFConstants.ALLELE_COUNT_KEY);
-            if ( vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                builder.rmAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
-            if ( vc.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
-                builder.rmAttribute(VCFConstants.ALLELE_NUMBER_KEY);
-            return;
-        }
-
-        if ( vc.hasGenotypes() ) {
-            builder.attribute(VCFConstants.ALLELE_NUMBER_KEY, vc.getCalledChrCount());
-
-            // if there are alternate alleles, record the relevant tags
-            if ( vc.getAlternateAlleles().size() > 0 ) {
-                ArrayList<String> alleleFreqs = new ArrayList<String>();
-                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-                double totalChromosomes = (double)vc.getCalledChrCount();
-                for ( Allele allele : vc.getAlternateAlleles() ) {
-                    int altChromosomes = vc.getCalledChrCount(allele);
-                    alleleCounts.add(altChromosomes);
-                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
-                    alleleFreqs.add(freq);
-                }
-
-                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
-                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
-            }
-            else {
-                builder.attribute(VCFConstants.ALLELE_COUNT_KEY, 0);
-                builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
-            }
-        }
+        final Map<String, Object> attrs = calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues);
+        builder.attributes(attrs);
     }
 
     private static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {
@@ -464,7 +437,23 @@ public class VariantContextUtils {
         /**
          * Requires all records present at site to be unfiltered. VCF files that don't contain the record don't influence this.
          */
-        KEEP_IF_ALL_UNFILTERED
+        KEEP_IF_ALL_UNFILTERED,
+        /**
+         * If any record is present at this site (regardless of possibly being filtered), then all such records are kept and the filters are reset.
+         */
+        KEEP_UNCONDITIONAL
+    }
+
+    @Hidden
+    public enum MultipleAllelesMergeType {
+        /**
+         * Combine only alleles of the same type (SNP, indel, etc.) into a single VCF record.
+         */
+        BY_TYPE,
+        /**
+         * Merge all allele types at the same start position into the same VCF record.
+         */
+        MIX_TYPES
     }
 
     /**
@@ -635,7 +624,7 @@ public class VariantContextUtils {
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
-        if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
+        if ( (filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size()) || filteredRecordMergeType == FilteredRecordMergeType.KEEP_UNCONDITIONAL )
             filters.clear();
 
 
@@ -1054,6 +1043,14 @@ public class VariantContextUtils {
      */
     public static boolean isTransversion(VariantContext context) {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
+    }
+
+    public static boolean isTransition(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSITION;
+    }
+
+    public static boolean isTransversion(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
     }
 
     /**

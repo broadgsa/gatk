@@ -374,24 +374,43 @@ public class ReadClipper {
      * Generic functionality to hard clip a read, used internally by hardClipByReferenceCoordinatesLeftTail
      * and hardClipByReferenceCoordinatesRightTail. Should not be used directly.
      *
+     * Note, it REQUIRES you to give the directionality of your hard clip (i.e. whether you're clipping the
+     * left of right tail) by specifying either refStart < 0 or refStop < 0.
+     *
      * @param refStart  first base to clip (inclusive)
      * @param refStop last base to clip (inclusive)
      * @return a new read, without the clipped bases
      */
-    @Requires("!read.getReadUnmappedFlag()")  // can't handle unmapped reads, as we're using reference coordinates to clip
+    @Requires({"!read.getReadUnmappedFlag()", "refStart < 0 || refStop < 0"})  // can't handle unmapped reads, as we're using reference coordinates to clip
     protected GATKSAMRecord hardClipByReferenceCoordinates(int refStart, int refStop) {
-        int start = (refStart < 0) ? 0 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
-        int stop =  (refStop  < 0) ? read.getReadLength() - 1 : ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
+        if (read.isEmpty())
+            return read;
 
-        if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
-            return GATKSAMRecord.emptyRead(read);
-//            return new GATKSAMRecord(read.getHeader());
+        int start;
+        int stop;
+
+        // Determine the read coordinate to start and stop hard clipping
+        if (refStart < 0) {
+            if (refStop < 0)
+                throw new ReviewedStingException("Only one of refStart or refStop must be < 0, not both (" + refStart + ", " + refStop + ")");
+            start = 0;
+            stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
+        }
+        else {
+            if (refStop >= 0)
+                throw new ReviewedStingException("Either refStart or refStop must be < 0 (" + refStart + ", " + refStop + ")");
+            start = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
+            stop = read.getReadLength() - 1;
+        }
+
+//        if ((start == 0 && stop == read.getReadLength() - 1))
+//            return GATKSAMRecord.emptyRead(read);
 
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
         if ( start > stop )
-            throw new ReviewedStingException("START > STOP -- this should never happen -- call Mauricio!");
+            throw new ReviewedStingException(String.format("START (%d) > (%d) STOP -- this should never happen -- call Mauricio!", start, stop));
 
         if ( start > 0 && stop < read.getReadLength() - 1)
             throw new ReviewedStingException(String.format("Trying to clip the middle of the read: start %d, stop %d, cigar: %s", start, stop, read.getCigarString()));

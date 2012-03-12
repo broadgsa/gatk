@@ -45,7 +45,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C --variant " + testfile),
                 1,
-                Arrays.asList("b74038779fe6485dbb8734ae48178356")
+                Arrays.asList("5085a2f8cddfeae9f6274f905025184f")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);
@@ -58,7 +58,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant " + b37hapmapGenotypes + " -disc " + testFile + " -o %s -NO_HEADER",
                 1,
-                Arrays.asList("78e6842325f1f1bc9ab30d5e7737ee6e")
+                Arrays.asList("929bbb96381541c162dc7e5462e26ea2")
         );
 
         executeTest("testDiscordance--" + testFile, spec);
@@ -124,6 +124,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
                 "-T SelectVariants -R " + b36KGReference + " -select 'KG_FREQ < 0.5' --variant " + testFile + " -o %s -NO_HEADER",
                 1,
                 Arrays.asList("20b52c96f5c48258494d072752b53693")
+        );
+
+        executeTest("testMultipleRecordsAtOnePositionFirstIsFiltered--" + testFile, spec);
+    }
+
+    @Test
+    public void testNoGTs() {
+        String testFile = validationDataLocation + "vcf4.1.example.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b37KGReference + " --variant " + testFile + " -o %s -NO_HEADER",
+                1,
+                Arrays.asList("f17885e5cbd5387edb99112047ea43c1")
         );
 
         executeTest("testMultipleRecordsAtOnePositionFirstIsFiltered--" + testFile, spec);

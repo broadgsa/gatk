@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.function
 
 import org.testng.Assert
@@ -114,20 +138,20 @@ class CommandLineFunctionUnitTest extends CommandLineFunction {
 
   @DataProvider( name = "repeatTestData" )
   def repeatDataProvider = {
-    Array(Array("", List("a", "bc", "d"), "", " ", true, true, " 'a' 'bc' 'd' "),
-          Array("", List("a", "bc", "d"), "", " ", true, false, " a bc d "),
-          Array("", List("a", "bc", "d"), "", "", true, true, " 'a''bc''d' "),
-          Array("", List("a", "bc", "d"), "", "", true, false, " abcd "),
-          Array("-f", List("file1", "file2", "file3"), "", " ", true, true, " '-f' 'file1' '-f' 'file2' '-f' 'file3' "),
-          Array("-f", List("file1", "file2", "file3"), "", " ", true, false, " -f file1 -f file2 -f file3 "),
-          Array("-f", List("file1", "file2", "file3"), "", " ", false, true, " '-ffile1' '-ffile2' '-ffile3' "),
-          Array("-f", List("file1", "file2", "file3"), "", " ", false, false, " -ffile1 -ffile2 -ffile3 "),
-          Array("-f", List("file1", "file2", "file3"), "", "", false, true, " '-ffile1''-ffile2''-ffile3' "),
-          Array("-f", List("file1", "file2", "file3"), "", "", false, false, " -ffile1-ffile2-ffile3 "),
-          Array("-f", List("file1", "file2", "file3"), "suffix", " ", true, true, " '-f' 'file1' 'suffix' '-f' 'file2' 'suffix' '-f' 'file3' 'suffix' "),
-          Array("-f", List("file1", "file2", "file3"), "suffix", " ", true, false, " -f file1 suffix -f file2 suffix -f file3 suffix "),
-          Array("-f", List("file1", "file2", "file3"), "suffix", " ", false, true, " '-ffile1suffix' '-ffile2suffix' '-ffile3suffix' "),
-          Array("-f", List("file1", "file2", "file3"), "suffix", " ", false, false, " -ffile1suffix -ffile2suffix -ffile3suffix "),
+    Array(Array("", Seq("a", "bc", "d"), "", " ", true, true, " 'a' 'bc' 'd' "),
+          Array("", Seq("a", "bc", "d"), "", " ", true, false, " a bc d "),
+          Array("", Seq("a", "bc", "d"), "", "", true, true, " 'a''bc''d' "),
+          Array("", Seq("a", "bc", "d"), "", "", true, false, " abcd "),
+          Array("-f", Seq("file1", "file2", "file3"), "", " ", true, true, " '-f' 'file1' '-f' 'file2' '-f' 'file3' "),
+          Array("-f", Seq("file1", "file2", "file3"), "", " ", true, false, " -f file1 -f file2 -f file3 "),
+          Array("-f", Seq("file1", "file2", "file3"), "", " ", false, true, " '-ffile1' '-ffile2' '-ffile3' "),
+          Array("-f", Seq("file1", "file2", "file3"), "", " ", false, false, " -ffile1 -ffile2 -ffile3 "),
+          Array("-f", Seq("file1", "file2", "file3"), "", "", false, true, " '-ffile1''-ffile2''-ffile3' "),
+          Array("-f", Seq("file1", "file2", "file3"), "", "", false, false, " -ffile1-ffile2-ffile3 "),
+          Array("-f", Seq("file1", "file2", "file3"), "suffix", " ", true, true, " '-f' 'file1' 'suffix' '-f' 'file2' 'suffix' '-f' 'file3' 'suffix' "),
+          Array("-f", Seq("file1", "file2", "file3"), "suffix", " ", true, false, " -f file1 suffix -f file2 suffix -f file3 suffix "),
+          Array("-f", Seq("file1", "file2", "file3"), "suffix", " ", false, true, " '-ffile1suffix' '-ffile2suffix' '-ffile3suffix' "),
+          Array("-f", Seq("file1", "file2", "file3"), "suffix", " ", false, false, " -ffile1suffix -ffile2suffix -ffile3suffix "),
           Array("-f", null, "", " ", true, true, ""),
           Array("-f", Nil, "", " ", true, true, "")
          )
@@ -148,11 +172,11 @@ class CommandLineFunctionUnitTest extends CommandLineFunction {
 
   @DataProvider( name = "repeatWithPrefixFormattingTestData" )
   def repeatWithPrefixFormattingDataProvider = {
-    Array(Array("-f", List("file1", "file2", "file3"), "", " ", true, true, (prefix: String, value: Any) => "%s:tag%s".format(prefix, value),
+    Array(Array("-f", Seq("file1", "file2", "file3"), "", " ", true, true, (prefix: String, value: Any) => "%s:tag%s".format(prefix, value),
                 " '-f:tagfile1' 'file1' '-f:tagfile2' 'file2' '-f:tagfile3' 'file3' "),
-          Array("-f", List("file1", "file2", "file3"), "", " ", true, false, (prefix: String, value: Any) => "%s:tag%s".format(prefix, value),
+          Array("-f", Seq("file1", "file2", "file3"), "", " ", true, false, (prefix: String, value: Any) => "%s:tag%s".format(prefix, value),
                 " -f:tagfile1 file1 -f:tagfile2 file2 -f:tagfile3 file3 "),
-          Array("", List("file1", "file2", "file3"), "", " ", true, true, (prefix: String, value: Any) => "-%s".format(value),
+          Array("", Seq("file1", "file2", "file3"), "", " ", true, true, (prefix: String, value: Any) => "-%s".format(value),
                 " '-file1' 'file1' '-file2' 'file2' '-file3' 'file3' "),
           Array("-f", null, "", " ", true, true, (prefix: String, value: Any) => "%s:tag%s".format(prefix, value),
                 ""),

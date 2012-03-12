@@ -241,6 +241,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             String alleleA = beagleGenotypePairs.get(0);
             String alleleB = beagleGenotypePairs.get(1);
 
+            if ( alleleA.equals("null") || alleleB.equals("null") ) {
+                logger.warn("Beagle produced 'null' alleles at location "+ref.getLocus().toString()+". Ignoring.");
+                return 0;
+            }
+
             // Beagle always produces genotype strings based on the strings we input in the likelihood file.
             String refString = vc_input.getReference().getDisplayString();
             if (refString.length() == 0) // ref was null
@@ -315,8 +320,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             og = a1+"/"+a2;
 
             // See if Beagle switched genotypes
-            if (!((bglAlleleA.equals(originalAlleleA) && bglAlleleB.equals(originalAlleleB) ||
-                    (bglAlleleA.equals(originalAlleleB) && bglAlleleB.equals(originalAlleleA))))){
+            if (! originalAlleleA.equals(Allele.NO_CALL) && beagleSwitchedGenotypes(bglAlleleA,originalAlleleA,bglAlleleB,originalAlleleB)){
                 originalAttributes.put("OG",og);
                 numGenotypesChangedByBeagle++;
             }
@@ -357,6 +361,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         vcfWriter.add(builder.make());
 
         return 1;
+    }
+
+    private boolean beagleSwitchedGenotypes(Allele bglAlleleA, Allele originalAlleleA, Allele bglAlleleB, Allele originalAlleleB) {
+       return !((bglAlleleA.equals(originalAlleleA) && bglAlleleB.equals(originalAlleleB) ||
+                    (bglAlleleA.equals(originalAlleleB) && bglAlleleB.equals(originalAlleleA))));
     }
 
     public Integer reduceInit() {

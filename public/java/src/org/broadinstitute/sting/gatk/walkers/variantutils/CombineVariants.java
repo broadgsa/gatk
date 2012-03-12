@@ -105,7 +105,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
      * and each named argument will be labeled as such in the output (i.e., set=name rather than
      * set=variants2).  The order of arguments does not matter unless except for the naming, so
      * if you provide an rod priority list and no explicit names than variants, variants2, etc
-     * are techincally order dependent.  It is strongly recommended to provide explicit names when
+     * are technically order dependent.  It is strongly recommended to provide explicit names when
      * a rod priority list is provided.
      */
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
@@ -119,6 +119,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="filteredRecordsMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different FILTER fields", required=false)
     public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
+
+    @Hidden
+    @Argument(shortName="multipleAllelesMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different allele types (for example, SNP vs. indel)", required=false)
+    public VariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = VariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
 
     /**
      * Used when taking the union of variants that contain genotypes.  A complete priority list MUST be provided.
@@ -236,13 +240,24 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             return 0;
 
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
-        Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
-        // iterate over the types so that it's deterministic
-        for ( VariantContext.Type type : VariantContext.Type.values() ) {
-            if ( VCsByType.containsKey(type) )
-                mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                        priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                        SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+
+        if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
+            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+            // iterate over the types so that it's deterministic
+            for (VariantContext.Type type : VariantContext.Type.values()) {
+                if (VCsByType.containsKey(type))
+                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                            SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+            }
+        }
+        else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
+            mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcs,
+                    priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                    SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+        }
+        else {
+            logger.warn("Ignoring all records at site " + ref.getLocus());
         }
 
         for ( VariantContext mergedVC : mergedVCs ) {

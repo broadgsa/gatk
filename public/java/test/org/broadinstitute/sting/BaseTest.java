@@ -1,13 +1,21 @@
 package org.broadinstitute.sting;
 
-import org.apache.log4j.*;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -53,6 +61,8 @@ public abstract class BaseTest {
     public static final String annotationDataLocation = GATKDataLocation + "Annotations/";
 
     public static final String b37GoodBAM = validationDataLocation + "/CEUTrio.HiSeq.b37.chr20.10_11mb.bam";
+    public static final String b37GoodNA12878BAM = validationDataLocation + "/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam";
+    public static final String b37_NA12878_OMNI = validationDataLocation + "/NA12878.omni.vcf";
 
     public static final String refseqAnnotationLocation = annotationDataLocation + "refseq/";
     public static final String hg18Refseq = refseqAnnotationLocation + "refGene-big-table-hg18.txt";
@@ -79,6 +89,9 @@ public abstract class BaseTest {
 
     public static final File testDirFile = new File("public/testdata/");
     public static final String testDir = testDirFile.getAbsolutePath() + "/";
+
+    public static final String keysDataLocation = validationDataLocation + "keys/";
+    public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
 
     /** before the class starts up */
     static {
@@ -134,7 +147,7 @@ public abstract class BaseTest {
      */
     public static class TestDataProvider {
         private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
-        private String name;
+        protected String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C

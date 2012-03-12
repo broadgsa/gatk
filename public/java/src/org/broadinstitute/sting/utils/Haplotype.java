@@ -24,11 +24,16 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Requires;
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -109,6 +114,51 @@ public class Haplotype {
         return isReference;
     }
 
+    @Requires({"refInsertLocation >= 0", "hapStartInRefCoords >= 0"})
+    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation, final int hapStartInRefCoords, final Cigar haplotypeCigar ) {
+        
+        if( refAllele.length() != altAllele.length() ) { refInsertLocation++; }
+        int haplotypeInsertLocation = getHaplotypeCoordinateForReferenceCoordinate(hapStartInRefCoords, haplotypeCigar, refInsertLocation);
+        if( haplotypeInsertLocation == -1 ) { // desired change falls inside deletion so don't bother creating a new haplotype
+            return bases.clone();
+        }
+        byte[] newHaplotype;
+
+        try {
+            if( refAllele.length() == altAllele.length() ) { // SNP or MNP
+                newHaplotype = bases.clone();
+                for( int iii = 0; iii < altAllele.length(); iii++ ) {
+                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
+                }
+            } else if( refAllele.length() < altAllele.length() ) { // insertion                
+                final int altAlleleLength = altAllele.length();
+                newHaplotype = new byte[bases.length + altAlleleLength];
+                for( int iii = 0; iii < bases.length; iii++ ) {
+                    newHaplotype[iii] = bases[iii];
+                }
+                for( int iii = newHaplotype.length - 1; iii > haplotypeInsertLocation + altAlleleLength - 1; iii-- ) {
+                    newHaplotype[iii] = newHaplotype[iii-altAlleleLength];
+                }
+                for( int iii = 0; iii < altAlleleLength; iii++ ) {
+                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
+                }
+            } else { // deletion
+                final int shift = refAllele.length() - altAllele.length();
+                newHaplotype = new byte[bases.length - shift];
+                for( int iii = 0; iii < haplotypeInsertLocation + altAllele.length(); iii++ ) {
+                    newHaplotype[iii] = bases[iii];
+                }
+                for( int iii = haplotypeInsertLocation + altAllele.length(); iii < newHaplotype.length; iii++ ) {
+                    newHaplotype[iii] = bases[iii+shift];
+                }
+            }
+        } catch (Exception e) { // event already on haplotype is too large/complex to insert another allele, most likely because of not enough reference padding
+            return bases.clone();
+        }
+        
+        return newHaplotype;
+    }
+
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
                                                                final int haplotypeSize, final int numPrefBases) {
 
@@ -163,6 +213,86 @@ public class Haplotype {
         }
 
         return haplotypeMap;
+    }
+
+    private static Integer getHaplotypeCoordinateForReferenceCoordinate( final int haplotypeStart, final Cigar haplotypeCigar, final int refCoord ) {
+        int readBases = 0;
+        int refBases = 0;
+        boolean fallsInsideDeletion = false;
+
+        int goal = refCoord - haplotypeStart;  // The goal is to move this many reference bases
+        boolean goalReached = refBases == goal;
+
+        Iterator<CigarElement> cigarElementIterator = haplotypeCigar.getCigarElements().iterator();
+        while (!goalReached && cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            int shift = 0;
+
+            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP) {
+                if (refBases + cigarElement.getLength() < goal)
+                    shift = cigarElement.getLength();
+                else
+                    shift = goal - refBases;
+
+                refBases += shift;
+            }
+            goalReached = refBases == goal;
+
+            if (!goalReached && cigarElement.getOperator().consumesReadBases())
+                readBases += cigarElement.getLength();
+
+            if (goalReached) {
+                // Is this base's reference position within this cigar element? Or did we use it all?
+                boolean endsWithinCigar = shift < cigarElement.getLength();
+
+                // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
+                // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
+                if (!endsWithinCigar && !cigarElementIterator.hasNext())
+                    return -1;
+
+                CigarElement nextCigarElement;
+
+                // if we end inside the current cigar element, we just have to check if it is a deletion
+                if (endsWithinCigar)
+                    fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
+
+                    // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
+                else {
+                    nextCigarElement = cigarElementIterator.next();
+
+                    // if it's an insertion, we need to clip the whole insertion before looking at the next element
+                    if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
+                        readBases += nextCigarElement.getLength();
+                        if (!cigarElementIterator.hasNext())
+                            return -1;
+
+                        nextCigarElement = cigarElementIterator.next();
+                    }
+
+                    // if it's a deletion, we will pass the information on to be handled downstream.
+                    fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
+                }
+
+                // If we reached our goal outside a deletion, add the shift
+                if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
+                    readBases += shift;
+
+                    // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
+                    // to add the shift of the current cigar element but go back to it's last element to return the last
+                    // base before the deletion (see warning in function contracts)
+                else if (fallsInsideDeletion && !endsWithinCigar)
+                    readBases += shift - 1;
+
+                    // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
+                else if (fallsInsideDeletion && endsWithinCigar)
+                    readBases--;
+            }
+        }
+
+        if (!goalReached)
+            return -1;
+
+        return (fallsInsideDeletion ? -1 : readBases);
     }
 
 }

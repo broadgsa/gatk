@@ -27,7 +27,6 @@ package org.broadinstitute.sting.queue
 import engine.JobRunInfo
 import org.broadinstitute.sting.queue.function.QFunction
 import annotation.target.field
-import io.Source
 import util.{StringFileConversions, PrimitiveOptionConversions, Logging}
 
 /**
@@ -54,24 +53,25 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
   type Gather = org.broadinstitute.sting.commandline.Gather @field
 
   /**
+   * Default settings for QFunctions
+   */
+  var qSettings: QSettings = _
+
+  /**
    * Builds the CommandLineFunctions that will be used to run this script and adds them to this.functions directly or using the add() utility method.
    */
   def script()
 
   /**
    * A default handler for the onExecutionDone() function.  By default this doesn't do anything
-   * except print out a fine status message.
    */
   def onExecutionDone(jobs: Map[QFunction, JobRunInfo], success: Boolean) {
-    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", jobs.size))
-    // this is too much output
-    // for ( (f, info) <- jobs ) logger.info("  %s %s".format(f.jobName, info))
   }
 
   /**
    * The command line functions that will be executed for this QScript.
    */
-  var functions = List.empty[QFunction]
+  var functions = Seq.empty[QFunction]
 
   /**
    * Exchanges the extension on a file.
@@ -98,22 +98,20 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    * Adds one or more command line functions to be run.
    * @param functions Functions to add.
    */
-  def add(functions: QFunction*) = {
+  def add(functions: QFunction*) {
     functions.foreach(function => function.addOrder = QScript.nextAddOrder)
     this.functions ++= functions
   }
 
-  def addAll(functions: List[QFunction]) {
+  def addAll(functions: Seq[QFunction]) {
     functions.foreach( f => add(f) )
   }
-
-  def extractFileEntries(in: File): List[File] = Source.fromFile(in).getLines().toList
 }
 
 object QScript {
   private var addOrder = 0
   private def nextAddOrder = {
     addOrder += 1
-    List(addOrder)
+    Seq(addOrder)
   }
 }

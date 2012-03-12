@@ -24,12 +24,12 @@ public class MappingQualityRankSumTest extends RankSumTest {
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("MQRankSum", 1, VCFHeaderLineType.Float, "Z-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities")); }
 
-    protected void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
+    protected void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
         for ( final PileupElement p : pileup ) {
             if ( isUsableBase(p) ) {
                 if ( p.getBase() == ref ) {
                     refQuals.add((double)p.getMappingQual());
-                } else if ( p.getBase() == alt ) {
+                } else if ( alts.contains(p.getBase()) ) {
                     altQuals.add((double)p.getMappingQual());
                 }
             }

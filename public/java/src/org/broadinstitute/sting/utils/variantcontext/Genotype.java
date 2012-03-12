@@ -29,7 +29,9 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
-        if ( alleles != null )
+        if ( alleles == null || alleles.isEmpty() )
+            this.alleles = Collections.emptyList();
+        else
             this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new CommonInfo(sampleName, log10PError, filters, attributes);
         if ( log10Likelihoods != null )
@@ -89,9 +91,6 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public List<Allele> getAlleles(Allele allele) {
-        if ( getType() == Type.UNAVAILABLE )
-            throw new ReviewedStingException("Requesting alleles for an UNAVAILABLE genotype");
-
         List<Allele> al = new ArrayList<Allele>();
         for ( Allele a : alleles )
             if ( a.equals(allele) )
@@ -112,7 +111,7 @@ public class Genotype implements Comparable<Genotype> {
      * @return the ploidy of this genotype
      */
     public int getPloidy() {
-        if ( alleles == null )
+        if ( alleles.size() == 0 )
             throw new ReviewedStingException("Requesting ploidy for an UNAVAILABLE genotype");
         return alleles.size();
     }
@@ -134,7 +133,7 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     protected Type determineType() {
-        if ( alleles == null )
+        if ( alleles.size() == 0 )
             return Type.UNAVAILABLE;
 
         boolean sawNoCall = false, sawMultipleAlleles = false;
@@ -234,8 +233,7 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public void validate() {
-        if ( alleles == null ) return;
-        if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0");
+        if ( alleles.size() == 0) return;
 
         // int nNoCalls = 0;
         for ( Allele allele : alleles ) {
@@ -254,7 +252,7 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public String getGenotypeString(boolean ignoreRefState) {
-        if ( alleles == null )
+        if ( alleles.size() == 0 )
             return null;
 
         // Notes:

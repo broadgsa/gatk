@@ -31,12 +31,14 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -72,25 +74,28 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
         this.logger = logger;
     }
 
-    /**
-     * Must be overridden by concrete subclasses
-     *
-     * @param tracker              rod data
-     * @param ref                  reference context
-     * @param contexts             stratified alignment contexts
-     * @param contextType          stratified context type
-     * @param priors               priors to use for GLs
-     * @param alternateAlleleToUse the alternate allele to use, null if not set
-     * @param useBAQedPileup       should we use the BAQed pileup or the raw one?
-     * @return variant context where genotypes are no-called but with GLs
-     */
-    public abstract VariantContext getLikelihoods(RefMetaDataTracker tracker,
-                                                  ReferenceContext ref,
-                                                  Map<String, AlignmentContext> contexts,
-                                                  AlignmentContextUtils.ReadOrientation contextType,
-                                                  GenotypePriors priors,
-                                                  Allele alternateAlleleToUse,
-                                                  boolean useBAQedPileup);
+     /**
+      * Can be overridden by concrete subclasses
+      *
+      * @param tracker               rod data
+      * @param ref                   reference context
+      * @param contexts              stratified alignment contexts
+      * @param contextType           stratified context type
+      * @param priors                priors to use for GLs
+      * @param alternateAllelesToUse the alternate allele to use, null if not set
+      * @param useBAQedPileup        should we use the BAQed pileup or the raw one?
+      * @param locParser             Genome Loc Parser
+      * @return variant context where genotypes are no-called but with GLs
+      */
+     public abstract VariantContext getLikelihoods(final RefMetaDataTracker tracker,
+                                                   final ReferenceContext ref,
+                                                   final Map<String, AlignmentContext> contexts,
+                                                   final AlignmentContextUtils.ReadOrientation contextType,
+                                                   final GenotypePriors priors,
+                                                   final List<Allele> alternateAllelesToUse,
+                                                   final boolean useBAQedPileup,
+                                                   final GenomeLocParser locParser);
+
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;

@@ -145,7 +145,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
-                             Math.min(getStart(), that.getStart()),
+                             Math.min( getStart(), that.getStart() ),
                              Math.max( getStop(), that.getStop()) );
     }
 
@@ -436,7 +436,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *         never be < 1.
      */
     @Ensures("result > 0")
-    public long size() {
+    public int size() {
         return stop - start + 1;
     }
 
@@ -464,5 +464,9 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
 
     private final static double overlapPercent(final GenomeLoc gl1, final GenomeLoc gl2) {
         return (1.0 * gl1.intersect(gl2).size()) / gl1.size();
+    }
+
+    public long sizeOfOverlap( final GenomeLoc that ) {
+        return ( this.overlapsP(that) ? Math.min( getStop(), that.getStop() ) - Math.max( getStart(), that.getStart() ) + 1L : 0L );
     }
 }

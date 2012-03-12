@@ -1,10 +1,14 @@
 package org.broadinstitute.sting.utils;
 
+import org.apache.commons.io.comparator.LastModifiedFileComparator;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -17,6 +21,8 @@ import java.util.List;
  * A set of static utility methods for common operations on paths.
  */
 public class PathUtils {
+    private static Logger logger = Logger.getLogger(PathUtils.class);
+
     /**
      * Constructor access disallowed...static utility methods only!
      */
@@ -36,7 +42,7 @@ public class PathUtils {
         List<String> filesInPath = new ArrayList<String>();
 
         FilenameFilter filter = new OrFilenameFilter(new DirectoryFilter(),
-                                                     new ExtensionFilter(extension));
+                new ExtensionFilter(extension));
         File[] contents = basePath.listFiles( filter );
         for (File content : contents) {
             String relativeFileName = relativePrefix.trim().length() != 0 ?
@@ -118,4 +124,47 @@ public class PathUtils {
         }
     }
 
+
+    /**
+     * Walk over the GATK released directories to find the most recent JAR files corresponding
+     * to the version prefix.  For example, providing input "1.2" will
+     * return the full path to the most recent GenomeAnalysisTK.jar in the GATK_RELEASE_DIR
+     * in directories that match gatkReleaseDir/GenomeAnalysisTK-1.2*
+     *
+     * @param gatkReleaseDir Path to directory containing GATK release binaries (e.g., /humgen/gsa-hpprojects/GATK/bin/)
+     * @param releaseVersionNumber Desired GATK version number (e.g., 1.2)
+     * @return A file pointing to the most recent GATK file in the release directory with GATK release number
+     */
+    public static File findMostRecentGATKVersion(final File gatkReleaseDir, final String releaseVersionNumber) {
+        final String versionString = "GenomeAnalysisTK-" + releaseVersionNumber;
+
+        final List<File> gatkJars = new ArrayList<File>();
+        for ( final String path : gatkReleaseDir.list(new isGATKVersion(versionString)) ) {
+            gatkJars.add(new File(gatkReleaseDir.getAbsolutePath() + "/" + path + "/GenomeAnalysisTK.jar"));
+        }
+
+        if ( gatkJars.isEmpty() )
+            return null;
+        else {
+            Collections.sort(gatkJars, LastModifiedFileComparator.LASTMODIFIED_REVERSE);
+            //for ( File jar : gatkJars ) logger.info(String.format("%s => %d", jar, jar.lastModified()));
+            final File last = gatkJars.get(0);
+            logger.debug(String.format("findMostRecentGATKVersion: Found %d jars for %s, keeping last one %s",
+                    gatkJars.size(), releaseVersionNumber, last));
+            return last;
+        }
+    }
+
+    private final static class isGATKVersion implements FilenameFilter {
+        private final String versionString;
+
+        private isGATKVersion(final String versionString) {
+            this.versionString = versionString;
+        }
+
+        @Override
+        public boolean accept(final File file, final String s) {
+            return s.contains(versionString);
+        }
+    }
 }

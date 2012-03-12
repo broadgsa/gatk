@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -47,10 +47,10 @@ object PipelineTest extends BaseTest with Logging {
 
   final val allJobRunners = {
     val commandLinePluginManager = new CommandLinePluginManager
-    commandLinePluginManager.getPlugins.map(commandLinePluginManager.getName(_)).toList
+    commandLinePluginManager.getPlugins.map(commandLinePluginManager.getName(_)).toSeq
   }
 
-  final val defaultJobRunners = List("Lsf706", "GridEngine")
+  final val defaultJobRunners = Seq("Lsf706", "GridEngine")
 
   /**
    * Returns the top level output path to this test.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -32,9 +32,8 @@ import net.sf.samtools.SAMFileHeader
 import java.util.Collections
 import org.broadinstitute.sting.utils.{GenomeLoc, GenomeLocSortedSet, GenomeLocParser}
 
-case class GATKIntervals(reference: File, intervals: List[String]) {
+case class GATKIntervals(reference: File, intervals: Seq[String]) {
   private lazy val referenceDataSource = new ReferenceDataSource(reference)
-//  private var splitsBySize = Map.empty[Int, java.util.List[java.lang.Integer]]
 
   lazy val samFileHeader = {
     val header = new SAMFileHeader
@@ -55,13 +54,5 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
     Collections.unmodifiableList(mergedLocs)
   }
 
-  lazy val contigs = locs.map(_.getContig).distinct.toList
-
-//  def getSplits(size: Int) = {
-//    splitsBySize.getOrElse(size, {
-//      val splits: java.util.List[java.lang.Integer] = IntervalUtils.splitFixedIntervals(locs, size)
-//      splitsBySize += size -> splits
-//      splits
-//    })
-//  }
+  lazy val contigs = locs.map(_.getContig).distinct.toSeq
 }

@@ -79,7 +79,8 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                false,
                                                                BAQ.CalculationMode.OFF,
                                                                BAQ.QualityMode.DONT_MODIFY,
-                                                               null,
+                                                               null, // no BAQ
+                                                               null, // no BQSR
                                                                (byte)0);
 
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());

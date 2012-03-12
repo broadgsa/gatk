@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -38,11 +38,11 @@ class HelloWorldPipelineTest {
   }
 
   @Test
-  def testHelloWorldWithPrefix() {
+  def testHelloWorldWithRunName() {
     val spec = new PipelineTestSpec
-    spec.name = "HelloWorldWithPrefix"
+    spec.name = "HelloWorldWithRunName"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
-      " -jobPrefix HelloWorld"
+      " -runName HelloWorld"
     spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
@@ -73,7 +73,7 @@ class HelloWorldPipelineTest {
     spec.name = "HelloWorldWithLsfResource"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -jobResReq rusage[iodine_io=1] -jobResReq select[swp>0] -jobResReq order[swp]"
-    spec.jobRunners = List("Lsf706")
+    spec.jobRunners = Seq("Lsf706")
     PipelineTest.executeTest(spec)
   }
 
@@ -83,7 +83,7 @@ class HelloWorldPipelineTest {
     spec.name = "HelloWorldWithLsfResourceAndMemoryLimit"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -memLimit 1.25 -jobResReq rusage[iodine_io=1] -jobResReq select[swp>0] -jobResReq order[swp]"
-    spec.jobRunners = List("Lsf706")
+    spec.jobRunners = Seq("Lsf706")
     PipelineTest.executeTest(spec)
   }
 
@@ -93,7 +93,7 @@ class HelloWorldPipelineTest {
     spec.name = "HelloWorldWithLsfEnvironment"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -jobEnv tv"
-    spec.jobRunners = List("Lsf706")
+    spec.jobRunners = Seq("Lsf706")
     PipelineTest.executeTest(spec)
   }
 
@@ -103,7 +103,7 @@ class HelloWorldPipelineTest {
     spec.name = "HelloWorldWithGridEngineResource"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -jobResReq s_core=1000M"
-    spec.jobRunners = List("GridEngine")
+    spec.jobRunners = Seq("GridEngine")
     PipelineTest.executeTest(spec)
   }
 
@@ -113,7 +113,7 @@ class HelloWorldPipelineTest {
     spec.name = "HelloWorldWithGridEngineResourceAndMemoryLimit"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -memLimit 1.25 -jobResReq s_core=1000M"
-    spec.jobRunners = List("GridEngine")
+    spec.jobRunners = Seq("GridEngine")
     PipelineTest.executeTest(spec)
   }
 
@@ -123,7 +123,7 @@ class HelloWorldPipelineTest {
     spec.name = "HelloWorldWithGridEngineEnvironment"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -jobEnv \"make 1\""
-    spec.jobRunners = List("GridEngine")
+    spec.jobRunners = Seq("GridEngine")
     PipelineTest.executeTest(spec)
   }
 }

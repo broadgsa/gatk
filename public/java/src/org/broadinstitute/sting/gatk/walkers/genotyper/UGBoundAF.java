@@ -204,6 +204,6 @@ public class UGBoundAF extends RodWalker<VariantContext,Integer> {
             return Math.log10(s_2 + (s_2 - s)/15.0);
         }
 
-        return ExactAFCalculationModel.approximateLog10SumLog10(simpAux(likelihoods,a,c,eps/2,s_l,fa,fc,fd,cap-1),simpAux(likelihoods, c, b, eps / 2, s_r, fc, fb, fe, cap - 1));
+        return MathUtils.approximateLog10SumLog10(simpAux(likelihoods,a,c,eps/2,s_l,fa,fc,fd,cap-1),simpAux(likelihoods, c, b, eps / 2, s_r, fc, fb, fe, cap - 1));
     }
 }

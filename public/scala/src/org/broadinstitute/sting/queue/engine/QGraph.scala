@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -30,7 +30,6 @@ import scala.collection.JavaConversions._
 import org.jgrapht.alg.CycleDetector
 import org.jgrapht.EdgeFactory
 import org.jgrapht.ext.DOTExporter
-import java.io.File
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
 import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
@@ -40,7 +39,8 @@ import collection.immutable.{TreeSet, TreeMap}
 import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
 import java.util.Date
 import org.broadinstitute.sting.utils.Utils
-import org.broadinstitute.sting.utils.io.IOUtils
+import org.apache.commons.io.{FileUtils, IOUtils}
+import java.io.{OutputStreamWriter, File}
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -69,7 +69,7 @@ class QGraph extends Logging {
   private val commandLinePluginManager = new CommandLinePluginManager
   private var commandLineManager: CommandLineJobManager[CommandLineJobRunner] = _
   private val inProcessManager = new InProcessJobManager
-  private def managers = List[Any](inProcessManager, commandLineManager)
+  private def managers = Seq[Any](inProcessManager, commandLineManager)
 
   private class StatusCounts {
     var pending = 0
@@ -88,9 +88,14 @@ class QGraph extends Logging {
       runningLock.synchronized {
         if (running) {
           command.qSettings = settings.qSettings
-          command.freeze
-          val inputs = getQNode(command.inputs.toList.sorted(fileOrdering))
-          val outputs = getQNode(command.outputs.toList.sorted(fileOrdering))
+          command.freeze()
+          val inputFiles = command.inputs
+          var outputFiles = command.outputs
+          outputFiles :+= command.jobOutputFile
+          if (command.jobErrorFile != null)
+            outputFiles :+= command.jobErrorFile
+          val inputs = getQNode(inputFiles.sorted(fileOrdering))
+          val outputs = getQNode(outputFiles.sorted(fileOrdering))
           addEdge(new FunctionEdge(command, inputs, outputs))
         }
       }
@@ -106,8 +111,8 @@ class QGraph extends Logging {
   def run() {
     runningLock.synchronized {
       if (running) {
-        IOUtils.checkTempDir(settings.qSettings.tempDirectory)
-        fillGraph
+        org.broadinstitute.sting.utils.io.IOUtils.checkTempDir(settings.qSettings.tempDirectory)
+        fillGraph()
         val isReady = numMissingValues == 0
 
         if (this.jobGraph.edgeSet.isEmpty) {
@@ -133,11 +138,11 @@ class QGraph extends Logging {
     }
   }
 
-  private def fillGraph {
+  private def fillGraph() {
     logger.info("Generating graph.")
-    fill
-    if (settings.dotFile != null)
-      renderToDot(settings.dotFile)
+    fill()
+    if (settings.graphvizFile != null)
+      renderGraph(settings.graphvizFile)
     validate()
 
     if (running && numMissingValues == 0) {
@@ -145,7 +150,7 @@ class QGraph extends Logging {
       if (!scatterGathers.isEmpty) {
         logger.info("Generating scatter gather jobs.")
 
-        var addedFunctions = List.empty[QFunction]
+        var addedFunctions = Seq.empty[QFunction]
         for (scatterGather <- scatterGathers) {
           val functions = scatterGather.asInstanceOf[FunctionEdge]
                   .function.asInstanceOf[ScatterGatherableFunction]
@@ -161,10 +166,10 @@ class QGraph extends Logging {
         addedFunctions.foreach(function => if (running) this.add(function))
 
         logger.info("Regenerating graph.")
-        fill
-        val scatterGatherDotFile = if (settings.expandedDotFile != null) settings.expandedDotFile else settings.dotFile
+        fill()
+        val scatterGatherDotFile = if (settings.graphvizScatterGatherFile != null) settings.graphvizScatterGatherFile else settings.graphvizFile
         if (scatterGatherDotFile != null)
-          renderToDot(scatterGatherDotFile)
+          renderGraph(scatterGatherDotFile)
         validate()
       }
     }
@@ -187,8 +192,8 @@ class QGraph extends Logging {
    * @param edge Graph edge to examine for the previous functions.
    * @return A list of prior function edges.
    */
-  private def previousFunctions(edge: QEdge): List[FunctionEdge] = {
-    var previous = List.empty[FunctionEdge]
+  private def previousFunctions(edge: QEdge): Seq[FunctionEdge] = {
+    var previous = Seq.empty[FunctionEdge]
     val source = this.jobGraph.getEdgeSource(edge)
     for (incomingEdge <- this.jobGraph.incomingEdgesOf(source)) {
       incomingEdge match {
@@ -208,8 +213,8 @@ class QGraph extends Logging {
    * @param edge Graph edge to examine for the next functions.
    * @return A list of prior function edges.
    */
-  private def nextFunctions(edge: QEdge): List[FunctionEdge] = {
-    var next = List.empty[FunctionEdge]
+  private def nextFunctions(edge: QEdge): Seq[FunctionEdge] = {
+    var next = Seq.empty[FunctionEdge]
     val target = this.jobGraph.getEdgeTarget(edge)
     for (outgoingEdge <- this.jobGraph.outgoingEdgesOf(target)) {
       outgoingEdge match {
@@ -238,7 +243,7 @@ class QGraph extends Logging {
    */
   private def fillIn() {
     // clone since edgeSet is backed by the graph
-    asScalaSet(jobGraph.edgeSet).clone.foreach(edge => {
+    asScalaSet(jobGraph.edgeSet).clone().foreach(edge => {
       if (running) edge match {
         case cmd: FunctionEdge => {
           addCollectionOutputs(cmd.outputs)
@@ -249,7 +254,7 @@ class QGraph extends Logging {
     })
   }
 
-  private def getReadyJobs(): Set[FunctionEdge] = {
+  private def getReadyJobs: Set[FunctionEdge] = {
     jobGraph.edgeSet.filter{
       case f: FunctionEdge =>
         this.previousFunctions(f).forall(_.status == RunnerStatus.DONE) && f.status == RunnerStatus.PENDING
@@ -317,33 +322,39 @@ class QGraph extends Logging {
 
     updateGraphStatus(false)
 
-    var readyJobs = getReadyJobs()
+    var readyJobs = getReadyJobs
     while (running && readyJobs.size > 0) {
       logger.debug("+++++++")
-      foreachFunction(readyJobs.toList, edge => {
+      foreachFunction(readyJobs.toSeq, edge => {
         if (running) {
           edge.myRunInfo.startTime = new Date()
           edge.getRunInfo.exechosts = Utils.resolveHostname()
           logEdge(edge)
           edge.myRunInfo.doneTime = new Date()
-          edge.markAsDone
+          edge.markAsDone()
         }
       })
-      readyJobs = getReadyJobs()
+      readyJobs = getReadyJobs
     }
   }
 
   private def logEdge(edge: FunctionEdge) {
     logger.info("-------")
+    logger.info("%-8s %s".format(StringUtils.capitalize(edge.status.toString) + ":", edge.function.description))
     if (logger.isDebugEnabled) {
-      logger.debug("Inputs: " + edge.inputs)
+      logger.debug("Inputs:  " + edge.inputs)
+      logger.debug("Outputs: " + edge.outputs)
+      logger.debug("Done+:   " + edge.function.doneOutputs.filter(_.exists()))
+      logger.debug("Done-:   " + edge.function.doneOutputs.filterNot(_.exists()))
+      logger.debug("CmdDir:  " + edge.function.commandDirectory)
+      logger.debug("Temp?:   " + edge.function.isIntermediate)
+      logger.debug("Prev:    " +
+        (if (edge.resetFromStatus == null) "none" else StringUtils.capitalize(edge.resetFromStatus.toString)) +
+        " (reset = " + (edge.resetFromStatus != null && edge.resetFromStatus != edge.status) + ")" )
     }
-    logger.info(StringUtils.capitalize(edge.status.toString) + ": " + edge.function.description)
-    if (logger.isDebugEnabled)
-      logger.debug(edge.function.commandDirectory + " > " + edge.function.description)
-    logger.info("Log: " + edge.function.jobOutputFile.getAbsolutePath)
+    logger.info("Log:     " + edge.function.jobOutputFile.getAbsolutePath)
     if (edge.function.jobErrorFile != null)
-      logger.info("Error: " + edge.function.jobErrorFile.getAbsolutePath)
+      logger.info("Error:   " + edge.function.jobErrorFile.getAbsolutePath)
   }
 
   /**
@@ -380,7 +391,7 @@ class QGraph extends Logging {
       updateGraphStatus(true)
 
       var readyJobs = TreeSet.empty[FunctionEdge](functionOrdering)
-      readyJobs ++= getReadyJobs()
+      readyJobs ++= getReadyJobs
       runningJobs = Set.empty[FunctionEdge]
       var lastRunningCheck = System.currentTimeMillis
       var logNextStatusCounts = true
@@ -407,7 +418,7 @@ class QGraph extends Logging {
         statusCounts.running += startedJobs.size
 
         if (logNextStatusCounts)
-          logStatusCounts
+          logStatusCounts()
         logNextStatusCounts = false
 
         deleteCleanup(lastRunningCheck)
@@ -456,10 +467,10 @@ class QGraph extends Logging {
           checkRetryJobs(failedJobs)
         }
 
-        readyJobs ++= getReadyJobs()
+        readyJobs ++= getReadyJobs
       }
 
-      logStatusCounts
+      logStatusCounts()
       deleteCleanup(-1)
     } catch {
       case e =>
@@ -476,7 +487,7 @@ class QGraph extends Logging {
   private def nextRunningCheck(lastRunningCheck: Long) =
     ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
 
-  private def logStatusCounts {
+  private def logStatusCounts() {
     logger.info("%d Pend, %d Run, %d Fail, %d Done".format(
       statusCounts.pending, statusCounts.running, statusCounts.failed, statusCounts.done))
   }
@@ -532,7 +543,8 @@ class QGraph extends Logging {
     }
     
     if (edge.status == RunnerStatus.DONE || edge.status == RunnerStatus.SKIPPED) {
-      logger.debug("Already done: " + edge.function.description)
+      if (logger.isDebugEnabled)
+        logEdge(edge)
       addCleanup(edge)
     }
   }
@@ -546,12 +558,12 @@ class QGraph extends Logging {
   }
 
   /**
-   * Checks if the function should have their outptus removed after they finish running
-   * @param edges Function to check
+   * Checks if the function should have their outputs removed after they finish running
+   * @param edge Function to check
    */
   private def addCleanup(edge: FunctionEdge) {
     if (!settings.keepIntermediates)
-      if (edge.function.isIntermediate && edge.function.deleteIntermediateOutputs)
+      if (edge.function.isIntermediate)
         cleanupJobs += edge
   }
 
@@ -601,14 +613,16 @@ class QGraph extends Logging {
    * From the previous edges, resets any that are marked as skipped to pending.
    * If those that are reset have skipped edges, those skipped edges are recursively also set
    * to pending.
+   * Any edges after this edge are also reset to pending.
    * @param edge Dependent edge.
    * @param previous Previous edges that provide inputs to edge.
-   * @param cleanOutputs If true will clean up the output files when resetting skipped jobs to pending.
+   * @param cleanOutputs If true will clean up the output files when resetting jobs to pending.
    */
-  private def resetPreviousSkipped(edge: FunctionEdge, previous: List[FunctionEdge], cleanOutputs: Boolean) {
-    for (previousEdge <- previous.filter(_.status == RunnerStatus.SKIPPED)) {
-      previousEdge.resetToPending(cleanOutputs)
-      resetPreviousSkipped(previousEdge, this.previousFunctions(previousEdge), cleanOutputs)
+  private def resetPreviousSkipped(edge: FunctionEdge, previous: Seq[FunctionEdge], cleanOutputs: Boolean) {
+    val edges = previous.filter(_.status == RunnerStatus.SKIPPED) ++ this.nextFunctions(edge).filter(_.status != RunnerStatus.PENDING)
+    for (resetEdge <- edges) {
+      resetEdge.resetToPending(cleanOutputs)
+      resetPreviousSkipped(resetEdge, this.previousFunctions(resetEdge), cleanOutputs)
     }
   }
 
@@ -628,9 +642,9 @@ class QGraph extends Logging {
       val emailMessage = new EmailMessage
       emailMessage.from = settings.statusEmailFrom
       emailMessage.to = settings.statusEmailTo
-      emailMessage.subject = "Queue function: Started: " + settings.qSettings.jobNamePrefix
-      addStartedFunctions(emailMessage, started.toList)
-      emailMessage.trySend(settings.qSettings.emailSettings)
+      emailMessage.subject = "Queue function: Started: " + settings.qSettings.runName
+      addStartedFunctions(emailMessage, started.toSeq)
+      emailMessage.trySend(settings.emailSettings)
     }
   }
 
@@ -639,9 +653,9 @@ class QGraph extends Logging {
       val emailMessage = new EmailMessage
       emailMessage.from = settings.statusEmailFrom
       emailMessage.to = settings.statusEmailTo
-      emailMessage.subject = "Queue function: Failure: " + settings.qSettings.jobNamePrefix
-      addFailedFunctions(emailMessage, failed.toList)
-      emailMessage.trySend(settings.qSettings.emailSettings)
+      emailMessage.subject = "Queue function: Failure: " + settings.qSettings.runName
+      addFailedFunctions(emailMessage, failed.toSeq)
+      emailMessage.trySend(settings.emailSettings)
     }
   }
 
@@ -665,7 +679,7 @@ class QGraph extends Logging {
 
   private def emailStatus() {
     if (running && settings.statusEmailTo.size > 0) {
-      var failed = List.empty[FunctionEdge]
+      var failed = Seq.empty[FunctionEdge]
       foreachFunction(edge => {
         if (edge.status == RunnerStatus.FAILED) {
           failed :+= edge
@@ -677,16 +691,16 @@ class QGraph extends Logging {
       emailMessage.to = settings.statusEmailTo
       emailMessage.body = getStatus + nl
       if (failed.size == 0) {
-        emailMessage.subject = "Queue run: Success: " + settings.qSettings.jobNamePrefix
+        emailMessage.subject = "Queue run: Success: " + settings.qSettings.runName
       } else {
-        emailMessage.subject = "Queue run: Failure: " + settings.qSettings.jobNamePrefix
+        emailMessage.subject = "Queue run: Failure: " + settings.qSettings.runName
         addFailedFunctions(emailMessage, failed)
       }
-      emailMessage.trySend(settings.qSettings.emailSettings)
+      emailMessage.trySend(settings.emailSettings)
     }
   }
 
-  private def addStartedFunctions(emailMessage: EmailMessage, started: List[FunctionEdge]) {
+  private def addStartedFunctions(emailMessage: EmailMessage, started: Seq[FunctionEdge]) {
     if (emailMessage.body == null)
       emailMessage.body = ""
     emailMessage.body += """
@@ -697,7 +711,7 @@ class QGraph extends Logging {
       started.map(edge => emailDescription(edge)).mkString(nl+nl))
   }
 
-  private def addFailedFunctions(emailMessage: EmailMessage, failed: List[FunctionEdge]) {
+  private def addFailedFunctions(emailMessage: EmailMessage, failed: Seq[FunctionEdge]) {
     val logs = failed.flatMap(edge => logFiles(edge))
 
     if (emailMessage.body == null)
@@ -725,7 +739,7 @@ class QGraph extends Logging {
   }
 
   private def logFiles(edge: FunctionEdge) = {
-    var failedOutputs = List.empty[File]
+    var failedOutputs = Seq.empty[File]
     failedOutputs :+= edge.function.jobOutputFile
     if (edge.function.jobErrorFile != null)
       failedOutputs :+= edge.function.jobErrorFile
@@ -762,14 +776,14 @@ class QGraph extends Logging {
   private def getStatus = {
     val buffer = new StringBuilder
     doStatus(status => buffer.append(status).append(nl))
-    buffer.toString
+    buffer.toString()
   }
 
   /**
    * Gets job statuses by traversing the graph and looking for status-related files
    */
-  private def doStatus(statusFunc: String => Unit) = {
-    var statuses = List.empty[AnalysisStatus]
+  private def doStatus(statusFunc: String => Unit) {
+    var statuses = Seq.empty[AnalysisStatus]
     var maxWidth = 0
     foreachFunction(edge => {
       val name = edge.function.analysisName
@@ -860,7 +874,7 @@ class QGraph extends Logging {
   private def newGraph = new SimpleDirectedGraph[QNode, QEdge](new EdgeFactory[QNode, QEdge] {
     def createEdge(input: QNode, output: QNode) = new MappingEdge(input, output)})
 
-  private def getQNode(files: List[File]) = {
+  private def getQNode(files: Seq[File]) = {
     nodeMap.get(files) match {
       case Some(node) =>
         node
@@ -888,7 +902,7 @@ class QGraph extends Logging {
     if (inputs.files.size > 1)
       for (file <- inputs.files) {
         if (running) {
-          val input = getQNode(List(file))
+          val input = getQNode(Seq(file))
           if (!jobGraph.containsEdge(input, inputs))
             addEdge(new MappingEdge(input, inputs))
         }
@@ -903,7 +917,7 @@ class QGraph extends Logging {
     if (outputs.files.size > 1)
       for (file <- outputs.files) {
         if (running) {
-          val output = getQNode(List(file))
+          val output = getQNode(Seq(file))
           if (!jobGraph.containsEdge(outputs, output))
             addEdge(new MappingEdge(outputs, output))
         }
@@ -937,37 +951,36 @@ class QGraph extends Logging {
 
   /**
    * Utility function for running a method over all function edges.
-   * @param edgeFunction Function to run for each FunctionEdge.
+   * @param f Function to run for each FunctionEdge.
    */
   private def foreachFunction(f: (FunctionEdge) => Unit) {
-    foreachFunction(jobGraph.edgeSet.toList.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[List[FunctionEdge]], f)
+    foreachFunction(jobGraph.edgeSet.toSeq.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[Seq[FunctionEdge]], f)
   }
 
   /**
    * Utility function for running a method over a list of function edges.
-   * @param edegs Edges to traverse.
-   * @param edgeFunction Function to run for each FunctionEdge.
+   * @param edges Edges to traverse.
+   * @param f Function to run for each FunctionEdge.
    */
-  private def foreachFunction(edges: List[FunctionEdge], f: (FunctionEdge) => Unit) {
+  private def foreachFunction(edges: Seq[FunctionEdge], f: (FunctionEdge) => Unit) {
     edges.sorted(functionOrdering).foreach(edge => if (running) f(edge))
   }
 
   /**
-   * Utility function for running a method over all function edges.
-   * @param edgeFunction Function to run for each FunctionEdge.
+   * Utility function returning all function edges.
    */
-  private def getFunctionEdges: List[FunctionEdge] = {
-    jobGraph.edgeSet.toList.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[List[FunctionEdge]]
+  private def getFunctionEdges: Seq[FunctionEdge] = {
+    jobGraph.edgeSet.toSeq.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[Seq[FunctionEdge]]
   }
 
   /**
    * Utility function for running a method over all functions, but traversing the nodes in order of dependency.
-   * @param edgeFunction Function to run for each FunctionEdge.
+   * @param f Function to run for each FunctionEdge.
    */
   private def traverseFunctions(f: (FunctionEdge) => Unit) {
     val iterator = new TopologicalOrderIterator(this.jobGraph)
     iterator.addTraversalListener(new TraversalListenerAdapter[QNode, QEdge] {
-      override def edgeTraversed(event: EdgeTraversalEvent[QNode, QEdge]) = {
+      override def edgeTraversed(event: EdgeTraversalEvent[QNode, QEdge]) {
         if (running) {
           event.getEdge match {
             case functionEdge: FunctionEdge => f(functionEdge)
@@ -980,23 +993,44 @@ class QGraph extends Logging {
   }
 
   /**
-   * Outputs the graph to a .dot file.
+   * Outputs the graph to a .gv DOT file.
+   * http://www.graphviz.org/Documentation.php
    * http://en.wikipedia.org/wiki/DOT_language
-   * @param file Path to output the .dot file.
+   * @param file Path to output the .gv file.
    */
-  private def renderToDot(file: java.io.File) {
-    val out = new java.io.FileWriter(file)
-
-    // todo -- we need a nice way to visualize the key pieces of information about commands.  Perhaps a
-    // todo -- visualizeString() command, or something that shows inputs / outputs
-    val ve = new org.jgrapht.ext.EdgeNameProvider[QEdge] {
-      def getEdgeName(function: QEdge) = if (function.dotString == null) "" else function.dotString.replace("\"", "\\\"")
+  private def renderGraph(file: java.io.File) {
+    val vertexIDProvider = new org.jgrapht.ext.VertexNameProvider[QNode] {
+      def getVertexName(node: QNode) = node.id.toString
     }
 
-    //val iterator = new TopologicalOrderIterator(qGraph.jobGraph)
-    (new DOTExporter(new org.jgrapht.ext.IntegerNameProvider[QNode](), null, ve)).export(out, jobGraph)
+    val vertexLabelProvider = new org.jgrapht.ext.VertexNameProvider[QNode] {
+      // The QGraph fills in with single file nodes between nodes that contain more than one file.
+      // We only need to display the single element nodes.
+      def getVertexName(node: QNode) = {
+        if (!node.files.isEmpty && node.files.tail.isEmpty)
+          node.files.head.getName
+        else
+          ""
+      }
+    }
 
-    out.close
+    val edgeNameProvider = new org.jgrapht.ext.EdgeNameProvider[QEdge] {
+      def getEdgeName(edge: QEdge) = {
+        if (edge.shortDescription != null)
+          edge.shortDescription.replace("\"", "\\\"")
+        else
+          ""
+      }
+    }
+
+    val exporter = new DOTExporter(vertexIDProvider, vertexLabelProvider, edgeNameProvider)
+
+    val out = new OutputStreamWriter(FileUtils.openOutputStream(file))
+    try {
+      exporter.export(out, jobGraph)
+    } finally {
+      IOUtils.closeQuietly(out)
+    }
   }
 
   /**
@@ -1054,7 +1088,7 @@ class QGraph extends Logging {
    */
   def isShutdown = !running
 
-  def getFunctionsAndStatus(functions: List[QFunction]): Map[QFunction, JobRunInfo] = {
+  def getFunctionsAndStatus: Map[QFunction, JobRunInfo] = {
     getFunctionEdges.map(edge => (edge.function, edge.getRunInfo)).toMap
   }
 

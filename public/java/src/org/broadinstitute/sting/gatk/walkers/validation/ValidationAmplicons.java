@@ -111,6 +111,13 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     boolean lowerCaseSNPs = false;
 
     /**
+     * If onlyOutputValidAmplicons is true, the output fasta file will contain only valid sequences.
+     * Useful for producing delivery-ready files.
+     */
+    @Argument(doc="Only output valid sequences.",fullName="onlyOutputValidAmplicons",required=false)
+    boolean onlyOutputValidAmplicons = false;
+
+    /**
      * BWA single-end alignment is used as a primer specificity proxy. Low-complexity regions (that don't align back to themselves as a best hit) are lowercased.
      * This changes the size of the k-mer used for alignment.
      */
@@ -127,6 +134,10 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     @Argument(doc="Use Sequenom output format instead of regular FASTA",fullName="sqnm",required=false)
      boolean sequenomOutput = false;
 
+    @Hidden
+    @Argument(doc="Use ILMN output format instead of regular FASTA",fullName="ilmn",required=false)
+    boolean ilmnOutput = false;
+
 
     GenomeLoc prevInterval;
     GenomeLoc allelePos;
@@ -134,6 +145,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     StringBuilder sequence;
     StringBuilder rawSequence;
     boolean sequenceInvalid;
+    boolean isSiteSNP;
     List<String> invReason;
     int indelCounter;
 
@@ -162,6 +174,9 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
             header.setSequenceDictionary(referenceDictionary);
             header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
         }
+        
+        if (ilmnOutput)
+            out.println("Locus_Name,Target_Type,Sequence,Chromosome,Coordinate,Genome_Build_Version,Source,Source_Version,Sequence_Orientation,Plus_Minus,Force_Infinium_I");
     }
 
     public Integer reduceInit() {
@@ -227,6 +242,8 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
             }
             rawSequence.append(Character.toUpperCase((char) ref.getBase()));
         } else if ( validate != null ) {
+            // record variant type in case it's needed in output format
+            isSiteSNP = (validate.isSNP());
             // doesn't matter if there's a mask here too -- this is what we want to validate
             if ( validate.isFiltered() ) {
                 logger.warn("You are attempting to validate a filtered site. Why are you attempting to validate a filtered site? You should not be attempting to validate a filtered site.");
@@ -486,14 +503,22 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
             valid = "Valid";
         }
 
-        String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
 
-        if (!sequenomOutput)
-            out.printf(">%s %s %s%n%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
-        else {
-            seqIdentity = seqIdentity.replace("*",""); // identifier < 20 letters long, no * in ref allele, one line per record
-            probeName = probeName.replace("amplicon_","a");
-            out.printf("%s_%s %s%n", allelePos != null ? allelePos.toString() : "multiple", probeName, seqIdentity);
+        if (!onlyOutputValidAmplicons || !sequenceInvalid) {
+            String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
+            if (sequenomOutput) {
+                seqIdentity = seqIdentity.replace("*",""); // identifier < 20 letters long, no * in ref allele, one line per record
+                probeName = probeName.replace("amplicon_","a");
+                out.printf("%s_%s %s%n", allelePos != null ? allelePos.toString() : "multiple", probeName, seqIdentity);
+            }
+            else if (ilmnOutput) {
+                String type = isSiteSNP?"SNP":"INDEL";
+                seqIdentity = seqIdentity.replace("*","");    // no * in ref allele
+                out.printf("%s,%s,%s,%s,%d,37,1000G,ExomePhase1,Forward,Plus,FALSE%n",probeName,type,seqIdentity,allelePos.getContig(),allelePos.getStart());
+            } 
+            else{
+                out.printf(">%s %s %s%n%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
+            }
         }
     }
 }

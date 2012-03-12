@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -50,40 +50,40 @@ class StringFileConversionsUnitTest {
 
   @Test
   def testStringToFileList() {
-    var files = List(new File("foo"))
+    var files = Seq(new File("foo"))
     files :+= "bar"
-    Assert.assertEquals(files, List(new File("foo"), new File("bar")))
+    Assert.assertEquals(files, Seq(new File("foo"), new File("bar")))
 
-    files = List(new File("foo"))
+    files = Seq(new File("foo"))
     files :+= null.asInstanceOf[String]
-    Assert.assertEquals(files, List(new File("foo"), null))
+    Assert.assertEquals(files, Seq(new File("foo"), null))
 
-    files = List[File](null)
+    files = Seq[File](null)
     files :+= "foo"
-    Assert.assertEquals(files, List(null, new File("foo")))
+    Assert.assertEquals(files, Seq(null, new File("foo")))
 
-    files = List[File](null)
+    files = Seq[File](null)
     files :+= null.asInstanceOf[String]
-    Assert.assertEquals(files, List(null, null))
+    Assert.assertEquals(files, Seq(null, null))
   }
 
   @Test
   def testFileToStringList() {
-    var strings = List("foo")
+    var strings = Seq("foo")
     strings :+= new File("bar")
-    Assert.assertEquals(strings, List("foo", "bar"))
+    Assert.assertEquals(strings, Seq("foo", "bar"))
 
-    strings = List("foo")
+    strings = Seq("foo")
     strings :+= null.asInstanceOf[File]
-    Assert.assertEquals(strings, List("foo", null))
+    Assert.assertEquals(strings, Seq("foo", null))
 
-    strings = List[String](null)
+    strings = Seq[String](null)
     strings :+= new File("foo")
-    Assert.assertEquals(strings, List(null, "foo"))
+    Assert.assertEquals(strings, Seq(null, "foo"))
 
-    strings = List[String](null)
+    strings = Seq[String](null)
     strings :+= null.asInstanceOf[File]
-    Assert.assertEquals(strings, List(null, null))
+    Assert.assertEquals(strings, Seq(null, null))
   }
 
   @Test
@@ -126,40 +126,40 @@ class StringFileConversionsUnitTest {
 
   @Test
   def testStringListToFileList() {
-    var files = List(new File("foo"))
-    files ++= List("bar")
-    Assert.assertEquals(files, List(new File("foo"), new File("bar")))
+    var files = Seq(new File("foo"))
+    files ++= Seq("bar")
+    Assert.assertEquals(files, Seq(new File("foo"), new File("bar")))
 
-    files = List(new File("foo"))
-    files ++= List[String](null)
-    Assert.assertEquals(files, List(new File("foo"), null))
+    files = Seq(new File("foo"))
+    files ++= Seq[String](null)
+    Assert.assertEquals(files, Seq(new File("foo"), null))
 
-    files = List[File](null)
-    files ++= List("foo")
-    Assert.assertEquals(files, List(null, new File("foo")))
+    files = Seq[File](null)
+    files ++= Seq("foo")
+    Assert.assertEquals(files, Seq(null, new File("foo")))
 
-    files = List[File](null)
-    files ++= List[String](null)
-    Assert.assertEquals(files, List(null, null))
+    files = Seq[File](null)
+    files ++= Seq[String](null)
+    Assert.assertEquals(files, Seq(null, null))
   }
 
   @Test
   def testFileListToStringList() {
-    var strings = List("foo")
-    strings ++= List(new File("bar"))
-    Assert.assertEquals(strings, List("foo", "bar"))
+    var strings = Seq("foo")
+    strings ++= Seq(new File("bar"))
+    Assert.assertEquals(strings, Seq("foo", "bar"))
 
-    strings = List("foo")
-    strings ++= List[File](null)
-    Assert.assertEquals(strings, List("foo", null))
+    strings = Seq("foo")
+    strings ++= Seq[File](null)
+    Assert.assertEquals(strings, Seq("foo", null))
 
-    strings = List[String](null)
-    strings ++= List(new File("foo"))
-    Assert.assertEquals(strings, List(null, "foo"))
+    strings = Seq[String](null)
+    strings ++= Seq(new File("foo"))
+    Assert.assertEquals(strings, Seq(null, "foo"))
 
-    strings = List[String](null)
-    strings ++= List[File](null)
-    Assert.assertEquals(strings, List(null, null))
+    strings = Seq[String](null)
+    strings ++= Seq[File](null)
+    Assert.assertEquals(strings, Seq(null, null))
   }
 
   @Test

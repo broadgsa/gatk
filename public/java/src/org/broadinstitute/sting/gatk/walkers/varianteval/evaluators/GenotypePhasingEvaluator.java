@@ -80,6 +80,10 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return getName() + ": <table>";
     }
 
+    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        return update2(eval,comp,tracker,ref,context,null);
+    }
+
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
     //public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
         Reasons interesting = new Reasons();
@@ -115,7 +119,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
             if (evalSampGenotypes != null)
                 evalSampGt = evalSampGenotypes.get(samp);
 
-            if (compSampGt == null || evalSampGt == null) { // Since either comp or eval (or both) are missing the site, the best we can do is hope to preserve phase [if the non-missing one preserves phase]
+            if (compSampGt == null || evalSampGt == null || compSampGt.isNoCall() || evalSampGt.isNoCall()) { // Since either comp or eval (or both) are missing the site, the best we can do is hope to preserve phase [if the non-missing one preserves phase]
                 // Having an unphased site breaks the phasing for the sample [does NOT permit "transitive phasing"] - hence, must reset phasing knowledge for both comp and eval [put a null CompEvalGenotypes]:
                 if (isNonNullButUnphased(compSampGt) || isNonNullButUnphased(evalSampGt))
                     samplePrevGenotypes.put(samp, null);
@@ -205,7 +209,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public boolean isNonNullButUnphased(Genotype gt) {
-        return (gt != null && !genotypesArePhasedAboveThreshold(gt));
+        return (gt != null && !gt.isNoCall() && !genotypesArePhasedAboveThreshold(gt));
     }
 
     public boolean genotypesArePhasedAboveThreshold(Genotype gt) {

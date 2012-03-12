@@ -32,7 +32,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("e70eb5f80c93e366dcbe3cf684c154e4"));
+                Arrays.asList("3b7796fa7c7dc94878bedadf7938db4c"));
         executeTest("test file has annotations, asking for annotations, #1", spec);
     }
 
@@ -66,7 +66,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("1e52761fdff73a5361b5eb0a6e5d9dad"));
+                Arrays.asList("279cace364f747f9bae7fe391b5026f0"));
         executeTest("test file doesn't have annotations, asking for annotations, #1", spec);
     }
 
@@ -82,7 +82,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testExcludeAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard -XA FisherStrand -XA ReadPosRankSumTest --variant:VCF3 " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("bb4eebfaffc230cb8a31e62e7b53a300"));
+                Arrays.asList("e488abd05d6162758698a3a7579866a6"));
         executeTest("test exclude annotations", spec);
     }
 
@@ -108,6 +108,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
                 baseTestString() + " --dbsnp " + b36dbSNP129 + " -G Standard --variant " + validationDataLocation + "vcfexample3empty.vcf -L " + validationDataLocation + "vcfexample3empty.vcf", 1,
                 Arrays.asList("820eeba1f6e3a0758a69d937c524a38e"));
         executeTest("getting DB tag with dbSNP", spec);
+    }
+
+    @Test
+    public void testMultipleIdsWithDbsnp() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " --alwaysAppendDbsnpId --dbsnp " + b36dbSNP129 + " -G Standard --variant " + validationDataLocation + "vcfexample3withIDs.vcf -L " + validationDataLocation + "vcfexample3withIDs.vcf", 1,
+                Arrays.asList("cd7e3d43b8f5579c461b3e588a295fa8"));
+        executeTest("adding multiple IDs with dbSNP", spec);
     }
 
     @Test
@@ -171,7 +179,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testTDTAnnotation() {
-        final String MD5 = "204e67536a17af7eaa6bf0a910818997";
+        final String MD5 = "a78c1e950740d3c13c0258960c5fa8e1";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A TransmissionDisequilibriumTest --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
                         " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,

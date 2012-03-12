@@ -126,10 +126,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
-    public RodBinding<VariantContext> getVariantRodBinding() { return null; }
     public RodBinding<VariantContext> getSnpEffRodBinding() { return null; }
     public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
+    public boolean alwaysAppendDbsnpId() { return false; }
 
     /**
      * A raw, unfiltered, highly specific callset in VCF format.
@@ -169,9 +169,11 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     private VariantAnnotatorEngine annotationEngine;
 
     // enable deletions in the pileup
+    @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
+    @Override
     public boolean generateExtendedEvents() {
         return (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES);
     }
@@ -205,6 +207,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      *
      **/
     public void initialize() {
+        // warn the user for misusing EMIT_ALL_SITES
+        if ( UAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES &&
+                UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY &&
+                UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP )
+            logger.warn("WARNING: note that the EMIT_ALL_SITES option is intended only for point mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by no means produce a comprehensive set of indels in DISCOVERY mode");
+        
         // get all of the unique sample names
         Set<String> samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
@@ -232,7 +240,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        if ( UAC.COMPUTE_SLOD )
+        if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
         headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
 

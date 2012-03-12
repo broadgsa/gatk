@@ -407,7 +407,14 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             position(currentPosition);
 
             // Read data.
-            read(binHeader);
+            int binHeaderBytesRead = read(binHeader);
+
+            // Make sure we read in a complete bin header:
+            if ( binHeaderBytesRead < INT_SIZE_IN_BYTES * 3 ) {
+                throw new ReviewedStingException(String.format("Unable to read a complete bin header from BAM schedule file %s for BAM file %s. " +
+                                                               "The BAM schedule file is likely incomplete/corrupt.",
+                                                               scheduleFile.getAbsolutePath(), reader.getSamFilePath()));
+            }
 
             // Decode contents.
             binHeader.flip();
