@@ -131,8 +131,8 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
       "hapmap_3.3", b37, true, true))
 
-    addResource(new Resource("/humgen/1kg/processing/official_release/phase1/ALL.wgs.VQSR_consensus_biallelic.20101123.indels.sites.vcf",
-      "1000G_biallelic.indels", b37, true, false))
+    addResource(new Resource("/humgen/1kg/DCC/ftp/technical/working/20120312_phase1_v2_indel_cleaned_sites_list/ALL.wgs.phase1_release_v2.20101123.official_indel_calls.20120312.sites.vcf",
+      "1000G_phase2.indels", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, true))
