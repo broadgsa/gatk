@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -76,24 +77,24 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      /**
       * Can be overridden by concrete subclasses
       *
-      * @param tracker              rod data
-      * @param ref                  reference context
-      * @param contexts             stratified alignment contexts
-      * @param contextType          stratified context type
-      * @param priors               priors to use for GLs
-      * @param alternateAlleleToUse the alternate allele to use, null if not set
-      * @param useBAQedPileup       should we use the BAQed pileup or the raw one?
-      * @param locParser            Genome Loc Parser
+      * @param tracker               rod data
+      * @param ref                   reference context
+      * @param contexts              stratified alignment contexts
+      * @param contextType           stratified context type
+      * @param priors                priors to use for GLs
+      * @param alternateAllelesToUse the alternate allele to use, null if not set
+      * @param useBAQedPileup        should we use the BAQed pileup or the raw one?
+      * @param locParser             Genome Loc Parser
       * @return variant context where genotypes are no-called but with GLs
       */
-     public abstract VariantContext getLikelihoods(RefMetaDataTracker tracker,
-                                                   ReferenceContext ref,
-                                                   Map<String, AlignmentContext> contexts,
-                                                   AlignmentContextUtils.ReadOrientation contextType,
-                                                   GenotypePriors priors,
-                                                   Allele alternateAlleleToUse,
-                                                   boolean useBAQedPileup,
-                                                   GenomeLocParser locParser);
+     public abstract VariantContext getLikelihoods(final RefMetaDataTracker tracker,
+                                                   final ReferenceContext ref,
+                                                   final Map<String, AlignmentContext> contexts,
+                                                   final AlignmentContextUtils.ReadOrientation contextType,
+                                                   final GenotypePriors priors,
+                                                   final List<Allele> alternateAllelesToUse,
+                                                   final boolean useBAQedPileup,
+                                                   final GenomeLocParser locParser);
 
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {
