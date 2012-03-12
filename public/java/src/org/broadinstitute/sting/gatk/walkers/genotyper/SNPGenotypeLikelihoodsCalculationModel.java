@@ -64,7 +64,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final Map<String, AlignmentContext> contexts,
                                          final AlignmentContextUtils.ReadOrientation contextType,
                                          final GenotypePriors priors,
-                                         final Allele alternateAlleleToUse,
+                                         final List<Allele> alternateAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
 
@@ -95,8 +95,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         }
 
         // find the alternate allele(s) that we should be using
-        if ( alternateAlleleToUse != null ) {
-            alleles.add(alternateAlleleToUse);
+        if ( alternateAllelesToUse != null ) {
+            alleles.addAll(alternateAllelesToUse);
         } else if ( useAlleleFromVCF ) {
             final VariantContext vc = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, ref.getLocus(), true, logger, UAC.alleles);
 

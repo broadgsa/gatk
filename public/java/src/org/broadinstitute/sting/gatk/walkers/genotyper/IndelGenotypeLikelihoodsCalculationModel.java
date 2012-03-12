@@ -284,13 +284,14 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     private final static EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.MIXED);
 
-    public VariantContext getLikelihoods(RefMetaDataTracker tracker,
-                                         ReferenceContext ref,
-                                         Map<String, AlignmentContext> contexts,
-                                         AlignmentContextUtils.ReadOrientation contextType,
-                                         GenotypePriors priors,
-                                         Allele alternateAlleleToUse,
-                                         boolean useBAQedPileup, GenomeLocParser locParser) {
+    public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
+                                         final ReferenceContext ref,
+                                         final Map<String, AlignmentContext> contexts,
+                                         final AlignmentContextUtils.ReadOrientation contextType,
+                                         final GenotypePriors priors,
+                                         final List<Allele> alternateAllelesToUse,
+                                         final boolean useBAQedPileup,
+                                         final GenomeLocParser locParser) {
 
         if (tracker == null)
             return null;
