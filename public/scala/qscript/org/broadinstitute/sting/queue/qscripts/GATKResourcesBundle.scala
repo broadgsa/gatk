@@ -242,6 +242,7 @@ class GATKResourcesBundle extends QScript {
 
   def createDownloadsFromBundle(in: File, out: File) {
     Console.printf("Visiting %s%n", in)
+    // todo -- ignore some of the other files too (e.g. *.out); will test next time we make a bundle
     if (! in.getName.startsWith(".")) {
       if ( in.isDirectory ) {
         out.mkdirs
