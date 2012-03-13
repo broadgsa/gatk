@@ -24,29 +24,29 @@ import java.util.Collection;
 @Analysis(description = "Assess site accuracy and sensitivity of callset against follow-up validation assay")
 public class ValidationReport extends VariantEvaluator implements StandardEval {
     // todo -- note this isn't strictly allele away.  It's really focused on sites.  A/T call at a validated A/G site is currently counted as a TP
-    @DataPoint(description = "nComp") int nComp = 0;
-    @DataPoint(description = "TP") int TP = 0;
-    @DataPoint(description = "FP") int FP = 0;
-    @DataPoint(description = "FN") int FN = 0;
-    @DataPoint(description = "TN") int TN = 0;
+    @DataPoint(description = "nComp", format = "%d") int nComp = 0;
+    @DataPoint(description = "TP", format = "%d") int TP = 0;
+    @DataPoint(description = "FP", format = "%d") int FP = 0;
+    @DataPoint(description = "FN", format = "%d") int FN = 0;
+    @DataPoint(description = "TN", format = "%d") int TN = 0;
 
     @DataPoint(description = "Sensitivity", format = "%.2f") double sensitivity = 0;
     @DataPoint(description = "Specificity", format = "%.2f") double specificity = 0;
     @DataPoint(description = "PPV", format = "%.2f") double PPV = 0;
     @DataPoint(description = "FDR", format = "%.2f") double FDR = 0;
 
-    @DataPoint(description = "CompMonoEvalNoCall") int CompMonoEvalNoCall = 0;
-    @DataPoint(description = "CompMonoEvalFiltered") int CompMonoEvalFiltered = 0;
-    @DataPoint(description = "CompMonoEvalMono") int CompMonoEvalMono = 0;
-    @DataPoint(description = "CompMonoEvalPoly") int CompMonoEvalPoly = 0;
+    @DataPoint(description = "CompMonoEvalNoCall", format = "%d") int CompMonoEvalNoCall = 0;
+    @DataPoint(description = "CompMonoEvalFiltered", format = "%d") int CompMonoEvalFiltered = 0;
+    @DataPoint(description = "CompMonoEvalMono", format = "%d") int CompMonoEvalMono = 0;
+    @DataPoint(description = "CompMonoEvalPoly", format = "%d") int CompMonoEvalPoly = 0;
 
-    @DataPoint(description = "CompPolyEvalNoCall") int CompPolyEvalNoCall = 0;
-    @DataPoint(description = "CompPolyEvalFiltered") int CompPolyEvalFiltered = 0;
-    @DataPoint(description = "CompPolyEvalMono") int CompPolyEvalMono = 0;
-    @DataPoint(description = "CompPolyEvalPoly") int CompPolyEvalPoly = 0;
+    @DataPoint(description = "CompPolyEvalNoCall", format = "%d") int CompPolyEvalNoCall = 0;
+    @DataPoint(description = "CompPolyEvalFiltered", format = "%d") int CompPolyEvalFiltered = 0;
+    @DataPoint(description = "CompPolyEvalMono", format = "%d") int CompPolyEvalMono = 0;
+    @DataPoint(description = "CompPolyEvalPoly", format = "%d") int CompPolyEvalPoly = 0;
 
-    @DataPoint(description = "CompFiltered") int CompFiltered = 0;
-    @DataPoint(description = "Eval and comp have different alleles") int nDifferentAlleleSites = 0;
+    @DataPoint(description = "CompFiltered", format = "%d") int CompFiltered = 0;
+    @DataPoint(description = "Eval and comp have different alleles", format = "%d") int nDifferentAlleleSites = 0;
 
     private static final boolean TREAT_ALL_SITES_IN_EVAL_VCF_AS_CALLED = true;
     private static final boolean REQUIRE_IDENTICAL_ALLELES = false;

@@ -48,45 +48,45 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
     }
 
     // basic counts on various rates found
-    @DataPoint(description = "Number of processed loci")
+    @DataPoint(description = "Number of processed loci", format = "%d")
     public long nProcessedLoci = 0;
 
-    @DataPoint(description = "Number of SNPs")
+    @DataPoint(description = "Number of SNPs", format = "%d")
     public int nSNPs = 0;
-    @DataPoint(description = "Number of multi-allelic SNPs")
+    @DataPoint(description = "Number of multi-allelic SNPs", format = "%d")
     public int nMultiSNPs = 0;
     @DataPoint(description = "% processed sites that are multi-allelic SNPs", format = "%.5f")
     public double processedMultiSnpRatio = 0;
     @DataPoint(description = "% SNP sites that are multi-allelic", format = "%.3f")
     public double variantMultiSnpRatio = 0;
 
-    @DataPoint(description = "Number of Indels")
+    @DataPoint(description = "Number of Indels", format = "%d")
     public int nIndels = 0;
-    @DataPoint(description = "Number of multi-allelic Indels")
+    @DataPoint(description = "Number of multi-allelic Indels", format = "%d")
     public int nMultiIndels = 0;
     @DataPoint(description = "% processed sites that are multi-allelic Indels", format = "%.5f")
     public double processedMultiIndelRatio = 0;
     @DataPoint(description = "% Indel sites that are multi-allelic", format = "%.3f")
     public double variantMultiIndelRatio = 0;
 
-    @DataPoint(description = "Number of Transitions")
+    @DataPoint(description = "Number of Transitions", format = "%d")
     public int nTi = 0;
-    @DataPoint(description = "Number of Transversions")
+    @DataPoint(description = "Number of Transversions", format = "%d")
     public int nTv = 0;
     @DataPoint(description = "Overall TiTv ratio", format = "%.2f")
     public double TiTvRatio = 0;
 
-    @DataPoint(description = "Multi-allelic SNPs partially known")
+    @DataPoint(description = "Multi-allelic SNPs partially known", format = "%d")
     public int knownSNPsPartial = 0;
-    @DataPoint(description = "Multi-allelic SNPs completely known")
+    @DataPoint(description = "Multi-allelic SNPs completely known", format = "%d")
     public int knownSNPsComplete = 0;
     @DataPoint(description = "Multi-allelic SNP Novelty Rate")
     public String SNPNoveltyRate = "NA";
 
     //TODO -- implement me
-    //@DataPoint(description = "Multi-allelic Indels partially known")
+    //@DataPoint(description = "Multi-allelic Indels partially known", format = "%d")
     public int knownIndelsPartial = 0;
-    //@DataPoint(description = "Multi-allelic Indels completely known")
+    //@DataPoint(description = "Multi-allelic Indels completely known", format = "%d")
     public int knownIndelsComplete = 0;
     //@DataPoint(description = "Multi-allelic Indel Novelty Rate")
     public String indelNoveltyRate = "NA";
