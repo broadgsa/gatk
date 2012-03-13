@@ -33,7 +33,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 @Analysis(name = "PrintMissingComp", description = "the overlap between eval and comp sites")
 public class PrintMissingComp extends VariantEvaluator {
-    @DataPoint(description = "number of eval sites outside of comp sites")
+    @DataPoint(description = "number of eval sites outside of comp sites", format = "%d")
     long nMissing = 0;
 
     //public PrintMissingComp(VariantEvalWalker parent) {

@@ -128,11 +128,11 @@ public class MathUtils {
         return big + MathUtils.jacobianLogTable[ind];
     }
 
-    public static double sum(Collection<Number> numbers) {
+    public static double sum(Collection<? extends Number> numbers) {
         return sum(numbers, false);
     }
 
-    public static double sum(Collection<Number> numbers, boolean ignoreNan) {
+    public static double sum(Collection<? extends Number> numbers, boolean ignoreNan) {
         double sum = 0;
         for (Number n : numbers) {
             if (!ignoreNan || !Double.isNaN(n.doubleValue())) {
@@ -152,8 +152,8 @@ public class MathUtils {
         return size;
     }
 
-    public static double average(Collection<Integer> x) {
-        return (double) sum(x) / x.size();
+    public static double average(Collection<? extends Number> x) {
+        return sum(x) / x.size();
     }
 
     public static double average(Collection<Number> numbers, boolean ignoreNan) {
@@ -1098,13 +1098,6 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int) Math.floor(reads.size() / 2.));
-    }
-
-    public static long sum(Collection<Integer> x) {
-        long sum = 0;
-        for (int v : x)
-            sum += v;
-        return sum;
     }
 
     /**

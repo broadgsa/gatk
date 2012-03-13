@@ -19,19 +19,19 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
  */
 @Analysis(description = "The overlap between eval and comp sites")
 public class CompOverlap extends VariantEvaluator implements StandardEval {
-    @DataPoint(description = "number of eval SNP sites")
+    @DataPoint(description = "number of eval SNP sites", format = "%d")
     long nEvalVariants = 0;
 
-    @DataPoint(description = "number of eval sites outside of comp sites")
+    @DataPoint(description = "number of eval sites outside of comp sites", format = "%d")
     long novelSites = 0;
 
-    @DataPoint(description = "number of eval sites at comp sites")
+    @DataPoint(description = "number of eval sites at comp sites", format = "%d")
     long nVariantsAtComp = 0;
 
     @DataPoint(description = "percentage of eval sites at comp sites", format = "%.2f" )
     double compRate = 0.0;
 
-    @DataPoint(description = "number of concordant sites")
+    @DataPoint(description = "number of concordant sites", format = "%d")
     long nConcordant = 0;
 
     @DataPoint(description = "the concordance rate", format = "%.2f")

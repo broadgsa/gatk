@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -58,39 +58,39 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     Map<String, IntervalTree<GenomeLoc>> knownCNVs = null;
 
     // basic counts on various rates found
-    @DataPoint(description = "Number of samples")
+    @DataPoint(description = "Number of samples", format = "%d")
     public long nSamples = 0;
 
-    @DataPoint(description = "Number of processed loci")
+    @DataPoint(description = "Number of processed loci", format = "%d")
     public long nProcessedLoci = 0;
 
-    @DataPoint(description = "Number of SNPs")
+    @DataPoint(description = "Number of SNPs", format = "%d")
     public long nSNPs = 0;
     @DataPoint(description = "Overall TiTv ratio", format = "%.2f")
     public double TiTvRatio = 0;
-    @DataPoint(description = "SNP Novelty Rate")
+    @DataPoint(description = "SNP Novelty Rate", format = "%s")
     public String SNPNoveltyRate = "NA";
-    @DataPoint(description = "Mean number of SNPs per individual")
+    @DataPoint(description = "Mean number of SNPs per individual", format = "%d")
     public long nSNPsPerSample = 0;
     @DataPoint(description = "Mean TiTv ratio per individual", format = "%.2f")
     public double TiTvRatioPerSample = 0;
     @DataPoint(description = "Mean depth of coverage per sample at SNPs", format = "%.1f")
     public double SNPDPPerSample = 0;
 
-    @DataPoint(description = "Number of Indels")
+    @DataPoint(description = "Number of Indels", format = "%d")
     public long nIndels = 0;
-    @DataPoint(description = "Indel Novelty Rate")
+    @DataPoint(description = "Indel Novelty Rate", format = "%s")
     public String IndelNoveltyRate = "NA";
-    @DataPoint(description = "Mean number of Indels per individual")
+    @DataPoint(description = "Mean number of Indels per individual", format = "%d")
     public long nIndelsPerSample = 0;
     @DataPoint(description = "Mean depth of coverage per sample at Indels", format = "%.1f")
     public double IndelDPPerSample = 0;
 
-    @DataPoint(description = "Number of SVs")
+    @DataPoint(description = "Number of SVs", format = "%d")
     public long nSVs = 0;
-    @DataPoint(description = "SV Novelty Rate")
+    @DataPoint(description = "SV Novelty Rate", format = "%s")
     public String SVNoveltyRate = "NA";
-    @DataPoint(description = "Mean number of SVs per individual")
+    @DataPoint(description = "Mean number of SVs per individual", format = "%d")
     public long nSVsPerSample = 0;
 
     TypeSampleMap allVariantCounts, knownVariantCounts;

@@ -15,50 +15,50 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     // the following fields are in output order:
 
     // basic counts on various rates found
-    @DataPoint(description = "Number of processed loci")
+    @DataPoint(description = "Number of processed loci", format = "%d")
     public long nProcessedLoci = 0;
-    @DataPoint(description = "Number of called loci")
+    @DataPoint(description = "Number of called loci", format = "%d")
     public long nCalledLoci = 0;
-    @DataPoint(description = "Number of reference loci")
+    @DataPoint(description = "Number of reference loci", format = "%d")
     public long nRefLoci = 0;
-    @DataPoint(description = "Number of variant loci")
+    @DataPoint(description = "Number of variant loci", format = "%d")
     public long nVariantLoci = 0;
 
     // the following two calculations get set in the finalizeEvaluation
-    @DataPoint(description = "Variants per loci rate")
+    @DataPoint(description = "Variants per loci rate", format = "%.8f")
     public double variantRate = 0;
-    @DataPoint(description = "Number of variants per base")
+    @DataPoint(description = "Number of variants per base", format = "%.8f")
     public double variantRatePerBp = 0;
 
 
-    @DataPoint(description = "Number of snp loci")
+    @DataPoint(description = "Number of snp loci", format = "%d")
     public long nSNPs = 0;
-    @DataPoint(description = "Number of mnp loci")
+    @DataPoint(description = "Number of mnp loci", format = "%d")
     public long nMNPs = 0;
-    @DataPoint(description = "Number of insertions")
+    @DataPoint(description = "Number of insertions", format = "%d")
     public long nInsertions = 0;
-    @DataPoint(description = "Number of deletions")
+    @DataPoint(description = "Number of deletions", format = "%d")
     public long nDeletions = 0;
-    @DataPoint(description = "Number of complex indels")
+    @DataPoint(description = "Number of complex indels", format = "%d")
     public long nComplex = 0;
-    @DataPoint(description = "Number of symbolic events")
+    @DataPoint(description = "Number of symbolic events", format = "%d")
     public long nSymbolic = 0;
 
-    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)")
+    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)", format = "%d")
     public long nMixed = 0;
 
 
-    @DataPoint(description = "Number of no calls loci")
+    @DataPoint(description = "Number of no calls loci", format = "%d")
     public long nNoCalls = 0;
-    @DataPoint(description = "Number of het loci")
+    @DataPoint(description = "Number of het loci", format = "%d")
     public long nHets = 0;
-    @DataPoint(description = "Number of hom ref loci")
+    @DataPoint(description = "Number of hom ref loci", format = "%d")
     public long nHomRef = 0;
-    @DataPoint(description = "Number of hom var loci")
+    @DataPoint(description = "Number of hom var loci", format = "%d")
     public long nHomVar = 0;
-    @DataPoint(description = "Number of singletons")
+    @DataPoint(description = "Number of singletons", format = "%d")
     public long nSingletons = 0;
-    @DataPoint(description = "Number of derived homozygotes")
+    @DataPoint(description = "Number of derived homozygotes", format = "%d")
     public long nHomDerived = 0;
 
     // calculations that get set in the finalizeEvaluation method

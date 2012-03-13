@@ -12,21 +12,21 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 @Analysis(description = "Ti/Tv Variant Evaluator")
 public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEval {
 
-    @DataPoint(description = "number of transition loci")
+    @DataPoint(description = "number of transition loci", format = "%d")
     long nTi = 0;
-    @DataPoint(description = "number of transversion loci")
+    @DataPoint(description = "number of transversion loci", format = "%d")
     long nTv = 0;
     @DataPoint(description = "the transition to transversion ratio", format = "%.2f")
     double tiTvRatio = 0.0;    
-    @DataPoint(description = "number of comp transition sites")
+    @DataPoint(description = "number of comp transition sites", format = "%d")
     long nTiInComp = 0;
-    @DataPoint(description = "number of comp transversion sites")
+    @DataPoint(description = "number of comp transversion sites", format = "%d")
     long nTvInComp = 0;
     @DataPoint(description = "the transition to transversion ratio for comp sites", format = "%.2f")
     double TiTvRatioStandard = 0.0;
-    @DataPoint(description = "number of derived transition loci")
+    @DataPoint(description = "number of derived transition loci", format = "%d")
     long nTiDerived = 0;
-    @DataPoint(description = "number of derived transversion loci")
+    @DataPoint(description = "number of derived transversion loci", format = "%d")
     long nTvDerived = 0;
     @DataPoint(description = "the derived transition to transversion ratio", format = "%.2f")
     double tiTvDerivedRatio = 0.0;

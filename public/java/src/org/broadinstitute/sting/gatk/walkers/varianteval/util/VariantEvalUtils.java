@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 
 import org.apache.log4j.Logger;
@@ -35,8 +59,8 @@ public class VariantEvalUtils {
      * List all of the available evaluation modules, then exit successfully
      */
     public void listModulesAndExit() {
-        List<Class<? extends VariantStratifier>> vsClasses = new PluginManager<VariantStratifier>( VariantStratifier.class ).getPlugins();
-        List<Class<? extends VariantEvaluator>> veClasses = new PluginManager<VariantEvaluator>( VariantEvaluator.class ).getPlugins();
+        List<Class<? extends VariantStratifier>> vsClasses = new PluginManager<VariantStratifier>(VariantStratifier.class).getPlugins();
+        List<Class<? extends VariantEvaluator>> veClasses = new PluginManager<VariantEvaluator>(VariantEvaluator.class).getPlugins();
 
         logger.info("Available stratification modules:");
         logger.info("(Standard modules are starred)");
@@ -58,9 +82,9 @@ public class VariantEvalUtils {
     /**
      * Initialize required, standard and user-specified stratification objects
      *
-     * @param variantEvalWalker  the parent walker
-     * @param noStandardStrats   don't use the standard stratifications
-     * @param modulesToUse       the list of stratification modules to use
+     * @param variantEvalWalker the parent walker
+     * @param noStandardStrats  don't use the standard stratifications
+     * @param modulesToUse      the list of stratification modules to use
      * @return set of stratifications to use
      */
     public TreeSet<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
@@ -246,7 +270,8 @@ public class VariantEvalUtils {
                     field.setAccessible(true);
 
                     if (!(field.get(vei) instanceof TableType)) {
-                        table.addColumn(field.getName(), 0.0, datamap.get(field).format());
+                        String format = datamap.get(field).format();
+                        table.addColumn(field.getName(), true, format);
                     }
                 }
             } catch (InstantiationException e) {
@@ -297,7 +322,6 @@ public class VariantEvalUtils {
      * Additional variant contexts per sample are automatically generated and added to the map unless the sample name
      * matches the ALL_SAMPLE_NAME constant.
      *
-     *
      * @param tracker        the metadata tracker
      * @param ref            the reference context
      * @param tracks         the list of tracks to process
@@ -306,57 +330,56 @@ public class VariantEvalUtils {
      * @param subsetBySample if false, do not separate the track into per-sample VCs
      * @param trackPerSample if false, don't stratify per sample (and don't cut up the VariantContext like we would need
      *                       to do this)
-     *
      * @return the mapping of track to VC list that should be populated
      */
     public HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>>
-        bindVariantContexts(RefMetaDataTracker tracker,
-                            ReferenceContext ref,
-                            List<RodBinding<VariantContext>> tracks,
-                            boolean byFilter,
-                            boolean subsetBySample,
-                            boolean trackPerSample,
-                            boolean mergeTracks) {
-        if ( tracker == null )
+    bindVariantContexts(RefMetaDataTracker tracker,
+                        ReferenceContext ref,
+                        List<RodBinding<VariantContext>> tracks,
+                        boolean byFilter,
+                        boolean subsetBySample,
+                        boolean trackPerSample,
+                        boolean mergeTracks) {
+        if (tracker == null)
             return null;
 
         HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> bindings = new HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>>();
 
         RodBinding<VariantContext> firstTrack = tracks.isEmpty() ? null : tracks.get(0);
-        for ( RodBinding<VariantContext> track : tracks ) {
+        for (RodBinding<VariantContext> track : tracks) {
             HashMap<String, Collection<VariantContext>> mapping = new HashMap<String, Collection<VariantContext>>();
 
-            for ( VariantContext vc : tracker.getValues(track, ref.getLocus()) ) {
+            for (VariantContext vc : tracker.getValues(track, ref.getLocus())) {
 
                 // First, filter the VariantContext to represent only the samples for evaluation
                 VariantContext vcsub = vc;
 
-                if ( subsetBySample && vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation()) ) {
+                if (subsetBySample && vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation())) {
                     vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
                 }
 
-                if ( (byFilter || !vcsub.isFiltered()) ) {
+                if ((byFilter || !vcsub.isFiltered())) {
                     addMapping(mapping, VariantEvalWalker.getAllSampleName(), vcsub);
                 }
 
                 // Now, if stratifying, split the subsetted vc per sample and add each as a new context
-                if ( vc.hasGenotypes() && trackPerSample ) {
-                    for ( String sampleName : variantEvalWalker.getSampleNamesForEvaluation() ) {
+                if (vc.hasGenotypes() && trackPerSample) {
+                    for (String sampleName : variantEvalWalker.getSampleNamesForEvaluation()) {
                         VariantContext samplevc = getSubsetOfVariantContext(vc, sampleName);
 
-                        if ( byFilter || !samplevc.isFiltered() ) {
+                        if (byFilter || !samplevc.isFiltered()) {
                             addMapping(mapping, sampleName, samplevc);
                         }
                     }
                 }
             }
 
-            if ( mergeTracks && bindings.containsKey(firstTrack) ) {
+            if (mergeTracks && bindings.containsKey(firstTrack)) {
                 // go through each binding of sample -> value and add all of the bindings from this entry
                 HashMap<String, Collection<VariantContext>> firstMapping = bindings.get(firstTrack);
-                for ( Map.Entry<String, Collection<VariantContext>> elt : mapping.entrySet() ) {
+                for (Map.Entry<String, Collection<VariantContext>> elt : mapping.entrySet()) {
                     Collection<VariantContext> firstMappingSet = firstMapping.get(elt.getKey());
-                    if ( firstMappingSet != null ) {
+                    if (firstMappingSet != null) {
                         firstMappingSet.addAll(elt.getValue());
                     } else {
                         firstMapping.put(elt.getKey(), elt.getValue());
@@ -371,7 +394,7 @@ public class VariantEvalUtils {
     }
 
     private void addMapping(HashMap<String, Collection<VariantContext>> mappings, String sample, VariantContext vc) {
-        if ( !mappings.containsKey(sample) )
+        if (!mappings.containsKey(sample))
             mappings.put(sample, new ArrayList<VariantContext>(1));
         mappings.get(sample).add(vc);
     }

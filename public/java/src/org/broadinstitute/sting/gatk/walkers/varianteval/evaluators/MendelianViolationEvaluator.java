@@ -1,17 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
-import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.MendelianViolation;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,80 +43,80 @@ import java.util.Set;
 @Analysis(name = "Mendelian Violation Evaluator", description = "Mendelian Violation Evaluator")
 public class MendelianViolationEvaluator extends VariantEvaluator {
 
-    @DataPoint(description = "Number of variants found with at least one family having genotypes")
+    @DataPoint(description = "Number of variants found with at least one family having genotypes", format = "%d")
     long nVariants;
-    @DataPoint(description = "Number of variants found with no family having genotypes -- these sites do not count in the nNoCall")
+    @DataPoint(description = "Number of variants found with no family having genotypes -- these sites do not count in the nNoCall", format = "%d")
     long nSkipped;
-    @DataPoint(description="Number of variants x families called (no missing genotype or lowqual)")
+    @DataPoint(description="Number of variants x families called (no missing genotype or lowqual)", format = "%d")
     long nFamCalled;
-    @DataPoint(description="Number of variants x families called (no missing genotype or lowqual) that contain at least one var allele.")
+    @DataPoint(description="Number of variants x families called (no missing genotype or lowqual) that contain at least one var allele.", format = "%d")
     long nVarFamCalled;
-    @DataPoint(description="Number of variants x families discarded as low quality")
+    @DataPoint(description="Number of variants x families discarded as low quality", format = "%d")
     long nLowQual;
-    @DataPoint(description="Number of variants x families discarded as no call")
+    @DataPoint(description="Number of variants x families discarded as no call", format = "%d")
     long nNoCall;
-    @DataPoint(description="Number of loci with mendelian violations")
+    @DataPoint(description="Number of loci with mendelian violations", format = "%d")
     long nLociViolations;
-    @DataPoint(description = "Number of mendelian violations found")
+    @DataPoint(description = "Number of mendelian violations found", format = "%d")
     long nViolations;
 
 
-    /*@DataPoint(description = "number of child hom ref calls where the parent was hom variant")
+    /*@DataPoint(description = "number of child hom ref calls where the parent was hom variant", format = "%d")
     long KidHomRef_ParentHomVar;
-    @DataPoint(description = "number of child het calls where the parent was hom ref")
+    @DataPoint(description = "number of child het calls where the parent was hom ref", format = "%d")
     long KidHet_ParentsHomRef;
-    @DataPoint(description = "number of child het calls where the parent was hom variant")
+    @DataPoint(description = "number of child het calls where the parent was hom variant", format = "%d")
     long KidHet_ParentsHomVar;
-    @DataPoint(description = "number of child hom variant calls where the parent was hom ref")
+    @DataPoint(description = "number of child hom variant calls where the parent was hom ref", format = "%d")
     long KidHomVar_ParentHomRef;
     */
 
-    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HOM_VAR")
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HOM_VAR", format = "%d")
     long mvRefRef_Var;
-    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HET")
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HET", format = "%d")
     long mvRefRef_Het;
-    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HET -> HOM_VAR")
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HET -> HOM_VAR", format = "%d")
     long mvRefHet_Var;
-    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_VAR")
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_VAR", format = "%d")
     long mvRefVar_Var;
-    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_REF")
+    @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_REF", format = "%d")
     long mvRefVar_Ref;
-    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HET -> HOM_REF")
+    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HET -> HOM_REF", format = "%d")
     long mvVarHet_Ref;
-    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HOM_REF")
+    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HOM_REF", format = "%d")
     long mvVarVar_Ref;
-    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HET")
+    @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HET", format = "%d")
     long mvVarVar_Het;
 
 
-    /*@DataPoint(description ="Number of inherited var alleles from het parents")
+    /*@DataPoint(description ="Number of inherited var alleles from het parents", format = "%d")
     long nInheritedVar;
-    @DataPoint(description ="Number of inherited ref alleles from het parents")
+    @DataPoint(description ="Number of inherited ref alleles from het parents", format = "%d")
     long nInheritedRef;*/
 
-    @DataPoint(description="Number of HomRef/HomRef/HomRef trios")
+    @DataPoint(description="Number of HomRef/HomRef/HomRef trios", format = "%d")
     long HomRefHomRef_HomRef;
-    @DataPoint(description="Number of Het/Het/Het trios")
+    @DataPoint(description="Number of Het/Het/Het trios", format = "%d")
     long HetHet_Het;
-    @DataPoint(description="Number of Het/Het/HomRef trios")
+    @DataPoint(description="Number of Het/Het/HomRef trios", format = "%d")
     long HetHet_HomRef;
-    @DataPoint(description="Number of Het/Het/HomVar trios")
+    @DataPoint(description="Number of Het/Het/HomVar trios", format = "%d")
     long HetHet_HomVar;
-    @DataPoint(description="Number of HomVar/HomVar/HomVar trios")
+    @DataPoint(description="Number of HomVar/HomVar/HomVar trios", format = "%d")
     long HomVarHomVar_HomVar;
-    @DataPoint(description="Number of HomRef/HomVar/Het trios")
+    @DataPoint(description="Number of HomRef/HomVar/Het trios", format = "%d")
     long HomRefHomVAR_Het;
-    @DataPoint(description="Number of ref alleles inherited from het/het parents")
+    @DataPoint(description="Number of ref alleles inherited from het/het parents", format = "%d")
     long HetHet_inheritedRef;
-    @DataPoint(description="Number of var alleles inherited from het/het parents")
+    @DataPoint(description="Number of var alleles inherited from het/het parents", format = "%d")
     long HetHet_inheritedVar;
-    @DataPoint(description="Number of ref alleles inherited from homRef/het parents")
+    @DataPoint(description="Number of ref alleles inherited from homRef/het parents", format = "%d")
     long HomRefHet_inheritedRef;
-    @DataPoint(description="Number of var alleles inherited from homRef/het parents")
+    @DataPoint(description="Number of var alleles inherited from homRef/het parents", format = "%d")
     long HomRefHet_inheritedVar;
-    @DataPoint(description="Number of ref alleles inherited from homVar/het parents")
+    @DataPoint(description="Number of ref alleles inherited from homVar/het parents", format = "%d")
     long HomVarHet_inheritedRef;
-    @DataPoint(description="Number of var alleles inherited from homVar/het parents")
+    @DataPoint(description="Number of var alleles inherited from homVar/het parents", format = "%d")
     long HomVarHet_inheritedVar;
 
     MendelianViolation mv;
