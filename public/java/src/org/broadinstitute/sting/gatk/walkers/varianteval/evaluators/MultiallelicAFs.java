@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.util.*;
 
 @Analysis(description = "Evaluation summary for multi-allelic variants")
-public class MultiallelicSummary extends VariantEvaluator implements StandardEval {
+public class MultiallelicSummary extends VariantEvaluator { // implements StandardEval {
     final protected static Logger logger = Logger.getLogger(MultiallelicSummary.class);
 
     public enum Type {
