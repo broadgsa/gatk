@@ -40,56 +40,12 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.util.*;
 
 @Analysis(description = "Evaluation summary for multi-allelic variants")
-public class MultiallelicSummary extends VariantEvaluator { // implements StandardEval {
-    final protected static Logger logger = Logger.getLogger(MultiallelicSummary.class);
+public class MultiallelicAFs extends VariantEvaluator {
+    final protected static Logger logger = Logger.getLogger(MultiallelicAFs.class);
 
     public enum Type {
         SNP, INDEL
     }
-
-    // basic counts on various rates found
-    @DataPoint(description = "Number of processed loci", format = "%d")
-    public long nProcessedLoci = 0;
-
-    @DataPoint(description = "Number of SNPs", format = "%d")
-    public int nSNPs = 0;
-    @DataPoint(description = "Number of multi-allelic SNPs", format = "%d")
-    public int nMultiSNPs = 0;
-    @DataPoint(description = "% processed sites that are multi-allelic SNPs", format = "%.5f")
-    public double processedMultiSnpRatio = 0;
-    @DataPoint(description = "% SNP sites that are multi-allelic", format = "%.3f")
-    public double variantMultiSnpRatio = 0;
-
-    @DataPoint(description = "Number of Indels", format = "%d")
-    public int nIndels = 0;
-    @DataPoint(description = "Number of multi-allelic Indels", format = "%d")
-    public int nMultiIndels = 0;
-    @DataPoint(description = "% processed sites that are multi-allelic Indels", format = "%.5f")
-    public double processedMultiIndelRatio = 0;
-    @DataPoint(description = "% Indel sites that are multi-allelic", format = "%.3f")
-    public double variantMultiIndelRatio = 0;
-
-    @DataPoint(description = "Number of Transitions", format = "%d")
-    public int nTi = 0;
-    @DataPoint(description = "Number of Transversions", format = "%d")
-    public int nTv = 0;
-    @DataPoint(description = "Overall TiTv ratio", format = "%.2f")
-    public double TiTvRatio = 0;
-
-    @DataPoint(description = "Multi-allelic SNPs partially known", format = "%d")
-    public int knownSNPsPartial = 0;
-    @DataPoint(description = "Multi-allelic SNPs completely known", format = "%d")
-    public int knownSNPsComplete = 0;
-    @DataPoint(description = "Multi-allelic SNP Novelty Rate")
-    public String SNPNoveltyRate = "NA";
-
-    //TODO -- implement me
-    //@DataPoint(description = "Multi-allelic Indels partially known", format = "%d")
-    public int knownIndelsPartial = 0;
-    //@DataPoint(description = "Multi-allelic Indels completely known", format = "%d")
-    public int knownIndelsComplete = 0;
-    //@DataPoint(description = "Multi-allelic Indel Novelty Rate")
-    public String indelNoveltyRate = "NA";
 
     @DataPoint(description="Histogram of allele frequencies for most common SNP alternate allele")
     AFHistogram AFhistogramMaxSnp = new AFHistogram();
@@ -154,66 +110,28 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
         return 2;
     }
 
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
-    }
+    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {}
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( eval == null || eval.isMonomorphicInSamples() )
             return null;
 
+        if ( !eval.isBiallelic() )
+            return null;
+
         // update counts
         switch ( eval.getType() ) {
             case SNP:
-                nSNPs++;
-                if ( !eval.isBiallelic() ) {
-                    nMultiSNPs++;
-                    calculatePairwiseTiTv(eval);
-                    calculateSNPPairwiseNovelty(eval, comp);
-                    updateAFhistogram(eval, AFhistogramMaxSnp, AFhistogramMinSnp);
-                }
+                updateAFhistogram(eval, AFhistogramMaxSnp, AFhistogramMinSnp);
                 break;
             case INDEL:
-                nIndels++;
-                if ( !eval.isBiallelic() ) {
-                    nMultiIndels++;
-                    calculateIndelPairwiseNovelty(eval, comp);
-                    updateAFhistogram(eval, AFhistogramMaxIndel, AFhistogramMinIndel);
-                }
+                updateAFhistogram(eval, AFhistogramMaxIndel, AFhistogramMinIndel);
                 break;
             default:
                 throw new UserException.BadInput("Unexpected variant context type: " + eval);
         }
 
         return null; // we don't capture any interesting sites
-    }
-
-    private void calculatePairwiseTiTv(VariantContext vc) {
-        for ( Allele alt : vc.getAlternateAlleles() ) {
-            if ( VariantContextUtils.isTransition(vc.getReference(), alt) )
-                nTi++;
-            else
-                nTv++;
-        }
-    }
-
-    private void calculateSNPPairwiseNovelty(VariantContext eval, VariantContext comp) {
-        if ( comp == null )
-            return;
-
-        int knownAlleles = 0;
-        for ( Allele alt : eval.getAlternateAlleles() ) {
-            if ( comp.getAlternateAlleles().contains(alt) )
-                knownAlleles++;
-        }
-
-        if ( knownAlleles == eval.getAlternateAlleles().size() )
-            knownSNPsComplete++;
-        else if ( knownAlleles > 0 )
-            knownSNPsPartial++;
-    }
-
-    private void calculateIndelPairwiseNovelty(VariantContext eval, VariantContext comp) {
     }
 
     private void updateAFhistogram(VariantContext vc, AFHistogram max, AFHistogram min) {
@@ -232,23 +150,5 @@ public class MultiallelicSummary extends VariantEvaluator { // implements Standa
         max.update(AFs.get(AFs.size()-1));
         for ( int i = 0; i < AFs.size() - 1; i++ )
             min.update(AFs.get(i));
-    }
-    
-    private final String noveltyRate(final int all, final int known) {
-        final int novel = all - known;
-        final double rate = (novel / (1.0 * all));
-        return all == 0 ? "NA" : String.format("%.2f", rate);
-    }
-
-    public void finalizeEvaluation() {
-        processedMultiSnpRatio = (double)nMultiSNPs / (double)nProcessedLoci;
-        variantMultiSnpRatio = (double)nMultiSNPs / (double)nSNPs;
-        processedMultiIndelRatio = (double)nMultiIndels / (double)nProcessedLoci;
-        variantMultiIndelRatio = (double)nMultiIndels / (double)nIndels;
-
-        TiTvRatio = (double)nTi / (double)nTv;
-
-        SNPNoveltyRate = noveltyRate(nMultiSNPs, knownSNPsPartial + knownSNPsComplete);
-        indelNoveltyRate = noveltyRate(nMultiSNPs, knownIndelsPartial + knownIndelsComplete);
     }
 }
