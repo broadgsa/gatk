@@ -320,7 +320,7 @@ class GATKResourcesBundle extends QScript {
   }
 
   class LiftOverPerl(@Input val in: File, @Output val out: File, @Input val chain: File, oldRef: Reference, newRef: Reference) extends CommandLineFunction {
-    this.memoryLimit = 8
+    this.memoryLimit = 12
     def commandLine = ("%s -vcf %s -chain %s -out %s " +
       "-gatk ./ -newRef %s -oldRef %s -tmp %s").format(liftOverPerl, in.getAbsolutePath, chain,
       out.getAbsolutePath, newRef.file.replace(".fasta", ""),
