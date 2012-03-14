@@ -344,8 +344,12 @@ public class GATKRunReport {
         @Element(required = false, name = "is-user-exception")
         Boolean isUserException;
 
+        @Element(required = false, name = "exception-class")
+        Class exceptionClass;
+
         public ExceptionToXML(Throwable e) {
             message = e.getMessage();
+            exceptionClass = e.getClass();
             isUserException = e instanceof UserException;
             for (StackTraceElement element : e.getStackTrace()) {
                 stackTrace.add(element.toString());
