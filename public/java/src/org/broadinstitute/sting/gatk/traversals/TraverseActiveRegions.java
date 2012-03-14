@@ -94,19 +94,12 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     if( !myReads.contains(read) ) {
                         myReads.add(read);
                     }
+
+                    // If this is the last pileup for this shard calculate the minimum alignment start so that we know
+                    // which active regions in the work queue are now safe to process
+                    minStart = Math.min(minStart, read.getAlignmentStart());
                 }
 
-                // If this is the last pileup for this shard calculate the minimum alignment start so that we know 
-                // which active regions in the work queue are now safe to process
-                if( !locusView.hasNext() ) {
-                    for( final PileupElement p : locus.getBasePileup() ) {
-                        final GATKSAMRecord read = p.getRead();
-                        if( !myReads.contains(read) ) {
-                            myReads.add(read);
-                        }
-                        if( read.getAlignmentStart() < minStart ) { minStart = read.getAlignmentStart(); }
-                    }
-                }
                 prevLoc = location;
 
                 printProgress(dataProvider.getShard(), locus.getLocation());
@@ -117,18 +110,10 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             // band-pass filter the list of isActive probabilities and turn into active regions
             final ActivityProfile bandPassFiltered = profile.bandPassFilter();
             final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension );
-            logger.debug("Integrated " + profile.size() + " isActive calls into " + activeRegions.size() + " regions." );
 
-            // add to work queue
-            if( walker.activeRegionOutStream == null ) {
-                workQueue.addAll( activeRegions );
-            } else { // Just want to output the active regions to a file, not actually process them
-                for( final ActiveRegion activeRegion : activeRegions ) {
-                    if( activeRegion.isActive ) {
-                        walker.activeRegionOutStream.println( activeRegion.getLocation() );
-                    }
-                }
-            }
+            // add active regions to queue of regions to process
+            workQueue.addAll( activeRegions );
+            logger.debug("Integrated " + profile.size() + " isActive calls into " + activeRegions.size() + " regions." );
 
             // now go and process all of the active regions
             sum = processActiveRegions(walker, sum, minStart, dataProvider.getLocus().getContig());
@@ -170,6 +155,29 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     // --------------------------------------------------------------------------------
 
     private T processActiveRegions( final ActiveRegionWalker<M,T> walker, T sum, final int minStart, final String currentContig ) {
+        if( walker.activeRegionOutStream != null ) {
+            writeActiveRegionsToStream(walker);
+            return sum;
+        } else {
+            return callWalkerMapOnActiveRegions(walker, sum, minStart, currentContig);
+        }
+    }
+
+    /**
+     * Write out each active region to the walker activeRegionOutStream
+     *
+     * @param walker
+     */
+    private void writeActiveRegionsToStream( final ActiveRegionWalker<M,T> walker ) {
+        // Just want to output the active regions to a file, not actually process them
+        for( final ActiveRegion activeRegion : workQueue ) {
+            if( activeRegion.isActive ) {
+                walker.activeRegionOutStream.println( activeRegion.getLocation() );
+            }
+        }
+    }
+
+    private T callWalkerMapOnActiveRegions( final ActiveRegionWalker<M,T> walker, T sum, final int minStart, final String currentContig ) {
         // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
         while( workQueue.peek() != null ) {
             final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
