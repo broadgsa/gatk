@@ -657,11 +657,20 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     /**
+     * @param  other  VariantContext whose alleles to compare against
+     * @return true if this VariantContext has the same alleles (both ref and alts) as other,
+     *         regardless of ordering. Otherwise returns false.
+     */
+    public boolean hasSameAllelesAs ( final VariantContext other ) {
+        return hasSameAlternateAllelesAs(other) && other.getReference().equals(getReference(), false);
+    }
+
+    /**
      * @param  other  VariantContext whose alternate alleles to compare against
      * @return true if this VariantContext has the same alternate alleles as other,
      *         regardless of ordering. Otherwise returns false.
      */
-    public boolean hasSameAlternateAllelesAs ( VariantContext other ) {
+    public boolean hasSameAlternateAllelesAs ( final VariantContext other ) {
         List<Allele> thisAlternateAlleles = getAlternateAlleles();
         List<Allele> otherAlternateAlleles = other.getAlternateAlleles();
 

@@ -39,6 +39,7 @@ public class Haplotype {
     protected final double[] quals;
     private GenomeLoc genomeLocation = null;
     private HashMap<String, double[]> readLikelihoodsPerSample = null;
+    private boolean isRef = false;
  
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -84,6 +85,14 @@ public class Haplotype {
     
     public Set<String> getSampleKeySet() {
         return readLikelihoodsPerSample.keySet();
+    }
+
+    public boolean isReference() {
+        return isRef;
+    }
+
+    public void setIsReference( boolean isRef ) {
+        this.isRef = isRef;
     }
 
     public double getQualitySum() {
