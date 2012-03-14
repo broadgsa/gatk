@@ -179,6 +179,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
     private T callWalkerMapOnActiveRegions( final ActiveRegionWalker<M,T> walker, T sum, final int minStart, final String currentContig ) {
         // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
+        // TODO can implement parallel traversal here
         while( workQueue.peek() != null ) {
             final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
             if ( extendedLoc.getStop() < minStart || (currentContig != null && !workQueue.peek().getExtendedLoc().getContig().equals(currentContig))) {

@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.activeregion;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +46,8 @@ public class ActivityProfile {
     GenomeLoc regionStartLoc = null;
     final List<Double> isActiveList;
 
+    private GenomeLoc lastLoc = null;
+
     // todo -- add upfront the start and stop of the intervals
     // todo -- check that no regions are unexpectedly missing
     // todo -- add unit tests
@@ -61,7 +64,10 @@ public class ActivityProfile {
     }
 
     public void add(final GenomeLoc loc, final double score) {
-        // todo -- test for validity
+        if ( loc.size() != 1 )
+            throw new ReviewedStingException("Bad add call to ActivityProfile: loc " + loc + " size != 1" );
+        if ( lastLoc != null && loc.getStart() != lastLoc.getStop() + 1 )
+            throw new ReviewedStingException("Bad add call to ActivityProfile: lastLoc added " + lastLoc + " and next is " + loc);
         isActiveList.add(score);
         if( regionStartLoc == null ) {
             regionStartLoc = loc;

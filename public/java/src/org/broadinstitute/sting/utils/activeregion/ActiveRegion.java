@@ -34,6 +34,11 @@ public class ActiveRegion implements HasGenomeLocation {
         fullExtentReferenceLoc = extendedLoc;
     }
 
+    @Override
+    public String toString() {
+        return "ActiveRegion " + activeRegionLoc.toString();
+    }
+
     // add each read to the bin and extend the reference genome activeRegionLoc if needed
     public void add( final GATKSAMRecord read ) {
         fullExtentReferenceLoc = fullExtentReferenceLoc.union( genomeLocParser.createGenomeLoc( read ) );
@@ -78,4 +83,13 @@ public class ActiveRegion implements HasGenomeLocation {
     public void clearReads() { reads.clear(); }
     public void remove( final GATKSAMRecord read ) { reads.remove( read ); }
     public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
+
+    public boolean equalExceptReads(final ActiveRegion other) {
+        if ( ! activeRegionLoc.equals(other.activeRegionLoc)) return false;
+        if ( isActive != other.isActive ) return false;
+        if ( genomeLocParser != other.genomeLocParser ) return false;
+        if ( extension != other.extension ) return false;
+        if ( ! extendedLoc.equals(other.extendedLoc) ) return false;
+        return true;
+    }
 }
