@@ -458,7 +458,7 @@ public class VariantContextUtils {
 
     /**
      * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
-     * If uniqifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
+     * If uniquifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
      * the sample name
      *
      * @param genomeLocParser           loc parser
@@ -492,11 +492,11 @@ public class VariantContextUtils {
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
             verifyUniqueSampleNames(unsortedVCs);
 
-        List<VariantContext> prepaddedVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
+        final List<VariantContext> prepaddedVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
         // Make sure all variant contexts are padded with reference base in case of indels if necessary
-        List<VariantContext> VCs = new ArrayList<VariantContext>();
+        final List<VariantContext> VCs = new ArrayList<VariantContext>();
 
-        for (VariantContext vc : prepaddedVCs) {
+        for (final VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
                 VCs.add(createVariantContextWithPaddedAlleles(vc, false));
@@ -531,7 +531,7 @@ public class VariantContextUtils {
 
         // cycle through and add info from the other VCs, making sure the loc/reference matches
 
-        for ( VariantContext vc : VCs ) {
+        for ( final VariantContext vc : VCs ) {
             if ( loc.getStart() != vc.getStart() ) // || !first.getReference().equals(vc.getReference()) )
                 throw new ReviewedStingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
 
@@ -581,13 +581,13 @@ public class VariantContextUtils {
                 }
             }
 
-            for (Map.Entry<String, Object> p : vc.getAttributes().entrySet()) {
+            for (final Map.Entry<String, Object> p : vc.getAttributes().entrySet()) {
                 String key = p.getKey();
                 // if we don't like the key already, don't go anywhere
                 if ( ! inconsistentAttributes.contains(key) ) {
                     boolean alreadyFound = attributes.containsKey(key);
                     Object boundValue = attributes.get(key);
-                    boolean boundIsMissingValue = alreadyFound && boundValue.equals(VCFConstants.MISSING_VALUE_v4);
+                    final boolean boundIsMissingValue = alreadyFound && boundValue.equals(VCFConstants.MISSING_VALUE_v4);
 
                     if ( alreadyFound && ! boundValue.equals(p.getValue()) && ! boundIsMissingValue ) {
                         // we found the value but we're inconsistent, put it in the exclude list
@@ -604,7 +604,7 @@ public class VariantContextUtils {
 
         // if we have more alternate alleles in the merged VC than in one or more of the
         // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF
-        for ( VariantContext vc : VCs ) {
+        for ( final VariantContext vc : VCs ) {
             if (vc.alleles.size() == 1)
                 continue;
             if ( hasPLIncompatibleAlleles(alleles, vc.alleles)) {
@@ -634,11 +634,11 @@ public class VariantContextUtils {
                 setValue = MERGE_INTERSECTION;
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = MERGE_FILTER_IN_ALL;
-            else if ( variantSources.isEmpty() )               // everyone was reference
+            else if ( variantSources.isEmpty() )    // everyone was reference
                 setValue = MERGE_REF_IN_ALL;
             else {
-                LinkedHashSet<String> s = new LinkedHashSet<String>();
-                for ( VariantContext vc : VCs )
+                final LinkedHashSet<String> s = new LinkedHashSet<String>();
+                for ( final VariantContext vc : VCs )
                     if ( vc.isVariant() )
                         s.add( vc.isFiltered() ? MERGE_FILTER_PREFIX + vc.getSource() : vc.getSource() );
                 setValue = Utils.join("-", s);
@@ -663,7 +663,7 @@ public class VariantContextUtils {
         builder.filters(filters).attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
 
         // Trim the padded bases of all alleles if necessary
-        VariantContext merged = createVariantContextWithTrimmedAlleles(builder.make());
+        final VariantContext merged = createVariantContextWithTrimmedAlleles(builder.make());
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -724,7 +724,7 @@ public class VariantContextUtils {
 
             Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
-            for (Allele a : inputVC.getAlleles()) {
+            for (final Allele a : inputVC.getAlleles()) {
                 if (a.isSymbolic()) {
                     alleles.add(a);
                     originalToTrimmedAlleleMap.put(a, a);
@@ -741,11 +741,9 @@ public class VariantContextUtils {
             // example: mixed records such as {TA*,TGA,TG}
             boolean hasNullAlleles = false;
 
-            for (Allele a: originalToTrimmedAlleleMap.values()) {
+            for (final Allele a: originalToTrimmedAlleleMap.values()) {
                 if (a.isNull())
                     hasNullAlleles = true;
-                if (a.isReference())
-                    refAllele = a;
              }
 
              if (!hasNullAlleles)
@@ -755,7 +753,7 @@ public class VariantContextUtils {
 
                 List<Allele> originalAlleles = genotype.getAlleles();
                 List<Allele> trimmedAlleles = new ArrayList<Allele>();
-                for ( Allele a : originalAlleles ) {
+                for ( final Allele a : originalAlleles ) {
                     if ( a.isCalled() )
                         trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
                     else
@@ -837,7 +835,6 @@ public class VariantContextUtils {
         public AlleleMapper(Map<Allele, Allele> map)    { this.map = map; }
         public boolean needsRemapping()                 { return this.map != null; }
         public Collection<Allele> values()              { return map != null ? map.values() : vc.getAlleles(); }
-
         public Allele remap(Allele a)                   { return map != null && map.containsKey(a) ? map.get(a) : a; }
 
         public List<Allele> remap(List<Allele> as) {

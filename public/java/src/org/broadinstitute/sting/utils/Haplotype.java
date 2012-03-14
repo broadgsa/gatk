@@ -32,16 +32,13 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 public class Haplotype {
     protected final byte[] bases;
     protected final double[] quals;
     private GenomeLoc genomeLocation = null;
-    private boolean isReference = false;
+    private HashMap<String, double[]> readLikelihoodsPerSample = null;
  
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -69,14 +66,24 @@ public class Haplotype {
         this.genomeLocation = loc;
     }
 
-    public Haplotype(byte[] bases, GenomeLoc loc, boolean isRef) {
-        this(bases, loc);
-        this.isReference = isRef;
-    }
-
     @Override
     public boolean equals( Object h ) {
         return h instanceof Haplotype && Arrays.equals(bases, ((Haplotype) h).bases);
+    }
+
+    public void addReadLikelihoods( final String sample, final double[] readLikelihoods ) {
+        if( readLikelihoodsPerSample == null ) {
+            readLikelihoodsPerSample = new HashMap<String, double[]>();
+        }
+        readLikelihoodsPerSample.put(sample, readLikelihoods);
+    }
+
+    public double[] getReadLikelihoods( final String sample ) {
+        return readLikelihoodsPerSample.get(sample);
+    }
+    
+    public Set<String> getSampleKeySet() {
+        return readLikelihoodsPerSample.keySet();
     }
 
     public double getQualitySum() {
@@ -87,6 +94,7 @@ public class Haplotype {
         return s;
     }
 
+    @Override
     public String toString() {
         String returnString = "";
         for(int iii = 0; iii < bases.length; iii++) {
@@ -108,10 +116,6 @@ public class Haplotype {
 
     public long getStopPosition() {
         return genomeLocation.getStop();
-    }
-
-    public boolean isReference() {
-        return isReference;
     }
 
     @Requires({"refInsertLocation >= 0", "hapStartInRefCoords >= 0"})
@@ -208,13 +212,14 @@ public class Haplotype {
             String haplotypeString = new String(basesBeforeVariant) + new String(alleleBases) + new String(basesAfterVariant);
             haplotypeString = haplotypeString.substring(0,haplotypeSize);
 
-           haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus, a.isReference()));
+           haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus));
 
         }
 
         return haplotypeMap;
     }
 
+    // BUGBUG: copied from ReadClipper and slightly modified since we don't have the data in a GATKSAMRecord
     private static Integer getHaplotypeCoordinateForReferenceCoordinate( final int haplotypeStart, final Cigar haplotypeCigar, final int refCoord ) {
         int readBases = 0;
         int refBases = 0;
