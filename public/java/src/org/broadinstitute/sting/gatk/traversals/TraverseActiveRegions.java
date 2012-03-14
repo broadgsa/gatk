@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -10,6 +11,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -42,38 +44,31 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         logger.debug(String.format("TraverseActiveRegion.traverse: Shard is %s", dataProvider));
 
         final LocusView locusView = getLocusView( walker, dataProvider );
-        final GenomeLocSortedSet initialIntervals = engine.getIntervals(); // BUGBUG: unfortunate inefficiency that needs to be removed
+        final GenomeLocSortedSet initialIntervals = engine.getIntervals();
 
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         final int activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
 
         if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
-
             int minStart = Integer.MAX_VALUE;
-            final ArrayList<Double> isActiveList = new ArrayList<Double>();
-            GenomeLoc firstIsActiveStart = null;
+            ActivityProfile profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
 
-            //ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
-            ReferenceOrderedView referenceOrderedDataView = null;
-            if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
-                referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
-            else
-                referenceOrderedDataView = (RodLocusView)locusView;
+            ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
 
             // We keep processing while the next reference location is within the interval
             GenomeLoc prevLoc = null;
             while( locusView.hasNext() ) {
                 final AlignmentContext locus = locusView.next();
                 GenomeLoc location = locus.getLocation();
+
                 if(prevLoc != null) {
-                    for(int iii = prevLoc.getStart() + 1; iii < location.getStart(); iii++ ) {       
+                    // fill in the active / inactive labels from the stop of the previous location to the start of this location
+                    // TODO refactor to separate function
+                    for(int iii = prevLoc.getStop() + 1; iii < location.getStart(); iii++ ) {
                         final GenomeLoc fakeLoc = engine.getGenomeLocParser().createGenomeLoc(prevLoc.getContig(), iii, iii);
                         if( initialIntervals == null || initialIntervals.overlaps( fakeLoc ) ) {
-                            final double isActiveProb = ( walker.presetActiveRegions == null ? 0.0 : ( walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 ) );
-                            isActiveList.add( isActiveProb );
-                            if( firstIsActiveStart == null ) {
-                                firstIsActiveStart = fakeLoc;
-                            }
+                            final double isActiveProb = ( walker.hasPresetActiveRegions() && walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 );
+                            profile.add(fakeLoc, isActiveProb);
                         }
                     }
                 }
@@ -89,12 +84,8 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
                 // Call the walkers isActive function for this locus and add them to the list to be integrated later
                 if( initialIntervals == null || initialIntervals.overlaps( location ) ) {
-                    final double isActiveProb = ( walker.presetActiveRegions == null ? walker.isActive( tracker, refContext, locus )
-                                                                                     : ( walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0 ) );
-                    isActiveList.add( isActiveProb );
-                    if( firstIsActiveStart == null ) {
-                        firstIsActiveStart = location;
-                    }
+                    final double isActiveProb = walkerActiveProb(walker, tracker, refContext, locus, location);
+                    profile.add(location, isActiveProb);
                 }
 
                 // Grab all the previously unseen reads from this pileup and add them to the massive read list
@@ -117,15 +108,20 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     }
                 }
                 prevLoc = location;
+
                 printProgress(dataProvider.getShard(), locus.getLocation());
             }
 
             // Take the individual isActive calls and integrate them into contiguous active regions and
             // add these blocks of work to the work queue
-            final ArrayList<ActiveRegion> activeRegions = integrateActiveList( isActiveList, firstIsActiveStart, activeRegionExtension, walker.presetActiveRegions != null );
-            logger.debug("Integrated " + isActiveList.size() + " isActive calls into " + activeRegions.size() + " regions." );
-            if( walker.activeRegionOutStream == null ) { 
-                workQueue.addAll( activeRegions ); 
+            // band-pass filter the list of isActive probabilities and turn into active regions
+            final ActivityProfile bandPassFiltered = profile.bandPassFilter();
+            final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension );
+            logger.debug("Integrated " + profile.size() + " isActive calls into " + activeRegions.size() + " regions." );
+
+            // add to work queue
+            if( walker.activeRegionOutStream == null ) {
+                workQueue.addAll( activeRegions );
             } else { // Just want to output the active regions to a file, not actually process them
                 for( final ActiveRegion activeRegion : activeRegions ) {
                     if( activeRegion.isActive ) {
@@ -134,21 +130,55 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 }
             }
 
-            // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
-            while( workQueue.peek() != null && (workQueue.peek().getExtendedLoc().getStop() < minStart || !workQueue.peek().getExtendedLoc().getContig().equals(dataProvider.getLocus().getContig())) ) {
-                final ActiveRegion activeRegion = workQueue.remove();
-                sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
-            }
+            // now go and process all of the active regions
+            sum = processActiveRegions(walker, sum, minStart, dataProvider.getLocus().getContig());
         }
 
         return sum;
     }
 
-    // Special function called in LinearMicroScheduler to empty out the work queue. Ugly for now but will be cleaned up when we push this functionality more into the engine
-    public T endTraversal( final Walker<M,T> walker, T sum) {
+
+    // --------------------------------------------------------------------------------
+    //
+    // simple utility functions
+    //
+    // --------------------------------------------------------------------------------
+
+    private final double walkerActiveProb(final ActiveRegionWalker<M,T> walker,
+                                          final RefMetaDataTracker tracker, final ReferenceContext refContext,
+                                          final AlignmentContext locus, final GenomeLoc location) {
+        if ( walker.hasPresetActiveRegions() ) {
+            return walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0;
+        } else {
+            return walker.isActive( tracker, refContext, locus );
+        }
+    }
+
+    private ReferenceOrderedView getReferenceOrderedView( final ActiveRegionWalker<M,T> walker,
+                                                          final LocusShardDataProvider dataProvider,
+                                                          final LocusView locusView) {
+        if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
+            return new ManagingReferenceOrderedView( dataProvider );
+        else
+            return (RodLocusView)locusView;
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // code to handle processing active regions
+    //
+    // --------------------------------------------------------------------------------
+
+    private T processActiveRegions( final ActiveRegionWalker<M,T> walker, T sum, final int minStart, final String currentContig ) {
+        // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
         while( workQueue.peek() != null ) {
-            final ActiveRegion activeRegion = workQueue.remove();
-            sum = processActiveRegion( activeRegion, myReads, workQueue, sum, (ActiveRegionWalker<M,T>) walker );
+            final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
+            if ( extendedLoc.getStop() < minStart || (currentContig != null && !workQueue.peek().getExtendedLoc().getContig().equals(currentContig))) {
+                final ActiveRegion activeRegion = workQueue.remove();
+                sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
+            } else {
+                break;
+            }
         }
 
         return sum;
@@ -193,6 +223,12 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         return walker.reduce( x, sum );
     }
 
+    // --------------------------------------------------------------------------------
+    //
+    // engine interaction code
+    //
+    // --------------------------------------------------------------------------------
+
     /**
      * Gets the best view of loci for this walker given the available data.
      * @param walker walker to interrogate.
@@ -211,48 +247,11 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
     }
 
-    // band-pass filter the list of isActive probabilities and turn into active regions
-    private ArrayList<ActiveRegion> integrateActiveList( final ArrayList<Double> activeList, final GenomeLoc firstIsActiveStart, final int activeRegionExtension, final boolean presetRegions ) {
-
-        final double ACTIVE_PROB_THRESHOLD = 0.2; // BUGBUG: needs to be set-able by the walker author
-        final ArrayList<ActiveRegion> returnList = new ArrayList<ActiveRegion>();
-        if( activeList.size() == 0 ) {
-            return returnList;
-        } else if( activeList.size() == 1 ) {
-            returnList.add( new ActiveRegion( engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart(), firstIsActiveStart.getStart()),
-                    activeList.get(0) > ACTIVE_PROB_THRESHOLD, engine.getGenomeLocParser(), activeRegionExtension ) );
-            return returnList;
-        } else {
-            final Double[] activeProbArray = activeList.toArray(new Double[activeList.size()]);
-            final double[] filteredProbArray = new double[activeProbArray.length];
-            final int FILTER_SIZE = ( presetRegions ? 0 : 50 ); // BUGBUG: needs to be set-able by the walker author
-            final int MAX_ACTIVE_REGION = ( presetRegions ? 16001 : 425 ); // BUGBUG: needs to be set-able by the walker author
-            for( int iii = 0; iii < activeProbArray.length; iii++ ) {
-                double maxVal = 0;
-                for( int jjj = Math.max(0, iii-FILTER_SIZE); jjj < Math.min(activeList.size(), iii+FILTER_SIZE+1); jjj++ ) {
-                    if( activeProbArray[jjj] > maxVal ) { maxVal = activeProbArray[jjj]; }
-                }
-                filteredProbArray[iii] = maxVal;
-            }
-    
-            boolean curStatus = filteredProbArray[0] > ACTIVE_PROB_THRESHOLD;
-            int curStart = 0;
-            for(int iii = 1; iii < filteredProbArray.length; iii++ ) {
-                final boolean thisStatus = filteredProbArray[iii] > ACTIVE_PROB_THRESHOLD;
-                if( curStatus != thisStatus || (iii-curStart) > MAX_ACTIVE_REGION ) {
-                    returnList.add( new ActiveRegion(
-                            engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (iii-1)),
-                            curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
-                    curStatus = thisStatus;
-                    curStart = iii;
-                }
-            }
-            if( curStart != filteredProbArray.length-1 ) {
-                returnList.add( new ActiveRegion(
-                        engine.getGenomeLocParser().createGenomeLoc(firstIsActiveStart.getContig(), firstIsActiveStart.getStart() + curStart, firstIsActiveStart.getStart() + (filteredProbArray.length-1)),
-                        curStatus, engine.getGenomeLocParser(), activeRegionExtension ) );
-            }
-            return returnList;
-        }
+    /**
+     * Special function called in LinearMicroScheduler to empty out the work queue.
+     * Ugly for now but will be cleaned up when we push this functionality more into the engine
+     */
+    public T endTraversal( final Walker<M,T> walker, T sum) {
+        return processActiveRegions((ActiveRegionWalker<M,T>)walker, sum, Integer.MAX_VALUE, null);
     }
 }

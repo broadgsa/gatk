@@ -45,6 +45,10 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
 
     public GenomeLocSortedSet presetActiveRegions = null;
 
+    public boolean hasPresetActiveRegions() {
+        return presetActiveRegions != null;
+    }
+
     @Override
     public void initialize() {
         if( activeRegionBindings == null ) { return; }
