@@ -237,6 +237,16 @@ public class VariantContextUnitTest extends BaseTest {
     }
 
     @Test
+    public void testMatchingAlleles() {
+        List<Allele> alleles = Arrays.asList(ATCref, del);
+        VariantContext vc = new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).referenceBaseForIndel((byte)'A').make();
+        VariantContext vc2 = new VariantContextBuilder("test2", delLoc, delLocStart+12, delLocStop+12, alleles).referenceBaseForIndel((byte)'A').make();
+
+        Assert.assertTrue(vc.hasSameAllelesAs(vc2));
+        Assert.assertTrue(vc.hasSameAlternateAllelesAs(vc2));
+    }
+
+    @Test
     public void testCreatingInsertionVariantContext() {
         List<Allele> alleles = Arrays.asList(delRef, ATC);
         VariantContext vc = insBuilder.alleles(alleles).make();
