@@ -110,10 +110,9 @@ public class ActivityProfileUnitTest extends BaseTest {
     @DataProvider(name = "BasicActivityProfileTestProvider")
     public Object[][] makeQualIntervalTestProvider() {
         new BasicActivityProfileTestProvider(Arrays.asList(1.0), true, 0, 1);
-        // TODO -- RYAN THESE ALL EXHIBIT AN OFF-BY-ONE ERROR.  SORRY I HAVE TO GO BUT I CANNOT FIX NOW
-        //new BasicActivityProfileTestProvider(Arrays.asList(1.0, 0.0), true, 0, 1, 2);
-        //new BasicActivityProfileTestProvider(Arrays.asList(0.0, 1.0), false, 0, 1, 2);
-        //new BasicActivityProfileTestProvider(Arrays.asList(1.0, 0.0, 1.0), true, 0, 1, 2, 3);
+        new BasicActivityProfileTestProvider(Arrays.asList(1.0, 0.0), true, 0, 1, 2);
+        new BasicActivityProfileTestProvider(Arrays.asList(0.0, 1.0), false, 0, 1, 2);
+        new BasicActivityProfileTestProvider(Arrays.asList(1.0, 0.0, 1.0), true, 0, 1, 2, 3);
         new BasicActivityProfileTestProvider(Arrays.asList(1.0, 1.0, 1.0), true, 0, 3);
 
         return BasicActivityProfileTestProvider.getTests(BasicActivityProfileTestProvider.class);

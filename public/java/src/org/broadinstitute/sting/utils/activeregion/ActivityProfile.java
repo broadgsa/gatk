@@ -127,10 +127,8 @@ public class ActivityProfile {
                     curStart = iii;
                 }
             }
+            returnList.add( createActiveRegion(isActive, curStart, isActiveList.size()-1, activeRegionExtension) ); // close out the current active region
 
-            if( curStart != isActiveList.size()-1 ) {
-                returnList.add( createActiveRegion(isActive, curStart, isActiveList.size()-1, activeRegionExtension) );
-            }
             return returnList;
         }
     }
