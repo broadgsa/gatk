@@ -84,21 +84,17 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         for ( int i = 0; i < numOriginalAltAlleles; i++ )
             likelihoodSums[i] = new LikelihoodSum(vc.getAlternateAllele(i));
 
-        // make sure that we've cached enough data
-        if ( numOriginalAltAlleles > UnifiedGenotyperEngine.PLIndexToAlleleIndex.length - 1 )
-            UnifiedGenotyperEngine.calculatePLcache(numOriginalAltAlleles);
-
         // based on the GLs, find the alternate alleles with the most probability; sum the GLs for the most likely genotype
         final ArrayList<double[]> GLs = getGLs(vc.getGenotypes());
         for ( final double[] likelihoods : GLs ) {
             final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
             if ( PLindexOfBestGL != PL_INDEX_OF_HOM_REF ) {
-                int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[numOriginalAltAlleles][PLindexOfBestGL];
-                if ( alleles[0] != 0 )
-                    likelihoodSums[alleles[0]-1].sum += likelihoods[PLindexOfBestGL] - likelihoods[PL_INDEX_OF_HOM_REF];
+                GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindexOfBestGL);
+                if ( alleles.alleleIndex1 != 0 )
+                    likelihoodSums[alleles.alleleIndex1-1].sum += likelihoods[PLindexOfBestGL] - likelihoods[PL_INDEX_OF_HOM_REF];
                 // don't double-count it
-                if ( alleles[1] != 0 && alleles[1] != alleles[0] )
-                    likelihoodSums[alleles[1]-1].sum += likelihoods[PLindexOfBestGL] - likelihoods[PL_INDEX_OF_HOM_REF];
+                if ( alleles.alleleIndex2 != 0 && alleles.alleleIndex2 != alleles.alleleIndex1 )
+                    likelihoodSums[alleles.alleleIndex2-1].sum += likelihoods[PLindexOfBestGL] - likelihoods[PL_INDEX_OF_HOM_REF];
             }
         }
 
@@ -227,10 +223,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                final double[][] log10AlleleFrequencyPriors,
                                                final AlleleFrequencyCalculationResult result) {
 
-        // make sure the PL cache has been initialized
-        if ( UnifiedGenotyperEngine.PLIndexToAlleleIndex == null )
-            UnifiedGenotyperEngine.calculatePLcache(5);
-
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
         final int numSamples = genotypeLikelihoods.size()-1;
         final int numChr = 2*numSamples;
@@ -305,15 +297,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         final int numAltAlleles = set.ACcounts.getCounts().length;
 
-        // genotype likelihoods are a linear vector that can be thought of as a row-wise upper triangular matrix of log10Likelihoods.
-        // so e.g. with 2 alt alleles the likelihoods are AA,AB,AC,BB,BC,CC and with 3 alt alleles they are AA,AB,AC,AD,BB,BC,BD,CC,CD,DD.
-
         // add conformations for the k+1 case
-        int PLindex = 0;
         for ( int allele = 0; allele < numAltAlleles; allele++ ) {
             final int[] ACcountsClone = set.ACcounts.getCounts().clone();
             ACcountsClone[allele]++;
-            updateACset(ACcountsClone, numChr, set, ++PLindex, ACqueue, indexesToACset, genotypeLikelihoods);
+            // to get to this conformation, a sample would need to be AB (remember that ref=0)
+            final int PLindex = GenotypeLikelihoods.calculatePLindex(0, allele+1);
+            updateACset(ACcountsClone, numChr, set, PLindex, ACqueue, indexesToACset, genotypeLikelihoods);
         }
 
         // add conformations for the k+2 case if it makes sense; note that the 2 new alleles may be the same or different
@@ -327,10 +317,12 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     ACcountsClone[allele_i]++;
                     ACcountsClone[allele_j]++;
 
+                    // to get to this conformation, a sample would need to be BB or BC (remember that ref=0, so add one to the index)
+                    final int PLindex = GenotypeLikelihoods.calculatePLindex(allele_i+1, allele_j+1);
                     if ( allele_i == allele_j )
-                        sameAlleles.add(new DependentSet(ACcountsClone, ++PLindex));
+                        sameAlleles.add(new DependentSet(ACcountsClone, PLindex));
                     else
-                        differentAlleles.add(new DependentSet(ACcountsClone, ++PLindex));
+                        differentAlleles.add(new DependentSet(ACcountsClone, PLindex));
                 }
             }
 
@@ -448,25 +440,26 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // BC: 2 * k_b * k_c
         // CC: k_c * (k_c - 1)
 
-        final int numAltAlleles = ACcounts.length;
+        // find the 2 alleles that are represented by this PL index
+        GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
+
+        // *** note that throughout this method we subtract one from the alleleIndex because ACcounts ***
+        // *** doesn't consider the reference allele whereas the GenotypeLikelihoods PL cache does.   ***
 
         // the AX het case
-        if ( PLindex <= numAltAlleles )
-            return MathUtils.log10Cache[2*ACcounts[PLindex-1]] + MathUtils.log10Cache[2*j-totalK];
+        if ( alleles.alleleIndex1 == 0 )
+            return MathUtils.log10Cache[2*ACcounts[alleles.alleleIndex2-1]] + MathUtils.log10Cache[2*j-totalK];
 
-        // find the 2 alternate alleles that are represented by this PL index
-        int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[numAltAlleles][PLindex];
-
-        final int k_i = ACcounts[alleles[0]-1];  // subtract one because ACcounts doesn't consider the reference allele
+        final int k_i = ACcounts[alleles.alleleIndex1-1];
 
         // the hom var case (e.g. BB, CC, DD)
         final double coeff;
-        if ( alleles[0] == alleles[1] ) {
+        if ( alleles.alleleIndex1 == alleles.alleleIndex2 ) {
             coeff = MathUtils.log10Cache[k_i] + MathUtils.log10Cache[k_i - 1];
         }
         // the het non-ref case (e.g. BC, BD, CD)
         else {
-            final int k_j = ACcounts[alleles[1]-1];
+            final int k_j = ACcounts[alleles.alleleIndex2-1];
             coeff = MathUtils.log10Cache[2] + MathUtils.log10Cache[k_i] + MathUtils.log10Cache[k_j];
         }
 

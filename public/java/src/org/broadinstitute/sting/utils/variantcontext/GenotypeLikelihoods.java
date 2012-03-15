@@ -25,13 +25,10 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.jgrapht.util.MathUtil;
 
 import java.util.EnumMap;
-import java.util.Map;
 
 public class GenotypeLikelihoods {
     public static final boolean CAP_PLS = false;
@@ -200,5 +197,94 @@ public class GenotypeLikelihoods {
         }
 
         return s.toString();
+    }
+
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Static conversion utilities, going from GL/PL index to allele index and vice versa.
+    //
+    // -------------------------------------------------------------------------------------
+
+    /*
+     * Class representing the 2 alleles (or rather their indexes into VariantContext.getAllele()) corresponding to a specific PL index.
+     * Note that the reference allele is always index=0.
+     */
+    public static class GenotypeLikelihoodsAllelePair {
+        public final int alleleIndex1, alleleIndex2;
+
+        public GenotypeLikelihoodsAllelePair(final int alleleIndex1, final int alleleIndex2) {
+            this.alleleIndex1 = alleleIndex1;
+            this.alleleIndex2 = alleleIndex2;
+        }
+    }
+
+    /*
+     * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
+     */
+    private static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = new GenotypeLikelihoodsAllelePair[]{ new GenotypeLikelihoodsAllelePair(0, 0) };
+
+    private static void calculatePLcache(final int minIndex) {
+        // how many alternate alleles do we need to calculate for?
+        int altAlleles = 0;
+        int numLikelihoods = 1;
+        while ( numLikelihoods <= minIndex ) {
+            altAlleles++;
+            numLikelihoods += altAlleles + 1;
+        }
+
+        PLIndexToAlleleIndex = new GenotypeLikelihoodsAllelePair[numLikelihoods];
+
+        // for all possible combinations of 2 alleles
+        for ( int allele1 = 0; allele1 <= altAlleles; allele1++ ) {
+            for ( int allele2 = allele1; allele2 <= altAlleles; allele2++ ) {
+                PLIndexToAlleleIndex[calculatePLindex(allele1, allele2)] = new GenotypeLikelihoodsAllelePair(allele1, allele2);
+            }
+        }
+    }
+
+    // how many likelihoods are associated with the given number of alternate alleles?
+    public static int calculateNumLikelihoods(int numAltAlleles) {
+        int numLikelihoods = 1;
+        for ( int i = 1; i <= numAltAlleles; i++ )
+            numLikelihoods += i + 1;
+        return numLikelihoods;
+    }
+
+    // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
+    // In other words, for biallelic sites the ordering is: AA,AB,BB; for triallelic sites the ordering is: AA,AB,BB,AC,BC,CC, etc."
+    // Assumes that allele1Index < allele2Index
+    public static int calculatePLindex(final int allele1Index, final int allele2Index) {
+        return (allele2Index * (allele2Index+1) / 2) + allele1Index;
+    }
+
+    /**
+     * get the allele index pair for the given PL
+     *
+     * @param PLindex   the PL index
+     * @return the allele index pair
+     */
+    public static GenotypeLikelihoodsAllelePair getAllelePair(final int PLindex) {
+        // make sure that we've cached enough data
+        if ( PLindex >= PLIndexToAlleleIndex.length )
+            calculatePLcache(PLindex);
+
+        return PLIndexToAlleleIndex[PLindex];
+    }
+
+    /**
+     * get the PL indexes (AA, AB, BB) for the given allele pair; assumes allele1Index <= allele2Index.
+     *
+     * @param allele1Index    the index in VariantContext.getAllele() of the first allele
+     * @param allele2Index    the index in VariantContext.getAllele() of the second allele
+     * @return the PL indexes
+     */
+    public static int[] getPLIndecesOfAlleles(final int allele1Index, final int allele2Index) {
+        
+        final int[] indexes = new int[3];
+        indexes[0] = calculatePLindex(allele1Index, allele1Index);
+        indexes[1] = calculatePLindex(allele1Index, allele2Index);
+        indexes[2] = calculatePLindex(allele2Index, allele2Index);
+        return indexes;
     }
 }

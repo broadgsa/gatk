@@ -1246,40 +1246,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return best;
     }
 
-    public int[] getGLIndecesOfAllele(Allele inputAllele) {
+    public int[] getGLIndecesOfAlternateAllele(Allele targetAllele) {
 
-        // TODO -- this information is cached statically by the UnifiedGenotyperEngine; pull it out into a common utils class for all to use
-
-        int[] idxVector = new int[3];
-        int numAlleles =  this.getAlleles().size();
-
-        int idxDiag = numAlleles;
-        int incr = numAlleles - 1;
-        int k=1;
-        for (Allele a: getAlternateAlleles()) {
-            // multi-allelic approximation, part 1: Ideally
-            // for each alt allele compute marginal (suboptimal) posteriors -
-            // compute indices for AA,AB,BB for current allele - genotype likelihoods are a linear vector that can be thought of
-            // as a row-wise upper triangular matrix of likelihoods.
-            // So, for example, with 2 alt alleles, likelihoods have AA,AB,AC,BB,BC,CC.
-            // 3 alt alleles: AA,AB,AC,AD BB BC BD CC CD DD
-
-            int idxAA = 0;
-            int idxAB = k++;
-            // yy is always element on the diagonal.
-            // 2 alleles: BBelement 2
-            // 3 alleles: BB element  3. CC element 5
-            // 4 alleles:
-            int idxBB = idxDiag;
-
-            if (a.equals(inputAllele)) {
-                idxVector[0] = idxAA;
-                idxVector[1] = idxAB;
-                idxVector[2]  = idxBB;
+        int index = 1;
+        for ( Allele allele : getAlternateAlleles() ) {
+            if ( allele.equals(targetAllele) )
                 break;
-            }
-            idxDiag += incr--;
+            index++;
         }
-        return idxVector;
+
+        return GenotypeLikelihoods.getPLIndecesOfAlleles(0, index);
     }
 }
