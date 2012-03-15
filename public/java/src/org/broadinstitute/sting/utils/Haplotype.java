@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
@@ -79,6 +80,7 @@ public class Haplotype {
         readLikelihoodsPerSample.put(sample, readLikelihoods);
     }
 
+    @Ensures({"result != null"})
     public double[] getReadLikelihoods( final String sample ) {
         return readLikelihoodsPerSample.get(sample);
     }
