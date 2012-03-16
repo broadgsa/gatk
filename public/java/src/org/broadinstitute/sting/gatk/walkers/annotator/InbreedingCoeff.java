@@ -42,7 +42,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
         if (!vc.isBiallelic()) {
             // for non-bliallelic case, do test with most common alt allele.
             // Get then corresponding indeces in GL vectors to retrieve GL of AA,AB and BB.
-            int[] idxVector = vc.getGLIndecesOfAllele(vc.getAltAlleleWithHighestAlleleCount());
+            int[] idxVector = vc.getGLIndecesOfAlternateAllele(vc.getAltAlleleWithHighestAlleleCount());
             idxAA = idxVector[0];
             idxAB = idxVector[1];
             idxBB = idxVector[2];

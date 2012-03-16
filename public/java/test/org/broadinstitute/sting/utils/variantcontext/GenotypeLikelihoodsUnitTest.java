@@ -117,7 +117,7 @@ public class GenotypeLikelihoodsUnitTest {
     }
 
     @Test
-    public void testgetQualFromLikelihoods(){
+    public void testgetQualFromLikelihoods() {
         double[] likelihoods = new double[]{-1, 0, -2};
         // qual values we expect for each possible "best" genotype
         double[] expectedQuals = new double[]{-0.04100161, -1, -0.003930294};
@@ -133,5 +133,34 @@ public class GenotypeLikelihoodsUnitTest {
         for ( int i = 0; i < v1.length; i++ ) {
             Assert.assertEquals(v1[i], v2[i], 1e-6);
         }
+    }
+
+    @Test
+    public void testCalculatePLindex(){
+        int counter = 0;
+        for ( int i = 0; i <= 3; i++ ) {
+            for ( int j = i; j <= 3; j++ ) {
+                Assert.assertEquals(GenotypeLikelihoods.calculatePLindex(i, j), GenotypeLikelihoods.PLindexConversion[counter++], "PL index of alleles " + i + "," + j + " was not calculated correctly");
+            }
+        }
+    }
+
+    @Test
+    public void testGetAllelePair(){
+        allelePairTest(0, 0, 0);
+        allelePairTest(1, 0, 1);
+        allelePairTest(2, 1, 1);
+        allelePairTest(3, 0, 2);
+        allelePairTest(4, 1, 2);
+        allelePairTest(5, 2, 2);
+        allelePairTest(6, 0, 3);
+        allelePairTest(7, 1, 3);
+        allelePairTest(8, 2, 3);
+        allelePairTest(9, 3, 3);
+    }
+        
+    private void allelePairTest(int PLindex, int allele1, int allele2) {
+        Assert.assertEquals(GenotypeLikelihoods.getAllelePair(PLindex).alleleIndex1, allele1, "allele index " + allele1 + " from PL index " + PLindex + " was not calculated correctly");
+        Assert.assertEquals(GenotypeLikelihoods.getAllelePair(PLindex).alleleIndex2, allele2, "allele index " + allele2 + " from PL index " + PLindex + " was not calculated correctly");
     }
 }

@@ -104,10 +104,6 @@ public class UnifiedGenotyperEngine {
     private final GenomeLocParser genomeLocParser;
     private final boolean BAQEnabledOnCMDLine;
 
-    // a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
-    // the representation is int[number of alternate alleles][PL index][pair of allele indexes (where reference = 0)]
-    protected static int[][][] PLIndexToAlleleIndex;
-
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -140,27 +136,6 @@ public class UnifiedGenotyperEngine {
         genotypePriorsIndels = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.INDEL);
         
         filter.add(LOW_QUAL_FILTER_NAME);
-        calculatePLcache(UAC.MAX_ALTERNATE_ALLELES);
-    }
-
-    protected static void calculatePLcache(int maxAltAlleles) {
-        PLIndexToAlleleIndex = new int[maxAltAlleles+1][][];
-        PLIndexToAlleleIndex[0] = new int[][]{ new int[]{0, 0} };
-        int numLikelihoods = 1;
-
-        // for each count of alternate alleles
-        for ( int altAlleles = 1; altAlleles <= maxAltAlleles; altAlleles++ ) {
-            numLikelihoods += altAlleles + 1;
-            PLIndexToAlleleIndex[altAlleles] = new int[numLikelihoods][];
-            int PLindex = 0;
-
-            // for all possible combinations of the 2 alt alleles
-            for ( int allele1 = 0; allele1 <= altAlleles; allele1++ ) {
-                for ( int allele2 = allele1; allele2 <= altAlleles; allele2++ ) {
-                    PLIndexToAlleleIndex[altAlleles][PLindex++] = new int[]{ allele1, allele2 };
-                }
-            }
-        }
     }
 
     /**
@@ -794,21 +769,17 @@ public class UnifiedGenotyperEngine {
         if ( numNewAltAlleles != numOriginalAltAlleles && numNewAltAlleles > 0 ) {
             likelihoodIndexesToUse = new ArrayList<Integer>(30);
 
-            // make sure that we've cached enough data
-            if ( numOriginalAltAlleles > PLIndexToAlleleIndex.length - 1 )
-                calculatePLcache(numOriginalAltAlleles);
-            final int[][] PLcache = PLIndexToAlleleIndex[numOriginalAltAlleles];
-
             final boolean[] altAlleleIndexToUse = new boolean[numOriginalAltAlleles];
             for ( int i = 0; i < numOriginalAltAlleles; i++ ) {
                 if ( allelesToUse.contains(vc.getAlternateAllele(i)) )
                     altAlleleIndexToUse[i] = true;
             }
 
-            for ( int PLindex = 0; PLindex < PLcache.length; PLindex++ ) {
-                final int[] alleles = PLcache[PLindex];
+            final int numLikelihoods = GenotypeLikelihoods.calculateNumLikelihoods(numOriginalAltAlleles);
+            for ( int PLindex = 0; PLindex < numLikelihoods; PLindex++ ) {
+                final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
                 // consider this entry only if both of the alleles are good
-                if ( (alleles[0] == 0 || altAlleleIndexToUse[alleles[0] - 1]) && (alleles[1] == 0 || altAlleleIndexToUse[alleles[1] - 1]) )
+                if ( (alleles.alleleIndex1 == 0 || altAlleleIndexToUse[alleles.alleleIndex1 - 1]) && (alleles.alleleIndex2 == 0 || altAlleleIndexToUse[alleles.alleleIndex2 - 1]) )
                     likelihoodIndexesToUse.add(PLindex);
             }
         }
@@ -861,11 +832,11 @@ public class UnifiedGenotyperEngine {
     protected static Genotype assignGenotype(final Genotype originalGT, final double[] newLikelihoods, final List<Allele> allelesToUse, final int numNewAltAlleles, final Map<String, Object> attrs) {
         // find the genotype with maximum likelihoods
         int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
-        int[] alleles = PLIndexToAlleleIndex[numNewAltAlleles][PLindex];
+        GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
 
         ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-        myAlleles.add(allelesToUse.get(alleles[0]));
-        myAlleles.add(allelesToUse.get(alleles[1]));
+        myAlleles.add(allelesToUse.get(alleles.alleleIndex1));
+        myAlleles.add(allelesToUse.get(alleles.alleleIndex2));
 
         final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(PLindex, newLikelihoods);
         return new Genotype(originalGT.getSampleName(), myAlleles, qual, null, attrs, false);
