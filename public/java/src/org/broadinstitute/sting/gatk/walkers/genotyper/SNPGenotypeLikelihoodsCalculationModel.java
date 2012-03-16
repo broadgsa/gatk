@@ -176,7 +176,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             final double[] likelihoods = sampleData.GL.getLikelihoods();
             final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
             if ( PLindexOfBestGL != PLindexOfRef ) {
-                GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(3, PLindexOfBestGL);
+                GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePairUsingDeprecatedOrdering(PLindexOfBestGL);
                 if ( alleles.alleleIndex1 != baseIndexOfRef )
                     likelihoodSums[alleles.alleleIndex1] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
                 // don't double-count it

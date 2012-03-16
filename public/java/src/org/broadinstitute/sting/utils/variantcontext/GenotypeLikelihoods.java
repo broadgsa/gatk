@@ -272,6 +272,29 @@ public class GenotypeLikelihoods {
         return PLIndexToAlleleIndex[PLindex];
     }
 
+    // An index conversion from the deprecated PL ordering to the new VCF-based ordering for up to 3 alternate alleles
+    protected static int[] PLindexConversion = new int[]{0, 1, 3, 6, 2, 4, 7, 5, 8, 9};
+
+    /**
+     * get the allele index pair for the given PL using the deprecated PL ordering:
+     *    AA,AB,AC,AD,BB,BC,BD,CC,CD,DD instead of AA,AB,BB,AC,BC,CC,AD,BD,CD,DD.
+     * Although it's painful to keep this conversion around, our DiploidSNPGenotypeLikelihoods class uses the deprecated
+     *    ordering and I know with certainty that external users have built code on top of it; changing it now would
+     *    cause a whole lot of heartache for our collaborators, so for now at least there's a standard conversion method.
+     * This method assumes at most 3 alternate alleles.
+     * TODO -- address this issue at the source by updating DiploidSNPGenotypeLikelihoods.
+     *
+     * @param PLindex   the PL index
+     * @return the allele index pair
+     */
+    public static GenotypeLikelihoodsAllelePair getAllelePairUsingDeprecatedOrdering(final int PLindex) {
+        // make sure that we've cached enough data
+        if ( PLindex >= PLIndexToAlleleIndex.length )
+            calculatePLcache(PLindex);
+
+        return PLIndexToAlleleIndex[PLindexConversion[PLindex]];
+    }
+
     /**
      * get the PL indexes (AA, AB, BB) for the given allele pair; assumes allele1Index <= allele2Index.
      *

@@ -137,13 +137,10 @@ public class GenotypeLikelihoodsUnitTest {
 
     @Test
     public void testCalculatePLindex(){
-        // AA,AB,BB,AC,BC,CC,AD,BD,CD,DD called in the order of AA,AB,AC,AD,BB,BC,BD,CC,CD,DD
-        int[] indexes = new int[]{0, 1, 3, 6, 2, 4, 7, 5, 8, 9};
-
         int counter = 0;
         for ( int i = 0; i <= 3; i++ ) {
             for ( int j = i; j <= 3; j++ ) {
-                Assert.assertEquals(GenotypeLikelihoods.calculatePLindex(i, j), indexes[counter++], "PL index of alleles " + i + "," + j + " was not calculated correctly");
+                Assert.assertEquals(GenotypeLikelihoods.calculatePLindex(i, j), GenotypeLikelihoods.PLindexConversion[counter++], "PL index of alleles " + i + "," + j + " was not calculated correctly");
             }
         }
     }
