@@ -60,7 +60,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultipleSNPAlleles() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm BOTH --dbsnp " + b37dbSNP129 + " -I " + validationDataLocation + "multiallelic.snps.bam -o %s -L " + validationDataLocation + "multiallelic.snps.intervals", 1,
-                Arrays.asList("5af005255240a2186f04cb50851b8b6f"));
+                Arrays.asList("0de4aeed6a52f08ed86a7642c812478b"));
         executeTest("test Multiple SNP alleles", spec);
     }
 
@@ -300,7 +300,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndels + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,080,000", 1,
-                Arrays.asList("2609675a356f2dfc86f8a1d911210978"));
+                Arrays.asList("0d226004e283291e60436fda8e305b8d"));
         executeTest("test MultiSample Pilot2 indels with complicated records", spec3);
     }
 
@@ -309,9 +309,15 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -alleles " + validationDataLocation + "ALL.wgs.union_v2_chr20_100_110K.20101123.indels.sites.vcf -I " + validationDataLocation +
                         "phase1_GBR_realigned.chr20.100K-110K.bam -o %s -L 20:100,000-110,000", 1,
-                Arrays.asList("4fdd8da77167881b71b3547da5c13f94"));
+                Arrays.asList("372f26842c77680aaf9ee2ab64334742"));
         executeTest("test MultiSample Phase1 indels with complicated records", spec4);
     }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing SnpEff
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     @Test
     public void testSnpEffAnnotationRequestedWithoutRodBinding() {
