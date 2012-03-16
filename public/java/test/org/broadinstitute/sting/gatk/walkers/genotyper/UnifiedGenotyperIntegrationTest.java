@@ -327,16 +327,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
 
     @Test
-    public void testWithIndelAllelesPassedIn5() {
-        final String vcf = "small.indel.test.vcf";
-        WalkerTest.WalkerTestSpec spec4 = new WalkerTest.WalkerTestSpec(
-                baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -out_mode EMIT_ALL_SITES -alleles " + validationDataLocation + vcf + " -I " + validationDataLocation +
-                        "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam -o %s -L " + validationDataLocation + vcf, 1,
-                Arrays.asList("7d069596597aee5e0d562964036141eb"));
-        executeTest("test GENOTYPE_GIVEN_ALLELES with no evidence in reads", spec4);
-    }
-
-    @Test
     public void testSnpEffAnnotationRequestedWithoutRodBinding() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000 " +
