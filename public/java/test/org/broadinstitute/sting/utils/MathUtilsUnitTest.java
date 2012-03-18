@@ -225,6 +225,12 @@ public class MathUtilsUnitTest extends BaseTest {
 
     @Test
     public void testApproximateLog10SumLog10() {
+
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {0.0}), 0.0, 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {-5.15}), -5.15, 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {130.0}), 130.0, 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {-0.145}), -0.145, 1e-3);
+
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(0.0, 0.0), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0)), 1e-3);
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(-1.0, 0.0), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, 0.0)), 1e-3);
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(0.0, -1.0), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, -1.0)), 1e-3);
@@ -237,6 +243,8 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(-29.1, -27.6), Math.log10(Math.pow(10.0, -29.1) + Math.pow(10.0, -27.6)), 1e-3);
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(-0.12345, -0.23456), Math.log10(Math.pow(10.0, -0.12345) + Math.pow(10.0, -0.23456)), 1e-3);
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(-15.7654, -17.0101), Math.log10(Math.pow(10.0, -15.7654) + Math.pow(10.0, -17.0101)), 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-0.12345, Double.NEGATIVE_INFINITY), -0.12345, 1e-3);
+        Assert.assertEquals(MathUtils.approximateLog10SumLog10(-15.7654, Double.NEGATIVE_INFINITY), -15.7654, 1e-3);
 
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {0.0, 0.0}), Math.log10(Math.pow(10.0, 0.0) + Math.pow(10.0, 0.0)), 1e-3);
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {-1.0, 0.0}), Math.log10(Math.pow(10.0, -1.0) + Math.pow(10.0, 0.0)), 1e-3);
