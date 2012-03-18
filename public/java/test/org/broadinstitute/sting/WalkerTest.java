@@ -47,6 +47,7 @@ import java.util.*;
 
 public class WalkerTest extends BaseTest {
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
+    private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
     @BeforeMethod
     public void initializeRandomGenerator() {
@@ -58,6 +59,9 @@ public class WalkerTest extends BaseTest {
     }
 
     public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
+        if ( !ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX )
+            return;
+
         File indexFile = Tribble.indexFile(resultFile);
         //System.out.println("Putative index file is " + indexFile);
         if ( indexFile.exists() ) {
@@ -75,13 +79,13 @@ public class WalkerTest extends BaseTest {
         System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
         Index indexFromOutputFile = IndexFactory.createIndex(resultFile, new VCFCodec());
         Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
- /*  tmp disable
+
         if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {
             Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
                     indexFromOutputFile.getProperties(),
                     dynamicIndex.getProperties()));
         }
-   */ }
+    }
 
     public List<String> assertMatchingMD5s(final String name, List<File> resultFiles, List<String> expectedMD5s) {
         List<String> md5s = new ArrayList<String>();
