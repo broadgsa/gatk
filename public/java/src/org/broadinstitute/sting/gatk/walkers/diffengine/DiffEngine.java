@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -244,7 +244,8 @@ public class DiffEngine {
             table.set(diff.getPath(), "NumberOfOccurrences", diff.getCount());
             table.set(diff.getPath(), "ExampleDifference", diff.valueDiffString());
         }
-        table.write(params.out);
+        GATKReport output = new GATKReport(table);
+        output.print(params.out);
     }
 
     protected static int longestCommonPostfix(String[] diffPath1, String[] diffPath2) {

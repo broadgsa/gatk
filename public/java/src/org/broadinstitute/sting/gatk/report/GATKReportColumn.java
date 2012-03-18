@@ -199,7 +199,7 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
                 defaultValue.equals(that.defaultValue) );
     }
 
-    protected boolean equals(GATKReportColumn that) {
+    boolean equals(GATKReportColumn that) {
         if ( !this.keySet().equals(that.keySet()) ) {
             return false;
         }

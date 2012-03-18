@@ -41,10 +41,10 @@ import java.util.TreeMap;
 public class GATKReport {
     public static final String GATKREPORT_HEADER_PREFIX = "#:GATKReport.";
     public static final GATKReportVersion LATEST_REPORT_VERSION = GATKReportVersion.V1_0;
-    public static final String SEPARATOR = ":";
+    private static final String SEPARATOR = ":";
     private GATKReportVersion version = LATEST_REPORT_VERSION;
 
-    private TreeMap<String, GATKReportTable> tables = new TreeMap<String, GATKReportTable>();
+    private final TreeMap<String, GATKReportTable> tables = new TreeMap<String, GATKReportTable>();
 
     /**
      * Create a new, empty GATKReport.
@@ -68,6 +68,15 @@ public class GATKReport {
      */
     public GATKReport(File file) {
         loadReport(file);
+    }
+
+    /**
+     * Create a new GATK report from GATK report tables
+     * @param tables Any number of tables that you want ot add to the report
+     */
+    public GATKReport(GATKReportTable... tables) {
+        for( GATKReportTable table: tables)
+            addTable(table);
     }
 
     /**
@@ -200,10 +209,6 @@ public class GATKReport {
 
     public GATKReportVersion getVersion() {
         return version;
-    }
-
-    public void setVersion(GATKReportVersion version) {
-        this.version = version;
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -29,8 +29,8 @@ package org.broadinstitute.sting.gatk.report;
  */
 public class GATKReportColumnFormat {
     public static enum Alignment { LEFT, RIGHT }
-    public int width;
-    public Alignment alignment;
+    private final int width;
+    private final Alignment alignment;
 
     public GATKReportColumnFormat(int width, Alignment alignment) {
         this.width = width;

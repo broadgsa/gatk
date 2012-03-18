@@ -80,11 +80,15 @@ public class GATKReportUnitTest extends BaseTest {
 
     @Test
     public void testSimpleGATKReport() {
-        GATKReport report = GATKReport.newSimpleReport("TableName", "a", "b", "Roger", "is", "Awesome");
-        report.addRow("a", 'F', 12, 23.45, true);
-        report.addRow("ans", '3', 24.5, 456L, 2345);
-        report.addRow("hi", null, null, "", 2.3);
+        // Create a new simple GATK report named "TableName" with columns: Roger, is, and Awesome
+        GATKReport report = GATKReport.newSimpleReport("TableName", "Roger", "is", "Awesome");
 
+        // Add data to simple GATK report
+        report.addRow( 12, 23.45, true);
+        report.addRow("ans", '3', 24.5);
+        report.addRow("hi", "", 2.3);
+
+        // Print the report to console
         //report.print(System.out);
 
         try {
