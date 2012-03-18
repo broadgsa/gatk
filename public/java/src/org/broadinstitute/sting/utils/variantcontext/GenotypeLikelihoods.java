@@ -288,11 +288,13 @@ public class GenotypeLikelihoods {
      * @return the allele index pair
      */
     public static GenotypeLikelihoodsAllelePair getAllelePairUsingDeprecatedOrdering(final int PLindex) {
-        // make sure that we've cached enough data
-        if ( PLindex >= PLIndexToAlleleIndex.length )
-            calculatePLcache(PLindex);
+        final int convertedIndex = PLindexConversion[PLindex];
 
-        return PLIndexToAlleleIndex[PLindexConversion[PLindex]];
+        // make sure that we've cached enough data
+        if ( convertedIndex >= PLIndexToAlleleIndex.length )
+            calculatePLcache(convertedIndex);
+
+        return PLIndexToAlleleIndex[convertedIndex];
     }
 
     /**
