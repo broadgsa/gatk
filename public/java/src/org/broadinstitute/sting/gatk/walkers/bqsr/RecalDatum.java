@@ -87,6 +87,10 @@ public class RecalDatum extends RecalDatumOptimized {
     public final void calcCombinedEmpiricalQuality(final int smoothing, final int maxQual) {
         this.empiricalQuality = empiricalQualDouble(smoothing, maxQual);    // cache the value so we don't call log over and over again
     }
+    
+    public final void calcEstimatedReportedQuality() {
+        this.estimatedQReported = -10 * Math.log10(calcExpectedErrors() / (double) numObservations);
+    }
 
     //---------------------------------------------------------------------------------------------------------------
     //

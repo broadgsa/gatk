@@ -2,10 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.BitSetUtils;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * This class provides all the functionality for the BitSet representation of the keys to the hash table of BQSR
@@ -30,6 +27,7 @@ import java.util.List;
 public class BQSRKeyManager {
     private List<RequiredCovariateInfo> requiredCovariates;
     private List<OptionalCovariateInfo> optionalCovariates;
+    private Map<String, Short> covariateNameToIDMap;
 
     private int nRequiredBits;                                                                              // Number of bits used to represent the required covariates
     private int nOptionalBits;                                                                              // Number of bits used to represent the standard covaraites
@@ -48,6 +46,7 @@ public class BQSRKeyManager {
     public BQSRKeyManager(List<Covariate> requiredCovariates, List<Covariate> optionalCovariates) {
         this.requiredCovariates = new ArrayList<RequiredCovariateInfo>(requiredCovariates.size());          // initialize the required covariates list
         this.optionalCovariates = new ArrayList<OptionalCovariateInfo>(optionalCovariates.size());          // initialize the optional covariates list (size may be 0, it's okay)
+        this.covariateNameToIDMap = new HashMap<String, Short>(optionalCovariates.size()*2);                // the map from covariate name to covariate id (when reading GATK Reports, we get the IDs as names of covariates)
         
         nRequiredBits = 0;
         for (Covariate required : requiredCovariates) {                                                     // create a list of required covariates with the extra information for key management
@@ -57,14 +56,16 @@ public class BQSRKeyManager {
             nRequiredBits += nBits;
         }
 
-        short i = 0;
+        short id = 0;
         nOptionalBits = 0;
         for (Covariate optional : optionalCovariates) {
             int nBits = optional.numberOfBits();                                                            // number of bits used by this covariate
             nOptionalBits = Math.max(nOptionalBits, nBits);                                                 // optional covariates are represented by the number of bits needed by biggest covariate
-            BitSet optionalID = BitSetUtils.bitSetFrom(i);                                                  // calculate the optional covariate ID for this covariate
+            BitSet optionalID = BitSetUtils.bitSetFrom(id);                                                 // calculate the optional covariate ID for this covariate
             this.optionalCovariates.add(new OptionalCovariateInfo(optionalID, optional));                   // optional covariates have standardized mask and number of bits, so no need to store in the RequiredCovariateInfo object
-            i++;
+            String covariateName = optional.getClass().getSimpleName().split("Covariate")[0];               // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
+            this.covariateNameToIDMap.put(covariateName, id);
+            id++;
         }
 
         nOptionalIDBits = BitSetUtils.numberOfBitsToRepresent(optionalCovariates.size());                   // number of bits used to represent the covariate ID
@@ -92,7 +93,7 @@ public class BQSRKeyManager {
      * @return one key in bitset representation per covariate
      */
     public List<BitSet> bitSetsFromAllKeys(BitSet[] allKeys, EventType eventType) {
-        List<BitSet> allBitSets = new LinkedList<BitSet>();                                                 // Generate one key per optional covariate
+        List<BitSet> allBitSets = new LinkedList<BitSet>();                                                      // Generate one key per optional covariate
 
         BitSet eventBitSet = BitSetUtils.bitSetFrom(eventType.index);                                       // create a bitset with the event type
         int eventTypeBitIndex = nRequiredBits + nOptionalBits + nOptionalIDBits;                            // Location in the bit set to add the event type bits
@@ -147,7 +148,7 @@ public class BQSRKeyManager {
         if (optionalCovariates.size() > 0) {
             int optionalCovariate = requiredCovariates.size();                                              // the optional covariate index in the key array
             int covariateIDIndex = optionalCovariate + 1;                                                   // the optional covariate ID index is right after the optional covariate's
-            int covariateID = (Short) key[covariateIDIndex];                                                // get the optional covariate id                                                
+            int covariateID = parseCovariateID(key[covariateIDIndex]);                                      // when reading the GATK Report the ID may come in a String instead of an index
             OptionalCovariateInfo infoOptional = optionalCovariates.get(covariateID);                       // so we can get the optional covariate information
             
             BitSet covariateBitSet = infoOptional.covariate.bitSetFromKey(key[optionalCovariate]);          // convert the optional covariate key into a bitset using the covariate's interface            
@@ -162,7 +163,17 @@ public class BQSRKeyManager {
 
         return bitSetKey;
     }
-             
+
+    /**
+     * Covariate id can be either the covariate name (String) or the actual id (short). This method
+     * finds it's type and converts accordingly to the short notation.
+     *
+     * @param id the string or short representation of the optional covariate id
+     * @return the short representation of the optional covariate id.
+     */
+    private short parseCovariateID(Object id) {
+        return (id instanceof String) ? covariateNameToIDMap.get(id.toString()) : (Short) id;
+    }
 
     /**
      * Generates a key set of objects from a combined bitset key.
@@ -185,11 +196,25 @@ public class BQSRKeyManager {
             short id = BitSetUtils.shortFrom(idbs);                                                         // covert the id bitset into a short
             Covariate covariate = optionalCovariates.get(id).covariate;                                     // get the corresponding optional covariate object  
             objectKeys.add(covariate.keyFromBitSet(covBitSet));                                             // add the optional covariate to the key set
-            objectKeys.add(id);                                                                             // add the covariate id
+            objectKeys.add(covariate.getClass().getSimpleName().split("Covariate")[0]);                     // add the covariate name using the id
         }
         objectKeys.add(eventFromBitSet(key));                                                               // add the event type object to the key set
 
         return objectKeys;
+    }
+
+    public List<Covariate> getRequiredCovariates() {
+        ArrayList<Covariate> list = new ArrayList<Covariate>(requiredCovariates.size());
+        for (RequiredCovariateInfo info : requiredCovariates) 
+            list.add(info.covariate);
+        return list;
+    }
+
+    public List<Covariate> getOptionalCovariates() {
+        ArrayList<Covariate> list = new ArrayList<Covariate>(optionalCovariates.size());
+        for (OptionalCovariateInfo info : optionalCovariates)
+            list.add(info.covariate);
+        return list;
     }
 
     /**
@@ -252,7 +277,6 @@ public class BQSRKeyManager {
         bitSet.and(mask);
         return chopNBitsFrom(bitSet, leadingBits);
     }
-    
     
     /**
      * Aggregate information for each Covariate

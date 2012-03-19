@@ -188,7 +188,7 @@ public class CycleCovariate implements StandardCovariate {
 
     @Override
     public BitSet bitSetFromKey(Object key) {
-        return BitSetUtils.bitSetFrom((Short) key);
+        return (key instanceof String) ? BitSetUtils.bitSetFrom(Short.parseShort((String) key)) : BitSetUtils.bitSetFrom((Short) key);
     }
 
     @Override

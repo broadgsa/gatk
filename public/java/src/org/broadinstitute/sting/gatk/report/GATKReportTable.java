@@ -431,8 +431,7 @@ public class GATKReportTable {
                 } catch (Exception e) {
                 }
             }
-            if (column.getDataType().equals(GATKReportDataType.Byte) &&
-                    ((String) value).length() == 1) {
+            if (column.getDataType().equals(GATKReportDataType.Byte) && ((String) value).length() == 1) {
                 newValue = ((String) value).charAt(0);
 
             }

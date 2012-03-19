@@ -26,10 +26,15 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import net.sf.samtools.SAMUtils;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.walkers.recalibration.EmpiricalQual;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -37,10 +42,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -53,18 +55,29 @@ import java.util.Map;
  */
 
 public class RecalDataManager {
-    public final NestedHashMap nestedHashMap;                                               // The full dataset
-    private final HashMap<EventType, NestedHashMap> dataCollapsedReadGroup;                 // Table where everything except read group has been collapsed
-    private final HashMap<EventType, NestedHashMap> dataCollapsedQualityScore;              // Table where everything except read group and quality score has been collapsed
-    private final HashMap<EventType, ArrayList<NestedHashMap>> dataCollapsedByCovariate;    // Tables where everything except read group, quality score, and given covariate has been collapsed
+    public final static String ARGUMENT_REPORT_TABLE_TITLE = "Arguments";
+    public final static String QUANTIZED_REPORT_TABLE_TITLE = "Quantized";
+    public final static String READGROUP_REPORT_TABLE_TITLE = "RecalTable0";
+    public final static String QUALITY_SCORE_REPORT_TABLE_TITLE = "RecalTable1";
+    public final static String ALL_COVARIATES_REPORT_TABLE_TITLE = "RecalTable2";
 
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";                          // The tag that holds the original quality scores
+    public final static String ARGUMENT_VALUE_COLUMN_NAME = "Value";
+    public final static String QUANTIZED_VALUE_COLUMN_NAME = "QuantizedScore";
+    public final static String READGROUP_COLUMN_NAME = "ReadGroup";
+    public final static String EVENT_TYPE_COLUMN_NAME = "EventType";
+    public final static String EMPIRICAL_QUALITY_COLUMN_NAME = "EmpiricalQuality";
+    public final static String ESTIMATED_Q_REPORTED_COLUMN_NAME = "EstimatedQReported";
+    public final static String QUALITY_SCORE_COLUMN_NAME = "QualityScore";
+    public final static String COVARIATE_VALUE_SCORE_COLUMN_NAME = "CovariateValue";
+    public final static String COVARIATE_NAME_COLUMN_NAME = "CovariateName";
+
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                       // The tag that holds the color space quality scores for SOLID bams
     public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
     public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
 
-    private static final String COVARS_ATTRIBUTE = "COVARS";                                // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+
+
 
     public enum SOLID_RECAL_MODE {
         /**
@@ -82,7 +95,20 @@ public class RecalDataManager {
         /**
          * Look at the color quality scores and probabilistically decide to change the reference inserted base to be the base which is implied by the original color space instead of the reference.
          */
-        REMOVE_REF_BIAS
+        REMOVE_REF_BIAS;
+        
+        public static SOLID_RECAL_MODE recalModeFromString(String recalMode) {
+            if (recalMode.equals("DO_NOTHING"))
+                return SOLID_RECAL_MODE.DO_NOTHING;
+            if (recalMode.equals("SET_Q_ZERO"))
+                return SOLID_RECAL_MODE.SET_Q_ZERO;
+            if (recalMode.equals("SET_Q_ZERO_BASE_N"))
+                return SOLID_RECAL_MODE.SET_Q_ZERO_BASE_N;
+            if (recalMode.equals("REMOVE_REF_BIAS"))
+                return SOLID_RECAL_MODE.REMOVE_REF_BIAS;
+
+            throw new UserException.BadArgumentValue(recalMode, "is not a valid SOLID_RECAL_MODE value");
+        }
     }
 
     public enum SOLID_NOCALL_STRATEGY {
@@ -97,77 +123,124 @@ public class RecalDataManager {
         /**
          * Mark these reads as failing vendor quality checks so they can be filtered out by downstream analyses.
          */
-        PURGE_READ
-    }
+        PURGE_READ;
 
-    public RecalDataManager() {
-        nestedHashMap = new NestedHashMap();
-        dataCollapsedReadGroup = null;
-        dataCollapsedQualityScore = null;
-        dataCollapsedByCovariate = null;
-    }
+        public static SOLID_NOCALL_STRATEGY nocallStrategyFromString(String nocallStrategy) {
+            if (nocallStrategy.equals("THROW_EXCEPTION"))
+                return SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
+            if (nocallStrategy.equals("LEAVE_READ_UNRECALIBRATED"))
+                return SOLID_NOCALL_STRATEGY.LEAVE_READ_UNRECALIBRATED;
+            if (nocallStrategy.equals("PURGE_READ"))
+                return SOLID_NOCALL_STRATEGY.PURGE_READ;
 
-    public RecalDataManager(final boolean createCollapsedTables, final int numCovariates) {
-        if (createCollapsedTables) { // Initialize all the collapsed tables, only used by on-the-fly recalibration
-            nestedHashMap = null;
-            dataCollapsedReadGroup = new HashMap<EventType, NestedHashMap>();
-            dataCollapsedQualityScore = new HashMap<EventType, NestedHashMap>();
-            dataCollapsedByCovariate = new HashMap<EventType, ArrayList<NestedHashMap>>();
-            for (final EventType errorModel : EventType.values()) {
-                dataCollapsedReadGroup.put(errorModel, new NestedHashMap());
-                dataCollapsedQualityScore.put(errorModel, new NestedHashMap());
-                dataCollapsedByCovariate.put(errorModel, new ArrayList<NestedHashMap>());
-                for (int iii = 0; iii < numCovariates - 2; iii++) { // readGroup and QualityScore aren't counted here, their tables are separate
-                    dataCollapsedByCovariate.get(errorModel).add(new NestedHashMap());
-                }
-            }
-        }
-        else {
-            nestedHashMap = new NestedHashMap();
-            dataCollapsedReadGroup = null;
-            dataCollapsedQualityScore = null;
-            dataCollapsedByCovariate = null;
+            throw new UserException.BadArgumentValue(nocallStrategy, "is not a valid SOLID_NOCALL_STRATEGY value");
         }
     }
 
-    public static ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
-        return (ReadCovariates) read.getTemporaryAttribute(COVARS_ATTRIBUTE);
-    }
+    public static void listAvailableCovariates(Logger logger) {
+        // Get a list of all available covariates
+        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
 
-
-    private void checkForSingletons(final Map data) {
-        // todo -- this looks like it's better just as a data.valueSet() call?
-        for (Object comp : data.keySet()) {
-            final Object val = data.get(comp);
-            if (val instanceof RecalDatum) { // We are at the end of the nested hash maps
-                if (data.keySet().size() == 1) {
-                    data.clear(); // don't TableRecalibrate a non-required covariate if it only has one element because that correction has already been done ...
-                    // in a previous step of the sequential calculation model
-                }
-            }
-            else { // Another layer in the nested hash map
-                checkForSingletons((Map) val);
-            }
-        }
+        // Print and exit if that's what was requested
+        logger.info("Available covariates:");
+        for (Class<?> covClass : covariateClasses)
+            logger.info(covClass.getSimpleName());
+        logger.info("");
     }
 
     /**
-     * Get the appropriate collapsed table out of the set of all the tables held by this Object
-     *
-     * @param covariate Which covariate indexes the desired collapsed HashMap
-     * @return The desired collapsed HashMap
+     * Generates two lists : required covariates and optional covariates based on the user's requests.
+     * 
+     * Performs the following tasks in order:
+     *  1. Adds all requierd covariates in order
+     *  2. Check if the user asked to use the standard covariates and adds them all if that's the case
+     *  3. Adds all covariates requested by the user that were not already added by the two previous steps 
+     * 
+     * @param argumentCollection the argument collection object for the recalibration walker
+     * @return a pair of ordered lists : required covariates (first) and optional covariates (second)
      */
-    public final NestedHashMap getCollapsedTable(final int covariate, final EventType errorModel) {
-        if (covariate == 0) {
-            return dataCollapsedReadGroup.get(errorModel); // Table where everything except read group has been collapsed
+    public static Pair<ArrayList<Covariate>, ArrayList<Covariate>> initializeCovariates(RecalibrationArgumentCollection argumentCollection) {
+        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
+        final List<Class<? extends RequiredCovariate>> requiredClasses = new PluginManager<RequiredCovariate>(RequiredCovariate.class).getPlugins();
+        final List<Class<? extends StandardCovariate>> standardClasses = new PluginManager<StandardCovariate>(StandardCovariate.class).getPlugins();
+
+        ArrayList<Covariate> requiredCovariates = addRequiredCovariatesToList(requiredClasses);                         // add the required covariates
+        ArrayList<Covariate> optionalCovariates = new ArrayList<Covariate>();
+        if (argumentCollection.USE_STANDARD_COVARIATES)
+            optionalCovariates = addStandardCovariatesToList(standardClasses);                                          // add the standard covariates if -standard was specified by the user
+
+        if (argumentCollection.COVARIATES != null) {                                                                    // parse the -cov arguments that were provided, skipping over the ones already specified
+            for (String requestedCovariateString : argumentCollection.COVARIATES) {
+                boolean foundClass = false;
+                for (Class<? extends Covariate> covClass : covariateClasses) {
+                    if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) {                          // -cov argument matches the class name for an implementing class
+                        foundClass = true;
+                        if (!requiredClasses.contains(covClass) &&
+                                (!argumentCollection.USE_STANDARD_COVARIATES || !standardClasses.contains(covClass))) {
+                            try {
+                                final Covariate covariate = covClass.newInstance();                                     // now that we've found a matching class, try to instantiate it
+                                optionalCovariates.add(covariate);
+                            } catch (Exception e) {
+                                throw new DynamicClassResolutionException(covClass, e);
+                            }
+                        }
+                    }
+                }
+
+                if (!foundClass) {
+                    throw new UserException.CommandLineException("The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates.");
+                }
+            }
         }
-        else if (covariate == 1) {
-            return dataCollapsedQualityScore.get(errorModel); // Table where everything except read group and quality score has been collapsed
-        }
-        else {
-            return dataCollapsedByCovariate.get(errorModel).get(covariate - 2); // Table where everything except read group, quality score, and given covariate has been collapsed
-        }
+        return new Pair<ArrayList<Covariate>, ArrayList<Covariate>>(requiredCovariates, optionalCovariates);
     }
+
+    /**
+     * Initializes the recalibration table -> key manager map
+     *
+     * @param requiredCovariates list of required covariates (in order)
+     * @param optionalCovariates list of optional covariates (in order)
+     * @return a map with each key manager and it's corresponding recalibration table properly initialized
+     */
+    public static LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> initializeTables(ArrayList<Covariate> requiredCovariates, ArrayList<Covariate> optionalCovariates) {
+        final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> tablesAndKeysMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
+        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size() + 1);         // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
+        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
+        for (Covariate covariate : requiredCovariates) {
+            requiredCovariatesToAdd.add(covariate);
+            final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(QualityUtils.MAX_QUAL_SCORE);    // initializing a new recal table for each required covariate (cumulatively)
+            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
+            tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
+        }
+        final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(Short.MAX_VALUE);                    // initializing a new recal table to hold all optional covariates
+        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
+        tablesAndKeysMap.put(keyManager, recalTable);                                                                   // adding the pair table+key to the map
+        return tablesAndKeysMap;
+    }
+
+    /**
+     * Initializes the table -> key manager map (unfortunate copy of the above code with minor modifications to accomodate the different return types (RecalDatum vs EmpiricalQual objects)
+     *
+     * @param requiredCovariates list of required covariates (in order)
+     * @param optionalCovariates list of optional covariates (in order)
+     * @return a map with each key manager and it's corresponding recalibration table properly initialized
+     */
+    public static LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>> initializeEmpiricalTables(ArrayList<Covariate> requiredCovariates, ArrayList<Covariate> optionalCovariates) {
+        final LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>> tablesAndKeysMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>>();
+        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size() + 1);         // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
+        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
+        for (Covariate covariate : requiredCovariates) {
+            requiredCovariatesToAdd.add(covariate);
+            final Map<BitSet, EmpiricalQual> recalTable = new HashMap<BitSet, EmpiricalQual>(QualityUtils.MAX_QUAL_SCORE);    // initializing a new recal table for each required covariate (cumulatively)
+            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
+            tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
+        }
+        final Map<BitSet, EmpiricalQual> recalTable = new HashMap<BitSet, EmpiricalQual>(Short.MAX_VALUE);                    // initializing a new recal table to hold all optional covariates
+        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
+        tablesAndKeysMap.put(keyManager, recalTable);                                                                   // adding the pair table+key to the map
+        return tablesAndKeysMap;
+    }
+
 
     /**
      * Section of code shared between the two recalibration walkers which uses the command line arguments to adjust attributes of the read such as quals or platform string
@@ -526,8 +599,9 @@ public class RecalDataManager {
      *
      * @param read                The read for which to compute covariate values.
      * @param requestedCovariates The list of requested covariates.
+     * @return a matrix with all the covariates calculated for every base in the read
      */
-    public static void computeCovariates(final GATKSAMRecord read, final List<Covariate> requestedCovariates) {
+    public static ReadCovariates computeCovariates(final GATKSAMRecord read, final List<Covariate> requestedCovariates) {
         final int numRequestedCovariates = requestedCovariates.size();
         final int readLength = read.getReadLength();
         final ReadCovariates readCovariates = new ReadCovariates(readLength, numRequestedCovariates);
@@ -536,7 +610,7 @@ public class RecalDataManager {
         for (Covariate covariate : requestedCovariates)
             readCovariates.addCovariate(covariate.getValues(read));
 
-        read.setTemporaryAttribute(COVARS_ATTRIBUTE, readCovariates);
+        return readCovariates;
     }
 
     /**
@@ -612,5 +686,43 @@ public class RecalDataManager {
             default:
                 return base;
         }
+    }
+
+
+    /**
+     * Adds the required covariates to a covariate list
+     *
+     * Note: this method really only checks if the classes object has the expected number of required covariates, then add them by hand.
+     *
+     * @param classes list of classes to add to the covariate list
+     * @return the covariate list
+     */
+    private static ArrayList<Covariate> addRequiredCovariatesToList(List<Class<? extends RequiredCovariate>> classes) {
+        ArrayList<Covariate> dest = new ArrayList<Covariate>(classes.size());
+        if (classes.size() != 2)
+            throw new ReviewedStingException("The number of required covariates has changed, this is a hard change in the code and needs to be inspected");
+
+        dest.add(new ReadGroupCovariate());                                                                             // enforce the order with RG first and QS next.
+        dest.add(new QualityScoreCovariate());
+        return dest;
+    }
+
+    /**
+     * Adds the standard covariates to a covariate list
+     *
+     * @param classes list of classes to add to the covariate list
+     * @return the covariate list
+     */
+    private static ArrayList<Covariate> addStandardCovariatesToList(List<Class<? extends StandardCovariate>> classes) {
+        ArrayList<Covariate> dest = new ArrayList<Covariate>(classes.size());
+        for (Class<?> covClass : classes) {
+            try {
+                final Covariate covariate = (Covariate) covClass.newInstance();
+                dest.add(covariate);
+            } catch (Exception e) {
+                throw new DynamicClassResolutionException(covClass, e);
+            }
+        }
+        return dest;
     }
 }

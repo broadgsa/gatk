@@ -25,248 +25,267 @@
 
 package org.broadinstitute.sting.utils.recalibration;
 
+import org.broadinstitute.sting.gatk.report.GATKReport;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
+import org.broadinstitute.sting.gatk.walkers.recalibration.EmpiricalQual;
 import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.regex.Pattern;
+import java.util.*;
 
 /**
  * Utility methods to facilitate on-the-fly base quality score recalibration.
  *
- * User: rpoplin
+ * User: carneiro and rpoplin
  * Date: 2/4/12
  */
 
 public class BaseRecalibration {
+    private List<Byte> qualQuantizationMap;                                                                             // histogram containing the map for qual quantization (calculated after recalibration is done)
+    private LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>> keysAndTablesMap;                                 // quick access reference to the read group table and its key manager
 
-    private ArrayList<HashMap<BitSet, RecalDatum>> collapsedHashes = new ArrayList<HashMap<BitSet, RecalDatum>> (); // All the collapsed data tables
+    private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
 
-    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                            // List of all covariates to be used in this calculation
-    private final ArrayList<Covariate> requiredCovariates = new ArrayList<Covariate>();                             // List of required covariates to be used in this calculation
-    private final ArrayList<Covariate> optionalCovariates = new ArrayList<Covariate>();                             // List of optional covariates to be used in this calculation
-    
-    public static final Pattern REQUIRED_COVARIATE_PATTERN = Pattern.compile("^# Required Covariates.*");
-    public static final Pattern OPTIONAL_COVARIATE_PATTERN = Pattern.compile("^# Optional Covariates.*");
-    public static final String EOF_MARKER = "EOF";
+    private static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
+    private static String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
 
-    private static final byte SMOOTHING_CONSTANT = 1;
+    /**
+     * Should ALWAYS use the constructor with the GATK Report file 
+     */
+    private BaseRecalibration() {}
 
-    ArrayList<BQSRKeyManager> keyManagers = new ArrayList<BQSRKeyManager>();
-
+    /**
+     * Constructor using a GATK Report file
+     * 
+     * @param RECAL_FILE a GATK Report file containing the recalibration information
+     */
     public BaseRecalibration(final File RECAL_FILE) {
-        // Get a list of all available covariates
-        final List<Class<? extends Covariate>> classes = new PluginManager<Covariate>(Covariate.class).getPlugins();
-        RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // todo -- initialize with the parameters from the csv file!
+        GATKReport report = new GATKReport(RECAL_FILE);
 
-        int lineNumber = 0;
+        GATKReportTable argumentTable = report.getTable(RecalDataManager.ARGUMENT_REPORT_TABLE_TITLE);
+        RecalibrationArgumentCollection RAC = initializeArgumentCollectionTable(argumentTable);
 
-        boolean foundRequiredCovariates = false;
-        boolean foundOptionalCovariates = false;
-        boolean initializedKeyManagers = false;
+        GATKReportTable quantizedTable = report.getTable(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE);
+        qualQuantizationMap = initializeQuantizationTable(quantizedTable);
 
-        // Read in the data from the csv file and populate the data map and covariates list
-        boolean sawEOF = false;
-        try {
-            for (String line : new XReadLines(RECAL_FILE)) {
-                lineNumber++;
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalDataManager.initializeCovariates(RAC);       // initialize the required and optional covariates
+        ArrayList<Covariate> requiredCovariates = covariates.getFirst();
+        ArrayList<Covariate> optionalCovariates = covariates.getSecond();
+        requestedCovariates.addAll(requiredCovariates);                                                                 // add all required covariates to the list of requested covariates
+        requestedCovariates.addAll(optionalCovariates);                                                                 // add all optional covariates to the list of requested covariates
 
-                sawEOF = EOF_MARKER.equals(line);
-                if (sawEOF)
-                    break;
-                
-                boolean requiredCovariatesLine = REQUIRED_COVARIATE_PATTERN.matcher(line).matches(); 
-                boolean optionalCovariatesLine = OPTIONAL_COVARIATE_PATTERN.matcher(line).matches();
-                
-                if (requiredCovariatesLine && foundRequiredCovariates)
-                    throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Duplicate required covariates line");
-
-                if (optionalCovariatesLine && foundOptionalCovariates)
-                    throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Duplicate optional covariates line");
-                
-                if (optionalCovariatesLine && !foundRequiredCovariates)
-                    throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Optional covariates reported before Required covariates");
-                
-                if (requiredCovariatesLine || optionalCovariatesLine) {
-                    String [] covariateNames = line.split(": ")[1].split(",");                                          // take the second half of the string (past the ":") and split it by "," to get the list of required covariates
-                    
-                    List<Covariate> covariateList = requiredCovariatesLine ? requiredCovariates : optionalCovariates;   // set the appropriate covariate list to update
-                                
-                    for (String covariateName : covariateNames) {
-                        boolean foundClass = false;
-                        for (Class<?> covClass : classes) {
-                            if ((covariateName + "Covariate").equalsIgnoreCase(covClass.getSimpleName())) {
-                                foundClass = true;
-                                try {
-                                    Covariate covariate = (Covariate) covClass.newInstance();
-                                    covariate.initialize(RAC);
-                                    requestedCovariates.add(covariate);
-                                    covariateList.add(covariate);
-                                } catch (Exception e) {
-                                    throw new DynamicClassResolutionException(covClass, e);
-                                }
-                            }
-                        }
-                        if (!foundClass) 
-                            throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration file. The requested covariate type (" + (covariateName + "Covariate") + ") isn't a valid covariate option.");
-                    }
-                    foundRequiredCovariates = foundRequiredCovariates || requiredCovariatesLine;
-                    foundOptionalCovariates = foundOptionalCovariates || optionalCovariatesLine;
-                }                
-
-                else if (!line.startsWith("#")) {                                                                       // if this is not a comment line that we don't care about, it is DATA!
-                    if (!foundRequiredCovariates || !foundOptionalCovariates)                                          // At this point all the covariates should have been found and initialized
-                        throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Covariate names can't be found in file: " + RECAL_FILE);
-
-                    if (!initializedKeyManagers) {
-                        ArrayList<Covariate> emptyList = new ArrayList<Covariate>(0);
-                        ArrayList<Covariate> requiredCovariatesUpToThis = new ArrayList<Covariate>();                           // Initialize one key manager for each table of required covariate
-                        for (Covariate covariate : requiredCovariates) {                                                // Every required covariate table includes all preceding required covariates (e.g. RG ; RG,Q )
-                            requiredCovariatesUpToThis.add(covariate);
-                            keyManagers.add(new BQSRKeyManager(requiredCovariatesUpToThis, emptyList));
-                        }
-                        keyManagers.add(new BQSRKeyManager(requiredCovariates, optionalCovariates));                   // One master key manager for the collapsed tables
-                        
-                        initializedKeyManagers = true;
-                    }
-                    addCSVData(RECAL_FILE, line);                                                                       // Parse the line and add the data to the HashMap
-                }
-            }
-
-        } catch (FileNotFoundException e) {
-            throw new UserException.CouldNotReadInputFile(RECAL_FILE, "Can not find input file", e);
-        } catch (NumberFormatException e) {
-            throw new UserException.MalformedFile(RECAL_FILE, "Error parsing recalibration data at line " + lineNumber + ". Perhaps your table was generated by an older version of CovariateCounterWalker.");
-        }
-
-        if (!sawEOF) {
-            final String errorMessage = "No EOF marker was present in the recal covariates table; this could mean that the file is corrupted or was generated with an old version of the CountCovariates tool.";
-            throw new UserException.MalformedFile(RECAL_FILE, errorMessage);
-        }
-
-        generateEmpiricalQualities(SMOOTHING_CONSTANT);
-    }
-
-
-    /**
-     * For each covariate read in a value and parse it. Associate those values with the data itself (num observation and num mismatches)
-     *
-     * @param file The CSV file we read the line from (for exception throwing purposes)
-     * @param line A line of CSV data read from the recalibration table data file
-     */
-    private void addCSVData(final File file, final String line) {
-        final String[] vals = line.split(",");
-        boolean hasOptionalCovariates = optionalCovariates.size() > 0;                                  // Do we have optional covariates in this key?
-        int addOptionalCovariates = hasOptionalCovariates ? 2 : 0;                                      // If we have optional covariates at all, add two to the size of the array (to acommodate the covariate and the id)
-        final Object[] key = new Object[requiredCovariates.size() + addOptionalCovariates + 1];         // Reserve enough space for the required covariates, optional covariate, id and eventType
-
-        int indexCovariateValue = key.length - 3;                                                       // In the order of keys, the optional covariate comes right after the required covariates
-        int indexCovariateID = key.length - 2;                                                          // followed by the covariate ID
-        int indexEventType = key.length - 1;                                                            // and the event type
-
-        addKeysToArray(key, vals, requiredCovariates, 0);                                               // Add the required covariates keys
-
-        if (hasOptionalCovariates) {
-            key[indexCovariateID] = Short.parseShort(vals[indexCovariateID]);                           // Add the optional covariate ID
-            Covariate covariate = optionalCovariates.get((Short) key[indexCovariateID]);                // Get the covariate object for this ID
-            key[indexCovariateValue] = covariate.getValue(vals[indexCovariateValue]);                   // Add the optional covariate value, given the ID
-        }
-        key[indexEventType] = EventType.eventFrom(vals[indexEventType]);                                // Add the event type 
-
-        int datumIndex = key.length;                                                                    // The recal datum starts at the end of the key (after the event type)
-        long count  = Long.parseLong(vals[datumIndex]);                                                 // Number of observations                                                 
-        long errors = Long.parseLong(vals[datumIndex + 1]);                                             // Number of errors observed
-        double reportedQual = Double.parseDouble(vals[1]);                                              // The reported Q score --> todo -- I don't like having the Q score hard coded in vals[1]. Generalize it!
-        final RecalDatum datum = new RecalDatum(count, errors, reportedQual, 0.0);                      // Create a new datum using the number of observations, number of mismatches, and reported quality score
-
-        addToAllTables(key, datum);                                                                     // Add that datum to all the collapsed tables which will be used in the sequential calculation
-    }
-    
-    /**
-     * Add the given mapping to all of the collapsed hash tables
-     *
-     * @param key       The list of comparables that is the key for this mapping
-     * @param fullDatum The RecalDatum which is the data for this mapping
-     */
-    private void addToAllTables(final Object[] key, final RecalDatum fullDatum) {    
-        int nHashes = requiredCovariates.size();                                                        // We will always need one hash per required covariate
-        if (optionalCovariates.size() > 0)                                                              // If we do have optional covariates
-            nHashes +=  1;                                                                              // we will need one extra hash table with the optional covariate encoded in the key set on top of the required covariates
+        for (Covariate cov : requestedCovariates) 
+            cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
         
-        
-        for (int hashIndex = 0; hashIndex < nHashes; hashIndex++) {
-            HashMap<BitSet, RecalDatum> table;                                                          // object to hold the hash table we are going to manipulate
-            if (hashIndex >= collapsedHashes.size()) {                                                  // if we haven't yet created the collapsed hash table for this index, create it now!
-                table = new HashMap<BitSet, RecalDatum>();
-                collapsedHashes.add(table);                                                             // Because this is the only place where we add tables to the ArrayList, they will always be in the order we want.
-            }
-            else
-                table = collapsedHashes.get(hashIndex);                                                 // if the table has been previously created, just assign it to the "table" object for manipulation
-
-            int copyTo = hashIndex + 1;                                                                 // this will copy the covariates up to the index of the one we are including now (1 for RG, 2 for QS,...)
-            if (copyTo > requiredCovariates.size())                                                     // only in the case where we have optional covariates we need to increase the size of the array
-                copyTo = requiredCovariates.size() + 2;                                                 // if we have optional covarites, add the optional covariate and it's id to the size of the key
-            Object[] tableKey = new Object[copyTo + 1];                                                 // create a new array that will hold as many keys as hashIndex (1 for RG hash, 2 for QualityScore hash, 3 for covariate hash plus the event type
-            System.arraycopy(key, 0, tableKey, 0, copyTo);                                              // copy the keys for the corresponding covariates into the tableKey.
-            tableKey[tableKey.length-1] = key[key.length - 1];                                          // add the event type. The event type is always the last key, on both key sets.
+        keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>>();
+        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size());                     // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
+        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                              // initialize an empty array of optional covariates to create the first few tables
+        for (Covariate covariate : requiredCovariates) {
+            requiredCovariatesToAdd.add(covariate);
+            final Map<BitSet, EmpiricalQual> table;                                                                     // initializing a new recal table for each required covariate (cumulatively)
+            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
             
-            BitSet hashKey = keyManagers.get(hashIndex).bitSetFromKey(tableKey);                        // Add bitset key with fullDatum to the appropriate hash
-            RecalDatum datum = table.get(hashKey);
-            if (datum == null)
-                datum = fullDatum;
-            else if (hashIndex == 0)                                                                    // Special case for the ReadGroup covariate
-                datum.combine(fullDatum);
+            int nRequiredCovariates = requiredCovariatesToAdd.size();                                                   // the number of required covariates defines which table we are looking at (RG, QUAL or ALL_COVARIATES)
+            if (nRequiredCovariates == 1) {                                                                             // if there is only one required covariate, this is the read group table
+                final GATKReportTable reportTable = report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE);
+                table = parseReadGroupTable(keyManager, reportTable);
+            }
+            else if (nRequiredCovariates == 2 && optionalCovariatesToAdd.isEmpty()) {                                   // when we have both required covariates and no optional covariates we're at the QUAL table
+                final GATKReportTable reportTable = report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE);
+                table = parseQualityScoreTable(keyManager, reportTable);
+            }
             else
-                datum.increment(fullDatum);
-            table.put(hashKey, datum);
+                throw new ReviewedStingException(UNRECOGNIZED_REPORT_TABLE_EXCEPTION);
+
+            keysAndTablesMap.put(keyManager, table);                                                                    // adding the pair key+table to the map
         }
+
+
+        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
+        final GATKReportTable reportTable = report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE);
+        final Map<BitSet, EmpiricalQual> table = parseAllCovariatesTable(keyManager, reportTable);
+        keysAndTablesMap.put(keyManager, table);                                                                        // adding the pair table+key to the map
     }
 
 
     /**
-     * Loop over all the collapsed tables and turn the recalDatums found there into an empirical quality score
-     * that will be used in the sequential calculation in TableRecalibrationWalker
+     * Compiles the list of keys for the Covariates table and uses the shared parsing utility to produce the actual table
      *
-     * @param smoothing The smoothing parameter that goes into empirical quality score calculation
+     * @param keyManager             the key manager for this table
+     * @param reportTable            the GATKReport table containing data for this table
+     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key. 
      */
-    private void generateEmpiricalQualities(final int smoothing) {
-        for (final HashMap<BitSet, RecalDatum> table : collapsedHashes)
-            for (final RecalDatum datum : table.values())
-                datum.calcCombinedEmpiricalQuality(smoothing, QualityUtils.MAX_QUAL_SCORE);
+    private Map<BitSet, EmpiricalQual> parseAllCovariatesTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
+        ArrayList<String> columnNamesOrderedList = new ArrayList<String>(5);
+        columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.COVARIATE_VALUE_SCORE_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.COVARIATE_NAME_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
+        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
     }
 
+    /**
+     *
+     * Compiles the list of keys for the QualityScore table and uses the shared parsing utility to produce the actual table
+     * @param keyManager             the key manager for this table
+     * @param reportTable            the GATKReport table containing data for this table
+     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key. 
+     */
+    private Map<BitSet, EmpiricalQual> parseQualityScoreTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
+        ArrayList<String> columnNamesOrderedList = new ArrayList<String>(3);
+        columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
+        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
+    }
 
+    /**
+     * Compiles the list of keys for the ReadGroup table and uses the shared parsing utility to produce the actual table
+     *
+     * @param keyManager             the key manager for this table
+     * @param reportTable            the GATKReport table containing data for this table
+     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key. 
+     */
+    private Map<BitSet, EmpiricalQual> parseReadGroupTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
+        ArrayList<String> columnNamesOrderedList = new ArrayList<String>(2);
+        columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
+        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
+    }
 
+    /**
+     * Shared parsing functionality for all tables.
+     * 
+     * @param keyManager             the key manager for this table
+     * @param reportTable            the GATKReport table containing data for this table
+     * @param columnNamesOrderedList a list of columns to read from the report table and build as key for this particular table
+     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key. 
+     */
+    private Map<BitSet, EmpiricalQual> genericRecalTableParsing(BQSRKeyManager keyManager, GATKReportTable reportTable, ArrayList<String> columnNamesOrderedList) {
+        Map<BitSet, EmpiricalQual> result = new HashMap<BitSet, EmpiricalQual>(reportTable.getNumRows()*2);
 
-    public void recalibrateRead(final GATKSAMRecord read) {           
-        //compute all covariate values for this read
-        RecalDataManager.computeCovariates(read, requestedCovariates);
-        final ReadCovariates readCovariates = RecalDataManager.covariateKeySetFrom(read);
+        for (Object primaryKey : reportTable.getPrimaryKeys()) {
+            int nKeys = columnNamesOrderedList.size();
+            Object [] keySet = new Object[nKeys];
+            for (int i = 0; i < nKeys; i++)
+                keySet[i] = reportTable.get(primaryKey, columnNamesOrderedList.get(i));                                 // all these objects are okay in String format, the key manager will handle them correctly (except for the event type (see below)
+            keySet[keySet.length-1] = EventType.eventFrom((String) keySet[keySet.length-1]);                            // the last key is always the event type. We convert the string ("M", "I" or "D") to an enum object (necessary for the key manager).
+            BitSet bitKey = keyManager.bitSetFromKey(keySet);
 
-        for (final EventType errorModel : EventType.values()) {
+            double estimatedQReported = (Double) reportTable.get(primaryKey, RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME);
+            double empiricalQuality = (Double) reportTable.get(primaryKey, RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME);
+            EmpiricalQual empiricalQual = new EmpiricalQual(estimatedQReported, empiricalQuality);
+
+            result.put(bitKey, empiricalQual);
+        }
+        return result;
+    }
+
+    /**
+     * Parses the quantization table from the GATK Report and turns it into a map of original => quantized quality scores
+     * 
+     * @param table the GATKReportTable containing the quantization mappings
+     * @return an ArrayList with the quantization mappings from 0 to MAX_QUAL_SCORE
+     */
+    private List<Byte> initializeQuantizationTable(GATKReportTable table) {
+        Byte[] result = new Byte[QualityUtils.MAX_QUAL_SCORE + 1];
+        for (Object primaryKey : table.getPrimaryKeys()) {
+            Object value = table.get(primaryKey, RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME);
+            byte originalQual = Byte.parseByte(primaryKey.toString());
+            byte quantizedQual = Byte.parseByte(value.toString());
+            result[originalQual] = quantizedQual;
+        }
+        return Arrays.asList(result);
+    }
+
+    /**
+     * Parses the arguments table from the GATK Report and creates a RAC object with the proper initialization values
+     *
+     * @param table the GATKReportTable containing the arguments and its corresponding values
+     * @return a RAC object properly initialized with all the objects in the table
+     */
+    private RecalibrationArgumentCollection initializeArgumentCollectionTable(GATKReportTable table) {
+        RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
+
+        for (Object primaryKey : table.getPrimaryKeys()) {
+            Object value = table.get(primaryKey, RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
+            if (value.equals("null"))
+                value = null;                                                                                           // generic translation of null values that were printed out as strings | todo -- add this capability to the GATKReport
+            
+            if (primaryKey.equals("covariate") && value != null) 
+                    RAC.COVARIATES = value.toString().split(",");            
+
+            else if (primaryKey.equals("standard_covs"))
+                RAC.USE_STANDARD_COVARIATES = Boolean.parseBoolean((String) value);
+            
+            else if (primaryKey.equals("solid_recal_mode"))
+                RAC.SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.recalModeFromString((String) value);
+
+            else if (primaryKey.equals("solid_nocall_strategy"))
+                RAC.SOLID_NOCALL_STRATEGY = RecalDataManager.SOLID_NOCALL_STRATEGY.nocallStrategyFromString((String) value);
+
+            else if (primaryKey.equals("mismatches_context_size"))
+                RAC.MISMATCHES_CONTEXT_SIZE = Integer.parseInt((String) value);
+
+            else if (primaryKey.equals("insertions_context_size"))
+                RAC.INSERTIONS_CONTEXT_SIZE = Integer.parseInt((String) value);
+
+            else if (primaryKey.equals("deletions_context_size"))
+                RAC.DELETIONS_CONTEXT_SIZE = Integer.parseInt((String) value);
+
+            else if (primaryKey.equals("mismatches_default_quality"))
+                RAC.MISMATCHES_DEFAULT_QUALITY = Byte.parseByte((String) value);
+
+            else if (primaryKey.equals("insertions_default_quality"))
+                RAC.INSERTIONS_DEFAULT_QUALITY = Byte.parseByte((String) value);
+
+            else if (primaryKey.equals("deletions_default_quality"))
+                RAC.DELETIONS_DEFAULT_QUALITY = Byte.parseByte((String) value);
+
+            else if (primaryKey.equals("low_quality_tail"))
+                RAC.LOW_QUAL_TAIL = Byte.parseByte((String) value);
+
+            else if (primaryKey.equals("default_platform"))
+                RAC.DEFAULT_PLATFORM = (String) value;
+
+            else if (primaryKey.equals("force_platform"))
+                RAC.FORCE_PLATFORM = (String) value;
+
+            else if (primaryKey.equals("quantizing_levels"))
+                RAC.QUANTIZING_LEVELS = Integer.parseInt((String) value);
+        }
+        
+        return RAC;
+    }
+       
+    /**
+     * Recalibrates the base qualities of a read
+     *
+     * It updates the base qualities of the read with the new recalibrated qualities (for all event types)
+     *
+     * @param read the read to recalibrate
+     */
+    public void recalibrateRead(final GATKSAMRecord read) {
+        final ReadCovariates readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);    // compute all covariates for the read
+        for (final EventType errorModel : EventType.values()) {                                                 // recalibrate all three quality strings
             final byte[] originalQuals = read.getBaseQualities(errorModel);
             final byte[] recalQuals = originalQuals.clone();
 
-            // For each base in the read
-            for (int offset = 0; offset < read.getReadLength(); offset++) {
-                final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);
-                final byte qualityScore = performSequentialQualityCalculation(keySet, errorModel);
+            for (int offset = 0; offset < read.getReadLength(); offset++) {                                     // recalibrate all bases in the read
+                byte qualityScore = originalQuals[offset];
+
+                if (qualityScore > QualityUtils.MIN_USABLE_Q_SCORE) {                                           // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
+                    final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);                       // get the keyset for this base using the error model
+                    qualityScore = performSequentialQualityCalculation(keySet, errorModel);                     // recalibrate the base
+                }
                 recalQuals[offset] = qualityScore;
             }
-
-            preserveQScores(originalQuals, recalQuals); // Overwrite the work done if original quality score is too low
             read.setBaseQualities(recalQuals, errorModel);
         }
     }
@@ -286,86 +305,66 @@ public class BaseRecalibration {
      *
      * Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... )
      * 
-     * todo -- I extremely dislike the way all this math is hardcoded... should rethink the data structures for this method in particular.
-     *
-     * @param key The list of Comparables that were calculated from the covariates
+     * @param key        The list of Comparables that were calculated from the covariates
      * @param errorModel the event type
      * @return A recalibrated quality score as a byte
      */
     private byte performSequentialQualityCalculation(BitSet[] key, EventType errorModel) {
         final byte qualFromRead = (byte) BitSetUtils.shortFrom(key[1]);
-               
-        final int readGroupKeyIndex = 0;
-        final int qualKeyIndex = 1;
-        final int covariatesKeyIndex = 2;
-                    
-        // The global quality shift (over the read group only)
-        List<BitSet> bitKeys = keyManagers.get(readGroupKeyIndex).bitSetsFromAllKeys(key, errorModel);
-        if (bitKeys.size() > 1)
-            throw new ReviewedStingException("There should only be one key for the RG collapsed table, something went wrong here");
-        
-        final RecalDatum globalRecalDatum = collapsedHashes.get(readGroupKeyIndex).get(bitKeys.get(0));
+
         double globalDeltaQ = 0.0;
-        if (globalRecalDatum != null) {
-            final double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
-            final double aggregrateQReported = globalRecalDatum.getEstimatedQReported();
-            globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
-        }
-
-        // The shift in quality between reported and empirical
-        bitKeys = keyManagers.get(qualKeyIndex).bitSetsFromAllKeys(key, errorModel);
-        if (bitKeys.size() > 1)
-            throw new ReviewedStingException("There should only be one key for the Qual collapsed table, something went wrong here");
-
-        final RecalDatum qReportedRecalDatum = collapsedHashes.get(qualKeyIndex).get(bitKeys.get(0));
         double deltaQReported = 0.0;
-        if (qReportedRecalDatum != null) {
-            final double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
-            deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
-        }
-
-        // The shift in quality due to each covariate by itself in turn
-        bitKeys = keyManagers.get(covariatesKeyIndex).bitSetsFromAllKeys(key, errorModel);
         double deltaQCovariates = 0.0;
-        double deltaQCovariateEmpirical;
-        for (BitSet k : bitKeys) {
-            final RecalDatum covariateRecalDatum = collapsedHashes.get(covariatesKeyIndex).get(k);
-            if (covariateRecalDatum != null) {
-                deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
-                deltaQCovariates += (deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported));
+
+        for (Map.Entry<BQSRKeyManager, Map<BitSet, EmpiricalQual>> mapEntry : keysAndTablesMap.entrySet()) {
+            BQSRKeyManager keyManager = mapEntry.getKey();
+            Map<BitSet, EmpiricalQual> table = mapEntry.getValue();
+
+            switch(keyManager.getRequiredCovariates().size()) {
+                case 1:                                                                                                 // this is the ReadGroup table                    
+                    List<BitSet> bitKeys = keyManager.bitSetsFromAllKeys(key, errorModel);                              // calculate the shift in quality due to the read group
+                    if (bitKeys.size() > 1)
+                        throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
+
+                    final EmpiricalQual empiricalQualRG = table.get(bitKeys.get(0));
+                    if (empiricalQualRG != null) {
+                        final double globalDeltaQEmpirical = empiricalQualRG.getEmpiricalQuality();
+                        final double aggregrateQReported = empiricalQualRG.getEstimatedQReported();
+                        globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
+                    }
+                    break;
+                case 2:
+                    if (keyManager.getOptionalCovariates().isEmpty()) {                                                 // this is the QualityScore table
+                        bitKeys = keyManager.bitSetsFromAllKeys(key, errorModel);                                       // calculate the shift in quality due to the reported quality score
+                        if (bitKeys.size() > 1)
+                            throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
+
+                        final EmpiricalQual empiricalQualQS = table.get(bitKeys.get(0));
+                        if (empiricalQualQS != null) {
+                            final double deltaQReportedEmpirical = empiricalQualQS.getEmpiricalQuality();
+                            deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
+                        }
+                    }
+                    else {                                                                                              // this is the table with all the covariates                        
+                        bitKeys = keyManager.bitSetsFromAllKeys(key, errorModel);                                       // calculate the shift in quality due to each covariate by itself in turn
+                        for (BitSet k : bitKeys) {
+                            final EmpiricalQual empiricalQualCO = table.get(k);
+                            if (empiricalQualCO != null) {
+                                double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();
+                                deltaQCovariates += (deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported));
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    throw new ReviewedStingException(UNRECOGNIZED_REPORT_TABLE_EXCEPTION);
             }
         }
 
-        final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
-        return QualityUtils.boundQual((int) Math.round(newQuality), QualityUtils.MAX_QUAL_SCORE);
+        double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;                      // calculate the recalibrated qual using the BQSR formula 
+        recalibratedQual = QualityUtils.boundQual((int) Math.round(recalibratedQual), QualityUtils.MAX_QUAL_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
+
+        return qualQuantizationMap.get((int) recalibratedQual);                                                         // return the quantized version of the recalibrated quality        
     }
 
-    /**
-     * Loop over the list of qualities and overwrite the newly recalibrated score to be the original score if it was less than some threshold
-     *
-     * @param originalQuals The list of original base quality scores
-     * @param recalQuals    A list of the new recalibrated quality scores
-     */
-    private void preserveQScores(final byte[] originalQuals, final byte[] recalQuals) {
-        for (int iii = 0; iii < recalQuals.length; iii++) {
-            if (originalQuals[iii] < QualityUtils.MIN_USABLE_Q_SCORE) { //BUGBUG: used to be Q5 now is Q6, probably doesn't matter
-                recalQuals[iii] = originalQuals[iii];
-            }
-        }
-    }
-
-    /**
-     * Shared functionality to add keys
-     * 
-     * @param array         the target array we are creating the keys in
-     * @param keys          the actual keys we're using as a source
-     * @param covariateList the covariate list to loop through
-     * @param keyIndex      the index in the keys and the arrays objects to run from
-     */
-    private void addKeysToArray(final Object[] array, final String[] keys, List<Covariate> covariateList, int keyIndex) {
-        for (Covariate covariate : covariateList) {
-            array[keyIndex] = covariate.getValue(keys[keyIndex]);        
-            keyIndex++;
-        }
-    }
 }

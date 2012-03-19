@@ -50,7 +50,7 @@ public class RecalibrationArgumentCollection {
      * Please note however that the statistics reported by the tool will not accurately reflected those sites skipped by the -XL argument.
      */
     @Input(fullName = "knownSites", shortName = "knownSites", doc = "A database of known polymorphic sites to skip over in the recalibration algorithm", required = false)
-    protected List<RodBinding<Feature>> knownSites = Collections.emptyList();
+    public List<RodBinding<Feature>> knownSites = Collections.emptyList();
 
     /**
      * After the header, data records occur one per line until the end of the file. The first several items on a line are the
@@ -60,25 +60,25 @@ public class RecalibrationArgumentCollection {
      */
     @Gather(BQSRGatherer.class)
     @Output
-    protected PrintStream RECAL_FILE;
+    public PrintStream RECAL_FILE;
 
     /**
      * List all implemented covariates.
      */
     @Argument(fullName = "list", shortName = "ls", doc = "List the available covariates and exit", required = false)
-    protected boolean LIST_ONLY = false;
+    public boolean LIST_ONLY = false;
 
     /**
      * Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you. See the list of covariates with -list.
      */
     @Argument(fullName = "covariate", shortName = "cov", doc = "Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required = false)
-    protected String[] COVARIATES = null;
+    public String[] COVARIATES = null;
 
     /*
      * Use the standard set of covariates in addition to the ones listed using the -cov argument
      */
     @Argument(fullName = "standard_covs", shortName = "standard", doc = "Use the standard set of covariates in addition to the ones listed using the -cov argument", required = false)
-    protected boolean USE_STANDARD_COVARIATES = true;
+    public boolean USE_STANDARD_COVARIATES = true;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -88,7 +88,7 @@ public class RecalibrationArgumentCollection {
      */
     @Hidden
     @Argument(fullName = "run_without_dbsnp_potentially_ruining_quality", shortName = "run_without_dbsnp_potentially_ruining_quality", required = false, doc = "If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
-    protected boolean RUN_WITHOUT_DBSNP = false;
+    public boolean RUN_WITHOUT_DBSNP = false;
 
     /**
      * CountCovariates and TableRecalibration accept a --solid_recal_mode <MODE> flag which governs how the recalibrator handles the
@@ -152,6 +152,9 @@ public class RecalibrationArgumentCollection {
     @Hidden
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
+    @Hidden
+    @Argument(fullName = "quantizing_levels", shortName = "ql", required = false, doc = "number of distinct quality scores in the quantized output")
+    public int QUANTIZING_LEVELS = 16;
 
 
 }
