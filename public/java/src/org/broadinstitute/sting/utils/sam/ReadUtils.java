@@ -698,6 +698,13 @@ public class ReadUtils {
         return bases;
     }
 
+    public static GATKSAMRecord createRandomRead(int length) {
+        byte[] quals = ReadUtils.createRandomReadQuals(length);
+        byte[] bbases = ReadUtils.createRandomReadBases(length, true);
+        return ArtificialSAMUtils.createArtificialRead(bbases, quals, bbases.length + "M");
+    }
+
+
     public static String prettyPrintSequenceRecords ( SAMSequenceDictionary sequenceDictionary ) {
         String[] sequenceRecordNames = new String[sequenceDictionary.size()];
         int sequenceRecordIndex = 0;
