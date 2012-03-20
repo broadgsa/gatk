@@ -154,18 +154,24 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                     throw new UserException.MalformedVCFHeader("The FORMAT field was provided but there is no genotype/sample data");
 
             } else {
-                if ( str.startsWith("##INFO=") ) {
-                    VCFInfoHeaderLine info = new VCFInfoHeaderLine(str.substring(7),version);
+                if ( str.startsWith(VCFConstants.INFO_HEADER_START) ) {
+                    final VCFInfoHeaderLine info = new VCFInfoHeaderLine(str.substring(7),version);
                     metaData.add(info);
-                    infoFields.put(info.getName(), info.getType());
-                } else if ( str.startsWith("##FILTER=") ) {
-                    VCFFilterHeaderLine filter = new VCFFilterHeaderLine(str.substring(9),version);
+                    infoFields.put(info.getID(), info.getType());
+                } else if ( str.startsWith(VCFConstants.FILTER_HEADER_START) ) {
+                    final VCFFilterHeaderLine filter = new VCFFilterHeaderLine(str.substring(9), version);
                     metaData.add(filter);
-                    filterFields.add(filter.getName());
-                } else if ( str.startsWith("##FORMAT=") ) {
-                    VCFFormatHeaderLine format = new VCFFormatHeaderLine(str.substring(9),version);
+                    filterFields.add(filter.getID());
+                } else if ( str.startsWith(VCFConstants.FORMAT_HEADER_START) ) {
+                    final VCFFormatHeaderLine format = new VCFFormatHeaderLine(str.substring(9), version);
                     metaData.add(format);
-                    formatFields.put(format.getName(), format.getType());
+                    formatFields.put(format.getID(), format.getType());
+                } else if ( str.startsWith(VCFConstants.CONTIG_HEADER_START) ) {
+                    final VCFSimpleHeaderLine contig = new VCFSimpleHeaderLine(str.substring(9), version, VCFSimpleHeaderLine.SupportedHeaderLineType.GENERIC, null);
+                    metaData.add(contig);
+                } else if ( str.startsWith(VCFConstants.ALT_HEADER_START) ) {
+                    final VCFSimpleHeaderLine alt = new VCFSimpleHeaderLine(str.substring(6), version, VCFSimpleHeaderLine.SupportedHeaderLineType.GENERIC, Arrays.asList("ID", "Description"));
+                    metaData.add(alt);
                 } else {
                     int equals = str.indexOf("=");
                     if ( equals != -1 )

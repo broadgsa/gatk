@@ -34,7 +34,7 @@ import java.util.Map;
 /**
  * a base class for compound header lines, which include info lines and format lines (so far)
  */
-public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCFNamedHeaderLine {
+public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCFIDHeaderLine {
     public enum SupportedHeaderLineType {
         INFO(true), FORMAT(false);
 
@@ -52,7 +52,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
     private VCFHeaderLineType type;
 
     // access methods
-    public String getName() { return name; }
+    public String getID() { return name; }
     public String getDescription() { return description; }
     public VCFHeaderLineType getType() { return type; }
     public VCFHeaderLineCount getCountType() { return countType; }

@@ -132,7 +132,7 @@ public class FeatureManager  {
     }
 
     /**
-     * Return the FeatureDescriptor with getName().equals(name)
+     * Return the FeatureDescriptor with getID().equals(name)
      *
      * @param name
      * @return A FeatureDescriptor or null if none is found

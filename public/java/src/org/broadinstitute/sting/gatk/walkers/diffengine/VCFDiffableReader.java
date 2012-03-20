@@ -68,8 +68,8 @@ public class VCFDiffableReader implements DiffableReader {
             VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
             for ( VCFHeaderLine headerLine : header.getMetaData() ) {
                 String key = headerLine.getKey();
-                if ( headerLine instanceof VCFNamedHeaderLine )
-                    key += "_" + ((VCFNamedHeaderLine) headerLine).getName();
+                if ( headerLine instanceof VCFIDHeaderLine)
+                    key += "_" + ((VCFIDHeaderLine) headerLine).getID();
                 if ( root.hasElement(key) )
                     logger.warn("Skipping duplicate header line: file=" + file + " line=" + headerLine.toString());
                 else

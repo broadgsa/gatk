@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import java.util.Arrays;
+
 /**
  * @author ebanks
  * A class representing a key=value entry for FILTER fields in the VCF header
@@ -23,6 +25,6 @@ public class VCFFilterHeaderLine extends VCFSimpleHeaderLine  {
      * @param version   the vcf header version
      */
     protected VCFFilterHeaderLine(String line, VCFHeaderVersion version) {
-        super(line, version, SupportedHeaderLineType.FILTER);
+        super(line, version, SupportedHeaderLineType.FILTER, Arrays.asList("ID", "Description"));
     }
 }

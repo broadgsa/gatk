@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 
 
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
 
 import java.util.*;
 
@@ -126,11 +125,11 @@ public class VCFHeader {
         for ( VCFHeaderLine line : mMetaData ) {
             if ( line instanceof VCFInfoHeaderLine )  {
                 VCFInfoHeaderLine infoLine = (VCFInfoHeaderLine)line;
-                mInfoMetaData.put(infoLine.getName(), infoLine);
+                mInfoMetaData.put(infoLine.getID(), infoLine);
             }
             else if ( line instanceof VCFFormatHeaderLine ) {
                 VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
-                mFormatMetaData.put(formatLine.getName(), formatLine);
+                mFormatMetaData.put(formatLine.getID(), formatLine);
             }
             else {
                 mOtherMetaData.put(line.getKey(), line);

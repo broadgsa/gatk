@@ -80,6 +80,13 @@ public final class VCFConstants {
     public static final String PHASED_SWITCH_PROB_v3 = "\\";
     public static final String PHASING_TOKENS = "/|\\";
 
+    // header lines
+    public static final String FILTER_HEADER_START = "##FILTER";
+    public static final String FORMAT_HEADER_START = "##FORMAT";
+    public static final String INFO_HEADER_START = "##INFO";
+    public static final String ALT_HEADER_START = "##ALT";
+    public static final String CONTIG_HEADER_START = "##contig";
+
     // old indel alleles
     public static final char DELETION_ALLELE_v3 = 'D';
     public static final char INSERTION_ALLELE_v3 = 'I';
