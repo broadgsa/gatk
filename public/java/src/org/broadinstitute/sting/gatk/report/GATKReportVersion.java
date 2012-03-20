@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -50,7 +50,7 @@ public enum GATKReportVersion {
     */
     V1_0("v1.0");
 
-    public final String versionString;
+    private final String versionString;
 
     private GATKReportVersion(String versionString) {
         this.versionString = versionString;

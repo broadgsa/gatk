@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
-/** an interface for named header lines **/
-public interface VCFNamedHeaderLine {
-    String getName();
+/** an interface for ID-based header lines **/
+public interface VCFIDHeaderLine {
+    String getID();
 }

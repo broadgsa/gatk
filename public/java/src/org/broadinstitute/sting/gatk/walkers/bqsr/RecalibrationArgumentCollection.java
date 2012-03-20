@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.walkers.recalibration.CountCovariatesGatherer;
 
 import java.io.PrintStream;
 import java.util.Collections;
@@ -59,7 +58,7 @@ public class RecalibrationArgumentCollection {
      * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
      * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
      */
-    @Gather(CountCovariatesGatherer.class)
+    @Gather(BQSRGatherer.class)
     @Output
     protected PrintStream RECAL_FILE;
 

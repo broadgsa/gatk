@@ -240,7 +240,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(expression.binding.getName())) ) {
                 if ( line instanceof VCFInfoHeaderLine ) {
                     VCFInfoHeaderLine infoline = (VCFInfoHeaderLine)line;
-                    if ( infoline.getName().equals(expression.fieldName) ) {
+                    if ( infoline.getID().equals(expression.fieldName) ) {
                         targetHeaderLine = infoline;
                         break;
                     }
