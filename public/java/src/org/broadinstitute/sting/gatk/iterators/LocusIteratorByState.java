@@ -199,7 +199,7 @@ public class LocusIteratorByState extends LocusIterator {
                     return stepForwardOnGenome();
                 } else {
                     if (curElement != null && curElement.getOperator() == CigarOperator.D)
-                        throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString());
+                        throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads ending in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
                         
                     // Reads that contain indels model the genomeOffset as the following base in the reference.  Because
                     // we fall into this else block only when indels end the read, increment genomeOffset  such that the
@@ -236,7 +236,7 @@ public class LocusIteratorByState extends LocusIterator {
                         // we see insertions only once, when we step right onto them; the position on the read is scrolled
                         // past the insertion right after that
                         if (eventDelayedFlag > 1)
-                            throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s", read.getReadName(), read.getCigarString()));
+                            throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s. This is an indication of a malformed file, but the SAM spec allows reads with adjacent insertion/deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar", read.getReadName(), read.getCigarString()));
                         insertedBases = Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + curElement.getLength());
                         eventLength = curElement.getLength();
                         eventStart = readOffset;
@@ -249,13 +249,13 @@ public class LocusIteratorByState extends LocusIterator {
                     break;
                 case D: // deletion w.r.t. the reference
                     if (readOffset < 0)             // we don't want reads starting with deletion, this is a malformed cigar string
-                        throw new UserException.MalformedBAM(read, "Read starting with deletion. Cigar: " + read.getCigarString());
+                        throw new UserException.MalformedBAM(read, "Read starting with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads starting in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
                     if (generateExtendedEvents) {
                         if (cigarElementCounter == 1) {
                             // generate an extended event only if we just stepped into the deletion (i.e. don't
                             // generate the event at every deleted position on the ref, that's what cigarElementCounter==1 is for!)
                             if (eventDelayedFlag > 1)
-                                throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s", read.getReadName(), read.getCigarString()));
+                                throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s. This is an indication of a malformed file, but the SAM spec allows reads with adjacent insertion/deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar", read.getReadName(), read.getCigarString()));
                             eventLength = curElement.getLength();
                             eventDelayedFlag = 2; // deletion on the ref causes an immediate return, so we have to delay by 1 only
                             eventStart = readOffset;
