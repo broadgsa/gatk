@@ -167,10 +167,10 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                     metaData.add(format);
                     formatFields.put(format.getID(), format.getType());
                 } else if ( str.startsWith(VCFConstants.CONTIG_HEADER_START) ) {
-                    final VCFSimpleHeaderLine contig = new VCFSimpleHeaderLine(str.substring(9), version, VCFSimpleHeaderLine.SupportedHeaderLineType.GENERIC, null);
+                    final VCFSimpleHeaderLine contig = new VCFSimpleHeaderLine(str.substring(9), version, VCFConstants.CONTIG_HEADER_START.substring(2), null);
                     metaData.add(contig);
                 } else if ( str.startsWith(VCFConstants.ALT_HEADER_START) ) {
-                    final VCFSimpleHeaderLine alt = new VCFSimpleHeaderLine(str.substring(6), version, VCFSimpleHeaderLine.SupportedHeaderLineType.GENERIC, Arrays.asList("ID", "Description"));
+                    final VCFSimpleHeaderLine alt = new VCFSimpleHeaderLine(str.substring(6), version, VCFConstants.ALT_HEADER_START.substring(2), Arrays.asList("ID", "Description"));
                     metaData.add(alt);
                 } else {
                     int equals = str.indexOf("=");

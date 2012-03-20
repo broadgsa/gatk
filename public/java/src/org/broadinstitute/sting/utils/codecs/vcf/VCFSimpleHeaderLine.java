@@ -11,41 +11,30 @@ import java.util.Map;
  */
 public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLine {
 
-    public enum SupportedHeaderLineType {
-        FILTER, GENERIC;
-    }
-
     private String name;
     private Map<String, String> genericFields = new LinkedHashMap<String, String>();
-
-    
-    // our type of line, i.e. filter, alt, etc
-    private final SupportedHeaderLineType lineType;
-
 
     /**
      * create a VCF filter header line
      *
+     * @param key            the key for this header line
      * @param name           the name for this header line
      * @param genericFields  other fields for this header line
-     * @param lineType       the header line type
      */
-    public VCFSimpleHeaderLine(String name, Map<String, String> genericFields, SupportedHeaderLineType lineType) {
-        super(lineType.toString(), "");
-        this.lineType = lineType;
+    public VCFSimpleHeaderLine(String key, String name, Map<String, String> genericFields) {
+        super(key, "");
         initialize(name, genericFields);
     }
 
     /**
      * create a VCF filter header line
      *
+     * @param key            the key for this header line
      * @param name           the name for this header line
      * @param description    description for this header line
-     * @param lineType       the header line type
      */
-    public VCFSimpleHeaderLine(String name, String description, SupportedHeaderLineType lineType) {
-        super(lineType.toString(), "");
-        this.lineType = lineType;
+    public VCFSimpleHeaderLine(String key, String name, String description) {
+        super(key, "");
         Map<String, String> map = new LinkedHashMap<String, String>(1);
         map.put("Description", description);
         initialize(name, map);
@@ -56,12 +45,11 @@ public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLin
      *
      * @param line      the header line
      * @param version   the vcf header version
-     * @param lineType  the header line type
+     * @param key            the key for this header line
      * @param expectedTagOrdering the tag ordering expected for this header line
      */
-    protected VCFSimpleHeaderLine(String line, VCFHeaderVersion version, SupportedHeaderLineType lineType, List<String> expectedTagOrdering) {
-        super(lineType.toString(), "");
-        this.lineType = lineType;
+    protected VCFSimpleHeaderLine(String line, VCFHeaderVersion version, String key, List<String> expectedTagOrdering) {
+        super(key, "");
         Map<String, String> mapping = VCFHeaderLineTranslator.parseLine(version, line, expectedTagOrdering);
         name = mapping.get("ID");
         initialize(name, mapping);
@@ -79,7 +67,7 @@ public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLin
         Map<String, Object> map = new LinkedHashMap<String, Object>();
         map.put("ID", name);
         map.putAll(genericFields);
-        return lineType.toString() + "=" + VCFHeaderLine.toStringEncoding(map);
+        return getKey() + "=" + VCFHeaderLine.toStringEncoding(map);
     }
 
     public boolean equals(Object o) {

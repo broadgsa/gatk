@@ -15,7 +15,7 @@ public class VCFFilterHeaderLine extends VCFSimpleHeaderLine  {
      * @param description  the description for this header line
      */
     public VCFFilterHeaderLine(String name, String description) {
-        super(name, description, SupportedHeaderLineType.FILTER);
+        super("FILTER", name, description);
     }
 
     /**
@@ -25,6 +25,6 @@ public class VCFFilterHeaderLine extends VCFSimpleHeaderLine  {
      * @param version   the vcf header version
      */
     protected VCFFilterHeaderLine(String line, VCFHeaderVersion version) {
-        super(line, version, SupportedHeaderLineType.FILTER, Arrays.asList("ID", "Description"));
+        super(line, version, "FILTER", Arrays.asList("ID", "Description"));
     }
 }
