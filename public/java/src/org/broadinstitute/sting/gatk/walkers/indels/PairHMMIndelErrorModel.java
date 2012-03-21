@@ -500,7 +500,7 @@ public class PairHMMIndelErrorModel {
                 if (stop > ref.getWindow().getStop())
                     stop = ref.getWindow().getStop();
 
-                // if there's an insertion in the read, the read stop position will be less than start + read legnth,
+                // if there's an insertion in the read, the read stop position will be less than start + read length,
                 // but we want to compute likelihoods in the whole region that a read might overlap
                 if (stop <= start + readLength) {
                     stop = start + readLength-1;

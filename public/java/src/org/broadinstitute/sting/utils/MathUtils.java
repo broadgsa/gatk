@@ -205,7 +205,7 @@ public class MathUtils {
     /**
      * Calculates the log10 cumulative sum of an array with log10 probabilities
      *
-     * @param log10p the array with log10 probabilites
+     * @param log10p the array with log10 probabilities
      * @param upTo   index in the array to calculate the cumsum up to
      * @return the log10 of the cumulative sum
      */
