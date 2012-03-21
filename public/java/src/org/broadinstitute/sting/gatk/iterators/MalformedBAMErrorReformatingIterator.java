@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -23,7 +22,7 @@ public class MalformedBAMErrorReformatingIterator implements CloseableIterator<S
     public boolean hasNext() {
         try {
             return this.it.hasNext();
-        } catch ( SAMFormatException e ) {
+        } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFormatExceptions) sometimes
             throw new UserException.MalformedBAM(source, e.getMessage());
         }
     }
@@ -31,7 +30,7 @@ public class MalformedBAMErrorReformatingIterator implements CloseableIterator<S
     public SAMRecord next() {
         try {
             return it.next();
-        } catch ( SAMFormatException e ) {
+        } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFormatExceptions) sometimes
             throw new UserException.MalformedBAM(source, e.getMessage());
         }
     }

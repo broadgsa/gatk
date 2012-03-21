@@ -31,8 +31,10 @@ public class LowMQ extends InfoFieldAnnotation {
 		double total = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() )
 		{
-            ReadBackedPileup pileup = sample.getValue().getBasePileup();
-            for (PileupElement p : pileup ) 
+            if ( !sample.getValue().hasBasePileup() )
+                continue;
+
+            for ( PileupElement p : sample.getValue().getBasePileup() )
 			{
                 if ( p.getMappingQual() == 0 )  { mq0 += 1; }
                 if ( p.getMappingQual() <= 10 ) { mq10 += 1; }
