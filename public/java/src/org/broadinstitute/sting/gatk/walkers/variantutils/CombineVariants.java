@@ -243,6 +243,19 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
             Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+
+            // TODO -- clean this up in a refactoring
+            // merge NO_VARIATION into another type of variant (based on the ordering in VariantContext.Type)
+            if ( VCsByType.containsKey(VariantContext.Type.NO_VARIATION) && VCsByType.size() > 1 ) {
+                final List<VariantContext> refs = VCsByType.remove(VariantContext.Type.NO_VARIATION);
+                for ( VariantContext.Type type : VariantContext.Type.values() ) {
+                    if ( VCsByType.containsKey(type) ) {
+                        VCsByType.get(type).addAll(refs);
+                        break;
+                    }
+                }
+            }
+
             // iterate over the types so that it's deterministic
             for (VariantContext.Type type : VariantContext.Type.values()) {
                 if (VCsByType.containsKey(type))
