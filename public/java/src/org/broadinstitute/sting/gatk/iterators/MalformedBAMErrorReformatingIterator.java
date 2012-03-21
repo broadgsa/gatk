@@ -6,6 +6,7 @@ import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -23,7 +24,7 @@ public class MalformedBAMErrorReformatingIterator implements CloseableIterator<S
     public boolean hasNext() {
         try {
             return this.it.hasNext();
-        } catch ( SAMFormatException e ) {
+        } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFileExceptions) sometimes
             throw new UserException.MalformedBAM(source, e.getMessage());
         }
     }
@@ -31,7 +32,7 @@ public class MalformedBAMErrorReformatingIterator implements CloseableIterator<S
     public SAMRecord next() {
         try {
             return it.next();
-        } catch ( SAMFormatException e ) {
+        } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFileExceptions) sometimes
             throw new UserException.MalformedBAM(source, e.getMessage());
         }
     }
