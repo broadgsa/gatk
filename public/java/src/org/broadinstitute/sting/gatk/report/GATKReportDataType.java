@@ -67,7 +67,7 @@ public enum GATKReportDataType {
      */
     String("%[Ss]");
 
-    public final String dataTypeString;
+    private final String dataTypeString;
 
     private GATKReportDataType(String dataTypeString) {
         this.dataTypeString = dataTypeString;
@@ -189,7 +189,7 @@ public enum GATKReportDataType {
      * @param obj The input string
      * @return an object that matches the data type.
      */
-    protected Object Parse(Object obj) {
+    Object Parse(Object obj) {
         if (obj instanceof String) {
             String str = obj.toString();
             switch (this) {

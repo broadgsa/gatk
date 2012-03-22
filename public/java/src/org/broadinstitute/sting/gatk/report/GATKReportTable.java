@@ -34,97 +34,14 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * A data structure that allows data to be collected over the course of a walker's computation, then have that data
- * written to a PrintStream such that it's human-readable, AWK-able, and R-friendly (given that you load it using the
- * GATKReport loader module).
- * <p/>
- * The goal of this object is to use the same data structure for both accumulating data during a walker's computation
- * and emitting that data to a file for easy analysis in R (or any other program/language that can take in a table of
- * results).  Thus, all of the infrastructure below is designed simply to make printing the following as easy as
- * possible:
- * <p/>
- * ##:GATKReport.v0.1 ErrorRatePerCycle : The error rate per sequenced position in the reads
- * cycle  errorrate.61PA8.7         qualavg.61PA8.7
- * 0      0.007451835696110506      25.474613284804366
- * 1      0.002362777171937477      29.844949954504095
- * 2      9.087604507451836E-4      32.87590975254731
- * 3      5.452562704471102E-4      34.498999090081895
- * 4      9.087604507451836E-4      35.14831665150137
- * 5      5.452562704471102E-4      36.07223435225619
- * 6      5.452562704471102E-4      36.1217248908297
- * 7      5.452562704471102E-4      36.1910480349345
- * 8      5.452562704471102E-4      36.00345705967977
- * <p/>
- * Here, we have a GATKReport table - a well-formatted, easy to read representation of some tabular data.  Every single
- * table has this same GATKReport.v0.1 header, which permits multiple files from different sources to be cat-ed
- * together, which makes it very easy to pull tables from different programs into R via a single file.
- * <p/>
- * ------------
- * Definitions:
- * <p/>
- * Table info:
- * The first line, structured as
- * ##:<report version> <table name> : <table description>
- * <p/>
- * Table header:
- * The second line, specifying a unique name for each column in the table.
- * <p/>
- * The first column mentioned in the table header is the "primary key" column - a column that provides the unique
- * identifier for each row in the table.  Once this column is created, any element in the table can be referenced by
- * the row-column coordinate, i.e. "primary key"-"column name" coordinate.
- * <p/>
- * When a column is added to a table, a default value must be specified (usually 0).  This is the initial value for
- * an element in a column.  This permits operations like increment() and decrement() to work properly on columns that
- * are effectively counters for a particular event.
- * <p/>
- * Finally, the display property for each column can be set during column creation.  This is useful when a given
- * column stores an intermediate result that will be used later on, perhaps to calculate the value of another column.
- * In these cases, it's obviously necessary to store the value required for further computation, but it's not
- * necessary to actually print the intermediate column.
- * <p/>
- * Table body:
- * The values of the table itself.
- * <p/>
- * ---------------
- * Implementation:
- * <p/>
- * The implementation of this table has two components:
- * 1. A TreeSet<Object> that stores all the values ever specified for the primary key.  Any get() operation that
- * refers to an element where the primary key object does not exist will result in its implicit creation.  I
- * haven't yet decided if this is a good idea...
- * <p/>
- * 2. A HashMap<String, GATKReportColumn> that stores a mapping from column name to column contents.  Each
- * GATKReportColumn is effectively a map (in fact, GATKReportColumn extends TreeMap<Object, Object>) between
- * primary key and the column value.  This means that, given N columns, the primary key information is stored
- * N+1 times.  This is obviously wasteful and can likely be handled much more elegantly in future implementations.
- * <p/>
- * ------------------------------
- * Element and column operations:
- * <p/>
- * In addition to simply getting and setting values, this object also permits some simple operations to be applied to
- * individual elements or to whole columns.  For instance, an element can be easily incremented without the hassle of
- * calling get(), incrementing the obtained value by 1, and then calling set() with the new value.  Also, some vector
- * operations are supported.  For instance, two whole columns can be divided and have the result be set to a third
- * column.  This is especially useful when aggregating counts in two intermediate columns that will eventually need to
- * be manipulated row-by-row to compute the final column.
- * <p/>
- * Note: I've made no attempt whatsoever to make these operations efficient.  Right now, some of the methods check the
- * type of the stored object using an instanceof call and attempt to do the right thing.  Others cast the contents of
- * the cell to a Number, call the Number.toDouble() method and compute a result.  This is clearly not the ideal design,
- * but at least the prototype contained herein works.
- *
- * @author Kiran Garimella
- * @author Khalid Shakir
- */
 public class GATKReportTable {
     /**
      * REGEX that matches any table with an invalid name
      */
     public static final String INVALID_TABLE_NAME_REGEX = "[^a-zA-Z0-9_\\-\\.]";
-    public static final String GATKTABLE_HEADER_PREFIX = "#:GATKTable";
-    public static final String SEPARATOR = ":";
-    public static final String ENDLINE = ":;";
+    private static final String GATKTABLE_HEADER_PREFIX = "#:GATKTable";
+    private static final String SEPARATOR = ":";
+    private static final String ENDLINE = ":;";
 
     private String tableName;
     private String tableDescription;
@@ -418,8 +335,8 @@ public class GATKReportTable {
      * output file), and the format string used to display the data.
      *
      * @param columnName   the name of the column
-     * @param defaultValue if true - the column will be displayed; if false - the column will be hidden
-     * @param display
+     * @param defaultValue the default value of a blank cell
+     * @param display      if true - the column will be displayed; if false - the column will be hidden
      * @param format       the format string used to display data
      */
     public void addColumn(String columnName, Object defaultValue, boolean display, String format) {
@@ -428,12 +345,6 @@ public class GATKReportTable {
         }
         columns.put(columnName, new GATKReportColumn(columnName, defaultValue, display, format));
     }
-
-
-    public GATKReportVersion getVersion() {
-        return GATKReport.LATEST_REPORT_VERSION;
-    }
-
 
     /**
      * Check if the requested element exists, and if not, create it.
@@ -508,8 +419,7 @@ public class GATKReportTable {
             value = newValue;
 
         if (column.getDataType().equals(GATKReportDataType.fromObject(value)) ||
-                column.getDataType().equals(GATKReportDataType.Unknown) ||
-                value == null)
+                column.getDataType().equals(GATKReportDataType.Unknown) )
             columns.get(columnName).put(primaryKey, value);
         else
             throw new ReviewedStingException(String.format("Tried to add an object of type: %s to a column of type: %s",
@@ -795,7 +705,7 @@ public class GATKReportTable {
      *
      * @return the width of the primary key column
      */
-    public int getPrimaryKeyColumnWidth() {
+    int getPrimaryKeyColumnWidth() {
         int maxWidth = getPrimaryKeyName().length();
 
         for (Object primaryKey : primaryKeyColumn) {
@@ -814,7 +724,7 @@ public class GATKReportTable {
      *
      * @param out the PrintStream to which the table should be written
      */
-    public void write(PrintStream out) {
+     void write(PrintStream out) {
 
         /*
          * Table header:
@@ -912,7 +822,7 @@ public class GATKReportTable {
      *
      * @param input Another GATK table
      */
-    protected void combineWith(GATKReportTable input) {
+    void combineWith(GATKReportTable input) {
         /*
          * This function is different from addRowsFrom because we will add the ability to sum,average, etc rows
          * TODO: Add other combining algorithms

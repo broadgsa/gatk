@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.BitSetUtils;
+import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -43,7 +45,12 @@ public class ContextCovariate implements StandardCovariate {
 
     private int mismatchesContextSize;
     private int insertionsContextSize;
-    private int  deletionsContextSize;
+    private int deletionsContextSize;
+
+    private final BitSet NO_CONTEXT_BITSET = BitSetUtils.bitSetFrom(-1L);
+//    protected final String NO_CONTEXT_VALUE = "N";                          // protected so we can UNIT TEST it
+    
+    private byte LOW_QUAL_TAIL;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
@@ -52,18 +59,22 @@ public class ContextCovariate implements StandardCovariate {
         insertionsContextSize = RAC.INSERTIONS_CONTEXT_SIZE;
         deletionsContextSize = RAC.DELETIONS_CONTEXT_SIZE;
 
+        LOW_QUAL_TAIL = RAC.LOW_QUAL_TAIL;
+        
         if (mismatchesContextSize <= 0 || insertionsContextSize <= 0 || deletionsContextSize <= 0)
             throw new UserException(String.format("Context Size must be positive, if you don't want to use the context covariate, just turn it off instead. Mismatches: %d Insertions: %d Deletions:%d", mismatchesContextSize, insertionsContextSize, deletionsContextSize));
 
     }
 
     @Override
-    public CovariateValues getValues(final GATKSAMRecord read) {
+    public CovariateValues getValues(GATKSAMRecord read) {
         int l = read.getReadLength();
         BitSet[] mismatches = new BitSet[l];
         BitSet[] insertions = new BitSet[l];
-        BitSet[] deletions  = new BitSet[l];
+        BitSet[] deletions = new BitSet[l];
 
+        read = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
+        
         final boolean negativeStrand = read.getReadNegativeStrandFlag();
         byte[] bases = read.getReadBases();
         if (negativeStrand)
@@ -72,7 +83,7 @@ public class ContextCovariate implements StandardCovariate {
         for (int i = 0; i < read.getReadLength(); i++) {
             mismatches[i] = contextWith(bases, i, mismatchesContextSize);
             insertions[i] = contextWith(bases, i, insertionsContextSize);
-            deletions[i]  = contextWith(bases, i,  deletionsContextSize);
+            deletions[i] = contextWith(bases, i, deletionsContextSize);
         }
 
         if (negativeStrand) {
@@ -89,24 +100,41 @@ public class ContextCovariate implements StandardCovariate {
         return str;
     }
 
+    @Override
+    public String keyFromBitSet(BitSet key) {
+        if (key == null)    // this can only happen in test routines because we do not propagate null keys to the csv file
+            return null;
+
+        return BitSetUtils.dnaFrom(key);
+    }
+
+    @Override
+    public BitSet bitSetFromKey(Object key) {
+        return BitSetUtils.bitSetFrom((String) key);
+    }
+
+    @Override
+    public int numberOfBits() {
+        return Long.bitCount(-1L);
+    }
+
     /**
-     * calculates the context of a base independent of the covariate mode
+     * calculates the context of a base independent of the covariate mode (mismatch, insertion or deletion)
      *
-     * @param bases           the bases in the read to build the context from
-     * @param offset          the position in the read to calculate the context for
-     * @param contextSize     context size to use building the context
-     * @return
+     * @param bases       the bases in the read to build the context from
+     * @param offset      the position in the read to calculate the context for
+     * @param contextSize context size to use building the context
+     * @return the bitSet representing the Context
      */
-    private BitSet contextWith(byte [] bases, int offset, int contextSize) {
-        if (offset < contextSize)
-            return null;
-        
-        String context = new String(Arrays.copyOfRange(bases, offset - contextSize, offset));
-        if (context.contains("N"))
-            return null;
-        
-        return MathUtils.bitSetFrom(context);
-    } 
+    private BitSet contextWith(byte[] bases, int offset, int contextSize) {
+        BitSet result = null;
+        if (offset >= contextSize) {
+            String context = new String(Arrays.copyOfRange(bases, offset - contextSize, offset));
+            if (!context.contains("N"))
+                result = BitSetUtils.bitSetFrom(context);
+        }
+        return result;
+    }
 
     /**
      * Reverses the given array in place.

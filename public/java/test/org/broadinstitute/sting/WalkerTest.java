@@ -47,6 +47,7 @@ import java.util.*;
 
 public class WalkerTest extends BaseTest {
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
+    private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
     @BeforeMethod
     public void initializeRandomGenerator() {
@@ -58,6 +59,9 @@ public class WalkerTest extends BaseTest {
     }
 
     public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
+        if ( !ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX )
+            return;
+
         File indexFile = Tribble.indexFile(resultFile);
         //System.out.println("Putative index file is " + indexFile);
         if ( indexFile.exists() ) {

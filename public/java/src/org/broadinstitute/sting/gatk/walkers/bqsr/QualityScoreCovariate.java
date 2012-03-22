@@ -1,6 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.BitSetUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
+import java.util.BitSet;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -46,18 +50,18 @@ public class QualityScoreCovariate implements RequiredCovariate {
     public CovariateValues getValues(final GATKSAMRecord read) {
         int readLength = read.getReadLength();
 
-        Integer [] mismatches = new Integer[readLength];
-        Integer [] insertions = new Integer[readLength];
-        Integer []  deletions = new Integer[readLength];
+        BitSet[] mismatches = new BitSet[readLength];
+        BitSet[] insertions = new BitSet[readLength];
+        BitSet[] deletions = new BitSet[readLength];
 
-        byte [] baseQualities = read.getBaseQualities();
-        byte [] baseInsertionQualities = read.getBaseInsertionQualities();
-        byte [] baseDeletionQualities = read.getBaseDeletionQualities();
+        byte[] baseQualities = read.getBaseQualities();
+        byte[] baseInsertionQualities = read.getBaseInsertionQualities();
+        byte[] baseDeletionQualities = read.getBaseDeletionQualities();
 
-        for (int i=0; i<baseQualities.length; i++) {
-            mismatches[i] = (int) baseQualities[i];
-            insertions[i] = (int) baseInsertionQualities[i];
-            deletions[i] = (int) baseDeletionQualities[i];
+        for (int i = 0; i < baseQualities.length; i++) {
+            mismatches[i] = BitSetUtils.bitSetFrom(baseQualities[i]);
+            insertions[i] = BitSetUtils.bitSetFrom(baseInsertionQualities[i]);
+            deletions[i] = BitSetUtils.bitSetFrom(baseDeletionQualities[i]);
         }
 
         return new CovariateValues(mismatches, insertions, deletions);
@@ -66,6 +70,21 @@ public class QualityScoreCovariate implements RequiredCovariate {
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
     public final Object getValue(final String str) {
-        return Integer.parseInt(str);
+        return Byte.parseByte(str);
+    }
+
+    @Override
+    public String keyFromBitSet(BitSet key) {
+        return String.format("%d", BitSetUtils.longFrom(key));
+    }
+
+    @Override
+    public BitSet bitSetFromKey(Object key) {
+        return BitSetUtils.bitSetFrom((Byte) key);
+    }
+
+    @Override
+    public int numberOfBits() {
+        return BitSetUtils.numberOfBitsToRepresent(QualityUtils.MAX_QUAL_SCORE);
     }
 }

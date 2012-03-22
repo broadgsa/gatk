@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.util.BitSet;
 import java.util.EnumSet;
 
 /*
@@ -59,48 +61,25 @@ public class CycleCovariate implements StandardCovariate {
     // Used to pick out the covariate's value from attributes of the read
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
-        Integer [] cycles = new Integer[read.getReadLength()];
+        BitSet[] cycles = new BitSet[read.getReadLength()];
         final NGSPlatform ngsPlatform = read.getNGSPlatform();
 
         // Discrete cycle platforms
         if (DISCRETE_CYCLE_PLATFORMS.contains(ngsPlatform)) {
-            final int init;
-            final int increment;
+            final short init;
+            final short increment;
             if (!read.getReadNegativeStrandFlag()) {
-                // Differentiate between first and second of pair.
-                // The sequencing machine cycle keeps incrementing for the second read in a pair. So it is possible for a read group
-                // to have an error affecting quality at a particular cycle on the first of pair which carries over to the second of pair.
-                // Therefore the cycle covariate must differentiate between first and second of pair reads.
-                // This effect can not be corrected by pulling out the first of pair and second of pair flags into a separate covariate because
-                //   the current sequential model would consider the effects independently instead of jointly.
-                if (read.getReadPairedFlag() && read.getSecondOfPairFlag()) {
-                    //second of pair, positive strand
-                    init = -1;
-                    increment = -1;
-                }
-                else {
-                    //first of pair, positive strand
-                    init = 1;
-                    increment = 1;
-                }
-
+                init = 1;
+                increment = 1;
             }
             else {
-                if (read.getReadPairedFlag() && read.getSecondOfPairFlag()) {
-                    //second of pair, negative strand
-                    init = -read.getReadLength();
-                    increment = 1;
-                }
-                else {
-                    //first of pair, negative strand
-                    init = read.getReadLength();
-                    increment = -1;
-                }
+                init = (short) read.getReadLength();
+                increment = -1;
             }
 
-            int cycle = init;
+            short cycle = init;
             for (int i = 0; i < read.getReadLength(); i++) {
-                cycles[i] = cycle;
+                cycles[i] = BitSetUtils.bitSetFrom(cycle);
                 cycle += increment;
             }
         }
@@ -119,7 +98,7 @@ public class CycleCovariate implements StandardCovariate {
             //   the current sequential model would consider the effects independently instead of jointly.
             final boolean multiplyByNegative1 = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 
-            int cycle = multiplyByNegative1 ? -1 : 1;
+            short cycle = multiplyByNegative1 ? (short) -1 : 1;     // todo -- check if this is the right behavior for mate paired reads in flow cycle platforms.
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
             // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
@@ -127,19 +106,19 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = 0;
                 while (iii < readLength) {
                     while (iii < readLength && bases[iii] == (byte) 'T') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'A') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'C') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'G') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii++;
                     }
                     if (iii < readLength) {
@@ -149,7 +128,7 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii < readLength && !BaseUtils.isRegularBase(bases[iii])) {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii++;
                     }
 
@@ -159,19 +138,19 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = readLength - 1;
                 while (iii >= 0) {
                     while (iii >= 0 && bases[iii] == (byte) 'T') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'A') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'C') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'G') {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii--;
                     }
                     if (iii >= 0) {
@@ -181,7 +160,7 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii >= 0 && !BaseUtils.isRegularBase(bases[iii])) {
-                        cycles[iii] = cycle;
+                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
                         iii--;
                     }
                 }
@@ -192,13 +171,28 @@ public class CycleCovariate implements StandardCovariate {
         else {
             throw new UserException("The platform (" + read.getReadGroup().getPlatform() + ") associated with read group " + read.getReadGroup() + " is not a recognized platform. Implemented options are e.g. illumina, 454, and solid");
         }
-        
+
         return new CovariateValues(cycles, cycles, cycles);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
     public final Object getValue(final String str) {
-        return Integer.parseInt(str);
+        return Short.parseShort(str);
+    }
+
+    @Override
+    public String keyFromBitSet(BitSet key) {
+        return String.format("%d", BitSetUtils.shortFrom(key));
+    }
+
+    @Override
+    public BitSet bitSetFromKey(Object key) {
+        return BitSetUtils.bitSetFrom((Short) key);
+    }
+
+    @Override
+    public int numberOfBits() {
+        return BitSetUtils.numberOfBitsToRepresent(2 * Short.MAX_VALUE); // positive and negative
     }
 }

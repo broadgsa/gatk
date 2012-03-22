@@ -22,6 +22,16 @@ public class QualityUtils {
         for (int i = 0; i < 256; i++) qualToErrorProbCache[i] = qualToErrorProbRaw(i);
     }
 
+    private static double qualToErrorProbLog10Cache[] = new double[256];
+    static {
+        for (int i = 0; i < 256; i++) qualToErrorProbLog10Cache[i] = qualToErrorProbLog10Raw(i);
+    }
+
+    private static double qualToProbLog10Cache[] = new double[256];
+    static {
+        for (int i = 0; i < 256; i++) qualToProbLog10Cache[i] = qualToProbLog10Raw(i);
+    }
+
     /**
      * Private constructor.  No instantiating this class!
      */
@@ -31,7 +41,7 @@ public class QualityUtils {
      * Convert a quality score to a probability.  This is the Phred-style
      * conversion, *not* the Illumina-style conversion (though asymptotically, they're the same).
      *
-     * @param qual a quality score (0-40)
+     * @param qual a quality score (0-255)
      * @return a probability (0.0-1.0)
      */
     static public double qualToProb(byte qual) {
@@ -40,6 +50,14 @@ public class QualityUtils {
 
     static public double qualToProb(double qual) {
         return 1.0 - Math.pow(10.0, qual/(-10.0));
+    }
+
+    static private double qualToProbLog10Raw(int qual) {
+        return Math.log10(1.0 - qualToErrorProbRaw(qual));
+    }
+
+    static public double qualToProbLog10(byte qual) {
+        return qualToProbLog10Cache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
     /**
@@ -57,14 +75,14 @@ public class QualityUtils {
         return qualToErrorProbCache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
-    static public double[] qualArrayToLog10ErrorProb(byte[] quals) {
-        double[] returnArray = new double[quals.length];
-        for( int iii = 0; iii < quals.length; iii++ ) {
-            returnArray[iii] = ((double) quals[iii])/-10.0;
-        }
-        return returnArray;
+    static private double qualToErrorProbLog10Raw(int qual) {
+        return ((double) qual)/-10.0;
     }
-    
+
+    static public double qualToErrorProbLog10(byte qual) {
+        return qualToErrorProbLog10Cache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
+    }
+
     /**
      * Convert a probability to a quality score.  Note, this is capped at Q40.
      *

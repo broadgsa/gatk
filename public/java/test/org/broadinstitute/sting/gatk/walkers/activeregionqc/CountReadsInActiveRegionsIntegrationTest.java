@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,9 +22,23 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf;
+package org.broadinstitute.sting.gatk.walkers.activeregionqc;
 
-/** an interface for named header lines **/
-public interface VCFNamedHeaderLine {
-    String getName();
+import org.broadinstitute.sting.WalkerTest;
+import org.testng.annotations.Test;
+
+import java.util.Arrays;
+
+/**
+ * Tests CountReadsInActiveRegions
+ */
+public class CountReadsInActiveRegionsIntegrationTest extends WalkerTest {
+    @Test
+    public void basicTest() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T CountReadsInActiveRegions -R " + b37KGReference + " -I " + b37GoodNA12878BAM + " -L 20:10,000,000-10,200,000 -o %s",
+                1,
+                Arrays.asList("fcd581aa6befe85c7297509fa7b34edf"));
+        executeTest("CountReadsInActiveRegions:", spec);
+    }
 }

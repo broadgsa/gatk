@@ -53,24 +53,18 @@ import java.util.Map;
  */
 
 public class RecalDataManager {
-    public final NestedHashMap nestedHashMap;                                                           // The full dataset
-    private final HashMap<BaseRecalibrationType, NestedHashMap> dataCollapsedReadGroup;                 // Table where everything except read group has been collapsed
-    private final HashMap<BaseRecalibrationType, NestedHashMap> dataCollapsedQualityScore;              // Table where everything except read group and quality score has been collapsed
-    private final HashMap<BaseRecalibrationType, ArrayList<NestedHashMap>> dataCollapsedByCovariate;    // Tables where everything except read group, quality score, and given covariate has been collapsed
+    public final NestedHashMap nestedHashMap;                                               // The full dataset
+    private final HashMap<EventType, NestedHashMap> dataCollapsedReadGroup;                 // Table where everything except read group has been collapsed
+    private final HashMap<EventType, NestedHashMap> dataCollapsedQualityScore;              // Table where everything except read group and quality score has been collapsed
+    private final HashMap<EventType, ArrayList<NestedHashMap>> dataCollapsedByCovariate;    // Tables where everything except read group, quality score, and given covariate has been collapsed
 
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
-    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";   // The tag that holds the color space quality scores for SOLID bams
-    public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";        // The tag that holds the color space for SOLID bams
-    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";    // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";                          // The tag that holds the original quality scores
+    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                       // The tag that holds the color space quality scores for SOLID bams
+    public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
+    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
 
-    private static final String COVARS_ATTRIBUTE = "COVARS";                   // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
-
-    public enum BaseRecalibrationType {
-        BASE_SUBSTITUTION,
-        BASE_INSERTION,
-        BASE_DELETION
-    }
+    private static final String COVARS_ATTRIBUTE = "COVARS";                                // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     public enum SOLID_RECAL_MODE {
         /**
@@ -116,10 +110,10 @@ public class RecalDataManager {
     public RecalDataManager(final boolean createCollapsedTables, final int numCovariates) {
         if (createCollapsedTables) { // Initialize all the collapsed tables, only used by on-the-fly recalibration
             nestedHashMap = null;
-            dataCollapsedReadGroup = new HashMap<BaseRecalibrationType, NestedHashMap>();
-            dataCollapsedQualityScore = new HashMap<BaseRecalibrationType, NestedHashMap>();
-            dataCollapsedByCovariate = new HashMap<BaseRecalibrationType, ArrayList<NestedHashMap>>();
-            for ( final BaseRecalibrationType errorModel : BaseRecalibrationType.values() ) {
+            dataCollapsedReadGroup = new HashMap<EventType, NestedHashMap>();
+            dataCollapsedQualityScore = new HashMap<EventType, NestedHashMap>();
+            dataCollapsedByCovariate = new HashMap<EventType, ArrayList<NestedHashMap>>();
+            for (final EventType errorModel : EventType.values()) {
                 dataCollapsedReadGroup.put(errorModel, new NestedHashMap());
                 dataCollapsedQualityScore.put(errorModel, new NestedHashMap());
                 dataCollapsedByCovariate.put(errorModel, new ArrayList<NestedHashMap>());
@@ -136,100 +130,10 @@ public class RecalDataManager {
         }
     }
 
-    public static CovariateKeySet getAllCovariateValuesFor(GATKSAMRecord read) {
-        return (CovariateKeySet) read.getTemporaryAttribute(COVARS_ATTRIBUTE);
-    }
-    
-    /**
-     * Add the given mapping to all of the collapsed hash tables
-     *
-     * @param key                        The list of comparables that is the key for this mapping
-     * @param fullDatum                  The RecalDatum which is the data for this mapping
-     * @param PRESERVE_QSCORES_LESS_THAN The threshold in report quality for adding to the aggregate collapsed table
-     */
-    public final void addToAllTables(final Object[] key, final RecalDatum fullDatum, final int PRESERVE_QSCORES_LESS_THAN, final BaseRecalibrationType errorModel ) {
-
-        // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
-        //data.put(key, thisDatum); // add the mapping to the main table
-
-        final int qualityScore = Integer.parseInt(key[1].toString());
-        final Object[] readGroupCollapsedKey = new Object[1];
-        final Object[] qualityScoreCollapsedKey = new Object[2];
-        final Object[] covariateCollapsedKey = new Object[3];
-        RecalDatum collapsedDatum;
-
-        // Create dataCollapsedReadGroup, the table where everything except read group has been collapsed
-        if (qualityScore >= PRESERVE_QSCORES_LESS_THAN) {
-            readGroupCollapsedKey[0] = key[0]; // Make a new key with just the read group
-            collapsedDatum = (RecalDatum) dataCollapsedReadGroup.get(errorModel).get(readGroupCollapsedKey);
-            if (collapsedDatum == null) {
-                dataCollapsedReadGroup.get(errorModel).put(new RecalDatum(fullDatum), readGroupCollapsedKey);
-            }
-            else {
-                collapsedDatum.combine(fullDatum); // using combine instead of increment in order to calculate overall aggregateQReported
-            }
-        }
-
-        // Create dataCollapsedQuality, the table where everything except read group and quality score has been collapsed
-        qualityScoreCollapsedKey[0] = key[0]; // Make a new key with the read group ...
-        qualityScoreCollapsedKey[1] = key[1]; //                                    and quality score
-        collapsedDatum = (RecalDatum) dataCollapsedQualityScore.get(errorModel).get(qualityScoreCollapsedKey);
-        if (collapsedDatum == null) {
-            dataCollapsedQualityScore.get(errorModel).put(new RecalDatum(fullDatum), qualityScoreCollapsedKey);
-        }
-        else {
-            collapsedDatum.increment(fullDatum);
-        }
-
-        // Create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
-        for (int iii = 0; iii < dataCollapsedByCovariate.get(errorModel).size(); iii++) {
-            covariateCollapsedKey[0] = key[0]; // Make a new key with the read group ...
-            covariateCollapsedKey[1] = key[1]; //                                    and quality score ...
-            final Object theCovariateElement = key[iii + 2]; //                                        and the given covariate
-            if (theCovariateElement != null) {
-                covariateCollapsedKey[2] = theCovariateElement;
-                collapsedDatum = (RecalDatum) dataCollapsedByCovariate.get(errorModel).get(iii).get(covariateCollapsedKey);
-                if (collapsedDatum == null) {
-                    dataCollapsedByCovariate.get(errorModel).get(iii).put(new RecalDatum(fullDatum), covariateCollapsedKey);
-                }
-                else {
-                    collapsedDatum.increment(fullDatum);
-                }
-            }
-        }
+    public static ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
+        return (ReadCovariates) read.getTemporaryAttribute(COVARS_ATTRIBUTE);
     }
 
-    /**
-     * Loop over all the collapsed tables and turn the recalDatums found there into an empirical quality score
-     * that will be used in the sequential calculation in TableRecalibrationWalker
-     *
-     * @param smoothing The smoothing parameter that goes into empirical quality score calculation
-     * @param maxQual   At which value to cap the quality scores
-     */
-    public final void generateEmpiricalQualities(final int smoothing, final int maxQual) {
-
-        for( final BaseRecalibrationType errorModel : BaseRecalibrationType.values() ) {
-            recursivelyGenerateEmpiricalQualities(dataCollapsedReadGroup.get(errorModel).data, smoothing, maxQual);
-            recursivelyGenerateEmpiricalQualities(dataCollapsedQualityScore.get(errorModel).data, smoothing, maxQual);
-            for (NestedHashMap map : dataCollapsedByCovariate.get(errorModel)) {
-                recursivelyGenerateEmpiricalQualities(map.data, smoothing, maxQual);
-                checkForSingletons(map.data);
-            }
-        }
-    }
-
-    private void recursivelyGenerateEmpiricalQualities(final Map data, final int smoothing, final int maxQual) {
-
-        for (Object comp : data.keySet()) {
-            final Object val = data.get(comp);
-            if (val instanceof RecalDatum) { // We are at the end of the nested hash maps
-                ((RecalDatum) val).calcCombinedEmpiricalQuality(smoothing, maxQual);
-            }
-            else { // Another layer in the nested hash map
-                recursivelyGenerateEmpiricalQualities((Map) val, smoothing, maxQual);
-            }
-        }
-    }
 
     private void checkForSingletons(final Map data) {
         // todo -- this looks like it's better just as a data.valueSet() call?
@@ -253,7 +157,7 @@ public class RecalDataManager {
      * @param covariate Which covariate indexes the desired collapsed HashMap
      * @return The desired collapsed HashMap
      */
-    public final NestedHashMap getCollapsedTable(final int covariate, final BaseRecalibrationType errorModel) {
+    public final NestedHashMap getCollapsedTable(final int covariate, final EventType errorModel) {
         if (covariate == 0) {
             return dataCollapsedReadGroup.get(errorModel); // Table where everything except read group has been collapsed
         }
@@ -551,6 +455,7 @@ public class RecalDataManager {
     /**
      * Given the base and the color calculate the next base in the sequence
      *
+     * @param read     the read
      * @param prevBase The base
      * @param color    The color
      * @return The next base in the sequence
@@ -615,22 +520,23 @@ public class RecalDataManager {
      * Computes all requested covariates for every offset in the given read
      * by calling covariate.getValues(..).
      *
+     * It populates an array of covariate values where result[i][j] is the covariate
+     * value for the ith position in the read and the jth covariate in
+     * reqeustedCovariates list.
+     *
      * @param read                The read for which to compute covariate values.
      * @param requestedCovariates The list of requested covariates.
-     * @return An array of covariate values where result[i][j] is the covariate
-     *         value for the ith position in the read and the jth covariate in
-     *         reqeustedCovariates list.
      */
     public static void computeCovariates(final GATKSAMRecord read, final List<Covariate> requestedCovariates) {
         final int numRequestedCovariates = requestedCovariates.size();
         final int readLength = read.getReadLength();
-        final CovariateKeySet covariateKeySet = new CovariateKeySet(readLength, numRequestedCovariates);
+        final ReadCovariates readCovariates = new ReadCovariates(readLength, numRequestedCovariates);
 
         // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
         for (Covariate covariate : requestedCovariates)
-            covariateKeySet.addCovariate(covariate.getValues(read));
+            readCovariates.addCovariate(covariate.getValues(read));
 
-        read.setTemporaryAttribute(COVARS_ATTRIBUTE, covariateKeySet);
+        read.setTemporaryAttribute(COVARS_ATTRIBUTE, readCovariates);
     }
 
     /**

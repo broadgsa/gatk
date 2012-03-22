@@ -40,17 +40,26 @@ public class BadCigarFilter extends ReadFilter {
 
     public boolean filterOut(final SAMRecord rec) {
         Cigar c = rec.getCigar();
-        boolean lastElementWasIndel = false;
-        for ( CigarElement ce : c.getCigarElements() ) {
-            if ( ce.getOperator() == CigarOperator.D || ce.getOperator() == CigarOperator.I ) {
-                if ( lastElementWasIndel )
-                    return true;
-                lastElementWasIndel = true;
-            } else {
-                lastElementWasIndel = false;
+        boolean previousElementWasIndel = false;
+        CigarOperator lastOp = c.getCigarElement(0).getOperator(); 
+
+        if (lastOp == CigarOperator.D)                                                                                  // filter out reads starting with deletion
+            return true;
+        
+        for (CigarElement ce : c.getCigarElements()) {
+            CigarOperator op = ce.getOperator();
+            if (op == CigarOperator.D || op == CigarOperator.I) {
+                if (previousElementWasIndel)
+                    return true;                                                                                        // filter out reads with adjacent I/D
+
+                previousElementWasIndel = true;
             }
+            else                                                                                                        // this is a regular base (match/mismatch/hard or soft clip)
+                previousElementWasIndel = false;                                                                        // reset the previous element
+
+            lastOp = op;
         }
 
-        return false;
+        return lastOp == CigarOperator.D;
     }
 }

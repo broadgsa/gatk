@@ -73,10 +73,14 @@ class VCF4Parser implements VCFLineParser {
 
         // validate the tags against the expected list
         index = 0;
-        if (ret.size() > expectedTagOrder.size()) throw new IllegalArgumentException("Unexpected tag count " + ret.size() + " in string " + expectedTagOrder.size());
-        for (String str : ret.keySet()) {
-            if (!expectedTagOrder.get(index).equals(str)) throw new IllegalArgumentException("Unexpected tag " + str + " in string " + valueLine);
-            index++;
+        if ( expectedTagOrder != null ) {
+            if ( ret.size() > expectedTagOrder.size() )
+                throw new IllegalArgumentException("Unexpected tag count " + ret.size() + " in string " + expectedTagOrder.size());
+            for ( String str : ret.keySet() ) {
+                if ( !expectedTagOrder.get(index).equals(str) )
+                    throw new IllegalArgumentException("Unexpected tag " + str + " in string " + valueLine);
+                index++;
+            }
         }
         return ret;
     }

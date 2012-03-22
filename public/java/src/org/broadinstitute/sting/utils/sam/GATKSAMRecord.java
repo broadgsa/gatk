@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDataManager;
+import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -165,7 +165,7 @@ public class GATKSAMRecord extends BAMRecord {
     /**
      * Setters and Accessors for base insertion and base deletion quality scores
      */
-    public void setBaseQualities( final byte[] quals, final RecalDataManager.BaseRecalibrationType errorModel ) {
+    public void setBaseQualities( final byte[] quals, final EventType errorModel ) {
         switch( errorModel ) {
             case BASE_SUBSTITUTION:
                 setBaseQualities(quals);
@@ -181,7 +181,7 @@ public class GATKSAMRecord extends BAMRecord {
         }
     }
 
-    public byte[] getBaseQualities( final RecalDataManager.BaseRecalibrationType errorModel ) {
+    public byte[] getBaseQualities( final EventType errorModel ) {
         switch( errorModel ) {
             case BASE_SUBSTITUTION:
                 return getBaseQualities();
@@ -204,7 +204,7 @@ public class GATKSAMRecord extends BAMRecord {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_INSERTION);
+            setBaseQualities(quals, EventType.BASE_INSERTION);
         }
         return quals;
     }
@@ -213,9 +213,9 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setBaseQualities(quals, RecalDataManager.BaseRecalibrationType.BASE_DELETION);
+            Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
+                                            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
+            setBaseQualities(quals, EventType.BASE_DELETION);
         }
         return quals;
     }

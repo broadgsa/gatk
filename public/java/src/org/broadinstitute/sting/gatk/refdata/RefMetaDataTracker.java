@@ -418,7 +418,7 @@ public class RefMetaDataTracker {
      * with the current site as a RODRecordList List object. If no data track with specified name is available,
      * returns defaultValue wrapped as RODRecordList object. NOTE: if defaultValue is null, it will be wrapped up
      * with track name set to 'name' and location set to null; otherwise the wrapper object will have name and
-     * location set to defaultValue.getName() and defaultValue.getLocation(), respectively (use caution,
+     * location set to defaultValue.getID() and defaultValue.getLocation(), respectively (use caution,
      * defaultValue.getLocation() may be not equal to what RODRecordList's location would be expected to be otherwise:
      * for instance, on locus traversal, location is usually expected to be a single base we are currently looking at,
      * regardless of the presence of "extended" RODs overlapping with that location).

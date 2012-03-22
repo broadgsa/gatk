@@ -27,8 +27,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         BB1 = new double[]{-20.0, -20.0, 0.0};
         AA2 = new double[]{0.0, -20.0, -20.0, -20.0, -20.0, -20.0};
         AB2 = new double[]{-20.0, 0.0, -20.0, -20.0, -20.0, -20.0};
-        AC2 = new double[]{-20.0, -20.0, 0.0, -20.0, -20.0, -20.0};
-        BB2 = new double[]{-20.0, -20.0, -20.0, 0.0, -20.0, -20.0};
+        AC2 = new double[]{-20.0, -20.0, -20.0, 0.0, -20.0, -20.0};
+        BB2 = new double[]{-20.0, -20.0, 0.0, -20.0, -20.0, -20.0};
         BC2 = new double[]{-20.0, -20.0, -20.0, -20.0, 0.0, -20.0};
         CC2 = new double[]{-20.0, -20.0, -20.0, -20.0, -20.0, 0.0};
     }

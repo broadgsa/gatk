@@ -613,7 +613,7 @@ public class GenomeAnalysisEngine {
      */
     protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
 
-        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>(0);
+        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
         for ( IntervalBinding intervalBinding : argList ) {
             List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
 

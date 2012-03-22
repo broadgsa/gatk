@@ -24,13 +24,15 @@
 
 package org.broadinstitute.sting.gatk.report;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
 import java.util.*;
 
 /**
  * Tracks a linked list of GATKReportColumn in order by name.
  */
 public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> implements Iterable<GATKReportColumn> {
-    private List<String> columnNames = new ArrayList<String>();
+    private final List<String> columnNames = new ArrayList<String>();
 
     /**
      * Returns the column by index
@@ -43,9 +45,12 @@ public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> i
     }
 
     @Override
-    public GATKReportColumn remove(Object key) {
-        columnNames.remove(key);
-        return super.remove(key);
+    public GATKReportColumn remove(Object columnName) {
+        if ( !(columnName instanceof String) ) {
+            throw new ReviewedStingException("The column name must be a String!");
+        }
+        columnNames.remove(columnName.toString());
+        return super.remove(columnName);
     }
 
     @Override
@@ -85,7 +90,7 @@ public class GATKReportColumns extends LinkedHashMap<String, GATKReportColumn> i
         return true;
     }
 
-    protected boolean equals(GATKReportColumns that) {
+    boolean equals(GATKReportColumns that) {
         for (Map.Entry<String, GATKReportColumn> pair : entrySet()) {
             // Make sure that every column is the same, we know that the # of columns
             // is the same from isSameFormat()

@@ -30,7 +30,10 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -53,10 +56,6 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     protected SNPGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-
-        // make sure the PL cache has been initialized with enough alleles
-        if ( UnifiedGenotyperEngine.PLIndexToAlleleIndex == null || UnifiedGenotyperEngine.PLIndexToAlleleIndex.length < 4 ) // +1 for 0 alt alleles
-            UnifiedGenotyperEngine.calculatePLcache(3);
     }
 
     public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
@@ -133,6 +132,16 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         }
         builder.alleles(alleles);
 
+        // create the PL ordering to use based on the allele ordering.
+        final int[] PLordering = new int[numLikelihoods];
+        for ( int i = 0; i <= numAltAlleles; i++ ) {
+            for ( int j = i; j <= numAltAlleles; j++ ) {
+                // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
+                // In other words, for biallelic sites the ordering is: AA,AB,BB; for triallelic sites the ordering is: AA,AB,BB,AC,BC,CC, etc."
+                PLordering[(j * (j+1) / 2) + i] = DiploidGenotype.createDiploidGenotype(alleleOrdering[i], alleleOrdering[j]).ordinal();
+            }
+        }
+
         // create the genotypes; no-call everyone for now
         final GenotypesContext genotypes = GenotypesContext.create();
         final List<Allele> noCall = new ArrayList<Allele>();
@@ -142,12 +151,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             final double[] allLikelihoods = sampleData.GL.getLikelihoods();
             final double[] myLikelihoods = new double[numLikelihoods];
 
-            int myLikelihoodsIndex = 0;
-            for ( int i = 0; i <= numAltAlleles; i++ ) {
-                for ( int j = i; j <= numAltAlleles; j++ ) {
-                    myLikelihoods[myLikelihoodsIndex++] = allLikelihoods[DiploidGenotype.createDiploidGenotype(alleleOrdering[i], alleleOrdering[j]).ordinal()];
-                }
-            }
+            for ( int i = 0; i < numLikelihoods; i++ )
+                myLikelihoods[i] = allLikelihoods[PLordering[i]];
 
             // normalize in log space so that max element is zero.
             final GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(MathUtils.normalizeFromLog10(myLikelihoods, false, true));
@@ -174,12 +179,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             final double[] likelihoods = sampleData.GL.getLikelihoods();
             final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
             if ( PLindexOfBestGL != PLindexOfRef ) {
-                int[] alleles = UnifiedGenotyperEngine.PLIndexToAlleleIndex[3][PLindexOfBestGL];
-                if ( alleles[0] != baseIndexOfRef )
-                    likelihoodSums[alleles[0]] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
+                GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePairUsingDeprecatedOrdering(PLindexOfBestGL);
+                if ( alleles.alleleIndex1 != baseIndexOfRef )
+                    likelihoodSums[alleles.alleleIndex1] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
                 // don't double-count it
-                if ( alleles[1] != baseIndexOfRef && alleles[1] != alleles[0] )
-                    likelihoodSums[alleles[1]] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
+                if ( alleles.alleleIndex2 != baseIndexOfRef && alleles.alleleIndex2 != alleles.alleleIndex1 )
+                    likelihoodSums[alleles.alleleIndex2] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
             }
         }
 
@@ -203,7 +208,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
     public class BAQedPileupElement extends PileupElement {
         public BAQedPileupElement( final PileupElement PE ) {
-            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletion(), PE.isBeforeInsertion(), PE.isNextToSoftClip());
+            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletion(), PE.isAfterDeletion(), PE.isBeforeInsertion(), PE.isAfterInsertion(), PE.isNextToSoftClip());
         }
 
         @Override

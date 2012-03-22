@@ -94,7 +94,7 @@ public class RecalDatumOptimized {
     public final double empiricalQualDouble(final int smoothing, final double maxQual) {
         final double doubleMismatches = (double) (numMismatches + smoothing);
         final double doubleObservations = (double) (numObservations + smoothing);
-        double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);        
+        double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
         return Math.min(empiricalQual, maxQual);
     }
 
@@ -106,9 +106,10 @@ public class RecalDatumOptimized {
 
     public final byte empiricalQualByte() {
         return empiricalQualByte(0);    // 'default' behavior is to use smoothing value of zero
-    } 
+    }
 
-    public final String outputToCSV() {
+    @Override
+    public final String toString() {
         return String.format("%d,%d,%d", numObservations, numMismatches, (int) empiricalQualByte());
     }
 

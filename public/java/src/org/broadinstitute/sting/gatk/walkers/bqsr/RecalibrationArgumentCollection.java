@@ -27,10 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.walkers.recalibration.CountCovariatesGatherer;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -60,7 +58,7 @@ public class RecalibrationArgumentCollection {
      * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
      * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
      */
-    @Gather(CountCovariatesGatherer.class)
+    @Gather(BQSRGatherer.class)
     @Output
     protected PrintStream RECAL_FILE;
 
@@ -91,16 +89,6 @@ public class RecalibrationArgumentCollection {
     @Hidden
     @Argument(fullName = "run_without_dbsnp_potentially_ruining_quality", shortName = "run_without_dbsnp_potentially_ruining_quality", required = false, doc = "If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
     protected boolean RUN_WITHOUT_DBSNP = false;
-
-    /////////////////////////////
-    // protected Member Variables
-    /////////////////////////////
-    protected final RecalDataManager dataManager = new RecalDataManager();                // Holds the data HashMap used to create collapsed data hashmaps (delta delta tables)
-    protected final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();// A list to hold the covariate objects that were requested
-
-    protected final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                // used to label reads that should be skipped.
-    protected final String SEEN_ATTRIBUTE = "SEEN";                                       // used to label reads as processed.
-
 
     /**
      * CountCovariates and TableRecalibration accept a --solid_recal_mode <MODE> flag which governs how the recalibrator handles the
@@ -152,6 +140,10 @@ public class RecalibrationArgumentCollection {
      */
     @Argument(fullName = "deletions_default_quality", shortName = "ddq", doc = "default quality for the base deletions covariate", required = false)
     public byte DELETIONS_DEFAULT_QUALITY = 45;
+
+    @Argument(fullName = "low_quality_tail", shortName = "lqt", doc = "minimum quality for the bases in the tail of the reads to be considered", required = false)
+    public byte LOW_QUAL_TAIL = 2;
+
 
 
     @Hidden

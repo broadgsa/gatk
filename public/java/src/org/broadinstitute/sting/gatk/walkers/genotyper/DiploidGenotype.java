@@ -64,7 +64,6 @@ public enum DiploidGenotype {
             return r != base2;
         else
             return base2 == r;
-        //return MathUtils.countOccurrences(r, this.toString()) == 1;
     }
 
     public boolean isHom() {

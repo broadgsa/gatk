@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -495,7 +496,7 @@ public class ReadUtils {
     /**
      * Is a base inside a read?
      *
-     * @param read the read to evaluate
+     * @param read                the read to evaluate
      * @param referenceCoordinate the reference coordinate of the base to test
      * @return true if it is inside the read, false otherwise.
      */
@@ -541,9 +542,9 @@ public class ReadUtils {
      *
      * See getCoverageDistributionOfRead for information on how the coverage is calculated.
      *
-     * @param list the list of reads covering the region
+     * @param list          the list of reads covering the region
      * @param startLocation the first reference coordinate of the region (inclusive)
-     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @param stopLocation  the last reference coordinate of the region (inclusive)
      * @return an array with the coverage of each position from startLocation to stopLocation
      */
     public static int [] getCoverageDistributionOfReads(List<GATKSAMRecord> list, int startLocation, int stopLocation) {
@@ -563,9 +564,9 @@ public class ReadUtils {
      * Note: This function counts DELETIONS as coverage (since the main purpose is to downsample
      * reads for variant regions, and deletions count as variants)
      *
-     * @param read the read to get the coverage distribution of
+     * @param read          the read to get the coverage distribution of
      * @param startLocation the first reference coordinate of the region (inclusive)
-     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @param stopLocation  the last reference coordinate of the region (inclusive)
      * @return an array with the coverage of each position from startLocation to stopLocation
      */
     public static int [] getCoverageDistributionOfRead(GATKSAMRecord read, int startLocation, int stopLocation) {
@@ -611,9 +612,9 @@ public class ReadUtils {
      *    Note: Locus is a boolean array, indexed from 0 (= startLocation) to N (= stopLocation), with value==true meaning it contributes to the coverage.
      *    Example: Read => {true, true, false, ... false}
      *
-     * @param readList the list of reads to generate the association mappings
+     * @param readList      the list of reads to generate the association mappings
      * @param startLocation the first reference coordinate of the region (inclusive)
-     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @param stopLocation  the last reference coordinate of the region (inclusive)
      * @return the two hashmaps described above
      */
     public static Pair<HashMap<Integer, HashSet<GATKSAMRecord>> , HashMap<GATKSAMRecord, Boolean[]>> getBothReadToLociMappings (List<GATKSAMRecord> readList, int startLocation, int stopLocation) {
@@ -621,7 +622,6 @@ public class ReadUtils {
 
         HashMap<Integer, HashSet<GATKSAMRecord>> locusToReadMap = new HashMap<Integer, HashSet<GATKSAMRecord>>(2*(stopLocation - startLocation + 1), 0.5f);
         HashMap<GATKSAMRecord, Boolean[]> readToLocusMap = new HashMap<GATKSAMRecord, Boolean[]>(2*readList.size(), 0.5f);
-
 
         for (int i = startLocation; i <= stopLocation; i++)
             locusToReadMap.put(i, new HashSet<GATKSAMRecord>()); // Initialize the locusToRead map with empty lists
@@ -631,7 +631,7 @@ public class ReadUtils {
 
             int [] readCoverage = getCoverageDistributionOfRead(read, startLocation, stopLocation);
 
-            for (int i=0; i<readCoverage.length; i++) {
+            for (int i = 0; i < readCoverage.length; i++) {
                 int refLocation = i + startLocation;
                 if (readCoverage[i] > 0) {
                     // Update the hash for this locus
@@ -649,6 +649,55 @@ public class ReadUtils {
         return new Pair<HashMap<Integer, HashSet<GATKSAMRecord>>, HashMap<GATKSAMRecord, Boolean[]>>(locusToReadMap, readToLocusMap);
     }
 
+    /**
+     * Create random read qualities
+     *
+     * @param length the length of the read
+     * @return an array with randomized base qualities between 0 and 50
+     */
+    public static byte[] createRandomReadQuals(int length) {
+        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        byte[] quals = new byte[length];
+        for (int i = 0; i < length; i++)
+            quals[i] = (byte) random.nextInt(50);
+        return quals;
+    }
+
+    /**
+     * Create random read qualities
+     *
+     * @param length  the length of the read
+     * @param allowNs whether or not to allow N's in the read
+     * @return an array with randomized bases (A-N) with equal probability
+     */
+    public static byte[] createRandomReadBases(int length, boolean allowNs) {
+        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        int numberOfBases = allowNs ? 5 : 4;
+        byte[] bases = new byte[length];
+        for (int i = 0; i < length; i++) {
+            switch (random.nextInt(numberOfBases)) {
+                case 0:
+                    bases[i] = 'A';
+                    break;
+                case 1:
+                    bases[i] = 'C';
+                    break;
+                case 2:
+                    bases[i] = 'G';
+                    break;
+                case 3:
+                    bases[i] = 'T';
+                    break;
+                case 4:
+                    bases[i] = 'N';
+                    break;
+                default:
+                    throw new ReviewedStingException("Something went wrong, this is just impossible");
+            }
+        }
+        return bases;
+    }
+
     public static String prettyPrintSequenceRecords ( SAMSequenceDictionary sequenceDictionary ) {
         String[] sequenceRecordNames = new String[sequenceDictionary.size()];
         int sequenceRecordIndex = 0;
@@ -656,4 +705,5 @@ public class ReadUtils {
             sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
         return Arrays.deepToString(sequenceRecordNames);
     }
+
 }

@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.util.BitSet;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -53,7 +55,40 @@ public interface Covariate {
      */
     public CovariateValues getValues(GATKSAMRecord read);
 
-    public Object getValue(String str); // Used to get the covariate's value from input csv file during on-the-fly recalibration
+    /**
+     * Used to get the covariate's value from input csv file during on-the-fly recalibration
+     *
+     * @param str the key in string type (read from the csv)
+     * @return the key in it's correct type.
+     */
+    public Object getValue(String str);
+
+    /**
+     * Converts the bitset representation of the key (used internally for table indexing) to String format for file output.
+     *
+     * @param key the bitset representation of the key
+     * @return a string representation of the key
+     */
+    public String keyFromBitSet(BitSet key);
+
+    /**
+     * Converts a key into a bitset
+     *
+     * Only necessary for on-the-fly recalibration when you have the object, but need to store it in memory in bitset format. For counting covariates
+     * the getValues method already returns all values in BitSet format.
+     *
+     * @param key the object corresponding to the covariate
+     * @return a bitset representation of the object
+     */
+    public BitSet bitSetFromKey(Object key);
+
+    /**
+     * Each covariate should determine how many bits are necessary to encode it's data
+     *
+     * @return The number of bits used to represent the values of this covariate.
+     */
+    public int numberOfBits();
+
 }
 
 interface RequiredCovariate extends Covariate {}

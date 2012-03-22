@@ -25,9 +25,14 @@
 
 package org.broadinstitute.sting.utils;
 
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMProgramRecord;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.net.InetAddress;
 import java.util.*;
@@ -666,6 +671,36 @@ public class Utils {
     public static void fillArrayWithByte(byte[] array, byte value) {
         for (int i=0; i<array.length; i++)
             array[i] = value;
+    }
+
+    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, boolean preSorted, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
+
+        SAMFileHeader header = toolkit.getSAMFileHeader();
+        List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+        List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+        for ( SAMProgramRecord record : oldRecords )
+            if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) || KEEP_ALL_PG_RECORDS )
+                newRecords.add(record);
+
+        newRecords.add(programRecord);
+        header.setProgramRecords(newRecords);
+
+        writer.writeHeader(header);
+        writer.setPresorted(preSorted);
+    }
+    
+    public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
+        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        try {
+            final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+            programRecord.setProgramVersion(version);
+        } catch (MissingResourceException e) {
+            // couldn't care less if the resource is missing...
+        }
+        programRecord.setCommandLine(toolkit.createApproximateCommandLineArgumentString(toolkit, walker));
+        return programRecord;
     }
 
 }
