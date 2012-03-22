@@ -129,6 +129,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Argument(fullName = "permitNoSampleOverlap", shortName = "permitNoSampleOverlap", doc = "Don't exit (just WARN) when the VCF and BAMs do not overlap in samples", required = false)
     private boolean permitNoSampleOverlap = false;
 
+    @Argument(fullName = "respectPhaseInInput", shortName = "respectPhaseInInput", doc = "Will only phase genotypes in cases where the resulting output will necessarily be consistent with any existing phase (for example, from trios)", required = false)
+    private boolean respectPhaseInInput = false;
+
     private GenomeLoc mostDownstreamLocusReached = null;
 
     private LinkedList<VariantAndReads> unphasedSiteQueue = null;
@@ -487,6 +490,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private int phasingSiteIndex = -1;
         private Map<String, PhasingRead> readsAtHetSites = null;
 
+        private void clearFields() {
+            hetGenotypes = null;
+            prevHetAndInteriorIt = null;
+            phasingSiteIndex = -1;
+            readsAtHetSites = null;
+        }
+
         public boolean hasPreviousHets() {
             return phasingSiteIndex > 0;
         }
@@ -513,11 +523,19 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
             phasingSiteIndex = listHetGenotypes.size();
             if (phasingSiteIndex == 0) { // no previous sites against which to phase
-                hetGenotypes = null;
-                prevHetAndInteriorIt = null;
+                clearFields();
                 return;
             }
             prevHetAndInteriorIt.previous(); // so that it points to the previous het site [and NOT one after it, due to the last call to next()]
+
+            if (respectPhaseInInput) {
+                Genotype prevHetGenotype = prevHetAndInteriorIt.clone().next().unfinishedVariant.getGenotype(sample);
+                if (!prevHetGenotype.isPhased()) {
+                    // Make this genotype unphaseable, since its previous het is not already phased [as required by respectPhaseInInput]:
+                    clearFields();
+                    return;
+                }
+            }
 
             // Add the (het) position to be phased:
             GenomeLoc phaseLocus = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant);
