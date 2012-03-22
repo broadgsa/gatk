@@ -29,6 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.math.BigDecimal;
@@ -1047,6 +1048,28 @@ public class MathUtils {
 
     }
 
+    /**
+     * Given two log-probability vectors, compute log of vector product of them:
+     * in Matlab notation, return log(10.*x'*10.^y)
+     * @param x vector 1
+     * @param y vector 2
+     * @return a double representing log (dotProd(10.^x,10.^y)
+     */
+    public static double logDotProduct(double [] x, double[] y) {
+        if (x.length != y.length)
+            throw new ReviewedStingException("BUG: Vectors of different lengths");
+
+        double tmpVec[] = new double[x.length];
+
+        for (int k=0; k < tmpVec.length; k++ ) {
+            tmpVec[k] = x[k]+y[k];
+        }
+
+        return sumLog10(tmpVec);
+
+
+
+    }
     public static Object getMedian(List<Comparable> list) {
         return orderStatisticSearch((int) Math.ceil(list.size() / 2), list);
     }

@@ -94,9 +94,10 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     }
 
 
-    private ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
+    public static ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                       Map<String, AlignmentContext> contexts,
-                                                      AlignmentContextUtils.ReadOrientation contextType, GenomeLocParser locParser) {
+                                                      AlignmentContextUtils.ReadOrientation contextType, GenomeLocParser locParser,
+                                                      int minIndelCountForGenotyping, boolean doMultiAllelicCalls) {
         Allele refAllele = null, altAllele = null;
         GenomeLoc loc = ref.getLocus();
         ArrayList<Allele> aList = new ArrayList<Allele>();
@@ -337,7 +338,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 }
 
             } else {
-                alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser);
+                alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser, minIndelCountForGenotyping,doMultiAllelicCalls);
                 if (alleleList.isEmpty())
                     return null;
             }

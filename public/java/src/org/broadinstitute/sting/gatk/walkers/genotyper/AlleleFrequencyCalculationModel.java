@@ -41,7 +41,8 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     public enum Model {
         /** The default model with the best performance in all cases */
-        EXACT
+        EXACT,
+        POOL
     }
 
     protected int N;

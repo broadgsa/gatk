@@ -36,14 +36,17 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.util.*;
 
 public class UnifiedGenotyperEngine {
@@ -71,7 +74,7 @@ public class UnifiedGenotyperEngine {
     private final VariantAnnotatorEngine annotationEngine;
 
     // the model used for calculating genotypes
-    private ThreadLocal<Map<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel>>();
+    private ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>>();
 
     // the model used for calculating p(non-ref)
     private ThreadLocal<AlleleFrequencyCalculationModel> afcm = new ThreadLocal<AlleleFrequencyCalculationModel>();
@@ -121,7 +124,7 @@ public class UnifiedGenotyperEngine {
         genomeLocParser = toolkit.getGenomeLocParser();
         this.samples = new TreeSet<String>(samples);
         // note that, because we cap the base quality by the mapping quality, minMQ cannot be less than minBQ
-        this.UAC = UAC.clone();
+        this.UAC = UAC;
 
         this.logger = logger;
         this.verboseWriter = verboseWriter;
@@ -219,7 +222,7 @@ public class UnifiedGenotyperEngine {
             glcm.set(getGenotypeLikelihoodsCalculationObject(logger, UAC));
         }
 
-        return glcm.get().get(model).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
+        return glcm.get().get(model.name()).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
     }
 
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
@@ -446,7 +449,7 @@ public class UnifiedGenotyperEngine {
         if ( !BaseUtils.isRegularBase( refContext.getBase() ) )
             return null;
 
-        if ( model == GenotypeLikelihoodsCalculationModel.Model.INDEL ) {
+        if ( model.name().toUpperCase().contains("INDEL")) {
 
             if (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
                 // regular pileup in this case
@@ -476,7 +479,7 @@ public class UnifiedGenotyperEngine {
                 // stratify the AlignmentContext and cut by sample
                 stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
             }
-        } else if ( model == GenotypeLikelihoodsCalculationModel.Model.SNP ) {
+        } else if ( model.name().toUpperCase().contains("SNP") ) {
 
             // stratify the AlignmentContext and cut by sample
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup());
@@ -618,21 +621,27 @@ public class UnifiedGenotyperEngine {
                     return null;
 
                 if (vcInput.isSNP())  {
-                    if (( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP))
+                    if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
                         return GenotypeLikelihoodsCalculationModel.Model.SNP;
+                    else if ( UAC.GLmodel.name().toUpperCase().contains("SNP"))
+                        return UAC.GLmodel;
                     else
                         // ignore SNP's if user chose INDEL mode
                         return null;
                 }
-                else if ((vcInput.isIndel() || vcInput.isMixed()) && (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.INDEL))
-                    return GenotypeLikelihoodsCalculationModel.Model.INDEL;
+                else if ((vcInput.isIndel() || vcInput.isMixed())) {
+                    if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
+                        return GenotypeLikelihoodsCalculationModel.Model.INDEL;
+                    else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
+                        return UAC.GLmodel;
+                }
             }
             else {
                 // todo - this assumes SNP's take priority when BOTH is selected, should do a smarter way once extended events are removed
-                if( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP)
+                if( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
                     return GenotypeLikelihoodsCalculationModel.Model.SNP;
-                else if (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.INDEL)
-                    return GenotypeLikelihoodsCalculationModel.Model.INDEL;
+                else if (UAC.GLmodel.name().toUpperCase().contains("SNP") || UAC.GLmodel.name().toUpperCase().contains("INDEL"))
+                    return UAC.GLmodel;
             }
         }
         return null;
@@ -657,58 +666,76 @@ public class UnifiedGenotyperEngine {
     }
 
     protected double[][] getAlleleFrequencyPriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
-        switch( model ) {
-            case SNP:
-                return log10AlleleFrequencyPriorsSNPs;
-            case INDEL:
-                return log10AlleleFrequencyPriorsIndels;
-            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
-        }
+        if (model.name().toUpperCase().contains("SNP"))
+            return log10AlleleFrequencyPriorsSNPs;
+        else if (model.name().toUpperCase().contains("INDEL"))
+            return log10AlleleFrequencyPriorsIndels;
+        else
+            throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
     }
 
     private static GenotypePriors createGenotypePriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
         GenotypePriors priors;
-        switch ( model ) {
-            case SNP:
-                // use flat priors for GLs
-                priors = new DiploidSNPGenotypePriors();
-                break;
-            case INDEL:
-                // create flat priors for Indels, actual priors will depend on event length to be genotyped
-                priors = new DiploidIndelGenotypePriors();
-                break;
-            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
-        }
+        if( model.name().contains("SNP") )
+            priors = new DiploidSNPGenotypePriors();
+        else if( model.name().contains("INDEL") )
+            priors = new DiploidIndelGenotypePriors();
+        else throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
+
         return priors;
     }
 
     protected GenotypePriors getGenotypePriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
-        switch( model ) {
-            case SNP:
-                return genotypePriorsSNPs;
-            case INDEL:
-                return genotypePriorsIndels;
-            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
-        }
+        if( model.name().contains("SNP") )
+            return genotypePriorsSNPs;
+        if( model.name().contains("INDEL") )
+            return genotypePriorsIndels;
+        else throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
     }
 
-    private static Map<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel> getGenotypeLikelihoodsCalculationObject(Logger logger, UnifiedArgumentCollection UAC) {
-        Map<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel> glcm = new HashMap<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel>();
-        glcm.put(GenotypeLikelihoodsCalculationModel.Model.SNP, new SNPGenotypeLikelihoodsCalculationModel(UAC, logger));
-        glcm.put(GenotypeLikelihoodsCalculationModel.Model.INDEL, new IndelGenotypeLikelihoodsCalculationModel(UAC, logger));
+    private static Map<String,GenotypeLikelihoodsCalculationModel> getGenotypeLikelihoodsCalculationObject(Logger logger, UnifiedArgumentCollection UAC) {
+
+
+        Map<String, GenotypeLikelihoodsCalculationModel> glcm = new HashMap<String, GenotypeLikelihoodsCalculationModel>();
+       // GenotypeLikelihoodsCalculationModel.Model.
+        List<Class<? extends GenotypeLikelihoodsCalculationModel>> glmClasses = new PluginManager<GenotypeLikelihoodsCalculationModel>(GenotypeLikelihoodsCalculationModel.class).getPlugins();
+
+        for (int i = 0; i < glmClasses.size(); i++) {
+            Class<? extends GenotypeLikelihoodsCalculationModel> glmClass = glmClasses.get(i);
+            String key = glmClass.getSimpleName().replaceAll("GenotypeLikelihoodsCalculationModel","").toUpperCase();
+            System.out.println("KEY:"+key+"\t" + glmClass.getSimpleName());
+            try {
+                Object args[] = new Object[]{UAC,logger};
+                Constructor c = glmClass.getDeclaredConstructor(UnifiedArgumentCollection.class, Logger.class);
+                glcm.put(key, (GenotypeLikelihoodsCalculationModel)c.newInstance(args));
+            }
+            catch (Exception e) {
+                throw new UserException("Incorrect specification for argument glm:"+UAC.GLmodel+e.getMessage());
+            }
+         }
+
         return glcm;
     }
 
     private static AlleleFrequencyCalculationModel getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
-        AlleleFrequencyCalculationModel afcm;
-        switch ( UAC.AFmodel ) {
-            case EXACT:
-                afcm = new ExactAFCalculationModel(UAC, N, logger, verboseWriter);
-                break;
-            default: throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
-        }
+        List<Class<? extends AlleleFrequencyCalculationModel>> afClasses = new PluginManager<AlleleFrequencyCalculationModel>(AlleleFrequencyCalculationModel.class).getPlugins();
 
-        return afcm;
+        for (int i = 0; i < afClasses.size(); i++) {
+            Class<? extends AlleleFrequencyCalculationModel> afClass = afClasses.get(i);
+            String key = afClass.getSimpleName().replace("AFCalculationModel","").toUpperCase();
+            if (UAC.AFmodel.name().equalsIgnoreCase(key)) {
+                try {
+                    Object args[] = new Object[]{UAC,N,logger,verboseWriter};
+                    Constructor c = afClass.getDeclaredConstructor(UnifiedArgumentCollection.class, int.class, Logger.class, PrintStream.class);
+
+                    return (AlleleFrequencyCalculationModel)c.newInstance(args);
+                }
+                catch (Exception e) {
+                    throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
+                }
+            }
+        }
+        throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
     }
 
     public static VariantContext getVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {
