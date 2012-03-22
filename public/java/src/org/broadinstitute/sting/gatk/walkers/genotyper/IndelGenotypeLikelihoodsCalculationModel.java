@@ -240,6 +240,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     refAllele = Allele.create(refBases, true);
                     altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
                 }
+                else continue; // don't go on with this allele if refBases are non-standard
             } else {
                 // insertion case
                 if (Allele.acceptableAlleleBases(s)) {
@@ -247,6 +248,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     altAllele = Allele.create(s, false);
                     stop = loc.getStart();
                 }
+                else continue; // go on to next allele if consensus insertion has any non-standard base.
             }
 
 
