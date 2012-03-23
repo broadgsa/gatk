@@ -63,20 +63,19 @@ public class RecalDataManager {
 
     public final static String ARGUMENT_VALUE_COLUMN_NAME = "Value";
     public final static String QUANTIZED_VALUE_COLUMN_NAME = "QuantizedScore";
+    public static final String QUANTIZED_COUNT_COLUMN_NAME = "Count";
     public final static String READGROUP_COLUMN_NAME = "ReadGroup";
     public final static String EVENT_TYPE_COLUMN_NAME = "EventType";
     public final static String EMPIRICAL_QUALITY_COLUMN_NAME = "EmpiricalQuality";
     public final static String ESTIMATED_Q_REPORTED_COLUMN_NAME = "EstimatedQReported";
     public final static String QUALITY_SCORE_COLUMN_NAME = "QualityScore";
-    public final static String COVARIATE_VALUE_SCORE_COLUMN_NAME = "CovariateValue";
+    public final static String COVARIATE_VALUE_COLUMN_NAME = "CovariateValue";
     public final static String COVARIATE_NAME_COLUMN_NAME = "CovariateName";
 
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                       // The tag that holds the color space quality scores for SOLID bams
     public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
     public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
-
-
 
 
     public enum SOLID_RECAL_MODE {

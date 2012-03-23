@@ -124,7 +124,7 @@ public class BaseRecalibration {
         ArrayList<String> columnNamesOrderedList = new ArrayList<String>(5);
         columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.COVARIATE_VALUE_SCORE_COLUMN_NAME);
+        columnNamesOrderedList.add(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.COVARIATE_NAME_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
         return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
