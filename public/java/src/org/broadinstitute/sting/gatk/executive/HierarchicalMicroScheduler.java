@@ -47,7 +47,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * An exception that's occurred in this traversal.  If null, no exception has occurred.
      */
-    private Throwable error = null;
+    private RuntimeException error = null;
 
     /**
      * Queue of incoming shards.
@@ -345,22 +345,22 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         return error != null;
     }
 
-    private synchronized StingException getTraversalError() {
+    private synchronized RuntimeException getTraversalError() {
         if(!hasTraversalErrorOccurred())
             throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
-
-        // If the error is already a StingException, pass it along as is.  Otherwise, wrap it.
-        if(error instanceof StingException)
-            return (StingException)error;
-        else
-            return new ReviewedStingException("An error occurred during the traversal.",error);
+        return error;
     }
 
     /**
      * Allows other threads to notify of an error during traversal.
      */
     protected synchronized void notifyOfTraversalError(Throwable error) {
-        this.error = error;    
+        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
+        if (error instanceof RuntimeException)
+            this.error = (RuntimeException)error;
+        else
+            this.error = new ReviewedStingException("An error occurred during the traversal.", error);
+
     }
 
 
