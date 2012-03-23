@@ -28,7 +28,8 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import net.sf.samtools.SAMUtils;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.walkers.recalibration.EmpiricalQual;
+import org.broadinstitute.sting.gatk.report.GATKReport;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -42,6 +43,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -71,12 +73,13 @@ public class RecalDataManager {
     public final static String QUALITY_SCORE_COLUMN_NAME = "QualityScore";
     public final static String COVARIATE_VALUE_COLUMN_NAME = "CovariateValue";
     public final static String COVARIATE_NAME_COLUMN_NAME = "CovariateName";
+    public final static String NUMBER_OBSERVATIONS_COLUMN_NAME = "Observations";
+    public final static String NUMBER_ERRORS_COLUMN_NAME = "Errors";
 
-    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                       // The tag that holds the color space quality scores for SOLID bams
-    public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
-    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
+    private final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                       // The tag that holds the color space quality scores for SOLID bams
+    private final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
+    private final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
-
 
     public enum SOLID_RECAL_MODE {
         /**
@@ -136,25 +139,38 @@ public class RecalDataManager {
         }
     }
 
-    public static void listAvailableCovariates(Logger logger) {
-        // Get a list of all available covariates
-        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
 
-        // Print and exit if that's what was requested
-        logger.info("Available covariates:");
-        for (Class<?> covClass : covariateClasses)
-            logger.info(covClass.getSimpleName());
-        logger.info("");
+    /**
+     * Initializes the recalibration table -> key manager map
+     *
+     * @param requiredCovariates list of required covariates (in order)
+     * @param optionalCovariates list of optional covariates (in order)
+     * @return a map with each key manager and it's corresponding recalibration table properly initialized
+     */
+    public static LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> initializeTables(ArrayList<Covariate> requiredCovariates, ArrayList<Covariate> optionalCovariates) {
+        final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> tablesAndKeysMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
+        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size() + 1);         // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
+        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
+        for (Covariate covariate : requiredCovariates) {
+            requiredCovariatesToAdd.add(covariate);
+            final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(QualityUtils.MAX_QUAL_SCORE);    // initializing a new recal table for each required covariate (cumulatively)
+            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
+            tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
+        }
+        final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(Short.MAX_VALUE);                    // initializing a new recal table to hold all optional covariates
+        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
+        tablesAndKeysMap.put(keyManager, recalTable);                                                                   // adding the pair table+key to the map
+        return tablesAndKeysMap;
     }
 
     /**
      * Generates two lists : required covariates and optional covariates based on the user's requests.
-     * 
+     *
      * Performs the following tasks in order:
      *  1. Adds all requierd covariates in order
      *  2. Check if the user asked to use the standard covariates and adds them all if that's the case
-     *  3. Adds all covariates requested by the user that were not already added by the two previous steps 
-     * 
+     *  3. Adds all covariates requested by the user that were not already added by the two previous steps
+     *
      * @param argumentCollection the argument collection object for the recalibration walker
      * @return a pair of ordered lists : required covariates (first) and optional covariates (second)
      */
@@ -194,52 +210,102 @@ public class RecalDataManager {
         return new Pair<ArrayList<Covariate>, ArrayList<Covariate>>(requiredCovariates, optionalCovariates);
     }
 
-    /**
-     * Initializes the recalibration table -> key manager map
-     *
-     * @param requiredCovariates list of required covariates (in order)
-     * @param optionalCovariates list of optional covariates (in order)
-     * @return a map with each key manager and it's corresponding recalibration table properly initialized
-     */
-    public static LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> initializeTables(ArrayList<Covariate> requiredCovariates, ArrayList<Covariate> optionalCovariates) {
-        final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> tablesAndKeysMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
-        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size() + 1);         // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
-        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
-        for (Covariate covariate : requiredCovariates) {
-            requiredCovariatesToAdd.add(covariate);
-            final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(QualityUtils.MAX_QUAL_SCORE);    // initializing a new recal table for each required covariate (cumulatively)
-            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
-            tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
-        }
-        final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(Short.MAX_VALUE);                    // initializing a new recal table to hold all optional covariates
-        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
-        tablesAndKeysMap.put(keyManager, recalTable);                                                                   // adding the pair table+key to the map
-        return tablesAndKeysMap;
+    public static void listAvailableCovariates(Logger logger) {
+        // Get a list of all available covariates
+        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
+
+        // Print and exit if that's what was requested
+        logger.info("Available covariates:");
+        for (Class<?> covClass : covariateClasses)
+            logger.info(covClass.getSimpleName());
+        logger.info("");
     }
 
-    /**
-     * Initializes the table -> key manager map (unfortunate copy of the above code with minor modifications to accomodate the different return types (RecalDatum vs EmpiricalQual objects)
-     *
-     * @param requiredCovariates list of required covariates (in order)
-     * @param optionalCovariates list of optional covariates (in order)
-     * @return a map with each key manager and it's corresponding recalibration table properly initialized
-     */
-    public static LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>> initializeEmpiricalTables(ArrayList<Covariate> requiredCovariates, ArrayList<Covariate> optionalCovariates) {
-        final LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>> tablesAndKeysMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, EmpiricalQual>>();
-        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size() + 1);         // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
-        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
-        for (Covariate covariate : requiredCovariates) {
-            requiredCovariatesToAdd.add(covariate);
-            final Map<BitSet, EmpiricalQual> recalTable = new HashMap<BitSet, EmpiricalQual>(QualityUtils.MAX_QUAL_SCORE);    // initializing a new recal table for each required covariate (cumulatively)
-            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
-            tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
+    public static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
+        List<GATKReportTable> result = new LinkedList<GATKReportTable>();
+        int tableIndex = 0;
+        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
+            BQSRKeyManager keyManager = entry.getKey();
+            Map<BitSet, RecalDatum> recalTable = entry.getValue();
+
+            GATKReportTable reportTable = new GATKReportTable("RecalTable" + tableIndex++, "");
+            final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
+            final Pair<String, String> covariateName      = new Pair<String, String>(RecalDataManager.COVARIATE_NAME_COLUMN_NAME, "%s");
+            final Pair<String, String> eventType          = new Pair<String, String>(RecalDataManager.EVENT_TYPE_COLUMN_NAME, "%s");
+            final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME, "%.2f");
+            final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.2f");
+            final Pair<String, String> nObservations      = new Pair<String, String>(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
+            final Pair<String, String> nErrors            = new Pair<String, String>(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME, "%d");
+
+            long primaryKey = 0L;
+
+            List<Covariate> requiredList = keyManager.getRequiredCovariates();                                          // ask the key manager what required covariates were used in this recal table 
+            List<Covariate> optionalList = keyManager.getOptionalCovariates();                                          // ask the key manager what optional covariates were used in this recal table
+
+            ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                        // initialize the array to hold the column names
+
+            for (Covariate covariate : requiredList) {
+                String name = covariate.getClass().getSimpleName().split("Covariate")[0];                               // get the covariate names and put them in order
+                columnNames.add(new Pair<String,String>(name, "%s"));                                                   // save the required covariate name so we can reference it in the future
+            }
+
+            if (optionalList.size() > 0) {
+                columnNames.add(covariateValue);
+                columnNames.add(covariateName);
+            }
+
+            columnNames.add(eventType);                                                                                 // the order of these column names is important here
+            columnNames.add(empiricalQuality);
+            columnNames.add(estimatedQReported);
+            columnNames.add(nObservations);
+            columnNames.add(nErrors);
+
+
+            reportTable.addPrimaryKey("PrimaryKey", false);                                                             // every table must have a primary key (hidden)
+            for (Pair<String, String> columnName : columnNames)
+                reportTable.addColumn(columnName.getFirst(), true, columnName.getSecond());                             // every table must have the event type
+
+            for (Map.Entry<BitSet, RecalDatum> recalTableEntry : recalTable.entrySet()) {                               // create a map with column name => key value for all covariate keys
+                BitSet bitSetKey = recalTableEntry.getKey();
+                Map<String, Object> columnData = new HashMap<String, Object>(columnNames.size());
+                Iterator<Pair<String, String>> iterator = columnNames.iterator();
+                for (Object key : keyManager.keySetFrom(bitSetKey)) {
+                    String columnName = iterator.next().getFirst();
+                    columnData.put(columnName, key);
+                }
+                RecalDatum datum = recalTableEntry.getValue();
+                columnData.put(iterator.next().getFirst(), datum.getEmpiricalQuality());                                // iterator.next() gives the column name for Empirical Quality
+                columnData.put(iterator.next().getFirst(), Math.round(datum.getEstimatedQReported()));                  // iterator.next() gives the column name for EstimatedQReported
+                columnData.put(iterator.next().getFirst(), datum.numObservations);
+                columnData.put(iterator.next().getFirst(), datum.numMismatches);
+
+                for (Map.Entry<String, Object> dataEntry : columnData.entrySet()) {
+                    String columnName = dataEntry.getKey();
+                    Object value = dataEntry.getValue();
+                    reportTable.set(primaryKey, columnName, value.toString());
+                }
+                primaryKey++;
+            }
+            result.add(reportTable);
         }
-        final Map<BitSet, EmpiricalQual> recalTable = new HashMap<BitSet, EmpiricalQual>(Short.MAX_VALUE);                    // initializing a new recal table to hold all optional covariates
-        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
-        tablesAndKeysMap.put(keyManager, recalTable);                                                                   // adding the pair table+key to the map
-        return tablesAndKeysMap;
+        return result;
     }
 
+    public static void outputRecalibrationReport(RecalibrationArgumentCollection RAC, QuantizationInfo quantizationInfo, Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
+        outputRecalibrationReport(RAC.generateReportTable(), quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
+    }
+
+    public static void outputRecalibrationReport(GATKReportTable argumentTable, QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager,Map<BitSet, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
+        outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
+    }
+
+    private static void outputRecalibrationReport(GATKReportTable argumentTable, GATKReportTable quantizationTable, List<GATKReportTable> recalTables, PrintStream outputFile) {
+        GATKReport report = new GATKReport();
+        report.addTable(argumentTable);
+        report.addTable(quantizationTable);
+        report.addTables(recalTables);
+        report.print(outputFile);
+    }
 
     /**
      * Section of code shared between the two recalibration walkers which uses the command line arguments to adjust attributes of the read such as quals or platform string
