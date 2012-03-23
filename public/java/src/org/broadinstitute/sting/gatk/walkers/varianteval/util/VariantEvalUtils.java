@@ -191,7 +191,7 @@ public class VariantEvalUtils {
      * @return a map of all the evaluation contexts
      */
     public HashMap<StateKey, NewEvaluationContext> initializeEvaluationContexts(Set<VariantStratifier> stratificationObjects, Set<Class<? extends VariantEvaluator>> evaluationObjects, Stack<VariantStratifier> stratStack, NewEvaluationContext ec) {
-        HashMap<StateKey, NewEvaluationContext> ecs = new HashMap<StateKey, NewEvaluationContext>();
+        HashMap<StateKey, NewEvaluationContext> ecs = new LinkedHashMap<StateKey, NewEvaluationContext>();
 
         if (stratStack == null) {
             stratStack = new Stack<VariantStratifier>();
