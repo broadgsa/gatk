@@ -255,9 +255,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     private final String noveltyRate(Type type) {
         final int all = allVariantCounts.all(type);
         final int known = knownVariantCounts.all(type);
-        final int novel = all - known;
-        final double rate = (novel / (1.0 * all));
-        return all == 0 ? "NA" : String.format("%.2f", rate);
+        return formattedNoveltyRate(known, all);
     }
 
     public void finalizeEvaluation() {

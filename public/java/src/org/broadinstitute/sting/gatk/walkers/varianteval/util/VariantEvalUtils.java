@@ -310,7 +310,7 @@ public class VariantEvalUtils {
         final int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
 
         if (originalAlleleCount == newAlleleCount && newAlleleCount == 1) {
-            builder.attribute("ISSINGLETON", true);
+            builder.attribute(VariantEvalWalker.IS_SINGLETON_KEY, true);
         }
 
         VariantContextUtils.calculateChromosomeCounts(builder, true);

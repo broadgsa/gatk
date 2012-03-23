@@ -87,13 +87,8 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
     public String indelNoveltyRate = "NA";
 
 
-    public void initialize(VariantEvalWalker walker) {}
-
     @Override public boolean enabled() { return true; }
-
-    public int getComparisonOrder() {
-        return 2;
-    }
+    @Override public int getComparisonOrder() { return 2; }
 
     public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
@@ -156,12 +151,6 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
         // TODO -- implement me
     }
 
-    private final String noveltyRate(final int all, final int known) {
-        final int novel = all - known;
-        final double rate = (novel / (1.0 * all));
-        return all == 0 ? "NA" : String.format("%.2f", rate);
-    }
-
     public void finalizeEvaluation() {
         processedMultiSnpRatio = (double)nMultiSNPs / (double)nProcessedLoci;
         variantMultiSnpRatio = (double)nMultiSNPs / (double)nSNPs;
@@ -170,7 +159,7 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
 
         TiTvRatio = (double)nTi / (double)nTv;
 
-        SNPNoveltyRate = noveltyRate(nMultiSNPs, knownSNPsPartial + knownSNPsComplete);
-        indelNoveltyRate = noveltyRate(nMultiSNPs, knownIndelsPartial + knownIndelsComplete);
+        SNPNoveltyRate = formattedNoveltyRate(knownSNPsPartial + knownSNPsComplete, nMultiSNPs);
+        indelNoveltyRate = formattedNoveltyRate(knownIndelsPartial + knownIndelsComplete, nMultiSNPs);
     }
 }

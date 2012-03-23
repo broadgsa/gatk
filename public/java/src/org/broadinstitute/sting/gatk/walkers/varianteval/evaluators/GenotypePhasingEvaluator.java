@@ -376,7 +376,7 @@ class PhaseStats {
 /**
  * a table of sample names to genotype phasing statistics
  */
-class SamplePhasingStatistics implements TableType {
+class SamplePhasingStatistics extends TableType {
     private HashMap<String, PhaseStats> sampleStats = null;
     private double minPhaseQuality;
 
