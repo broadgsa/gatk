@@ -222,7 +222,10 @@ public class GenotypeLikelihoods {
     /*
      * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
      */
-    private static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = new GenotypeLikelihoodsAllelePair[]{ new GenotypeLikelihoodsAllelePair(0, 0) };
+    private static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex;
+    static {
+        calculatePLcache(65); // start with data for 10 alternate alleles
+    }
 
     private static void calculatePLcache(final int minIndex) {
         // how many alternate alleles do we need to calculate for?
@@ -266,6 +269,7 @@ public class GenotypeLikelihoods {
      */
     public static GenotypeLikelihoodsAllelePair getAllelePair(final int PLindex) {
         // make sure that we've cached enough data
+        // TODO -- this is not thread-safe!
         if ( PLindex >= PLIndexToAlleleIndex.length )
             calculatePLcache(PLindex);
 
