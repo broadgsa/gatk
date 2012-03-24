@@ -60,6 +60,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     double minPhaseQuality = 10.0;
 
     public void initialize(VariantEvalWalker walker) {
+        super.initialize(walker);
         this.samplePhasingStatistics = new SamplePhasingStatistics(walker.getMinPhaseQuality());
         this.samplePrevGenotypes = new SamplePreviousGenotypes();
     }
@@ -293,14 +294,6 @@ class CompEvalGenotypes {
     }
     public Genotype getEvalGenotype() {
         return evalGt;
-    }
-
-    public void setCompGenotype(Genotype compGt) {
-        this.compGt = compGt;
-    }
-
-    public void setEvalGenotype(Genotype evalGt) {
-        this.evalGt = evalGt;
     }
 }
 

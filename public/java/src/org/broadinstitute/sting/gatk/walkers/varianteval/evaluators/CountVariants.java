@@ -89,10 +89,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         return 1;   // we only need to see each eval track
     }
 
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
-    }
-
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nCalledLoci++;
 
@@ -192,6 +188,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     }
 
     public void finalizeEvaluation() {
+        nProcessedLoci = getWalker().getnProcessedLoci();
         variantRate = perLocusRate(nVariantLoci);
         variantRatePerBp = perLocusRInverseRate(nVariantLoci);
         heterozygosity = perLocusRate(nHets);

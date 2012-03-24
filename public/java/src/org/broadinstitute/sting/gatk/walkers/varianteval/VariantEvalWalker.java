@@ -214,6 +214,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     // Public constants
     private static String ALL_SAMPLE_NAME = "all";
 
+    // the number of processed bp for this walker
+    long nProcessedLoci = 0;
+
     // Utility class
     private final VariantEvalUtils variantEvalUtils = new VariantEvalUtils(this);
 
@@ -326,10 +329,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( final NewEvaluationContext nec : evaluationContexts.values() ) {
-            synchronized (nec) {
-                nec.update0(tracker, ref, context);
-            }
+        // we track the processed bp and expose this for modules instead of wasting CPU power on calculating
+        // the same thing over and over in evals that want the processed bp
+        synchronized (this) {
+            nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
         }
 
         if (tracker != null) {
@@ -455,7 +458,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     if ( lenientMatch == null ) lenientMatch = comp;
                     break;
                 case NO_MATCH:
-                    ;
+                    // do nothing
             }
         }
 
@@ -580,6 +583,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public List<RodBinding<VariantContext>> getComps() { return comps; }
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
+
+    public long getnProcessedLoci() {
+        return nProcessedLoci;
+    }
 
     public Set<String> getContigNames() {
         final TreeSet<String> contigs = new TreeSet<String>();

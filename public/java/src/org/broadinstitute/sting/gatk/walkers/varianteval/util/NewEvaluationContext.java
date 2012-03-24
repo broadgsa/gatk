@@ -23,9 +23,7 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
                 final VariantEvaluator eval = c.newInstance();
                 eval.initialize(walker);
 
-                if (eval.stateIsApplicable(stateKey)) {
-                    evaluationInstances.put(c.getSimpleName(), eval);
-                }
+                evaluationInstances.put(c.getSimpleName(), eval);
             } catch (InstantiationException e) {
                 throw new StingException("Unable to instantiate eval module '" + c.getSimpleName() + "'");
             } catch (IllegalAccessException e) {
@@ -40,8 +38,6 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
 
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
         for ( final VariantEvaluator evaluation : evaluationInstances.values() ) {
-            // we always call update0 in case the evaluation tracks things like number of bases covered
-
             // the other updateN methods don't see a null context
             if ( tracker == null )
                 continue;
@@ -63,12 +59,6 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
                 default:
                     throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
             }
-        }
-    }
-
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( final VariantEvaluator evaluation : evaluationInstances.values() ) {
-            evaluation.update0(tracker, ref, context);
         }
     }
 }

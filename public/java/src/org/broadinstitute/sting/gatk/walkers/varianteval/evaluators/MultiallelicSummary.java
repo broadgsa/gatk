@@ -28,11 +28,12 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 @Analysis(description = "Evaluation summary for multi-allelic variants")
 public class MultiallelicSummary extends VariantEvaluator implements StandardEval {
@@ -89,10 +90,6 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
 
     @Override public boolean enabled() { return true; }
     @Override public int getComparisonOrder() { return 2; }
-
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
-    }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( eval == null || eval.isMonomorphicInSamples() )
@@ -152,6 +149,7 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
     }
 
     public void finalizeEvaluation() {
+        nProcessedLoci = getWalker().getnProcessedLoci();
         processedMultiSnpRatio = (double)nMultiSNPs / (double)nProcessedLoci;
         variantMultiSnpRatio = (double)nMultiSNPs / (double)nSNPs;
         processedMultiIndelRatio = (double)nMultiIndels / (double)nProcessedLoci;

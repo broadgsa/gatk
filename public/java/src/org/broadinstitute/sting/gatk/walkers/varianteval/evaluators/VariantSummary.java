@@ -49,7 +49,6 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     /** Indels with size greater than this value are tallied in the CNV column */
     private final static int MAX_INDEL_LENGTH = 50;
     private final static double MIN_CNV_OVERLAP = 0.5;
-    private VariantEvalWalker walker;
 
     public enum Type {
         SNP, INDEL, CNV
@@ -152,7 +151,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
 
     public void initialize(VariantEvalWalker walker) {
-        this.walker = walker;
+        super.initialize(walker);
 
         nSamples = walker.getSampleNamesForEvaluation().size();
         countsPerSample = new TypeSampleMap(walker.getSampleNamesForEvaluation());
@@ -176,11 +175,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         return 2;   // we only need to see each eval track
     }
 
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
-    }
-
-    private final Type getType(VariantContext vc) {
+    private Type getType(VariantContext vc) {
         switch (vc.getType()) {
             case SNP:
                 return Type.SNP;
@@ -196,9 +191,9 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         }
     }
 
-    private final boolean overlapsKnownCNV(VariantContext cnv) {
+    private boolean overlapsKnownCNV(VariantContext cnv) {
         if ( knownCNVs != null ) {
-            final GenomeLoc loc = walker.getGenomeLocParser().createGenomeLoc(cnv, true);
+            final GenomeLoc loc = getWalker().getGenomeLocParser().createGenomeLoc(cnv, true);
             IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
 
             final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());
@@ -252,13 +247,14 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         return null; // we don't capture any interesting sites
     }
 
-    private final String noveltyRate(Type type) {
+    private String noveltyRate(Type type) {
         final int all = allVariantCounts.all(type);
         final int known = knownVariantCounts.all(type);
         return formattedNoveltyRate(known, all);
     }
 
     public void finalizeEvaluation() {
+        nProcessedLoci = getWalker().getnProcessedLoci();
         nSNPs = allVariantCounts.all(Type.SNP);
         nIndels = allVariantCounts.all(Type.INDEL);
         nSVs = allVariantCounts.all(Type.CNV);

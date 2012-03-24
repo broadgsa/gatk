@@ -4,14 +4,18 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.NewEvaluationContext;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.StateKey;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Collection;
-
 public abstract class VariantEvaluator {
-    public void initialize(VariantEvalWalker walker) {}
+    private VariantEvalWalker walker;
+
+    public void initialize(VariantEvalWalker walker) {
+        this.walker = walker;
+    }
+
+    public VariantEvalWalker getWalker() {
+        return walker;
+    }
 
     public abstract boolean enabled();
 
@@ -19,9 +23,8 @@ public abstract class VariantEvaluator {
     public abstract int getComparisonOrder();
 
     // called at all sites, regardless of eval context itself; useful for counting processed bases
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-
-    }
+    // No longer available.  The processed bp is kept in VEW itself for performance reasons
+    //    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return null;
@@ -45,17 +48,13 @@ public abstract class VariantEvaluator {
         return ((double)num) / (Math.max(denom, 1));
     }
 
-    public boolean stateIsApplicable(StateKey stateKey) {
-        return true;
-    }
-
     /**
      * Returns true if the variant in vc was a singleton in the original input evaluation
      * set, regardless of variant context subsetting that has occurred.
-     * @param eval
+     * @param eval the VariantContext being assessed for this previous status as a singleton
      * @return true if eval was originally a singleton site
      */
-    protected static final boolean variantWasSingleton(final VariantContext eval) {
+    protected static boolean variantWasSingleton(final VariantContext eval) {
         return eval.getAttributeAsBoolean(VariantEvalWalker.IS_SINGLETON_KEY, false);
     }
 
@@ -66,7 +65,7 @@ public abstract class VariantEvaluator {
      * @param all number of all variants
      * @return a String novelty rate, or NA if all == 0
      */
-    protected static final String formattedNoveltyRate(final int known, final int all) {
+    protected static String formattedNoveltyRate(final int known, final int all) {
         return formattedPercent(all - known, all);
     }
 
@@ -77,7 +76,7 @@ public abstract class VariantEvaluator {
      * @param total count of all objects, including x
      * @return a String percent rate, or NA if total == 0
      */
-    protected static final String formattedPercent(final int x, final int total) {
+    protected static String formattedPercent(final int x, final int total) {
         return total == 0 ? "NA" : String.format("%.2f", x / (1.0*total));
     }
 
@@ -88,7 +87,7 @@ public abstract class VariantEvaluator {
      * @param denom number of observations in the denumerator
      * @return a String formatted ratio, or NA if all == 0
      */
-    protected static final String formattedRatio(final int num, final int denom) {
+    protected static String formattedRatio(final int num, final int denom) {
         return denom == 0 ? "NA" : String.format("%.2f", num / (1.0 * denom));
     }
 }

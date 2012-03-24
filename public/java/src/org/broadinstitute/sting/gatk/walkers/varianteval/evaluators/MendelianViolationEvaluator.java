@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.PrintStream;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,17 +59,6 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     @DataPoint(description = "Number of mendelian violations found", format = "%d")
     long nViolations;
 
-
-    /*@DataPoint(description = "number of child hom ref calls where the parent was hom variant", format = "%d")
-    long KidHomRef_ParentHomVar;
-    @DataPoint(description = "number of child het calls where the parent was hom ref", format = "%d")
-    long KidHet_ParentsHomRef;
-    @DataPoint(description = "number of child het calls where the parent was hom variant", format = "%d")
-    long KidHet_ParentsHomVar;
-    @DataPoint(description = "number of child hom variant calls where the parent was hom ref", format = "%d")
-    long KidHomVar_ParentHomRef;
-    */
-
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HOM_VAR", format = "%d")
     long mvRefRef_Var;
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HET", format = "%d")
@@ -87,12 +75,6 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     long mvVarVar_Ref;
     @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HET", format = "%d")
     long mvVarVar_Het;
-
-
-    /*@DataPoint(description ="Number of inherited var alleles from het parents", format = "%d")
-    long nInheritedVar;
-    @DataPoint(description ="Number of inherited ref alleles from het parents", format = "%d")
-    long nInheritedRef;*/
 
     @DataPoint(description="Number of HomRef/HomRef/HomRef trios", format = "%d")
     long HomRefHomRef_HomRef;
@@ -120,18 +102,15 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     long HomVarHet_inheritedVar;
 
     MendelianViolation mv;
-    PrintStream mvFile;
     Map<String,Set<Sample>> families;
 
     public void initialize(VariantEvalWalker walker) {
-        //Changed by Laurent Francioli - 2011-06-07
-        //mv = new MendelianViolation(walker.getFamilyStructure(), walker.getMendelianViolationQualThreshold());
+        super.initialize(walker);
         mv = new MendelianViolation(walker.getMendelianViolationQualThreshold(),false);
         families = walker.getSampleDB().getFamilies();
     }
 
     public boolean enabled() {
-        //return getVEWalker().FAMILY_STRUCTURE != null;
         return true;
     }
 
