@@ -955,8 +955,8 @@
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
                 <jvmarg line="${cofoja.jvm.args}"/>
-                 <jvmarg value="-Xdebug"/>  
-                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5678"/>  
+                <!-- <jvmarg value="-Xdebug"/> --> 
+                <!-- <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5678"/> -->  
 
                 <classfileset dir="${java.public.test.classes}" includes="**/@{testtype}.class"/>
                 <classfileset dir="${java.private.test.classes}" erroronmissingdir="false">
