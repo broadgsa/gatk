@@ -30,7 +30,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "Number of variants per base", format = "%.8f")
     public double variantRatePerBp = 0;
 
-
     @DataPoint(description = "Number of snp loci", format = "%d")
     public long nSNPs = 0;
     @DataPoint(description = "Number of mnp loci", format = "%d")
@@ -46,7 +45,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
 
     @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)", format = "%d")
     public long nMixed = 0;
-
 
     @DataPoint(description = "Number of no calls loci", format = "%d")
     public long nNoCalls = 0;
@@ -72,8 +70,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public double indelRate = 0;
     @DataPoint(description = "indel rate per base pair", format = "%.2f")
     public double indelRatePerBp = 0;
-    @DataPoint(description = "deletion to insertion ratio", format = "%.2f")
-    public double deletionInsertionRatio = 0;
+    @DataPoint(description = "insertion  to deletion ratio", format = "%.2f")
+    public double insertionDeletionRatio = 0;
     
     private double perLocusRate(long n) {
         return rate(n, nProcessedLoci);
@@ -89,10 +87,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
 
     public int getComparisonOrder() {
         return 1;   // we only need to see each eval track
-    }
-
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
     }
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -113,12 +107,12 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 case SNP:
                     nVariantLoci++;
                     nSNPs++;
-                    if (vc1.getAttributeAsBoolean("ISSINGLETON", false)) nSingletons++;
+                    if (variantWasSingleton(vc1)) nSingletons++;
                     break;
                 case MNP:
                     nVariantLoci++;
                     nMNPs++;
-                    if (vc1.getAttributeAsBoolean("ISSINGLETON", false)) nSingletons++;
+                    if (variantWasSingleton(vc1)) nSingletons++;
                     break;
                 case INDEL:
                     nVariantLoci++;
@@ -194,6 +188,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     }
 
     public void finalizeEvaluation() {
+        nProcessedLoci = getWalker().getnProcessedLoci();
         variantRate = perLocusRate(nVariantLoci);
         variantRatePerBp = perLocusRInverseRate(nVariantLoci);
         heterozygosity = perLocusRate(nHets);
@@ -201,6 +196,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         hetHomRatio = ratio(nHets, nHomVar);
         indelRate = perLocusRate(nDeletions + nInsertions + nComplex);
         indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions + nComplex);
-        deletionInsertionRatio = ratio(nDeletions, nInsertions);
+        insertionDeletionRatio = ratio(nInsertions, nDeletions);
     }
 }

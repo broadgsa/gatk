@@ -59,7 +59,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     private boolean discordantInteresting = false;
 
-    static class FrequencyStats implements TableType {
+    static class FrequencyStats extends TableType {
         class Stats {
             public Stats(int found, int missed) { nFound = found; nMissed = missed; }
             public long nFound = 0;
@@ -103,7 +103,7 @@ public class GenotypeConcordance extends VariantEvaluator {
         }
     }
 
-    static class QualityScoreHistograms implements TableType {
+    static class QualityScoreHistograms extends TableType {
         final static int NUM_BINS = 20;
         final HashMap<Integer,Integer> truePositiveQualityScoreMap = new HashMap<Integer,Integer>(); // A HashMap holds all the quality scores until we are able to bin them appropriately
         final HashMap<Integer,Integer> falsePositiveQualityScoreMap = new HashMap<Integer,Integer>();
@@ -362,7 +362,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 /**
  * a table of sample names to genotype concordance figures
  */
-class SampleStats implements TableType {
+class SampleStats extends TableType {
     private final int nGenotypeTypes;
 
     // sample to concordance stats object
@@ -448,7 +448,7 @@ class SampleStats implements TableType {
 /**
  * a table of sample names to genotype concordance summary statistics
  */
-class SampleSummaryStats implements TableType {
+class SampleSummaryStats extends TableType {
     protected final static String ALL_SAMPLES_KEY = "allSamples";
     protected final static String[] COLUMN_KEYS = new String[]{
             "percent_comp_ref_called_ref",

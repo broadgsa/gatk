@@ -13,6 +13,8 @@ import org.broadinstitute.sting.utils.NGSPlatform;
  */
 public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
 
+    public static String LANE_TAG = "LN";
+    
     // the SAMReadGroupRecord data we're caching
     private String mSample = null;
     private String mPlatform = null;
@@ -78,5 +80,13 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         }
 
         return mNGSPlatform;
+    }
+
+    public String getLane() {
+        return this.getAttribute(LANE_TAG);
+    }
+    
+    public void setLane(String lane) {
+        this.setAttribute(LANE_TAG, lane);
     }
 }

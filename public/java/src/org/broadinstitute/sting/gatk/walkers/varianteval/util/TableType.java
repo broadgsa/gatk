@@ -9,9 +9,11 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.util;
  *
  * an interface for turning arbritary objects into tables
  */
-public interface TableType {
-    public Object[] getRowKeys();
-    public Object[] getColumnKeys();
-    public Object getCell(int x, int y);
-    public String getName();
+public abstract class TableType {
+    public abstract Object[] getRowKeys();
+    public abstract Object[] getColumnKeys();
+    public abstract Object getCell(int x, int y);
+    public String getName() { return getClass().getSimpleName(); }
+    public String getRowName() { return "row"; }
+    
 }

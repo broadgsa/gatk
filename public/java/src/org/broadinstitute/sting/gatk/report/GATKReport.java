@@ -28,10 +28,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.Collection;
 import java.util.TreeMap;
 
@@ -85,36 +82,32 @@ public class GATKReport {
      * @param file the file to load
      */
     private void loadReport(File file) {
+        BufferedReader reader;
+        String reportHeader;
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-
-            String reportHeader = reader.readLine();
-
-            // Read the first line for the version and number of tables.
-            version = GATKReportVersion.fromHeader(reportHeader);
-            if (version.equals(GATKReportVersion.V0_1) ||
-                    version.equals(GATKReportVersion.V0_2))
-                throw new UserException("The GATK no longer supports reading legacy GATK Reports. Please use v1.0 or newer.");
-
-            int nTables = Integer.parseInt(reportHeader.split(":")[2]);
-
-            // Read each tables according ot the number of tables
-            for (int i = 0; i < nTables; i++) {
-                addTable(new GATKReportTable(reader, version));
-
-                /*
-                if ( !blankLine.equals("") ) {
-                    throw new StingException("The GATK Report File is corrupted or not formatted correctly");
-                }
-                */
-            }
+            reader = new BufferedReader(new FileReader(file));
+            reportHeader = reader.readLine();
+        } catch (FileNotFoundException e) {
+            throw new ReviewedStingException("Could not open file : " + file);
+        } catch (IOException e) { 
+            throw new ReviewedStingException("Could not read file : " + file);                            
+        }   
 
 
-        } catch (Exception e) {
-            // todo - improve exception handling
-            //throw new StingException("Cannot read GATKReport: " + e);
-            e.printStackTrace();
+        // Read the first line for the version and number of tables.
+        version = GATKReportVersion.fromHeader(reportHeader);
+        if (version.equals(GATKReportVersion.V0_1) ||
+                version.equals(GATKReportVersion.V0_2))
+            throw new UserException("The GATK no longer supports reading legacy GATK Reports. Please use v1.0 or newer.");
+
+        int nTables = Integer.parseInt(reportHeader.split(":")[2]);
+
+        // Read each tables according ot the number of tables
+        for (int i = 0; i < nTables; i++) {
+            addTable(new GATKReportTable(reader, version));
         }
+
+
     }
 
     /**

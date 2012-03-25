@@ -54,7 +54,7 @@ public class VariantQualityScore extends VariantEvaluator {
     @DataPoint(description = "average variant quality for each allele count")
     AlleleCountStats alleleCountStats = null;
 
-    static class TiTvStats implements TableType {
+    static class TiTvStats extends TableType {
         final static int NUM_BINS = 20;
         final HashMap<Integer, Pair<Long,Long>> qualByIsTransition = new HashMap<Integer, Pair<Long,Long>>(); // A hashMap holds all the qualities until we are able to bin them appropriately
         final long transitionByQuality[] = new long[NUM_BINS];
@@ -71,10 +71,6 @@ public class VariantQualityScore extends VariantEvaluator {
                 columnKeys[iii] = "titvBin" + iii;
             }
             return columnKeys;
-        }
-
-        public String getName() {
-            return "TiTvStats";
         }
 
         public String getCell(int x, int y) {
@@ -143,7 +139,7 @@ public class VariantQualityScore extends VariantEvaluator {
         }
     }
 
-    class AlleleCountStats implements TableType {
+    class AlleleCountStats extends TableType {
         final HashMap<Integer, ArrayList<Double>> qualityListMap = new HashMap<Integer, ArrayList<Double>>();
         final HashMap<Integer, Double> qualityMap = new HashMap<Integer, Double>();
 
@@ -161,10 +157,6 @@ public class VariantQualityScore extends VariantEvaluator {
 
         public Object[] getColumnKeys() {
             return new String[]{"alleleCount","avgQual"};
-        }
-
-        public String getName() {
-            return "AlleleCountStats";
         }
 
         public String getCell(int x, int y) {
