@@ -284,6 +284,18 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertTrue(compareDoubleArrays(MathUtils.normalizeFromLog10(new double[] {-1.0, -3.0, -1.0, -2.0}), new double[] {0.1 * 1.0 / 0.211, 0.001 * 1.0 / 0.211, 0.1 * 1.0 / 0.211, 0.01 * 1.0 / 0.211}));
     }
 
+    @Test
+    public void testDotProduct() {
+        Assert.assertEquals(MathUtils.dotProduct(new Double[]{-5.0,-3.0,2.0}, new Double[]{6.0,7.0,8.0}),-35.0);
+        Assert.assertEquals(MathUtils.dotProduct(new Double[]{-5.0}, new Double[]{6.0}),-30.0);
+    }
+
+    @Test
+    public void testLogDotProduct() {
+        Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0,-3.0,2.0}, new double[]{6.0,7.0,8.0}),10.0);
+        Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0}, new double[]{6.0}),1.0);
+    }
+
     /**
      * Private function used by testNormalizeFromLog10()
      */

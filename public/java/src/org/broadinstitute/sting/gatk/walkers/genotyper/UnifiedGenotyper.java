@@ -221,7 +221,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
 
         annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, annotationsToExclude, this, getToolkit());
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, samples.size());
 
         // initialize the header
         Set<VCFHeaderLine> headerInfo = getHeaderInfo();

@@ -115,11 +115,11 @@ public class UnifiedGenotyperEngine {
     // ---------------------------------------------------------------------------------------------------------
     @Requires({"toolkit != null", "UAC != null"})
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()));
+        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()), 2*(SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size()));
     }
 
-    @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0"})
-    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples) {
+    @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0","N>0"})
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples, int N) {
         this.BAQEnabledOnCMDLine = toolkit.getArguments().BAQMode != BAQ.CalculationMode.OFF;
         genomeLocParser = toolkit.getGenomeLocParser();
         this.samples = new TreeSet<String>(samples);
@@ -130,7 +130,8 @@ public class UnifiedGenotyperEngine {
         this.verboseWriter = verboseWriter;
         this.annotationEngine = engine;
 
-        N = 2 * this.samples.size();
+        this.N = N;
+        
         log10AlleleFrequencyPriorsSNPs = new double[UAC.MAX_ALTERNATE_ALLELES][N+1];
         log10AlleleFrequencyPriorsIndels = new double[UAC.MAX_ALTERNATE_ALLELES][N+1];
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, UAC.heterozygosity);
@@ -703,7 +704,7 @@ public class UnifiedGenotyperEngine {
         for (int i = 0; i < glmClasses.size(); i++) {
             Class<? extends GenotypeLikelihoodsCalculationModel> glmClass = glmClasses.get(i);
             String key = glmClass.getSimpleName().replaceAll("GenotypeLikelihoodsCalculationModel","").toUpperCase();
-            System.out.println("KEY:"+key+"\t" + glmClass.getSimpleName());
+            //System.out.println("KEY:"+key+"\t" + glmClass.getSimpleName());
             try {
                 Object args[] = new Object[]{UAC,logger};
                 Constructor c = glmClass.getDeclaredConstructor(UnifiedArgumentCollection.class, Logger.class);

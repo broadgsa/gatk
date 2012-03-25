@@ -1050,7 +1050,7 @@ public class MathUtils {
 
     /**
      * Given two log-probability vectors, compute log of vector product of them:
-     * in Matlab notation, return log(10.*x'*10.^y)
+     * in Matlab notation, return log10(10.*x'*10.^y)
      * @param x vector 1
      * @param y vector 2
      * @return a double representing log (dotProd(10.^x,10.^y)
@@ -1065,7 +1065,7 @@ public class MathUtils {
             tmpVec[k] = x[k]+y[k];
         }
 
-        return sumLog10(tmpVec);
+        return log10sumLog10(tmpVec);
 
 
 
