@@ -482,11 +482,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public void onTraversalDone(Integer result) {
         logger.info("Finalizing variant report");
 
-        for ( StateKey stateKey : evaluationContexts.keySet() ) {
-            NewEvaluationContext nec = evaluationContexts.get(stateKey);
+        for ( Map.Entry<StateKey, NewEvaluationContext> ecElt : evaluationContexts.entrySet() ) {
+            final StateKey stateKey = ecElt.getKey();
+            final NewEvaluationContext nec = ecElt.getValue();
 
             for ( VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
                 ve.finalizeEvaluation();
+                final String veName = ve.getSimpleName(); // ve.getClass().getSimpleName();
 
                 AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 Map<Field, DataPoint> datamap = scanner.getData();
@@ -498,7 +500,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         if (field.get(ve) instanceof TableType) {
                             TableType t = (TableType) field.get(ve);
 
-                            final String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
+                            final String subTableName = veName + "." + field.getName();
                             final DataPoint dataPointAnn = datamap.get(field);
 
                             GATKReportTable table;
@@ -539,11 +541,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 }
                             }
                         } else {
-                            GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
+                            GATKReportTable table = report.getTable(veName);
 
                             for ( VariantStratifier vs : stratificationObjects ) {
-                                String columnName = vs.getName();
-
+                                final String columnName = vs.getName();
                                 table.set(stateKey.toString(), columnName, stateKey.get(vs.getName()));
                             }
 

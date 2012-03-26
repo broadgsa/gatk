@@ -36,6 +36,16 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
         return new TreeMap<String, VariantEvaluator>(evaluationInstances);
     }
 
+    public StateKey makeStateKey() {
+        Map<String, String> map = new HashMap<String, String>(size());
+
+        for (Map.Entry<VariantStratifier, String> elt : this.entrySet() ) {
+            map.put(elt.getKey().getName(), elt.getValue());
+        }
+
+        return new StateKey(map);
+    }
+
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
         for ( final VariantEvaluator evaluation : evaluationInstances.values() ) {
             // the other updateN methods don't see a null context

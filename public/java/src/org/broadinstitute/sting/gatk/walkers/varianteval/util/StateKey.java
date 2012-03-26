@@ -3,25 +3,67 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class StateKey extends TreeMap<String, String> {
-//    public int hashCode() {
-//        int hashCode = 1;
-//
-//        for (final Map.Entry<String,String> pair : this.entrySet()) {
-//            hashCode *= pair.getKey().hashCode() + pair.getValue().hashCode();
-//        }
-//
-//        return hashCode;
-//    }
+/**
+ * A final constant class representing the specific state configuration
+ * for a VariantEvaluator instance.
+ *
+ * TODO optimizations to entirely remove the TreeMap and just store the HashMap for performance and use the tree for the sorted tostring function.
+ */
+public final class StateKey {
+    /** High-performance cache of the toString operation for a constant class */
+    private final String string;
+    private final TreeMap<String, String> states;
 
-    public String toString() {
-        String value = "";
+    public StateKey(final Map<String, String> states) {
+        this.states = new TreeMap<String, String>(states);
+        this.string = formatString();
+    }
 
-        for ( final String key : this.keySet() ) {
-            //value += "\tstate " + key + ":" + this.get(key) + "\n";
-            value += String.format("%s:%s;", key, this.get(key));
+    public StateKey(final StateKey toOverride, final String keyOverride, final String valueOverride) {
+        if ( toOverride == null ) {
+            this.states = new TreeMap<String, String>();
+        } else {
+            this.states = new TreeMap<String, String>(toOverride.states);
         }
 
-        return value;
+        this.states.put(keyOverride, valueOverride);
+        this.string = formatString();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        final StateKey stateKey = (StateKey) o;
+
+        if (states != null ? !states.equals(stateKey.states) : stateKey.states != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return states.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return string;
+    }
+
+    private final String formatString() {
+        StringBuilder b = new StringBuilder();
+        
+        for ( Map.Entry<String, String> entry : states.entrySet() ) {
+            b.append(String.format("%s:%s;", entry.getKey(), entry.getValue()));
+        }
+
+        return b.toString();
+    }
+
+    // TODO -- might be slow because of tree map
+    public String get(final String key) {
+        return states.get(key);
     }
 }

@@ -214,20 +214,9 @@ public class VariantEvalUtils {
                 ecs.putAll(initializeEvaluationContexts(stratificationObjects, evaluationObjects, newStratStack, nec));
             }
         } else {
-            HashMap<StateKey, NewEvaluationContext> necs = new HashMap<StateKey, NewEvaluationContext>();
-
-            StateKey stateKey = new StateKey();
-            for (VariantStratifier vs : ec.keySet()) {
-                String state = ec.get(vs);
-
-                stateKey.put(vs.getName(), state);
-            }
-
+            final StateKey stateKey = ec.makeStateKey();
             ec.addEvaluationClassList(variantEvalWalker, stateKey, evaluationObjects);
-
-            necs.put(stateKey, ec);
-
-            return necs;
+            return new HashMap<StateKey, NewEvaluationContext>(Collections.singletonMap(stateKey, ec));
         }
 
         return ecs;
@@ -428,14 +417,8 @@ public class VariantEvalUtils {
             HashMap<VariantStratifier, List<String>> oneSetOfStates = newStateStack.pop();
             VariantStratifier vs = oneSetOfStates.keySet().iterator().next();
 
-            for (String state : oneSetOfStates.get(vs)) {
-                StateKey newStateKey = new StateKey();
-                if (stateKey != null) {
-                    newStateKey.putAll(stateKey);
-                }
-
-                newStateKey.put(vs.getName(), state);
-
+            for (final String state : oneSetOfStates.get(vs)) {
+                final StateKey newStateKey = new StateKey(stateKey, vs.getName(), state);
                 initializeStateKeys(stateMap, newStateStack, newStateKey, stateKeys);
             }
         } else {
