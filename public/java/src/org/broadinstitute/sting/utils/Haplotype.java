@@ -72,6 +72,11 @@ public class Haplotype {
     public boolean equals( Object h ) {
         return h instanceof Haplotype && Arrays.equals(bases, ((Haplotype) h).bases);
     }
+    
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(bases);
+    }
 
     public void addReadLikelihoods( final String sample, final double[] readLikelihoods ) {
         if( readLikelihoodsPerSample == null ) {
