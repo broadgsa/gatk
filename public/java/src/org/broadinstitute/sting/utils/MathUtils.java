@@ -51,7 +51,8 @@ public class MathUtils {
     public static final double[] log10Cache;
     private static final double[] jacobianLogTable;
     private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
-    private static final double MAX_JACOBIAN_TOLERANCE = 10.0;
+    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
+    private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
     private static final int MAXN = 11000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
@@ -74,7 +75,7 @@ public class MathUtils {
     // under/overflow checking, so this shouldn't be used in the general case (but is fine
     // if one is already make those checks before calling in to the rounding).
     public static int fastRound(double d) {
-        return (d > 0) ? (int) (d + 0.5d) : (int) (d - 0.5d);
+        return (d > 0.0) ? (int) (d + 0.5d) : (int) (d - 0.5d);
     }
 
     public static double approximateLog10SumLog10(final double[] vals) {
@@ -85,8 +86,6 @@ public class MathUtils {
 
         final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
         double approxSum = vals[maxElementIndex];
-        if (approxSum == Double.NEGATIVE_INFINITY)
-            return approxSum;
 
         for (int i = 0; i < endIndex; i++) {
             if (i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY)
@@ -95,7 +94,7 @@ public class MathUtils {
             final double diff = approxSum - vals[i];
             if (diff < MathUtils.MAX_JACOBIAN_TOLERANCE) {
                 // See notes from the 2-inout implementation below
-                final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+                final int ind = fastRound(diff * MathUtils.JACOBIAN_LOG_TABLE_INV_STEP); // hard rounding
                 approxSum += MathUtils.jacobianLogTable[ind];
             }
         }
@@ -124,7 +123,7 @@ public class MathUtils {
         // max(x,y) + log10(1+10^-abs(x-y))
         // we compute the second term as a table lookup with integer quantization
         // we have pre-stored correction for 0,0.1,0.2,... 10.0
-        final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+        final int ind = fastRound(diff * MathUtils.JACOBIAN_LOG_TABLE_INV_STEP); // hard rounding
         return big + MathUtils.jacobianLogTable[ind];
     }
 
@@ -206,7 +205,7 @@ public class MathUtils {
     /**
      * Calculates the log10 cumulative sum of an array with log10 probabilities
      *
-     * @param log10p the array with log10 probabilites
+     * @param log10p the array with log10 probabilities
      * @param upTo   index in the array to calculate the cumsum up to
      * @return the log10 of the cumulative sum
      */
@@ -592,12 +591,12 @@ public class MathUtils {
     }
 
     public static int maxElementIndex(final double[] array, final int endIndex) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int maxI = -1;
-        for (int i = 0; i < endIndex; i++) {
-            if (maxI == -1 || array[i] > array[maxI])
+        int maxI = 0;
+        for (int i = 1; i < endIndex; i++) {
+            if (array[i] > array[maxI])
                 maxI = i;
         }
 
@@ -609,12 +608,12 @@ public class MathUtils {
     }
 
     public static int maxElementIndex(final int[] array, int endIndex) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int maxI = -1;
-        for (int i = 0; i < endIndex; i++) {
-            if (maxI == -1 || array[i] > array[maxI])
+        int maxI = 0;
+        for (int i = 1; i < endIndex; i++) {
+            if (array[i] > array[maxI])
                 maxI = i;
         }
 
@@ -638,12 +637,12 @@ public class MathUtils {
     }
 
     public static int minElementIndex(double[] array) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int minI = -1;
-        for (int i = 0; i < array.length; i++) {
-            if (minI == -1 || array[i] < array[minI])
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
                 minI = i;
         }
 
@@ -651,12 +650,12 @@ public class MathUtils {
     }
 
     public static int minElementIndex(byte[] array) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int minI = -1;
-        for (int i = 0; i < array.length; i++) {
-            if (minI == -1 || array[i] < array[minI])
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
                 minI = i;
         }
 
@@ -664,12 +663,12 @@ public class MathUtils {
     }
 
     public static int minElementIndex(int[] array) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int minI = -1;
-        for (int i = 0; i < array.length; i++) {
-            if (minI == -1 || array[i] < array[minI])
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
                 minI = i;
         }
 
