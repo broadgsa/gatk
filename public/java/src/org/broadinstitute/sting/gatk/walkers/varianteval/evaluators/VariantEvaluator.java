@@ -8,6 +8,11 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 public abstract class VariantEvaluator {
     private VariantEvalWalker walker;
+    private final String simpleName;
+
+    protected VariantEvaluator() {
+        this.simpleName = getClass().getSimpleName();
+    }
 
     public void initialize(VariantEvalWalker walker) {
         this.walker = walker;
@@ -89,5 +94,9 @@ public abstract class VariantEvaluator {
      */
     protected static String formattedRatio(final int num, final int denom) {
         return denom == 0 ? "NA" : String.format("%.2f", num / (1.0 * denom));
+    }
+
+    public String getSimpleName() {
+        return simpleName;
     }
 }

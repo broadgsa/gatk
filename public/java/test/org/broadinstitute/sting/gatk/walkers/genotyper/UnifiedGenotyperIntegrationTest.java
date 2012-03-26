@@ -17,8 +17,8 @@ import java.util.Map;
 
 public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
-    private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129;
-    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b36dbSNP129;
+    private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl -NO_HEADER -glm BOTH -minIndelFrac 0.0 --dbsnp " + b36dbSNP129;
+    private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl -NO_HEADER -glm INDEL -mbq 20 -minIndelFrac 0.0 --dbsnp " + b36dbSNP129;
     private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultipleSNPAlleles() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm BOTH --dbsnp " + b37dbSNP129 + " -I " + validationDataLocation + "multiallelic.snps.bam -o %s -L " + validationDataLocation + "multiallelic.snps.intervals", 1,
-                Arrays.asList("0de4aeed6a52f08ed86a7642c812478b"));
+                Arrays.asList("849ee8b21b4bbb02dfc7867a4f1bc14b"));
         executeTest("test Multiple SNP alleles", spec);
     }
 
@@ -334,5 +334,38 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 1,
                 UserException.class);
         executeTest("testSnpEffAnnotationRequestedWithoutRodBinding", spec);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing SnpEff
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    final static String assessMinIndelFraction = baseCommandIndelsb37 + " -I " + validationDataLocation
+            + "978604.bam -L 1:978,586-978,626 -o %s --sites_only -rf Sample -goodSM 7377 -goodSM 22-0022 -goodSM 134 -goodSM 344029-53 -goodSM 14030";
+    
+    @Test
+    public void testMinIndelFraction0() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                assessMinIndelFraction + " -minIndelFrac 0.0", 1,
+                Arrays.asList("f08ff07ad49d388198c1887baad05977"));
+        executeTest("test minIndelFraction 0.0", spec);
+    }
+
+    @Test
+    public void testMinIndelFraction25() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                assessMinIndelFraction + " -minIndelFrac 0.25", 1,
+                Arrays.asList("a0945fd21369aaf68c7f1d96dbb930d1"));
+        executeTest("test minIndelFraction 0.25", spec);
+    }
+
+    @Test
+    public void testMinIndelFraction100() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                assessMinIndelFraction + " -minIndelFrac 1", 1,
+                Arrays.asList("50fe9a4c5633f6395b45d9ec1e00d56a"));
+        executeTest("test minIndelFraction 1.0", spec);
     }
 }

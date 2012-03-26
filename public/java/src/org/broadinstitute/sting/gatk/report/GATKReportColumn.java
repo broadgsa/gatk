@@ -26,14 +26,12 @@ package org.broadinstitute.sting.gatk.report;
 
 import org.apache.commons.lang.math.NumberUtils;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Holds values for a column in a GATK report table
  */
-public class GATKReportColumn extends TreeMap<Object, Object> {
+public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     final private String columnName;
     final private Object defaultValue;
     final private String format;

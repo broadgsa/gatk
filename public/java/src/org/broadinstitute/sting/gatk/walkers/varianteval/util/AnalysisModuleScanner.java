@@ -27,6 +27,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ import java.util.Map;
  *         the object, a Mashalling object can serialize or deserialize a analysis module.
  */
 public class AnalysisModuleScanner {
+    final private static Map<String, Annotation[]> annotationCache = new HashMap<String, Annotation[]>();
 
     // what we extracted from the class
     private Map<Field, DataPoint> datums = new LinkedHashMap<Field, DataPoint>();   // the data we've discovered
@@ -84,11 +86,21 @@ public class AnalysisModuleScanner {
         // get the fields from the class, and extract
         for ( Class superCls = cls; superCls != null; superCls=superCls.getSuperclass() ) {
             for (Field f : superCls.getDeclaredFields())
-                for (Annotation annotation : f.getAnnotations()) {
+                for (Annotation annotation : getAnnotations(f)) {
                     if (annotation.annotationType().equals(DataPoint.class))
                         datums.put(f,(DataPoint) annotation);
                 }
         }
+    }
+    
+    private Annotation[] getAnnotations(final Field field) {
+        final String fieldName = field.toString();
+        Annotation[] annotations = annotationCache.get(fieldName);
+        if ( annotations == null ) {
+            annotations = field.getAnnotations();
+            annotationCache.put(fieldName, annotations);
+        }
+        return annotations;
     }
 
     /**
