@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -10,7 +8,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.BitSet;
-import java.util.Random;
 
 /**
  * @author Mauricio Carneiro
@@ -19,22 +16,18 @@ import java.util.Random;
 public class CycleCovariateUnitTest {
     CycleCovariate covariate;
     RecalibrationArgumentCollection RAC;
-    Random random;
 
     @BeforeClass
     public void init() {
         RAC = new RecalibrationArgumentCollection();
         covariate = new CycleCovariate();
-        random = GenomeAnalysisEngine.getRandomGenerator();
         covariate.initialize(RAC);
     }
 
     @Test(enabled = true)
     public void testSimpleCycles() {
-        short readLength = 10;
-        byte[] quals = ReadUtils.createRandomReadQuals(readLength);
-        byte[] bbases = ReadUtils.createRandomReadBases(readLength, true);
-        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bbases, quals, bbases.length + "M");
+        short readLength = 10;        
+        GATKSAMRecord read = ReadUtils.createRandomRead(readLength);
         read.setReadGroup(new GATKSAMReadGroupRecord("MY.ID"));
         read.getReadGroup().setPlatform("illumina");
 

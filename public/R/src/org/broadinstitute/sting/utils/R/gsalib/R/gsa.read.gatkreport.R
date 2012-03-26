@@ -99,69 +99,77 @@ gsa.read.gatkreportv0 <- function(lines) {
 
 # Load all GATKReport v1 tables from file
 gsa.read.gatkreportv1 <- function(lines) {
+  #print("loading with optimized v1 reader")
+  nLines = length(lines)
+  tableEnv = new.env();
+  
+  tableName = NA;
+  tableHeader = c();
+  tableRows = NULL;
+  version = "";
+  rowCount = 0
+  headerRowCount = -1;
+  
+  finishTable <- function() {
+    .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows[1:rowCount,], tableEnv);
+  }
+  
+  for (line in lines) {
     
-    tableEnv = new.env();
-    
-    tableName = NA;
-    tableHeader = c();
-    tableRows = c();
-    version = "";
-    headerRowCount = -1;
-    
-    for (line in lines) {
-        
-        if (length(grep("^#:GATKReport.v1", line, ignore.case=TRUE)) > 0) {
-            version = "v1.0";
-            headerRowCount = 0;
-        }
-        
-        if ( (headerRowCount %% 2 == 1) && (version == "v1.0") ) {
-            #print("Trying to start a table with line:");
-            #print(line);
-            
-            #Get table header
-            headerFields = unlist(strsplit(line, ":"));
-            
-            if (!is.na(tableName)) {
-                .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
-            }
-            
-            tableName = headerFields[3];
-            tableHeader = c();
-            tableRows = c();
-            
-            columnStarts = c();
-            
-        }
-        
-        if (length(grep("^#:GATKTable", line, ignore.case=TRUE)) > 0) {
-            headerRowCount = headerRowCount+1;
-            #print("Header Row count is at:")
-            #print(headerRowCount);
-        } else if (!is.na(tableName)) {
-            if ( version == "v1.0") {
-                if (length(tableHeader) == 0) {
-                    headerChars = unlist(strsplit(line, ""));
-                    # Find the first position of non space characters, excluding the first character
-                    columnStarts = intersect(grep("[[:space:]]", headerChars, invert=TRUE), grep("[[:space:]]", headerChars) + 1);
-                }
-                
-                row = .gsa.splitFixedWidth(line, columnStarts);
-            }
-            
-            if (length(tableHeader) == 0) {
-                tableHeader = row;
-            } else if ( nchar(line) > 0 ) {
-                tableRows = rbind(tableRows, row);
-            }
-        }
+    if (length(grep("^#:GATKReport.v1", line, ignore.case=TRUE)) > 0) {
+      version = "v1.0";
+      headerRowCount = 0;
     }
     
-    if (!is.na(tableName)) {
-        .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
+    if ( (headerRowCount %% 2 == 1) && (version == "v1.0") ) {
+      #print("Trying to start a table with line:");
+      #print(line);
+      
+      #Get table header
+      headerFields = unlist(strsplit(line, ":"));
+      
+      if (!is.na(tableName)) {
+        finishTable()
+      }
+      
+      tableName = headerFields[3];
+      tableHeader = c();
+      tableRows = NULL
+      rowCount = 0
+      
+      columnStarts = c();
     }
     
-    gatkreport = as.list(tableEnv, all.names=TRUE);
+    if (length(grep("^#:GATKTable", line, ignore.case=TRUE)) > 0) {
+      headerRowCount = headerRowCount+1;
+      #print("Header Row count is at:")
+      #print(headerRowCount);
+    } else if (!is.na(tableName)) {
+      if ( version == "v1.0") {
+        if (length(tableHeader) == 0) {
+          headerChars = unlist(strsplit(line, ""));
+          # Find the first position of non space characters, excluding the first character
+          columnStarts = intersect(grep("[[:space:]]", headerChars, invert=TRUE), grep("[[:space:]]", headerChars) + 1);
+          tableRows = matrix(nrow=nLines, ncol=length(columnStarts)+1);
+        }
+        
+        row = .gsa.splitFixedWidth(line, columnStarts);
+      }
+      
+      if (length(tableHeader) == 0) {
+        tableHeader = row;
+      } else if ( nchar(line) > 0 ) {
+        rowCount = rowCount + 1
+        tableRows[rowCount,] <- row
+      }
+    }
+  }
+  
+  if (!is.na(tableName)) {
+    finishTable()
+  }
+  
+  gatkreport = as.list(tableEnv, all.names=TRUE);
 }
 
 # Load all GATKReport tables from a file

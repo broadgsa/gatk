@@ -1,9 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
@@ -11,7 +9,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.BitSet;
-import java.util.Random;
 
 /**
  * @author Mauricio Carneiro
@@ -20,22 +17,18 @@ import java.util.Random;
 public class ContextCovariateUnitTest {
     ContextCovariate covariate;
     RecalibrationArgumentCollection RAC;
-    Random random;
 
     @BeforeClass
     public void init() {
         RAC = new RecalibrationArgumentCollection();
         covariate = new ContextCovariate();
-        random = GenomeAnalysisEngine.getRandomGenerator();
         covariate.initialize(RAC);
 
     }
 
     @Test(enabled = true)
     public void testSimpleContexts() {
-        byte[] quals = ReadUtils.createRandomReadQuals(10000);
-        byte[] bbases = ReadUtils.createRandomReadBases(10000, true);
-        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bbases, quals, bbases.length + "M");
+        GATKSAMRecord read = ReadUtils.createRandomRead(1000);
         GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, RAC.LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);
         CovariateValues values = covariate.getValues(read);
         verifyCovariateArray(values.getMismatches(), RAC.MISMATCHES_CONTEXT_SIZE, stringFrom(clippedRead.getReadBases()));

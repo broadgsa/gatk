@@ -1,5 +1,10 @@
 package org.broadinstitute.sting.utils.recalibration;
 
+import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -12,10 +17,13 @@ import java.io.File;
  */
 public class BaseRecalibrationUnitTest {
 
-    @Test(enabled=true)
-    public void testReadingCSV() {
-        File csv = new File("public/testdata/exampleCSV.csv");
+    @Test(enabled=false)
+    public void testReadingReport() {
+        File csv = new File("public/testdata/exampleGATKREPORT.grp");
         BaseRecalibration baseRecalibration = new BaseRecalibration(csv);
+        GATKSAMRecord read = ReadUtils.createRandomRead(1000);
+        read.setReadGroup(new GATKSAMReadGroupRecord(new SAMReadGroupRecord("exampleBAM.bam.bam"), NGSPlatform.ILLUMINA));
+        baseRecalibration.recalibrateRead(read);
         System.out.println("Success");
     }
 }

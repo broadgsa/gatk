@@ -29,6 +29,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -54,85 +55,107 @@ public class GATKReportTable {
 
     private GATKReportColumns columns;
 
+    private static final String COULD_NOT_READ_HEADER = "Could not read the header of this file -- ";
+    private static final String COULD_NOT_READ_COLUMN_NAMES = "Could not read the column names of this file -- ";
+    private static final String COULD_NOT_READ_DATA_LINE = "Could not read a data line of this table -- ";
+    private static final String COULD_NOT_READ_EMPTY_LINE = "Could not read the last empty line of this table -- ";
+    private static final String OLD_GATK_TABLE_VERSION = "We no longer support older versions of the GATK Tables";
+
     public GATKReportTable(BufferedReader reader, GATKReportVersion version) {
-        try {
+        int counter = 0;
 
-            int counter = 0;
-
-            switch (version) {
-                case V1_0:
-                    int nHeaders = 2;
-                    String[] tableHeaders = new String[nHeaders];
-
-                    // Read in the headers
-                    for (int i = 0; i < nHeaders; i++) {
+        switch (version) {
+            case V1_0:
+                int nHeaders = 2;
+                String[] tableHeaders = new String[nHeaders];
+    
+                // Read in the headers
+                for (int i = 0; i < nHeaders; i++) {
+                    try {
                         tableHeaders[i] = reader.readLine();
+                    } catch (IOException e) {
+                        throw new ReviewedStingException(COULD_NOT_READ_HEADER + e.getMessage());
                     }
-                    String[] tableData = tableHeaders[0].split(":");
-                    String[] userData = tableHeaders[1].split(":");
-
-                    // Fill in the fields
-                    tableName = userData[2];
-                    tableDescription = userData[3];
-                    primaryKeyDisplay = Boolean.parseBoolean(tableData[2]);
-                    columns = new GATKReportColumns();
-
-                    int nColumns = Integer.parseInt(tableData[3]);
-                    int nRows = Integer.parseInt(tableData[4]);
-
-
-                    // Read column names
-                    String columnLine = reader.readLine();
-
-                    List<Integer> columnStarts = TextFormattingUtils.getWordStarts(columnLine);
-                    String[] columnNames = TextFormattingUtils.splitFixedWidth(columnLine, columnStarts);
-
-                    if (primaryKeyDisplay) {
-                        addPrimaryKey(columnNames[0]);
-
-                    } else {
-                        sortByPrimaryKey = true;
-                        addPrimaryKey("id", false);
-                        counter = 1;
+                }
+                String[] tableData = tableHeaders[0].split(":");
+                String[] userData = tableHeaders[1].split(":");
+    
+                // Fill in the fields
+                tableName = userData[2];
+                tableDescription = (userData.length <= 3) ? "" : userData[3];                                           // table may have no description! (and that's okay)
+                primaryKeyDisplay = Boolean.parseBoolean(tableData[2]);
+                columns = new GATKReportColumns();
+    
+                int nColumns = Integer.parseInt(tableData[3]);
+                int nRows = Integer.parseInt(tableData[4]);
+    
+    
+                // Read column names
+                String columnLine;
+                try {
+                columnLine = reader.readLine();
+                } catch (IOException e) {
+                    throw new ReviewedStingException(COULD_NOT_READ_COLUMN_NAMES);
+                }
+    
+                List<Integer> columnStarts = TextFormattingUtils.getWordStarts(columnLine);
+                String[] columnNames = TextFormattingUtils.splitFixedWidth(columnLine, columnStarts);
+    
+                if (primaryKeyDisplay) {
+                    addPrimaryKey(columnNames[0]);
+    
+                } else {
+                    sortByPrimaryKey = true;
+                    addPrimaryKey("id", false);
+                    counter = 1;
+                }
+                // Put in columns using the format string from the header
+                for (int i = 0; i < nColumns; i++) {
+                    String format = tableData[5 + i];
+                    if (primaryKeyDisplay)
+                        addColumn(columnNames[i + 1], true, format);
+                    else
+                        addColumn(columnNames[i], true, format);
+                }
+    
+                for (int i = 0; i < nRows; i++) {
+                    // read line
+                    String dataLine;
+                    try {
+                        dataLine = reader.readLine(); 
+                    } catch (IOException e) {
+                        throw new ReviewedStingException(COULD_NOT_READ_DATA_LINE + e.getMessage());
                     }
-                    // Put in columns using the format string from the header
-                    for (int i = 0; i < nColumns; i++) {
-                        String format = tableData[5 + i];
-                        if (primaryKeyDisplay)
-                            addColumn(columnNames[i + 1], true, format);
-                        else
-                            addColumn(columnNames[i], true, format);
-                    }
-
-                    for (int i = 0; i < nRows; i++) {
-                        // read line
-                        List<String> lineSplits = Arrays.asList(TextFormattingUtils.splitFixedWidth(reader.readLine(), columnStarts));
-
-                        for (int columnIndex = 0; columnIndex < nColumns; columnIndex++) {
-
-                            //Input all the remaining values
-                            GATKReportDataType type = getColumns().getByIndex(columnIndex).getDataType();
-
-                            if (primaryKeyDisplay) {
-                                String columnName = columnNames[columnIndex + 1];
-                                String primaryKey = lineSplits.get(0);
-                                set(primaryKey, columnName, type.Parse(lineSplits.get(columnIndex + 1)));
-                            } else {
-                                String columnName = columnNames[columnIndex];
-                                set(counter, columnName, type.Parse(lineSplits.get(columnIndex)));
-                            }
-
+                    List<String> lineSplits = Arrays.asList(TextFormattingUtils.splitFixedWidth(dataLine, columnStarts));
+    
+                    for (int columnIndex = 0; columnIndex < nColumns; columnIndex++) {
+    
+                        //Input all the remaining values
+                        GATKReportDataType type = getColumns().getByIndex(columnIndex).getDataType();
+    
+                        if (primaryKeyDisplay) {
+                            String columnName = columnNames[columnIndex + 1];
+                            String primaryKey = lineSplits.get(0);
+                            set(primaryKey, columnName, type.Parse(lineSplits.get(columnIndex + 1)));
+                        } else {
+                            String columnName = columnNames[columnIndex];
+                            set(counter, columnName, type.Parse(lineSplits.get(columnIndex)));
                         }
-                        counter++;
+    
                     }
-
-
+                    counter++;
+                }
+    
+    
+                try {
                     reader.readLine();
-                    // When you see empty line or null, quit out
-            }
-        } catch (Exception e) {
-            //throw new StingException("Cannot read GATKReport: " + e);
-            e.printStackTrace();
+                } catch (IOException e) {
+                    throw new ReviewedStingException(COULD_NOT_READ_EMPTY_LINE + e.getMessage());
+                }  
+            break;
+            
+            default: 
+                throw new ReviewedStingException(OLD_GATK_TABLE_VERSION);
         }
     }
 
@@ -408,8 +431,7 @@ public class GATKReportTable {
                 } catch (Exception e) {
                 }
             }
-            if (column.getDataType().equals(GATKReportDataType.Byte) &&
-                    ((String) value).length() == 1) {
+            if (column.getDataType().equals(GATKReportDataType.Byte) && ((String) value).length() == 1) {
                 newValue = ((String) value).charAt(0);
 
             }
@@ -418,12 +440,11 @@ public class GATKReportTable {
         if (newValue != null)
             value = newValue;
 
-        if (column.getDataType().equals(GATKReportDataType.fromObject(value)) ||
-                column.getDataType().equals(GATKReportDataType.Unknown) )
+        // todo -- Types have to be more flexible. For example, %d should accept Integers, Shorts and Bytes.
+        if (column.getDataType().equals(GATKReportDataType.fromObject(value)) || column.getDataType().equals(GATKReportDataType.Unknown) )
             columns.get(columnName).put(primaryKey, value);
         else
-            throw new ReviewedStingException(String.format("Tried to add an object of type: %s to a column of type: %s",
-                    GATKReportDataType.fromObject(value).name(), column.getDataType().name()));
+            throw new ReviewedStingException(String.format("Tried to add an object of type: %s to a column of type: %s", GATKReportDataType.fromObject(value).name(), column.getDataType().name()));
     }
 
     /**

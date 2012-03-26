@@ -184,6 +184,8 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             }
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(RECAL_FILE, e);
+        } catch ( Exception e ) {
+            throw new UserException.MalformedFile(RECAL_FILE, "Could not parse LOD and annotation information in input recal file. File is somehow malformed.");
         }
 
     }

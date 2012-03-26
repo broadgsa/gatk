@@ -79,8 +79,8 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
-    public BitSet bitSetFromKey(Object key) {
-        return BitSetUtils.bitSetFrom((Byte) key);
+    public BitSet bitSetFromKey(Object key) {        
+        return (key instanceof String) ? BitSetUtils.bitSetFrom(Byte.parseByte((String) key)) : BitSetUtils.bitSetFrom((Byte) key);
     }
 
     @Override

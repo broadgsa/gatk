@@ -25,8 +25,12 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import java.util.Arrays;
 
 /**
  *
@@ -72,5 +76,46 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
     @Test() private void testMissingInterval() {
         testMissingFile("missing interval", "-T UnifiedGenotyper -L missing.interval_list -I " + b37GoodBAM);
+    }
+
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that our exceptions are coming back as we expect
+    //
+    // --------------------------------------------------------------------------------
+
+    private class EngineErrorHandlingTestProvider extends TestDataProvider {
+        Class expectedException;
+        boolean multiThreaded;
+
+        public EngineErrorHandlingTestProvider(Class exceptedException, final boolean multiThreaded) {
+            super(EngineErrorHandlingTestProvider.class);
+            this.expectedException = exceptedException;
+            this.multiThreaded = multiThreaded;
+            setName(String.format("Engine error handling: expected %s, is-multithreaded %b", exceptedException, multiThreaded));
+        }
+    }
+
+    @DataProvider(name = "EngineErrorHandlingTestProvider")
+    public Object[][] makeEngineErrorHandlingTestProvider() {
+        for ( final boolean multiThreaded : Arrays.asList(true, false)) {
+            new EngineErrorHandlingTestProvider(NullPointerException.class, multiThreaded);
+            new EngineErrorHandlingTestProvider(UserException.class, multiThreaded);
+            new EngineErrorHandlingTestProvider(ReviewedStingException.class, multiThreaded);
+        }
+
+        return EngineErrorHandlingTestProvider.getTests(EngineErrorHandlingTestProvider.class);
+    }
+
+    //
+    // Loop over errors to throw, make sure they are the errors we get back from the engine, regardless of NT type
+    //
+    @Test(dataProvider = "EngineErrorHandlingTestProvider")
+    public void testEngineErrorHandlingTestProvider(EngineErrorHandlingTestProvider cfg) {
+        final String root = "-T ErrorThrowing -R " + b37KGReference;
+        final String args = root + (cfg.multiThreaded ? " -nt 2" : "") + " -E " + cfg.expectedException.getSimpleName();
+        WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
+        executeTest(cfg.toString(), spec);
     }
 }

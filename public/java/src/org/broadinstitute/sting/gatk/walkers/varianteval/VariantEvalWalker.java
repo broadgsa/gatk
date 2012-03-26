@@ -93,6 +93,7 @@ import java.util.*;
  */
 @Reference(window=@Window(start=-50, stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
+    public static final String IS_SINGLETON_KEY = "ISSINGLETON";
 
     @Output
     protected PrintStream out;
@@ -213,6 +214,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     // Public constants
     private static String ALL_SAMPLE_NAME = "all";
 
+    // the number of processed bp for this walker
+    long nProcessedLoci = 0;
+
     // Utility class
     private final VariantEvalUtils variantEvalUtils = new VariantEvalUtils(this);
 
@@ -325,10 +329,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( NewEvaluationContext nec : evaluationContexts.values() ) {
-            synchronized (nec) {
-                nec.update0(tracker, ref, context);
-            }
+        // we track the processed bp and expose this for modules instead of wasting CPU power on calculating
+        // the same thing over and over in evals that want the processed bp
+        synchronized (this) {
+            nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
         }
 
         if (tracker != null) {
@@ -454,7 +458,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     if ( lenientMatch == null ) lenientMatch = comp;
                     break;
                 case NO_MATCH:
-                    ;
+                    // do nothing
             }
         }
 
@@ -494,7 +498,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         if (field.get(ve) instanceof TableType) {
                             TableType t = (TableType) field.get(ve);
 
-                            String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
+                            final String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
                             final DataPoint dataPointAnn = datamap.get(field);
 
                             GATKReportTable table;
@@ -509,17 +513,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                     table.addColumn(vs.getName(), "unknown");
                                 }
 
-                                table.addColumn("row", "unknown");
+                                table.addColumn(t.getRowName(), "unknown");
 
-                                for ( Object o : t.getColumnKeys() ) {
-                                    String c;
-
-                                    if (o instanceof String) {
-                                        c = (String) o;
-                                    } else {
-                                        c = o.toString();
-                                    }
-
+                                for ( final Object o : t.getColumnKeys() ) {
+                                    final String c = o.toString();
                                     table.addColumn(c, 0.0);
                                 }
                             } else {
@@ -527,7 +524,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             }
 
                             for (int row = 0; row < t.getRowKeys().length; row++) {
-                                String r = (String) t.getRowKeys()[row];
+                                final String r = t.getRowKeys()[row].toString();
 
                                 for ( VariantStratifier vs : stratificationObjects ) {
                                     final String columnName = vs.getName();
@@ -535,17 +532,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 }
 
                                 for (int col = 0; col < t.getColumnKeys().length; col++) {
-                                    String c;
-                                    if (t.getColumnKeys()[col] instanceof String) {
-                                        c = (String) t.getColumnKeys()[col];
-                                    } else {
-                                        c = t.getColumnKeys()[col].toString();
-                                    }
-
-                                    String newStateKey = stateKey.toString() + r;
+                                    final String c = t.getColumnKeys()[col].toString();
+                                    final String newStateKey = stateKey.toString() + r;
                                     table.set(newStateKey, c, t.getCell(row, col));
-
-                                    table.set(newStateKey, "row", r);
+                                    table.set(newStateKey, t.getRowName(), r);
                                 }
                             }
                         } else {
@@ -593,6 +583,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public List<RodBinding<VariantContext>> getComps() { return comps; }
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
+
+    public long getnProcessedLoci() {
+        return nProcessedLoci;
+    }
 
     public Set<String> getContigNames() {
         final TreeSet<String> contigs = new TreeSet<String>();

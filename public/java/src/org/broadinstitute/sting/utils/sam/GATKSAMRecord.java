@@ -52,8 +52,8 @@ public class GATKSAMRecord extends BAMRecord {
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
 
     // Base Quality Score Recalibrator specific attribute tags
-    public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";
-    public static final String BQSR_BASE_DELETION_QUALITIES = "BD";
+    public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";                // base qualities for insertions
+    public static final String BQSR_BASE_DELETION_QUALITIES = "BD";                 // base qualities for deletions
 
     // the SAMRecord data we're caching
     private String mReadString = null;

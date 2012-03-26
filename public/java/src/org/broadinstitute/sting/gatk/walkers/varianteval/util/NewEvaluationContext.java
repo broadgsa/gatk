@@ -10,34 +10,20 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.HashMap;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
-    public TreeMap<String, VariantEvaluator> evaluationInstances;
-
-    public String toString() {
-        String value = "";
-
-        for ( VariantStratifier key : this.keySet() ) {
-            value += "\t" + key.getName() + ":" + this.get(key) + "\n";
-        }
-
-        return value;
-    }
+    private Map<String, VariantEvaluator> evaluationInstances;
 
     public void addEvaluationClassList(VariantEvalWalker walker, StateKey stateKey, Set<Class<? extends VariantEvaluator>> evaluationClasses) {
-        evaluationInstances = new TreeMap<String, VariantEvaluator>();
+        evaluationInstances = new LinkedHashMap<String, VariantEvaluator>(evaluationClasses.size());
 
-        for ( Class<? extends VariantEvaluator> c : evaluationClasses ) {
+        for ( final Class<? extends VariantEvaluator> c : evaluationClasses ) {
             try {
-                VariantEvaluator eval = c.newInstance();
+                final VariantEvaluator eval = c.newInstance();
                 eval.initialize(walker);
 
-                if (eval.stateIsApplicable(stateKey)) {
-                    evaluationInstances.put(c.getSimpleName(), eval);
-                }
+                evaluationInstances.put(c.getSimpleName(), eval);
             } catch (InstantiationException e) {
                 throw new StingException("Unable to instantiate eval module '" + c.getSimpleName() + "'");
             } catch (IllegalAccessException e) {
@@ -47,13 +33,11 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
     }
 
     public TreeMap<String, VariantEvaluator> getEvaluationClassList() {
-        return evaluationInstances;
+        return new TreeMap<String, VariantEvaluator>(evaluationInstances);
     }
 
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
-        for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-            // we always call update0 in case the evaluation tracks things like number of bases covered
-
+        for ( final VariantEvaluator evaluation : evaluationInstances.values() ) {
             // the other updateN methods don't see a null context
             if ( tracker == null )
                 continue;
@@ -75,12 +59,6 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
                 default:
                     throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
             }
-        }
-    }
-
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-            evaluation.update0(tracker, ref, context);
         }
     }
 }

@@ -80,4 +80,24 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
         executeTest("MAX 10 het sites [TEST SIX]; require PQ >= 10; cacheWindow = 20000; has inconsistent sites", spec);
     }
 
+    @Test
+    public void test7() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "CEU.trio.2010_03.genotypes.hg18.vcf", 20000, 10, 10)
+                        + " -L chr20:332341-802503",
+                1,
+                Arrays.asList("c37548b333b65f58d0edfc5c2a62a28a"));
+        executeTest("Use trio-phased VCF, but ignore its phasing [TEST SEVEN]", spec);
+    }
+
+    @Test
+    public void test8() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "CEU.trio.2010_03.genotypes.hg18.vcf", 20000, 10, 10)
+                        + " -L chr20:332341-802503" + " -respectPhaseInInput",
+                1,
+                Arrays.asList("dfc7cdddd702e63d46d04f61a3ecd720"));
+        executeTest("Use trio-phased VCF, and respect its phasing [TEST EIGHT]", spec);
+    }
+
 }
