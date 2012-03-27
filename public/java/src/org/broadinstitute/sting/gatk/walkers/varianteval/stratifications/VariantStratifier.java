@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public abstract class VariantStratifier implements Comparable<VariantStratifier> {

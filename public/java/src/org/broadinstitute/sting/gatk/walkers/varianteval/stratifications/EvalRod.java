@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**

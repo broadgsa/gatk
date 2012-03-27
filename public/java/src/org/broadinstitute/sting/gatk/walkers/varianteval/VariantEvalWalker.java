@@ -269,7 +269,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
-        for ( VariantStratifier vs : getStratificationObjects() ) {
+        for ( VariantStratifier vs : stratificationObjects ) {
             if ( vs.getName().equals("Filter") )
                 byFilterIsEnabled = true;
             else if ( vs.getName().equals("Sample") )
@@ -301,11 +301,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             }
         }
 
-
         // initialize CNVs
         if ( knownCNVsFile != null ) {
             knownCNVsByContig = createIntervalTreeByContig(knownCNVsFile);
         }
+
+        //createStratificationStates(stratificationObjects);
     }
 
     public final Map<String, IntervalTree<GenomeLoc>> createIntervalTreeByContig(final IntervalBinding<Feature> intervals) {
