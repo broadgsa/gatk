@@ -38,6 +38,8 @@ public class RecalDatum extends RecalDatumOptimized {
     private double estimatedQReported; // estimated reported quality score based on combined data's individual q-reporteds and number of observations
     private double empiricalQuality; // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
 
+    private static final int SMOOTHING_CONSTANT = 1;                                        // used when calculating empirical qualities to avoid division by zero
+
     //---------------------------------------------------------------------------------------------------------------
     //
     // constructors
@@ -75,7 +77,6 @@ public class RecalDatum extends RecalDatumOptimized {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         this.increment(other.numObservations, other.numMismatches);
         this.estimatedQReported = -10 * Math.log10(sumErrors / (double) this.numObservations);
-        //if( this.estimatedQReported > QualityUtils.MAX_REASONABLE_Q_SCORE ) { this.estimatedQReported = QualityUtils.MAX_REASONABLE_Q_SCORE; }
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -84,8 +85,8 @@ public class RecalDatum extends RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public final void calcCombinedEmpiricalQuality(final int smoothing, final int maxQual) {
-        this.empiricalQuality = empiricalQualDouble(smoothing, maxQual);    // cache the value so we don't call log over and over again
+    public final void calcCombinedEmpiricalQuality(final int maxQual) {
+        this.empiricalQuality = empiricalQualDouble(SMOOTHING_CONSTANT, maxQual);                                       // cache the value so we don't call log over and over again
     }
     
     public final void calcEstimatedReportedQuality() {
@@ -104,6 +105,11 @@ public class RecalDatum extends RecalDatumOptimized {
 
     public final double getEmpiricalQuality() {
         return empiricalQuality;
+    }
+
+    public final void resetCalculatedQualities() {
+        empiricalQuality = 0.0;
+        estimatedQReported = 0.0;
     }
 
     private double calcExpectedErrors() {

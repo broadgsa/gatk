@@ -27,6 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.PrintStream;
 import java.util.Collections;
@@ -156,5 +158,25 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "quantizing_levels", shortName = "ql", required = false, doc = "number of distinct quality scores in the quantized output")
     public int QUANTIZING_LEVELS = 16;
 
+    public GATKReportTable generateReportTable() {
+        GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run");
+        argumentsTable.addPrimaryKey("Argument");
+        argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, "null");
+        argumentsTable.set("covariate", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
+        argumentsTable.set("standard_covs", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, USE_STANDARD_COVARIATES);
+        argumentsTable.set("run_without_dbsnp", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
+        argumentsTable.set("solid_recal_mode", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_RECAL_MODE);
+        argumentsTable.set("solid_nocall_strategy", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
+        argumentsTable.set("mismatches_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
+        argumentsTable.set("insertions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_CONTEXT_SIZE);
+        argumentsTable.set("deletions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DELETIONS_CONTEXT_SIZE);
+        argumentsTable.set("mismatches_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
+        argumentsTable.set("insertions_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_DEFAULT_QUALITY);
+        argumentsTable.set("low_quality_tail", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, LOW_QUAL_TAIL);
+        argumentsTable.set("default_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
+        argumentsTable.set("force_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
+        argumentsTable.set("quantizing_levels", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
+        return argumentsTable;
+    }
 
 }
