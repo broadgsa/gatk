@@ -371,18 +371,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
 
-                            HashMap<VariantStratifier, List<String>> stateMap = new HashMap<VariantStratifier, List<String>>();
-                            for ( VariantStratifier vs : stratificationObjects ) {
-                                List<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
-                                stateMap.put(vs, states);
-                            }
-
-                            ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
-                            variantEvalUtils.initializeStateKeys(stateMap, null, null, stateKeys);
-
-                            HashSet<StateKey> stateKeysHash = new HashSet<StateKey>(stateKeys);
-
-                            for ( StateKey stateKey : stateKeysHash ) {
+                            for ( StateKey stateKey : getApplicableStates(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), sampleName) ) {
                                 NewEvaluationContext nec = evaluationContexts.get(stateKey);
 
                                 // eval against the comp
@@ -409,6 +398,73 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         return null;
     }
+
+//    private Iterable<StateKey> getApplicableStates(final RefMetaDataTracker tracker,
+//                                                   final ReferenceContext ref,
+//                                                   final VariantContext eval,
+//                                                   final String evalName,
+//                                                   final VariantContext comp,
+//                                                   final String compName,
+//                                                   final String sampleName ) {
+//        Set<StateKey> oldKeys = new HashSet<StateKey>(Utils.makeCollection(getApplicableStatesOld(tracker, ref, eval, evalName, comp, compName, sampleName)));
+//
+//        int n = 0;
+//        for ( final StateKey newKey : getApplicableStatesNew(tracker, ref, eval, evalName, comp, compName, sampleName) ) {
+//            n++;
+//            if ( ! oldKeys.contains(newKey) )
+//                throw new ReviewedStingException("New key " + newKey + " missing from previous algorithm");
+//        }
+//
+//        if ( n != oldKeys.size() )
+//            throw new ReviewedStingException("New keyset has " + n + " elements but previous algorithm had " + oldKeys.size());
+//
+//        return oldKeys;
+//    }
+
+//    private Iterable<StateKey> getApplicableStatesNew(final RefMetaDataTracker tracker,
+//                                                   final ReferenceContext ref,
+//                                                   final VariantContext eval,
+//                                                   final String evalName,
+//                                                   final VariantContext comp,
+//                                                   final String compName,
+//                                                   final String sampleName ) {
+//        // todo -- implement optimized version
+//    }
+
+    /**
+     * Given specific eval and comp VCs and the sample name, return an iterable
+     * over all of the applicable state keys.
+     *
+     * See header of StateKey for performance problems...
+     *
+     * @param tracker
+     * @param ref
+     * @param eval
+     * @param evalName
+     * @param comp
+     * @param compName
+     * @param sampleName
+     * @return
+     */
+    private Iterable<StateKey> getApplicableStates(final RefMetaDataTracker tracker,
+                                                   final ReferenceContext ref,
+                                                   final VariantContext eval,
+                                                   final String evalName,
+                                                   final VariantContext comp,
+                                                   final String compName,
+                                                   final String sampleName ) {
+        final HashMap<VariantStratifier, List<String>> stateMap = new HashMap<VariantStratifier, List<String>>(stratificationObjects.size());
+        for ( final VariantStratifier vs : stratificationObjects ) {
+            List<String> states = vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName);
+            stateMap.put(vs, states);
+        }
+
+        ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
+        variantEvalUtils.initializeStateKeys(stateMap, null, null, stateKeys);
+
+        return new HashSet<StateKey>(stateKeys);
+    }
+
 
     @Requires({"comp != null", "evals != null"})
     private boolean compHasMatchingEval(final VariantContext comp, final Collection<VariantContext> evals) {
