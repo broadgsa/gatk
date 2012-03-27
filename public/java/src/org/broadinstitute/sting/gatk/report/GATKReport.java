@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
 import java.util.Collection;
+import java.util.List;
 import java.util.TreeMap;
 
 /**
@@ -139,6 +140,11 @@ public class GATKReport {
      */
     public void addTable(GATKReportTable table) {
         tables.put(table.getTableName(), table);
+    }
+
+    public void addTables(List<GATKReportTable> gatkReportTables) {
+        for (GATKReportTable table : gatkReportTables) 
+            addTable(table);
     }
 
     /**
