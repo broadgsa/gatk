@@ -48,9 +48,9 @@ public enum GATKReportDataType {
     Boolean("%[Bb]"),
 
     /**
-     * Used for byte and char value. Will display as a char so use printable values!
+     * Used for char values. Will display as a char so use printable values!
      */
-    Byte("%[Cc]"),
+    Character("%[Cc]"),
 
     /**
      * Used for float and double values. Will output a decimal with format %.8f unless otherwise specified.
@@ -58,7 +58,7 @@ public enum GATKReportDataType {
     Decimal("%.*[EeFf]"),
 
     /**
-     * Used for int, and long values. Will display the full number by default.
+     * Used for int, byte, short, and long values. Will display the full number by default.
      */
     Integer("%[Dd]"),
 
@@ -97,17 +97,26 @@ public enum GATKReportDataType {
         GATKReportDataType value;
         if (object instanceof Boolean) {
             value = GATKReportDataType.Boolean;
-        } else if (object instanceof Byte || object instanceof Character) {
-            value = GATKReportDataType.Byte;
-        } else if (object instanceof Float || object instanceof Double) {
+
+        } else if (object instanceof Character) {
+            value = GATKReportDataType.Character;
+
+        } else if (object instanceof Float ||
+                object instanceof Double) {
             value = GATKReportDataType.Decimal;
-        } else if (object instanceof Integer || object instanceof Long) {
+
+        } else if (object instanceof Integer ||
+                object instanceof Long ||
+                object instanceof Short ||
+                object instanceof Byte ) {
             value = GATKReportDataType.Integer;
+
         } else if (object instanceof String) {
             value = GATKReportDataType.String;
+
         } else {
             value = GATKReportDataType.Unknown;
-            //throw new ReviewedStingException("GATKReport could not convert the data object into a GATKReportDataType. Acceptable data objects are found in the documentation.");
+            //throw new UserException("GATKReport could not convert the data object into a GATKReportDataType. Acceptable data objects are found in the documentation.");
         }
         return value;
     }
@@ -140,8 +149,8 @@ public enum GATKReportDataType {
                 return 0.0D;
             case Boolean:
                 return false;
-            case Byte:
-                return (byte) 0;
+            case Character:
+                return '0';
             case Integer:
                 return 0L;
             case String:
@@ -166,16 +175,7 @@ public enum GATKReportDataType {
             case Boolean:
             case Integer:
                 return a.toString().equals(b.toString());
-            case Byte:
-                // A mess that checks if the bytes and characters contain the same value
-                if ((a instanceof Character && b instanceof Character) ||
-                        (a instanceof Byte && b instanceof Byte))
-                    return a.toString().equals(b.toString());
-                else if (a instanceof Character && b instanceof Byte) {
-                    return ((Character) a).charValue() == ((Byte) b).byteValue();
-                } else if (a instanceof Byte && b instanceof Character) {
-                    return ((Byte) a).byteValue() == ((Character) b).charValue();
-                }
+            case Character:
             case String:
             default:
                 return a.equals(b);
@@ -201,8 +201,8 @@ public enum GATKReportDataType {
                     return Long.parseLong(str);
                 case String:
                     return str;
-                case Byte:
-                    return (byte) str.toCharArray()[0];
+                case Character:
+                    return str.toCharArray()[0];
                 default:
                     return str;
             }
@@ -225,7 +225,7 @@ public enum GATKReportDataType {
                 return "%d";
             case String:
                 return "%s";
-            case Byte:
+            case Character:
                 return "%c";
             case Null:
             default:
