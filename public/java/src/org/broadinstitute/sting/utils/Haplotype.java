@@ -182,7 +182,6 @@ public class Haplotype {
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
                                                                final int haplotypeSize, final int numPrefBases) {
 
-
         LinkedHashMap<Allele,Haplotype> haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
 
         Allele refAllele = null;
@@ -215,13 +214,13 @@ public class Haplotype {
 
 
         // Create location for all haplotypes
-        int startLoc = ref.getWindow().getStart() + startIdxInReference;
-        int stopLoc = startLoc + haplotypeSize-1;
+        final int startLoc = ref.getWindow().getStart() + startIdxInReference;
+        final int stopLoc = startLoc + haplotypeSize-1;
 
-        GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
+        final GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
 
 
-        for (Allele a : alleleList) {
+        for (final Allele a : alleleList) {
 
             byte[] alleleBases = a.getBases();
             // use string concatenation
@@ -315,5 +314,4 @@ public class Haplotype {
 
         return (fallsInsideDeletion ? -1 : readBases);
     }
-
 }
