@@ -25,19 +25,13 @@ package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
 import org.broadinstitute.sting.gatk.walkers.genotyper.AlleleFrequencyCalculationResult;
 import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.TreeSet;
 
 
 public class GLBasedSampleSelector extends SampleSelector {
-    Map<Integer,double[][]> numAllelePriorMatrix = new HashMap<Integer,double[][]>();
+    double[] flatPriors = null;
     double referenceLikelihood;
     public GLBasedSampleSelector(TreeSet<String> sm, double refLik) {
         super(sm);
@@ -53,22 +47,16 @@ public class GLBasedSampleSelector extends SampleSelector {
 
         // now check to see (using EXACT model) whether this should be variant
         // do we want to apply a prior? maybe user-spec?
-        double[][] flatPrior = createFlatPrior(vc.getAlleles());
-        AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(vc.getAlternateAlleles().size(),2*samples.size());
-        ExactAFCalculationModel.linearExactMultiAllelic(subContext.getGenotypes(),vc.getAlternateAlleles().size(),flatPrior,result,true);
+        if ( flatPriors == null ) {
+            flatPriors = new double[1+2*samples.size()];
+        }
+        AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(vc.getAlternateAlleles().size());
+        ExactAFCalculationModel.linearExactMultiAllelic(subContext.getGenotypes(),vc.getAlternateAlleles().size(),flatPriors,result);
         // do we want to let this qual go up or down?
         if ( result.getLog10PosteriorOfAFzero() < referenceLikelihood ) {
             return true;
         }
 
         return false;
-    }
-
-    private double[][] createFlatPrior(List<Allele> alleles) {
-        if ( ! numAllelePriorMatrix.containsKey(alleles.size()) ) {
-            numAllelePriorMatrix.put(alleles.size(), new double[alleles.size()][1+2*samples.size()]);
-        }
-
-        return numAllelePriorMatrix.get(alleles.size());
     }
 }

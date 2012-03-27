@@ -25,6 +25,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broadinstitute.sting.utils.MathUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
 /**
  * Created by IntelliJ IDEA.
  * User: ebanks
@@ -34,23 +39,54 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
  */
 public class AlleleFrequencyCalculationResult {
 
-    // IMPORTANT NOTE:
-    // These 2 arrays are intended to contain the likelihoods/posterior probabilities for each alternate allele over each possible frequency (from 0 to 2N).
-    // For any given alternate allele and frequency, the likelihoods are marginalized over values for all other alternate alleles.  What this means is that
-    // the likelihoods at cell index zero (AF=0) in the array is actually that of the site's being polymorphic (because although this alternate allele may
-    // be at AF=0, it is marginalized over all other alternate alleles which are not necessarily at AF=0).
-    // In the bi-allelic case (where there are no other alternate alleles over which to marginalize),
-    // the value at cell index zero will be equal to AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED.
-    final double[][] log10AlleleFrequencyLikelihoods;
-    final double[][] log10AlleleFrequencyPosteriors;
+    // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
+    private double log10MLE;
+    private double log10MAP;
+    final private int[] alleleCountsOfMLE;
+    final private int[] alleleCountsOfMAP;
 
-    // These 2 variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
-    double log10LikelihoodOfAFzero = 0.0;
-    double log10PosteriorOfAFzero = 0.0;
+    // The posteriors seen, not including that of AF=0
+    // TODO -- better implementation needed here (see below)
+    private ArrayList<Double> log10PosteriorMatrixValues = new ArrayList<Double>(100000);
+    private Double log10PosteriorMatrixSum = null;
 
-    public AlleleFrequencyCalculationResult(int maxAltAlleles, int numChr) {
-        log10AlleleFrequencyLikelihoods = new double[maxAltAlleles][numChr+1];
-        log10AlleleFrequencyPosteriors = new double[maxAltAlleles][numChr+1];
+    // These variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
+    private double log10LikelihoodOfAFzero;
+    private double log10PosteriorOfAFzero;
+
+
+    public AlleleFrequencyCalculationResult(final int maxAltAlleles) {
+        alleleCountsOfMLE = new int[maxAltAlleles];
+        alleleCountsOfMAP = new int[maxAltAlleles];
+        reset();
+    }
+
+    public double getLog10MLE() {
+        return log10MLE;
+    }
+
+    public double getLog10MAP() {
+        return log10MAP;
+    }
+
+    public double getLog10PosteriorMatrixSum() {
+        if ( log10PosteriorMatrixSum == null ) {
+            // TODO -- we absolutely need a better implementation here as we don't want to store all values from the matrix in memory;
+            // TODO --   will discuss with the team what the best option is
+            final double[] tmp = new double[log10PosteriorMatrixValues.size()];
+            for ( int i = 0; i < tmp.length; i++ )
+                tmp[i] = log10PosteriorMatrixValues.get(i);
+            log10PosteriorMatrixSum = MathUtils.log10sumLog10(tmp);
+        }
+        return log10PosteriorMatrixSum;
+    }
+
+    public int[] getAlleleCountsOfMLE() {
+        return alleleCountsOfMLE;
+    }
+
+    public int[] getAlleleCountsOfMAP() {
+        return alleleCountsOfMAP;
     }
 
     public double getLog10LikelihoodOfAFzero() {
@@ -59,5 +95,48 @@ public class AlleleFrequencyCalculationResult {
 
     public double getLog10PosteriorOfAFzero() {
         return log10PosteriorOfAFzero;
+    }
+
+    public void reset() {
+        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
+        for ( int i = 0; i < alleleCountsOfMLE.length; i++ ) {
+            alleleCountsOfMLE[i] = 0;
+            alleleCountsOfMAP[i] = 0;
+        }
+        log10PosteriorMatrixValues.clear();
+        log10PosteriorMatrixSum = null;
+    }
+
+    public void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {
+        if ( log10LofK > log10MLE ) {
+            log10MLE = log10LofK;
+            for ( int i = 0; i < alleleCountsForK.length; i++ )
+                alleleCountsOfMLE[i] = alleleCountsForK[i];
+        }
+    }
+
+    public void updateMAPifNeeded(final double log10LofK, final int[] alleleCountsForK) {
+        log10PosteriorMatrixValues.add(log10LofK);
+        if ( log10LofK > log10MAP ) {
+            log10MAP = log10LofK;
+            for ( int i = 0; i < alleleCountsForK.length; i++ )
+                alleleCountsOfMAP[i] = alleleCountsForK[i];
+        }
+    }
+
+    public void setLog10LikelihoodOfAFzero(final double log10LikelihoodOfAFzero) {
+        this.log10LikelihoodOfAFzero = log10LikelihoodOfAFzero;
+        if ( log10LikelihoodOfAFzero > log10MLE ) {
+            log10MLE = log10LikelihoodOfAFzero;
+            Arrays.fill(alleleCountsOfMLE, 0);
+        }
+    }
+
+    public void setLog10PosteriorOfAFzero(final double log10PosteriorOfAFzero) {
+        this.log10PosteriorOfAFzero = log10PosteriorOfAFzero;
+        if ( log10PosteriorOfAFzero > log10MAP ) {
+            log10MAP = log10PosteriorOfAFzero;
+            Arrays.fill(alleleCountsOfMAP, 0);
+        }
     }
 }

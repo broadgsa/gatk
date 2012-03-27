@@ -69,6 +69,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @return the alleles used for genotyping
      */
     protected abstract List<Allele> getLog10PNonRef(final VariantContext vc,
-                                                    final double[][] log10AlleleFrequencyPriors,
+                                                    final double[] log10AlleleFrequencyPriors,
                                                     final AlleleFrequencyCalculationResult result);
 }
