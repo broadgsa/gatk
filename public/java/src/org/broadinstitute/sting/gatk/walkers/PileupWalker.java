@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -68,6 +69,9 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
 
+    @Argument(fullName="showVerbose",shortName="verbose",doc="Add an extra verbose section to the pileup output")
+    public boolean SHOW_VERBOSE = false;
+
     @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
@@ -82,7 +86,10 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
         if ( context.hasBasePileup() ) {
             ReadBackedPileup basePileup = context.getBasePileup();
-            out.printf("%s %s%n", basePileup.getPileupString(ref.getBaseAsChar()), rods);
+            out.printf("%s %s", basePileup.getPileupString((char)ref.getBase()), rods);
+            if ( SHOW_VERBOSE )
+                out.printf(" %s", createVerboseOutput(basePileup));
+            out.println();
         }
 
         if ( context.hasExtendedEventPileup() ) {
@@ -124,6 +131,24 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             rodString = "[ROD: " + rodString + "]";
 
         return rodString;
+    }
+    
+    private static String createVerboseOutput(final ReadBackedPileup pileup) {
+        final StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+
+        for ( PileupElement p : pileup ) {
+            if ( isFirst )
+                isFirst = false;
+            else
+                sb.append(",");
+            sb.append(p.getRead().getReadName());
+            sb.append(":");
+            sb.append(p.getOffset());
+            sb.append(":");
+            sb.append(p.getRead().getReadLength());
+        }
+        return sb.toString();
     }
 
     @Override
