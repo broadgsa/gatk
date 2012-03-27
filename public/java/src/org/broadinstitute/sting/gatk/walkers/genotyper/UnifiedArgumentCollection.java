@@ -119,6 +119,17 @@ public class UnifiedArgumentCollection {
     public int MIN_INDEL_COUNT_FOR_GENOTYPING = 5;
 
     /**
+     * Complementary argument to minIndelCnt.  Only samples with at least this fraction of indel-containing reads will contribute
+     * to counting and overcoming the threshold minIndelCnt.  This parameter ensures that in deep data you don't end
+     * up summing lots of super rare errors up to overcome the 5 read default threshold.  Should work equally well for
+     * low-coverage and high-coverage samples, as low coverage samples with any indel containing reads should easily over
+     * come this threshold.
+     */
+    @Argument(fullName = "min_indel_fraction_per_sample", shortName = "minIndelFrac", doc = "Minimum fraction of all reads at a locus that must contain an indel (of any allele) for that sample to contribute to the indel count for alleles", required = false)
+    public double MIN_INDEL_FRACTION_PER_SAMPLE = 0.25;
+
+
+    /**
      * This argument informs the prior probability of having an indel at a site.
      */
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
@@ -165,6 +176,7 @@ public class UnifiedArgumentCollection {
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
+        uac.MIN_INDEL_FRACTION_PER_SAMPLE = MIN_INDEL_FRACTION_PER_SAMPLE;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
         uac.INDEL_GAP_OPEN_PENALTY = INDEL_GAP_OPEN_PENALTY;
         uac.INDEL_GAP_CONTINUATION_PENALTY = INDEL_GAP_CONTINUATION_PENALTY;

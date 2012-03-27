@@ -703,4 +703,11 @@ public class Utils {
         return programRecord;
     }
 
+    public static <E> Collection<E> makeCollection(Iterable<E> iter) {
+        Collection<E> list = new ArrayList<E>();
+        for (E item : iter) {
+            list.add(item);
+        }
+        return list;
+    }
 }

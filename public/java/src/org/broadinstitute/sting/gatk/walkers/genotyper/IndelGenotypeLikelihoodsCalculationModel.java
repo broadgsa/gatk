@@ -52,11 +52,9 @@ import java.util.*;
 public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
     private final int HAPLOTYPE_SIZE;
 
-    private final int minIndelCountForGenotyping;
     private final boolean getAlleleListFromVCF;
 
     private boolean DEBUG = false;
-    private final boolean doMultiAllelicCalls = true;
     private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
     private PairHMMIndelErrorModel pairModel;
 
@@ -72,217 +70,30 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     // gdebug removeme
     // todo -cleanup
     private GenomeLoc lastSiteVisited;
-    private ArrayList<Allele> alleleList;
+    private List<Allele> alleleList = new ArrayList<Allele>();
 
     static {
         indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
     }
 
 
-    public IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
+    protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY, UAC.INDEL_GAP_CONTINUATION_PENALTY,
                 UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
-        alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-        minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
         HAPLOTYPE_SIZE = UAC.INDEL_HAPLOTYPE_SIZE;
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
-
         haplotypeMap = new LinkedHashMap<Allele, Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
     }
 
-
-    public static ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
-                                                      Map<String, AlignmentContext> contexts,
-                                                      AlignmentContextUtils.ReadOrientation contextType, GenomeLocParser locParser,
-                                                      int minIndelCountForGenotyping, boolean doMultiAllelicCalls) {
-        Allele refAllele = null, altAllele = null;
-        GenomeLoc loc = ref.getLocus();
-        ArrayList<Allele> aList = new ArrayList<Allele>();
-
-        HashMap<String, Integer> consensusIndelStrings = new HashMap<String, Integer>();
-
-        int insCount = 0, delCount = 0;
-        // quick check of total number of indels in pileup
-        for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
-            AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
-
-            final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-            insCount += indelPileup.getNumberOfInsertions();
-            delCount += indelPileup.getNumberOfDeletions();
-        }
-
-        if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
-            return aList;
-
-        for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
-            // todo -- warning, can be duplicating expensive partition here
-            AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
-
-            final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-
-
-            for (ExtendedEventPileupElement p : indelPileup.toExtendedIterable()) {
-                //SAMRecord read = p.getRead();
-                GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
-                if (read == null)
-                    continue;
-                if (ReadUtils.is454Read(read)) {
-                    continue;
-                }
-
-/*                if (DEBUG && p.isIndel()) {
-                    System.out.format("Read: %s, cigar: %s, aln start: %d, aln end: %d, p.len:%d, Type:%s, EventBases:%s\n",
-                            read.getReadName(),read.getCigar().toString(),read.getAlignmentStart(),read.getAlignmentEnd(),
-                            p.getEventLength(),p.getType().toString(), p.getEventBases());
-                }
-   */
-
-                String indelString = p.getEventBases();
-                if (p.isInsertion()) {
-                    boolean foundKey = false;
-                    // copy of hashmap into temp arrayList
-                    ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();
-                    for (String s : consensusIndelStrings.keySet()) {
-                        cList.add(new Pair<String, Integer>(s,consensusIndelStrings.get(s)));
-                    }
-
-                    if (read.getAlignmentEnd() == loc.getStart()) {
-                        // first corner condition: a read has an insertion at the end, and we're right at the insertion.
-                        // In this case, the read could have any of the inserted bases and we need to build a consensus
-
-                        for (int k=0; k < cList.size(); k++) {
-                            String s = cList.get(k).getFirst();
-                            int cnt = cList.get(k).getSecond();
-                            // case 1: current insertion is prefix of indel in hash map
-                            if (s.startsWith(indelString)) {
-                                cList.set(k,new Pair<String, Integer>(s,cnt+1));
-                                foundKey = true;
-                            }
-                            else if (indelString.startsWith(s)) {
-                                // case 2: indel stored in hash table is prefix of current insertion
-                                // In this case, new bases are new key.
-                                foundKey = true;
-                                cList.set(k,new Pair<String, Integer>(indelString,cnt+1));
-                            }
-                        }
-                        if (!foundKey)
-                            // none of the above: event bases not supported by previous table, so add new key
-                            cList.add(new Pair<String, Integer>(indelString,1));
-
-                    }
-                    else if (read.getAlignmentStart() == loc.getStart()+1) {
-                        // opposite corner condition: read will start at current locus with an insertion
-                        for (int k=0; k < cList.size(); k++) {
-                            String s = cList.get(k).getFirst();
-                            int cnt = cList.get(k).getSecond();
-                            if (s.endsWith(indelString)) {
-                                // case 1: current insertion (indelString) is suffix of indel in hash map (s)
-                                cList.set(k,new Pair<String, Integer>(s,cnt+1));
-                                foundKey = true;
-                            }
-                            else if (indelString.endsWith(s)) {
-                                // case 2: indel stored in hash table is prefix of current insertion
-                                // In this case, new bases are new key.
-                                foundKey = true;
-                                cList.set(k,new Pair<String, Integer>(indelString,cnt+1));
-                            }
-                        }
-                        if (!foundKey)
-                            // none of the above: event bases not supported by previous table, so add new key
-                            cList.add(new Pair<String, Integer>(indelString,1));
-
-
-                    }
-                    else {
-                        // normal case: insertion somewhere in the middle of a read: add count to arrayList
-                        int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
-                        cList.add(new Pair<String, Integer>(indelString,cnt+1));
-                    }
-
-                    // copy back arrayList into hashMap
-                    consensusIndelStrings.clear();
-                    for (Pair<String,Integer> pair : cList) {
-                        consensusIndelStrings.put(pair.getFirst(),pair.getSecond());
-                    }
-
-                }
-                else if (p.isDeletion()) {
-                    indelString = String.format("D%d",p.getEventLength());
-                    int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
-                    consensusIndelStrings.put(indelString,cnt+1);
-
-                }
-            }
-
-        }
-
-        Collection<VariantContext> vcs = new ArrayList<VariantContext>();
-        int maxAlleleCnt = 0;
-        String bestAltAllele = "";
-
-        for (String s : consensusIndelStrings.keySet()) {
-            int curCnt = consensusIndelStrings.get(s), stop = 0;
-            // if observed count if above minimum threshold, we will genotype this allele
-            if (curCnt < minIndelCountForGenotyping)
-                continue;
-
-            if (s.startsWith("D")) {
-                // get deletion length
-                int dLen = Integer.valueOf(s.substring(1));
-                // get ref bases of accurate deletion
-                int startIdxInReference = 1 + loc.getStart() - ref.getWindow().getStart();
-                stop = loc.getStart() + dLen;
-                byte[] refBases = Arrays.copyOfRange(ref.getBases(), startIdxInReference, startIdxInReference + dLen);
-
-                if (Allele.acceptableAlleleBases(refBases)) {
-                    refAllele = Allele.create(refBases, true);
-                    altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
-                }
-                else continue; // don't go on with this allele if refBases are non-standard
-            } else {
-                // insertion case
-                if (Allele.acceptableAlleleBases(s)) {
-                    refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-                    altAllele = Allele.create(s, false);
-                    stop = loc.getStart();
-                }
-                else continue; // go on to next allele if consensus insertion has any non-standard base.
-            }
-
-
-            ArrayList vcAlleles = new ArrayList<Allele>();
-            vcAlleles.add(refAllele);
-            vcAlleles.add(altAllele);
-
-            final VariantContextBuilder builder = new VariantContextBuilder().source("");
-            builder.loc(loc.getContig(), loc.getStart(), stop);
-            builder.alleles(vcAlleles);
-            builder.referenceBaseForIndel(ref.getBase());
-            builder.noGenotypes();
-            if (doMultiAllelicCalls)
-                vcs.add(builder.make());
-            else {
-                if (curCnt > maxAlleleCnt) {
-                    maxAlleleCnt = curCnt;
-                    vcs.clear();
-                    vcs.add(builder.make());
-                }
-
-            }
-        }
-
-        if (vcs.isEmpty())
-            return aList; // nothing else to do, no alleles passed minimum count criterion
-
-        VariantContext mergedVC = VariantContextUtils.simpleMerge(locParser, vcs, null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, VariantContextUtils.GenotypeMergeType.UNSORTED, false, false, null, false, false);
-
-        aList = new ArrayList<Allele>(mergedVC.getAlleles());
-
-        return aList;
-
+    private List<Allele> computeConsensusAlleles(ReferenceContext ref,
+                                                 Map<String, AlignmentContext> contexts,
+                                                 AlignmentContextUtils.ReadOrientation contextType,
+                                                 GenomeLocParser locParser) {
+        ConsensusAlleleCounter counter = new ConsensusAlleleCounter(locParser, true, UAC.MIN_INDEL_COUNT_FOR_GENOTYPING, UAC.MIN_INDEL_FRACTION_PER_SAMPLE);
+        return counter.computeConsensusAlleles(ref, contexts, contextType);
     }
 
     private final static EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.MIXED);
@@ -338,7 +149,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 }
 
             } else {
-                alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser, minIndelCountForGenotyping,doMultiAllelicCalls);
+                alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser);
                 if (alleleList.isEmpty())
                     return null;
             }

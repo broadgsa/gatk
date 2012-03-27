@@ -234,6 +234,9 @@ public class MathUtils {
         double sum = 0.0;
 
         double maxValue = Utils.findMaxEntry(log10p);
+        if(maxValue == Double.NEGATIVE_INFINITY)
+            return sum;
+
         for (int i = start; i < finish; i++) {
             sum += Math.pow(10.0, log10p[i] - maxValue);
         }
@@ -1507,6 +1510,24 @@ public class MathUtils {
 
         return result;
     }
+
+    /** Same routine, unboxed types for efficiency
+     *
+     * @param x
+     * @param y
+     * @return Vector of same length as x and y so that z[k] = x[k]+y[k]
+     */
+    public static double[] vectorSum(double[]x, double[] y) {
+        if (x.length != y.length)
+            throw new ReviewedStingException("BUG: Lengths of x and y must be the same");
+
+        double[] result = new double[x.length];
+        for (int k=0; k <x.length; k++)
+            result[k] = x[k]+y[k];
+
+        return result;
+    }
+
 
     public static <E extends Number> Double[] scalarTimesVector(E a, E[] v1) {
 

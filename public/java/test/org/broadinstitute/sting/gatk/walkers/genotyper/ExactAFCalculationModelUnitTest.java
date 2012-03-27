@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
@@ -18,7 +17,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     static double[] AA1, AB1, BB1;
     static double[] AA2, AB2, AC2, BB2, BC2, CC2;
     static final int numSamples = 3;
-    static double[][] priors = new double[2][2*numSamples+1];  // flat priors
+    static double[] priors = new double[2*numSamples+1];  // flat priors
 
     @BeforeSuite
     public void before() {
@@ -83,26 +82,16 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     @Test(dataProvider = "getGLs")
     public void testGLs(GetGLsTest cfg) {
 
-        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2, 2*numSamples);
-        for ( int i = 0; i < 2; i++ ) {
-            for ( int j = 0; j < 2*numSamples+1; j++ ) {
-                result.log10AlleleFrequencyLikelihoods[i][j] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
-                result.log10AlleleFrequencyPosteriors[i][j] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
-            }
-        }
+        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2);
 
-        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result, false);
+        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result);
 
         int nameIndex = 1;
         for ( int allele = 0; allele < cfg.numAltAlleles; allele++, nameIndex+=2 ) {
             int expectedAlleleCount = Integer.valueOf(cfg.name.substring(nameIndex, nameIndex+1));
-            int calculatedAlleleCount = MathUtils.maxElementIndex(result.log10AlleleFrequencyPosteriors[allele]);
+            int calculatedAlleleCount = result.getAlleleCountsOfMAP()[allele];
 
-            if ( result.log10AlleleFrequencyPosteriors[0][0] == AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED ) {
-                Assert.assertTrue(calculatedAlleleCount == expectedAlleleCount || result.log10AlleleFrequencyPosteriors[0][calculatedAlleleCount] < result.log10PosteriorOfAFzero);
-            } else {
-                Assert.assertEquals(calculatedAlleleCount, expectedAlleleCount);
-            }
+            Assert.assertEquals(calculatedAlleleCount, expectedAlleleCount);
         }
     }
 }

@@ -756,10 +756,6 @@ public class GATKReportTable {
         */
 
         // Get the column widths for everything
-        HashMap<String, GATKReportColumnFormat> columnFormats = new HashMap<String, GATKReportColumnFormat>();
-        for (String columnName : columns.keySet()) {
-            columnFormats.put(columnName, columns.get(columnName).getColumnFormat());
-        }
         String primaryKeyFormat = "%-" + getPrimaryKeyColumnWidth() + "s";
 
         // Emit the table definition
@@ -787,7 +783,7 @@ public class GATKReportTable {
                 if (needsPadding) {
                     out.printf("  ");
                 }
-                out.printf(columnFormats.get(columnName).getNameFormat(), columnName);
+                out.printf(columns.get(columnName).getColumnFormat().getNameFormat(), columnName);
 
                 needsPadding = true;
             }
@@ -796,29 +792,31 @@ public class GATKReportTable {
         out.printf("%n");
 
         // Emit the table body
-        for (Object primaryKey : primaryKeyColumn) {
+        for (final Object primaryKey : primaryKeyColumn) {
             needsPadding = false;
             if (primaryKeyDisplay) {
                 out.printf(primaryKeyFormat, primaryKey);
                 needsPadding = true;
             }
 
-            for (String columnName : columns.keySet()) {
-                if (columns.get(columnName).isDisplayable()) {
+            for (final Map.Entry<String, GATKReportColumn> entry : columns.entrySet()) {
+                final GATKReportColumn column = entry.getValue();
+                if (column.isDisplayable()) {
                     if (needsPadding) {
-                        out.printf("  ");
+                        out.print("  ");
                     }
-                    String value = columns.get(columnName).getStringValue(primaryKey);
-                    out.printf(columnFormats.get(columnName).getValueFormat(), value);
+
+                    final String value = column.getStringValue(primaryKey);
+                    out.printf(column.getColumnFormat().getValueFormat(), value);
 
                     needsPadding = true;
                 }
             }
 
-            out.printf("%n");
+            out.println();
         }
 
-        out.printf("%n");
+        out.println();
     }
 
     public int getNumRows() {
