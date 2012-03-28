@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.EnumMap;
 
@@ -219,35 +220,38 @@ public class GenotypeLikelihoods {
         }
     }
 
+    /**
+     * The maximum number of alleles that we can represent as genotype likelihoods
+     */
+    final static int MAX_ALLELES_THAT_CAN_BE_GENOTYPED = 500;
+
     /*
      * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
      */
-    private static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex;
-    static {
-        calculatePLcache(65); // start with data for 10 alternate alleles
-    }
+    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALLELES_THAT_CAN_BE_GENOTYPED); // start with data for 10 alternate alleles
 
-    private static void calculatePLcache(final int minIndex) {
-        // how many alternate alleles do we need to calculate for?
-        int altAlleles = 0;
-        int numLikelihoods = 1;
-        while ( numLikelihoods <= minIndex ) {
-            altAlleles++;
-            numLikelihoods += altAlleles + 1;
-        }
-
-        PLIndexToAlleleIndex = new GenotypeLikelihoodsAllelePair[numLikelihoods];
+    private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
+        final int numLikelihoods = calculateNumLikelihoods(altAlleles);
+        final GenotypeLikelihoodsAllelePair[] cache = new GenotypeLikelihoodsAllelePair[numLikelihoods];
 
         // for all possible combinations of 2 alleles
         for ( int allele1 = 0; allele1 <= altAlleles; allele1++ ) {
             for ( int allele2 = allele1; allele2 <= altAlleles; allele2++ ) {
-                PLIndexToAlleleIndex[calculatePLindex(allele1, allele2)] = new GenotypeLikelihoodsAllelePair(allele1, allele2);
+                cache[calculatePLindex(allele1, allele2)] = new GenotypeLikelihoodsAllelePair(allele1, allele2);
             }
         }
-    }
 
+        // a bit of sanity checking
+        for ( int i = 0; i < cache.length; i++ ) {
+            if ( cache[i] == null )
+                throw new ReviewedStingException("BUG: cache entry " + i + " is unexpected null");
+        }
+            
+        return cache;
+    }
+    
     // how many likelihoods are associated with the given number of alternate alleles?
-    public static int calculateNumLikelihoods(int numAltAlleles) {
+    public static int calculateNumLikelihoods(final int numAltAlleles) {
         int numLikelihoods = 1;
         for ( int i = 1; i <= numAltAlleles; i++ )
             numLikelihoods += i + 1;
@@ -269,9 +273,8 @@ public class GenotypeLikelihoods {
      */
     public static GenotypeLikelihoodsAllelePair getAllelePair(final int PLindex) {
         // make sure that we've cached enough data
-        // TODO -- this is not thread-safe!
         if ( PLindex >= PLIndexToAlleleIndex.length )
-            calculatePLcache(PLindex);
+            throw new ReviewedStingException("GATK limitation: cannot genotype more than " + MAX_ALLELES_THAT_CAN_BE_GENOTYPED + " alleles");
 
         return PLIndexToAlleleIndex[PLindex];
     }
@@ -292,13 +295,7 @@ public class GenotypeLikelihoods {
      * @return the allele index pair
      */
     public static GenotypeLikelihoodsAllelePair getAllelePairUsingDeprecatedOrdering(final int PLindex) {
-        final int convertedIndex = PLindexConversion[PLindex];
-
-        // make sure that we've cached enough data
-        if ( convertedIndex >= PLIndexToAlleleIndex.length )
-            calculatePLcache(convertedIndex);
-
-        return PLIndexToAlleleIndex[convertedIndex];
+        return getAllelePair(PLindexConversion[PLindex]);
     }
 
     /**
