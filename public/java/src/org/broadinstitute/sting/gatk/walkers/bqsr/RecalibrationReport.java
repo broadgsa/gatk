@@ -94,8 +94,11 @@ public class RecalibrationReport {
                 BitSet key = entry.getKey();
                 RecalDatum otherDatum = entry.getValue();
                 RecalDatum thisDatum = thisTable.get(key);
-                thisDatum.increment(otherDatum);                                                                          // add the two datum objects into 'this'
-                thisDatum.resetCalculatedQualities();                                                                      // reset the empirical quality to make sure the user doesn't forget to recalculate it
+                if (thisDatum == null)
+                    thisDatum = otherDatum;                                                                             // sometimes the datum in other won't be present in 'this'. So just assign it!
+                else
+                    thisDatum.increment(otherDatum);                                                                    // add the two datum objects into 'this'
+                thisDatum.resetCalculatedQualities();                                                                   // reset the empirical quality to make sure the user doesn't forget to recalculate it
             }            
         }
     }
