@@ -254,7 +254,7 @@ public class GATKReportTable {
      * @param dottedColumnValues Period concatenated values.
      * @return The first primary key matching the column values or throws an exception.
      */
-    public Object getPrimaryKey(String dottedColumnValues) {
+    public Object getPrimaryKeyByData(String dottedColumnValues) {
         Object key = findPrimaryKey(dottedColumnValues);
         if (key == null)
             throw new ReviewedStingException("Attempted to get non-existent GATKReportTable key for values: " + dottedColumnValues);
@@ -411,9 +411,8 @@ public class GATKReportTable {
         if (value == null)
             value = "null";
 
-        // This code is bs. Why am do I have to conform to bad code
-        // Below is some ode to convert a string into its appropriate type.
-        // This is just Roger ranting
+        // This code below is bs. Why am do I have to conform to bad code
+        // Below is some code to convert a string into its appropriate type.
 
         // If we got a string but the column is not a String type
         Object newValue = null;
@@ -431,7 +430,7 @@ public class GATKReportTable {
                 } catch (Exception e) {
                 }
             }
-            if (column.getDataType().equals(GATKReportDataType.Byte) && ((String) value).length() == 1) {
+            if (column.getDataType().equals(GATKReportDataType.Character) && ((String) value).length() == 1) {
                 newValue = ((String) value).charAt(0);
 
             }
@@ -816,7 +815,7 @@ public class GATKReportTable {
             out.println();
         }
 
-        out.println();
+         out.println();
     }
 
     public int getNumRows() {
@@ -877,8 +876,6 @@ public class GATKReportTable {
                     this.set(rowKey, columnKey, toAdd.get(rowKey));
                     //System.out.printf("Putting row with PK: %s \n", rowKey);
                 } else {
-
-                    // TODO we should be able to handle combining data by adding, averaging, etc.
                     this.set(rowKey, columnKey, toAdd.get(rowKey));
 
                     System.out.printf("OVERWRITING Row with PK: %s \n", rowKey);
