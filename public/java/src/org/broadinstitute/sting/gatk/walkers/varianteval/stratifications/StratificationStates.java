@@ -50,9 +50,9 @@ public class StratificationStates<T extends SetOfStates> {
             return new StratNode<T>();
         } else {
             // we are in the middle of the tree
-            final Collection<String> states = first.getAllStates();
-            final LinkedHashMap<String, StratNode<T>> subNodes = new LinkedHashMap<String, StratNode<T>>(states.size());
-            for ( final String state : states ) {
+            final Collection<Object> states = first.getAllStates();
+            final LinkedHashMap<Object, StratNode<T>> subNodes = new LinkedHashMap<Object, StratNode<T>>(states.size());
+            for ( final Object state : states ) {
                 // have to copy because poll modifies the queue
                 final Queue<T> copy = new LinkedList<T>(strats);
                 subNodes.put(state, buildStratificationTree(copy));
@@ -64,19 +64,38 @@ public class StratificationStates<T extends SetOfStates> {
     public int getNStates() {
         return root.size();
     }
-    
+
     public StratNode<T> getRoot() {
         return root;
     }
     
-    public int getKey(final List<String> states) {
+    public int getKey(final List<Object> states) {
         return root.find(states, 0);
     }
 
+    public Set<Integer> getKeys(final List<List<Object>> allStates) {
+        final HashSet<Integer> keys = new HashSet<Integer>();
+        root.find(allStates, 0, keys);
+        return keys;
+    }
+    
     private void assignKeys(final StratNode<T> root, int key) {
         for ( final StratNode<T> node : root ) {
             if ( node.isLeaf() )
                 node.setKey(key++);
         }
+    }
+    
+    public static List<List<Object>> combineStates(final List<Object> first, final List<Object> second) {
+        List<List<Object>> combined = new ArrayList<List<Object>>(first.size());
+        for ( int i = 0; i < first.size(); i++ ) {
+            final Object firstI = first.get(i);
+            final Object secondI = second.get(i);
+            if ( firstI.equals(secondI) ) 
+                combined.add(Collections.singletonList(firstI));
+            else 
+                combined.add(Arrays.asList(firstI, secondI));
+        }
+        return combined;
     }
 }

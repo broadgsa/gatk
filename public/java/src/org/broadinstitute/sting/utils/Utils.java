@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Requires;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
 import net.sf.samtools.util.StringUtil;
@@ -709,5 +710,37 @@ public class Utils {
             list.add(item);
         }
         return list;
+    }
+
+    /**
+     * Returns the number of combinations represented by this collection
+     * of collection of options.
+     *
+     * For example, if this is [[A, B], [C, D], [E, F, G]] returns 2 * 2 * 3 = 12
+     *
+     * @param options
+     * @param <T>
+     * @return
+     */
+    @Requires("options != null")
+    public static <T> int nCombinations(final Collection<T>[] options) {
+        int nStates = 1;
+        for ( Collection<T> states : options ) {
+            nStates *= states.size();
+        }
+        return nStates;
+    }
+
+    @Requires("options != null")
+    public static <T> int nCombinations(final List<List<T>> options) {
+        if ( options.isEmpty() )
+            return 0;
+        else {
+            int nStates = 1;
+            for ( Collection<T> states : options ) {
+                nStates *= states.size();
+            }
+            return nStates;
+        }
     }
 }

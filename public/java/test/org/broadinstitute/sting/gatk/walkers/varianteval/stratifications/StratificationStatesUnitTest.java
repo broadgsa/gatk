@@ -30,6 +30,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.Utils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -51,46 +52,58 @@ public class StratificationStatesUnitTest extends BaseTest {
     // --------------------------------------------------------------------------------
 
     private class StratificationStatesTestProvider extends TestDataProvider {
-        final List<List<Integer>> allStates;
+        final List<List<Object>> allStates = new ArrayList<List<Object>>();
         final List<ListAsSetOfStates> asSetOfStates = new ArrayList<ListAsSetOfStates>();
         final int nStates;
         
         public StratificationStatesTestProvider(final List<Integer> ... allStates) {
             super(StratificationStatesTestProvider.class);
-            this.allStates = Arrays.asList(allStates);
+            
+            for ( List<Integer> states : allStates ) {
+                this.allStates.add(new ArrayList<Object>(states));
+            }
 
-            int nStates = 1;
-            for ( List<Integer> states : this.allStates ) { 
-                nStates *= states.size();
+            for ( List<Object> states : this.allStates ) { 
                 asSetOfStates.add(new ListAsSetOfStates(states));
             }
-            this.nStates = nStates;
-        }
-//        private String getName() {
-//            return String.format("probs=%s expectedRegions=%s", Utils.join(",", probs), Utils.join(",", expectedRegions));
-//        }
+            this.nStates = Utils.nCombinations(allStates);
 
+            setName(getName());
+        }
+
+        private String getName() {
+            StringBuilder b = new StringBuilder();
+            int c = 1;
+            for ( List<Object> state : allStates )
+                b.append(String.format("%d = [%s] ", c++, Utils.join(",", state)));
+            return b.toString();
+        }
+        
         public List<ListAsSetOfStates> getStateSpaceList() {
             return asSetOfStates;
         }
         
-        public Queue<List<String>> getAllCombinations() {
-            return getAllCombinations(new LinkedList<List<Integer>>(allStates));
+        public Queue<List<Object>> getAllCombinations() {
+            return getAllCombinations(new LinkedList<List<Object>>(allStates));
         }
 
-        private Queue<List<String>> getAllCombinations(Queue<List<Integer>> states) {
+        private Queue<List<Object>> getAllCombinations(Queue<List<Object>> states) {
             if ( states.isEmpty() ) 
-                return new LinkedList<List<String>>();
+                return new LinkedList<List<Object>>();
             else {
-                List<Integer> head = states.poll();
-                Queue<List<String>> substates = getAllCombinations(states);
-                Queue<List<String>> newStates = new LinkedList<List<String>>();
-                for ( int e : head) {
-                    for ( List<String> state : substates ) {
-                        List<String> newState = new LinkedList<String>();
-                        newState.add(Integer.toString(e));
-                        newState.addAll(state);
-                        newStates.add(newState);
+                List<Object> head = states.poll();
+                Queue<List<Object>> substates = getAllCombinations(states);
+                Queue<List<Object>> newStates = new LinkedList<List<Object>>();
+                for ( final Object e : head) {
+                    if ( substates.isEmpty() ) {
+                        newStates.add(new LinkedList<Object>(Collections.singleton(e)));
+                    } else {
+                        for ( final List<Object> state : substates ) {
+                            List<Object> newState = new LinkedList<Object>();
+                            newState.add(e);
+                            newState.addAll(state);
+                            newStates.add(newState);
+                        }
                     }
                 }
                 return newStates;
@@ -99,16 +112,14 @@ public class StratificationStatesUnitTest extends BaseTest {
     }
 
     private class ListAsSetOfStates implements SetOfStates {
-        final List<String> integers;
+        final List<Object> integers;
 
-        private ListAsSetOfStates(final List<Integer> integers) {
-            this.integers = new ArrayList<String>(integers.size());
-            for ( int i : integers )
-                this.integers.add(Integer.toString(i));
+        private ListAsSetOfStates(final List<Object> integers) {
+            this.integers = integers;
         }
-
+        
         @Override
-        public List<String> getAllStates() {
+        public List<Object> getAllStates() {
             return integers;
         }
     }
@@ -127,8 +138,8 @@ public class StratificationStatesUnitTest extends BaseTest {
     }
 
     @Test(dataProvider = "StratificationStatesTestProvider")
-    public void testStratificationStatesTestProvider(StratificationStatesTestProvider cfg) {
-        StratificationStates<ListAsSetOfStates> stratificationStates = new StratificationStates<ListAsSetOfStates>(cfg.getStateSpaceList());
+    public void testLeafCount(StratificationStatesTestProvider cfg) {
+        final StratificationStates<ListAsSetOfStates> stratificationStates = new StratificationStates<ListAsSetOfStates>(cfg.getStateSpaceList());
 
         Assert.assertEquals(stratificationStates.getNStates(), cfg.nStates);
         
@@ -138,20 +149,55 @@ public class StratificationStatesUnitTest extends BaseTest {
                 nLeafs++;
         }
         Assert.assertEquals(nLeafs, cfg.nStates, "Unexpected number of leaves");
-        
-        Set<Integer> seenKeys = new HashSet<Integer>(cfg.nStates);
+    }
+
+    @Test(dataProvider = "StratificationStatesTestProvider")
+    public void testKeys(StratificationStatesTestProvider cfg) {
+        final StratificationStates<ListAsSetOfStates> stratificationStates = new StratificationStates<ListAsSetOfStates>(cfg.getStateSpaceList());
+        final Set<Integer> seenKeys = new HashSet<Integer>(cfg.nStates);
         for ( final StratNode node : stratificationStates.getRoot() ) {
             if ( node.isLeaf() ) {
                 Assert.assertFalse(seenKeys.contains(node.getKey()), "Already seen the key");
                 seenKeys.add(node.getKey());
             }
         }
+    }
 
-        seenKeys.clear();
-        for ( List<String> state : cfg.getAllCombinations() ) {
+    @Test(dataProvider = "StratificationStatesTestProvider")
+    public void testFindSingleKeys(StratificationStatesTestProvider cfg) {
+        final StratificationStates<ListAsSetOfStates> stratificationStates = new StratificationStates<ListAsSetOfStates>(cfg.getStateSpaceList());
+        final Set<Integer> seenKeys = new HashSet<Integer>(cfg.nStates);
+        for ( List<Object> state : cfg.getAllCombinations() ) {
             final int key = stratificationStates.getKey(state);
             Assert.assertFalse(seenKeys.contains(key), "Already saw state mapping to this key");
             seenKeys.add(key);
+        }
+    }
+
+    @Test(dataProvider = "StratificationStatesTestProvider")
+    public void testFindMultipleKeys(StratificationStatesTestProvider cfg) {
+        final StratificationStates<ListAsSetOfStates> stratificationStates = new StratificationStates<ListAsSetOfStates>(cfg.getStateSpaceList());
+        final List<List<Object>> states = new ArrayList<List<Object>>(cfg.allStates);
+        final Set<Integer> keys = stratificationStates.getKeys(states);
+        Assert.assertEquals(keys.size(), cfg.nStates, "Find all states didn't find all of the expected unique keys");
+
+        final Queue<List<Object>> combinations = cfg.getAllCombinations();
+        while ( ! combinations.isEmpty() ) {
+            List<Object> first = combinations.poll();
+            List<Object> second = combinations.peek();
+            if ( second != null ) {
+                List<List<Object>> combined = StratificationStates.combineStates(first, second);
+                int nExpectedKeys = Utils.nCombinations(combined);
+
+                final int key1 = stratificationStates.getKey(first);
+                final int key2 = stratificationStates.getKey(second);
+                final Set<Integer> keysCombined = stratificationStates.getKeys(combined);
+            
+                Assert.assertTrue(keysCombined.contains(key1), "couldn't find key in data set");
+                Assert.assertTrue(keysCombined.contains(key2), "couldn't find key in data set");
+                
+                Assert.assertEquals(keysCombined.size(), nExpectedKeys);
+            }
         }
     }
 }

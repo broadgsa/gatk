@@ -24,12 +24,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Helper class representing a tree of stratification splits, where leaf nodes
@@ -49,35 +49,48 @@ import java.util.Map;
  * This code allows us to efficiently look up a state key (A=2, B=3) and map it
  * to a specific key (an integer) that's unique over the tree
  *
+ * Note the structure of this tree is that the keys are -1 for all internal nodes, and
+ * leafs are the only nodes with meaningful keys.  So for a tree with 2N nodes N of these
+ * will be internal, with no keys, and meaningful maps from states -> subtrees.  The
+ * other N nodes are leafs, with meaningful keys, empty maps, and null stratification objects
+ *
  * @author Mark DePristo
  * @since 3/27/12
  */
-public class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> {
+@Invariant({
+        "(isLeaf() && stratifier == null && subnodes.isEmpty()) || (!isLeaf() && stratifier != null && !subnodes.isEmpty())"})
+class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> {
     int key = -1;
     final T stratifier;
-    final Map<String, StratNode<T>> subnodes;
+    final Map<Object, StratNode<T>> subnodes;
 
-    public StratNode() {
+    protected StratNode() {
         this.subnodes = Collections.emptyMap();
         this.stratifier = null;
     }
 
-    StratNode(final T stratifier, final Map<String, StratNode<T>> subnodes) {
+    protected StratNode(final T stratifier, final Map<Object, StratNode<T>> subnodes) {
         this.stratifier = stratifier;
         this.subnodes = subnodes;
     }
 
+    @Requires("key >= 0")
     public void setKey(final int key) {
         if ( ! isLeaf() )
             throw new ReviewedStingException("Cannot set key of non-leaf node");
         this.key = key;
     }
 
-    public int find(final List<String> states, int offset) {
+    @Requires({
+            "states != null",
+            "offset >= 0",
+            "offset <= states.size()"
+            })
+    public int find(final List<Object> states, int offset) {
         if ( isLeaf() ) // we're here!
             return key;
         else {
-            final String state = states.get(offset);
+            final Object state = states.get(offset);
             StratNode<T> subnode = subnodes.get(state);
             if ( subnode == null )
                 throw new ReviewedStingException("Couldn't find state for " + state + " at node " + this);
@@ -86,6 +99,28 @@ public class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> 
         }
     }
 
+    @Requires({
+            "multipleStates != null",
+            "offset >= 0",
+            "offset <= multipleStates.size()",
+            "keys != null",
+            "offset == multipleStates.size() || multipleStates.get(offset) != null"})
+    public void find(final List<List<Object>> multipleStates, final int offset, final HashSet<Integer> keys) {
+        if ( isLeaf() ) // we're here!
+            keys.add(key);
+        else {
+            for ( final Object state : multipleStates.get(offset) ) {
+                // loop over all of the states at this offset
+                final StratNode<T> subnode = subnodes.get(state);
+                if ( subnode == null )
+                    throw new ReviewedStingException("Couldn't find state for " + state + " at node " + this);
+                else
+                    subnode.find(multipleStates, offset+1, keys);
+            }
+        }
+    }
+
+    @Ensures("result >= 0")
     public int getKey() {
         if ( ! isLeaf() )
             throw new ReviewedStingException("Cannot get key of non-leaf node");
@@ -93,10 +128,11 @@ public class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> 
             return key;
     }
 
-    protected Map<String, StratNode<T>> getSubnodes() {
+    protected Map<Object, StratNode<T>> getSubnodes() {
         return subnodes;
     }
 
+    @Ensures("result >= 0")
     public int size() {
         if ( isLeaf() )
             return 1;
@@ -109,9 +145,19 @@ public class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> 
         return stratifier;
     }
 
-    public boolean isLeaf() { return stratifier == null; }
+    /**
+     * @return true if this node is a leaf
+     */
+    public boolean isLeaf() {
+        return stratifier == null;
+    }
 
+    /**
+     * Returns an iterator over this node and all subnodes including internal and leaf nodes
+     * @return
+     */
     @Override
+    @Ensures("result != null")
     public Iterator<StratNode<T>> iterator() {
         return new StratNodeIterator<T>(this);
     }

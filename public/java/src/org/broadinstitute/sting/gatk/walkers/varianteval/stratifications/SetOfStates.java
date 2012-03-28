@@ -27,32 +27,14 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import java.util.List;
 
 /**
-* [Short one sentence description of this walker]
-* <p/>
-* <p>
-* [Functionality of this walker]
-* </p>
-* <p/>
-* <h2>Input</h2>
-* <p>
-* [Input description]
-* </p>
-* <p/>
-* <h2>Output</h2>
-* <p>
-* [Output description]
-* </p>
-* <p/>
-* <h2>Examples</h2>
-* <pre>
-*    java
-*      -jar GenomeAnalysisTK.jar
-*      -T $WalkerName
-*  </pre>
-*
-* @author Your Name
-* @since Date created
-*/
-public interface SetOfStates {
-    public List<String> getAllStates();
+ * A basic interface for a class to be used with the StratificationStates system
+ *
+ * @author Mark DePristo
+ * @since 3/28/12
+ */
+public interface SetOfStates<Object> {
+    /**
+     * @return a list of all objects states that may be provided by this States provider
+     */
+    public List<Object> getAllStates();
 }
