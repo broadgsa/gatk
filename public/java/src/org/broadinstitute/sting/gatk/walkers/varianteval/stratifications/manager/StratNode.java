@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
+package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
@@ -62,6 +62,7 @@ import java.util.*;
 class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> {
     int key = -1;
     final T stratifier;
+    // TODO -- track state key that maps to root node
     final Map<Object, StratNode<T>> subnodes;
 
     protected StratNode() {
@@ -93,7 +94,7 @@ class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> {
             final Object state = states.get(offset);
             StratNode<T> subnode = subnodes.get(state);
             if ( subnode == null )
-                throw new ReviewedStingException("Couldn't find state for " + state + " at node " + this);
+                return -1;
             else
                 return subnode.find(states, offset+1);
         }
