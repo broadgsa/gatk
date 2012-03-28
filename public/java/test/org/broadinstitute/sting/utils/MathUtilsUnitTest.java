@@ -286,14 +286,14 @@ public class MathUtilsUnitTest extends BaseTest {
 
     @Test
     public void testDotProduct() {
-        Assert.assertEquals(MathUtils.dotProduct(new Double[]{-5.0,-3.0,2.0}, new Double[]{6.0,7.0,8.0}),-35.0);
-        Assert.assertEquals(MathUtils.dotProduct(new Double[]{-5.0}, new Double[]{6.0}),-30.0);
+        Assert.assertEquals(MathUtils.dotProduct(new Double[]{-5.0,-3.0,2.0}, new Double[]{6.0,7.0,8.0}),-35.0,1e-3);
+        Assert.assertEquals(MathUtils.dotProduct(new Double[]{-5.0}, new Double[]{6.0}),-30.0,1e-3);
     }
 
     @Test
     public void testLogDotProduct() {
-        Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0,-3.0,2.0}, new double[]{6.0,7.0,8.0}),10.0);
-        Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0}, new double[]{6.0}),1.0);
+        Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0,-3.0,2.0}, new double[]{6.0,7.0,8.0}),10.0,1e-3);
+        Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0}, new double[]{6.0}),1.0,1e-3);
     }
 
     /**
