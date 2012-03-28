@@ -47,9 +47,17 @@ import java.util.Map;
  */
 public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
 
+/*    public enum Model {
+        SNP,
+        INDEL,
+        BOTH
+    }
+  */
     public enum Model {
         SNP,
         INDEL,
+        POOLSNP,
+        POOLINDEL,
         BOTH
     }
 
@@ -60,7 +68,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
         GENOTYPE_GIVEN_ALLELES
     }
 
-    protected UnifiedArgumentCollection UAC;
+    protected final UnifiedArgumentCollection UAC;
     protected Logger logger;
 
     /**
@@ -70,7 +78,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      */
     protected GenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         if ( logger == null || UAC == null ) throw new ReviewedStingException("Bad arguments");
-        this.UAC = UAC.clone();
+        this.UAC = UAC;
         this.logger = logger;
     }
 

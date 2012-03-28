@@ -177,11 +177,8 @@ public class GATKReport {
      */
     public void print(PrintStream out) {
         out.println(GATKREPORT_HEADER_PREFIX + getVersion().toString() + SEPARATOR + getTables().size());
-        for (GATKReportTable table : tables.values()) {
-            if (table.getNumRows() > 0) {
-                table.write(out);
-            }
-        }
+        for (GATKReportTable table : tables.values())
+            table.write(out);
     }
 
     public Collection<GATKReportTable> getTables() {

@@ -152,7 +152,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         @Override
         public boolean equals(Object obj) {
-            return (obj instanceof ExactACcounts) ? Arrays.equals(counts, ((ExactACcounts)obj).counts) : false;
+            return (obj instanceof ExactACcounts) && Arrays.equals(counts, ((ExactACcounts)obj).counts);
         }
 
         @Override
@@ -202,7 +202,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         public boolean equals(Object obj) {
-            return (obj instanceof ExactACset) ? ACcounts.equals(((ExactACset)obj).ACcounts) : false;
+            return (obj instanceof ExactACset) && ACcounts.equals(((ExactACset)obj).ACcounts);
         }
     }
 

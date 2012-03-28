@@ -34,21 +34,22 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 public class GATKReportUnitTest extends BaseTest {
-    @Test(enabled = false)
+    @Test
     public void testParse() throws Exception {
         String reportPath = validationDataLocation + "exampleGATKReportv1.tbl";
         GATKReport report = new GATKReport(reportPath);
+        Assert.assertEquals(report.getVersion(), GATKReportVersion.V1_0);
+        Assert.assertEquals(report.getTables().size(), 5);
 
         GATKReportTable countVariants = report.getTable("CountVariants");
-        //Assert.assertEquals(countVariants.getVersion(), GATKReportVersion.V0_1);
-        Object countVariantsPK = countVariants.getPrimaryKey("none.eval.none.all");
-        Assert.assertEquals(countVariants.get(countVariantsPK, "nProcessedLoci"), "100000");
-        Assert.assertEquals(countVariants.get(countVariantsPK, "nNoCalls"), "99872");
+        Object countVariantsPK = countVariants.getPrimaryKeyByData("dbsnp.eval.none.all");
+        Assert.assertEquals(countVariants.get(countVariantsPK, "nProcessedLoci"), "63025520");
+        Assert.assertEquals(countVariants.get(countVariantsPK, "nNoCalls"), "0");
+        Assert.assertEquals(countVariants.get(countVariantsPK, "heterozygosity"), 4.73e-06);
 
         GATKReportTable validationReport = report.getTable("ValidationReport");
-        //Assert.assertEquals(validationReport.getVersion(), GATKReportVersion.V0_1);
-        Object validationReportPK = countVariants.getPrimaryKey("none.eval.none.known");
-        Assert.assertEquals(validationReport.get(validationReportPK, "sensitivity"), "NaN");
+        Object validationReportPK = countVariants.getPrimaryKeyByData("dbsnp.eval.none.novel");
+        Assert.assertEquals(validationReport.get(validationReportPK, "PPV"), Double.NaN);
     }
 
     @DataProvider(name = "rightAlignValues")
@@ -117,15 +118,15 @@ public class GATKReportUnitTest extends BaseTest {
         report1.addTable("TableName", "Description");
         report1.getTable("TableName").addPrimaryKey("id", displayPK);
         report1.getTable("TableName").addColumn("colA", GATKReportDataType.String.getDefaultValue(), "%s");
-        report1.getTable("TableName").addColumn("colB", GATKReportDataType.Byte.getDefaultValue(), "%c");
+        report1.getTable("TableName").addColumn("colB", GATKReportDataType.Character.getDefaultValue(), "%c");
         report1.getTable("TableName").set(1, "colA", "NotNum");
-        report1.getTable("TableName").set(1, "colB", (byte) 64);
+        report1.getTable("TableName").set(1, "colB", (char) 64);
 
         report2 = new GATKReport();
         report2.addTable("TableName", "Description");
         report2.getTable("TableName").addPrimaryKey("id", displayPK);
         report2.getTable("TableName").addColumn("colA", GATKReportDataType.String.getDefaultValue(), "%s");
-        report2.getTable("TableName").addColumn("colB", GATKReportDataType.Byte.getDefaultValue(), "%c");
+        report2.getTable("TableName").addColumn("colB", GATKReportDataType.Character.getDefaultValue(), "%c");
         report2.getTable("TableName").set(2, "colA", "df3");
         report2.getTable("TableName").set(2, "colB", 'A');
 
@@ -133,7 +134,7 @@ public class GATKReportUnitTest extends BaseTest {
         report3.addTable("TableName", "Description");
         report3.getTable("TableName").addPrimaryKey("id", displayPK);
         report3.getTable("TableName").addColumn("colA", GATKReportDataType.String.getDefaultValue(), "%s");
-        report3.getTable("TableName").addColumn("colB", GATKReportDataType.Byte.getDefaultValue(), "%c");
+        report3.getTable("TableName").addColumn("colB", GATKReportDataType.Character.getDefaultValue(), "%c");
         report3.getTable("TableName").set(3, "colA", "df5f");
         report3.getTable("TableName").set(3, "colB", 'c');
 
@@ -146,13 +147,13 @@ public class GATKReportUnitTest extends BaseTest {
         table.addColumn("SomeInt", GATKReportDataType.Integer.getDefaultValue(), true, "%d");
         table.addColumn("SomeFloat", GATKReportDataType.Decimal.getDefaultValue(), true, "%.16E");
         table.addColumn("TrueFalse", false, true, "%B");
-        table.set("12df", "SomeInt", 34);
+        table.set("12df", "SomeInt", Byte.MAX_VALUE);
         table.set("12df", "SomeFloat", 34.0);
         table.set("12df", "TrueFalse", true);
-        table.set("5f", "SomeInt", -1);
-        table.set("5f", "SomeFloat", 0.000003);
+        table.set("5f", "SomeInt", Short.MAX_VALUE);
+        table.set("5f", "SomeFloat", Double.MAX_VALUE);
         table.set("5f", "TrueFalse", false);
-        table.set("RZ", "SomeInt", 904948230958203958L);
+        table.set("RZ", "SomeInt", Long.MAX_VALUE);
         table.set("RZ", "SomeFloat", 535646345.657453464576);
         table.set("RZ", "TrueFalse", true);
 
