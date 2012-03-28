@@ -49,6 +49,7 @@ public class MathUtils {
     }
 
     public static final double[] log10Cache;
+    public static final double[] log10FactorialCache;
     private static final double[] jacobianLogTable;
     private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
     private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
@@ -59,11 +60,14 @@ public class MathUtils {
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
+        log10FactorialCache = new double[LOG10_CACHE_SIZE];
         jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
 
         log10Cache[0] = Double.NEGATIVE_INFINITY;
-        for (int k = 1; k < LOG10_CACHE_SIZE; k++)
+        for (int k = 1; k < LOG10_CACHE_SIZE; k++) {
             log10Cache[k] = Math.log10(k);
+            log10FactorialCache[k] = log10FactorialCache[k-1] + log10Cache[k];
+        }
 
         for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
             jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
