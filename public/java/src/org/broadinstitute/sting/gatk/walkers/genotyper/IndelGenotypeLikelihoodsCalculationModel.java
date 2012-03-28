@@ -88,7 +88,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
     }
 
-    private List<Allele> computeConsensusAlleles(ReferenceContext ref,
+    protected List<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                  Map<String, AlignmentContext> contexts,
                                                  AlignmentContextUtils.ReadOrientation contextType,
                                                  GenomeLocParser locParser) {

@@ -33,7 +33,9 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -101,9 +103,21 @@ public class ConsensusAlleleCounter {
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-            insCount += indelPileup.getNumberOfInsertions();
-            delCount += indelPileup.getNumberOfDeletions();
+            if (context.hasExtendedEventPileup()) {
+                final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
+                insCount += indelPileup.getNumberOfInsertions();
+                delCount += indelPileup.getNumberOfDeletions();
+            }
+            else {
+                // todo - this should be version to be used when extended events are removed
+                // todo - maybe we should create utility functions in ReadBackedPileup definition to do the equivalent thing?
+                for (PileupElement p: context.getBasePileup()) {
+                    if (p.isBeforeDeletion())
+                        delCount++;
+                    else if (p.isBeforeInsertion())
+                        insCount++;
+                }
+            }
         }
 
         if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
