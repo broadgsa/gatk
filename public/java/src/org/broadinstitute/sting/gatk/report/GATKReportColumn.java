@@ -60,24 +60,12 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
         if ( format.equals("") ) {
             this.format = "%s";
             this.dataType = GATKReportDataType.Unknown;
-            if ( defaultValue != null ) {
-                this.defaultValue = defaultValue;
-                //this.dataType = GATKReportDataType.fromObject(defaultValue);
-            }
-            else {
-                this.defaultValue = "";
-                //this.dataType = GATKReportDataType.Unknown;
-            }
+            this.defaultValue = (defaultValue != null) ? defaultValue : "";
         }
         else {
             this.format = format;
             this.dataType = GATKReportDataType.fromFormatString(format);
-            if ( defaultValue == null ) {
-                this.defaultValue = dataType.getDefaultValue();
-            }
-            else {
-                this.defaultValue = defaultValue;
-            }
+            this.defaultValue = (defaultValue != null) ? defaultValue : dataType.getDefaultValue();
         }
     }
 
