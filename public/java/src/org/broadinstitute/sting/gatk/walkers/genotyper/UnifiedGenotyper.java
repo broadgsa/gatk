@@ -114,7 +114,7 @@ import java.util.*;
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -172,12 +172,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     // enable deletions in the pileup
     @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
-
-    // enable extended events for indels
-    @Override
-    public boolean generateExtendedEvents() {
-        return (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES);
-    }
 
     /**
      * Inner class for collecting output statistics from the UG
@@ -281,7 +275,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @param rawContext contextual information around the locus
      * @return the VariantCallContext object
      */
-    public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    public List<VariantCallContext> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
     }
 
@@ -295,31 +289,39 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         return lhs;
     }
 
-    public UGStatistics reduce(VariantCallContext value, UGStatistics sum) {
+    public UGStatistics reduce(List<VariantCallContext> calls, UGStatistics sum) {
         // we get a point for reaching reduce
         sum.nBasesVisited++;
 
-        // can't call the locus because of no coverage
-        if ( value == null )
-            return sum;
+        boolean wasCallable = false;
+        boolean wasConfidentlyCalled = false;
 
-        // A call was attempted -- the base was potentially callable
-        sum.nBasesCallable++;
+        for ( VariantCallContext call : calls ) {
+            if ( call == null )
+                continue;
 
-        // the base was confidently callable
-        sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
+            // A call was attempted -- the base was callable
+            wasCallable = true;
 
-        // can't make a call here
-        if ( !value.shouldEmit )
-            return sum;
+            // was the base confidently callable?
+            wasConfidentlyCalled = call.confidentlyCalled;
 
-        try {
-            // we are actually making a call
-            sum.nCallsMade++;
-            writer.add(value);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(e.getMessage());
+            if ( call.shouldEmit ) {
+                try {
+                    // we are actually making a call
+                    sum.nCallsMade++;
+                    writer.add(call);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException(e.getMessage());
+                }
+            }
         }
+
+        if ( wasCallable )
+            sum.nBasesCallable++;
+
+        if ( wasConfidentlyCalled )
+            sum.nBasesCalledConfidently++;
 
         return sum;
     }

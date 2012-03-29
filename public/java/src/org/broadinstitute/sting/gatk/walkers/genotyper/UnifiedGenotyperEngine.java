@@ -41,7 +41,6 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
@@ -107,6 +106,7 @@ public class UnifiedGenotyperEngine {
     private final GenomeLocParser genomeLocParser;
     private final boolean BAQEnabledOnCMDLine;
 
+    protected static final double SUM_GL_THRESH_NOCALL = VariantContextUtils.SUM_GL_THRESH_NOCALL;
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -150,22 +150,28 @@ public class UnifiedGenotyperEngine {
      * @param rawContext contextual information around the locus
      * @return the VariantCallContext object
      */
-    public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel(tracker, refContext, rawContext );
-        if( model == null ) {
-            return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, null, rawContext) : null);
+    public List<VariantCallContext> calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+        final List<VariantCallContext> results = new ArrayList<VariantCallContext>(2);
+
+        final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
+        if ( models.isEmpty() ) {
+            results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, null, rawContext) : null);
+        }
+        else {
+            for ( final GenotypeLikelihoodsCalculationModel.Model model : models ) {
+                final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
+                if ( stratifiedContexts == null ) {
+                    results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
+                }
+                else {
+                    final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
+                    if ( vc != null )
+                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model));
+                }
+            }        
         }
 
-        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
-        if ( stratifiedContexts == null ) {
-            return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
-        }
-        
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
-        if ( vc == null )
-            return null;
-
-        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model);
+        return results;
     }
 
     /**
@@ -177,15 +183,20 @@ public class UnifiedGenotyperEngine {
      * @return the VariantContext object
      */
     public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel( tracker, refContext, rawContext );
-        if( model == null )
+        final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
+        if ( models.isEmpty() ) {
             return null;
+        }
 
-        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
-        if ( stratifiedContexts == null )
-            return null;
+        for ( final GenotypeLikelihoodsCalculationModel.Model model : models ) {
+            final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
+            // return the first valid one we encounter
+            if ( stratifiedContexts != null )
+                return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
 
-        return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
+        }
+
+        return null;
     }
 
     /**
@@ -198,15 +209,16 @@ public class UnifiedGenotyperEngine {
      * @return the VariantCallContext object
      */
     public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, VariantContext vc) {
-        final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel(tracker, refContext, rawContext );
-        if( model == null ) {
+        final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
+        if ( models.isEmpty() ) {
             return null;
         }
-        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
+
+        // return the first one
+        final GenotypeLikelihoodsCalculationModel.Model model = models.get(0);
+        final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
         return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model);
     }
-
-
 
 
     // ---------------------------------------------------------------------------------------------------------
@@ -243,13 +255,9 @@ public class UnifiedGenotyperEngine {
             vc = new VariantContextBuilder("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles).make();
         }
         
-        if ( annotationEngine != null ) {
+        if ( annotationEngine != null && rawContext.hasBasePileup() ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
-            ReadBackedPileup pileup = null;
-            if (rawContext.hasExtendedEventPileup())
-                pileup = rawContext.getExtendedEventPileup();
-            else if (rawContext.hasBasePileup())
-                pileup = rawContext.getBasePileup();
+            final ReadBackedPileup pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
             vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc);
@@ -409,13 +417,9 @@ public class UnifiedGenotyperEngine {
         builder.attributes(attributes);
         VariantContext vcCall = builder.make();
 
-        if ( annotationEngine != null && !limitedContext ) {
+        if ( annotationEngine != null && !limitedContext && rawContext.hasBasePileup() ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
-            ReadBackedPileup pileup = null;
-            if (rawContext.hasExtendedEventPileup())
-                pileup = rawContext.getExtendedEventPileup();
-            else if (rawContext.hasBasePileup())
-                pileup = rawContext.getBasePileup();
+            final ReadBackedPileup pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
             vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
@@ -432,52 +436,33 @@ public class UnifiedGenotyperEngine {
 
     private Map<String, AlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, final GenotypeLikelihoodsCalculationModel.Model model) {
 
-        Map<String, AlignmentContext> stratifiedContexts = null;
-
-        if ( !BaseUtils.isRegularBase( refContext.getBase() ) )
+        if ( !BaseUtils.isRegularBase(refContext.getBase()) || !rawContext.hasBasePileup() )
             return null;
 
-        if ( model.name().toUpperCase().contains("INDEL")) {
+        Map<String, AlignmentContext> stratifiedContexts = null;
 
-            if (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
-                // regular pileup in this case
-                ReadBackedPileup pileup = rawContext.getBasePileup() .getMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
+        if ( model.name().contains("INDEL") ) {
 
-                // don't call when there is no coverage
-                if ( pileup.getNumberOfElements() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
-                    return null;
+            final ReadBackedPileup pileup = rawContext.getBasePileup().getMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
+            // don't call when there is no coverage
+            if ( pileup.getNumberOfElements() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
+                return null;
 
-                // stratify the AlignmentContext and cut by sample
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
+            // stratify the AlignmentContext and cut by sample
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
-            } else {
-
-                // todo - tmp will get rid of extended events so this wont be needed
-                if (!rawContext.hasExtendedEventPileup())
-                    return null;
-                ReadBackedExtendedEventPileup rawPileup = rawContext.getExtendedEventPileup();
-
-                // filter the context based on min mapping quality
-                ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
-
-                // don't call when there is no coverage
-                if ( pileup.getNumberOfElements() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES  )
-                    return null;
-
-                // stratify the AlignmentContext and cut by sample
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
-            }
-        } else if ( model.name().toUpperCase().contains("SNP") ) {
+        } else if ( model.name().contains("SNP") ) {
 
             // stratify the AlignmentContext and cut by sample
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup());
 
-            if( !(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) ) {
+            if ( !(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) ) {
                 int numDeletions = 0;
-                for( final PileupElement p : rawContext.getBasePileup() ) {
-                    if( p.isDeletion() ) { numDeletions++; }
+                for ( final PileupElement p : rawContext.getBasePileup() ) {
+                    if ( p.isDeletion() )
+                        numDeletions++;
                 }
-                if( ((double) numDeletions) / ((double) rawContext.getBasePileup().getNumberOfElements()) > UAC.MAX_DELETION_FRACTION ) {
+                if ( ((double) numDeletions) / ((double) rawContext.getBasePileup().getNumberOfElements()) > UAC.MAX_DELETION_FRACTION ) {
                     return null;
                 }
             }
@@ -516,12 +501,10 @@ public class UnifiedGenotyperEngine {
 
             int depth = 0;
 
-            if (isCovered) {
+            if ( isCovered ) {
                 AlignmentContext context =  contexts.get(sample);
-                if (context.hasBasePileup())
+                if ( context.hasBasePileup() )
                     depth = context.getBasePileup().depthOfCoverage();
-                else if (context.hasExtendedEventPileup())
-                    depth = context.getExtendedEventPileup().depthOfCoverage();
             }
 
             P_of_ref *= 1.0 - (theta / 2.0) * getRefBinomialProb(depth);
@@ -576,52 +559,48 @@ public class UnifiedGenotyperEngine {
                 (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES && QualityUtils.phredScaleErrorRate(PofF) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING);
     }
 
-    // decide whether we are currently processing SNPs, indels, or neither
-    private GenotypeLikelihoodsCalculationModel.Model getCurrentGLModel(final RefMetaDataTracker tracker, final ReferenceContext refContext,
-                                                                        final AlignmentContext rawContext ) {
-        if (rawContext.hasExtendedEventPileup() ) {
-            // todo - remove this code
-            if ((UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.INDEL) &&
-                   (UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) )
-                return GenotypeLikelihoodsCalculationModel.Model.INDEL;
-        }
-        else {
-            // no extended event pileup
+    // decide whether we are currently processing SNPs, indels, neither, or both
+    private List<GenotypeLikelihoodsCalculationModel.Model> getGLModelsToUse(final RefMetaDataTracker tracker,
+                                                                             final ReferenceContext refContext,
+                                                                             final AlignmentContext rawContext) {
+
+        final List<GenotypeLikelihoodsCalculationModel.Model> models = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(2);
+
+        if ( rawContext.hasBasePileup() ) {
             // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
-            if (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
-                VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
-                if (vcInput == null)
+            if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
+                final VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
+                if ( vcInput == null )
                     return null;
 
-                // todo - no support to genotype MNP's yet
-                if  (vcInput.isMNP())
-                    return null;
-
-                if (vcInput.isSNP())  {
+                if ( vcInput.isSNP() )  {
+                    // ignore SNPs if the user chose INDEL mode only
                     if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                        return GenotypeLikelihoodsCalculationModel.Model.SNP;
-                    else if ( UAC.GLmodel.name().toUpperCase().contains("SNP"))
-                        return UAC.GLmodel;
-                    else
-                        // ignore SNP's if user chose INDEL mode
-                        return null;
+                        models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
+                    else if ( UAC.GLmodel.name().toUpperCase().contains("SNP") )
+                        models.add(UAC.GLmodel);
                 }
-                else if ((vcInput.isIndel() || vcInput.isMixed())) {
+                else if ( vcInput.isIndel() || vcInput.isMixed() ) {
+                    // ignore INDELs if the user chose SNP mode only
                     if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                        return GenotypeLikelihoodsCalculationModel.Model.INDEL;
+                        models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
                     else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
-                        return UAC.GLmodel;
+                        models.add(UAC.GLmodel);
                 }
+                // No support for other types yet
             }
             else {
-                // todo - this assumes SNP's take priority when BOTH is selected, should do a smarter way once extended events are removed
-                if( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                    return GenotypeLikelihoodsCalculationModel.Model.SNP;
-                else if (UAC.GLmodel.name().toUpperCase().contains("SNP") || UAC.GLmodel.name().toUpperCase().contains("INDEL"))
-                    return UAC.GLmodel;
+                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH ) {
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
+                }
+                else {
+                    models.add(UAC.GLmodel);
+                }
             }
         }
-        return null;
+
+        return models;
     }
 
     protected static void computeAlleleFrequencyPriors(final int N, final double[] priors, final double theta) {
@@ -668,24 +647,21 @@ public class UnifiedGenotyperEngine {
         else throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
     }
 
-    private static Map<String,GenotypeLikelihoodsCalculationModel> getGenotypeLikelihoodsCalculationObject(Logger logger, UnifiedArgumentCollection UAC) {
+    private static Map<String, GenotypeLikelihoodsCalculationModel> getGenotypeLikelihoodsCalculationObject(Logger logger, UnifiedArgumentCollection UAC) {
 
-
-        Map<String, GenotypeLikelihoodsCalculationModel> glcm = new HashMap<String, GenotypeLikelihoodsCalculationModel>();
-       // GenotypeLikelihoodsCalculationModel.Model.
-        List<Class<? extends GenotypeLikelihoodsCalculationModel>> glmClasses = new PluginManager<GenotypeLikelihoodsCalculationModel>(GenotypeLikelihoodsCalculationModel.class).getPlugins();
+        final Map<String, GenotypeLikelihoodsCalculationModel> glcm = new HashMap<String, GenotypeLikelihoodsCalculationModel>();
+        final List<Class<? extends GenotypeLikelihoodsCalculationModel>> glmClasses = new PluginManager<GenotypeLikelihoodsCalculationModel>(GenotypeLikelihoodsCalculationModel.class).getPlugins();
 
         for (int i = 0; i < glmClasses.size(); i++) {
-            Class<? extends GenotypeLikelihoodsCalculationModel> glmClass = glmClasses.get(i);
-            String key = glmClass.getSimpleName().replaceAll("GenotypeLikelihoodsCalculationModel","").toUpperCase();
-            //System.out.println("KEY:"+key+"\t" + glmClass.getSimpleName());
+            final Class<? extends GenotypeLikelihoodsCalculationModel> glmClass = glmClasses.get(i);
+            final String key = glmClass.getSimpleName().replaceAll("GenotypeLikelihoodsCalculationModel","").toUpperCase();
             try {
-                Object args[] = new Object[]{UAC,logger};
-                Constructor c = glmClass.getDeclaredConstructor(UnifiedArgumentCollection.class, Logger.class);
+                final Object args[] = new Object[]{UAC,logger};
+                final Constructor c = glmClass.getDeclaredConstructor(UnifiedArgumentCollection.class, Logger.class);
                 glcm.put(key, (GenotypeLikelihoodsCalculationModel)c.newInstance(args));
             }
             catch (Exception e) {
-                throw new UserException("Incorrect specification for argument glm:"+UAC.GLmodel+e.getMessage());
+                throw new UserException("The likelihoods model provided for the -glm argument (" + UAC.GLmodel + ") is not a valid option: " + e.getMessage());
             }
          }
 
@@ -719,7 +695,7 @@ public class UnifiedGenotyperEngine {
         VariantContext vc = null;
 
         // search for usable record
-        for( final VariantContext vc_input : tracker.getValues(allelesBinding, loc) ) {
+        for ( final VariantContext vc_input : tracker.getValues(allelesBinding, loc) ) {
             if ( vc_input != null && ! vc_input.isFiltered() && (! requireSNP || vc_input.isSNP() )) {
                 if ( vc == null ) {
                     vc = vc_input;

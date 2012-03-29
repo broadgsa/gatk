@@ -120,7 +120,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
-                if ( MathUtils.sum(gls) < VariantContextUtils.SUM_GL_THRESH_NOCALL )
+                if ( MathUtils.sum(gls) < UnifiedGenotyperEngine.SUM_GL_THRESH_NOCALL )
                     genotypeLikelihoods.add(gls);
             }
         }

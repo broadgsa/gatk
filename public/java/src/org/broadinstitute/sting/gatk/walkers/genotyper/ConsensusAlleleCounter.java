@@ -32,9 +32,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -100,43 +98,32 @@ public class ConsensusAlleleCounter {
 
         int insCount = 0, delCount = 0;
         // quick check of total number of indels in pileup
-        for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
-            AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            final AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            if (context.hasExtendedEventPileup()) {
-                final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-                insCount += indelPileup.getNumberOfInsertions();
-                delCount += indelPileup.getNumberOfDeletions();
-            }
-            else {
+            if ( context.hasBasePileup() ) {
                 final ReadBackedPileup indelPileup = context.getBasePileup();
                 insCount += indelPileup.getNumberOfInsertionsAfterThisElement();
                 delCount += indelPileup.getNumberOfDeletionsAfterThisElement();
              }
         }
 
-        if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
+        if ( insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping )
             return Collections.emptyMap();
 
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             // todo -- warning, can be duplicating expensive partition here
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            final ReadBackedPileup indelPileup;
+            if ( !context.hasBasePileup() )
+                continue;
 
-            final int nIndelReads, nReadsOverall;
+            final ReadBackedPileup indelPileup = context.getBasePileup();
 
-            if (context.hasExtendedEventPileup()) {
-                indelPileup = context.getExtendedEventPileup();
-                nIndelReads = ((ReadBackedExtendedEventPileup)indelPileup).getNumberOfInsertions() + indelPileup.getNumberOfDeletions();
-                nReadsOverall = indelPileup.getNumberOfElements();
-            }
-            else {
-                indelPileup = context.getBasePileup();
-                nIndelReads = indelPileup.getNumberOfInsertionsAfterThisElement() + indelPileup.getNumberOfDeletionsAfterThisElement();
-                nReadsOverall = indelPileup.getNumberOfElements();
-            }
-            if ( nIndelReads == 0 || (nIndelReads / (1.0 * nReadsOverall)) < minFractionInOneSample) {
+            final int nIndelReads = indelPileup.getNumberOfInsertionsAfterThisElement() + indelPileup.getNumberOfDeletionsAfterThisElement();
+            final int nReadsOverall = indelPileup.getNumberOfElements();
+
+            if ( nIndelReads == 0 || (nIndelReads / (1.0 * nReadsOverall)) < minFractionInOneSample ) {
 //                if ( nIndelReads > 0 )
 //                    logger.info("Skipping sample " + sample.getKey() + " with nIndelReads " + nIndelReads + " nReads " + nReadsOverall);
                 continue;
@@ -161,7 +148,7 @@ public class ConsensusAlleleCounter {
    */
                 String indelString = p.getEventBases();
 
-                if (isInsertion(p)) {
+                if ( p.isBeforeInsertion() ) {
                     boolean foundKey = false;
                     // copy of hashmap into temp arrayList
                     ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();
@@ -229,7 +216,7 @@ public class ConsensusAlleleCounter {
                     }
 
                 }
-                else if (isDeletion(p)) {
+                else if ( p.isBeforeDeletion() ) {
                     indelString = String.format("D%d",p.getEventLength());
                     int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
                     consensusIndelStrings.put(indelString,cnt+1);
@@ -240,25 +227,6 @@ public class ConsensusAlleleCounter {
 
         return consensusIndelStrings;
     }
-
-
-    // todo - helper routines to check for extended pileup elements, to remove when extended events are removed
-    private static final boolean isInsertion(final PileupElement p) {
-        if (p instanceof ExtendedEventPileupElement)
-            return ((ExtendedEventPileupElement) p).isInsertion();
-        else
-            return p.isBeforeInsertion();
-
-    }
-
-    private static boolean isDeletion(final PileupElement p) {
-        if (p instanceof ExtendedEventPileupElement)
-            return p.isDeletion();
-        else
-            return p.isBeforeDeletion();
-
-    }
-
 
     private List<Allele> consensusCountsToAlleles(final ReferenceContext ref,
                                                   final Map<String, Integer> consensusIndelStrings) {
