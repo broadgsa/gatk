@@ -132,6 +132,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     private static final Collection<String> RIGHT_ALIGN_STRINGS = Arrays.asList(
             "null",
             "NA",
+            "unknown",
             String.valueOf(Double.POSITIVE_INFINITY),
             String.valueOf(Double.NEGATIVE_INFINITY),
             String.valueOf(Double.NaN));
@@ -144,7 +145,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
      * @return true if the value is a right alignable
      */
     protected static boolean isRightAlign(String value) {
-        return value == null || RIGHT_ALIGN_STRINGS.contains(value) || NumberUtils.isNumber(value);
+        return value == null || RIGHT_ALIGN_STRINGS.contains(value) || NumberUtils.isNumber(value.trim());
     }
 
     /**
@@ -213,7 +214,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     public Object put(Object key, Object value) {
         if (value != null) {
             String formatted = formatValue(value);
-            if (!formatted.equals("")) {
+            if (!formatted.equals("") && !formatted.equals("unknown")) {
                 updateMaxWidth(formatted);
                 updateFormat(formatted);
             }

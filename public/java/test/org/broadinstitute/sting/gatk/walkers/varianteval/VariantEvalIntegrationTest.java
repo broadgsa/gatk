@@ -439,7 +439,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
-                                        "--dbsnp " + b37dbSNP132,
+                                        "--dbsnp " + "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf",
                                         "--eval " + fundamentalTestSNPsVCF,
                                         "-noEV",
                                         "-EV CountVariants",
