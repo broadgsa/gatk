@@ -60,7 +60,7 @@ public class BQSRGathererUnitTest {
      * @param factor 1 to test for equality, any other value to multiply the original value and match with the calculated
      */
     private void testTablesWithColumnsAndFactor(GATKReportTable original, GATKReportTable calculated, List<String> columnsToTest, int factor) {
-        for (Object primaryKey : original.getPrimaryKeys()) {                                                  // tables don't necessarily have the same primary keys
+        for (Object primaryKey : original.getPrimaryKeys()) {                                                           // tables don't necessarily have the same primary keys
             for (String column : columnsToTest) {
                 Object actual = calculated.get(primaryKey, column);
                 Object expected = original.get(primaryKey, column);

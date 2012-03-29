@@ -109,7 +109,6 @@ public class RecalDatum extends RecalDatumOptimized {
 
     public final void resetCalculatedQualities() {
         empiricalQuality = 0.0;
-        estimatedQReported = 0.0;
     }
 
     private double calcExpectedErrors() {

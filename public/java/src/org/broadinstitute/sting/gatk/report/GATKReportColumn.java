@@ -60,24 +60,12 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
         if ( format.equals("") ) {
             this.format = "%s";
             this.dataType = GATKReportDataType.Unknown;
-            if ( defaultValue != null ) {
-                this.defaultValue = defaultValue;
-                //this.dataType = GATKReportDataType.fromObject(defaultValue);
-            }
-            else {
-                this.defaultValue = "";
-                //this.dataType = GATKReportDataType.Unknown;
-            }
+            this.defaultValue = (defaultValue != null) ? defaultValue : "";
         }
         else {
             this.format = format;
             this.dataType = GATKReportDataType.fromFormatString(format);
-            if ( defaultValue == null ) {
-                this.defaultValue = dataType.getDefaultValue();
-            }
-            else {
-                this.defaultValue = defaultValue;
-            }
+            this.defaultValue = (defaultValue != null) ? defaultValue : dataType.getDefaultValue();
         }
     }
 
@@ -225,8 +213,10 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     public Object put(Object key, Object value) {
         if (value != null) {
             String formatted = formatValue(value);
-            updateMaxWidth(formatted);
-            updateFormat(formatted);
+            if (!formatted.equals("")) {
+                updateMaxWidth(formatted);
+                updateFormat(formatted);
+            }
         }
         return super.put(key, value);        
     }
@@ -236,7 +226,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     }
 
     private void updateFormat(String formatted) {
-        if (!isRightAlign(formatted))
-            alignment = GATKReportColumnFormat.Alignment.LEFT;
+        if (alignment == GATKReportColumnFormat.Alignment.RIGHT)
+            alignment = isRightAlign(formatted) ? GATKReportColumnFormat.Alignment.RIGHT : GATKReportColumnFormat.Alignment.LEFT;
     }
 }
