@@ -24,8 +24,8 @@ public class PileupElement implements Comparable<PileupElement> {
     protected final GATKSAMRecord read;         // the read this base belongs to
     protected final int offset;                 // the offset in the bases array for this base
     protected final boolean isDeletion;         // is this base a deletion
-    protected final boolean isBeforeDeletion;   // is the base to the right of this base an deletion
-    protected final boolean isAfterDeletion;    // is the base to the left of this base a deletion
+    protected final boolean isBeforeDeletedBase;   // is the base to the right of this base an deletion
+    protected final boolean isAfterDeletedBase;    // is the base to the left of this base a deletion
     protected final boolean isBeforeInsertion;  // is the base to the right of this base an insertion
     protected final boolean isAfterInsertion;   // is the base to the left of this base an insertion
     protected final boolean isNextToSoftClip;   // is this base either before or after a soft clipped base
@@ -59,8 +59,8 @@ public class PileupElement implements Comparable<PileupElement> {
         this.read = read;
         this.offset = offset;
         this.isDeletion = isDeletion;
-        this.isBeforeDeletion = isBeforeDeletion;
-        this.isAfterDeletion = isAfterDeletion;
+        this.isBeforeDeletedBase = isBeforeDeletion;
+        this.isAfterDeletedBase = isAfterDeletion;
         this.isBeforeInsertion = isBeforeInsertion;
         this.isAfterInsertion = isAfterInsertion;
         this.isNextToSoftClip = isNextToSoftClip;
@@ -81,12 +81,20 @@ public class PileupElement implements Comparable<PileupElement> {
         return isDeletion;
     }
 
-    public boolean isBeforeDeletion() {
-        return isBeforeDeletion;
+    public boolean isBeforeDeletedBase() {
+        return isBeforeDeletedBase;
     }
 
-    public boolean isAfterDeletion() {
-        return isAfterDeletion;
+    public boolean isAfterDeletedBase() {
+        return isAfterDeletedBase;
+    }
+
+    public boolean isBeforeDeletionStart() {
+        return isBeforeDeletedBase && !isDeletion;
+    }
+
+    public boolean isAfterDeletionEnd() {
+        return isAfterDeletedBase && !isDeletion;
     }
 
     public boolean isBeforeInsertion() {

@@ -216,7 +216,7 @@ public class ConsensusAlleleCounter {
                     }
 
                 }
-                else if ( p.isBeforeDeletion() ) {
+                else if ( p.isBeforeDeletedBase() ) {
                     indelString = String.format("D%d",p.getEventLength());
                     int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
                     consensusIndelStrings.put(indelString,cnt+1);

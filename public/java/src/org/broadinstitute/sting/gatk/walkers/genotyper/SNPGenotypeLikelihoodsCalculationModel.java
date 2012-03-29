@@ -208,7 +208,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
     public class BAQedPileupElement extends PileupElement {
         public BAQedPileupElement( final PileupElement PE ) {
-            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletion(), PE.isAfterDeletion(), PE.isBeforeInsertion(), PE.isAfterInsertion(), PE.isNextToSoftClip());
+            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletedBase(), PE.isAfterDeletedBase(), PE.isBeforeInsertion(), PE.isAfterInsertion(), PE.isNextToSoftClip());
         }
 
         @Override
