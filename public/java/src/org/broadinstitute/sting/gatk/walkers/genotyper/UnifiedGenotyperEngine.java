@@ -51,6 +51,8 @@ import java.util.*;
 
 public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
+    
+    public static final int DEFAULT_PLOIDY = 2;
 
     public enum OUTPUT_MODE {
         /** produces calls only at variant sites */
@@ -95,7 +97,8 @@ public class UnifiedGenotyperEngine {
     private final Logger logger;
     private final PrintStream verboseWriter;
 
-    // number of chromosomes (2 * samples) in input
+    // number of chromosomes (ploidy * samples) in input
+    private final int ploidy;
     private final int N;
 
     // the standard filter to use for calls below the confidence threshold but above the emit threshold
@@ -112,11 +115,11 @@ public class UnifiedGenotyperEngine {
     // ---------------------------------------------------------------------------------------------------------
     @Requires({"toolkit != null", "UAC != null"})
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()), 2*(SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size()));
+        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()), DEFAULT_PLOIDY*(SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size()));
     }
 
-    @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0","N>0"})
-    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples, int N) {
+    @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0","ploidy>0"})
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples, int ploidy) {
         this.BAQEnabledOnCMDLine = toolkit.getArguments().BAQMode != BAQ.CalculationMode.OFF;
         genomeLocParser = toolkit.getGenomeLocParser();
         this.samples = new TreeSet<String>(samples);
@@ -127,7 +130,8 @@ public class UnifiedGenotyperEngine {
         this.verboseWriter = verboseWriter;
         this.annotationEngine = engine;
 
-        this.N = N;
+        this.ploidy = ploidy;
+        this.N = samples.size() * ploidy;
         log10AlleleFrequencyPriorsSNPs = new double[N+1];
         log10AlleleFrequencyPriorsIndels = new double[N+1];
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, UAC.heterozygosity);
