@@ -3,13 +3,13 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.SetOfStates;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.Stratifier;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class VariantStratifier implements Comparable<VariantStratifier>, SetOfStates {
+public abstract class VariantStratifier implements Comparable<VariantStratifier>, Stratifier {
     private VariantEvalWalker variantEvalWalker;
     final private String name;
     final protected ArrayList<Object> states = new ArrayList<Object>();
@@ -51,6 +51,11 @@ public abstract class VariantStratifier implements Comparable<VariantStratifier>
 
     public final int compareTo(VariantStratifier o1) {
         return this.getName().compareTo(o1.getName());
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 
     public final String getName() {

@@ -88,7 +88,7 @@ public class VariantEvalUtils {
      * @return set of stratifications to use
      */
     public List<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
-        List<VariantStratifier> strats = new ArrayList<VariantStratifier>();
+        TreeSet<VariantStratifier> strats = new TreeSet<VariantStratifier>();
         Set<String> stratsToUse = new HashSet<String>();
 
         // Create a map for all stratification modules for easy lookup.
@@ -139,7 +139,7 @@ public class VariantEvalUtils {
             }
         }
 
-        return strats;
+        return new ArrayList<VariantStratifier>(strats);
     }
 
     /**

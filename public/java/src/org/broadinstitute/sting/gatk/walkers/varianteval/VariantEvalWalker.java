@@ -21,7 +21,6 @@ import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.SetOfStates;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -29,6 +28,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -225,6 +225,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     // The set of all possible evaluation contexts
     StratificationManager<VariantStratifier, NewEvaluationContext> stratManager;
 
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+    //
+    // TODO -- StratificationManager should hold the master list of strats
+
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+
+
+
     /**
      * Initialize the stratifications, evaluations, evaluation contexts, and reporting object
      */
@@ -403,14 +419,18 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     final void createStratificationStates(final List<VariantStratifier> stratificationObjects, final Set<Class<? extends VariantEvaluator>> evaluationObjects) {
         final List<VariantStratifier> strats = new ArrayList<VariantStratifier>(stratificationObjects);
-        stratManager =
-                new StratificationManager<VariantStratifier, NewEvaluationContext>(strats);
+        stratManager = new StratificationManager<VariantStratifier, NewEvaluationContext>(strats);
 
         logger.info("Creating " + stratManager.size() + " combinatorial stratification states");
         for ( int i = 0; i < stratManager.size(); i++ ) {
             NewEvaluationContext ec = new NewEvaluationContext();
-            ec.putAll(stratManager.getStateForKey(i));
-            ec.addEvaluationClassList(this, null, evaluationObjects);
+            
+//            // todo -- remove me, tmp conversion
+//            for ( Pair<VariantStratifier, Object> stratState : stratManager.getStratsAndStatesForKey(i) ) {
+//                ec.put(stratState.getFirst(), stratState.getSecond());
+//            }
+            
+            ec.addEvaluationClassList(this, evaluationObjects);
             stratManager.set(i, ec);
         }
     }
@@ -518,23 +538,20 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public void onTraversalDone(Integer result) {
         logger.info("Finalizing variant report");
 
-        // TODO -- clean up -- this is deeply unsafe
+        // TODO -- VS should be sorted first with a TreeSet
         for ( int key = 0; key < stratManager.size(); key++ ) {
-            final Map<VariantStratifier, Object> stateValues = stratManager.getStateForKey(key);
+            final String stratStateString = stratManager.getStratsAndStatesForKeyString(key);
+            final List<Pair<VariantStratifier, Object>> stratsAndStates = stratManager.getStratsAndStatesForKey(key);
             final NewEvaluationContext nec = stratManager.get(key);
             
-            final Map<String, Object> stateKey = new HashMap<String, Object>(stateValues.size());
-            for ( Map.Entry<VariantStratifier, Object> elt : stateValues.entrySet() )
-                stateKey.put(elt.getKey().getName(), elt.getValue());
-
-            for ( VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
+            for ( final VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
                 ve.finalizeEvaluation();
                 final String veName = ve.getSimpleName(); // ve.getClass().getSimpleName();
 
                 AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 Map<Field, DataPoint> datamap = scanner.getData();
 
-                for (Field field : datamap.keySet()) {
+                for ( final Field field : datamap.keySet()) {
                     try {
                         field.setAccessible(true);
 
@@ -544,52 +561,28 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             final String subTableName = veName + "." + field.getName();
                             final DataPoint dataPointAnn = datamap.get(field);
 
-                            GATKReportTable table;
-                            if (!report.hasTable(subTableName)) {
-                                report.addTable(subTableName, dataPointAnn.description());
-                                table = report.getTable(subTableName);
-
-                                table.addPrimaryKey("entry", false);
-                                table.addColumn(subTableName, subTableName);
-
-                                for ( VariantStratifier vs : stratificationObjects ) {
-                                    table.addColumn(vs.getName(), "unknown");
-                                }
-
-                                table.addColumn(t.getRowName(), "unknown");
-
-                                for ( final Object o : t.getColumnKeys() ) {
-                                    final String c = o.toString();
-                                    table.addColumn(c, 0.0);
-                                }
-                            } else {
-                                table = report.getTable(subTableName);
+                            if (! report.hasTable(subTableName)) {
+                                configureNewReportTable(t, subTableName, dataPointAnn);
                             }
+
+                            final GATKReportTable table = report.getTable(subTableName);
 
                             for (int row = 0; row < t.getRowKeys().length; row++) {
                                 final String r = t.getRowKeys()[row].toString();
+                                final String newStratStateString = stratStateString + r;
 
-                                for ( VariantStratifier vs : stratificationObjects ) {
-                                    final String columnName = vs.getName();
-                                    table.set(stateKey.toString() + r, columnName, stateKey.get(columnName));
-                                }
+                                setTableColumnNames(table, newStratStateString, stratsAndStates);
 
                                 for (int col = 0; col < t.getColumnKeys().length; col++) {
                                     final String c = t.getColumnKeys()[col].toString();
-                                    final String newStateKey = stateKey.toString() + r;
-                                    table.set(newStateKey, c, t.getCell(row, col));
-                                    table.set(newStateKey, t.getRowName(), r);
+                                    table.set(newStratStateString, c, t.getCell(row, col));
+                                    table.set(newStratStateString, t.getRowName(), r);
                                 }
                             }
                         } else {
-                            GATKReportTable table = report.getTable(veName);
-
-                            for ( VariantStratifier vs : stratificationObjects ) {
-                                final String columnName = vs.getName();
-                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getName()));
-                            }
-
-                            table.set(stateKey.toString(), field.getName(), field.get(ve));
+                            final GATKReportTable table = report.getTable(veName);
+                            setTableColumnNames(table, stratStateString, stratsAndStates);
+                            table.set(stratStateString, field.getName(), field.get(ve));
                         }
                     } catch (IllegalAccessException e) {
                         throw new StingException("IllegalAccessException: " + e);
@@ -599,6 +592,38 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         report.print(out);
+    }
+    
+    private final void configureNewReportTable(final TableType t, final String subTableName, final DataPoint dataPointAnn) {
+        // basic table configuration.  Set up primary key, dummy column names
+        report.addTable(subTableName, dataPointAnn.description());
+        GATKReportTable table = report.getTable(subTableName);
+
+        table.addPrimaryKey("entry", false);
+        table.addColumn(subTableName, subTableName);
+
+        for ( VariantStratifier vs : stratificationObjects ) {
+            table.addColumn(vs.getName(), "unknown");
+        }
+
+        table.addColumn(t.getRowName(), "unknown");
+
+        for ( final Object o : t.getColumnKeys() ) {
+            final String c = o.toString();
+            table.addColumn(c, 0.0);
+        }
+    }
+    
+    private final void setTableColumnNames(final GATKReportTable table, 
+                                           final String primaryKey,
+                                           final List<Pair<VariantStratifier, Object>> stratsAndStates) {
+        for ( Pair<VariantStratifier, Object> stratAndState : stratsAndStates ) {
+            final VariantStratifier vs = stratAndState.getFirst();
+            final String columnName = vs.getName();
+            final Object strat = stratAndState.getSecond();
+            table.set(primaryKey, columnName, strat);
+        }
+
     }
 
     // Accessors

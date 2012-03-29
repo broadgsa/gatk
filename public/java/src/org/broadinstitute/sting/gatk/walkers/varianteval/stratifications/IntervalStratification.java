@@ -55,6 +55,10 @@ public class IntervalStratification extends VariantStratifier {
     final protected static Logger logger = Logger.getLogger(IntervalStratification.class);
     Map<String, IntervalTree<GenomeLoc>> intervalTreeByContig = null;
 
+    final List<Object> OVERLAPPING = Arrays.asList((Object)"all", (Object)"overlaps.intervals");
+    final List<Object> NOT_OVERLAPPING = Arrays.asList((Object)"all", (Object)"outside.intervals");
+
+    
     @Override
     public void initialize() {
         if ( getVariantEvalWalker().intervalsFile == null )
@@ -79,7 +83,10 @@ public class IntervalStratification extends VariantStratifier {
             IntervalTree<GenomeLoc> intervalTree = intervalTreeByContig.get(loc.getContig());
             IntervalTree.Node<GenomeLoc> node = intervalTree.minOverlapper(loc.getStart(), loc.getStop());
             //logger.info(String.format("Overlap %s found %s", loc, node));
-            return Collections.singletonList((Object)(node != null ? "overlaps.intervals" : "outside.intervals"));
+            if ( node != null )
+                return OVERLAPPING;
+            else
+                return NOT_OVERLAPPING;
         }
 
         return Collections.emptyList();

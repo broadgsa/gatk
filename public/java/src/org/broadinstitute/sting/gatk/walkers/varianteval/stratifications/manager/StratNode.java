@@ -59,7 +59,7 @@ import java.util.*;
  */
 @Invariant({
         "(isLeaf() && stratifier == null && subnodes.isEmpty()) || (!isLeaf() && stratifier != null && !subnodes.isEmpty())"})
-class StratNode<T extends SetOfStates> implements Iterable<StratNode<T>> {
+class StratNode<T extends Stratifier> implements Iterable<StratNode<T>> {
     int key = -1;
     final T stratifier;
     // TODO -- track state key that maps to root node

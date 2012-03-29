@@ -27,12 +27,12 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manage
 import java.util.List;
 
 /**
- * A basic interface for a class to be used with the StratificationStates system
+ * A basic interface for a class to be used with the StratificationManager system
  *
  * @author Mark DePristo
  * @since 3/28/12
  */
-public interface SetOfStates<Object> {
+public interface Stratifier<Object> {
     /**
      * @return a list of all objects states that may be provided by this States provider
      */

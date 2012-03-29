@@ -34,7 +34,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 3/27/12
  */
-class StratNodeIterator<T extends SetOfStates> implements Iterator<StratNode<T>> {
+class StratNodeIterator<T extends Stratifier> implements Iterator<StratNode<T>> {
     Queue<Iterator<StratNode<T>>> iterators = new LinkedList<Iterator<StratNode<T>>>();
     Iterator<StratNode<T>> currentIterator;
 

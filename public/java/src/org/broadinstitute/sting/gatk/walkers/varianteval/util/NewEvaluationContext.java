@@ -12,10 +12,10 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
-public class NewEvaluationContext extends HashMap<VariantStratifier, Object> {
+public class NewEvaluationContext { // extends HashMap<VariantStratifier, Object> {
     private Map<String, VariantEvaluator> evaluationInstances;
 
-    public void addEvaluationClassList(VariantEvalWalker walker, StateKey stateKey, Set<Class<? extends VariantEvaluator>> evaluationClasses) {
+    public void addEvaluationClassList(VariantEvalWalker walker, Set<Class<? extends VariantEvaluator>> evaluationClasses) {
         evaluationInstances = new LinkedHashMap<String, VariantEvaluator>(evaluationClasses.size());
 
         for ( final Class<? extends VariantEvaluator> c : evaluationClasses ) {
@@ -34,16 +34,6 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, Object> {
 
     public TreeMap<String, VariantEvaluator> getEvaluationClassList() {
         return new TreeMap<String, VariantEvaluator>(evaluationInstances);
-    }
-
-    public StateKey makeStateKey() {
-        Map<String, Object> map = new HashMap<String, Object>(size());
-
-        for (Map.Entry<VariantStratifier, Object> elt : this.entrySet() ) {
-            map.put(elt.getKey().getName(), elt.getValue());
-        }
-
-        return new StateKey(map);
     }
 
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {

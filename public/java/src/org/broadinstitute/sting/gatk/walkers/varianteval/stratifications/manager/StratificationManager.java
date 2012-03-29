@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manage
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
@@ -36,7 +37,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 3/27/12
  */
-public class StratificationManager<K extends SetOfStates, V> implements Map<List<Object>, V> {
+public class StratificationManager<K extends Stratifier, V> implements Map<List<Object>, V> {
     private final StratNode<K> root;
     private final int size;
 
@@ -45,6 +46,7 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
     // values associated with each key
     private final ArrayList<V> valuesByKey;
     private final ArrayList<List<Object>> stratifierValuesByKey;
+    private final ArrayList<String> keyStrings;
 
     // -------------------------------------------------------------------------------------
     //
@@ -64,9 +66,11 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
 
         this.valuesByKey = new ArrayList<V>(size());
         this.stratifierValuesByKey = new ArrayList<List<Object>>(size());
+        this.keyStrings = new ArrayList<String>(size());
         for ( int i = 0; i < size(); i++ ) {
             this.valuesByKey.add(null);
             this.stratifierValuesByKey.add(null);
+            this.keyStrings.add(null);
         }
         assignStratifierValuesByKey(root);
     }
@@ -140,6 +144,11 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
         return root;
     }
 
+    @Ensures("result != null")
+    public List<K> getStratifiers() {
+        return stratifiers;
+    }
+
     // -------------------------------------------------------------------------------------
     //
     // mapping from states -> keys
@@ -160,14 +169,37 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
         return keys;
     }
 
-    public Map<K, Object> getStateForKey(final int key) {
-        final Map<K, Object> states = new HashMap<K, Object>(stratifiers.size());
+    public List<Object> getStatesForKey(final int key) {
+        final List<Object> states = new ArrayList<Object>(stratifiers.size());
+        for ( int i = 0; i < stratifiers.size(); i++ ) {
+            final Object stratValue = stratifierValuesByKey.get(key).get(i);
+            states.add(stratValue);
+        }
+        return states;
+    }
+
+    public List<Pair<K, Object>> getStratsAndStatesForKey(final int key) {
+        final List<Pair<K, Object>> states = new ArrayList<Pair<K, Object>>(stratifiers.size());
         for ( int i = 0; i < stratifiers.size(); i++ ) {
             final K strat = stratifiers.get(i);
             final Object stratValue = stratifierValuesByKey.get(key).get(i);
-            states.put(strat, stratValue);
+            states.add(new Pair<K, Object>(strat, stratValue));
         }
         return states;
+    }
+
+    public String getStratsAndStatesForKeyString(final int key) {
+        if ( keyStrings.get(key) == null ) {
+            StringBuilder b = new StringBuilder();
+            for ( int i = 0; i < stratifiers.size(); i++ ) {
+                final K strat = stratifiers.get(i);
+                final Object stratValue = stratifierValuesByKey.get(key).get(i);
+                b.append(strat.toString()).append(":").append(stratValue.toString());
+            }
+            keyStrings.set(key, b.toString());
+        }
+        
+        return keyStrings.get(key);
     }
 
     // -------------------------------------------------------------------------------------

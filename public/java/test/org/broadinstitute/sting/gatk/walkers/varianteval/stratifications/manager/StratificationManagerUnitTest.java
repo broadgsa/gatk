@@ -31,6 +31,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manage
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -53,7 +54,7 @@ public class StratificationManagerUnitTest extends BaseTest {
 
     private class StratificationStatesTestProvider extends TestDataProvider {
         final List<List<Object>> allStates = new ArrayList<List<Object>>();
-        final List<ListAsSetOfStates> asSetOfStates = new ArrayList<ListAsSetOfStates>();
+        final List<IntegerStratifier> asSetOfStates = new ArrayList<IntegerStratifier>();
         final int nStates;
         
         public StratificationStatesTestProvider(final List<Integer> ... allStates) {
@@ -64,7 +65,7 @@ public class StratificationManagerUnitTest extends BaseTest {
             }
 
             for ( List<Object> states : this.allStates ) { 
-                asSetOfStates.add(new ListAsSetOfStates(states));
+                asSetOfStates.add(new IntegerStratifier(states));
             }
             this.nStates = Utils.nCombinations(allStates);
 
@@ -79,7 +80,7 @@ public class StratificationManagerUnitTest extends BaseTest {
             return b.toString();
         }
         
-        public List<ListAsSetOfStates> getStateSpaceList() {
+        public List<IntegerStratifier> getStateSpaceList() {
             return asSetOfStates;
         }
         
@@ -118,10 +119,10 @@ public class StratificationManagerUnitTest extends BaseTest {
         }
     }
 
-    private class ListAsSetOfStates implements SetOfStates {
+    private class IntegerStratifier implements Stratifier {
         final List<Object> integers;
 
-        private ListAsSetOfStates(final List<Object> integers) {
+        private IntegerStratifier(final List<Object> integers) {
             this.integers = integers;
         }
         
@@ -144,8 +145,8 @@ public class StratificationManagerUnitTest extends BaseTest {
         return StratificationStatesTestProvider.getTests(StratificationStatesTestProvider.class);
     }
     
-    private final StratificationManager<ListAsSetOfStates, Integer> createManager(StratificationStatesTestProvider cfg) {
-        final StratificationManager<ListAsSetOfStates, Integer> manager = new StratificationManager<ListAsSetOfStates, Integer>(cfg.getStateSpaceList());
+    private final StratificationManager<IntegerStratifier, Integer> createManager(StratificationStatesTestProvider cfg) {
+        final StratificationManager<IntegerStratifier, Integer> manager = new StratificationManager<IntegerStratifier, Integer>(cfg.getStateSpaceList());
         List<Integer> values = cfg.values();
         for ( int i = 0; i < cfg.nStates; i++ )
             manager.set(i, values.get(i));
@@ -157,7 +158,7 @@ public class StratificationManagerUnitTest extends BaseTest {
 
     @Test(dataProvider = "StratificationStatesTestProvider")
     public void testLeafCount(StratificationStatesTestProvider cfg) {
-        final StratificationManager<ListAsSetOfStates, Integer> stratificationManager = createManager(cfg);
+        final StratificationManager<IntegerStratifier, Integer> stratificationManager = createManager(cfg);
         
         Assert.assertEquals(stratificationManager.size(), cfg.nStates);
         
@@ -171,7 +172,7 @@ public class StratificationManagerUnitTest extends BaseTest {
 
     @Test(dataProvider = "StratificationStatesTestProvider")
     public void testKeys(StratificationStatesTestProvider cfg) {
-        final StratificationManager<ListAsSetOfStates, Integer> stratificationManager = createManager(cfg);
+        final StratificationManager<IntegerStratifier, Integer> stratificationManager = createManager(cfg);
         final Set<Integer> seenKeys = new HashSet<Integer>(cfg.nStates);
         for ( final StratNode node : stratificationManager.getRoot() ) {
             if ( node.isLeaf() ) {
@@ -183,7 +184,7 @@ public class StratificationManagerUnitTest extends BaseTest {
 
     @Test(dataProvider = "StratificationStatesTestProvider")
     public void testFindSingleKeys(StratificationStatesTestProvider cfg) {
-        final StratificationManager<ListAsSetOfStates, Integer> stratificationManager = createManager(cfg);
+        final StratificationManager<IntegerStratifier, Integer> stratificationManager = createManager(cfg);
         final Set<Integer> seenKeys = new HashSet<Integer>(cfg.nStates);
         for ( List<Object> state : cfg.getAllCombinations() ) {
             final int key = stratificationManager.getKey(state);
@@ -203,7 +204,7 @@ public class StratificationManagerUnitTest extends BaseTest {
 
     @Test(dataProvider = "StratificationStatesTestProvider")
     public void testFindMultipleKeys(StratificationStatesTestProvider cfg) {
-        final StratificationManager<ListAsSetOfStates, Integer> stratificationManager = createManager(cfg);
+        final StratificationManager<IntegerStratifier, Integer> stratificationManager = createManager(cfg);
         final List<List<Object>> states = new ArrayList<List<Object>>(cfg.allStates);
         final Set<Integer> keys = stratificationManager.getKeys(states);
         Assert.assertEquals(keys.size(), cfg.nStates, "Find all states didn't find all of the expected unique keys");
@@ -230,8 +231,22 @@ public class StratificationManagerUnitTest extends BaseTest {
 
     @Test(dataProvider = "StratificationStatesTestProvider")
     public void testMapSet(StratificationStatesTestProvider cfg) {
-        final StratificationManager<ListAsSetOfStates, Integer> stratificationManager = createManager(cfg);
+        final StratificationManager<IntegerStratifier, Integer> stratificationManager = createManager(cfg);
         stratificationManager.set(0, -1);
         Assert.assertEquals((int)stratificationManager.get(0), -1);
+    }
+
+    @Test(dataProvider = "StratificationStatesTestProvider")
+    public void testStratifierByKey(StratificationStatesTestProvider cfg) {
+        final StratificationManager<IntegerStratifier, Integer> manager = createManager(cfg);
+        for ( int key = 0; key < cfg.nStates; key++ ) {
+            List<Pair<IntegerStratifier, Object>> stratsAndStates = manager.getStratsAndStatesForKey(key);
+            final List<Object> strats = manager.getStatesForKey(key);
+            Assert.assertEquals((int)manager.get(strats), key, "Key -> strats -> key failed to return same key");
+
+            for ( int i = 0; i < strats.size(); i++ ) {
+                Assert.assertEquals(stratsAndStates.get(i).getSecond(), strats.get(i), "Strats and StratsAndStates differ");
+            }
+        }
     }
 }
