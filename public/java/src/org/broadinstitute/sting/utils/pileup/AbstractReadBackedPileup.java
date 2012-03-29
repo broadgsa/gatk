@@ -873,6 +873,26 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         return reads;
     }
 
+    @Override
+    public int getNumberOfDeletionsAfterThisElement() {
+        int count = 0;
+        for (PileupElement p: this) {
+            if (p.isBeforeDeletion())
+                count++;
+        }
+        return count;
+    }
+
+    @Override
+    public int getNumberOfInsertionsAfterThisElement() {
+        int count = 0;
+        for (PileupElement p: this) {
+            if (p.isBeforeInsertion())
+                count++;
+        }
+        return count;
+
+    }
     /**
      * Returns a list of the offsets in this pileup. Note this call costs O(n) and allocates fresh lists each time
      *

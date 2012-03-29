@@ -109,15 +109,10 @@ public class ConsensusAlleleCounter {
                 delCount += indelPileup.getNumberOfDeletions();
             }
             else {
-                // todo - this should be version to be used when extended events are removed
-                // todo - maybe we should create utility functions in ReadBackedPileup definition to do the equivalent thing?
-                for (PileupElement p: context.getBasePileup()) {
-                    if (p.isBeforeDeletion())
-                        delCount++;
-                    else if (p.isBeforeInsertion())
-                        insCount++;
-                }
-            }
+                final ReadBackedPileup indelPileup = context.getBasePileup();
+                insCount += indelPileup.getNumberOfInsertionsAfterThisElement();
+                delCount += indelPileup.getNumberOfDeletionsAfterThisElement();
+             }
         }
 
         if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
@@ -127,10 +122,20 @@ public class ConsensusAlleleCounter {
             // todo -- warning, can be duplicating expensive partition here
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
+            final ReadBackedPileup indelPileup;
 
-            final int nIndelReads = indelPileup.getNumberOfInsertions() + indelPileup.getNumberOfDeletions();
-            final int nReadsOverall = indelPileup.getNumberOfElements();
+            final int nIndelReads, nReadsOverall;
+
+            if (context.hasExtendedEventPileup()) {
+                indelPileup = context.getExtendedEventPileup();
+                nIndelReads = ((ReadBackedExtendedEventPileup)indelPileup).getNumberOfInsertions() + indelPileup.getNumberOfDeletions();
+                nReadsOverall = indelPileup.getNumberOfElements();
+            }
+            else {
+                indelPileup = context.getBasePileup();
+                nIndelReads = indelPileup.getNumberOfInsertionsAfterThisElement() + indelPileup.getNumberOfDeletionsAfterThisElement();
+                nReadsOverall = indelPileup.getNumberOfElements();
+            }
             if ( nIndelReads == 0 || (nIndelReads / (1.0 * nReadsOverall)) < minFractionInOneSample) {
 //                if ( nIndelReads > 0 )
 //                    logger.info("Skipping sample " + sample.getKey() + " with nIndelReads " + nIndelReads + " nReads " + nReadsOverall);
@@ -139,7 +144,8 @@ public class ConsensusAlleleCounter {
 //                logger.info("### Keeping sample " + sample.getKey() + " with nIndelReads " + nIndelReads + " nReads " + nReadsOverall);
             }
 
-            for (ExtendedEventPileupElement p : indelPileup.toExtendedIterable()) {
+
+            for (PileupElement p : indelPileup) {
                 final GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;
@@ -154,7 +160,8 @@ public class ConsensusAlleleCounter {
                 }
    */
                 String indelString = p.getEventBases();
-                if (p.isInsertion()) {
+
+                if (isInsertion(p)) {
                     boolean foundKey = false;
                     // copy of hashmap into temp arrayList
                     ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();
@@ -222,7 +229,7 @@ public class ConsensusAlleleCounter {
                     }
 
                 }
-                else if (p.isDeletion()) {
+                else if (isDeletion(p)) {
                     indelString = String.format("D%d",p.getEventLength());
                     int cnt = consensusIndelStrings.containsKey(indelString)? consensusIndelStrings.get(indelString):0;
                     consensusIndelStrings.put(indelString,cnt+1);
@@ -233,6 +240,25 @@ public class ConsensusAlleleCounter {
 
         return consensusIndelStrings;
     }
+
+
+    // todo - helper routines to check for extended pileup elements, to remove when extended events are removed
+    private static final boolean isInsertion(final PileupElement p) {
+        if (p instanceof ExtendedEventPileupElement)
+            return ((ExtendedEventPileupElement) p).isInsertion();
+        else
+            return p.isBeforeInsertion();
+
+    }
+
+    private static boolean isDeletion(final PileupElement p) {
+        if (p instanceof ExtendedEventPileupElement)
+            return p.isDeletion();
+        else
+            return p.isBeforeDeletion();
+
+    }
+
 
     private List<Allele> consensusCountsToAlleles(final ReferenceContext ref,
                                                   final Map<String, Integer> consensusIndelStrings) {

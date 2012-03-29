@@ -174,6 +174,20 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public int getNumberOfDeletions();
 
+    /**
+     * Simple useful routine to count the number of deletion bases in at the next position this pileup
+     *
+     * @return
+     */
+    public int getNumberOfDeletionsAfterThisElement();
+
+    /**
+     * Simple useful routine to count the number of insertions right after this pileup
+     *
+     * @return
+     */
+    public int getNumberOfInsertionsAfterThisElement();
+
     public int getNumberOfMappingQualityZeroReads();
 
     /**
