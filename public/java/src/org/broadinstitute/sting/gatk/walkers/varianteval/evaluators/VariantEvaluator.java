@@ -6,7 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-public abstract class VariantEvaluator {
+public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
     private VariantEvalWalker walker;
     private final String simpleName;
 
@@ -98,5 +98,10 @@ public abstract class VariantEvaluator {
 
     public String getSimpleName() {
         return simpleName;
+    }
+
+    @Override
+    public int compareTo(final VariantEvaluator variantEvaluator) {
+        return getSimpleName().compareTo(variantEvaluator.getSimpleName());
     }
 }

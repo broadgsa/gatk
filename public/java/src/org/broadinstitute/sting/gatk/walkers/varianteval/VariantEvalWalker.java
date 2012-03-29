@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.IntervalTree;
@@ -200,9 +201,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     private Set<String> sampleNamesForStratification = new TreeSet<String>();
     private int numSamples = 0;
 
-    // The list of stratifiers and evaluators to use
-    private List<VariantStratifier> stratificationObjects = null;
-
     // important stratifications
     private boolean byFilterIsEnabled = false;
     private boolean perSampleIsEnabled = false;
@@ -223,23 +221,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     private IndexedFastaSequenceFile ancestralAlignments = null;
 
     // The set of all possible evaluation contexts
-    StratificationManager<VariantStratifier, NewEvaluationContext> stratManager;
-
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    //
-    // TODO -- StratificationManager should hold the master list of strats
-
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-
-
+    StratificationManager<VariantStratifier, EvaluationContext> stratManager;
 
     /**
      * Initialize the stratifications, evaluations, evaluation contexts, and reporting object
@@ -285,8 +267,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         // Initialize the set of stratifications and evaluations to use
-        stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
-        Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+        // The list of stratifiers and evaluators to use
+        final List<VariantStratifier> stratificationObjects = variantEvalUtils.initializeStratificationObjects(NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
+        final Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
 
         for ( VariantStratifier vs : stratificationObjects ) {
             if ( vs.getName().equals("Filter") )
@@ -324,9 +307,19 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         if ( knownCNVsFile != null ) {
             knownCNVsByContig = createIntervalTreeByContig(knownCNVsFile);
         }
-
     }
 
+    final void createStratificationStates(final List<VariantStratifier> stratificationObjects, final Set<Class<? extends VariantEvaluator>> evaluationObjects) {
+        final List<VariantStratifier> strats = new ArrayList<VariantStratifier>(stratificationObjects);
+        stratManager = new StratificationManager<VariantStratifier, EvaluationContext>(strats);
+
+        logger.info("Creating " + stratManager.size() + " combinatorial stratification states");
+        for ( int i = 0; i < stratManager.size(); i++ ) {
+            EvaluationContext ec = new EvaluationContext(this, evaluationObjects);
+            stratManager.set(i, ec);
+        }
+    }    
+    
     public final Map<String, IntervalTree<GenomeLoc>> createIntervalTreeByContig(final IntervalBinding<Feature> intervals) {
         final Map<String, IntervalTree<GenomeLoc>> byContig = new HashMap<String, IntervalTree<GenomeLoc>>();
 
@@ -390,7 +383,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
 
-                            for ( NewEvaluationContext nec : getEvaluationContexts(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), sampleName) ) {
+                            for ( EvaluationContext nec : getEvaluationContexts(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), sampleName) ) {
 
                                 // eval against the comp
                                 synchronized (nec) {
@@ -417,29 +410,32 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return null;
     }
 
-    final void createStratificationStates(final List<VariantStratifier> stratificationObjects, final Set<Class<? extends VariantEvaluator>> evaluationObjects) {
-        final List<VariantStratifier> strats = new ArrayList<VariantStratifier>(stratificationObjects);
-        stratManager = new StratificationManager<VariantStratifier, NewEvaluationContext>(strats);
-
-        logger.info("Creating " + stratManager.size() + " combinatorial stratification states");
-        for ( int i = 0; i < stratManager.size(); i++ ) {
-            NewEvaluationContext ec = new NewEvaluationContext();
-            
-//            // todo -- remove me, tmp conversion
-//            for ( Pair<VariantStratifier, Object> stratState : stratManager.getStratsAndStatesForKey(i) ) {
-//                ec.put(stratState.getFirst(), stratState.getSecond());
-//            }
-            
-            ec.addEvaluationClassList(this, evaluationObjects);
-            stratManager.set(i, ec);
-        }
-    }
-
     /**
      * Given specific eval and comp VCs and the sample name, return an iterable
      * over all of the applicable state keys.
      *
-     * See header of StateKey for performance problems...
+     * this code isn't structured yet for efficiency.  Here we currently are
+     * doing the following inefficient algorithm:
+     *
+     * for each strat:
+     *   get list of relevant states that eval and comp according to strat
+     *   add this list of states to a list of list states
+     *
+     * then
+     *
+     * ask the strat manager to look up all of the keys associated with the combinations
+     * of these states.  For example, suppose we have a single variant S.  We have active
+     * strats EvalRod, CompRod, and Novelty.  We produce a list that looks like:
+     *
+     *   L = [[Eval], [Comp], [All, Novel]]
+     *
+     * We then go through the strat manager tree to produce the keys associated with these states:
+     *
+     *   K = [0, 1] where EVAL x COMP x ALL = 0 and EVAL x COMP x NOVEL = 1
+     *
+     * It's clear that a better
+     *
+     * TODO -- create an inline version that doesn't create the intermediate list of list
      *
      * @param tracker
      * @param ref
@@ -450,7 +446,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * @param sampleName
      * @return
      */
-    private Collection<NewEvaluationContext> getEvaluationContexts(final RefMetaDataTracker tracker,
+    private Collection<EvaluationContext> getEvaluationContexts(final RefMetaDataTracker tracker,
                                                                    final ReferenceContext ref,
                                                                    final VariantContext eval,
                                                                    final String evalName,
@@ -458,10 +454,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                                                    final String compName,
                                                                    final String sampleName ) {
         final List<List<Object>> states = new LinkedList<List<Object>>();
-        for ( final VariantStratifier vs : stratificationObjects ) {
+        for ( final VariantStratifier vs : stratManager.getStratifiers() ) {
             states.add(vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName));
         }
-
         return stratManager.values(states);
     }
 
@@ -538,15 +533,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public void onTraversalDone(Integer result) {
         logger.info("Finalizing variant report");
 
-        // TODO -- VS should be sorted first with a TreeSet
         for ( int key = 0; key < stratManager.size(); key++ ) {
             final String stratStateString = stratManager.getStratsAndStatesForKeyString(key);
             final List<Pair<VariantStratifier, Object>> stratsAndStates = stratManager.getStratsAndStatesForKey(key);
-            final NewEvaluationContext nec = stratManager.get(key);
+            final EvaluationContext nec = stratManager.get(key);
             
-            for ( final VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
+            for ( final VariantEvaluator ve : nec.getVariantEvaluators() ) {
                 ve.finalizeEvaluation();
-                final String veName = ve.getSimpleName(); // ve.getClass().getSimpleName();
 
                 AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 Map<Field, DataPoint> datamap = scanner.getData();
@@ -558,12 +551,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                         if (field.get(ve) instanceof TableType) {
                             TableType t = (TableType) field.get(ve);
 
-                            final String subTableName = veName + "." + field.getName();
+                            final String subTableName = ve.getSimpleName() + "." + field.getName();
                             final DataPoint dataPointAnn = datamap.get(field);
 
-                            if (! report.hasTable(subTableName)) {
+                            if (! report.hasTable(subTableName))
                                 configureNewReportTable(t, subTableName, dataPointAnn);
-                            }
 
                             final GATKReportTable table = report.getTable(subTableName);
 
@@ -580,7 +572,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 }
                             }
                         } else {
-                            final GATKReportTable table = report.getTable(veName);
+                            final GATKReportTable table = report.getTable(ve.getSimpleName());
                             setTableColumnNames(table, stratStateString, stratsAndStates);
                             table.set(stratStateString, field.getName(), field.get(ve));
                         }
@@ -593,37 +585,56 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         report.print(out);
     }
-    
+
+    /**
+     * A common utility function to set up the GATKReportTable for an embedded TableType in 
+     * a VariantEvaluation
+     * 
+     * @param t
+     * @param subTableName
+     * @param dataPointAnn
+     */
+    @Requires({"t != null", "subTableName != null", "dataPointAnn != null", "!report.hasTable(subTableName)"})
+    @Ensures({"report.hasTable(subTableName)"})
     private final void configureNewReportTable(final TableType t, final String subTableName, final DataPoint dataPointAnn) {
         // basic table configuration.  Set up primary key, dummy column names
         report.addTable(subTableName, dataPointAnn.description());
-        GATKReportTable table = report.getTable(subTableName);
+        final GATKReportTable table = report.getTable(subTableName);
 
         table.addPrimaryKey("entry", false);
         table.addColumn(subTableName, subTableName);
 
-        for ( VariantStratifier vs : stratificationObjects ) {
+        for ( final VariantStratifier vs : stratManager.getStratifiers() ) {
             table.addColumn(vs.getName(), "unknown");
         }
 
         table.addColumn(t.getRowName(), "unknown");
 
         for ( final Object o : t.getColumnKeys() ) {
-            final String c = o.toString();
-            table.addColumn(c, 0.0);
+            table.addColumn(o.toString(), 0.0);
         }
     }
-    
+
+    /**
+     * Common utility to configure a GATKReportTable columns
+     *
+     * Sets the column names to the strat names in stratsAndStates for the primary key in table
+     *
+     * @param table
+     * @param primaryKey
+     * @param stratsAndStates
+     */
     private final void setTableColumnNames(final GATKReportTable table, 
                                            final String primaryKey,
                                            final List<Pair<VariantStratifier, Object>> stratsAndStates) {
-        for ( Pair<VariantStratifier, Object> stratAndState : stratsAndStates ) {
+        for ( final Pair<VariantStratifier, Object> stratAndState : stratsAndStates ) {
             final VariantStratifier vs = stratAndState.getFirst();
             final String columnName = vs.getName();
             final Object strat = stratAndState.getSecond();
+            if ( columnName == null || strat == null )
+                throw new ReviewedStingException("Unexpected null variant stratifier state at " + table + " key = " + primaryKey);
             table.set(primaryKey, columnName, strat);
         }
-
     }
 
     // Accessors
@@ -634,8 +645,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public double getMinPhaseQuality() { return MIN_PHASE_QUALITY; }
 
     public double getMendelianViolationQualThreshold() { return MENDELIAN_VIOLATION_QUAL_THRESHOLD; }
-
-    public List<VariantStratifier> getStratificationObjects() { return stratificationObjects; }
 
     public static String getAllSampleName() { return ALL_SAMPLE_NAME; }
 

@@ -82,12 +82,11 @@ public class VariantEvalUtils {
     /**
      * Initialize required, standard and user-specified stratification objects
      *
-     * @param variantEvalWalker the parent walker
      * @param noStandardStrats  don't use the standard stratifications
      * @param modulesToUse      the list of stratification modules to use
      * @return set of stratifications to use
      */
-    public List<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
+    public List<VariantStratifier> initializeStratificationObjects(boolean noStandardStrats, String[] modulesToUse) {
         TreeSet<VariantStratifier> strats = new TreeSet<VariantStratifier>();
         Set<String> stratsToUse = new HashSet<String>();
 
@@ -189,26 +188,25 @@ public class VariantEvalUtils {
      * @return an initialized report object
      */
     public GATKReport initializeGATKReport(Collection<VariantStratifier> stratificationObjects, Set<Class<? extends VariantEvaluator>> evaluationObjects) {
-        GATKReport report = new GATKReport();
+        final GATKReport report = new GATKReport();
 
         for (Class<? extends VariantEvaluator> ve : evaluationObjects) {
-            String tableName = ve.getSimpleName();
-            String tableDesc = ve.getAnnotation(Analysis.class).description();
+            final String tableName = ve.getSimpleName();
+            final String tableDesc = ve.getAnnotation(Analysis.class).description();
 
             report.addTable(tableName, tableDesc);
 
-            GATKReportTable table = report.getTable(tableName);
+            final GATKReportTable table = report.getTable(tableName);
             table.addPrimaryKey("entry", false);
             table.addColumn(tableName, tableName);
 
-            for (VariantStratifier vs : stratificationObjects) {
-                String columnName = vs.getName();
-
+            for (final VariantStratifier vs : stratificationObjects) {
+                final String columnName = vs.getName();
                 table.addColumn(columnName, "unknown");
             }
 
             try {
-                VariantEvaluator vei = ve.newInstance();
+                final VariantEvaluator vei = ve.newInstance();
                 vei.initialize(variantEvalWalker);
 
                 AnalysisModuleScanner scanner = new AnalysisModuleScanner(vei);
@@ -218,7 +216,7 @@ public class VariantEvalUtils {
                     field.setAccessible(true);
 
                     if (!(field.get(vei) instanceof TableType)) {
-                        String format = datamap.get(field).format();
+                        final String format = datamap.get(field).format();
                         table.addColumn(field.getName(), true, format);
                     }
                 }

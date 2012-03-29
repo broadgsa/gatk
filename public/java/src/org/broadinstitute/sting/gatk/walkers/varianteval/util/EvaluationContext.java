@@ -12,18 +12,18 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
-public class NewEvaluationContext { // extends HashMap<VariantStratifier, Object> {
-    private Map<String, VariantEvaluator> evaluationInstances;
+public final class EvaluationContext {
+    // NOTE: must be hashset to avoid O(log n) cost of iteration in the very frequently called apply function
+    private final HashSet<VariantEvaluator> evaluationInstances;
 
-    public void addEvaluationClassList(VariantEvalWalker walker, Set<Class<? extends VariantEvaluator>> evaluationClasses) {
-        evaluationInstances = new LinkedHashMap<String, VariantEvaluator>(evaluationClasses.size());
+    public EvaluationContext(final VariantEvalWalker walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses) {
+        evaluationInstances = new HashSet<VariantEvaluator>(evaluationClasses.size());
 
         for ( final Class<? extends VariantEvaluator> c : evaluationClasses ) {
             try {
                 final VariantEvaluator eval = c.newInstance();
                 eval.initialize(walker);
-
-                evaluationInstances.put(c.getSimpleName(), eval);
+                evaluationInstances.add(eval);
             } catch (InstantiationException e) {
                 throw new StingException("Unable to instantiate eval module '" + c.getSimpleName() + "'");
             } catch (IllegalAccessException e) {
@@ -32,12 +32,17 @@ public class NewEvaluationContext { // extends HashMap<VariantStratifier, Object
         }
     }
 
-    public TreeMap<String, VariantEvaluator> getEvaluationClassList() {
-        return new TreeMap<String, VariantEvaluator>(evaluationInstances);
+    /**
+     * Returns a sorted set of VariantEvaluators
+     *
+     * @return
+     */
+    public final TreeSet<VariantEvaluator> getVariantEvaluators() {
+        return new TreeSet<VariantEvaluator>(evaluationInstances);
     }
 
-    public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
-        for ( final VariantEvaluator evaluation : evaluationInstances.values() ) {
+    public final void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
+        for ( final VariantEvaluator evaluation : evaluationInstances ) {
             // the other updateN methods don't see a null context
             if ( tracker == null )
                 continue;
@@ -48,13 +53,9 @@ public class NewEvaluationContext { // extends HashMap<VariantStratifier, Object
                     if (eval != null) {
                         evaluation.update1(eval, tracker, ref, context);
                     }
-
                     break;
                 case 2:
-                    //if (eval != null) {
-                        evaluation.update2(eval, comp, tracker, ref, context);
-                    //}
-
+                    evaluation.update2(eval, comp, tracker, ref, context);
                     break;
                 default:
                     throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
