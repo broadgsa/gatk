@@ -30,10 +30,7 @@ import org.apache.commons.jexl2.JexlEngine;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -1065,5 +1062,136 @@ public class VariantContextUtils {
         for ( final Genotype g : genotypes )
             names.add(g.getSampleName());
         return names;
+    }
+
+    /**
+     * Assign genotypes (GTs) to the samples in the Variant Context greedily based on the PLs
+     *
+     * @param vc            variant context with genotype likelihoods
+     * @return genotypes context
+     */
+    public static GenotypesContext assignGenotypes(final VariantContext vc) {
+        return subsetAlleles(vc, vc.getAlleles(), true);
+    }
+
+    private static final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+    public static final double SUM_GL_THRESH_NOCALL = -0.001; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
+
+    /**
+     * subset the Variant Context to the specific set of alleles passed in (pruning the PLs appropriately)
+     *
+     * @param vc                 variant context with genotype likelihoods
+     * @param allelesToUse       which alleles from the vc are okay to use; *** must be in the same relative order as those in the original VC ***
+     * @param assignGenotypes    true if we should update the genotypes based on the (subsetted) PLs
+     * @return genotypes
+     */
+    public static GenotypesContext subsetAlleles(final VariantContext vc,
+                                                 final List<Allele> allelesToUse,
+                                                 final boolean assignGenotypes) {
+
+        // the genotypes with PLs
+        final GenotypesContext oldGTs = vc.getGenotypes();
+
+        // samples
+        final List<String> sampleIndices = oldGTs.getSampleNamesOrderedByName();
+
+        // the new genotypes to create
+        final GenotypesContext newGTs = GenotypesContext.create();
+
+        // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
+        final int numOriginalAltAlleles = vc.getAlternateAlleles().size();
+        final int numNewAltAlleles = allelesToUse.size() - 1;
+
+        // which PLs should be carried forward?
+        ArrayList<Integer> likelihoodIndexesToUse = null;
+
+        // an optimization: if we are supposed to use all (or none in the case of a ref call) of the alleles,
+        // then we can keep the PLs as is; otherwise, we determine which ones to keep
+        if ( numNewAltAlleles != numOriginalAltAlleles && numNewAltAlleles > 0 ) {
+            likelihoodIndexesToUse = new ArrayList<Integer>(30);
+
+            final boolean[] altAlleleIndexToUse = new boolean[numOriginalAltAlleles];
+            for ( int i = 0; i < numOriginalAltAlleles; i++ ) {
+                if ( allelesToUse.contains(vc.getAlternateAllele(i)) )
+                    altAlleleIndexToUse[i] = true;
+            }
+
+            final int numLikelihoods = GenotypeLikelihoods.calculateNumLikelihoods(numOriginalAltAlleles);
+            for ( int PLindex = 0; PLindex < numLikelihoods; PLindex++ ) {
+                final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
+                // consider this entry only if both of the alleles are good
+                if ( (alleles.alleleIndex1 == 0 || altAlleleIndexToUse[alleles.alleleIndex1 - 1]) && (alleles.alleleIndex2 == 0 || altAlleleIndexToUse[alleles.alleleIndex2 - 1]) )
+                    likelihoodIndexesToUse.add(PLindex);
+            }
+        }
+
+        // create the new genotypes
+        for ( int k = 0; k < oldGTs.size(); k++ ) {
+            final Genotype g = oldGTs.get(sampleIndices.get(k));
+            if ( !g.hasLikelihoods() ) {
+                newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
+                continue;
+            }
+
+            // create the new likelihoods array from the alleles we are allowed to use
+            final double[] originalLikelihoods = g.getLikelihoods().getAsVector();
+            double[] newLikelihoods;
+            if ( likelihoodIndexesToUse == null ) {
+                newLikelihoods = originalLikelihoods;
+            } else {
+                newLikelihoods = new double[likelihoodIndexesToUse.size()];
+                int newIndex = 0;
+                for ( int oldIndex : likelihoodIndexesToUse )
+                    newLikelihoods[newIndex++] = originalLikelihoods[oldIndex];
+
+                // might need to re-normalize
+                newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
+            }
+
+            // if there is no mass on the (new) likelihoods, then just no-call the sample
+            if ( MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
+                newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
+            }
+            else {
+                Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+                if ( numNewAltAlleles == 0 )
+                    attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+                else
+                    attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(newLikelihoods));
+
+                // if we weren't asked to assign a genotype, then just no-call the sample
+                if ( !assignGenotypes || MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL )
+                    newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, attrs, false));
+                else
+                    newGTs.add(assignGenotype(g, newLikelihoods, allelesToUse, attrs));
+            }
+        }
+
+        return newGTs;
+    }
+
+    /**
+     * Assign genotypes (GTs) to the samples in the Variant Context greedily based on the PLs
+     *
+     * @param originalGT           the original genotype
+     * @param newLikelihoods       the PL array
+     * @param allelesToUse         the list of alleles to choose from (corresponding to the PLs)
+     * @param attrs                the annotations to use when creating the genotype
+     *
+     * @return genotype
+     */
+    private static Genotype assignGenotype(final Genotype originalGT, final double[] newLikelihoods, final List<Allele> allelesToUse, final Map<String, Object> attrs) {
+        final int numNewAltAlleles = allelesToUse.size() - 1;
+
+        // find the genotype with maximum likelihoods
+        int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
+        GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
+
+        ArrayList<Allele> myAlleles = new ArrayList<Allele>();
+        myAlleles.add(allelesToUse.get(alleles.alleleIndex1));
+        myAlleles.add(allelesToUse.get(alleles.alleleIndex2));
+
+        final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(PLindex, newLikelihoods);
+        return new Genotype(originalGT.getSampleName(), myAlleles, qual, null, attrs, false);
     }
 }

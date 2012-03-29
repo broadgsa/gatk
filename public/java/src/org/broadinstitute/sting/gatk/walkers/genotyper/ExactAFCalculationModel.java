@@ -56,7 +56,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
             alleles.add(vc.getReference());
             alleles.addAll(chooseMostLikelyAlternateAlleles(vc, MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
-            GLs = UnifiedGenotyperEngine.subsetAlleles(vc, alleles, false);
+            GLs = VariantContextUtils.subsetAlleles(vc, alleles, false);
         }
 
         linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result);
@@ -120,7 +120,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
-                if ( MathUtils.sum(gls) < UnifiedGenotyperEngine.SUM_GL_THRESH_NOCALL )
+                if ( MathUtils.sum(gls) < VariantContextUtils.SUM_GL_THRESH_NOCALL )
                     genotypeLikelihoods.add(gls);
             }
         }
