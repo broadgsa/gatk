@@ -2,13 +2,10 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,19 +18,6 @@ public class BQSRGathererUnitTest {
 
     private static File recal = new File("public/testdata/exampleGRP.grp");
 
-    @Test(enabled = true)
-    public void test(){
-        PrintStream out;
-        try {
-            File f = new File("foo2.grp");
-            out = new PrintStream(f);
-        } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("f");
-        }
-        GATKReport report = new GATKReport("foo.grp");
-        report.print(out);
-    }
-    
     //todo -- this test doesnt work because the primary keys in different tables are not the same. Need to either implement "sort" for testing purposes on GATKReport or have a sophisticated comparison measure
     @Test(enabled = false)
     public void testCombineSimilarFiles() {
