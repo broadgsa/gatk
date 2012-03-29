@@ -405,7 +405,7 @@ public class GATKReportTable {
     public void set(Object primaryKey, String columnName, Object value) {
         verifyEntry(primaryKey, columnName);
         GATKReportColumn column = columns.get(columnName);
-        // Check if value is of same type as column
+        //todo -- Check if value is of same type as column
 
         // We do not accept internal null values
         if (value == null)
@@ -422,17 +422,18 @@ public class GATKReportTable {
                 try {
                     newValue = Long.parseLong((String) value);
                 } catch (Exception e) {
+                    /** do nothing */
                 }
             }
             if (column.getDataType().equals(GATKReportDataType.Decimal)) {
                 try {
                     newValue = Double.parseDouble((String) value);
                 } catch (Exception e) {
+                    /** do nothing */
                 }
             }
             if (column.getDataType().equals(GATKReportDataType.Character) && ((String) value).length() == 1) {
                 newValue = ((String) value).charAt(0);
-
             }
         }
 
@@ -900,13 +901,10 @@ public class GATKReportTable {
     public boolean isSameFormat(GATKReportTable table) {
         //Should we add the sortByPrimaryKey as a check?
 
-        if (!columns.isSameFormat(table.columns)) {
-            return false;
-        }
-        return (primaryKeyDisplay == table.primaryKeyDisplay &&
-                primaryKeyName.equals(table.primaryKeyName) &&
-                tableName.equals(table.tableName) &&
-                tableDescription.equals(table.tableDescription));
+        return columns.isSameFormat(table.columns) &&
+               (primaryKeyDisplay == table.primaryKeyDisplay && primaryKeyName.equals(table.primaryKeyName) &&
+               tableName.equals(table.tableName) &&
+               tableDescription.equals(table.tableDescription));
     }
 
     /**
@@ -916,12 +914,10 @@ public class GATKReportTable {
      * @return true if all field in the reports, tables, and columns are equal.
      */
     public boolean equals(GATKReportTable table) {
-        if (!isSameFormat(table)) {
-            return false;
-        }
-        return (columns.equals(table.columns) &&
-                primaryKeyColumn.equals(table.primaryKeyColumn) &&
-                sortByPrimaryKey == table.sortByPrimaryKey);
+        return isSameFormat(table) &&
+               (columns.equals(table.columns) &&
+               primaryKeyColumn.equals(table.primaryKeyColumn) &&
+               sortByPrimaryKey == table.sortByPrimaryKey);
 
     }
 }

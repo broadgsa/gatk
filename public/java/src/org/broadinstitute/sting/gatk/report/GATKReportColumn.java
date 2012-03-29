@@ -26,7 +26,9 @@ package org.broadinstitute.sting.gatk.report;
 
 import org.apache.commons.lang.math.NumberUtils;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 
 /**
  * Holds values for a column in a GATK report table
@@ -37,6 +39,10 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     final private String format;
     final private boolean display;
     final private GATKReportDataType dataType;
+
+    private GATKReportColumnFormat columnFormat;
+    private GATKReportColumnFormat.Alignment alignment = GATKReportColumnFormat.Alignment.RIGHT;                        // default alignment is to the right unless values added ask for a left alignment
+    private int maxWidth = 0;
 
     /**
      * Construct the column object, specifying the column name, default value, whether or not the column should be
@@ -49,6 +55,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
      */
     public GATKReportColumn(String columnName, Object defaultValue, boolean display, String format) {
         this.columnName = columnName;
+        this.maxWidth = columnName.length();
         this.display = display;
         if ( format.equals("") ) {
             this.format = "%s";
@@ -85,7 +92,8 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
 
     /**
      * Return an object from the column, but if it doesn't exist, return the default value.  This is useful when writing
-     * tables, as the table gets written properly without having to waste storage for the unset elements (usually the zero
+     * tables, as the table gets written properly without having to waste storage for the unset elements (usually the
+     * zero
      * values) in the table.
      *
      * @param primaryKey the primary key position in the column that should be retrieved
@@ -120,32 +128,17 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     }
 
     /**
-     * Get the display width for this column.  This allows the entire column to be displayed with the appropriate, fixed width.
+     * Get the display width for this column.  This allows the entire column to be displayed with the appropriate, fixed
+     * width.
      *
      * @return the format string for this column
      */
     public GATKReportColumnFormat getColumnFormat() {
-        int maxWidth = columnName.length();
-        GATKReportColumnFormat.Alignment alignment = GATKReportColumnFormat.Alignment.RIGHT;
+        if (columnFormat != null)
+            return columnFormat;
 
-        for (Object obj : this.values()) {
-            if (obj != null) {
-                String formatted = formatValue(obj);
-
-                int width = formatted.length();
-                if (width > maxWidth) {
-                    maxWidth = width;
-                }
-
-                if (alignment == GATKReportColumnFormat.Alignment.RIGHT) {
-                    if (!isRightAlign(formatted)) {
-                        alignment = GATKReportColumnFormat.Alignment.LEFT;
-                    }
-                }
-            }
-        }
-
-        return new GATKReportColumnFormat(maxWidth, alignment);
+        columnFormat = new GATKReportColumnFormat(maxWidth, alignment);
+        return columnFormat;
     }
 
     private static final Collection<String> RIGHT_ALIGN_STRINGS = Arrays.asList(
@@ -176,10 +169,11 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
         String value;
         if (obj == null) {
             value = "null";
-        } else if ( dataType.equals(GATKReportDataType.Unknown) &&
-                (obj instanceof Double || obj instanceof Float) ) {
+        }
+        else if ( dataType.equals(GATKReportDataType.Unknown) && (obj instanceof Double || obj instanceof Float) ) {
             value = String.format("%.8f", obj);
-        } else
+        }
+        else
             value = String.format(format, obj);
 
         return value;
@@ -225,5 +219,24 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
         }
         else
             return format;
+    }
+
+    @Override
+    public Object put(Object key, Object value) {
+        if (value != null) {
+            String formatted = formatValue(value);
+            updateMaxWidth(formatted);
+            updateFormat(formatted);
+        }
+        return super.put(key, value);        
+    }
+
+    private void updateMaxWidth(String formatted) {
+        maxWidth = Math.max(formatted.length(), maxWidth);
+    }
+
+    private void updateFormat(String formatted) {
+        if (!isRightAlign(formatted))
+            alignment = GATKReportColumnFormat.Alignment.LEFT;
     }
 }
