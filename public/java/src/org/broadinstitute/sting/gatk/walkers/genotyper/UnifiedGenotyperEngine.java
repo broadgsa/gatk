@@ -61,6 +61,7 @@ public class UnifiedGenotyperEngine {
          * mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by
          * no means produce a comprehensive set of indels in DISCOVERY mode */
         EMIT_ALL_SITES
+    }
 
     // the unified argument collection
     private final UnifiedArgumentCollection UAC;
