@@ -213,8 +213,10 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     public Object put(Object key, Object value) {
         if (value != null) {
             String formatted = formatValue(value);
-            updateMaxWidth(formatted);
-            updateFormat(formatted);
+            if (!formatted.equals("")) {
+                updateMaxWidth(formatted);
+                updateFormat(formatted);
+            }
         }
         return super.put(key, value);        
     }
@@ -224,7 +226,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     }
 
     private void updateFormat(String formatted) {
-        if (!isRightAlign(formatted))
-            alignment = GATKReportColumnFormat.Alignment.LEFT;
+        if (alignment == GATKReportColumnFormat.Alignment.RIGHT)
+            alignment = isRightAlign(formatted) ? GATKReportColumnFormat.Alignment.RIGHT : GATKReportColumnFormat.Alignment.LEFT;
     }
 }
