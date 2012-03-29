@@ -24,7 +24,7 @@ public class RecalibrationReport {
     GATKReportTable argumentTable;                                                                                      // keep the argument table untouched just for output purposes
     RecalibrationArgumentCollection RAC;                                                                                // necessary for quantizing qualities with the same parameter | todo -- this should be a new parameter, not necessarily coming from the original table parameter list
     
-    private static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
+    private static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check.";
 
     public RecalibrationReport(final File RECAL_FILE) {
         GATKReport report = new GATKReport(RECAL_FILE);
@@ -77,10 +77,11 @@ public class RecalibrationReport {
     /**
      * Combines two recalibration reports by adding all observations and errors
      * 
-     * Note: This method DOES NOT recalculate the empirical qualities and quantized qualities. You have to recalculate them
-     * after combining. The reason for not calculating it is because this function is inteded for combining a series of 
-     * recalibration reports, and it only makes sense to calculate the empirical qualities and quantized qualities after all 
-     * the recalibration reports have been combined. Having the user recalculate when appropriate, makes this method faster
+     * Note: This method DOES NOT recalculate the empirical qualities and quantized qualities. You have to recalculate
+     * them after combining. The reason for not calculating it is because this function is inteded for combining a
+     * series of recalibration reports, and it only makes sense to calculate the empirical qualities and quantized
+     * qualities after all the recalibration reports have been combined. Having the user recalculate when appropriate,
+     * makes this method faster
      *
      * Note2: The empirical quality reported, however, is recalculated given its simplicity.
      * 
@@ -97,7 +98,7 @@ public class RecalibrationReport {
                 if (thisDatum == null)
                     thisDatum = otherDatum;                                                                             // sometimes the datum in other won't be present in 'this'. So just assign it!
                 else
-                    thisDatum.increment(otherDatum);                                                                    // add the two datum objects into 'this'
+                    thisDatum.combine(otherDatum);                                                                      // add the two datum objects into 'this'
                 thisDatum.resetCalculatedQualities();                                                                   // reset the empirical quality to make sure the user doesn't forget to recalculate it
             }            
         }
