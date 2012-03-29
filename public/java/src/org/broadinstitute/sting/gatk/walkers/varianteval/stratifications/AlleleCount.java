@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -32,15 +33,13 @@ public class AlleleCount extends VariantStratifier {
 
         // create an array containing each of the allele counts
         for( int ac = 0; ac <= nchrom; ac++ ) {
-            states.add(String.format("%d", ac));
+            states.add(ac);
         }
 
         getVariantEvalWalker().getLogger().info("AlleleCount using " + nchrom + " chromosomes");
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>(1);
-
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (eval != null) {
             int AC = -1;
             if ( eval.hasAttribute("AC") && eval.getAttribute("AC") instanceof Integer ) {
@@ -51,9 +50,9 @@ public class AlleleCount extends VariantStratifier {
             } else
                 // by default, the site is considered monomorphic
                 AC = 0;
-            relevantStates.add(String.format("%d", AC));
+            return Collections.singletonList((Object)AC);
+        } else {
+            return Collections.emptyList();
         }
-
-        return relevantStates;
     }
 }

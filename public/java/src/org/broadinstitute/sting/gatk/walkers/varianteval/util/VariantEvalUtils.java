@@ -87,8 +87,8 @@ public class VariantEvalUtils {
      * @param modulesToUse      the list of stratification modules to use
      * @return set of stratifications to use
      */
-    public TreeSet<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
-        TreeSet<VariantStratifier> strats = new TreeSet<VariantStratifier>();
+    public List<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
+        List<VariantStratifier> strats = new ArrayList<VariantStratifier>();
         Set<String> stratsToUse = new HashSet<String>();
 
         // Create a map for all stratification modules for easy lookup.
@@ -182,54 +182,13 @@ public class VariantEvalUtils {
     }
 
     /**
-     * Recursively initialize the evaluation contexts
-     *
-     * @param stratificationObjects the stratifications to use
-     * @param evaluationObjects     the evaluations to use
-     * @param stratStack            a stack of stratifications to apply
-     * @param ec                    evaluation context
-     * @return a map of all the evaluation contexts
-     */
-    public HashMap<StateKey, NewEvaluationContext> initializeEvaluationContexts(Set<VariantStratifier> stratificationObjects, Set<Class<? extends VariantEvaluator>> evaluationObjects, Stack<VariantStratifier> stratStack, NewEvaluationContext ec) {
-        HashMap<StateKey, NewEvaluationContext> ecs = new LinkedHashMap<StateKey, NewEvaluationContext>();
-
-        if (stratStack == null) {
-            stratStack = new Stack<VariantStratifier>();
-            stratStack.addAll(stratificationObjects);
-        }
-
-        if (!stratStack.isEmpty()) {
-            Stack<VariantStratifier> newStratStack = new Stack<VariantStratifier>();
-            newStratStack.addAll(stratStack);
-
-            VariantStratifier vs = newStratStack.pop();
-
-            for (String state : vs.getAllStates()) {
-                NewEvaluationContext nec = new NewEvaluationContext();
-                if (ec != null) {
-                    nec.putAll(ec);
-                }
-                nec.put(vs, state);
-
-                ecs.putAll(initializeEvaluationContexts(stratificationObjects, evaluationObjects, newStratStack, nec));
-            }
-        } else {
-            final StateKey stateKey = ec.makeStateKey();
-            ec.addEvaluationClassList(variantEvalWalker, stateKey, evaluationObjects);
-            return new HashMap<StateKey, NewEvaluationContext>(Collections.singletonMap(stateKey, ec));
-        }
-
-        return ecs;
-    }
-
-    /**
      * Initialize the output report
      *
      * @param stratificationObjects the stratifications to use
      * @param evaluationObjects     the evaluations to use
      * @return an initialized report object
      */
-    public GATKReport initializeGATKReport(Set<VariantStratifier> stratificationObjects, Set<Class<? extends VariantEvaluator>> evaluationObjects) {
+    public GATKReport initializeGATKReport(Collection<VariantStratifier> stratificationObjects, Set<Class<? extends VariantEvaluator>> evaluationObjects) {
         GATKReport report = new GATKReport();
 
         for (Class<? extends VariantEvaluator> ve : evaluationObjects) {
@@ -386,45 +345,5 @@ public class VariantEvalUtils {
         if (!mappings.containsKey(sample))
             mappings.put(sample, new ArrayList<VariantContext>(1));
         mappings.get(sample).add(vc);
-    }
-
-    /**
-     * Recursively initialize the state keys used to look up the right evaluation context based on the state of the
-     * variant context
-     *
-     * @param stateMap   the map of allowable states
-     * @param stateStack a stack of the states
-     * @param stateKey   a state key object
-     * @param stateKeys  all the state keys
-     * @return a list of state keys
-     */
-    public ArrayList<StateKey> initializeStateKeys(HashMap<VariantStratifier, List<String>> stateMap, Stack<HashMap<VariantStratifier, List<String>>> stateStack, StateKey stateKey, ArrayList<StateKey> stateKeys) {
-        if (stateStack == null) {
-            stateStack = new Stack<HashMap<VariantStratifier, List<String>>>();
-
-            for (VariantStratifier vs : stateMap.keySet()) {
-                HashMap<VariantStratifier, List<String>> oneSetOfStates = new HashMap<VariantStratifier, List<String>>();
-                oneSetOfStates.put(vs, stateMap.get(vs));
-
-                stateStack.add(oneSetOfStates);
-            }
-        }
-
-        if (!stateStack.isEmpty()) {
-            Stack<HashMap<VariantStratifier, List<String>>> newStateStack = new Stack<HashMap<VariantStratifier, List<String>>>();
-            newStateStack.addAll(stateStack);
-
-            HashMap<VariantStratifier, List<String>> oneSetOfStates = newStateStack.pop();
-            VariantStratifier vs = oneSetOfStates.keySet().iterator().next();
-
-            for (final String state : oneSetOfStates.get(vs)) {
-                final StateKey newStateKey = new StateKey(stateKey, vs.getName(), state);
-                initializeStateKeys(stateMap, newStateStack, newStateKey, stateKeys);
-            }
-        } else {
-            stateKeys.add(stateKey);
-        }
-
-        return stateKeys;
     }
 }

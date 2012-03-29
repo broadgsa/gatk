@@ -47,18 +47,18 @@ import java.util.TreeMap;
 public final class StateKey {
     /** High-performance cache of the toString operation for a constant class */
     private final String string;
-    private final TreeMap<String, String> states;
+    private final TreeMap<String, Object> states;
 
-    public StateKey(final Map<String, String> states) {
-        this.states = new TreeMap<String, String>(states);
+    public StateKey(final Map<String, Object> states) {
+        this.states = new TreeMap<String, Object>(states);
         this.string = formatString();
     }
 
-    public StateKey(final StateKey toOverride, final String keyOverride, final String valueOverride) {
+    public StateKey(final StateKey toOverride, final String keyOverride, final Object valueOverride) {
         if ( toOverride == null ) {
-            this.states = new TreeMap<String, String>();
+            this.states = new TreeMap<String, Object>();
         } else {
-            this.states = new TreeMap<String, String>(toOverride.states);
+            this.states = new TreeMap<String, Object>(toOverride.states);
         }
 
         this.states.put(keyOverride, valueOverride);
@@ -90,7 +90,7 @@ public final class StateKey {
     private final String formatString() {
         StringBuilder b = new StringBuilder();
         
-        for ( Map.Entry<String, String> entry : states.entrySet() ) {
+        for ( Map.Entry<String, Object> entry : states.entrySet() ) {
             b.append(String.format("%s:%s;", entry.getKey(), entry.getValue()));
         }
 
@@ -98,7 +98,7 @@ public final class StateKey {
     }
 
     // TODO -- might be slow because of tree map
-    public String get(final String key) {
+    public Object get(final String key) {
         return states.get(key);
     }
 }

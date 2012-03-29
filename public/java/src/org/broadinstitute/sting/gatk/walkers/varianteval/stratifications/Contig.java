@@ -5,6 +5,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -17,14 +19,12 @@ public class Contig extends VariantStratifier {
         states.add("all");
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
-
+    @Override
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (eval != null) {
-            relevantStates.add("all");
-            relevantStates.add(eval.getChr());
+            return Arrays.asList((Object)"all", eval.getChr());
+        } else {
+            return Collections.emptyList();
         }
-
-        return relevantStates;
     }
 }

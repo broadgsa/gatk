@@ -12,7 +12,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
-public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
+public class NewEvaluationContext extends HashMap<VariantStratifier, Object> {
     private Map<String, VariantEvaluator> evaluationInstances;
 
     public void addEvaluationClassList(VariantEvalWalker walker, StateKey stateKey, Set<Class<? extends VariantEvaluator>> evaluationClasses) {
@@ -37,9 +37,9 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
     }
 
     public StateKey makeStateKey() {
-        Map<String, String> map = new HashMap<String, String>(size());
+        Map<String, Object> map = new HashMap<String, Object>(size());
 
-        for (Map.Entry<VariantStratifier, String> elt : this.entrySet() ) {
+        for (Map.Entry<VariantStratifier, Object> elt : this.entrySet() ) {
             map.put(elt.getKey().getName(), elt.getValue());
         }
 

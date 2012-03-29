@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -17,23 +18,20 @@ import java.util.List;
 public class AlleleFrequency extends VariantStratifier {
     @Override
     public void initialize() {
-        states = new ArrayList<String>();
         for( double a = 0.000; a <= 1.005; a += 0.005 ) {
             states.add(String.format("%.3f", a));
         }
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
-
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (eval != null) {
             try {
-                relevantStates.add(String.format("%.3f", (5.0 * MathUtils.round(eval.getAttributeAsDouble("AF", 0.0) / 5.0, 3))));
+                return Collections.singletonList((Object)String.format("%.3f", (5.0 * MathUtils.round(eval.getAttributeAsDouble("AF", 0.0) / 5.0, 3))));
             } catch (Exception e) {
-                return relevantStates;
+                return Collections.emptyList();
             }
         }
 
-        return relevantStates;
+        return Collections.emptyList();
     }
 }

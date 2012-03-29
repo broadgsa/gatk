@@ -17,7 +17,6 @@ public class Degeneracy extends VariantStratifier {
 
     @Override
     public void initialize() {
-        states = new ArrayList<String>();
         states.add("1-fold");
         states.add("2-fold");
         states.add("3-fold");
@@ -79,8 +78,8 @@ public class Degeneracy extends VariantStratifier {
         }
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        ArrayList<Object> relevantStates = new ArrayList<Object>();
 
         relevantStates.add("all");
 

@@ -14,24 +14,26 @@ public class Novelty extends VariantStratifier implements StandardStratification
     // needs the variant contexts and known names
     private List<RodBinding<VariantContext>> knowns;
 
+    private final static List<Object> KNOWN_STATES = Arrays.asList((Object)"all", (Object)"known");
+    private final static List<Object> NOVEL_STATES = Arrays.asList((Object)"all", (Object)"novel");
 
     @Override
     public void initialize() {
-        states = new ArrayList<String>(Arrays.asList("all", "known", "novel"));
+        states.addAll(Arrays.asList("all", "known", "novel"));
         knowns = getVariantEvalWalker().getKnowns();
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (tracker != null && eval != null) {
             final Collection<VariantContext> knownComps = tracker.getValues(knowns, ref.getLocus());
             for ( final VariantContext c : knownComps ) {
                 // loop over sites, looking for something that matches the type eval
                 if ( eval.getType() == c.getType() ) {
-                    return Arrays.asList("all", "known");
+                    return KNOWN_STATES;
                 }
             }
-        }
-
-        return Arrays.asList("all", "novel");
+        } 
+        
+        return NOVEL_STATES;
     }
 }

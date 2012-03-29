@@ -39,7 +39,12 @@ import java.util.*;
 public class StratificationManager<K extends SetOfStates, V> implements Map<List<Object>, V> {
     private final StratNode<K> root;
     private final int size;
-    private final ArrayList<V> values;
+
+    private final ArrayList<K> stratifiers;
+
+    // values associated with each key
+    private final ArrayList<V> valuesByKey;
+    private final ArrayList<List<Object>> stratifierValuesByKey;
 
     // -------------------------------------------------------------------------------------
     //
@@ -49,15 +54,21 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
 
     @Requires("!strats.isEmpty()")
     public StratificationManager(final List<K> strats) {
+        stratifiers = new ArrayList<K>(strats);
         this.root = buildStratificationTree(new LinkedList<K>(strats));
         assignKeys(root);
+
         this.size = root.size();
         if ( this.size == 0 )
             throw new ReviewedStingException("Size == 0 in StratificationManager");
 
-        this.values = new ArrayList<V>(size());
-        for ( int i = 0; i < size(); i++ )
-            this.values().add(null);
+        this.valuesByKey = new ArrayList<V>(size());
+        this.stratifierValuesByKey = new ArrayList<List<Object>>(size());
+        for ( int i = 0; i < size(); i++ ) {
+            this.valuesByKey.add(null);
+            this.stratifierValuesByKey.add(null);
+        }
+        assignStratifierValuesByKey(root);
     }
 
     private StratNode<K> buildStratificationTree(final Queue<K> strats) {
@@ -91,6 +102,28 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
         }
     }
 
+    public void assignStratifierValuesByKey(final StratNode<K> root) {
+        assignStratifierValuesByKey(root, new LinkedList<Object>());
+        
+        for ( List<Object> stateValues : stratifierValuesByKey )
+            if ( stateValues == null )
+                throw new ReviewedStingException("Found a null state value set that's null");
+    }
+
+    public void assignStratifierValuesByKey(final StratNode<K> node, final LinkedList<Object> states) {
+        if ( node.isLeaf() ) { // we're here!
+            if ( states.isEmpty() )
+                throw new ReviewedStingException("Found a leaf node with an empty state values vector");
+            stratifierValuesByKey.set(node.getKey(), new ArrayList<Object>(states));
+        } else {
+            for ( Map.Entry<Object, StratNode<K>> entry : node.getSubnodes().entrySet() ) {
+                final LinkedList<Object> newStates = new LinkedList<Object>(states);
+                newStates.addLast(entry.getKey());
+                assignStratifierValuesByKey(entry.getValue(), newStates);
+            }
+        }
+    }
+    
     // -------------------------------------------------------------------------------------
     //
     // simple accessors
@@ -127,27 +160,45 @@ public class StratificationManager<K extends SetOfStates, V> implements Map<List
         return keys;
     }
 
+    public Map<K, Object> getStateForKey(final int key) {
+        final Map<K, Object> states = new HashMap<K, Object>(stratifiers.size());
+        for ( int i = 0; i < stratifiers.size(); i++ ) {
+            final K strat = stratifiers.get(i);
+            final Object stratValue = stratifierValuesByKey.get(key).get(i);
+            states.put(strat, stratValue);
+        }
+        return states;
+    }
+
     // -------------------------------------------------------------------------------------
     //
-    // values
+    // valuesByKey
     //
     // -------------------------------------------------------------------------------------
 
     @Override
     @Ensures("result != null")
     public ArrayList<V> values() {
-        return values;
+        return valuesByKey;
+    }
+    
+    public Collection<V> values(List<List<Object>> states) {
+        // TODO -- SHOULD BE INLINE TO AVOID CREATING LIST OF KEYS JUST TO ITERATE OVER IT
+        Collection<V> vals = new LinkedList<V>();
+        for ( int key : getKeys(states) ) 
+            vals.add(get(key));
+        return vals;
     }
 
     @Requires("key >= 0 && key <= size()")
     @Ensures("get(key) == value")
     public void set(final int key, final V value) {
-        values.set(key, value);
+        valuesByKey.set(key, value);
     }
 
     @Requires("key >= 0 && key <= size()")
     public V get(final int key) {
-        return values.get(key);
+        return valuesByKey.get(key);
     }
 
     @Requires("getKey(states) != -1")
