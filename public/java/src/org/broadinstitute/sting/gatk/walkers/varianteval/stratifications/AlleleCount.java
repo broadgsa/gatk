@@ -41,15 +41,15 @@ public class AlleleCount extends VariantStratifier {
 
     public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (eval != null) {
-            int AC = -1;
+            int AC = 0; // by default, the site is considered monomorphic
+
             if ( eval.hasAttribute("AC") && eval.getAttribute("AC") instanceof Integer ) {
                 AC = eval.getAttributeAsInt("AC", 0);
             } else if ( eval.isVariant() ) {
                 for (Allele allele : eval.getAlternateAlleles())
                     AC = Math.max(AC, eval.getCalledChrCount(allele));
-            } else
-                // by default, the site is considered monomorphic
-                AC = 0;
+            }
+
             return Collections.singletonList((Object) AC);
         } else {
             return Collections.emptyList();
@@ -59,5 +59,10 @@ public class AlleleCount extends VariantStratifier {
     @Override
     public Set<Class<? extends VariantEvaluator>> getIncompatibleEvaluators() {
         return new HashSet<Class<? extends VariantEvaluator>>(Arrays.asList(VariantSummary.class));
+    }
+
+    @Override
+    public String getFormat() {
+        return "%d";
     }
 }

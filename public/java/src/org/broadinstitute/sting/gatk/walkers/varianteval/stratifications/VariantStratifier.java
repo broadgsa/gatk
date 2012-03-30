@@ -64,7 +64,9 @@ public abstract class VariantStratifier implements Comparable<VariantStratifier>
     public final String getName() {
         return name;
     }
-
+    
+    public String getFormat() { return "%s"; }
+    
     public final ArrayList<Object> getAllStates() {
         return states;
     }

@@ -743,4 +743,37 @@ public class Utils {
             return nStates;
         }
     }
+
+    /**
+     * Convenience function that formats the novelty rate as a %.2f string
+     *
+     * @param known number of variants from all that are known
+     * @param all number of all variants
+     * @return a String novelty rate, or NA if all == 0
+     */
+    public static String formattedNoveltyRate(final int known, final int all) {
+        return formattedPercent(all - known, all);
+    }
+
+    /**
+     * Convenience function that formats the novelty rate as a %.2f string
+     *
+     * @param x number of objects part of total that meet some criteria
+     * @param total count of all objects, including x
+     * @return a String percent rate, or NA if total == 0
+     */
+    public static String formattedPercent(final long x, final long total) {
+        return total == 0 ? "NA" : String.format("%.2f", (100.0*x) / total);
+    }
+
+    /**
+     * Convenience function that formats a ratio as a %.2f string
+     *
+     * @param num  number of observations in the numerator
+     * @param denom number of observations in the denumerator
+     * @return a String formatted ratio, or NA if all == 0
+     */
+    public static String formattedRatio(final long num, final long denom) {
+        return denom == 0 ? "NA" : String.format("%.2f", num / (1.0 * denom));
+    }
 }

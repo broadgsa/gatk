@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -169,8 +170,6 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         }
     }
 
-    @Override public boolean enabled() { return true; }
-
     public int getComparisonOrder() {
         return 2;   // we only need to see each eval track
     }
@@ -207,8 +206,8 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         return false;
     }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( eval == null || eval.isMonomorphicInSamples() ) return null;
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( eval == null || eval.isMonomorphicInSamples() ) return;
 
         final Type type = getType(eval);
 
@@ -243,14 +242,12 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                     depthPerSample.inc(type, g.getSampleName());
             }
         }
-
-        return null; // we don't capture any interesting sites
     }
 
     private String noveltyRate(Type type) {
         final int all = allVariantCounts.all(type);
         final int known = knownVariantCounts.all(type);
-        return formattedNoveltyRate(known, all);
+        return Utils.formattedNoveltyRate(known, all);
     }
 
     public void finalizeEvaluation() {

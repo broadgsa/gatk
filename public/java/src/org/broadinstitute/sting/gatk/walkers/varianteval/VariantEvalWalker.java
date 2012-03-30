@@ -205,9 +205,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     private boolean byFilterIsEnabled = false;
     private boolean perSampleIsEnabled = false;
 
-    // Output report
-    private GATKReport report = null;
-
     // Public constants
     private static String ALL_SAMPLE_NAME = "all";
 
@@ -292,9 +289,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         // Initialize the evaluation contexts
         createStratificationStates(stratificationObjects, evaluationClasses);
-
-        // Initialize report table
-        report = variantEvalUtils.initializeGATKReport(stratificationObjects, evaluationClasses);
 
         // Load ancestral alignments
         if (ancestralAlignmentsFile != null) {
@@ -547,109 +541,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     public void onTraversalDone(Integer result) {
         logger.info("Finalizing variant report");
-
-        for ( int key = 0; key < stratManager.size(); key++ ) {
-            final String stratStateString = stratManager.getStratsAndStatesForKeyString(key);
-            final List<Pair<VariantStratifier, Object>> stratsAndStates = stratManager.getStratsAndStatesForKey(key);
-            final EvaluationContext nec = stratManager.get(key);
-            
-            for ( final VariantEvaluator ve : nec.getVariantEvaluators() ) {
-                ve.finalizeEvaluation();
-
-                AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
-                Map<Field, DataPoint> datamap = scanner.getData();
-
-                for ( final Field field : datamap.keySet()) {
-                    try {
-                        field.setAccessible(true);
-
-                        if (field.get(ve) instanceof TableType) {
-                            TableType t = (TableType) field.get(ve);
-
-                            final String subTableName = ve.getSimpleName() + "." + field.getName();
-                            final DataPoint dataPointAnn = datamap.get(field);
-
-                            if (! report.hasTable(subTableName))
-                                configureNewReportTable(t, subTableName, dataPointAnn);
-
-                            final GATKReportTable table = report.getTable(subTableName);
-
-                            for (int row = 0; row < t.getRowKeys().length; row++) {
-                                final String r = t.getRowKeys()[row].toString();
-                                final String newStratStateString = stratStateString + r;
-
-                                setTableColumnNames(table, newStratStateString, stratsAndStates);
-
-                                for (int col = 0; col < t.getColumnKeys().length; col++) {
-                                    final String c = t.getColumnKeys()[col].toString();
-                                    table.set(newStratStateString, c, t.getCell(row, col));
-                                    table.set(newStratStateString, t.getRowName(), r);
-                                }
-                            }
-                        } else {
-                            final GATKReportTable table = report.getTable(ve.getSimpleName());
-                            setTableColumnNames(table, stratStateString, stratsAndStates);
-                            table.set(stratStateString, field.getName(), field.get(ve));
-                        }
-                    } catch (IllegalAccessException e) {
-                        throw new StingException("IllegalAccessException: " + e);
-                    }
-                }
-            }
-        }
-
-        report.print(out);
-    }
-
-    /**
-     * A common utility function to set up the GATKReportTable for an embedded TableType in 
-     * a VariantEvaluation
-     * 
-     * @param t
-     * @param subTableName
-     * @param dataPointAnn
-     */
-    @Requires({"t != null", "subTableName != null", "dataPointAnn != null", "!report.hasTable(subTableName)"})
-    @Ensures({"report.hasTable(subTableName)"})
-    private final void configureNewReportTable(final TableType t, final String subTableName, final DataPoint dataPointAnn) {
-        // basic table configuration.  Set up primary key, dummy column names
-        report.addTable(subTableName, dataPointAnn.description());
-        final GATKReportTable table = report.getTable(subTableName);
-
-        table.addPrimaryKey("entry", false);
-        table.addColumn(subTableName, subTableName);
-
-        for ( final VariantStratifier vs : stratManager.getStratifiers() ) {
-            table.addColumn(vs.getName(), "unknown");
-        }
-
-        table.addColumn(t.getRowName(), "unknown");
-
-        for ( final Object o : t.getColumnKeys() ) {
-            table.addColumn(o.toString(), 0.0);
-        }
-    }
-
-    /**
-     * Common utility to configure a GATKReportTable columns
-     *
-     * Sets the column names to the strat names in stratsAndStates for the primary key in table
-     *
-     * @param table
-     * @param primaryKey
-     * @param stratsAndStates
-     */
-    private final void setTableColumnNames(final GATKReportTable table, 
-                                           final String primaryKey,
-                                           final List<Pair<VariantStratifier, Object>> stratsAndStates) {
-        for ( final Pair<VariantStratifier, Object> stratAndState : stratsAndStates ) {
-            final VariantStratifier vs = stratAndState.getFirst();
-            final String columnName = vs.getName();
-            final Object strat = stratAndState.getSecond();
-            if ( columnName == null || strat == null )
-                throw new ReviewedStingException("Unexpected null variant stratifier state at " + table + " key = " + primaryKey);
-            table.set(primaryKey, columnName, strat);
-        }
+        final VariantEvalReportWriter writer = new VariantEvalReportWriter(stratManager, stratManager.getStratifiers(), stratManager.get(0).getVariantEvaluators());
+        writer.writeReport(out);
     }
 
     // Accessors

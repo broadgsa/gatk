@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.IndelHistogram;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -119,9 +119,8 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     int n1bpInsertions = 0, n1bpDeletions = 0;
     int[] countByLength = new int[]{0, 0, 0, 0}; // note that the first element isn't used
 
-    public final static int MAX_SIZE_FOR_HISTOGRAM = 10;
-    @DataPoint(description = "Histogram of indel lengths")
-    IndelHistogram lengthHistogram = new IndelHistogram(MAX_SIZE_FOR_HISTOGRAM, true);
+
+    public final static int LARGE_INDEL_SIZE_THRESHOLD = 10;
 
     @DataPoint(description = "Number of large (>10 bp) deletions")
     public int n_large_deletions = 0;
@@ -132,12 +131,11 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "Ratio of large (>10 bp) insertions to deletions")
     public String insertion_to_deletion_ratio_for_large_indels;
 
-    @Override public boolean enabled() { return true; }
     @Override public int getComparisonOrder() { return 2; }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( eval == null || eval.isMonomorphicInSamples() )
-            return null;
+            return;
 
         // update counts
         switch ( eval.getType() ) {
@@ -176,9 +174,6 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                     if ( alleleSize == 1 ) n1bpInsertions++;
                     if ( alleleSize == -1 ) n1bpDeletions++;
 
-                    // update the length histogram
-                    lengthHistogram.update(eval.getReference(), alt);
-
                     // requires snpEFF annotations
                     if ( eval.getAttributeAsString("SNPEFF_GENE_BIOTYPE", "missing").equals("protein_coding") ) {
                         final String effect = eval.getAttributeAsString("SNPEFF_EFFECT", "missing");
@@ -191,10 +186,16 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                         else
                             ; // lots of protein coding effects that shouldn't be counted, such as INTRON
                     }
+
+                    if ( alleleSize > LARGE_INDEL_SIZE_THRESHOLD )
+                        n_large_insertions++;
+                    else if ( alleleSize < -LARGE_INDEL_SIZE_THRESHOLD )
+                        n_large_deletions++;
                     
                     // update the baby histogram
                     final int absSize = Math.abs(alleleSize);
                     if ( absSize < countByLength.length ) countByLength[absSize]++;
+
                 }
 
                 break;
@@ -202,29 +203,26 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                 throw new UserException.BadInput("Unexpected variant context type: " + eval);
         }
 
-        return null; // we don't capture any interesting sites
+        return;
     }
 
     public void finalizeEvaluation() {
-        percent_of_sites_with_more_than_2_alleles = formattedRatio(nMultiIndelSites, nIndelSites);
-        SNP_to_indel_ratio = formattedRatio(n_SNPs, n_indels);
-        SNP_to_indel_ratio_for_singletons = formattedRatio(n_singleton_SNPs, n_singleton_indels);
-        indel_novelty_rate = formattedNoveltyRate(nKnownIndels, n_indels);
-        ratio_of_1_to_2_bp_indels = formattedRatio(countByLength[1], countByLength[2]);
-        ratio_of_1_to_3_bp_indels = formattedRatio(countByLength[1], countByLength[3]);
-        ratio_of_2_to_3_bp_indels = formattedRatio(countByLength[2], countByLength[3]);
-        ratio_of_1_and_2_to_3_bp_indels = formattedRatio(countByLength[1] + countByLength[2], countByLength[3]);
-        frameshift_rate_for_coding_indels = formattedPercent(n_coding_indels_frameshifting, n_coding_indels_in_frame + n_coding_indels_frameshifting);
+        percent_of_sites_with_more_than_2_alleles = Utils.formattedRatio(nMultiIndelSites, nIndelSites);
+        SNP_to_indel_ratio = Utils.formattedRatio(n_SNPs, n_indels);
+        SNP_to_indel_ratio_for_singletons = Utils.formattedRatio(n_singleton_SNPs, n_singleton_indels);
+        indel_novelty_rate = Utils.formattedNoveltyRate(nKnownIndels, n_indels);
+        ratio_of_1_to_2_bp_indels = Utils.formattedRatio(countByLength[1], countByLength[2]);
+        ratio_of_1_to_3_bp_indels = Utils.formattedRatio(countByLength[1], countByLength[3]);
+        ratio_of_2_to_3_bp_indels = Utils.formattedRatio(countByLength[2], countByLength[3]);
+        ratio_of_1_and_2_to_3_bp_indels = Utils.formattedRatio(countByLength[1] + countByLength[2], countByLength[3]);
+        frameshift_rate_for_coding_indels = Utils.formattedPercent(n_coding_indels_frameshifting, n_coding_indels_in_frame + n_coding_indels_frameshifting);
 
-        SNP_het_to_hom_ratio = formattedRatio(nSNPHets, nSNPHoms);
-        indel_het_to_hom_ratio = formattedRatio(nIndelHets, nIndelHoms);
-        
-        n_large_deletions = lengthHistogram.getnTooBigDeletions();
-        n_large_insertions = lengthHistogram.getnTooBigInsertions();
+        SNP_het_to_hom_ratio = Utils.formattedRatio(nSNPHets, nSNPHoms);
+        indel_het_to_hom_ratio = Utils.formattedRatio(nIndelHets, nIndelHoms);
 
-        insertion_to_deletion_ratio = formattedRatio(nInsertions, n_indels - nInsertions);
-        insertion_to_deletion_ratio_for_1bp_indels = formattedRatio(n1bpInsertions, n1bpDeletions);
-        insertion_to_deletion_ratio_for_large_indels = formattedRatio(n_large_insertions, n_large_deletions);
+        insertion_to_deletion_ratio = Utils.formattedRatio(nInsertions, n_indels - nInsertions);
+        insertion_to_deletion_ratio_for_1bp_indels = Utils.formattedRatio(n1bpInsertions, n1bpDeletions);
+        insertion_to_deletion_ratio_for_large_indels = Utils.formattedRatio(n_large_insertions, n_large_deletions);
 
     }
 }

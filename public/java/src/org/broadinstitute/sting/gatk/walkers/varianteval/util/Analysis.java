@@ -7,4 +7,5 @@ import java.lang.annotation.RetentionPolicy;
 public @interface Analysis {
     String name() default ""; // its description, required
     String description(); // its description, required
+    boolean molten() default false; // if true we'll look for a @Molten map
 }

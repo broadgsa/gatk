@@ -132,7 +132,6 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     private static final Collection<String> RIGHT_ALIGN_STRINGS = Arrays.asList(
             "null",
             "NA",
-            "unknown",
             String.valueOf(Double.POSITIVE_INFINITY),
             String.valueOf(Double.NEGATIVE_INFINITY),
             String.valueOf(Double.NaN));
@@ -214,7 +213,7 @@ public class GATKReportColumn extends LinkedHashMap<Object, Object> {
     public Object put(Object key, Object value) {
         if (value != null) {
             String formatted = formatValue(value);
-            if (!formatted.equals("") && !formatted.equals("unknown")) {
+            if (!formatted.equals("")) {
                 updateMaxWidth(formatted);
                 updateFormat(formatted);
             }

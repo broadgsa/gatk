@@ -20,22 +20,22 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 @Analysis(description = "The overlap between eval and comp sites")
 public class CompOverlap extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "number of eval variant sites", format = "%d")
-    long nEvalVariants = 0;
+    public long nEvalVariants = 0;
 
     @DataPoint(description = "number of eval sites outside of comp sites", format = "%d")
-    long novelSites = 0;
+    public long novelSites = 0;
 
     @DataPoint(description = "number of eval sites at comp sites", format = "%d")
-    long nVariantsAtComp = 0;
+    public long nVariantsAtComp = 0;
 
     @DataPoint(description = "percentage of eval sites at comp sites", format = "%.2f" )
-    double compRate = 0.0;
+    public double compRate = 0.0;
 
     @DataPoint(description = "number of concordant sites", format = "%d")
-    long nConcordant = 0;
+    public long nConcordant = 0;
 
     @DataPoint(description = "the concordance rate", format = "%.2f")
-    double concordantRate = 0.0;
+    public double concordantRate = 0.0;
 
     public int getComparisonOrder() {
         return 2;   // we need to see each eval track and each comp track
@@ -49,10 +49,6 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
         compRate = 100 * compRate();
         concordantRate = 100 * concordanceRate();
         novelSites = nNovelSites();
-    }
-
-    public boolean enabled() {
-        return true;
     }
 
     /**
@@ -71,7 +67,7 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
         return false;
     }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         boolean evalIsGood = eval != null && eval.isPolymorphicInSamples();
         boolean compIsGood = comp != null && comp.isNotFiltered();
 
@@ -84,7 +80,5 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
                 nConcordant++;
             }
         }
-
-        return null; // we don't capture any interesting sites
     }
 }

@@ -16,6 +16,7 @@ import java.util.List;
  */
 public class IndelSize extends VariantStratifier {
     static final int MAX_INDEL_SIZE = 100;
+
     @Override
     public void initialize() {
         for( int a=-MAX_INDEL_SIZE; a <=MAX_INDEL_SIZE; a++ ) {

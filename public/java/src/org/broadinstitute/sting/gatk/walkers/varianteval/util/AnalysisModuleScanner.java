@@ -46,7 +46,10 @@ public class AnalysisModuleScanner {
     // what we extracted from the class
     private Map<Field, DataPoint> datums = new LinkedHashMap<Field, DataPoint>();   // the data we've discovered
     private Analysis analysis;  // the analysis annotation
-
+    
+    private Field moltenField = null;
+    private Molten moltenAnnotation = null;
+    
     // private storage of the class type
     private final Class cls;
 
@@ -85,14 +88,38 @@ public class AnalysisModuleScanner {
     private void scanFields() {
         // get the fields from the class, and extract
         for ( Class superCls = cls; superCls != null; superCls=superCls.getSuperclass() ) {
-            for (Field f : superCls.getDeclaredFields())
+            for (Field f : superCls.getDeclaredFields()) {
                 for (Annotation annotation : getAnnotations(f)) {
                     if (annotation.annotationType().equals(DataPoint.class))
                         datums.put(f,(DataPoint) annotation);
+                    if ( annotation.annotationType().equals(Molten.class)) {
+                        if ( hasMoltenField() )
+                            throw new ReviewedStingException("Analysis " + analysis.name() + " has multiple @Molten fields, which is forbidden");
+                        moltenField = f;
+                        moltenAnnotation = (Molten)annotation;
+                    }
                 }
+            }
+        }
+        
+        if ( hasMoltenField() ) {
+            if ( datums.size() > 0 )
+                throw new ReviewedStingException("Analysis " + analysis.name() + " has an @Molten field as well as @DataPoint fields, which is forbidden");
         }
     }
-    
+
+    public Field getMoltenField() {
+        return moltenField;
+    }
+
+    public Molten getMoltenAnnotation() {
+        return moltenAnnotation;
+    }
+
+    public boolean hasMoltenField() {
+        return getMoltenField() != null;
+    }
+
     private Annotation[] getAnnotations(final Field field) {
         final String fieldName = field.toString();
         Annotation[] annotations = annotationCache.get(fieldName);

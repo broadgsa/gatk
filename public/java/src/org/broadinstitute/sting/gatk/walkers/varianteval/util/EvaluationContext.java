@@ -25,9 +25,9 @@ public final class EvaluationContext {
                 eval.initialize(walker);
                 evaluationInstances.add(eval);
             } catch (InstantiationException e) {
-                throw new StingException("Unable to instantiate eval module '" + c.getSimpleName() + "'");
+                throw new ReviewedStingException("Unable to instantiate eval module '" + c.getSimpleName() + "'", e);
             } catch (IllegalAccessException e) {
-                throw new StingException("Illegal access error when trying to instantiate eval module '" + c.getSimpleName() + "'");
+                throw new ReviewedStingException("Illegal access error when trying to instantiate eval module '" + c.getSimpleName() + "'", e);
             }
         }
     }

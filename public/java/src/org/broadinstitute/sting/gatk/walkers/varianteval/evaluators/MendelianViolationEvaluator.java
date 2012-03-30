@@ -43,63 +43,63 @@ import java.util.Set;
 public class MendelianViolationEvaluator extends VariantEvaluator {
 
     @DataPoint(description = "Number of variants found with at least one family having genotypes", format = "%d")
-    long nVariants;
+    public long nVariants;
     @DataPoint(description = "Number of variants found with no family having genotypes -- these sites do not count in the nNoCall", format = "%d")
-    long nSkipped;
+    public long nSkipped;
     @DataPoint(description="Number of variants x families called (no missing genotype or lowqual)", format = "%d")
-    long nFamCalled;
+    public long nFamCalled;
     @DataPoint(description="Number of variants x families called (no missing genotype or lowqual) that contain at least one var allele.", format = "%d")
-    long nVarFamCalled;
+    public long nVarFamCalled;
     @DataPoint(description="Number of variants x families discarded as low quality", format = "%d")
-    long nLowQual;
+    public long nLowQual;
     @DataPoint(description="Number of variants x families discarded as no call", format = "%d")
-    long nNoCall;
+    public long nNoCall;
     @DataPoint(description="Number of loci with mendelian violations", format = "%d")
-    long nLociViolations;
+    public long nLociViolations;
     @DataPoint(description = "Number of mendelian violations found", format = "%d")
-    long nViolations;
+    public long nViolations;
 
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HOM_VAR", format = "%d")
-    long mvRefRef_Var;
+    public long mvRefRef_Var;
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_REF -> HET", format = "%d")
-    long mvRefRef_Het;
+    public long mvRefRef_Het;
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HET -> HOM_VAR", format = "%d")
-    long mvRefHet_Var;
+    public long mvRefHet_Var;
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_VAR", format = "%d")
-    long mvRefVar_Var;
+    public long mvRefVar_Var;
     @DataPoint(description="Number of mendelian violations of the type HOM_REF/HOM_VAR -> HOM_REF", format = "%d")
-    long mvRefVar_Ref;
+    public long mvRefVar_Ref;
     @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HET -> HOM_REF", format = "%d")
-    long mvVarHet_Ref;
+    public long mvVarHet_Ref;
     @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HOM_REF", format = "%d")
-    long mvVarVar_Ref;
+    public long mvVarVar_Ref;
     @DataPoint(description="Number of mendelian violations of the type HOM_VAR/HOM_VAR -> HET", format = "%d")
-    long mvVarVar_Het;
+    public long mvVarVar_Het;
 
     @DataPoint(description="Number of HomRef/HomRef/HomRef trios", format = "%d")
-    long HomRefHomRef_HomRef;
+    public long HomRefHomRef_HomRef;
     @DataPoint(description="Number of Het/Het/Het trios", format = "%d")
-    long HetHet_Het;
+    public long HetHet_Het;
     @DataPoint(description="Number of Het/Het/HomRef trios", format = "%d")
-    long HetHet_HomRef;
+    public long HetHet_HomRef;
     @DataPoint(description="Number of Het/Het/HomVar trios", format = "%d")
-    long HetHet_HomVar;
+    public long HetHet_HomVar;
     @DataPoint(description="Number of HomVar/HomVar/HomVar trios", format = "%d")
-    long HomVarHomVar_HomVar;
+    public long HomVarHomVar_HomVar;
     @DataPoint(description="Number of HomRef/HomVar/Het trios", format = "%d")
-    long HomRefHomVAR_Het;
+    public long HomRefHomVAR_Het;
     @DataPoint(description="Number of ref alleles inherited from het/het parents", format = "%d")
-    long HetHet_inheritedRef;
+    public long HetHet_inheritedRef;
     @DataPoint(description="Number of var alleles inherited from het/het parents", format = "%d")
-    long HetHet_inheritedVar;
+    public long HetHet_inheritedVar;
     @DataPoint(description="Number of ref alleles inherited from homRef/het parents", format = "%d")
-    long HomRefHet_inheritedRef;
+    public long HomRefHet_inheritedRef;
     @DataPoint(description="Number of var alleles inherited from homRef/het parents", format = "%d")
-    long HomRefHet_inheritedVar;
+    public long HomRefHet_inheritedVar;
     @DataPoint(description="Number of ref alleles inherited from homVar/het parents", format = "%d")
-    long HomVarHet_inheritedRef;
+    public long HomVarHet_inheritedRef;
     @DataPoint(description="Number of var alleles inherited from homVar/het parents", format = "%d")
-    long HomVarHet_inheritedVar;
+    public long HomVarHet_inheritedVar;
 
     MendelianViolation mv;
     Map<String,Set<Sample>> families;
@@ -110,10 +110,6 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         families = walker.getSampleDB().getFamilies();
     }
 
-    public boolean enabled() {
-        return true;
-    }
-
     public String getName() {
         return "mendelian_violations";
     }
@@ -122,7 +118,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         return 1;   // we only need to see each eval track
     }
 
-    public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (vc.isBiallelic() && vc.hasGenotypes()) { // todo -- currently limited to biallelic loci
 
             if(mv.countViolations(families,vc)>0){
@@ -161,11 +157,6 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
             else{
                 nSkipped++;
             }
-
-
-            return null;
         }
-
-        return null; // we don't capture any interesting sites
     }
 }

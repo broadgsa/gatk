@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -88,12 +89,11 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
     public String indelNoveltyRate = "NA";
 
 
-    @Override public boolean enabled() { return true; }
     @Override public int getComparisonOrder() { return 2; }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( eval == null || eval.isMonomorphicInSamples() )
-            return null;
+            return;
 
         // update counts
         switch ( eval.getType() ) {
@@ -116,7 +116,7 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
                 throw new UserException.BadInput("Unexpected variant context type: " + eval);
         }
 
-        return null; // we don't capture any interesting sites
+        return;
     }
 
     private void calculatePairwiseTiTv(VariantContext vc) {
@@ -157,7 +157,7 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
 
         TiTvRatio = (double)nTi / (double)nTv;
 
-        SNPNoveltyRate = formattedNoveltyRate(knownSNPsPartial + knownSNPsComplete, nMultiSNPs);
-        indelNoveltyRate = formattedNoveltyRate(knownIndelsPartial + knownIndelsComplete, nMultiSNPs);
+        SNPNoveltyRate = Utils.formattedNoveltyRate(knownSNPsPartial + knownSNPsComplete, nMultiSNPs);
+        indelNoveltyRate = Utils.formattedNoveltyRate(knownIndelsPartial + knownIndelsComplete, nMultiSNPs);
     }
 }

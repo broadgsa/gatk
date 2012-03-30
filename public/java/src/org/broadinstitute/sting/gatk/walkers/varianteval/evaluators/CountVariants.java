@@ -11,7 +11,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 @Analysis(description = "Counts different classes of variants in the sample")
 public class CountVariants extends VariantEvaluator implements StandardEval {
-
     // the following fields are in output order:
 
     // basic counts on various rates found
@@ -81,15 +80,12 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         return inverseRate(n, nProcessedLoci);
     }
 
-    public boolean enabled() {
-        return true;
-    }
 
     public int getComparisonOrder() {
         return 1;   // we only need to see each eval track
     }
 
-    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nCalledLoci++;
 
         // Note from Eric:
@@ -135,12 +131,9 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
             }
         }
 
-        String refStr = vc1.getReference().getBaseString().toUpperCase();
-
-        String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE", null).toUpperCase() : null;
-//        if (aaStr.equals(".")) {
-//            aaStr = refStr;
-//        }
+        // these operations are ordered to ensure that we don't get the base string of the ref unless we need it
+        final String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE", null).toUpperCase() : null;
+        final String refStr = aaStr != null ? vc1.getReference().getBaseString().toUpperCase() : null;
 
         // ref  aa  alt  class
         // A    C   A    der homozygote
@@ -183,8 +176,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     throw new ReviewedStingException("BUG: Unexpected genotype type: " + g);
             }
         }
-
-        return null; // we don't capture any interesting sites
     }
 
     public void finalizeEvaluation() {

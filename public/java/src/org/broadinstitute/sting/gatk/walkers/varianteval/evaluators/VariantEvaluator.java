@@ -22,8 +22,6 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
         return walker;
     }
 
-    public abstract boolean enabled();
-
     // Should return the number of VariantContexts expected as inputs to update.  Can be 1 or 2
     public abstract int getComparisonOrder();
 
@@ -31,12 +29,10 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
     // No longer available.  The processed bp is kept in VEW itself for performance reasons
     //    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-    public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return null;
+    public void update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
     }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return null;
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
     }
 
     public void finalizeEvaluation() {}
@@ -61,39 +57,6 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
      */
     protected static boolean variantWasSingleton(final VariantContext eval) {
         return eval.getAttributeAsBoolean(VariantEvalWalker.IS_SINGLETON_KEY, false);
-    }
-
-    /**
-     * Convenience function that formats the novelty rate as a %.2f string
-     *
-     * @param known number of variants from all that are known
-     * @param all number of all variants
-     * @return a String novelty rate, or NA if all == 0
-     */
-    protected static String formattedNoveltyRate(final int known, final int all) {
-        return formattedPercent(all - known, all);
-    }
-
-    /**
-     * Convenience function that formats the novelty rate as a %.2f string
-     *
-     * @param x number of objects part of total that meet some criteria
-     * @param total count of all objects, including x
-     * @return a String percent rate, or NA if total == 0
-     */
-    protected static String formattedPercent(final int x, final int total) {
-        return total == 0 ? "NA" : String.format("%.2f", x / (1.0*total));
-    }
-
-    /**
-     * Convenience function that formats a ratio as a %.2f string
-     *
-     * @param num  number of observations in the numerator
-     * @param denom number of observations in the denumerator
-     * @return a String formatted ratio, or NA if all == 0
-     */
-    protected static String formattedRatio(final int num, final int denom) {
-        return denom == 0 ? "NA" : String.format("%.2f", num / (1.0 * denom));
     }
 
     public String getSimpleName() {
