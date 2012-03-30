@@ -118,7 +118,7 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
         if ( node.isLeaf() ) { // we're here!
             if ( states.isEmpty() )
                 throw new ReviewedStingException("Found a leaf node with an empty state values vector");
-            stratifierValuesByKey.set(node.getKey(), new ArrayList<Object>(states));
+            stratifierValuesByKey.set(node.getKey(), Collections.unmodifiableList(new ArrayList<Object>(states)));
         } else {
             for ( Map.Entry<Object, StratNode<K>> entry : node.getSubnodes().entrySet() ) {
                 final LinkedList<Object> newStates = new LinkedList<Object>(states);

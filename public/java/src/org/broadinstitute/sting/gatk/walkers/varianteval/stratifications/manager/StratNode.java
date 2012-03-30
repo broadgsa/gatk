@@ -62,8 +62,7 @@ import java.util.*;
 class StratNode<T extends Stratifier> implements Iterable<StratNode<T>> {
     int key = -1;
     final T stratifier;
-    // TODO -- track state key that maps to root node
-    final Map<Object, StratNode<T>> subnodes;
+    final Map<Object, StratNode<T>> subnodes; // NOTE, because we don't iterate our best option is a HashMap
 
     protected StratNode() {
         this.subnodes = Collections.emptyMap();
@@ -72,7 +71,8 @@ class StratNode<T extends Stratifier> implements Iterable<StratNode<T>> {
 
     protected StratNode(final T stratifier, final Map<Object, StratNode<T>> subnodes) {
         this.stratifier = stratifier;
-        this.subnodes = subnodes;
+        // important to reallocate an unmodififable hashmap with this specific size for space and safety
+        this.subnodes = Collections.unmodifiableMap(new HashMap<Object, StratNode<T>>(subnodes));
     }
 
     @Requires("key >= 0")

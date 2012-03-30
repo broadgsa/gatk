@@ -269,7 +269,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Initialize the set of stratifications and evaluations to use
         // The list of stratifiers and evaluators to use
         final List<VariantStratifier> stratificationObjects = variantEvalUtils.initializeStratificationObjects(NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
-        final Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+        final Set<Class<? extends VariantEvaluator>> evaluationClasses = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+
+        checkForIncompatibleEvaluatorsAndStratifiers(stratificationObjects, evaluationClasses);
 
         for ( VariantStratifier vs : stratificationObjects ) {
             if ( vs.getName().equals("Filter") )
@@ -289,10 +291,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         // Initialize the evaluation contexts
-        createStratificationStates(stratificationObjects, evaluationObjects);
+        createStratificationStates(stratificationObjects, evaluationClasses);
 
         // Initialize report table
-        report = variantEvalUtils.initializeGATKReport(stratificationObjects, evaluationObjects);
+        report = variantEvalUtils.initializeGATKReport(stratificationObjects, evaluationClasses);
 
         // Load ancestral alignments
         if (ancestralAlignmentsFile != null) {
@@ -309,6 +311,19 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
     }
 
+    final void checkForIncompatibleEvaluatorsAndStratifiers( final List<VariantStratifier> stratificationObjects,
+                                                             Set<Class<? extends VariantEvaluator>> evaluationClasses) {
+        for ( final VariantStratifier vs : stratificationObjects ) {
+            for ( Class<? extends VariantEvaluator> ec : evaluationClasses )
+                if ( vs.getIncompatibleEvaluators().contains(ec) )
+                    throw new UserException.BadArgumentValue("ST and ET", 
+                            "The selected stratification " + vs.getName() + 
+                                    " and evaluator " + ec.getSimpleName() +
+                                    " are incompatible due to combinatorial memory requirements." +
+                                    " Please disable one");
+        }
+    }
+    
     final void createStratificationStates(final List<VariantStratifier> stratificationObjects, final Set<Class<? extends VariantEvaluator>> evaluationObjects) {
         final List<VariantStratifier> strats = new ArrayList<VariantStratifier>(stratificationObjects);
         stratManager = new StratificationManager<VariantStratifier, EvaluationContext>(strats);

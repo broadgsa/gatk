@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -490,5 +491,19 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 Arrays.asList("9a8ffb506118c1bde6f7bfadc4fb6f10")
                               );
         executeTest("testModernVCFWithLargeIndels", spec);
+    }
+
+    @Test()
+    public void testIncompatibleEvalAndStrat() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + validationDataLocation + "/NA12878.HiSeq.WGS.b37_decoy.indel.recalibrated.vcf",
+                        "-L 20 -noST -ST AlleleCount -noEV -EV VariantSummary"
+                ),
+                0,
+                UserException.class);
+        executeTest("testIncompatibleEvalAndStrat", spec);
     }
 }

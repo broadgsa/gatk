@@ -3,13 +3,13 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantSummary;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Stratifies the eval RODs by the allele count of the alternate allele
@@ -50,9 +50,14 @@ public class AlleleCount extends VariantStratifier {
             } else
                 // by default, the site is considered monomorphic
                 AC = 0;
-            return Collections.singletonList((Object)AC);
+            return Collections.singletonList((Object) AC);
         } else {
             return Collections.emptyList();
         }
+    }
+
+    @Override
+    public Set<Class<? extends VariantEvaluator>> getIncompatibleEvaluators() {
+        return new HashSet<Class<? extends VariantEvaluator>>(Arrays.asList(VariantSummary.class));
     }
 }
