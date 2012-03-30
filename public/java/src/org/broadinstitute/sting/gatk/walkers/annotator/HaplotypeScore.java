@@ -64,6 +64,9 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         if (stratifiedContexts.size() == 0) // size 0 means that call was made by someone else and we have no data here
             return null;
 
+        if (!vc.isSNP() && !vc.isIndel() && !vc.isMixed())
+            return null;
+
         final AlignmentContext context = AlignmentContextUtils.joinContexts(stratifiedContexts.values());
 
         final int contextWingSize = Math.min((ref.getWindow().size() - 1) / 2, MIN_CONTEXT_WING_SIZE);
@@ -71,41 +74,27 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
 
         final int locus = ref.getLocus().getStart() + (ref.getLocus().getStop() - ref.getLocus().getStart()) / 2;
 
-        // Compute all haplotypes consistent with the current read pileup
-        ReadBackedPileup pileup = null;
-        if (context.hasExtendedEventPileup())
-            pileup = context.getExtendedEventPileup();
-        else if (context.hasBasePileup())
-            pileup = context.getBasePileup();
-
-        if (pileup == null)
+        if ( !context.hasBasePileup() )
             return null;
 
+        final ReadBackedPileup pileup = context.getBasePileup();
+
+        // Compute all haplotypes consistent with the current read pileup
         final List<Haplotype> haplotypes = computeHaplotypes(pileup, contextSize, locus, vc);
 
         final MathUtils.RunningAverage scoreRA = new MathUtils.RunningAverage();
         if (haplotypes != null) {
             for (final Genotype genotype : vc.getGenotypes()) {
                 final AlignmentContext thisContext = stratifiedContexts.get(genotype.getSampleName());
-                if (thisContext != null) {
-                    final ReadBackedPileup thisPileup;
-                    if (thisContext.hasExtendedEventPileup())
-                        thisPileup = thisContext.getExtendedEventPileup();
-                    else if (thisContext.hasBasePileup())
-                        thisPileup = thisContext.getBasePileup();
-                    else
-                        thisPileup = null;
-
-                    if (thisPileup != null) {
-                        if (vc.isSNP())
-                            scoreRA.add(scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus)); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
-                        else if (vc.isIndel() || vc.isMixed()) {
-                            Double d = scoreIndelsAgainstHaplotypes(thisPileup);
-                            if (d == null)
-                                return null;
-                            scoreRA.add(d); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
-                        } else
+                if (thisContext != null && thisContext.hasBasePileup()) {
+                    final ReadBackedPileup thisPileup = thisContext.getBasePileup();
+                    if (vc.isSNP())
+                        scoreRA.add(scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus)); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                    else if (vc.isIndel() || vc.isMixed()) {
+                        Double d = scoreIndelsAgainstHaplotypes(thisPileup);
+                        if (d == null)
                             return null;
+                        scoreRA.add(d); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
                     }
                 }
             }
