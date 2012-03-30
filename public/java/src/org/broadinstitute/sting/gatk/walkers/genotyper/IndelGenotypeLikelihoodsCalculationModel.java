@@ -35,16 +35,10 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
-import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -183,7 +177,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         }
 
         final int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
-        final int hsize = (int) ref.getWindow().size() - Math.abs(eventLength) - 1;
+        final int hsize = ref.getWindow().size() - Math.abs(eventLength) - 1;
         final int numPrefBases = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
 
         if (hsize <= 0) {
@@ -208,26 +202,23 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            ReadBackedPileup pileup = null;
-            if (context.hasExtendedEventPileup())
-                pileup = context.getExtendedEventPileup();
-            else if (context.hasBasePileup())
-                pileup = context.getBasePileup();
+            if (context.hasBasePileup()) {
+                final ReadBackedPileup pileup = context.getBasePileup();
+                if (pileup != null) {
+                    final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+                    GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(genotypeLikelihoods);
 
-            if (pileup != null) {
-                final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
-                GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(genotypeLikelihoods);
+                    HashMap<String, Object> attributes = new HashMap<String, Object>();
+                    attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(pileup));
+                    attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
+                    genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
 
-                HashMap<String, Object> attributes = new HashMap<String, Object>();
-                attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(pileup));
-                attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-                genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
-
-                if (DEBUG) {
-                    System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
-                    for (int k = 0; k < genotypeLikelihoods.length; k++)
-                        System.out.format("%1.4f ", genotypeLikelihoods[k]);
-                    System.out.println();
+                    if (DEBUG) {
+                        System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
+                        for (int k = 0; k < genotypeLikelihoods.length; k++)
+                            System.out.format("%1.4f ", genotypeLikelihoods[k]);
+                        System.out.println();
+                    }
                 }
             }
         }

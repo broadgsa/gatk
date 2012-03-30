@@ -275,9 +275,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (context.hasBasePileup()) {
                 numReads = context.getBasePileup().getNumberOfElements();
             }
-            else if (context.hasExtendedEventPileup()) {
-                numReads = context.getExtendedEventPileup().getNumberOfElements();
-            }
             PhasingStats addInPhaseStats = new PhasingStats(numReads, 1);
             phaseStats.addIn(addInPhaseStats);
         }
@@ -1114,9 +1111,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 ReadBackedPileup pileup = null;
                 if (alignment.hasBasePileup()) {
                     pileup = alignment.getBasePileup();
-                }
-                else if (alignment.hasExtendedEventPileup()) {
-                    pileup = alignment.getExtendedEventPileup();
                 }
                 if (pileup != null) {
                     // filter the read-base pileup based on min base and mapping qualities:
