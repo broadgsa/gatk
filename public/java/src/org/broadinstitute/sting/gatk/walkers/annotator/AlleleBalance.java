@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -67,18 +68,19 @@ public class AlleleBalance extends InfoFieldAnnotation {
                 continue;
 
             AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-            if ( context == null )
+            if ( context == null || !context.hasBasePileup() )
                 continue;
 
-            if ( vc.isSNP() && context.hasBasePileup() ) {
-                final String bases = new String(context.getBasePileup().getBases());
+            final ReadBackedPileup pileup = context.getBasePileup();
+            if ( vc.isSNP() ) {
+                final String bases = new String(pileup.getBases());
                 if ( bases.length() == 0 )
                     return null;
-                char refChr = vc.getReference().toString().charAt(0);
-                char altChr = vc.getAlternateAllele(0).toString().charAt(0);
+                final char refChr = vc.getReference().toString().charAt(0);
+                final char altChr = vc.getAlternateAllele(0).toString().charAt(0);
 
-                int refCount = MathUtils.countOccurrences(refChr, bases);
-                int altCount = MathUtils.countOccurrences(altChr, bases);
+                final int refCount = MathUtils.countOccurrences(refChr, bases);
+                final int altCount = MathUtils.countOccurrences(altChr, bases);
 
                 // sanity check
                 if ( refCount + altCount == 0 )
@@ -87,22 +89,10 @@ public class AlleleBalance extends InfoFieldAnnotation {
                 // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
                 ratio += genotype.getLog10PError() * ((double)refCount / (double)(refCount + altCount));
                 totalWeights += genotype.getLog10PError();
-            } else if ( vc.isIndel() && context.hasExtendedEventPileup() ) {
-                final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-                if ( indelPileup == null ) {
-                    continue;
-                }
-                // todo -- actually care about indel length from the pileup (agnostic at the moment)
-                int refCount = indelPileup.getNumberOfElements();
-                int altCount = vc.isSimpleInsertion() ? indelPileup.getNumberOfInsertions() : indelPileup.getNumberOfDeletions();
-
-                if ( refCount + altCount == 0 ) {
-                    continue;
-                }
-
-                ratio += /* todo -- make not uniform */ 1 * ((double) refCount) / (double) (refCount + altCount);
-                totalWeights += 1;
             }
+            // Allele Balance for indels was not being computed correctly (since there was no allele matching).  Instead of
+            // prolonging the life of imperfect code, I've decided to delete it.  If someone else wants to try again from
+            // scratch, be my guest - but make sure it's done correctly!  [EB]
         }
 
         // make sure we had a het genotype

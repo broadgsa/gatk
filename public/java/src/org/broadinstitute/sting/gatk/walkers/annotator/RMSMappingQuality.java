@@ -39,13 +39,8 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             AlignmentContext context = sample.getValue();
-            ReadBackedPileup pileup = null;
-            if (context.hasExtendedEventPileup())
-                pileup = context.getExtendedEventPileup();
-            else if (context.hasBasePileup())
-                pileup = context.getBasePileup();
-
-            if (pileup != null) {
+            if ( context.hasBasePileup() ) {
+                final ReadBackedPileup pileup = context.getBasePileup();
                 for (PileupElement p : pileup ) {
                     if ( p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
                         qualities[index++] = p.getMappingQual();

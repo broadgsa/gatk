@@ -39,15 +39,9 @@ public class TechnologyComposition extends InfoFieldAnnotation implements Experi
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             AlignmentContext context = sample.getValue();
-
-            ReadBackedPileup pileup = null;
-            if (context.hasExtendedEventPileup())
-                pileup = context.getExtendedEventPileup();
-            else if (context.hasBasePileup())
-                pileup = context.getBasePileup();
-
-            if (pileup != null) {
-                for (PileupElement p : pileup ) {
+            if ( context.hasBasePileup() ) {
+                final ReadBackedPileup pileup = context.getBasePileup();
+                for ( PileupElement p : pileup ) {
                     if(ReadUtils.is454Read(p.getRead()))
                         reads454++;
                     else if (ReadUtils.isSOLiDRead(p.getRead()))

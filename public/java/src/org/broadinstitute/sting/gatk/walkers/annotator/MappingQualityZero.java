@@ -30,14 +30,9 @@ public class MappingQualityZero extends InfoFieldAnnotation implements StandardA
 
         int mq0 = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            AlignmentContext context = sample.getValue();
-            ReadBackedPileup pileup = null;
-            if (context.hasExtendedEventPileup())
-                pileup = context.getExtendedEventPileup();
-            else if (context.hasBasePileup())
-                pileup = context.getBasePileup();
-
-            if (pileup != null) {
+            final AlignmentContext context = sample.getValue();
+            if ( context.hasBasePileup() ) {
+                final ReadBackedPileup pileup = context.getBasePileup();
                 for (PileupElement p : pileup ) {
                     if ( p.getMappingQual() == 0 )
                         mq0++;
