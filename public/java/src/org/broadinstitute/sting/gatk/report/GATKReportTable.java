@@ -60,6 +60,8 @@ public class GATKReportTable {
     private static final String COULD_NOT_READ_DATA_LINE = "Could not read a data line of this table -- ";
     private static final String COULD_NOT_READ_EMPTY_LINE = "Could not read the last empty line of this table -- ";
     private static final String OLD_GATK_TABLE_VERSION = "We no longer support older versions of the GATK Tables";
+    
+    private static final String NUMBER_CONVERSION_EXCEPTION = "String is a number but is not a long or a double: ";
 
     public GATKReportTable(BufferedReader reader, GATKReportVersion version) {
         int counter = 0;
@@ -413,6 +415,8 @@ public class GATKReportTable {
 
         // This code below is bs. Why am do I have to conform to bad code
         // Below is some code to convert a string into its appropriate type.
+        
+        // I second Roger's rant!
 
         // If we got a string but the column is not a String type
         Object newValue = null;
