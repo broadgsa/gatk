@@ -26,7 +26,7 @@ public class RealignerTargetCreatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testIntervals2() {
-        String md5 = "e0f745b79b679c225314a2abef4919ff";
+        String md5 = "d073237694175c75d37bd4f40b8c64db";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 "-T RealignerTargetCreator --known " + b36dbSNP129 + " -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,200,000 -o %s",

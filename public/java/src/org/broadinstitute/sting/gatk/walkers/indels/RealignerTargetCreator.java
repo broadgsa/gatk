@@ -31,18 +31,13 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.BadCigarFilter;
-import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
-import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -99,7 +94,7 @@ import java.util.TreeSet;
  *
  * @author ebanks
  */
-@ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, BadCigarFilter.class})
+@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class, BadMateFilter.class, Platform454Filter.class, BadCigarFilter.class})
 @Reference(window=@Window(start=-1,stop=50))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.REFERENCE)
@@ -143,15 +138,16 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
 
     @Override
-    public boolean generateExtendedEvents() { return true; }
-
-    @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
 
+    private boolean lookForMismatchEntropy;
+    
     public void initialize() {
         if ( windowSize < 2 )
             throw new UserException.BadArgumentValue("windowSize", "Window Size must be an integer greater than 1");
+
+        lookForMismatchEntropy = mismatchThreshold > 0.0 && mismatchThreshold <= 1.0;
     }
 
     public Event map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -161,17 +157,6 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         boolean hasPointEvent = false;
 
         int furthestStopPos = -1;
-
-        // look for insertions in the extended context (we'll get deletions from the normal context)
-        if ( context.hasExtendedEventPileup() ) {
-            ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup();
-            if ( pileup.getNumberOfInsertions() > 0 ) {
-                hasIndel = hasInsertion = true;
-                // check the ends of the reads to see how far they extend
-                for (ExtendedEventPileupElement p : pileup.toExtendedIterable() )
-                    furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
-            }
-        }
 
         // look at the rods for indels or SNPs
         if ( tracker != null ) {
@@ -201,24 +186,24 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
         // look at the normal context to get deletions and positions with high entropy
         if ( context.hasBasePileup() ) {
-            ReadBackedPileup pileup = context.getBasePileup();
+            final ReadBackedPileup pileup = context.getBasePileup();
 
             int mismatchQualities = 0, totalQualities = 0;
-            byte refBase = ref.getBase();
-            for (PileupElement p : pileup ) {
-                if ( BadMateFilter.hasBadMate(p.getRead()) )
-                    continue;
+            final byte refBase = ref.getBase();
+            for ( PileupElement p : pileup ) {
 
                 // check the ends of the reads to see how far they extend
                 furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
 
-                // is it a deletion? (sanity check in case extended event missed it)
-                if ( p.isDeletion() ) {
+                // is it a deletion or insertion?
+                if ( p.isDeletion() || p.isBeforeInsertion() ) {
                     hasIndel = true;
+                    if ( p.isBeforeInsertion() )
+                        hasInsertion = true;
                 }
 
                 // look for mismatches
-                else {
+                else if ( lookForMismatchEntropy ) {
                     if ( p.getBase() != refBase )
                         mismatchQualities += p.getQual();
                     totalQualities += p.getQual();
@@ -226,8 +211,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             }
 
             // make sure we're supposed to look for high entropy
-            if ( mismatchThreshold > 0.0 &&
-                    mismatchThreshold <= 1.0 &&
+            if ( lookForMismatchEntropy &&
                     pileup.getNumberOfElements() >= minReadsAtLocus &&
                     (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
                 hasPointEvent = true;
@@ -244,8 +228,6 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         GenomeLoc eventLoc = context.getLocation();
         if ( hasInsertion )
             eventLoc =  getToolkit().getGenomeLocParser().createGenomeLoc(eventLoc.getContig(), eventLoc.getStart(), eventLoc.getStart()+1);
-        else if ( hasIndel && !context.hasBasePileup() )
-            eventLoc =  getToolkit().getGenomeLocParser().createGenomeLoc(eventLoc.getContig(), eventLoc.getStart(), furthestStopPos);        
 
         EVENT_TYPE eventType = (hasIndel ? (hasPointEvent ? EVENT_TYPE.BOTH : EVENT_TYPE.INDEL_EVENT) : EVENT_TYPE.POINT_EVENT);
 
