@@ -571,7 +571,7 @@ public class UnifiedGenotyperEngine {
             if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
                 final VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
                 if ( vcInput == null )
-                    return null;
+                    return models;
 
                 if ( vcInput.isSNP() )  {
                     // ignore SNPs if the user chose INDEL mode only
