@@ -46,21 +46,16 @@ import java.util.*;
 @Analysis(description = "Indel length histogram", molten = true)
 public class IndelLengthHistogram extends VariantEvaluator implements StandardEval {
     private final Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
-    private final boolean asFrequencies;
+    private final static boolean asFrequencies = true;
     int nIndels = 0;
 
-    @Molten(variableFormat = "%d", valueFormat = "%.2f")
+    @Molten(variableName = "Length", valueName = "Freq", variableFormat = "%d", valueFormat = "%.2f")
     public TreeMap<Object, Object> results;
     
     public final static int MAX_SIZE_FOR_HISTOGRAM = 10;
 
     public IndelLengthHistogram() {
-        this(MAX_SIZE_FOR_HISTOGRAM, true);
-    }
-
-    public IndelLengthHistogram(int maxSize, boolean asFrequencies) {
-        this.asFrequencies = asFrequencies;
-        initializeCounts(maxSize);
+        initializeCounts(MAX_SIZE_FOR_HISTOGRAM);
     }
 
     private void initializeCounts(int size) {
@@ -98,11 +93,20 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
         }
     }
 
+    /**
+     * Update the histogram with the implied length of the indel allele between ref and alt (alt.len - ref.len).
+     *
+     * If this size is outside of MAX_SIZE_FOR_HISTOGRAM, the size is capped to MAX_SIZE_FOR_HISTOGRAM
+     *
+     * @param ref
+     * @param alt
+     */
     public void updateLengthHistogram(final Allele ref, final Allele alt) {
-        final int len = alt.length() - ref.length();
-        if ( counts.containsKey(len) ) {
-            nIndels++;
-            counts.put(len, counts.get(len) + 1);
-        }
+        int len = alt.length() - ref.length();
+        if ( len > MAX_SIZE_FOR_HISTOGRAM ) len = MAX_SIZE_FOR_HISTOGRAM;
+        if ( len < -MAX_SIZE_FOR_HISTOGRAM ) len = -MAX_SIZE_FOR_HISTOGRAM;
+
+        nIndels++;
+        counts.put(len, counts.get(len) + 1);
     }
 }

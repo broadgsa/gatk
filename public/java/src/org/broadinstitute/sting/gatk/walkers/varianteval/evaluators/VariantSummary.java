@@ -126,7 +126,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             long sum = 0;
             int n = 0;
             for ( final Map.Entry<String, Integer> pair : get(type).entrySet() ) {
-                if ( pair.getKey() != ALL)  {
+                if ( pair.getKey() != ALL)  { // truly must be string ==
                     n++;
                     sum += pair.getValue();
                 }
@@ -138,7 +138,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             double sum = 0;
             int n = 0;
             for ( final String sample : get(type).keySet() ) {
-                if ( (allP && sample == ALL) || (!allP && sample != ALL) ) {
+                if ( (allP && sample == ALL) || (!allP && sample != ALL) ) { // truly must be string ==
                     final long num = get(type).get(sample);
                     final long denom = denoms.get(type).get(sample);
                     sum += ratio(num, denom);
@@ -192,7 +192,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
     private boolean overlapsKnownCNV(VariantContext cnv) {
         if ( knownCNVs != null ) {
-            final GenomeLoc loc = getWalker().getGenomeLocParser().createGenomeLoc(cnv, true);
+            final GenomeLoc loc = getWalker().getToolkit().getGenomeLocParser().createGenomeLoc(cnv, true);
             IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
 
             final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());

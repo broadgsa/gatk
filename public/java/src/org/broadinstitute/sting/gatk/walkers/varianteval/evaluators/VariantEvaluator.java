@@ -59,7 +59,7 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
         return eval.getAttributeAsBoolean(VariantEvalWalker.IS_SINGLETON_KEY, false);
     }
 
-    public String getSimpleName() {
+    public final String getSimpleName() {
         return simpleName;
     }
 

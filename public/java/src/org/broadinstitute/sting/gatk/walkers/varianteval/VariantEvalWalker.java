@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
-import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.IntervalTree;
@@ -13,8 +12,6 @@ import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
@@ -23,15 +20,14 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvalu
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -41,7 +37,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -158,10 +153,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -EV option)", required=false)
     protected Boolean NO_STANDARD_MODULES = false;
 
-    // Other arguments
-    @Argument(fullName="numSamples", shortName="ns", doc="Number of samples (used if no samples are available in the VCF file", required=false)
-    protected Integer NUM_SAMPLES = 0;
-
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
 
@@ -199,7 +190,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     private Set<String> sampleNamesForEvaluation = new TreeSet<String>();
     private Set<String> sampleNamesForStratification = new TreeSet<String>();
-    private int numSamples = 0;
 
     // important stratifications
     private boolean byFilterIsEnabled = false;
@@ -250,7 +240,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         // Load the sample list
         sampleNamesForEvaluation.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
-        numSamples = NUM_SAMPLES > 0 ? NUM_SAMPLES : sampleNamesForEvaluation.size();
 
         if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
             sampleNamesForStratification.addAll(sampleNamesForEvaluation);
@@ -541,14 +530,18 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     public void onTraversalDone(Integer result) {
         logger.info("Finalizing variant report");
+        
+        // go through the evaluations and finalize them
+        for ( final EvaluationContext nec : stratManager.values() )
+            for ( final VariantEvaluator ve : nec.getVariantEvaluators() )
+                ve.finalizeEvaluation();
+        
         final VariantEvalReportWriter writer = new VariantEvalReportWriter(stratManager, stratManager.getStratifiers(), stratManager.get(0).getVariantEvaluators());
         writer.writeReport(out);
     }
 
     // Accessors
     public Logger getLogger() { return logger; }
-
-    public int getNumSamples() { return numSamples; }
 
     public double getMinPhaseQuality() { return MIN_PHASE_QUALITY; }
 
@@ -580,10 +573,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return contigs;
     }
 
-    public GenomeLocParser getGenomeLocParser() {
-        return getToolkit().getGenomeLocParser();
-    }
-
+    /**
+     * getToolkit is protected, so we have to pseudo-overload it here so eval / strats can get the toolkit
+     * @return
+     */
     public GenomeAnalysisEngine getToolkit() {
         return super.getToolkit();
     }
