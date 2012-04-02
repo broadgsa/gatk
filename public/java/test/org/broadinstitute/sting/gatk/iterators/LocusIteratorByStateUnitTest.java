@@ -354,7 +354,6 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 Collections.<ReadFilter>emptyList(),
                 false,
-                false,
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
