@@ -109,7 +109,6 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 null,
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
-                false,
                 false);
 
         Iterable<Shard> strat = data.createShardIteratorOverMappedReads(seq.getSequenceDictionary(),new LocusShardBalancer());

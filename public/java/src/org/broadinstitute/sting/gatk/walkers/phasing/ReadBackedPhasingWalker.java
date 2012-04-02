@@ -227,10 +227,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
     }
 
-    public boolean generateExtendedEvents() {
-        return false;
-    }
-
     public PhasingStats reduceInit() {
         return new PhasingStats();
     }

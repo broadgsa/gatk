@@ -76,7 +76,6 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
                                                                Collections.<ReadFilter>emptyList(),
                                                                false,
-                                                               false,
                                                                BAQ.CalculationMode.OFF,
                                                                BAQ.QualityMode.DONT_MODIFY,
                                                                null, // no BAQ

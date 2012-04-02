@@ -356,10 +356,6 @@ public class GenomeAnalysisEngine {
     public BAQ.QualityMode getWalkerBAQQualityMode()         { return WalkerManager.getBAQQualityMode(walker); }
     public BAQ.ApplicationTime getWalkerBAQApplicationTime() { return WalkerManager.getBAQApplicationTime(walker); }    
 
-    protected boolean generateExtendedEvents() {
-        return walker.generateExtendedEvents();
-    }
-
     protected boolean includeReadsWithDeletionAtLoci() {
         return walker.includeReadsWithDeletionAtLoci();
     }
@@ -766,7 +762,6 @@ public class GenomeAnalysisEngine {
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 includeReadsWithDeletionAtLoci(),
-                generateExtendedEvents(),
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,
