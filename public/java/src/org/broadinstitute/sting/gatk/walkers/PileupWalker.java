@@ -116,10 +116,15 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
         return rodString;
     }
-    
+
+    private static final String verboseDelimiter = "@"; // it's ugly to use "@" but it's literally the only usable character not allowed in read names
+
     private static String createVerboseOutput(final ReadBackedPileup pileup) {
         final StringBuilder sb = new StringBuilder();
         boolean isFirst = true;
+
+        sb.append(pileup.getNumberOfDeletions());
+        sb.append(" ");
 
         for ( PileupElement p : pileup ) {
             if ( isFirst )
@@ -127,10 +132,12 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             else
                 sb.append(",");
             sb.append(p.getRead().getReadName());
-            sb.append(":");
+            sb.append(verboseDelimiter);
             sb.append(p.getOffset());
-            sb.append(":");
+            sb.append(verboseDelimiter);
             sb.append(p.getRead().getReadLength());
+            sb.append(verboseDelimiter);
+            sb.append(p.getRead().getMappingQuality());
         }
         return sb.toString();
     }
