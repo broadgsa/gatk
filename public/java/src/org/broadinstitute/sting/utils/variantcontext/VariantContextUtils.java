@@ -30,6 +30,7 @@ import org.apache.commons.jexl2.JexlEngine;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -119,7 +120,7 @@ public class VariantContextUtils {
         builder.attributes(attrs);
     }
 
-    private static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {
+    public static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {
         int precision = 1;
 
         while ( maxValue > 1 ) {
@@ -1116,7 +1117,7 @@ public class VariantContextUtils {
                     altAlleleIndexToUse[i] = true;
             }
 
-            final int numLikelihoods = GenotypeLikelihoods.calculateNumLikelihoods(numOriginalAltAlleles);
+            final int numLikelihoods = GenotypeLikelihoods.calculateNumLikelihoods(numOriginalAltAlleles, UnifiedGenotyperEngine.DEFAULT_PLOIDY);
             for ( int PLindex = 0; PLindex < numLikelihoods; PLindex++ ) {
                 final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
                 // consider this entry only if both of the alleles are good

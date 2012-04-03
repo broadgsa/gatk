@@ -446,6 +446,12 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return coeff;
     }
 
+    public GenotypesContext subsetAlleles(final VariantContext vc,
+                                                      final List<Allele> allelesToUse,
+                                                      final boolean assignGenotypes,
+                                                      final int ploidy) {
+        return VariantContextUtils.subsetAlleles(vc, allelesToUse, assignGenotypes);
+    }
 
     // -------------------------------------------------------------------------------------
     //

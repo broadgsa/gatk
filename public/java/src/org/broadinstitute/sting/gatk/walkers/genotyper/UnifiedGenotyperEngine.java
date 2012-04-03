@@ -357,7 +357,7 @@ public class UnifiedGenotyperEngine {
         }
 
         // create the genotypes
-        final GenotypesContext genotypes = VariantContextUtils.subsetAlleles(vc, myAlleles, true);
+        final GenotypesContext genotypes = afcm.get().subsetAlleles(vc, myAlleles, true,ploidy);
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )

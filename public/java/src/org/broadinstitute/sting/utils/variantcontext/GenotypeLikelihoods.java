@@ -231,7 +231,7 @@ public class GenotypeLikelihoods {
     private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALLELES_THAT_CAN_BE_GENOTYPED); // start with data for 10 alternate alleles
 
     private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
-        final int numLikelihoods = calculateNumLikelihoods(altAlleles);
+        final int numLikelihoods = calculateNumLikelihoods(1+altAlleles, 2);
         final GenotypeLikelihoodsAllelePair[] cache = new GenotypeLikelihoodsAllelePair[numLikelihoods];
 
         // for all possible combinations of 2 alleles
@@ -251,11 +251,22 @@ public class GenotypeLikelihoods {
     }
     
     // how many likelihoods are associated with the given number of alternate alleles?
-    public static int calculateNumLikelihoods(final int numAltAlleles) {
-        int numLikelihoods = 1;
+    public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
+
+        if (numAlleles == 1)
+            return 1;
+        else if (ploidy == 1)
+            return numAlleles;
+
+        int acc =0;
+        for (int k=0; k <= ploidy; k++ )
+            acc += calculateNumLikelihoods(numAlleles-1, ploidy-k);
+
+        return acc;
+/*        int numLikelihoods = 1;
         for ( int i = 1; i <= numAltAlleles; i++ )
             numLikelihoods += i + 1;
-        return numLikelihoods;
+        return numLikelihoods;     */
     }
 
     // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
