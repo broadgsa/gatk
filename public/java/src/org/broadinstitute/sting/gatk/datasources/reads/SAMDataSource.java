@@ -168,7 +168,6 @@ public class SAMDataSource {
                 null,
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
-                false,
                 false);
     }
 
@@ -186,8 +185,7 @@ public class SAMDataSource {
             DownsamplingMethod downsamplingMethod,
             ValidationExclusion exclusionList,
             Collection<ReadFilter> supplementalFilters,
-            boolean includeReadsWithDeletionAtLoci,
-            boolean generateExtendedEvents) {
+            boolean includeReadsWithDeletionAtLoci) {
         this(   samFiles,
                 threadAllocation,
                 numFileHandles,
@@ -199,7 +197,6 @@ public class SAMDataSource {
                 exclusionList,
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
-                generateExtendedEvents,
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
@@ -216,9 +213,6 @@ public class SAMDataSource {
      * @param downsamplingMethod Method for downsampling reads at a given locus.
      * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
-     * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
-     *        a pile of indel/noevent extended events at every locus with at least one indel associated with it
-     *        (in addition to a "regular" call to map() at this locus performed with base pileup)
      * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
@@ -236,7 +230,6 @@ public class SAMDataSource {
             ValidationExclusion exclusionList,
             Collection<ReadFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
-            boolean generateExtendedEvents,
             BAQ.CalculationMode cmode,
             BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader,
@@ -309,7 +302,6 @@ public class SAMDataSource {
                 exclusionList,
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
-                generateExtendedEvents,
                 cmode,
                 qmode,
                 refReader,
