@@ -44,6 +44,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     // todo: make this thread safe?
     protected String[] parts = null;
     protected String[] genotypeParts = null;
+    protected final String[] locParts = new String[6];
 
     // for performance we cache the hashmap of filter encodings for quick lookup
     protected HashMap<String,LinkedHashSet<String>> filterHash = new HashMap<String,LinkedHashSet<String>>();
@@ -198,8 +199,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         // our header cannot be null, we need the genotype sample names and counts
         if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
 
-        final String[] locParts = new String[6];
-        int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+        final int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
         if ( nParts != 6 )
             throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
@@ -216,7 +216,23 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         // ref alleles don't need to be single bases for monomorphic sites
         if ( alleles.size() == 1 ) {
             stop = start + alleles.get(0).length() - 1;
-        } else if ( !isSingleNucleotideEvent(alleles) ) {
+        }
+        // we need to parse the INFO field to check for an END tag if it's a symbolic allele
+        else if ( alleles.size() == 2 && alleles.get(1).isSymbolic() ) {
+            final String[] extraParts = new String[4];
+            final int nExtraParts = ParsingUtils.split(locParts[5], extraParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+            if ( nExtraParts < 3 )
+                throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
+
+            final Map<String, Object> attrs = parseInfo(extraParts[2]);
+            try {
+                stop = attrs.containsKey(VCFConstants.END_KEY) ? Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString()) : start;
+            } catch (Exception e) {
+                throw new UserException.MalformedVCF("the END value in the INFO field is not valid for line " + line, lineNo);
+            }
+        }
+        // handle multi-positional events
+        else if ( !isSingleNucleotideEvent(alleles) ) {
             stop = clipAlleles(start, ref, alleles, null, lineNo);
         }
 
@@ -306,22 +322,33 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         String alts = getCachedString(parts[4].toUpperCase());
         builder.log10PError(parseQual(parts[5]));
         builder.filters(parseFilters(getCachedString(parts[6])));
-        builder.attributes(parseInfo(parts[7]));
+        final Map<String, Object> attrs = parseInfo(parts[7]);
+        builder.attributes(attrs);
 
         // get our alleles, filters, and setup an attribute map
         List<Allele> alleles = parseAlleles(ref, alts, lineNo);
 
         // find out our current location, and clip the alleles down to their minimum length
-        int loc = pos;
+        int stop = pos;
         // ref alleles don't need to be single bases for monomorphic sites
         if ( alleles.size() == 1 ) {
-            loc = pos + alleles.get(0).length() - 1;
-        } else if ( !isSingleNucleotideEvent(alleles) ) {
+            stop = pos + alleles.get(0).length() - 1;
+        }
+        // we need to parse the INFO field to check for an END tag if it's a symbolic allele
+        else if ( alleles.size() == 2 && alleles.get(1).isSymbolic() && attrs.containsKey(VCFConstants.END_KEY) ) {
+            try {
+                stop = Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString());
+            } catch (Exception e) {
+                generateException("the END value in the INFO field is not valid");
+            }
+        }
+        // handle multi-positional events
+        else if ( !isSingleNucleotideEvent(alleles) ) {
             ArrayList<Allele> newAlleles = new ArrayList<Allele>();
-            loc = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
+            stop = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
             alleles = newAlleles;
         }
-        builder.stop(loc);
+        builder.stop(stop);
         builder.alleles(alleles);
 
         // do we have genotyping data
@@ -344,7 +371,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         } catch (Exception e) {
             generateException(e.getMessage());
         }
-
 
         return vc;
     }

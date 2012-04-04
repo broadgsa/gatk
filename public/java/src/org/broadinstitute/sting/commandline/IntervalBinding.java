@@ -83,12 +83,12 @@ public final class IntervalBinding<T extends Feature> {
 
             // TODO -- after ROD system cleanup, go through the ROD system so that we can handle things like gzipped files
 
-            FeatureCodec codec = new FeatureManager().getByName(featureIntervals.getTribbleType()).getCodec();
+            final FeatureCodec codec = new FeatureManager().getByName(featureIntervals.getTribbleType()).getCodec();
             if ( codec instanceof ReferenceDependentFeatureCodec )
                 ((ReferenceDependentFeatureCodec)codec).setGenomeLocParser(toolkit.getGenomeLocParser());
             try {
-                FileInputStream fis = new FileInputStream(new File(featureIntervals.getSource()));
-                AsciiLineReader lineReader = new AsciiLineReader(fis);
+                final FileInputStream fis = new FileInputStream(new File(featureIntervals.getSource()));
+                final AsciiLineReader lineReader = new AsciiLineReader(fis);
                 codec.readHeader(lineReader);
                 String line = lineReader.readLine();
                 while ( line != null ) {

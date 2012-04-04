@@ -229,7 +229,7 @@ public class IntervalIntegrationTest extends WalkerTest {
 
     @Test(enabled = true)
     public void testEmptyVCF() {
-        String md5 = "";
+        String md5 = "897316929176464ebc9ad085f31e7284";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T CountLoci" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
@@ -238,12 +238,12 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "intervalTest.empty.vcf",
                         1, // just one output file
                         Arrays.asList(md5));
-        executeTest("testEmptyVCFError", spec);
+        executeTest("testEmptyVCFWarning", spec);
     }
 
     @Test(enabled = true)
     public void testIncludeExcludeIsTheSame() {
-        String md5 = "";
+        String md5 = "897316929176464ebc9ad085f31e7284";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T CountLoci" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
@@ -256,5 +256,17 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testIncludeExcludeIsTheSame", spec);
     }
 
-
+    @Test(enabled = true)
+    public void testSymbolicAlleles() {
+        String md5 = "52745056d2fd5904857bbd4984c08098";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam" +
+                        " -R " + b36KGReference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "symbolic_alleles_1.vcf",
+                1, // just one output file
+                Arrays.asList(md5));
+        executeTest("testSymbolicAlleles", spec);
+    }
 }
