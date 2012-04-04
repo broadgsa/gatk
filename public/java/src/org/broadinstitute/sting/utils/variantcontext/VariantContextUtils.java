@@ -1076,8 +1076,8 @@ public class VariantContextUtils {
      * @param vc            variant context with genotype likelihoods
      * @return genotypes context
      */
-    public static GenotypesContext assignGenotypes(final VariantContext vc) {
-        return subsetAlleles(vc, vc.getAlleles(), true);
+    public static GenotypesContext assignDiploidGenotypes(final VariantContext vc) {
+        return subsetDiploidAlleles(vc, vc.getAlleles(), true);
     }
 
     private static final List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
@@ -1091,7 +1091,7 @@ public class VariantContextUtils {
      * @param assignGenotypes    true if we should update the genotypes based on the (subsetted) PLs
      * @return genotypes
      */
-    public static GenotypesContext subsetAlleles(final VariantContext vc,
+    public static GenotypesContext subsetDiploidAlleles(final VariantContext vc,
                                                  final List<Allele> allelesToUse,
                                                  final boolean assignGenotypes) {
 
@@ -1170,7 +1170,7 @@ public class VariantContextUtils {
                 if ( !assignGenotypes || MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL )
                     newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, attrs, false));
                 else
-                    newGTs.add(assignGenotype(g, newLikelihoods, allelesToUse, attrs));
+                    newGTs.add(assignDiploidGenotype(g, newLikelihoods, allelesToUse, attrs));
             }
         }
 
@@ -1187,7 +1187,7 @@ public class VariantContextUtils {
      *
      * @return genotype
      */
-    private static Genotype assignGenotype(final Genotype originalGT, final double[] newLikelihoods, final List<Allele> allelesToUse, final Map<String, Object> attrs) {
+    private static Genotype assignDiploidGenotype(final Genotype originalGT, final double[] newLikelihoods, final List<Allele> allelesToUse, final Map<String, Object> attrs) {
         final int numNewAltAlleles = allelesToUse.size() - 1;
 
         // find the genotype with maximum likelihoods

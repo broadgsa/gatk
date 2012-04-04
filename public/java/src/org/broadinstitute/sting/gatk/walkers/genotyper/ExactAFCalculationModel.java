@@ -56,7 +56,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
             alleles.add(vc.getReference());
             alleles.addAll(chooseMostLikelyAlternateAlleles(vc, MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
-            GLs = VariantContextUtils.subsetAlleles(vc, alleles, false);
+            GLs = VariantContextUtils.subsetDiploidAlleles(vc, alleles, false);
         }
 
         linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result);
@@ -64,17 +64,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return alleles;
     }
 
-    private static final class LikelihoodSum implements Comparable<LikelihoodSum> {
-        public double sum = 0.0;
-        public Allele allele;
-
-        public LikelihoodSum(Allele allele) { this.allele = allele; }
-
-        public int compareTo(LikelihoodSum other) {
-            final double diff = sum - other.sum;
-            return ( diff < 0.0 ) ? 1 : (diff > 0.0 ) ? -1 : 0;
-        }
-    }
 
     private static final int PL_INDEX_OF_HOM_REF = 0;
     private static final List<Allele> chooseMostLikelyAlternateAlleles(VariantContext vc, int numAllelesToChoose) {
@@ -112,22 +101,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return orderedBestAlleles;
     }
     
-    private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
-        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size());
-
-        genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
-        for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
-            if ( sample.hasLikelihoods() ) {
-                double[] gls = sample.getLikelihoods().getAsVector();
-
-                if ( MathUtils.sum(gls) < UnifiedGenotyperEngine.SUM_GL_THRESH_NOCALL )
-                    genotypeLikelihoods.add(gls);
-            }
-        }
-
-        return genotypeLikelihoods;
-    }
-
     // -------------------------------------------------------------------------------------
     //
     // Multi-allelic implementation.
@@ -450,7 +423,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                       final List<Allele> allelesToUse,
                                                       final boolean assignGenotypes,
                                                       final int ploidy) {
-        return VariantContextUtils.subsetAlleles(vc, allelesToUse, assignGenotypes);
+        return VariantContextUtils.subsetDiploidAlleles(vc, allelesToUse, assignGenotypes);
     }
 
     // -------------------------------------------------------------------------------------
