@@ -85,10 +85,13 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
     @Override
     public void update1(final VariantContext eval, final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
         if ( eval.isIndel() && ! eval.isComplexIndel() ) {
-            for ( Allele alt : eval.getAlternateAlleles() ) {
-                final int alleleSize = alt.length() - eval.getReference().length();
-                if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
-                updateLengthHistogram(eval.getReference(), alt);
+            if ( ! ( getWalker().ignoreAC0Sites() && eval.isMonomorphicInSamples() )) {
+                // only if we are actually polymorphic in the subsetted samples should we count the allele
+                for ( Allele alt : eval.getAlternateAlleles() ) {
+                    final int alleleSize = alt.length() - eval.getReference().length();
+                    if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
+                    updateLengthHistogram(eval.getReference(), alt);
+                }
             }
         }
     }
