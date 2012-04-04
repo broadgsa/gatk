@@ -1040,7 +1040,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     private void validateReferencePadding() {
-        if (hasSymbolicAlleles()) // symbolic alleles don't need padding...
+        if ( hasSymbolicAlleles() ) // symbolic alleles don't need padding...
             return;
 
         boolean needsPadding = (getReference().length() == getEnd() - getStart()); // off by one because padded base was removed
@@ -1078,7 +1078,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 //            if ( getReference().length() != (getLocation().size()-1) ) {
         long length = (stop - start) + 1;
         if ( (getReference().isNull() && length != 1 ) ||
-                (getReference().isNonNull() && (length - getReference().length()  > 1))) {
+                (!isSymbolic() && getReference().isNonNull() && (length - getReference().length()  > 1))) {
             throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
         }
     }

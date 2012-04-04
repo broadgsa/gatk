@@ -341,9 +341,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             } catch (Exception e) {
                 generateException("the END value in the INFO field is not valid");
             }
-        }
-        // handle multi-positional events
-        else if ( !isSingleNucleotideEvent(alleles) ) {
+        } else if ( !isSingleNucleotideEvent(alleles) ) {
             ArrayList<Allele> newAlleles = new ArrayList<Allele>();
             stop = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
             alleles = newAlleles;
@@ -611,11 +609,14 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
     public static int computeForwardClipping(List<Allele> unclippedAlleles, String ref) {
         boolean clipping = true;
+        int symbolicAlleleCount = 0;
         final byte ref0 = (byte)ref.charAt(0);
 
         for ( Allele a : unclippedAlleles ) {
-            if ( a.isSymbolic() )
+            if ( a.isSymbolic() ) {
+                symbolicAlleleCount++;
                 continue;
+            }
 
             if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
                 clipping = false;
@@ -623,7 +624,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             }
         }
 
-        return (clipping) ? 1 : 0;
+        // don't clip if all alleles are symbolic
+        return (clipping && symbolicAlleleCount != unclippedAlleles.size()) ? 1 : 0;
     }
 
     protected static int computeReverseClipping(List<Allele> unclippedAlleles, String ref, int forwardClipping, int lineNo) {

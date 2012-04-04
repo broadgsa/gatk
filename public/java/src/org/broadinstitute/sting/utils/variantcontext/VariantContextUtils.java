@@ -140,22 +140,22 @@ public class VariantContextUtils {
 
     public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
         // see if we need to pad common reference base from all alleles
-        boolean padVC;
+        boolean padVC = false;
 
         // We need to pad a VC with a common base if the length of the reference allele is less than the length of the VariantContext.
         // This happens because the position of e.g. an indel is always one before the actual event (as per VCF convention).
-        long locLength = (inputVC.getEnd() - inputVC.getStart()) + 1;
-        if (inputVC.hasSymbolicAlleles())
-            padVC = true;
-        else if (inputVC.getReference().length() == locLength)
+        final int recordLength = inputVC.getEnd() - inputVC.getStart() + 1;
+        final int referenceLength = inputVC.getReference().length();
+        if ( referenceLength == recordLength )
             padVC = false;
-        else if (inputVC.getReference().length() == locLength-1)
+        else if ( referenceLength == recordLength - 1 )
             padVC = true;
-        else throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
+        else if ( !inputVC.hasSymbolicAlleles() )
+            throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
                     " in contig " + inputVC.getChr() + ". Reference length must be at most one base shorter than location size");
 
         // nothing to do if we don't need to pad bases
-        if (padVC) {
+        if ( padVC ) {
             if ( !inputVC.hasReferenceBaseForIndel() )
                 throw new ReviewedStingException("Badly formed variant context at location " + inputVC.getChr() + ":" + inputVC.getStart() + "; no padded reference base is available.");
 
@@ -506,6 +506,7 @@ public class VariantContextUtils {
         final VariantContext first = VCs.get(0);
         final String name = first.getSource();
         final Allele refAllele = determineReferenceAllele(VCs);
+        Byte referenceBaseForIndel = null;
 
         final Set<Allele> alleles = new LinkedHashSet<Allele>();
         final Set<String> filters = new TreeSet<String>();
@@ -530,7 +531,7 @@ public class VariantContextUtils {
         // cycle through and add info from the other VCs, making sure the loc/reference matches
 
         for ( final VariantContext vc : VCs ) {
-            if ( loc.getStart() != vc.getStart() ) // || !first.getReference().equals(vc.getReference()) )
+            if ( loc.getStart() != vc.getStart() )
                 throw new ReviewedStingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
 
             if ( getLocation(genomeLocParser,vc).size() > loc.size() )
@@ -549,6 +550,9 @@ public class VariantContextUtils {
             log10PError = Math.min(log10PError, vc.isVariant() ? vc.getLog10PError() : 1);
 
             filters.addAll(vc.getFilters());
+
+            if ( referenceBaseForIndel == null )
+                referenceBaseForIndel = vc.getReferenceBaseForIndel();
 
             //
             // add attributes
@@ -659,6 +663,7 @@ public class VariantContextUtils {
         builder.genotypes(genotypes);
         builder.log10PError(log10PError);
         builder.filters(filters).attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
+        builder.referenceBaseForIndel(referenceBaseForIndel);
 
         // Trim the padded bases of all alleles if necessary
         final VariantContext merged = createVariantContextWithTrimmedAlleles(builder.make());
