@@ -249,8 +249,33 @@ public class GenotypeLikelihoods {
             
         return cache;
     }
-    
-    // how many likelihoods are associated with the given number of alternate alleles?
+
+    /**
+    * Compute how many likelihood elements are associated with the given number of alleles
+    * Equivalent to asking in how many ways N non-negative integers can add up to P is S(N,P)
+    * where P = ploidy (number of chromosomes) and N = total # of alleles.
+    * Each chromosome can be in one single state (0,...,N-1) and there are P of them.
+    * Naive solution would be to store N*P likelihoods, but this is not necessary because we can't distinguish chromosome states, but rather
+    * only total number of alt allele counts in all chromosomes.
+    *
+    * For example, S(3,2) = 6: For alleles A,B,C, on a diploid organism we have six possible genotypes:
+    * AA,AB,BB,AB,BC,CC.
+    * Another way of expressing is with vector (#of A alleles, # of B alleles, # of C alleles)
+    * which is then, for ordering above, (2,0,0), (1,1,0), (0,2,0), (1,1,0), (0,1,1), (0,0,2)
+    * In general, for P=2 (regular biallelic), then S(N,2) = N*(N+1)/2
+    *
+    * Recursive implementation:
+    *   S(N,P) = sum_{k=0}^P S(N-1,P-k)
+    *  because if we have N integers, we can condition 1 integer to be = k, and then N-1 integers have to sum to P-K
+    * With initial conditions
+    *   S(N,1) = N  (only way to have N integers add up to 1 is all-zeros except one element with a one. There are N of these vectors)
+    *   S(1,P) = 1 (only way to have 1 integer add to P is with that integer P itself).
+    *
+    *   @param  numAlleles      Number of alleles (including ref)
+    *   @param  ploidy          Ploidy, or number of chromosomes in set
+    *   @return    Number of likelihood elements we need to hold.
+    */
+
     public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
 
         if (numAlleles == 1)
@@ -263,10 +288,7 @@ public class GenotypeLikelihoods {
             acc += calculateNumLikelihoods(numAlleles-1, ploidy-k);
 
         return acc;
-/*        int numLikelihoods = 1;
-        for ( int i = 1; i <= numAltAlleles; i++ )
-            numLikelihoods += i + 1;
-        return numLikelihoods;     */
+
     }
 
     // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
