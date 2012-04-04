@@ -33,6 +33,8 @@ public class BQSRGathererUnitTest {
         for (GATKReportTable originalTable : originalReport.getTables()) {
             GATKReportTable calculatedTable = calculatedReport.getTable(originalTable.getTableName());
             List<String> columnsToTest = new LinkedList<String>();
+            columnsToTest.add(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
+            columnsToTest.add(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
             if (originalTable.getTableName().equals(RecalDataManager.ARGUMENT_REPORT_TABLE_TITLE)) {                    // these tables must be IDENTICAL
                 columnsToTest.add(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
                 testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 1);
@@ -44,8 +46,6 @@ public class BQSRGathererUnitTest {
             }
             
             else if (originalTable.getTableName().startsWith("RecalTable")) {
-                columnsToTest.add(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
-                columnsToTest.add(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
                 testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 2);
             }                                              
         }
