@@ -49,6 +49,7 @@ public class ReadUtils {
     }
 
     private static int DEFAULT_ADAPTOR_SIZE = 100;
+    public static int CLIPPING_GOAL_NOT_REACHED = -1;
 
     /**
      * A marker to tell which end of the read has been clipped
@@ -362,7 +363,11 @@ public class ReadUtils {
     @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd() || (read.getUnclippedEnd() < read.getUnclippedStart())"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord, ClippingTail tail) {
-        Pair<Integer, Boolean> result = getReadCoordinateForReferenceCoordinate(read, refCoord);
+        return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, tail, false);
+    }
+
+    public static int getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final ClippingTail tail, final boolean allowGoalNotReached) {
+        Pair<Integer, Boolean> result = getReadCoordinateForReferenceCoordinate(alignmentStart, cigar, refCoord, allowGoalNotReached);
         int readCoord = result.getFirst();
 
         // Corner case one: clipping the right tail and falls on deletion, move to the next
@@ -374,9 +379,9 @@ public class ReadUtils {
         // clipping the left tail and first base is insertion, go to the next read coordinate
         // with the same reference coordinate. Advance to the next cigar element, or to the
         // end of the read if there is no next element.
-        Pair<Boolean, CigarElement> firstElementIsInsertion = readStartsWithInsertion(read);
+        Pair<Boolean, CigarElement> firstElementIsInsertion = readStartsWithInsertion(cigar);
         if (readCoord == 0 && tail == ClippingTail.LEFT_TAIL && firstElementIsInsertion.getFirst())
-            readCoord = Math.min(firstElementIsInsertion.getSecond().getLength(), read.getReadLength() - 1);
+            readCoord = Math.min(firstElementIsInsertion.getSecond().getLength(), cigar.getReadLength() - 1);
 
         return readCoord;
     }
@@ -400,14 +405,25 @@ public class ReadUtils {
     @Requires({"refCoord >= read.getSoftStart()", "refCoord <= read.getSoftEnd()"})
     @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord) {
+        return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, false);
+    }
+
+    public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final boolean allowGoalNotReached) {
         int readBases = 0;
         int refBases = 0;
         boolean fallsInsideDeletion = false;
 
-        int goal = refCoord - read.getSoftStart();  // The goal is to move this many reference bases
+        int goal = refCoord - alignmentStart;  // The goal is to move this many reference bases
+        if (goal < 0) {
+            if (allowGoalNotReached) {
+                return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+            } else {
+                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+            }
+        }
         boolean goalReached = refBases == goal;
 
-        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        Iterator<CigarElement> cigarElementIterator = cigar.getCigarElements().iterator();
         while (!goalReached && cigarElementIterator.hasNext()) {
             CigarElement cigarElement = cigarElementIterator.next();
             int shift = 0;
@@ -431,8 +447,13 @@ public class ReadUtils {
 
                 // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
                 // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
-                if (!endsWithinCigar && !cigarElementIterator.hasNext())
-                    throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                if (!endsWithinCigar && !cigarElementIterator.hasNext()) {
+                    if (allowGoalNotReached) {
+                        return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+                    } else {
+                        throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                    }
+                }
 
                 CigarElement nextCigarElement;
 
@@ -447,8 +468,13 @@ public class ReadUtils {
                     // if it's an insertion, we need to clip the whole insertion before looking at the next element
                     if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
                         readBases += nextCigarElement.getLength();
-                        if (!cigarElementIterator.hasNext())
-                            throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                        if (!cigarElementIterator.hasNext()) {
+                            if (allowGoalNotReached) {
+                                return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+                            } else {
+                                throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                            }
+                        }
 
                         nextCigarElement = cigarElementIterator.next();
                     }
@@ -473,8 +499,13 @@ public class ReadUtils {
             }
         }
 
-        if (!goalReached)
-            throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+        if (!goalReached) {
+            if (allowGoalNotReached) {
+                return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+            } else {
+                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+            }
+        }
 
         return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
@@ -527,7 +558,11 @@ public class ReadUtils {
      * @return A pair with the answer (true/false) and the element or null if it doesn't exist
      */
     public static Pair<Boolean, CigarElement> readStartsWithInsertion(GATKSAMRecord read) {
-        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+        return readStartsWithInsertion(read.getCigar());
+    }
+
+    public static Pair<Boolean, CigarElement> readStartsWithInsertion(final Cigar cigar) {
+        for (CigarElement cigarElement : cigar.getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.INSERTION)
                 return new Pair<Boolean, CigarElement>(true, cigarElement);
 
