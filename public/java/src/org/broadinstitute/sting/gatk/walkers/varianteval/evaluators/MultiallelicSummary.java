@@ -92,7 +92,7 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
     @Override public int getComparisonOrder() { return 2; }
 
     public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( eval == null || eval.isMonomorphicInSamples() )
+        if ( eval == null || (getWalker().ignoreAC0Sites() && eval.isMonomorphicInSamples()) )
             return;
 
         // update counts
