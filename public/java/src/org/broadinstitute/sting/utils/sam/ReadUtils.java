@@ -45,6 +45,10 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
+    
+    private static final String OFFSET_OUT_OF_BOUNDS_EXCEPTION = "Offset cannot be greater than read length %d : %d";
+    private static final String OFFSET_NOT_ZERO_EXCEPTION = "We ran past the end of the read and never found the offset, something went wrong!";
+    
     private ReadUtils() {
     }
 
@@ -746,6 +750,33 @@ public class ReadUtils {
         for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
             sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
         return Arrays.deepToString(sequenceRecordNames);
+    }
+
+    /**
+     * Calculates the reference coordinate for a read coordinate
+     *
+     * @param read   the read
+     * @param offset the base in the read (coordinate in the read)
+     * @return the reference coordinate correspondent to this base
+     */
+    public static long getReferenceCoordinateForReadCoordinate(GATKSAMRecord read, int offset) {
+        if (offset > read.getReadLength()) 
+            throw new ReviewedStingException(String.format(OFFSET_OUT_OF_BOUNDS_EXCEPTION, offset, read.getReadLength()));
+
+        long location = read.getAlignmentStart();
+        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        while (offset > 0 && cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            long move = 0;
+            if (cigarElement.getOperator().consumesReferenceBases())  
+                move = (long) Math.min(cigarElement.getLength(), offset);
+            location += move;
+            offset -= move;
+        }
+        if (offset > 0 && !cigarElementIterator.hasNext()) 
+            throw new ReviewedStingException(OFFSET_NOT_ZERO_EXCEPTION);
+
+        return location;
     }
 
 }
