@@ -488,7 +488,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("7c01565531cf82c8c03cf042903b96cf")
+                                Arrays.asList("41a37636868a838a632559949c5216cf")
                               );
         executeTest("testModernVCFWithLargeIndels", spec);
     }

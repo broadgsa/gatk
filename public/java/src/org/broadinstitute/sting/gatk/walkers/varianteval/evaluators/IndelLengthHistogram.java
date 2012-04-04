@@ -53,6 +53,7 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
     public TreeMap<Object, Object> results;
     
     public final static int MAX_SIZE_FOR_HISTOGRAM = 10;
+    private final static boolean INCLUDE_LONG_EVENTS_AT_MAX_SIZE = false;
 
     public IndelLengthHistogram() {
         initializeCounts(MAX_SIZE_FOR_HISTOGRAM);
@@ -99,16 +100,22 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
     /**
      * Update the histogram with the implied length of the indel allele between ref and alt (alt.len - ref.len).
      *
-     * If this size is outside of MAX_SIZE_FOR_HISTOGRAM, the size is capped to MAX_SIZE_FOR_HISTOGRAM
+     * If this size is outside of MAX_SIZE_FOR_HISTOGRAM, the size is capped to MAX_SIZE_FOR_HISTOGRAM,
+     * if INCLUDE_LONG_EVENTS_AT_MAX_SIZE is set.
      *
      * @param ref
      * @param alt
      */
     public void updateLengthHistogram(final Allele ref, final Allele alt) {
         int len = alt.length() - ref.length();
-        if ( len > MAX_SIZE_FOR_HISTOGRAM ) len = MAX_SIZE_FOR_HISTOGRAM;
-        if ( len < -MAX_SIZE_FOR_HISTOGRAM ) len = -MAX_SIZE_FOR_HISTOGRAM;
-
+        if ( INCLUDE_LONG_EVENTS_AT_MAX_SIZE ) {
+            if ( len > MAX_SIZE_FOR_HISTOGRAM ) len = MAX_SIZE_FOR_HISTOGRAM;
+            if ( len < -MAX_SIZE_FOR_HISTOGRAM ) len = -MAX_SIZE_FOR_HISTOGRAM;
+        }
+        
+        if ( Math.abs(len) > MAX_SIZE_FOR_HISTOGRAM )
+            return;
+        
         nIndels++;
         counts.put(len, counts.get(len) + 1);
     }
