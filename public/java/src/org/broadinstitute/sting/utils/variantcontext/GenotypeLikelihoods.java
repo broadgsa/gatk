@@ -322,11 +322,11 @@ public class GenotypeLikelihoods {
      *    ordering and I know with certainty that external users have built code on top of it; changing it now would
      *    cause a whole lot of heartache for our collaborators, so for now at least there's a standard conversion method.
      * This method assumes at most 3 alternate alleles.
-     * TODO -- address this issue at the source by updating DiploidSNPGenotypeLikelihoods.
      *
      * @param PLindex   the PL index
      * @return the allele index pair
      */
+    @Deprecated
     public static GenotypeLikelihoodsAllelePair getAllelePairUsingDeprecatedOrdering(final int PLindex) {
         return getAllelePair(PLindexConversion[PLindex]);
     }

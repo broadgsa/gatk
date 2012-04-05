@@ -27,27 +27,26 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
 
-@Deprecated
-public enum DiploidGenotype {
+public enum DiploidGenotypeWithCorrectAlleleOrdering {
     AA ('A', 'A'),
     AC ('A', 'C'),
-    AG ('A', 'G'),
-    AT ('A', 'T'),
     CC ('C', 'C'),
+    AG ('A', 'G'),
     CG ('C', 'G'),
-    CT ('C', 'T'),
     GG ('G', 'G'),
+    AT ('A', 'T'),
+    CT ('C', 'T'),
     GT ('G', 'T'),
     TT ('T', 'T');
 
     public byte base1, base2;
 
     @Deprecated
-    private DiploidGenotype(char base1, char base2) {
+    private DiploidGenotypeWithCorrectAlleleOrdering(char base1, char base2) {
         this((byte)base1, (byte)base2);
     }
 
-    private DiploidGenotype(byte base1, byte base2) {
+    private DiploidGenotypeWithCorrectAlleleOrdering(byte base1, byte base2) {
         this.base1 = base1;
         this.base2 = base2;
     }
@@ -80,7 +79,7 @@ public enum DiploidGenotype {
      * @param hom the character to turn into a hom genotype, i.e. if it is A, then returned will be AA
      * @return the diploid genotype
      */
-    public static DiploidGenotype createHomGenotype(byte hom) {
+    public static DiploidGenotypeWithCorrectAlleleOrdering createHomGenotype(byte hom) {
         int index = BaseUtils.simpleBaseToBaseIndex(hom);
         if ( index == -1 )
             throw new IllegalArgumentException(hom + " is not a valid base character");
@@ -93,7 +92,7 @@ public enum DiploidGenotype {
      * @param base2 base2
      * @return the diploid genotype
      */
-    public static DiploidGenotype createDiploidGenotype(byte base1, byte base2) {
+    public static DiploidGenotypeWithCorrectAlleleOrdering createDiploidGenotype(byte base1, byte base2) {
         int index1 = BaseUtils.simpleBaseToBaseIndex(base1);
         if ( index1 == -1 )
             throw new IllegalArgumentException(base1 + " is not a valid base character");
@@ -109,7 +108,7 @@ public enum DiploidGenotype {
      * @param baseIndex2 base2
      * @return the diploid genotype
      */
-    public static DiploidGenotype createDiploidGenotype(int baseIndex1, int baseIndex2) {
+    public static DiploidGenotypeWithCorrectAlleleOrdering createDiploidGenotype(int baseIndex1, int baseIndex2) {
         if ( baseIndex1 == -1 )
             throw new IllegalArgumentException(baseIndex1 + " does not represent a valid base character");
         if ( baseIndex2 == -1 )
@@ -117,10 +116,10 @@ public enum DiploidGenotype {
         return conversionMatrix[baseIndex1][baseIndex2];
     }
 
-    private static final DiploidGenotype[][] conversionMatrix = {
-            { DiploidGenotype.AA, DiploidGenotype.AC, DiploidGenotype.AG, DiploidGenotype.AT },
-            { DiploidGenotype.AC, DiploidGenotype.CC, DiploidGenotype.CG, DiploidGenotype.CT },
-            { DiploidGenotype.AG, DiploidGenotype.CG, DiploidGenotype.GG, DiploidGenotype.GT },
-            { DiploidGenotype.AT, DiploidGenotype.CT, DiploidGenotype.GT, DiploidGenotype.TT }
+    private static final DiploidGenotypeWithCorrectAlleleOrdering[][] conversionMatrix = {
+            { DiploidGenotypeWithCorrectAlleleOrdering.AA, DiploidGenotypeWithCorrectAlleleOrdering.AC, DiploidGenotypeWithCorrectAlleleOrdering.AG, DiploidGenotypeWithCorrectAlleleOrdering.AT },
+            { DiploidGenotypeWithCorrectAlleleOrdering.AC, DiploidGenotypeWithCorrectAlleleOrdering.CC, DiploidGenotypeWithCorrectAlleleOrdering.CG, DiploidGenotypeWithCorrectAlleleOrdering.CT },
+            { DiploidGenotypeWithCorrectAlleleOrdering.AG, DiploidGenotypeWithCorrectAlleleOrdering.CG, DiploidGenotypeWithCorrectAlleleOrdering.GG, DiploidGenotypeWithCorrectAlleleOrdering.GT },
+            { DiploidGenotypeWithCorrectAlleleOrdering.AT, DiploidGenotypeWithCorrectAlleleOrdering.CT, DiploidGenotypeWithCorrectAlleleOrdering.GT, DiploidGenotypeWithCorrectAlleleOrdering.TT }
     };
 }

@@ -85,10 +85,6 @@ public class UnifiedGenotyperEngine {
     private final double[] log10AlleleFrequencyPriorsSNPs;
     private final double[] log10AlleleFrequencyPriorsIndels;
 
-    // the priors object
-    private final GenotypePriors genotypePriorsSNPs;
-    private final GenotypePriors genotypePriorsIndels;
-
     // samples in input
     private final Set<String> samples;
 
@@ -136,9 +132,7 @@ public class UnifiedGenotyperEngine {
         log10AlleleFrequencyPriorsIndels = new double[N+1];
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, UAC.heterozygosity);
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsIndels, UAC.INDEL_HETEROZYGOSITY);
-        genotypePriorsSNPs = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.SNP);
-        genotypePriorsIndels = createGenotypePriors(GenotypeLikelihoodsCalculationModel.Model.INDEL);
-        
+
         filter.add(LOW_QUAL_FILTER_NAME);
     }
 
@@ -235,7 +229,7 @@ public class UnifiedGenotyperEngine {
             glcm.set(getGenotypeLikelihoodsCalculationObject(logger, UAC));
         }
 
-        return glcm.get().get(model.name()).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
+        return glcm.get().get(model.name()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
     }
 
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
@@ -287,7 +281,7 @@ public class UnifiedGenotyperEngine {
             if ( limitedContext )
                 return null;
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ?
-                    estimateReferenceConfidence(vc, stratifiedContexts, getGenotypePriors(model).getHeterozygosity(), false, 1.0) :
+                    estimateReferenceConfidence(vc, stratifiedContexts, getTheta(model), false, 1.0) :
                     generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
         }
 
@@ -341,7 +335,7 @@ public class UnifiedGenotyperEngine {
         if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestGuessIsRef) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
-            return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getGenotypePriors(model).getHeterozygosity(), true, 1.0 - PofF);
+            return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getTheta(model), true, 1.0 - PofF);
         }
 
         // start constructing the resulting VC
@@ -628,22 +622,13 @@ public class UnifiedGenotyperEngine {
 
     }
 
-    private static GenotypePriors createGenotypePriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
-        GenotypePriors priors;
+    public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
+    public static final double HUMAN_INDEL_HETEROZYGOSITY = 1e-4;
+    protected double getTheta( final GenotypeLikelihoodsCalculationModel.Model model ) {
         if( model.name().contains("SNP") )
-            priors = new DiploidSNPGenotypePriors();
-        else if( model.name().contains("INDEL") )
-            priors = new DiploidIndelGenotypePriors();
-        else throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
-
-        return priors;
-    }
-
-    protected GenotypePriors getGenotypePriors( final GenotypeLikelihoodsCalculationModel.Model model ) {
-        if( model.name().contains("SNP") )
-            return genotypePriorsSNPs;
+            return HUMAN_SNP_HETEROZYGOSITY;
         if( model.name().contains("INDEL") )
-            return genotypePriorsIndels;
+            return HUMAN_INDEL_HETEROZYGOSITY;
         else throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + model);
     }
 

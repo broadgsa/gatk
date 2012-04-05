@@ -36,7 +36,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -96,7 +95,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          final ReferenceContext ref,
                                          final Map<String, AlignmentContext> contexts,
                                          final AlignmentContextUtils.ReadOrientation contextType,
-                                         final GenotypePriors priors,
                                          final List<Allele> alternateAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
@@ -155,8 +153,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         // check if there is enough reference window to create haplotypes (can be an issue at end of contigs)
         if (ref.getWindow().getStop() < loc.getStop() + HAPLOTYPE_SIZE)
             return null;
-        if (!(priors instanceof DiploidIndelGenotypePriors))
-            throw new StingException("Only diploid-based Indel priors are supported in the INDEL GL model");
 
         if (alleleList.isEmpty())
             return null;

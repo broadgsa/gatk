@@ -29,6 +29,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 
 import java.util.Arrays;
 
+@Deprecated
 public class DiploidSNPGenotypePriors implements GenotypePriors {
     // --------------------------------------------------------------------------------------------------------------
     //
