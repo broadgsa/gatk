@@ -224,22 +224,23 @@ public class RecalDataManager {
     public static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
         List<GATKReportTable> result = new LinkedList<GATKReportTable>();
         int tableIndex = 0;
+
+        final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
+        final Pair<String, String> covariateName      = new Pair<String, String>(RecalDataManager.COVARIATE_NAME_COLUMN_NAME, "%s");
+        final Pair<String, String> eventType          = new Pair<String, String>(RecalDataManager.EVENT_TYPE_COLUMN_NAME, "%s");
+        final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
+        final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
+        final Pair<String, String> nObservations      = new Pair<String, String>(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
+        final Pair<String, String> nErrors            = new Pair<String, String>(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME, "%d");
+
         for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
             BQSRKeyManager keyManager = entry.getKey();
             Map<BitSet, RecalDatum> recalTable = entry.getValue();
 
+            boolean isReadGroupTable = tableIndex == 0;                                                                 // special case for the read group table so we can print the extra column it needs.
             GATKReportTable reportTable = new GATKReportTable("RecalTable" + tableIndex++, "");
-            final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
-            final Pair<String, String> covariateName      = new Pair<String, String>(RecalDataManager.COVARIATE_NAME_COLUMN_NAME, "%s");
-            final Pair<String, String> eventType          = new Pair<String, String>(RecalDataManager.EVENT_TYPE_COLUMN_NAME, "%s");
-            final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME, "%.2f");
-            final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.2f");
-            final Pair<String, String> nObservations      = new Pair<String, String>(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
-            final Pair<String, String> nErrors            = new Pair<String, String>(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME, "%d");
 
-            long primaryKey = 0L;
-
-            List<Covariate> requiredList = keyManager.getRequiredCovariates();                                          // ask the key manager what required covariates were used in this recal table 
+            List<Covariate> requiredList = keyManager.getRequiredCovariates();                                          // ask the key manager what required covariates were used in this recal table
             List<Covariate> optionalList = keyManager.getOptionalCovariates();                                          // ask the key manager what optional covariates were used in this recal table
 
             ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                        // initialize the array to hold the column names
@@ -256,14 +257,16 @@ public class RecalDataManager {
 
             columnNames.add(eventType);                                                                                 // the order of these column names is important here
             columnNames.add(empiricalQuality);
-            columnNames.add(estimatedQReported);
+            if (isReadGroupTable)
+                columnNames.add(estimatedQReported);                                                                    // only the read group table needs the estimated Q reported
             columnNames.add(nObservations);
             columnNames.add(nErrors);
-
 
             reportTable.addPrimaryKey("PrimaryKey", false);                                                             // every table must have a primary key (hidden)
             for (Pair<String, String> columnName : columnNames)
                 reportTable.addColumn(columnName.getFirst(), true, columnName.getSecond());                             // every table must have the event type
+
+            long primaryKey = 0L;
 
             for (Map.Entry<BitSet, RecalDatum> recalTableEntry : recalTable.entrySet()) {                               // create a map with column name => key value for all covariate keys
                 BitSet bitSetKey = recalTableEntry.getKey();
@@ -274,8 +277,9 @@ public class RecalDataManager {
                     columnData.put(columnName, key);
                 }
                 RecalDatum datum = recalTableEntry.getValue();
-                columnData.put(iterator.next().getFirst(), datum.getEmpiricalQuality());                                // iterator.next() gives the column name for Empirical Quality
-                columnData.put(iterator.next().getFirst(), Math.round(datum.getEstimatedQReported()));                  // iterator.next() gives the column name for EstimatedQReported
+                columnData.put(iterator.next().getFirst(), datum.getEmpiricalQuality());
+                if (isReadGroupTable)
+                    columnData.put(iterator.next().getFirst(), datum.getEstimatedQReported());                          // we only add the estimated Q reported in the RG table
                 columnData.put(iterator.next().getFirst(), datum.numObservations);
                 columnData.put(iterator.next().getFirst(), datum.numMismatches);
 

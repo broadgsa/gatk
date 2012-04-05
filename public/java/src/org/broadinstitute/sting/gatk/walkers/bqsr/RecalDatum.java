@@ -25,6 +25,8 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import org.broadinstitute.sting.utils.QualityUtils;
+
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -76,7 +78,7 @@ public class RecalDatum extends RecalDatumOptimized {
     public final void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         this.increment(other.numObservations, other.numMismatches);
-        this.estimatedQReported = -10 * Math.log10(sumErrors / (double) this.numObservations);
+        this.estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -90,7 +92,7 @@ public class RecalDatum extends RecalDatumOptimized {
     }
     
     public final void calcEstimatedReportedQuality() {
-        this.estimatedQReported = -10 * Math.log10(calcExpectedErrors() / (double) numObservations);
+        this.estimatedQReported = -10 * Math.log10(calcExpectedErrors() / numObservations);
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -107,15 +109,16 @@ public class RecalDatum extends RecalDatumOptimized {
         return empiricalQuality;
     }
 
-    public final void resetCalculatedQualities() {
-        empiricalQuality = 0.0;
-    }
-
     private double calcExpectedErrors() {
-        return (double) this.numObservations * qualToErrorProb(estimatedQReported);
+        return (double) this.numObservations * QualityUtils.qualToProb(estimatedQReported);
     }
 
-    private double qualToErrorProb(final double qual) {
-        return Math.pow(10.0, qual / -10.0);
+    /**
+     * Makes a hard copy of the recal datum element
+     *
+     * @return a new recal datum object with the same contents of this datum.
+     */
+    protected RecalDatum copy() {
+        return new RecalDatum(numObservations, numMismatches, estimatedQReported, empiricalQuality);
     }
 }

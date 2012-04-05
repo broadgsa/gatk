@@ -88,22 +88,30 @@ public class RecalibrationReport {
      * @param other the recalibration report to combine with this one
      */
     public void combine(RecalibrationReport other) {
-        Iterator<Map<BitSet, RecalDatum>> tableIterator = keysAndTablesMap.values().iterator();                         // because these are ordered (linked hashmaps) we can iterate over the 'this' and do a for loop on the 'other' tables and be sure that we are looking at the equivalent tables on both objects
-        for (Map<BitSet, RecalDatum> otherTable : other.getKeysAndTablesMap().values()) {                               // iterate over all tables for 'other'
-            Map<BitSet, RecalDatum> thisTable = tableIterator.next();                                                   // iterate over all tables for 'this'
-            for (Map.Entry<BitSet, RecalDatum> entry : otherTable.entrySet()) {                                         // for each table, go through all the entries in the 'other' dataset to update 'this' dataset
-                BitSet key = entry.getKey();
-                RecalDatum otherDatum = entry.getValue();
-                RecalDatum thisDatum = thisTable.get(key);
+        Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> thisIterator = keysAndTablesMap.entrySet().iterator();
+
+        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> otherEntry : other.getKeysAndTablesMap().entrySet()) {
+            Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> thisEntry = thisIterator.next();
+
+            Map<BitSet, RecalDatum> thisTable = thisEntry.getValue();
+            BQSRKeyManager thisKeyManager = thisEntry.getKey();
+            BQSRKeyManager otherKeyManager = otherEntry.getKey();
+
+            for (Map.Entry<BitSet, RecalDatum> otherTableEntry : otherEntry.getValue().entrySet()) {
+                RecalDatum otherDatum = otherTableEntry.getValue();
+                BitSet otherBitKey = otherTableEntry.getKey();
+                List<Object> otherObjectKey = otherKeyManager.keySetFrom(otherBitKey);
+                
+                BitSet thisBitKey = thisKeyManager.bitSetFromKey(otherObjectKey.toArray());
+                RecalDatum thisDatum = thisTable.get(thisBitKey);
+                
                 if (thisDatum == null)
-                    thisDatum = otherDatum;                                                                             // sometimes the datum in other won't be present in 'this'. So just assign it!
+                    thisTable.put(thisBitKey, otherDatum);
                 else
-                    thisDatum.combine(otherDatum);                                                                      // add the two datum objects into 'this'
-                thisDatum.resetCalculatedQualities();                                                                   // reset the empirical quality to make sure the user doesn't forget to recalculate it
+                    thisDatum.combine(otherDatum);
             }            
         }
     }
-
 
     public QuantizationInfo getQuantizationInfo() {
         return quantizationInfo;
@@ -279,13 +287,11 @@ public class RecalibrationReport {
      * and quantization of the quality scores during every call of combine(). Very useful for the BQSRGatherer.
      */
     public void calculateEmpiricalAndQuantizedQualities() {
-        quantizationInfo.quantizeQualityScores(RAC.QUANTIZING_LEVELS);
-        for (Map<BitSet, RecalDatum> table : keysAndTablesMap.values()) {
-            for (RecalDatum datum : table.values()) {
+        for (Map<BitSet, RecalDatum> table : keysAndTablesMap.values())
+            for (RecalDatum datum : table.values())
                 datum.calcCombinedEmpiricalQuality(QualityUtils.MAX_QUAL_SCORE);
-                datum.calcEstimatedReportedQuality();
-            }
-        }
+
+        quantizationInfo = new QuantizationInfo(keysAndTablesMap, RAC.QUANTIZING_LEVELS);
     }
 
     public void output(PrintStream output) {
