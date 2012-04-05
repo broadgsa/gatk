@@ -139,7 +139,7 @@ public class RecalibrationReport {
         columnNamesOrderedList.add(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.COVARIATE_NAME_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
-        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
+        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList, false);
     }
 
     /**
@@ -154,7 +154,7 @@ public class RecalibrationReport {
         columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
-        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
+        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList, false);
     }
 
     /**
@@ -168,7 +168,7 @@ public class RecalibrationReport {
         ArrayList<String> columnNamesOrderedList = new ArrayList<String>(2);
         columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
-        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList);
+        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList, true);
     }
 
     /**
@@ -179,7 +179,7 @@ public class RecalibrationReport {
      * @param columnNamesOrderedList a list of columns to read from the report table and build as key for this particular table
      * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
      */
-    private Map<BitSet, RecalDatum> genericRecalTableParsing(BQSRKeyManager keyManager, GATKReportTable reportTable, ArrayList<String> columnNamesOrderedList) {
+    private Map<BitSet, RecalDatum> genericRecalTableParsing(BQSRKeyManager keyManager, GATKReportTable reportTable, ArrayList<String> columnNamesOrderedList, boolean hasEstimatedQReportedColumn) {
         Map<BitSet, RecalDatum> result = new HashMap<BitSet, RecalDatum>(reportTable.getNumRows()*2);
 
         for (Object primaryKey : reportTable.getPrimaryKeys()) {
@@ -192,10 +192,13 @@ public class RecalibrationReport {
 
             long nObservations = (Long) reportTable.get(primaryKey, RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
             long nErrors = (Long) reportTable.get(primaryKey, RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
-            double estimatedQReported = (Double) reportTable.get(primaryKey, RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME);
             double empiricalQuality = (Double) reportTable.get(primaryKey, RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME);
-            RecalDatum recalDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
 
+            double estimatedQReported = hasEstimatedQReportedColumn ?                                                   // the estimatedQreported column only exists in the ReadGroup table
+                (Double) reportTable.get(primaryKey, RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME) :               // we get it if we are in the read group table
+                Byte.parseByte((String) reportTable.get(primaryKey, RecalDataManager.QUALITY_SCORE_COLUMN_NAME));       // or we use the reported quality if we are in any other table
+
+            RecalDatum recalDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
             result.put(bitKey, recalDatum);
         }
         return result;
