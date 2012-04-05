@@ -488,7 +488,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("7c01565531cf82c8c03cf042903b96cf")
+                                Arrays.asList("41a37636868a838a632559949c5216cf")
                               );
         executeTest("testModernVCFWithLargeIndels", spec);
     }
@@ -506,4 +506,21 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 UserException.class);
         executeTest("testIncompatibleEvalAndStrat", spec);
     }
+
+    public void testIncludingAC0(boolean includeAC0, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + testDir + "/ac0.vcf",
+                        "-L 20:81006 -noST -noEV -EV VariantSummary -o %s" + (includeAC0 ? " -keepAC0" : "")
+                ),
+                1,
+                Arrays.asList(md5));
+        executeTest("testIncludingAC0 keep ac 0 = " + includeAC0, spec);
+    }
+
+    @Test public void testWithAC0() { testIncludingAC0(true, "0ed2c8e4b4e06973a06838bc930a132d"); }
+    @Test public void testWithoutAC0() { testIncludingAC0(false, "79d28ddd0ab9584776b6cbefe48331df"); }
+
 }

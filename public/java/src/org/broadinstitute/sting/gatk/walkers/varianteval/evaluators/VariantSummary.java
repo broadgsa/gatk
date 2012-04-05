@@ -207,7 +207,8 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     }
 
     public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( eval == null || eval.isMonomorphicInSamples() ) return;
+        if ( eval == null || (getWalker().ignoreAC0Sites() && eval.isMonomorphicInSamples()) )
+            return;
 
         final Type type = getType(eval);
 

@@ -53,6 +53,7 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
     public TreeMap<Object, Object> results;
     
     public final static int MAX_SIZE_FOR_HISTOGRAM = 10;
+    private final static boolean INCLUDE_LONG_EVENTS_AT_MAX_SIZE = false;
 
     public IndelLengthHistogram() {
         initializeCounts(MAX_SIZE_FOR_HISTOGRAM);
@@ -85,10 +86,13 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
     @Override
     public void update1(final VariantContext eval, final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
         if ( eval.isIndel() && ! eval.isComplexIndel() ) {
-            for ( Allele alt : eval.getAlternateAlleles() ) {
-                final int alleleSize = alt.length() - eval.getReference().length();
-                if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
-                updateLengthHistogram(eval.getReference(), alt);
+            if ( ! ( getWalker().ignoreAC0Sites() && eval.isMonomorphicInSamples() )) {
+                // only if we are actually polymorphic in the subsetted samples should we count the allele
+                for ( Allele alt : eval.getAlternateAlleles() ) {
+                    final int alleleSize = alt.length() - eval.getReference().length();
+                    if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
+                    updateLengthHistogram(eval.getReference(), alt);
+                }
             }
         }
     }
@@ -96,16 +100,22 @@ public class IndelLengthHistogram extends VariantEvaluator implements StandardEv
     /**
      * Update the histogram with the implied length of the indel allele between ref and alt (alt.len - ref.len).
      *
-     * If this size is outside of MAX_SIZE_FOR_HISTOGRAM, the size is capped to MAX_SIZE_FOR_HISTOGRAM
+     * If this size is outside of MAX_SIZE_FOR_HISTOGRAM, the size is capped to MAX_SIZE_FOR_HISTOGRAM,
+     * if INCLUDE_LONG_EVENTS_AT_MAX_SIZE is set.
      *
      * @param ref
      * @param alt
      */
     public void updateLengthHistogram(final Allele ref, final Allele alt) {
         int len = alt.length() - ref.length();
-        if ( len > MAX_SIZE_FOR_HISTOGRAM ) len = MAX_SIZE_FOR_HISTOGRAM;
-        if ( len < -MAX_SIZE_FOR_HISTOGRAM ) len = -MAX_SIZE_FOR_HISTOGRAM;
-
+        if ( INCLUDE_LONG_EVENTS_AT_MAX_SIZE ) {
+            if ( len > MAX_SIZE_FOR_HISTOGRAM ) len = MAX_SIZE_FOR_HISTOGRAM;
+            if ( len < -MAX_SIZE_FOR_HISTOGRAM ) len = -MAX_SIZE_FOR_HISTOGRAM;
+        }
+        
+        if ( Math.abs(len) > MAX_SIZE_FOR_HISTOGRAM )
+            return;
+        
         nIndels++;
         counts.put(len, counts.get(len) + 1);
     }
