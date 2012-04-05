@@ -223,12 +223,12 @@ public class GenotypeLikelihoods {
     /**
      * The maximum number of alleles that we can represent as genotype likelihoods
      */
-    final static int MAX_ALLELES_THAT_CAN_BE_GENOTYPED = 500;
+    final static int MAX_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
 
     /*
      * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
      */
-    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALLELES_THAT_CAN_BE_GENOTYPED); // start with data for 10 alternate alleles
+    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALLELES_THAT_CAN_BE_GENOTYPED);
 
     private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
         final int numLikelihoods = calculateNumLikelihoods(1+altAlleles, 2);
@@ -259,7 +259,7 @@ public class GenotypeLikelihoods {
     * only total number of alt allele counts in all chromosomes.
     *
     * For example, S(3,2) = 6: For alleles A,B,C, on a diploid organism we have six possible genotypes:
-    * AA,AB,BB,AB,BC,CC.
+    * AA,AB,BB,AC,BC,CC.
     * Another way of expressing is with vector (#of A alleles, # of B alleles, # of C alleles)
     * which is then, for ordering above, (2,0,0), (1,1,0), (0,2,0), (1,1,0), (0,1,1), (0,0,2)
     * In general, for P=2 (regular biallelic), then S(N,2) = N*(N+1)/2
