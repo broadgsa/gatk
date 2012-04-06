@@ -604,7 +604,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         private RepeatDetectorTest(boolean isTrueRepeat, String ref, String refAlleleString, String ... altAlleleStrings) {
             super(RepeatDetectorTest.class);
-            this.ref = ref;
+            this.ref = "N" + ref; // add a dummy base for the event here
             this.isTrueRepeat = isTrueRepeat;
 
             List<Allele> alleles = new LinkedList<Allele>();
