@@ -1201,4 +1201,80 @@ public class VariantContextUtils {
         final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(PLindex, newLikelihoods);
         return new Genotype(originalGT.getSampleName(), myAlleles, qual, null, attrs, false);
     }
+
+    /**
+     * Returns true iff VC is an non-complex indel where every allele represents an expansion or 
+     * contraction of a series of identical bases in the reference.
+     * 
+     * For example, suppose the ref bases are CTCTCTGA, which includes a 3x repeat of CTCTCT
+     * 
+     * If VC = -/CT, then this function returns true because the CT insertion matches exactly the
+     * upcoming reference.  
+     * If VC = -/CTA then this function returns false because the CTA isn't a perfect match
+     * 
+     * Now consider deletions:
+     * 
+     * If VC = CT/- then again the same logic applies and this returns true
+     * The case of CTA/- makes no sense because it doesn't actually match the reference bases.  
+     * 
+     * The logic of this function is pretty simple.  Take all of the non-null alleles in VC.  For
+     * each insertion allele of n bases, check if that allele matches the next n reference bases.
+     * For each deletion allele of n bases, check if this matches the reference bases at n - 2 n,
+     * as it must necessarily match the first n bases.  If this test returns true for all 
+     * alleles you are a tandem repeat, otherwise you are not.
+     * 
+     * @param vc
+     * @param refBasesStartingAtVCWithPad not this is assumed to include the PADDED reference
+     * @return
+     */
+    @Requires({"vc != null", "refBasesStartingAtVCWithPad != null && refBasesStartingAtVCWithPad.length > 0"})
+    public static boolean isTandemRepeat(final VariantContext vc, final byte[] refBasesStartingAtVCWithPad) {
+        final String refBasesStartingAtVCWithoutPad = new String(refBasesStartingAtVCWithPad).substring(1);
+        if ( ! vc.isIndel() ) // only indels are tandem repeats
+            return false;
+        
+        final Allele ref = vc.getReference();
+
+        for ( final Allele allele : vc.getAlternateAlleles() ) {
+            if ( ! isRepeatAllele(ref, allele, refBasesStartingAtVCWithoutPad) )
+                return false;
+        }
+
+        // we've passed all of the tests, so we are a repeat
+        return true;
+    }
+
+    /**
+     * Helper function for isTandemRepeat that checks that allele matches somewhere on the reference
+     * @param ref
+     * @param alt
+     * @param refBasesStartingAtVCWithoutPad
+     * @return
+     */
+    protected static boolean isRepeatAllele(final Allele ref, final Allele alt, final String refBasesStartingAtVCWithoutPad) {
+        if ( ! Allele.oneIsPrefixOfOther(ref, alt) )
+            return false; // we require one allele be a prefix of another
+        
+        if ( ref.length() > alt.length() ) { // we are a deletion
+            return basesAreRepeated(ref.getBaseString(), alt.getBaseString(), refBasesStartingAtVCWithoutPad, 2);
+        } else { // we are an insertion
+            return basesAreRepeated(alt.getBaseString(), ref.getBaseString(), refBasesStartingAtVCWithoutPad, 1);
+        }
+    }
+    
+    protected static boolean basesAreRepeated(final String l, final String s, final String ref, final int minNumberOfMatches) {
+        final String potentialRepeat = l.substring(s.length()); // skip s bases
+        
+        for ( int i = 0; i < minNumberOfMatches; i++) {
+            final int start = i * potentialRepeat.length();
+            final int end = (i+1) * potentialRepeat.length();
+            if ( ref.length() < end )
+                 return false; // we ran out of bases to test
+            final String refSub = ref.substring(start, end);
+            if ( ! refSub.equals(potentialRepeat) )
+                return false; // repeat didn't match, fail
+        }
+
+        return true; // we passed all tests, we matched
+    }
 }
