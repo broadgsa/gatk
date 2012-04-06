@@ -191,6 +191,16 @@ public class ReferenceContext {
         return basesCache;
     }
 
+    /**
+     * All the bases in the window from the current base forward to the end of the window.
+     */
+    public byte[] getForwardBases() {
+        final byte[] bases = getBases();
+        final int mid = locus.getStart() - window.getStart();
+        // todo -- warning of performance problem, especially if this is called over and over
+        return new String(bases).substring(mid).getBytes();
+    }
+
     @Deprecated
     public char getBaseAsChar() {
         return (char)getBase();
