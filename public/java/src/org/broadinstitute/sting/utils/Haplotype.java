@@ -27,12 +27,11 @@ package org.broadinstitute.sting.utils;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
@@ -41,6 +40,7 @@ public class Haplotype {
     protected final double[] quals;
     private GenomeLoc genomeLocation = null;
     private HashMap<String, double[]> readLikelihoodsPerSample = null;
+    private HashMap<Integer, VariantContext> eventMap = null;
     private boolean isRef = false;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
@@ -95,6 +95,14 @@ public class Haplotype {
     
     public Set<String> getSampleKeySet() {
         return readLikelihoodsPerSample.keySet();
+    }
+
+    public HashMap<Integer, VariantContext> getEventMap() {
+        return eventMap;
+    }
+
+    public void setEventMap( final HashMap<Integer, VariantContext> eventMap ) {
+        this.eventMap = eventMap;
     }
 
     public boolean isReference() {
