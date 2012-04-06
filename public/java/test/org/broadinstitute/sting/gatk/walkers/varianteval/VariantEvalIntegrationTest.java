@@ -302,7 +302,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
                 " --comp:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                1, Arrays.asList("c8a782f51e094dc7be06dbfb795feab2"));
+                1, Arrays.asList("4c00cfa0fd343fef62d19af0edeb4f65"));
         executeTestParallel("testSelect1", spec);
     }
 
@@ -330,7 +330,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("5c409a2ab4517f862c6678902c0fd7a1"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("4df6654860ad63b7e24e6bc5fbbbcb00"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
 
@@ -360,7 +360,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " --dbsnp " + b37dbSNP132 +
                            " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("a27c700eabe6b7b3877c8fd4eabb3975"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("3b85cd0fa37539ff51d34e026f26fef2"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -372,7 +372,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " --eval:evalBC " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("3272a2db627d4f42bc512df49a8ea64b"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("bed8751c773b9568218f78c90f13348a"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
@@ -488,10 +488,31 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("41a37636868a838a632559949c5216cf")
+                                Arrays.asList("9726c0c8f19d271cf680f5f16f0926b3")
                               );
         executeTest("testModernVCFWithLargeIndels", spec);
     }
+
+    @Test
+    public void testStandardIndelEval() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + validationDataLocation + "/NA12878.HiSeq.WGS.b37_decoy.indel.recalibrated.vcf",
+                        "-L 20",
+                        "-noST -ST Sample -ST OneBPIndel -ST TandemRepeat",
+                        "-noEV -EV IndelSummary -EV IndelLengthHistogram",
+                        "-gold " + validationDataLocation + "/Mills_and_1000G_gold_standard.indels.b37.sites.vcf",
+                        "-D " + b37dbSNP132,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("c89705147ef4233d5de3a539469bd1d1")
+        );
+        executeTest("testStandardIndelEval", spec);
+    }
+
 
     @Test()
     public void testIncompatibleEvalAndStrat() {

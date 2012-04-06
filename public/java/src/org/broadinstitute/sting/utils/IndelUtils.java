@@ -224,44 +224,11 @@ public class IndelUtils {
         return inds;
     }
 
-    public static String[] getIndelClassificationNames() {
-        return COLUMN_KEYS;
-    }
-
     public static String getIndelClassificationName(int k) {
         if (k >=0 && k < COLUMN_KEYS.length)
             return COLUMN_KEYS[k];
         else
             throw new ReviewedStingException("Invalid index when trying to get indel classification name");
-    }
-
-    public static boolean isATExpansion(VariantContext vc, ReferenceContext ref) {
-        ArrayList<Integer> inds = findEventClassificationIndex(vc, ref);
-
-        boolean isIt = false;
-        for (int k : inds) {
-            if (k == IND_FOR_REPEAT_EXPANSION_A || k == IND_FOR_REPEAT_EXPANSION_T) {
-                isIt = true;
-                break;
-            }
-        }
-
-        return isIt;
-
-    }
-    public static boolean isCGExpansion(VariantContext vc, ReferenceContext ref) {
-        ArrayList<Integer> inds = findEventClassificationIndex(vc, ref);
-
-         boolean isIt = false;
-         for (int k : inds) {
-             if (k == IND_FOR_REPEAT_EXPANSION_C || k == IND_FOR_REPEAT_EXPANSION_G) {
-                 isIt = true;
-                 break;
-             }
-         }
-
-         return isIt;
-
     }
 
     public static boolean isInsideExtendedIndel(VariantContext vc, ReferenceContext ref) {
