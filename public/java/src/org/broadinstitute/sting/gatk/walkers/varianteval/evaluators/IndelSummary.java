@@ -62,8 +62,8 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "Percent of indels overlapping gold standard sites")
     public String gold_standard_matching_rate;
 
-    // counts 1 for each site where the number of alleles > 2
-    public int nMultiIndelSites = 0;
+    @DataPoint(description = "Number of sites with where the number of alleles is greater than 2")
+    public int n_multiallelic_indel_sites = 0;
 
     @DataPoint(description = "Percent of indel sites that are multi-allelic")
     public String percent_of_sites_with_more_than_2_alleles;
@@ -158,10 +158,9 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                 break;
             case INDEL:
                 final VariantContext gold = getWalker().goldStandard == null ? null : tracker.getFirstValue(getWalker().goldStandard);
-                if ( eval.isComplexIndel() ) break; // don't count complex substitutions
-                
+
                 nIndelSites++;
-                if ( ! eval.isBiallelic() ) nMultiIndelSites++;
+                if ( ! eval.isBiallelic() ) n_multiallelic_indel_sites++;
 
                 // collect information about het / hom ratio
                 for ( final Genotype g : eval.getGenotypes() ) {
@@ -216,11 +215,11 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     }
 
     public void finalizeEvaluation() {
-        percent_of_sites_with_more_than_2_alleles = Utils.formattedRatio(nMultiIndelSites, nIndelSites);
+        percent_of_sites_with_more_than_2_alleles = Utils.formattedRatio(n_multiallelic_indel_sites, nIndelSites);
         SNP_to_indel_ratio = Utils.formattedRatio(n_SNPs, n_indels);
         SNP_to_indel_ratio_for_singletons = Utils.formattedRatio(n_singleton_SNPs, n_singleton_indels);
 
-        gold_standard_matching_rate = Utils.formattedNoveltyRate(n_indels_matching_gold_standard, n_indels);
+        gold_standard_matching_rate = Utils.formattedPercent(n_indels_matching_gold_standard, n_indels);
         indel_novelty_rate = Utils.formattedNoveltyRate(nKnownIndels, n_indels);
         frameshift_rate_for_coding_indels = Utils.formattedPercent(n_coding_indels_frameshifting, n_coding_indels_in_frame + n_coding_indels_frameshifting);
 
