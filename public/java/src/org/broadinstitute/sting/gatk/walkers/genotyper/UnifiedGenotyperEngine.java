@@ -53,6 +53,9 @@ public class UnifiedGenotyperEngine {
     
     public static final int DEFAULT_PLOIDY = 2;
 
+    public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
+    public static final double HUMAN_INDEL_HETEROZYGOSITY = 1e-4;
+
     public enum OUTPUT_MODE {
         /** produces calls only at variant sites */
         EMIT_VARIANTS_ONLY,
@@ -622,8 +625,6 @@ public class UnifiedGenotyperEngine {
 
     }
 
-    public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
-    public static final double HUMAN_INDEL_HETEROZYGOSITY = 1e-4;
     protected double getTheta( final GenotypeLikelihoodsCalculationModel.Model model ) {
         if( model.name().contains("SNP") )
             return HUMAN_SNP_HETEROZYGOSITY;
