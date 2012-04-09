@@ -326,7 +326,7 @@ public class UnifiedGenotyperEngine {
         } else {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
             if ( Double.isInfinite(phredScaledConfidence) ) {
-                final double sum = AFresult.getLog10PosteriorMatrixSum();
+                final double sum = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
                 phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
             }
         }
@@ -369,7 +369,7 @@ public class UnifiedGenotyperEngine {
 
             // the overall lod
             //double overallLog10PofNull = AFresult.log10AlleleFrequencyPosteriors[0];
-            double overallLog10PofF = AFresult.getLog10PosteriorMatrixSum();
+            double overallLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
             //if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             List<Allele> alternateAllelesToUse = builder.make().getAlternateAlleles();
@@ -380,7 +380,7 @@ public class UnifiedGenotyperEngine {
             afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model), AFresult);
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double forwardLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
-            double forwardLog10PofF = AFresult.getLog10PosteriorMatrixSum();
+            double forwardLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
             //if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
@@ -389,7 +389,7 @@ public class UnifiedGenotyperEngine {
             afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model), AFresult);
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double reverseLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
-            double reverseLog10PofF = AFresult.getLog10PosteriorMatrixSum();
+            double reverseLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
             //if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 
             double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofF;
@@ -424,7 +424,7 @@ public class UnifiedGenotyperEngine {
 
     public static double[] generateNormalizedPosteriors(final AlleleFrequencyCalculationResult AFresult, final double[] normalizedPosteriors) {
         normalizedPosteriors[0] = AFresult.getLog10PosteriorOfAFzero();
-        normalizedPosteriors[1] = AFresult.getLog10PosteriorMatrixSum();
+        normalizedPosteriors[1] = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
         return MathUtils.normalizeFromLog10(normalizedPosteriors);
     }
 

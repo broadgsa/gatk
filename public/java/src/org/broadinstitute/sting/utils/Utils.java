@@ -290,32 +290,6 @@ public class Utils {
         return m;
     }
 
-
-    // returns the maximum value in the array
-    public static double findMaxEntry(double[] array) {
-        return findIndexAndMaxEntry(array).first;
-    }
-
-    // returns the index of the maximum value in the array
-    public static int findIndexOfMaxEntry(double[] array) {
-        return findIndexAndMaxEntry(array).second;
-    }
-
-    // returns the the maximum value and its index in the array
-    private static Pair<Double, Integer> findIndexAndMaxEntry(double[] array) {
-        if ( array.length == 0 )
-            return new Pair<Double, Integer>(0.0, -1);
-        int index = 0;
-        double max = array[0];
-        for (int i = 1; i < array.length; i++) {
-            if ( array[i] > max ) {
-                max = array[i];
-                index = i;
-            }
-        }
-        return new Pair<Double, Integer>(max, index);
-    }
-
     /**
      * Splits expressions in command args by spaces and returns the array of expressions.
      * Expressions may use single or double quotes to group any individual expression, but not both.
