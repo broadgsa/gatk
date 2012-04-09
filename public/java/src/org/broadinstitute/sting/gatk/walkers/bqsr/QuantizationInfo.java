@@ -19,13 +19,19 @@ import java.util.Map;
 public class QuantizationInfo {
     private List<Byte> quantizedQuals;
     private List<Long> empiricalQualCounts;
+    int quantizationLevels;
 
-    public QuantizationInfo(List<Byte> quantizedQuals, List<Long> empiricalQualCounts) {
+    public QuantizationInfo(List<Byte> quantizedQuals, List<Long> empiricalQualCounts, int quantizationLevels) {
         this.quantizedQuals = quantizedQuals;
         this.empiricalQualCounts = empiricalQualCounts;
+        this.quantizationLevels = quantizationLevels;
+    }
+
+    public QuantizationInfo(List<Byte> quantizedQuals, List<Long> empiricalQualCounts) {
+        this(quantizedQuals, empiricalQualCounts, calculateQuantizationLevels(quantizedQuals));
     }
     
-    public QuantizationInfo(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, int nLevels) {
+    public QuantizationInfo(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, int quantizationLevels) {
         final Long [] qualHistogram = new Long[QualityUtils.MAX_QUAL_SCORE+1];                                          // create a histogram with the empirical quality distribution
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
@@ -46,7 +52,9 @@ public class QuantizationInfo {
             qualHistogram[empiricalQual] += nObservations;                                                              // add the number of observations for every key
         }
         empiricalQualCounts = Arrays.asList(qualHistogram);                                                             // histogram with the number of observations of the empirical qualities
-        quantizeQualityScores(nLevels);
+        quantizeQualityScores(quantizationLevels);
+
+        this.quantizationLevels = quantizationLevels;
     }
 
 
@@ -55,8 +63,18 @@ public class QuantizationInfo {
         quantizedQuals = quantizer.getOriginalToQuantizedMap();                                                         // map with the original to quantized qual map (using the standard number of levels in the RAC)
     }
 
+    public void noQuantization() {
+        this.quantizationLevels = QualityUtils.MAX_QUAL_SCORE;
+        for (int i = 0; i < this.quantizationLevels; i++)
+            quantizedQuals.set(i, (byte) i);
+    }
+
     public List<Byte> getQuantizedQuals() {
         return quantizedQuals;
+    }
+
+    public int getQuantizationLevels() {
+        return quantizationLevels;
     }
 
     public GATKReportTable generateReportTable() {
@@ -70,5 +88,17 @@ public class QuantizationInfo {
             quantizedTable.set(qual, RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME, quantizedQuals.get(qual));
         }
         return quantizedTable;
+    }
+
+    private static int calculateQuantizationLevels(List<Byte> quantizedQuals) {
+        byte lastByte = -1;
+        int quantizationLevels = 0;
+        for (byte q : quantizedQuals) {
+            if (q != lastByte) {
+                quantizationLevels++;
+                lastByte = q;
+            }
+        }
+        return quantizationLevels;
     }
 }
