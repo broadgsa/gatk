@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import com.mongodb.*;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
@@ -33,6 +34,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -181,7 +183,8 @@ import java.util.*;
  *
  */
 public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
-    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
      * A site is considered discordant if there exists some sample in the variant track that has a non-reference genotype
@@ -344,6 +347,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     private Set<String> IDsToKeep = null;
 
+    private final static String MONGO_HOST = "gsa4.broadinstitute.org";
+    private final static Integer MONGO_PORT = 43054;
+    private final static String MONGO_DB_NAME = "bjorn";
+    private final static String MONGO_VC_COLLECTION = "vcs";
+
+    protected Mongo mongo;
+    protected DBCollection mongoCollection;
+
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
@@ -443,6 +454,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 throw new UserException.CouldNotReadInputFile(rsIDFile, e);
             }
         }
+
+        try {
+            mongo = new Mongo(MONGO_HOST, MONGO_PORT);
+            DB mongoDb = mongo.getDB(MONGO_DB_NAME);
+            mongoCollection = mongoDb.getCollection(MONGO_VC_COLLECTION);
+        }
+        catch (MongoException e) {}
+        catch (java.net.UnknownHostException e) {}
+
     }
 
     /**
@@ -458,7 +478,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
+        //Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
+        Collection<VariantContext> vcs = getMongoVariants(context.getLocation());
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
@@ -529,6 +550,92 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         return 1;
+    }
+
+    private Collection<VariantContext> getMongoVariants(GenomeLoc location) {
+        String contig = location.getContig();
+        long start = location.getStart();
+        long stop = location.getStop();
+
+        ArrayList<VariantContext> vcs = new ArrayList<VariantContext>();
+
+        BasicDBObject query = new BasicDBObject();
+        query.put("contig", contig);
+        query.put("start", start);
+        query.put("stop", stop);
+
+        DBCursor cursor = mongoCollection.find(query);
+        while(cursor.hasNext()) {
+            DBObject result = cursor.next();
+
+            String source = (String)result.get("source");
+
+            ArrayList<Allele> alleles = new ArrayList<Allele>();
+            BasicDBObject allelesInDb = (BasicDBObject)result.get("alleles");
+            for (Object alleleInDb : allelesInDb.values()) {
+                String rawAllele = (String)alleleInDb;
+                boolean isRef = rawAllele.contains("*");
+                String allele = rawAllele.replace("*", "");
+                alleles.add(Allele.create(allele, isRef));
+            }
+
+            VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, alleles);
+
+            String id = (String)result.get("id");
+            String sample = (String)result.get("sample");
+            Double error = (Double)result.get("error");
+
+            Map<String, Object> attributes = new TreeMap<String, Object>();
+            BasicDBList attrsInDb = (BasicDBList)result.get("attributes");
+            for (Object attrInDb : attrsInDb) {
+                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
+                String key = (String)attrKVP.get("key");
+                Object value = attrKVP.get("value");
+                attributes.put(key, value);
+            }
+
+            Set<String> filters = new HashSet<String>();
+            BasicDBObject filtersInDb = (BasicDBObject)result.get("filters");
+            if (filtersInDb != null) {
+                for (Object filterInDb : filtersInDb.values()) {
+                    filters.add((String)filterInDb);
+                }
+            }
+
+            BasicDBObject genotypeInDb = (BasicDBObject)result.get("genotype");
+            Double genotypeError = (Double)genotypeInDb.get("error");
+
+            ArrayList<Allele> genotypeAlleles = new ArrayList<Allele>();
+            BasicDBObject genotypeAllelesInDb = (BasicDBObject)genotypeInDb.get("alleles");
+            for (Object alleleInDb : genotypeAllelesInDb.values()) {
+                String rawAllele = (String)alleleInDb;
+                boolean isRef = rawAllele.contains("*");
+                String allele = rawAllele.replace("*", "");
+                genotypeAlleles.add(Allele.create(allele, isRef));
+            }
+
+            Map<String, Object> genotypeAttributes = new TreeMap<String, Object>();
+            BasicDBList genotypeAttrsInDb = (BasicDBList)genotypeInDb.get("attributes");
+            for (Object attrInDb : genotypeAttrsInDb) {
+                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
+                String key = (String)attrKVP.get("key");
+                Object value = attrKVP.get("value");
+                genotypeAttributes.put(key, value);
+            }
+
+            Genotype genotype = new Genotype(sample, genotypeAlleles, genotypeError);
+            genotype = Genotype.modifyAttributes(genotype, genotypeAttributes);
+
+            builder.id(id);
+            builder.log10PError(error);
+            builder.genotypes(genotype);
+            builder.attributes(attributes);
+            builder.filters(filters);
+
+            vcs.add(builder.make());
+        }
+
+        return vcs;
     }
 
     /**

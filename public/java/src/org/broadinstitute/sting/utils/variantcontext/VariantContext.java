@@ -1,8 +1,11 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -1216,6 +1219,86 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 ParsingUtils.sortList(this.getAlleles()),
                 ParsingUtils.sortedString(this.getAttributes()),
                 this.getGenotypes());
+    }
+
+    public List<BasicDBObject> toMongoDB() {
+        List<BasicDBObject> vcDocs = new ArrayList<BasicDBObject>();
+        for (Genotype genotype : this.getGenotypes()) {
+            BasicDBObject vcDoc = new BasicDBObject();
+            vcDoc.put("location", contig + ":" + (start - stop == 0 ? start : start + "-" + stop));
+            vcDoc.put("contig", contig);
+            vcDoc.put("start", start);
+            vcDoc.put("stop", stop);
+            vcDoc.put("id", this.getID());
+            vcDoc.put("error", this.getLog10PError());
+            vcDoc.put("sample", genotype.getSampleName());
+            vcDoc.put("source", this.getSource());
+            vcDoc.put("type", this.getType().toString());
+
+            Integer alleleIndex = 0;
+            BasicDBObject allelesDoc = new BasicDBObject();
+            for (Allele allele : this.getAlleles())
+            {
+                String index = alleleIndex.toString();
+                allelesDoc.put(index, allele.toString());
+                alleleIndex++;
+            }
+            vcDoc.put("alleles", allelesDoc);
+
+            List<BasicDBObject> attributesDocs = new ArrayList<BasicDBObject>();
+            for (Map.Entry<String, Object> attribute : this.getAttributes().entrySet() )
+            {
+                String key = attribute.getKey();
+                Object value = attribute.getValue();
+                BasicDBObject attributesDoc = new BasicDBObject();
+                attributesDoc.put("key", key);
+                attributesDoc.put("value", value);
+                attributesDocs.add(attributesDoc);
+            }
+            vcDoc.put("attributes", attributesDocs);
+
+            BasicDBObject genotypesDoc = new BasicDBObject();
+            Integer genotypeAlleleIndex = 0;
+            BasicDBObject genotypeAllelesDoc = new BasicDBObject();
+            for (Allele allele : genotype.getAlleles())
+            {
+                String index = genotypeAlleleIndex.toString();
+                genotypeAllelesDoc.put(index, allele.toString());
+                genotypeAlleleIndex++;
+            }
+            genotypesDoc.put("alleles", genotypeAllelesDoc);
+
+            List<BasicDBObject> genotypesAttributesDocs = new ArrayList<BasicDBObject>();
+            for (Map.Entry<String, Object> attribute : genotype.getAttributes().entrySet() )
+            {
+                String key = attribute.getKey();
+                Object value = attribute.getValue();
+                BasicDBObject genotypesAttributesDoc = new BasicDBObject();
+                genotypesAttributesDoc.put("key", key);
+                genotypesAttributesDoc.put("value", value);
+                genotypesAttributesDocs.add(genotypesAttributesDoc);
+            }
+            genotypesDoc.put("attributes", genotypesAttributesDocs);
+            genotypesDoc.put("error", genotype.getLog10PError());
+
+            vcDoc.put("genotype", genotypesDoc);
+
+            Integer filterIndex = 0;
+            BasicDBObject filtersDoc = new BasicDBObject();
+            for (String filter : this.getFilters())
+            {
+                String index = filterIndex.toString();
+                filtersDoc.put(index, filter.toString());
+                filterIndex++;
+            }
+            if (filterIndex > 0) {
+                vcDoc.put("filters", filtersDoc);
+            }
+
+            vcDocs.add(vcDoc);
+        }
+
+        return vcDocs;
     }
 
     // protected basic manipulation routines
