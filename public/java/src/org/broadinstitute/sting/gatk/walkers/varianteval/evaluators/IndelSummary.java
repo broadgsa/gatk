@@ -56,6 +56,12 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "Number of singleton Indels", format = "%d")
     public int n_singleton_indels = 0;
 
+    @DataPoint(description = "Number of Indels overlapping gold standard sites", format = "%d")
+    public int n_indels_matching_gold_standard = 0;
+
+    @DataPoint(description = "Percent of indels overlapping gold standard sites")
+    public String gold_standard_matching_rate;
+
     // counts 1 for each site where the number of alleles > 2
     public int nMultiIndelSites = 0;
 
@@ -71,18 +77,6 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "Indel novelty rate")
     public String indel_novelty_rate;
 
-    @DataPoint(description = "1 to 2 bp indel ratio")
-    public String ratio_of_1_to_2_bp_indels;
-
-    @DataPoint(description = "1 to 3 bp indel ratio")
-    public String ratio_of_1_to_3_bp_indels;
-
-    @DataPoint(description = "2 to 3 bp indel ratio")
-    public String ratio_of_2_to_3_bp_indels;
-
-    @DataPoint(description = "1 and 2 to 3 bp indel ratio")
-    public String ratio_of_1_and_2_to_3_bp_indels;
-
     @DataPoint(description = "Frameshift percent")
     public String frameshift_rate_for_coding_indels;
 
@@ -91,9 +85,6 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     //
     @DataPoint(description = "Insertion to deletion ratio")
     public String insertion_to_deletion_ratio;
-
-    @DataPoint(description = "Insertion to deletion ratio for 1 bp events")
-    public String insertion_to_deletion_ratio_for_1bp_indels;
 
     //
     // Frameshifts
@@ -116,9 +107,25 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     int nSNPHets = 0, nSNPHoms = 0, nIndelHets = 0, nIndelHoms = 0;
 
     int nKnownIndels = 0, nInsertions = 0;
-    int n1bpInsertions = 0, n1bpDeletions = 0;
-    int[] countByLength = new int[]{0, 0, 0, 0}; // note that the first element isn't used
 
+    int[] insertionCountByLength = new int[]{0, 0, 0, 0}; // note that the first element isn't used
+    int[] deletionCountByLength = new int[]{0, 0, 0, 0}; // note that the first element isn't used
+
+    // - Since 1 & 2 bp insertions and 1 & 2 bp deletions are equally likely to cause a
+    // downstream frameshift, if we make the simplifying assumptions that 3 bp ins
+    // and 3bp del (adding/subtracting 1 AA in general) are roughly comparably
+    // selected against, we should see a consistent 1+2 : 3 bp ratio for insertions
+    // as for deletions, and certainly would expect consistency between in/dels that
+    // multiple methods find and in/dels that are unique to one method  (since deletions
+    // are more common and the artifacts differ, it is probably worth looking at the totals,
+    // overlaps and ratios for insertions and deletions separately in the methods
+    // comparison and in this case don't even need to make the simplifying in = del functional assumption
+
+    @DataPoint(description = "ratio of 1 and 2 bp insertions to 3 bp insertions")
+    public String ratio_of_1_and_2_to_3_bp_insertions;
+
+    @DataPoint(description = "ratio of 1 and 2 bp deletions to 3 bp deletions")
+    public String ratio_of_1_and_2_to_3_bp_deletions;
 
     public final static int LARGE_INDEL_SIZE_THRESHOLD = 10;
 
@@ -150,11 +157,11 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                 }
                 break;
             case INDEL:
+                final VariantContext gold = getWalker().goldStandard == null ? null : tracker.getFirstValue(getWalker().goldStandard);
                 if ( eval.isComplexIndel() ) break; // don't count complex substitutions
                 
                 nIndelSites++;
                 if ( ! eval.isBiallelic() ) nMultiIndelSites++;
-                if ( variantWasSingleton(eval) ) n_singleton_indels++;
 
                 // collect information about het / hom ratio
                 for ( final Genotype g : eval.getGenotypes() ) {
@@ -164,15 +171,14 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
 
                 for ( Allele alt : eval.getAlternateAlleles() ) {
                     n_indels++; // +1 for each alt allele
-
+                    if ( variantWasSingleton(eval) ) n_singleton_indels++;
                     if ( comp != null ) nKnownIndels++; // TODO -- make this test allele specific?
+                    if ( gold != null ) n_indels_matching_gold_standard++;
 
                     // ins : del ratios
                     final int alleleSize = alt.length() - eval.getReference().length();
                     if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
                     if ( alleleSize > 0 ) nInsertions++;
-                    if ( alleleSize == 1 ) n1bpInsertions++;
-                    if ( alleleSize == -1 ) n1bpDeletions++;
 
                     // requires snpEFF annotations
                     if ( eval.getAttributeAsString("SNPEFF_GENE_BIOTYPE", "missing").equals("protein_coding") ) {
@@ -193,6 +199,7 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                         n_large_deletions++;
                     
                     // update the baby histogram
+                    final int[] countByLength = alleleSize < 0 ? deletionCountByLength : insertionCountByLength;
                     final int absSize = Math.abs(alleleSize);
                     if ( absSize < countByLength.length ) countByLength[absSize]++;
 
@@ -210,18 +217,18 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
         percent_of_sites_with_more_than_2_alleles = Utils.formattedRatio(nMultiIndelSites, nIndelSites);
         SNP_to_indel_ratio = Utils.formattedRatio(n_SNPs, n_indels);
         SNP_to_indel_ratio_for_singletons = Utils.formattedRatio(n_singleton_SNPs, n_singleton_indels);
+
+        gold_standard_matching_rate = Utils.formattedNoveltyRate(n_indels_matching_gold_standard, n_indels);
         indel_novelty_rate = Utils.formattedNoveltyRate(nKnownIndels, n_indels);
-        ratio_of_1_to_2_bp_indels = Utils.formattedRatio(countByLength[1], countByLength[2]);
-        ratio_of_1_to_3_bp_indels = Utils.formattedRatio(countByLength[1], countByLength[3]);
-        ratio_of_2_to_3_bp_indels = Utils.formattedRatio(countByLength[2], countByLength[3]);
-        ratio_of_1_and_2_to_3_bp_indels = Utils.formattedRatio(countByLength[1] + countByLength[2], countByLength[3]);
         frameshift_rate_for_coding_indels = Utils.formattedPercent(n_coding_indels_frameshifting, n_coding_indels_in_frame + n_coding_indels_frameshifting);
+
+        ratio_of_1_and_2_to_3_bp_deletions = Utils.formattedRatio(deletionCountByLength[1] + deletionCountByLength[2], deletionCountByLength[3]);
+        ratio_of_1_and_2_to_3_bp_insertions = Utils.formattedRatio(insertionCountByLength[1] + insertionCountByLength[2], insertionCountByLength[3]);
 
         SNP_het_to_hom_ratio = Utils.formattedRatio(nSNPHets, nSNPHoms);
         indel_het_to_hom_ratio = Utils.formattedRatio(nIndelHets, nIndelHoms);
 
         insertion_to_deletion_ratio = Utils.formattedRatio(nInsertions, n_indels - nInsertions);
-        insertion_to_deletion_ratio_for_1bp_indels = Utils.formattedRatio(n1bpInsertions, n1bpDeletions);
         insertion_to_deletion_ratio_for_large_indels = Utils.formattedRatio(n_large_insertions, n_large_deletions);
 
     }

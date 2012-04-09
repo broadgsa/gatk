@@ -116,6 +116,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
+    /**
+     * Some analyses want to count overlap not with dbSNP (which is in general very open) but
+     * actually want to itemize their overlap specifically with a set of gold standard sites
+     * such as HapMap, OMNI, or the gold standard indels.  Theis argument provides a mechanism
+     * for communicating which file to use
+     */
+    @Input(fullName="goldStandard", shortName = "gold", doc="Evaluations that count calls at sites of true variation (e.g., indel calls) will use this argument as their gold standard for comparison", required=false)
+    public RodBinding<VariantContext> goldStandard = null;
+
     // Help arguments
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit", required=false)
     protected Boolean LIST = false;

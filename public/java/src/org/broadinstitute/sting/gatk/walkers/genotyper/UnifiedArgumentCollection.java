@@ -45,7 +45,7 @@ public class UnifiedArgumentCollection {
      * het = 1e-3, P(hom-ref genotype) = 1 - 3 * het / 2, P(het genotype) = het, P(hom-var genotype) = het / 2
      */
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
-    public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
+    public Double heterozygosity = UnifiedGenotyperEngine.HUMAN_SNP_HETEROZYGOSITY;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
@@ -53,7 +53,7 @@ public class UnifiedArgumentCollection {
      * effectively acts as a cap on the base qualities.
      */
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
-    public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
+    public Double PCR_error = DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering.DEFAULT_PCR_ERROR_RATE;
 
     /**
      * Specifies how to determine the alternate allele to use for genotyping

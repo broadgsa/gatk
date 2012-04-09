@@ -44,23 +44,24 @@ import java.util.*;
 public class BaseRecalibration {
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the map for qual quantization (calculated after recalibration is done)
     private LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
-
     private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
 
-    private static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
-    private static String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
 
     /**
      * Constructor using a GATK Report file
      * 
      * @param RECAL_FILE a GATK Report file containing the recalibration information
      */
-    public BaseRecalibration(final File RECAL_FILE) {
+    public BaseRecalibration(final File RECAL_FILE, int quantizationLevels) {
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
-        quantizationInfo = recalibrationReport.getQuantizationInfo();
         keysAndTablesMap = recalibrationReport.getKeysAndTablesMap();
         requestedCovariates = recalibrationReport.getRequestedCovariates();
+        quantizationInfo = recalibrationReport.getQuantizationInfo();
+        if (quantizationLevels == 0)                                                                                    // quantizationLevels == 0 means no quantization, preserve the quality scores
+            quantizationInfo.noQuantization();
+        else if (quantizationLevels > 0 && quantizationLevels != quantizationInfo.getQuantizationLevels())              // any other positive value means, we want a different quantization than the one pre-calculated in the recalibration report. Negative values mean the user did not provide a quantization argument, and just wnats to use what's in the report.
+            quantizationInfo.quantizeQualityScores(quantizationLevels);
     }
 
     /**
@@ -71,17 +72,17 @@ public class BaseRecalibration {
      * @param read the read to recalibrate
      */
     public void recalibrateRead(final GATKSAMRecord read) {
-        final ReadCovariates readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);    // compute all covariates for the read
-        for (final EventType errorModel : EventType.values()) {                                                 // recalibrate all three quality strings
+        final ReadCovariates readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);            // compute all covariates for the read
+        for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
             final byte[] originalQuals = read.getBaseQualities(errorModel);
             final byte[] recalQuals = originalQuals.clone();
 
-            for (int offset = 0; offset < read.getReadLength(); offset++) {                                     // recalibrate all bases in the read
+            for (int offset = 0; offset < read.getReadLength(); offset++) {                                             // recalibrate all bases in the read
                 byte qualityScore = originalQuals[offset];
 
-                if (qualityScore > QualityUtils.MIN_USABLE_Q_SCORE) {                                           // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
-                    final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);                       // get the keyset for this base using the error model
-                    qualityScore = performSequentialQualityCalculation(keySet, errorModel);                     // recalibrate the base
+                if (qualityScore > QualityUtils.MIN_USABLE_Q_SCORE) {                                                   // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
+                    final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);                               // get the keyset for this base using the error model
+                    qualityScore = performSequentialQualityCalculation(keySet, errorModel);                             // recalibrate the base
                 }
                 recalQuals[offset] = qualityScore;
             }
@@ -109,6 +110,9 @@ public class BaseRecalibration {
      * @return A recalibrated quality score as a byte
      */
     private byte performSequentialQualityCalculation(BitSet[] key, EventType errorModel) {
+        final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
+        final String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
+
         final byte qualFromRead = (byte) BitSetUtils.shortFrom(key[1]);
 
         double globalDeltaQ = 0.0;

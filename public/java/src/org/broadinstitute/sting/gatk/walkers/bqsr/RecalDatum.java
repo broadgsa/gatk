@@ -25,8 +25,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import org.broadinstitute.sting.utils.QualityUtils;
-
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -37,10 +35,10 @@ import org.broadinstitute.sting.utils.QualityUtils;
 
 public class RecalDatum extends RecalDatumOptimized {
 
-    private double estimatedQReported; // estimated reported quality score based on combined data's individual q-reporteds and number of observations
-    private double empiricalQuality; // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
+    private double estimatedQReported;                                                                                  // estimated reported quality score based on combined data's individual q-reporteds and number of observations
+    private double empiricalQuality;                                                                                    // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
 
-    private static final int SMOOTHING_CONSTANT = 1;                                        // used when calculating empirical qualities to avoid division by zero
+    private static final int SMOOTHING_CONSTANT = 1;                                                                    // used when calculating empirical qualities to avoid division by zero
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -110,7 +108,11 @@ public class RecalDatum extends RecalDatumOptimized {
     }
 
     private double calcExpectedErrors() {
-        return (double) this.numObservations * QualityUtils.qualToProb(estimatedQReported);
+        return (double) this.numObservations * qualToErrorProb(estimatedQReported);
+    }
+
+    private double qualToErrorProb(final double qual) {
+        return Math.pow(10.0, qual / -10.0);
     }
 
     /**

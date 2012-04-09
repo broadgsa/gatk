@@ -20,7 +20,7 @@ public class BaseRecalibrationUnitTest {
     @Test(enabled=false)
     public void testReadingReport() {
         File csv = new File("public/testdata/exampleGATKREPORT.grp");
-        BaseRecalibration baseRecalibration = new BaseRecalibration(csv);
+        BaseRecalibration baseRecalibration = new BaseRecalibration(csv, -1);
         GATKSAMRecord read = ReadUtils.createRandomRead(1000);
         read.setReadGroup(new GATKSAMReadGroupRecord(new SAMReadGroupRecord("exampleBAM.bam.bam"), NGSPlatform.ILLUMINA));
         baseRecalibration.recalibrateRead(read);

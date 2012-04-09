@@ -72,6 +72,8 @@ import static java.lang.Math.pow;
  */
 public class DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering implements Cloneable {
 
+    public final static double DEFAULT_PCR_ERROR_RATE = 1e-4;
+
     protected final static int FIXED_PLOIDY = 2;
     protected final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
     protected final static double ploidyAdjustment = log10(FIXED_PLOIDY);
