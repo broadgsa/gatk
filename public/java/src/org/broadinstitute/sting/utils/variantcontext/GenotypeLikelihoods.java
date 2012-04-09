@@ -278,6 +278,10 @@ public class GenotypeLikelihoods {
 
     public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
 
+        // fast, closed form solution for diploid samples (most common use case)
+        if (ploidy==2)
+            return numAlleles*(numAlleles+1)/2;
+
         if (numAlleles == 1)
             return 1;
         else if (ploidy == 1)
