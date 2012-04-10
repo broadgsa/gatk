@@ -215,7 +215,7 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
     }
 
     public void finalizeEvaluation() {
-        percent_of_sites_with_more_than_2_alleles = Utils.formattedRatio(n_multiallelic_indel_sites, nIndelSites);
+        percent_of_sites_with_more_than_2_alleles = Utils.formattedPercent(n_multiallelic_indel_sites, nIndelSites);
         SNP_to_indel_ratio = Utils.formattedRatio(n_SNPs, n_indels);
         SNP_to_indel_ratio_for_singletons = Utils.formattedRatio(n_singleton_SNPs, n_singleton_indels);
 
