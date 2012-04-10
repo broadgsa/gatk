@@ -237,7 +237,7 @@ public class MathUtils {
     public static double log10sumLog10(double[] log10p, int start, int finish) {
         double sum = 0.0;
 
-        double maxValue = Utils.findMaxEntry(log10p);
+        double maxValue = arrayMax(log10p, finish);
         if(maxValue == Double.NEGATIVE_INFINITY)
             return sum;
 
@@ -554,7 +554,7 @@ public class MathUtils {
 
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = Utils.findMaxEntry(array);
+        double maxValue = arrayMax(array);
 
         // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
@@ -627,8 +627,12 @@ public class MathUtils {
         return maxI;
     }
 
-    public static double arrayMax(double[] array) {
+    public static double arrayMax(final double[] array) {
         return array[maxElementIndex(array)];
+    }
+
+    public static double arrayMax(final double[] array, final int endIndex) {
+        return array[maxElementIndex(array, endIndex)];
     }
 
     public static double arrayMin(double[] array) {

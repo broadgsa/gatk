@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import net.sf.picard.PicardException;
 import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
@@ -73,7 +72,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     public void initialize() {
         try {
             liftOver = new LiftOver(CHAIN);
-        } catch (PicardException e) {
+        } catch (RuntimeException e) {
             throw new UserException.BadInput("there is a problem with the chain file you are using: " + e.getMessage());
         }
 
@@ -82,7 +81,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         try {
             final SAMFileHeader toHeader = new SAMFileReader(NEW_SEQ_DICT).getFileHeader();
             liftOver.validateToSequences(toHeader.getSequenceDictionary());
-        } catch (PicardException e) {
+        } catch (RuntimeException e) {
             throw new UserException.BadInput("the chain file you are using is not compatible with the reference you are trying to lift over to; please use the appropriate chain file for the given reference");    
         }
 

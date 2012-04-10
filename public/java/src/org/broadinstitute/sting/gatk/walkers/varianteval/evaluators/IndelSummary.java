@@ -207,7 +207,9 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
 
                 break;
             default:
-                throw new UserException.BadInput("Unexpected variant context type: " + eval);
+                // TODO - MIXED, SYMBOLIC, and MNP records are skipped over
+                //throw new UserException.BadInput("Unexpected variant context type: " + eval);
+                break;
         }
 
         return;

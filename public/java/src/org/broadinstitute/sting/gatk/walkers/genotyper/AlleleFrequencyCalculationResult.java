@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.MathUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -42,12 +41,13 @@ public class AlleleFrequencyCalculationResult {
     // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
     private double log10MLE;
     private double log10MAP;
-    final private int[] alleleCountsOfMLE;
-    final private int[] alleleCountsOfMAP;
+    private final int[] alleleCountsOfMLE;
+    private final int[] alleleCountsOfMAP;
 
     // The posteriors seen, not including that of AF=0
-    // TODO -- better implementation needed here (see below)
-    private ArrayList<Double> log10PosteriorMatrixValues = new ArrayList<Double>(100000);
+    private static final int POSTERIORS_CACHE_SIZE = 5000;
+    private final double[] log10PosteriorMatrixValues = new double[POSTERIORS_CACHE_SIZE];
+    private int currentPosteriorsCacheIndex = 0;
     private Double log10PosteriorMatrixSum = null;
 
     // These variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
@@ -69,14 +69,9 @@ public class AlleleFrequencyCalculationResult {
         return log10MAP;
     }
 
-    public double getLog10PosteriorMatrixSum() {
+    public double getLog10PosteriorsMatrixSumWithoutAFzero() {
         if ( log10PosteriorMatrixSum == null ) {
-            // TODO -- we absolutely need a better implementation here as we don't want to store all values from the matrix in memory;
-            // TODO --   will discuss with the team what the best option is
-            final double[] tmp = new double[log10PosteriorMatrixValues.size()];
-            for ( int i = 0; i < tmp.length; i++ )
-                tmp[i] = log10PosteriorMatrixValues.get(i);
-            log10PosteriorMatrixSum = MathUtils.log10sumLog10(tmp);
+            log10PosteriorMatrixSum = MathUtils.log10sumLog10(log10PosteriorMatrixValues, 0, currentPosteriorsCacheIndex);
         }
         return log10PosteriorMatrixSum;
     }
@@ -103,7 +98,7 @@ public class AlleleFrequencyCalculationResult {
             alleleCountsOfMLE[i] = 0;
             alleleCountsOfMAP[i] = 0;
         }
-        log10PosteriorMatrixValues.clear();
+        currentPosteriorsCacheIndex = 0;
         log10PosteriorMatrixSum = null;
     }
 
@@ -116,11 +111,24 @@ public class AlleleFrequencyCalculationResult {
     }
 
     public void updateMAPifNeeded(final double log10LofK, final int[] alleleCountsForK) {
-        log10PosteriorMatrixValues.add(log10LofK);
+        addToPosteriorsCache(log10LofK);
+
         if ( log10LofK > log10MAP ) {
             log10MAP = log10LofK;
             for ( int i = 0; i < alleleCountsForK.length; i++ )
                 alleleCountsOfMAP[i] = alleleCountsForK[i];
+        }
+    }
+
+    private void addToPosteriorsCache(final double log10LofK) {
+        // add to the cache
+        log10PosteriorMatrixValues[currentPosteriorsCacheIndex++] = log10LofK;
+
+        // if we've filled up the cache, then condense by summing up all of the values and placing the sum back into the first cell
+        if ( currentPosteriorsCacheIndex == POSTERIORS_CACHE_SIZE ) {
+            final double temporarySum = MathUtils.log10sumLog10(log10PosteriorMatrixValues, 0, currentPosteriorsCacheIndex);
+            log10PosteriorMatrixValues[0] = temporarySum;
+            currentPosteriorsCacheIndex = 1;
         }
     }
 

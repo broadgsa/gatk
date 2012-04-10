@@ -50,8 +50,9 @@ import java.util.*;
 
 public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
-    
-    public static final int DEFAULT_PLOIDY = 2;
+
+    public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
+    public static final double HUMAN_INDEL_HETEROZYGOSITY = 1e-4;
 
     public enum OUTPUT_MODE {
         /** produces calls only at variant sites */
@@ -111,7 +112,7 @@ public class UnifiedGenotyperEngine {
     // ---------------------------------------------------------------------------------------------------------
     @Requires({"toolkit != null", "UAC != null"})
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()), DEFAULT_PLOIDY*(SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size()));
+        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null, SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()), VariantContextUtils.DEFAULT_PLOIDY*(SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size()));
     }
 
     @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0","ploidy>0"})
@@ -326,7 +327,7 @@ public class UnifiedGenotyperEngine {
         } else {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
             if ( Double.isInfinite(phredScaledConfidence) ) {
-                final double sum = AFresult.getLog10PosteriorMatrixSum();
+                final double sum = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
                 phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
             }
         }
@@ -369,7 +370,7 @@ public class UnifiedGenotyperEngine {
 
             // the overall lod
             //double overallLog10PofNull = AFresult.log10AlleleFrequencyPosteriors[0];
-            double overallLog10PofF = AFresult.getLog10PosteriorMatrixSum();
+            double overallLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
             //if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             List<Allele> alternateAllelesToUse = builder.make().getAlternateAlleles();
@@ -380,7 +381,7 @@ public class UnifiedGenotyperEngine {
             afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model), AFresult);
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double forwardLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
-            double forwardLog10PofF = AFresult.getLog10PosteriorMatrixSum();
+            double forwardLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
             //if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
@@ -389,7 +390,7 @@ public class UnifiedGenotyperEngine {
             afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model), AFresult);
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double reverseLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
-            double reverseLog10PofF = AFresult.getLog10PosteriorMatrixSum();
+            double reverseLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
             //if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 
             double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofF;
@@ -424,7 +425,7 @@ public class UnifiedGenotyperEngine {
 
     public static double[] generateNormalizedPosteriors(final AlleleFrequencyCalculationResult AFresult, final double[] normalizedPosteriors) {
         normalizedPosteriors[0] = AFresult.getLog10PosteriorOfAFzero();
-        normalizedPosteriors[1] = AFresult.getLog10PosteriorMatrixSum();
+        normalizedPosteriors[1] = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
         return MathUtils.normalizeFromLog10(normalizedPosteriors);
     }
 
@@ -622,8 +623,6 @@ public class UnifiedGenotyperEngine {
 
     }
 
-    public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
-    public static final double HUMAN_INDEL_HETEROZYGOSITY = 1e-4;
     protected double getTheta( final GenotypeLikelihoodsCalculationModel.Model model ) {
         if( model.name().contains("SNP") )
             return HUMAN_SNP_HETEROZYGOSITY;
