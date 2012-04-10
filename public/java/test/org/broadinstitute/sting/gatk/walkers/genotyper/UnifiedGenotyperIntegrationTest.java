@@ -143,6 +143,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testCompTrack() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH -comp:FOO " + b36dbSNP129 + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
+                Arrays.asList("71251d8893649ea9abd5d9aa65739ba1"));
+        executeTest("test using comp track", spec);
+    }
+
+    @Test
     public void testOutputParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "-sites_only", "44f3b5b40e6ad44486cddfdb7e0bfcd8" );
