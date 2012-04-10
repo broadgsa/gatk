@@ -54,16 +54,27 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
     //
     // -------------------------------------------------------------------------------------
 
+    /**
+     * Create a new StratificationManager with nodes to store data for all combinations
+     * of the ordered list of strats
+     *
+     * @param strats ordered list of stratifications to representation
+     */
     @Requires("!strats.isEmpty()")
     public StratificationManager(final List<K> strats) {
-        stratifiers = new ArrayList<K>(strats);
+        this.stratifiers = new ArrayList<K>(strats);
+
+        // construct and store the full tree of strats
         this.root = buildStratificationTree(new LinkedList<K>(strats));
+        // assign the linear key ordering to the leafs
         assignKeys(root);
 
+        // cache the size, and check for a bad state
         this.size = root.size();
         if ( this.size == 0 )
             throw new ReviewedStingException("Size == 0 in StratificationManager");
 
+        // prepare the assocated data vectors mapping from key -> data
         this.valuesByKey = new ArrayList<V>(size());
         this.stratifierValuesByKey = new ArrayList<List<Object>>(size());
         this.keyStrings = new ArrayList<String>(size());
@@ -72,9 +83,20 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
             this.stratifierValuesByKey.add(null);
             this.keyStrings.add(null);
         }
+
         assignStratifierValuesByKey(root);
     }
 
+    /**
+     * Recursive construction helper for main constructor that fills into the
+     * complete tree of StratNodes.  This function returns the complete tree
+     * suitable for associating data with each combinatino of keys.  Note
+     * that the tree is not fully complete as the keys are not yet set for
+     * each note (see assignStratifierValuesByKey)
+     *
+     * @param strats
+     * @return
+     */
     private StratNode<K> buildStratificationTree(final Queue<K> strats) {
         final K first = strats.poll();
         if ( first == null ) {
@@ -97,6 +119,10 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
         }
     }
 
+    /**
+     * Set the key for each leaf from root, in order from 0 to N - 1 for N leaves in the tree
+     * @param root
+     */
     @Requires("root == this.root")
     private void assignKeys(final StratNode<K> root) {
         int key = 0;
@@ -106,15 +132,23 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
         }
     }
 
-    public void assignStratifierValuesByKey(final StratNode<K> root) {
+    /**
+     * Entry point to recursive tool that fills in the list of state values corresponding
+     * to each key.  After this function is called you can map from key -> List of StateValues
+     * instead of walking the tree to find the key and reading the list of state values
+     *
+     * @param root
+     */
+    private void assignStratifierValuesByKey(final StratNode<K> root) {
         assignStratifierValuesByKey(root, new LinkedList<Object>());
-        
+
+        // do a last sanity check that no key has null value after assigning
         for ( List<Object> stateValues : stratifierValuesByKey )
             if ( stateValues == null )
                 throw new ReviewedStingException("Found a null state value set that's null");
     }
 
-    public void assignStratifierValuesByKey(final StratNode<K> node, final LinkedList<Object> states) {
+    private void assignStratifierValuesByKey(final StratNode<K> node, final LinkedList<Object> states) {
         if ( node.isLeaf() ) { // we're here!
             if ( states.isEmpty() )
                 throw new ReviewedStingException("Found a leaf node with an empty state values vector");
@@ -134,13 +168,17 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
     //
     // -------------------------------------------------------------------------------------
 
+    /**
+     * How many states are held in this stratification manager?
+     * @return
+     */
     @Ensures("result >= 0")
     public int size() {
         return size;
     }
 
     @Ensures("result != null")
-    public StratNode<K> getRoot() {
+    protected StratNode<K> getRoot() {
         return root;
     }
 
@@ -299,7 +337,7 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
     // -------------------------------------------------------------------------------------
 
     public static List<List<Object>> combineStates(final List<Object> first, final List<Object> second) {
-        List<List<Object>> combined = new ArrayList<List<Object>>(first.size());
+        final List<List<Object>> combined = new ArrayList<List<Object>>(first.size());
         for ( int i = 0; i < first.size(); i++ ) {
             final Object firstI = first.get(i);
             final Object secondI = second.get(i);
