@@ -47,6 +47,14 @@ public class RefMetaDataTracker {
     //
     // ------------------------------------------------------------------------------------------
 
+    /**
+     * Only for testing -- not accesssible in any other context
+     */
+    public RefMetaDataTracker() {
+        ref = null;
+        map = Collections.emptyMap();
+    }
+
     public RefMetaDataTracker(final Collection<RODRecordList> allBindings, final ReferenceContext ref) {
         this.ref = ref;
 
