@@ -51,11 +51,10 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
 
 /**
  * User: aaron
@@ -474,7 +473,6 @@ public class SAMDataSource {
     /**
      * Fill the given buffering shard with reads.
      * @param shard Shard to fill.
-     * @return true if at the end of the stream.  False otherwise.
      */
     public void fillShard(Shard shard) {
         if(!shard.buffersReads())
@@ -569,15 +567,19 @@ public class SAMDataSource {
             if(shard.getFileSpans().get(id) == null)
                 throw new ReviewedStingException("SAMDataSource: received null location for reader " + id + ", but null locations are no longer supported.");
 
-            if(threadAllocation.getNumIOThreads() > 0) {
-                BlockInputStream inputStream = readers.getInputStream(id);
-                inputStream.submitAccessPlan(new BAMAccessPlan(id, inputStream, (GATKBAMFileSpan) shard.getFileSpans().get(id)));
-                BAMRecordCodec codec = new BAMRecordCodec(getHeader(id),factory);
-                codec.setInputStream(inputStream);
-                iterator = new BAMCodecIterator(inputStream,readers.getReader(id),codec);
-            }
-            else {
-                iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            try {
+                if(threadAllocation.getNumIOThreads() > 0) {
+                    BlockInputStream inputStream = readers.getInputStream(id);
+                    inputStream.submitAccessPlan(new BAMAccessPlan(id, inputStream, (GATKBAMFileSpan) shard.getFileSpans().get(id)));
+                    BAMRecordCodec codec = new BAMRecordCodec(getHeader(id),factory);
+                    codec.setInputStream(inputStream);
+                    iterator = new BAMCodecIterator(inputStream,readers.getReader(id),codec);
+                }
+                else {
+                    iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+                }
+            } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFormatExceptions) sometimes
+                throw new UserException.MalformedBAM(id.samFile, e.getMessage());
             }
 
             iterator = new MalformedBAMErrorReformatingIterator(id.samFile, iterator);
@@ -932,10 +934,7 @@ public class SAMDataSource {
                     blockInputStream = new BlockInputStream(dispatcher,readerID,false);
                 reader = new SAMFileReader(readerID.samFile,indexFile,false);
             } catch ( RuntimeIOException e ) {
-                if ( e.getCause() != null && e.getCause() instanceof FileNotFoundException )
-                    throw new UserException.CouldNotReadInputFile(readerID.samFile, e);
-                else
-                    throw e;
+                throw new UserException.CouldNotReadInputFile(readerID.samFile, e);
             } catch ( SAMFormatException e ) {
                 throw new UserException.MalformedBAM(readerID.samFile, e.getMessage());
             }
