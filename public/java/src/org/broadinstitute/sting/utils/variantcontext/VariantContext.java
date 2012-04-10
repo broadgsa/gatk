@@ -1221,7 +1221,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 this.getGenotypes());
     }
 
-    public List<BasicDBObject> toMongoDB() {
+    public List<BasicDBObject> toMongoDB(String sourceROD) {
         List<BasicDBObject> vcDocs = new ArrayList<BasicDBObject>();
         for (Genotype genotype : this.getGenotypes()) {
             BasicDBObject vcDoc = new BasicDBObject();
@@ -1233,6 +1233,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
             vcDoc.put("error", this.getLog10PError());
             vcDoc.put("sample", genotype.getSampleName());
             vcDoc.put("source", this.getSource());
+            vcDoc.put("sourceROD", sourceROD);
             vcDoc.put("type", this.getType().toString());
 
             Integer alleleIndex = 0;
