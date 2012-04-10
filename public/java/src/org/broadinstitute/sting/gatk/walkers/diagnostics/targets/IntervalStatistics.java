@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.HashMap;
@@ -52,18 +53,28 @@ public class IntervalStatistics {
         return samples.get(sample);
     }
 
+    public GenomeLoc getInterval() {
+        return interval;
+    }
+
     public void addLocus(AlignmentContext context) {
         ReadBackedPileup pileup = context.getBasePileup();
 
-        for (String sample : samples.keySet())
-            getSample(sample).addLocus(context.getLocation(), pileup.getPileupForSample(sample));
+        Map<String, ReadBackedPileup> samplePileups = pileup.getPileupsForSamples(samples.keySet());
+
+        for (Map.Entry<String, ReadBackedPileup> entry : samplePileups.entrySet()) {
+            String sample = entry.getKey();
+            ReadBackedPileup samplePileup = entry.getValue();
+            SampleStatistics sampleStatistics = samples.get(sample);
+
+            if (sampleStatistics == null) 
+                throw new ReviewedStingException(String.format("Trying to add locus statistics to a sample (%s) that doesn't exist in the Interval.", sample));
+            
+            sampleStatistics.addLocus(context.getLocation(), samplePileup);
+        }
+
     }
 
-    public long totalCoverage() {
-        if (preComputedTotalCoverage < 0)
-            calculateTotalCoverage();
-        return preComputedTotalCoverage;
-    }
 
     public double averageCoverage() {
         if (preComputedTotalCoverage < 0)
