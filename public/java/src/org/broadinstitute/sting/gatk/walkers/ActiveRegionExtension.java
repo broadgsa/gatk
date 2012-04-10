@@ -16,4 +16,5 @@ import java.lang.annotation.RetentionPolicy;
 
 public @interface ActiveRegionExtension {
     public int extension() default 0;
+    public int maxRegion() default 1500;
 }

@@ -47,6 +47,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         final int activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
+        final int maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
 
         if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
             int minStart = Integer.MAX_VALUE;
@@ -108,7 +109,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             // add these blocks of work to the work queue
             // band-pass filter the list of isActive probabilities and turn into active regions
             final ActivityProfile bandPassFiltered = profile.bandPassFilter();
-            final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension );
+            final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize );
 
             // add active regions to queue of regions to process
             workQueue.addAll( activeRegions );
