@@ -600,47 +600,47 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             genotypes.add(Genotype.modifyAttributes(genotype, genotypeAttributes));
         }
 
-        // TODO: handle result == null
-
-        ArrayList<Allele> alleles = new ArrayList<Allele>();
-        BasicDBObject allelesInDb = (BasicDBObject)result.get("alleles");
-        for (Object alleleInDb : allelesInDb.values()) {
-            String rawAllele = (String)alleleInDb;
-            boolean isRef = rawAllele.contains("*");
-            String allele = rawAllele.replace("*", "");
-            alleles.add(Allele.create(allele, isRef));
-        }
-
-        Map<String, Object> attributes = new TreeMap<String, Object>();
-        BasicDBList attrsInDb = (BasicDBList)result.get("attributes");
-        for (Object attrInDb : attrsInDb) {
-            BasicDBObject attrKVP = (BasicDBObject)attrInDb;
-            String key = (String)attrKVP.get("key");
-            Object value = attrKVP.get("value");
-            attributes.put(key, value);
-        }
-
-        Set<String> filters = new HashSet<String>();
-        BasicDBObject filtersInDb = (BasicDBObject)result.get("filters");
-        if (filtersInDb != null) {
-            for (Object filterInDb : filtersInDb.values()) {
-                filters.add((String)filterInDb);
+        if (result != null) {
+            ArrayList<Allele> alleles = new ArrayList<Allele>();
+            BasicDBObject allelesInDb = (BasicDBObject)result.get("alleles");
+            for (Object alleleInDb : allelesInDb.values()) {
+                String rawAllele = (String)alleleInDb;
+                boolean isRef = rawAllele.contains("*");
+                String allele = rawAllele.replace("*", "");
+                alleles.add(Allele.create(allele, isRef));
             }
+
+            Map<String, Object> attributes = new TreeMap<String, Object>();
+            BasicDBList attrsInDb = (BasicDBList)result.get("attributes");
+            for (Object attrInDb : attrsInDb) {
+                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
+                String key = (String)attrKVP.get("key");
+                Object value = attrKVP.get("value");
+                attributes.put(key, value);
+            }
+
+            Set<String> filters = new HashSet<String>();
+            BasicDBObject filtersInDb = (BasicDBObject)result.get("filters");
+            if (filtersInDb != null) {
+                for (Object filterInDb : filtersInDb.values()) {
+                    filters.add((String)filterInDb);
+                }
+            }
+
+            String source = (String)result.get("source");
+            String id = (String)result.get("id");
+            Double error = (Double)result.get("error");
+
+            VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, alleles);
+
+            builder.id(id);
+            builder.log10PError(error);
+            builder.genotypes(genotypes);
+            builder.attributes(attributes);
+            builder.filters(filters);
+
+            vcs.add(builder.make());
         }
-
-        String source = (String)result.get("source");
-        String id = (String)result.get("id");
-        Double error = (Double)result.get("error");
-
-        VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, alleles);
-
-        builder.id(id);
-        builder.log10PError(error);
-        builder.genotypes(genotypes);
-        builder.attributes(attributes);
-        builder.filters(filters);
-
-        vcs.add(builder.make());
 
         return vcs;
     }
