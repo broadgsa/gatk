@@ -127,7 +127,7 @@ public class FlagStatWalker extends ReadWalker<Integer, Integer> {
         if (read.getDuplicateReadFlag()) {
             myStat.duplicates++;
         }
-        if (read.getReferenceIndex() >= 0) {
+        if (!read.getReadUnmappedFlag()) {
             myStat.mapped++;
         }
         if (read.getReadPairedFlag()) {
@@ -139,21 +139,21 @@ public class FlagStatWalker extends ReadWalker<Integer, Integer> {
                 myStat.read1++;
             }
             if (read.getProperPairFlag()) {
-
                 myStat.properly_paired++;
             }
-            if (!read.getMateUnmappedFlag() && read.getReferenceIndex() >= 0) {
+            if (!read.getReadUnmappedFlag() && !read.getMateUnmappedFlag()) {
                 myStat.with_itself_and_mate_mapped++;
-            }
-            if (read.getMateUnmappedFlag()) {
-                myStat.singletons++;
-            }
-        }
-        if (read.getReferenceIndex() >= 0 && read.getMateReferenceIndex() >= 0 && ! read.getReferenceIndex().equals(read.getMateReferenceIndex())) {
-            myStat.with_mate_mapped_to_a_different_chr++;
 
-            if (read.getMappingQuality() >= 5) {
-                myStat.with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5++;
+                if (!read.getReferenceIndex().equals(read.getMateReferenceIndex())) {
+                    myStat.with_mate_mapped_to_a_different_chr++;
+
+                    if (read.getMappingQuality() >= 5) {
+                        myStat.with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5++;
+                    }
+                }
+            }
+            if (!read.getReadUnmappedFlag() && read.getMateUnmappedFlag()) {
+                myStat.singletons++;
             }
         }
         return 1;
