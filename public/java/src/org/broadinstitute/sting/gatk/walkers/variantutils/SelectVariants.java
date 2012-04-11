@@ -479,7 +479,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             return 0;
 
         //Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
-        Collection<VariantContext> vcs = getMongoVariants(context.getLocation());
+        Collection<VariantContext> vcs = getMongoVariants(ref, context.getLocation());
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
@@ -552,7 +552,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return 1;
     }
 
-    private Collection<VariantContext> getMongoVariants(GenomeLoc location) {
+    private Collection<VariantContext> getMongoVariants(ReferenceContext ref, GenomeLoc location) {
         String contig = location.getContig();
         long start = location.getStart();
         long stop = location.getStop();
@@ -639,6 +639,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             builder.attributes(attributes);
             builder.filters(filters);
 
+            long index = start - ref.getWindow().getStart() - 1;
+            if ( index >= 0 ) {
+                // we were given enough reference context to create the VariantContext
+                builder.referenceBaseForIndel(ref.getBases()[(int)index]);
+            }
+
+            builder.referenceBaseForIndel(ref.getBases()[0]);
             vcs.add(builder.make());
         }
 
