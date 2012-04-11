@@ -137,11 +137,11 @@ public class UnifiedArgumentCollection {
 
     @Hidden
     @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty", required = false)
-    public double INDEL_GAP_CONTINUATION_PENALTY = 10.0;
+    public byte INDEL_GAP_CONTINUATION_PENALTY = 10;
 
     @Hidden
     @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty", required = false)
-    public double INDEL_GAP_OPEN_PENALTY = 45.0;
+    public byte INDEL_GAP_OPEN_PENALTY = 45;
 
     @Hidden
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
