@@ -33,10 +33,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -92,6 +90,13 @@ public class VariantAnnotatorEngine {
         this.toolkit = toolkit;
         initializeAnnotations(annotationGroupsToUse, annotationsToUse, annotationsToExclude);
         initializeDBs();
+    }
+
+    // experimental constructor for active region traversal
+    public VariantAnnotatorEngine(GenomeAnalysisEngine toolkit) {
+        this.walker = null;
+        this.toolkit = toolkit;
+        requestedInfoAnnotations = AnnotationInterfaceManager.createInfoFieldAnnotations(Arrays.asList("ActiveRegionBasedAnnotation"), Collections.<String>emptyList());
     }
 
     // select specific expressions to use
@@ -169,7 +174,7 @@ public class VariantAnnotatorEngine {
         this.requireStrictAlleleMatch = requireStrictAlleleMatch;
     }
 
-    public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public VariantContext annotateContext(final RefMetaDataTracker tracker, final ReferenceContext ref, final Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
@@ -190,6 +195,20 @@ public class VariantAnnotatorEngine {
 
         // annotate genotypes, creating another new VC in the process
         return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc)).make();
+    }
+
+    public VariantContext annotateContext(final Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
+        Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
+
+        // go through all the requested info annotationTypes
+        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
+            Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(stratifiedContexts, vc);
+            if ( annotationsFromCurrentType != null )
+                infoAnnotations.putAll(annotationsFromCurrentType);
+        }
+
+        // generate a new annotated VC
+        return new VariantContextBuilder(vc).attributes(infoAnnotations).make();
     }
 
     private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {

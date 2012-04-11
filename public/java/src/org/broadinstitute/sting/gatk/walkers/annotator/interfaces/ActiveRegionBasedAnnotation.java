@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 // TODO -- make this an abstract class when we move away from InfoFieldAnnotation
-public interface ActiveRegionBasedAnnotation {
+public interface ActiveRegionBasedAnnotation extends AnnotationType {
     // return annotations for the given contexts split by sample and then allele
     public abstract Map<String, Object> annotate(final Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, final VariantContext vc);
 
