@@ -82,15 +82,22 @@ public class UnifiedArgumentCollection {
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
     /**
-     * This argument is not enabled by default because it increases the runtime by an appreciable amount.
+     * Note that calculating the SLOD increases the runtime by an appreciable amount.
      */
     @Argument(fullName = "noSLOD", shortName = "nosl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
 
     /**
+     * Depending on the value of the --max_alternate_alleles argument, we may genotype only a fraction of the alleles being sent on for genotyping.
+     * Using this argument instructs the genotyper to annotate (in the INFO field) the number of alternate alleles that were originally discovered at the site.
+     */
+    @Argument(fullName = "annotateNDA", shortName = "nda", doc = "If provided, we will annotate records with the number of alternate alleles that were discovered (but not necessarily genotyped) at a given site", required = false)
+    public boolean ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = false;
+
+    /**
      * When the UnifiedGenotyper is put into GENOTYPE_GIVEN_ALLELES mode it will genotype the samples using only the alleles provide in this rod binding
      */
-    @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when in GENOTYPE_MODE = GENOTYPE_GIVEN_ALLELES", required=false)
+    @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when --genotyping_mode is GENOTYPE_GIVEN_ALLELES", required=false)
     public RodBinding<VariantContext> alleles;
 
     /**
@@ -171,6 +178,7 @@ public class UnifiedArgumentCollection {
         uac.GenotypingMode = GenotypingMode;
         uac.OutputMode = OutputMode;
         uac.NO_SLOD = NO_SLOD;
+        uac.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;

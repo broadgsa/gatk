@@ -249,6 +249,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         // annotation (INFO) fields from UnifiedGenotyper
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
+        if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
+            headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
         headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
 
         // also, check to see whether comp rods were included

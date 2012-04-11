@@ -122,16 +122,11 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
 
     @Test
-    public void testCallingParameters() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "--min_base_quality_score 26", "258c1b33349eb3b2d395ec4d69302725" );
-
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 " + entry.getKey(), 1,
-                    Arrays.asList(entry.getValue()));
-            executeTest(String.format("test calling parameter[%s]", entry.getKey()), spec);
-        }
+    public void testMinBaseQualityScore() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 --min_base_quality_score 26", 1,
+                Arrays.asList("258c1b33349eb3b2d395ec4d69302725"));
+        executeTest("test min_base_quality_score 26", spec);
     }
 
     @Test
@@ -140,6 +135,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER -glm BOTH --dbsnp " + b36dbSNP129 + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
                 Arrays.asList("e9d23a08472e4e27b4f25e844f5bad57"));
         executeTest("test SLOD", spec);
+    }
+
+    @Test
+    public void testNDA() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand + " --annotateNDA -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
+                Arrays.asList(""));
+        executeTest("test NDA", spec);
     }
 
     @Test

@@ -51,6 +51,8 @@ import java.util.*;
 public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 
+    public static final String NUMBER_OF_DISCOVERED_ALLELES_KEY = "NDA";
+
     public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
     public static final double HUMAN_INDEL_HETEROZYGOSITY = 1e-4;
 
@@ -364,6 +366,9 @@ public class UnifiedGenotyperEngine {
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
+
+        if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
+            attributes.put(NUMBER_OF_DISCOVERED_ALLELES_KEY, vc.getAlternateAlleles().size());
 
         if ( !UAC.NO_SLOD && !limitedContext && !bestGuessIsRef ) {
             //final boolean DEBUG_SLOD = false;
