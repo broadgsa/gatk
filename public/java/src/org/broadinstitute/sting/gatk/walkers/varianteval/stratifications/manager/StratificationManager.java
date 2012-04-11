@@ -26,6 +26,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manage
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -226,7 +228,7 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
         return states;
     }
 
-    public String getStratsAndStatesForKeyString(final int key) {
+    public String getStratsAndStatesStringForKey(final int key) {
         if ( keyStrings.get(key) == null ) {
             StringBuilder b = new StringBuilder();
             for ( int i = 0; i < stratifiers.size(); i++ ) {
@@ -346,6 +348,79 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
             else 
                 combined.add(Arrays.asList(firstI, secondI));
         }
+        return combined;
+    }
+
+    public interface Combiner<V> {
+        /** take two values of type V and return a combined value of type V */
+        public V combine(final V lhs, final V rhs);
+    }
+
+    /**
+     * Remaps the stratifications from one stratification set to another, combining
+     * the values in V according to the combiner function.
+     *
+     * stratifierToReplace defines a set of states S1, while newStratifier defines
+     * a new set S2.  remappedStates is a map from all of S1 into at least some of
+     * S2.  This function creates a new, fully initialized manager where all of the
+     * data in this new manager is derived from the original data in this object
+     * combined according to the mapping remappedStates.  When multiple
+     * elements of S1 can map to the same value in S2, these are sequentially
+     * combined by the function combiner.  Suppose for example at states s1, s2, and
+     * s3 all map to N1.  Eventually the value associated with state N1 would be
+     *
+     *   value(N1) = combine(value(s1), combine(value(s2), value(s3))
+     *
+     * in some order for s1, s2, and s3, which is not defined.  Note that this function
+     * only supports combining one stratification at a time, but in principle a loop over
+     * stratifications and this function could do the multi-dimensional collapse.
+     *
+     * @param stratifierToReplace
+     * @param newStratifier
+     * @param combiner
+     * @param remappedStates
+     * @return
+     */
+    public StratificationManager<K, V> combineStrats(final K stratifierToReplace,
+                                                     final K newStratifier,
+                                                     final Combiner<V> combiner,
+                                                     final Map<Object, Object> remappedStates) {
+        // make sure the mapping is reasonable
+        if ( ! newStratifier.getAllStates().containsAll(remappedStates.values()) )
+            throw new ReviewedStingException("combineStrats: remapped states contains states not found in newStratifer state set");
+
+        if ( ! remappedStates.keySet().containsAll(stratifierToReplace.getAllStates()) )
+            throw new ReviewedStingException("combineStrats: remapped states missing mapping for some states");
+
+        // the new strats are the old ones with the single replacement
+        final List<K> newStrats = new ArrayList<K>(getStratifiers());
+        final int stratOffset = newStrats.indexOf(stratifierToReplace);
+        if ( stratOffset == -1 )
+            throw new ReviewedStingException("Could not find strat to replace " + stratifierToReplace + " in existing strats " + newStrats);
+        newStrats.set(stratOffset, newStratifier);
+
+        // create an empty but fully initialized new manager
+        final StratificationManager<K, V> combined = new StratificationManager<K, V>(newStrats);
+
+        // for each key, get its state, update it according to the map, and update the combined manager
+        for ( int key = 0; key < size(); key++ ) {
+            // the new state is just the old one with the replacement
+            final List<Object> newStates = new ArrayList<Object>(getStatesForKey(key));
+            final Object oldState = newStates.get(stratOffset);
+            final Object newState = remappedStates.get(oldState);
+            newStates.set(stratOffset, newState);
+
+            // look up the new key given the new state
+            final int combinedKey = combined.getKey(newStates);
+            if ( combinedKey == -1 ) throw new ReviewedStingException("Couldn't find key for states: " + Utils.join(",", newStates));
+
+            // combine the old value with whatever new value is in combined already
+            final V combinedValue = combiner.combine(combined.get(combinedKey), get(key));
+
+            // update the value associated with combined key
+            combined.set(combinedKey, combinedValue);
+        }
+
         return combined;
     }
 }

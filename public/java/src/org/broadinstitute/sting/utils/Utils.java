@@ -750,4 +750,18 @@ public class Utils {
     public static String formattedRatio(final long num, final long denom) {
         return denom == 0 ? "NA" : String.format("%.2f", num / (1.0 * denom));
     }
+
+    /**
+     * Create a constant map that maps each value in values to itself
+     * @param values
+     * @param <T>
+     * @return
+     */
+    public static <T> Map<T, T> makeIdentityFunctionMap(Collection<T> values) {
+        Map<T,T> map = new HashMap<T, T>(values.size());
+        for ( final T value : values )
+            map.put(value, value);
+        return Collections.unmodifiableMap(map);
+    }
+
 }

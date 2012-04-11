@@ -17,6 +17,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.DynamicStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
@@ -221,6 +222,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     // The set of all possible evaluation contexts
     StratificationManager<VariantStratifier, EvaluationContext> stratManager;
+    //Set<DynamicStratification> dynamicStratifications = Collections.emptySet();
 
     /**
      * Initialize the stratifications, evaluations, evaluation contexts, and reporting object
@@ -360,6 +362,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         if (tracker != null) {
             String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
 
+//            // update the dynamic stratifications
+//            for (final VariantContext vc : tracker.getValues(evals, ref.getLocus())) {
+//                // don't worry -- DynamicStratification only work with one eval object
+//                for ( final DynamicStratification ds :  dynamicStratifications ) {
+//                    ds.update(vc);
+//                }
+//            }
+
             //      --------- track ---------           sample  - VariantContexts -
             HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
             HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
@@ -456,13 +466,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * @param sampleName
      * @return
      */
-    private Collection<EvaluationContext> getEvaluationContexts(final RefMetaDataTracker tracker,
-                                                                   final ReferenceContext ref,
-                                                                   final VariantContext eval,
-                                                                   final String evalName,
-                                                                   final VariantContext comp,
-                                                                   final String compName,
-                                                                   final String sampleName ) {
+    protected Collection<EvaluationContext> getEvaluationContexts(final RefMetaDataTracker tracker,
+                                                                  final ReferenceContext ref,
+                                                                  final VariantContext eval,
+                                                                  final String evalName,
+                                                                  final VariantContext comp,
+                                                                  final String compName,
+                                                                  final String sampleName ) {
         final List<List<Object>> states = new LinkedList<List<Object>>();
         for ( final VariantStratifier vs : stratManager.getStratifiers() ) {
             states.add(vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName));
