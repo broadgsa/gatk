@@ -39,6 +39,8 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -207,6 +209,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      *
      **/
     public void initialize() {
+        // check for a bad max alleles value
+        if ( UAC.MAX_ALTERNATE_ALLELES > GenotypeLikelihoods.MAX_ALLELES_THAT_CAN_BE_GENOTYPED )
+            throw new UserException.BadArgumentValue("max_alternate_alleles", "the maximum possible value is " + GenotypeLikelihoods.MAX_ALLELES_THAT_CAN_BE_GENOTYPED);
+
         // warn the user for misusing EMIT_ALL_SITES
         if ( UAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES &&
                 UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY &&

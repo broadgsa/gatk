@@ -223,7 +223,7 @@ public class GenotypeLikelihoods {
     /**
      * The maximum number of alleles that we can represent as genotype likelihoods
      */
-    final static int MAX_ALLELES_THAT_CAN_BE_GENOTYPED = 500;
+    public final static int MAX_ALLELES_THAT_CAN_BE_GENOTYPED = 500;
 
     /*
      * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
