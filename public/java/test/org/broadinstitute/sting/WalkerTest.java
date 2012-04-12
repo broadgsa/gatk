@@ -26,18 +26,17 @@
 package org.broadinstitute.sting;
 
 import org.apache.commons.lang.StringUtils;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -315,9 +314,9 @@ public class WalkerTest extends BaseTest {
                     // it's the type we expected
                     System.out.println(String.format("  => %s PASSED", name));
                 } else {
-                    e.printStackTrace();
-                    Assert.fail(String.format("Test %s expected exception %s but got %s instead",
-                            name, expectedException, e.getClass()));
+                    e.printStackTrace(System.out);  // must print to stdout to see the message
+                    Assert.fail(String.format("Test %s expected exception %s but instead got %s with error message %s",
+                            name, expectedException, e.getClass(), e.getMessage()));
                 }
             } else {
                 // we didn't expect an exception but we got one :-(
