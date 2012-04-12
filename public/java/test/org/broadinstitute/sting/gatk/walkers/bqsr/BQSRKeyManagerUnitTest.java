@@ -53,6 +53,17 @@ public class BQSRKeyManagerUnitTest {
         createReadAndTest(covariates, nRequired);
     }
 
+    @Test(enabled = true)
+    public void testOneCovariateWithOptionalCovariates() {
+        final int nRequired = 1;
+        final ArrayList<Covariate> covariates = new ArrayList<Covariate>(4);
+        covariates.add(new ReadGroupCovariate());
+        covariates.add(new QualityScoreCovariate());
+        covariates.add(new CycleCovariate());
+        covariates.add(new ContextCovariate());
+        createReadAndTest(covariates, nRequired);
+    }
+
     private void createReadAndTest(List<Covariate> covariates, int nRequired) {
         int readLength = 1000;
         GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(ReadUtils.createRandomReadBases(readLength, true), ReadUtils.createRandomReadQuals(readLength), readLength + "M");

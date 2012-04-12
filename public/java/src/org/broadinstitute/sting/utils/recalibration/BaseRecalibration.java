@@ -51,6 +51,7 @@ public class BaseRecalibration {
      * Constructor using a GATK Report file
      * 
      * @param RECAL_FILE a GATK Report file containing the recalibration information
+     * @param quantizationLevels number of bins to quantize the quality scores
      */
     public BaseRecalibration(final File RECAL_FILE, int quantizationLevels) {
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
@@ -80,7 +81,7 @@ public class BaseRecalibration {
             for (int offset = 0; offset < read.getReadLength(); offset++) {                                             // recalibrate all bases in the read
                 byte qualityScore = originalQuals[offset];
 
-                if (qualityScore > QualityUtils.MIN_USABLE_Q_SCORE) {                                                   // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
+                if (qualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                                  // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
                     final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);                               // get the keyset for this base using the error model
                     qualityScore = performSequentialQualityCalculation(keySet, errorModel);                             // recalibrate the base
                 }

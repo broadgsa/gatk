@@ -2,8 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 
-import java.util.List;
-
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -38,10 +36,13 @@ import java.util.List;
  * Each bin counts up the number of observations and the number of reference mismatches seen for that combination of covariates.
  */
 
-public class RecalDatumOptimized {
+public class Datum {
 
-    protected long numObservations; // number of bases seen in total
-    protected long numMismatches; // number of bases seen that didn't match the reference
+    long numObservations;                                                                                     // number of bases seen in total
+    long numMismatches;                                                                                       // number of bases seen that didn't match the reference
+
+    private static final int SMOOTHING_CONSTANT = 1;                                                                    // used when calculating empirical qualities to avoid division by zero
+
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -49,19 +50,9 @@ public class RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public RecalDatumOptimized() {
+    public Datum() {
         numObservations = 0L;
         numMismatches = 0L;
-    }
-
-    public RecalDatumOptimized(final long _numObservations, final long _numMismatches) {
-        numObservations = _numObservations;
-        numMismatches = _numMismatches;
-    }
-
-    public RecalDatumOptimized(final RecalDatumOptimized copy) {
-        this.numObservations = copy.numObservations;
-        this.numMismatches = copy.numMismatches;
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -70,19 +61,9 @@ public class RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public synchronized final void increment(final long incObservations, final long incMismatches) {
+    synchronized void increment(final long incObservations, final long incMismatches) {
         numObservations += incObservations;
         numMismatches += incMismatches;
-    }
-
-    public synchronized final void increment(final RecalDatumOptimized other) {
-        increment(other.numObservations, other.numMismatches);
-    }
-
-    public synchronized final void increment(final List<RecalDatumOptimized> data) {
-        for (RecalDatumOptimized other : data) {
-            this.increment(other);
-        }
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -91,25 +72,21 @@ public class RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public final double empiricalQualDouble(final int smoothing, final double maxQual) {
-        final double doubleMismatches = (double) (numMismatches + smoothing);
-        final double doubleObservations = (double) (numObservations + smoothing);
+    double empiricalQualDouble() {
+        final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
+        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT);
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
-        return Math.min(empiricalQual, maxQual);
+        return Math.min(empiricalQual, (double) QualityUtils.MAX_QUAL_SCORE);
     }
 
-    public final byte empiricalQualByte(final int smoothing) {
-        final double doubleMismatches = (double) (numMismatches + smoothing);
-        final double doubleObservations = (double) (numObservations + smoothing);
-        return QualityUtils.probToQual(1.0 - doubleMismatches / doubleObservations); // This is capped at Q40
-    }
-
-    public final byte empiricalQualByte() {
-        return empiricalQualByte(0);    // 'default' behavior is to use smoothing value of zero
+    byte empiricalQualByte() {
+        final double doubleMismatches = (double) (numMismatches);
+        final double doubleObservations = (double) (numObservations);
+        return QualityUtils.probToQual(1.0 - doubleMismatches / doubleObservations);                                    // This is capped at Q40
     }
 
     @Override
-    public final String toString() {
+    public String toString() {
         return String.format("%d,%d,%d", numObservations, numMismatches, (int) empiricalQualByte());
     }
 

@@ -18,13 +18,11 @@ import java.util.*;
  */
 public class RecalibrationReport {
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the counts for qual quantization (calculated after recalibration is done)
-    private LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
-    private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
+    private final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
+    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
 
-    GATKReportTable argumentTable;                                                                                      // keep the argument table untouched just for output purposes
-    RecalibrationArgumentCollection RAC;                                                                                // necessary for quantizing qualities with the same parameter | todo -- this should be a new parameter, not necessarily coming from the original table parameter list
-    
-    private static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check.";
+    private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
+    private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
 
     public RecalibrationReport(final File RECAL_FILE) {
         GATKReport report = new GATKReport(RECAL_FILE);
@@ -53,6 +51,7 @@ public class RecalibrationReport {
             final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
 
             int nRequiredCovariates = requiredCovariatesToAdd.size();                                                   // the number of required covariates defines which table we are looking at (RG, QUAL or ALL_COVARIATES)
+            final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check.";
             if (nRequiredCovariates == 1) {                                                                             // if there is only one required covariate, this is the read group table
                 final GATKReportTable reportTable = report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE);
                 table = parseReadGroupTable(keyManager, reportTable);
@@ -292,7 +291,7 @@ public class RecalibrationReport {
     public void calculateEmpiricalAndQuantizedQualities() {
         for (Map<BitSet, RecalDatum> table : keysAndTablesMap.values())
             for (RecalDatum datum : table.values())
-                datum.calcCombinedEmpiricalQuality(QualityUtils.MAX_QUAL_SCORE);
+                datum.calcCombinedEmpiricalQuality();
 
         quantizationInfo = new QuantizationInfo(keysAndTablesMap, RAC.QUANTIZING_LEVELS);
     }
