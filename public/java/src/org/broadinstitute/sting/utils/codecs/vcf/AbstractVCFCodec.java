@@ -204,7 +204,12 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         final List<Allele> alleles = parseAlleles(ref, alts, lineNo);
 
         // find out our location
-        final int start = Integer.valueOf(locParts[1]);
+        int start = 0;
+        try {
+            start = Integer.valueOf(locParts[1]);
+        } catch (Exception e) {
+            generateException("the value in the POS field must be an integer but it was " + locParts[1], lineNo);
+        }
         int stop = start;
 
         // ref alleles don't need to be single bases for monomorphic sites
