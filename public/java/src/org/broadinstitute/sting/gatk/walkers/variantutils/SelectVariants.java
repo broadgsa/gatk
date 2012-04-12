@@ -556,7 +556,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private Collection<VariantContext> getMongoVariants(ReferenceContext ref, GenomeLoc location) {
         String contig = location.getContig();
         long start = location.getStart();
-        long stop = location.getStop();
 
         ArrayList<VariantContext> vcs = new ArrayList<VariantContext>();
 
@@ -642,6 +641,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             String source = (String)result.get("source");
             String id = (String)result.get("id");
             Double error = (Double)result.get("error");
+            Long stop = (Long)result.get("stop");
 
             VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, sourceRodAllelePair.getSecond());
 
