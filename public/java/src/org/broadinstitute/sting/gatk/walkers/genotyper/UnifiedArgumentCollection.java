@@ -112,8 +112,11 @@ public class UnifiedArgumentCollection {
 
     /**
      * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
-     * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive.
+     * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive and it
+     * scales exponentially based on the number of alternate alleles.  Unless there is a good reason to change the default value, we highly recommend
+     * that you not play around with this parameter.
      */
+    @Advanced
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
     public int MAX_ALTERNATE_ALLELES = 3;
 
