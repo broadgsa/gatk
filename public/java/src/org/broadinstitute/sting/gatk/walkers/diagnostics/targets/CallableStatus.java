@@ -31,38 +31,29 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
  * @since 2/1/12
  */
 public enum CallableStatus {
-    /**
-     * the reference base was an N, which is not considered callable the GATK
-     */
-    // todo -- implement this status
+
     REF_N("the reference base was an N, which is not considered callable the GATK"),
-    /**
-     * the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE
-     */
+
     PASS("the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE"),
-    /**
-     * absolutely no reads were seen at this locus, regardless of the filtering parameters
-     */
-    NO_COVERAGE("absolutely no reads were seen at this locus, regardless of the filtering parameters"),
-    /**
-     * there were less than min. depth bases at the locus, after applying filters
-     */
+
+    COVERAGE_GAPS("absolutely no coverage was observed at a locus, regardless of the filtering parameters"),
+
     LOW_COVERAGE("there were less than min. depth bases at the locus, after applying filters"),
-    /**
-     * more than -maxDepth read at the locus, indicating some sort of mapping problem
-     */
+
     EXCESSIVE_COVERAGE("more than -maxDepth read at the locus, indicating some sort of mapping problem"),
-    /**
-     * more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads
-     */
+
     POOR_QUALITY("more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads"),
 
-    BAD_MATE(""),
+    BAD_MATE("the reads are not properly mated, suggesting mapping errors"),
 
-    INCONSISTENT_COVERAGE("");
+    NO_READS("there are no reads contained in the interval"),
 
+    //
+    // Interval-level statuses
+    //
+    LOW_MEDIAN_DEPTH("interval has insufficient median depth across samples");
 
-    public String description;
+    public final String description;
 
     private CallableStatus(String description) {
         this.description = description;

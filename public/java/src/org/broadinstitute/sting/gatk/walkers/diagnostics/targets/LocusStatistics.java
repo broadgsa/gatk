@@ -27,9 +27,9 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 import java.util.HashSet;
 import java.util.Set;
 
-public class LocusStatistics {
-    final int coverage;
-    final int rawCoverage;
+class LocusStatistics {
+    private final int coverage;
+    private final int rawCoverage;
 
     public LocusStatistics() {
         this.coverage = 0;
@@ -52,21 +52,20 @@ public class LocusStatistics {
     /**
      * Generates all applicable statuses from the coverages in this locus
      *
-     * @param minimumCoverageThreshold the minimum threshold for determining low coverage/poor quality
-     * @param maximumCoverageThreshold the maximum threshold for determining excessive coverage
+     * @param thresholds the class contains the statistical threshold for making calls
      * @return a set of all statuses that apply
      */
-    public Set<CallableStatus> callableStatuses(int minimumCoverageThreshold, int maximumCoverageThreshold) {
+    public Set<CallableStatus> callableStatuses(ThresHolder thresholds) {
         Set<CallableStatus> output = new HashSet<CallableStatus>();
 
         // if too much coverage
-        if (getCoverage() > maximumCoverageThreshold)
+        if (getCoverage() > thresholds.getMaximumCoverage())
             output.add(CallableStatus.EXCESSIVE_COVERAGE);
 
         // if not enough coverage
-        if (getCoverage() < minimumCoverageThreshold) {
+        if (getCoverage() < thresholds.getMinimumCoverage()) {
             // was there a lot of low Qual coverage?
-            if (getRawCoverage() >= minimumCoverageThreshold)
+            if (getRawCoverage() >= thresholds.getMinimumCoverage())
                 output.add(CallableStatus.POOR_QUALITY);
                 // no?
             else {
@@ -74,7 +73,7 @@ public class LocusStatistics {
                 if (getRawCoverage() > 0)
                     output.add(CallableStatus.LOW_COVERAGE);
                 else
-                    output.add(CallableStatus.NO_COVERAGE);
+                    output.add(CallableStatus.COVERAGE_GAPS);
             }
         }
 
