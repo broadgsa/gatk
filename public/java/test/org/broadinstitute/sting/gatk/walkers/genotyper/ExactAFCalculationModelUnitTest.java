@@ -94,4 +94,18 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
             Assert.assertEquals(calculatedAlleleCount, expectedAlleleCount);
         }
     }
+
+    @Test
+    public void testLargeGLs() {
+
+        final double[] BB = new double[]{-20000000.0, -20000000.0, 0.0};
+        GetGLsTest cfg = new GetGLsTest("B6", 1, createGenotype("1", BB), createGenotype("2", BB), createGenotype("3", BB));
+
+        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2);
+
+        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result);
+
+        int calculatedAlleleCount = result.getAlleleCountsOfMAP()[0];
+        Assert.assertEquals(calculatedAlleleCount, 6);
+    }
 }
