@@ -352,6 +352,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     private Set<String> IDsToKeep = null;
 
+    private final static boolean mongoOn = false;
+
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
@@ -466,8 +468,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if ( tracker == null )
             return 0;
 
-        //Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
-        Collection<VariantContext> vcs = getMongoVariants(ref, context.getLocation());
+        Collection<VariantContext> vcs = mongoOn ? getMongoVariants(ref, context.getLocation()) : tracker.getValues(variantCollection.variants, context.getLocation());
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
