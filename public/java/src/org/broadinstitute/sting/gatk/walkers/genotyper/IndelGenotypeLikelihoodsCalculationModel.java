@@ -261,15 +261,14 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             builder.alleles(vcAlleles);
             builder.referenceBaseForIndel(ref.getBase());
             builder.noGenotypes();
-            if (doMultiAllelicCalls)
+            if (doMultiAllelicCalls) {
                 vcs.add(builder.make());
-            else {
-                if (curCnt > maxAlleleCnt) {
-                    maxAlleleCnt = curCnt;
-                    vcs.clear();
-                    vcs.add(builder.make());
-                }
-
+                if (vcs.size() >= GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
+                    break;
+            } else if (curCnt > maxAlleleCnt) {
+                maxAlleleCnt = curCnt;
+                vcs.clear();
+                vcs.add(builder.make());
             }
         }
 

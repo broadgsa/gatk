@@ -210,8 +210,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      **/
     public void initialize() {
         // check for a bad max alleles value
-        if ( UAC.MAX_ALTERNATE_ALLELES > GenotypeLikelihoods.MAX_ALLELES_THAT_CAN_BE_GENOTYPED )
-            throw new UserException.BadArgumentValue("max_alternate_alleles", "the maximum possible value is " + GenotypeLikelihoods.MAX_ALLELES_THAT_CAN_BE_GENOTYPED);
+        if ( UAC.MAX_ALTERNATE_ALLELES > GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
+            throw new UserException.BadArgumentValue("max_alternate_alleles", "the maximum possible value is " + GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
 
         // warn the user for misusing EMIT_ALL_SITES
         if ( UAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES &&
