@@ -48,7 +48,7 @@ import org.testng.annotations.Test;
 import java.util.*;
 
 
-public class VariantEvalUnitTest extends BaseTest {
+public class VariantEvalWalkerUnitTest extends BaseTest {
     VariantEvalWalker VEwalker;
     VariantContext eval;
 
