@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -461,9 +462,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             DB mongoDb = mongo.getDB(MONGO_DB_NAME);
             mongoCollection = mongoDb.getCollection(MONGO_VC_COLLECTION);
         }
-        catch (MongoException e) {}
-        catch (java.net.UnknownHostException e) {}
-
+        catch (MongoException e) {
+            throw e;
+        }
+        catch (java.net.UnknownHostException e) {
+            throw new StingException(e.getMessage(), e);
+        }
     }
 
     /**

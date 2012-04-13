@@ -16,6 +16,7 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -42,8 +43,7 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
     private String RODFileName;
 
     @Override
-    public void initialize()
-    {
+    public void initialize() {
         try {
             mongo = new Mongo(MONGO_HOST, MONGO_PORT);
             DB mongoDb = mongo.getDB(MONGO_DB_NAME);
@@ -64,8 +64,12 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
             // set up primary key
             mongoCollection.ensureIndex(new BasicDBObject("location", 1).append("sample", 1).append("sourceROD", 1).append("alleles", 1), new BasicDBObject("unique", 1));
         }
-        catch (MongoException e) {}
-        catch (java.net.UnknownHostException e) {}
+        catch (MongoException e) {
+            throw e;
+        }
+        catch (java.net.UnknownHostException e) {
+            throw new StingException(e.getMessage(), e);
+        }
     }
 
     /**
