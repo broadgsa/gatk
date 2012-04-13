@@ -25,19 +25,10 @@ import java.util.concurrent.Future;
  * interface to force the reduce.
  */
 public class TreeReducer implements Callable {
-    private HierarchicalMicroScheduler microScheduler;
+    final private HierarchicalMicroScheduler microScheduler;
     private TreeReducible walker;
     private Future lhs;
     private Future rhs;
-
-    /**
-     * Create a one-sided reduce.  Result will be a simple pass-through of the result.
-     * @param microScheduler The parent hierarchical microscheduler for this reducer.
-     * @param lhs The one side of the reduce.
-     */
-    public TreeReducer( HierarchicalMicroScheduler microScheduler, Future lhs ) {
-        this( microScheduler, lhs, null );
-    }
 
     /**
      * Create a full tree reduce.  Combine this two results using an unspecified walker at some point in the future.
@@ -67,10 +58,7 @@ public class TreeReducer implements Callable {
         if( lhs == null )
             throw new IllegalStateException(String.format("Insufficient data on which to reduce; lhs = %s, rhs = %s", lhs, rhs) );
 
-        if( rhs == null )
-            return lhs.isDone();
-
-        return lhs.isDone() && rhs.isDone();
+        return lhs.isDone() && (rhs == null || rhs.isDone());
     }
 
     /**
@@ -80,24 +68,21 @@ public class TreeReducer implements Callable {
     public Object call() {
         Object result = null;
 
-        long startTime = System.currentTimeMillis();
+        final long startTime = System.currentTimeMillis();
 
         try {
             if( lhs == null )
                 result = lhs.get();
+                // todo -- what the hell is this above line?  Shouldn't it be the two below?
+//            if( lhs == null )
+//                throw new IllegalStateException(String.format("Insufficient data on which to reduce; lhs = %s, rhs = %s", lhs, rhs) );
             else
                 result = walker.treeReduce( lhs.get(), rhs.get() );
         }
-        catch( InterruptedException ex ) {
-            microScheduler.notifyOfTraversalError(ex);
-            throw new ReviewedStingException("Hierarchical reduce interrupted", ex);
-        }
-        catch( ExecutionException ex ) {
-            microScheduler.notifyOfTraversalError(ex);
-            throw new ReviewedStingException("Hierarchical reduce failed", ex);
-        }
+        catch( InterruptedException ex ) { microScheduler.handleException(ex); }
+        catch( ExecutionException ex ) { microScheduler.handleException(ex); }
 
-        long endTime = System.currentTimeMillis();
+        final long endTime = System.currentTimeMillis();
 
         // Constituent bits of this tree reduces are no longer required.  Throw them away.
         this.lhs = null;

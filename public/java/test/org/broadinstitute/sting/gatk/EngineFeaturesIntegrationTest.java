@@ -86,13 +86,15 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------
 
     private class EngineErrorHandlingTestProvider extends TestDataProvider {
-        Class expectedException;
-        boolean multiThreaded;
+        final Class expectedException;
+        final boolean multiThreaded;
+        final int iterationsToTest;
 
         public EngineErrorHandlingTestProvider(Class exceptedException, final boolean multiThreaded) {
             super(EngineErrorHandlingTestProvider.class);
             this.expectedException = exceptedException;
             this.multiThreaded = multiThreaded;
+            this.iterationsToTest = multiThreaded ? 10 : 1;
             setName(String.format("Engine error handling: expected %s, is-multithreaded %b", exceptedException, multiThreaded));
         }
     }
@@ -113,9 +115,11 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     //
     @Test(dataProvider = "EngineErrorHandlingTestProvider")
     public void testEngineErrorHandlingTestProvider(EngineErrorHandlingTestProvider cfg) {
-        final String root = "-T ErrorThrowing -R " + b37KGReference;
-        final String args = root + (cfg.multiThreaded ? " -nt 2" : "") + " -E " + cfg.expectedException.getSimpleName();
-        WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
-        executeTest(cfg.toString(), spec);
+        for ( int i = 0; i < cfg.iterationsToTest; i++ ) {
+            final String root = "-T ErrorThrowing -R " + b37KGReference;
+            final String args = root + (cfg.multiThreaded ? " -nt 2" : "") + " -E " + cfg.expectedException.getSimpleName();
+            WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
+            executeTest(cfg.toString(), spec);
+        }
     }
 }
