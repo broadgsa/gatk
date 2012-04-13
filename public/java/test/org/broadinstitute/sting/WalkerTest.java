@@ -314,7 +314,8 @@ public class WalkerTest extends BaseTest {
                     // it's the type we expected
                     System.out.println(String.format("  => %s PASSED", name));
                 } else {
-                    e.printStackTrace(System.out);  // must print to stdout to see the message
+                    if ( e.getCause() != null )
+                        e.getCause().printStackTrace(System.out);  // must print to stdout to see the message
                     Assert.fail(String.format("Test %s expected exception %s but instead got %s with error message %s",
                             name, expectedException, e.getClass(), e.getMessage()));
                 }

@@ -27,16 +27,15 @@ import java.util.concurrent.Callable;
  * Carries the walker over a given shard, in a callable interface.
  */
 public class ShardTraverser implements Callable {
-    private HierarchicalMicroScheduler microScheduler;
-    private Walker walker;
-    private Shard shard;
-    private TraversalEngine traversalEngine;
-    private ThreadLocalOutputTracker outputTracker;
+    final private HierarchicalMicroScheduler microScheduler;
+    final private Walker walker;
+    final private Shard shard;
+    final private TraversalEngine traversalEngine;
+    final private ThreadLocalOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
     /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(ShardTraverser.class);
-
+    final protected static Logger logger = Logger.getLogger(ShardTraverser.class);
 
     /**
      * Is this traversal complete?
@@ -58,11 +57,10 @@ public class ShardTraverser implements Callable {
     public Object call() {
         try {
             traversalEngine.startTimersIfNecessary();
-            long startTime = System.currentTimeMillis();
+            final long startTime = System.currentTimeMillis();
 
             Object accumulator = walker.reduceInit();
-            LocusWalker lWalker = (LocusWalker)walker;
-            WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),
+            final WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),
                     microScheduler.getReadIterator(shard),
                     shard.getGenomeLocs(),
                     microScheduler.engine.getSampleDB().getSampleNames()); // todo: microScheduler.engine is protected - is it okay to user it here?
@@ -76,18 +74,12 @@ public class ShardTraverser implements Callable {
             windowMaker.close();
             outputMergeTask = outputTracker.closeStorage();
 
-            long endTime = System.currentTimeMillis();
+            final long endTime = System.currentTimeMillis();
 
             microScheduler.reportShardTraverseTime(endTime-startTime);
 
             return accumulator;
-        }
-        catch(Throwable t) {
-            // Notify that an exception has occurred and rethrow it.
-            microScheduler.notifyOfTraversalError(t);
-            throw new ReviewedStingException("An error has occurred during traversal",t);
-        }
-        finally {
+        } finally {
             synchronized(this) {
                 complete = true;
                 notifyAll();
