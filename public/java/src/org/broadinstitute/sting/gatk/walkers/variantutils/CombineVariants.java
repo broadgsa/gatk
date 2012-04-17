@@ -157,6 +157,12 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if the variant is present in at least N input files.", required=false)
     public int minimumN = 1;
 
+    /**
+     * This option allows the suppression of the command line in the VCF header. This is most often usefully when combining variants for dozens or hundreds of smaller VCFs.
+     */
+    @Argument(fullName="suppressCommandLineHeader", shortName="suppressCommandLineHeader", doc="If true, do not output the header containing the command line used", required=false)
+    public boolean SUPPRESS_COMMAND_LINE_HEADER = false;
+
     @Hidden
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
     public boolean MERGE_INFO_WITH_MAX_AC = false;
@@ -183,7 +189,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         if ( SET_KEY != null )
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
-        vcfWriter.writeHeader(new VCFHeader(headerLines, sitesOnlyVCF ? Collections.<String>emptySet() : samples));
+        VCFHeader vcfHeader = new VCFHeader(headerLines, sitesOnlyVCF ? Collections.<String>emptySet() : samples);
+        vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
+        vcfWriter.writeHeader(vcfHeader);
 
         if ( vcfWriter instanceof VCFWriterStub) {
             sitesOnlyVCF = ((VCFWriterStub)vcfWriter).doNotWriteGenotypes();

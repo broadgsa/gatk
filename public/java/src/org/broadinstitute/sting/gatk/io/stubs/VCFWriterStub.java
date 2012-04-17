@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,7 +12,6 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -99,8 +98,13 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     /**
      * Create a new stub given the requested file.
+     *
+     * @param engine engine.
      * @param genotypeFile  file to (ultimately) create.
      * @param isCompressed  should we compress the output stream?
+     * @param argumentSources sources.
+     * @param skipWritingHeader skip writing header.
+     * @param doNotWriteGenotypes do not write genotypes.
      */
     public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
@@ -114,8 +118,13 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     /**
      * Create a new stub given the requested file.
+     *
+     * @param engine engine.
      * @param genotypeStream  stream to (ultimately) write.
      * @param isCompressed  should we compress the output stream?
+     * @param argumentSources sources.
+     * @param skipWritingHeader skip writing header.
+     * @param doNotWriteGenotypes do not write genotypes.
      */
     public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
@@ -154,7 +163,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     /**
      * Gets the master sequence dictionary from the engine associated with this stub
      * @link GenomeAnalysisEngine.getMasterSequenceDictionary
-     * @return
+     * @return the master sequence dictionary from the engine associated with this stub
      */
     public SAMSequenceDictionary getMasterSequenceDictionary() {
         return engine.getMasterSequenceDictionary();
@@ -188,22 +197,25 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
         vcfHeader = header;
 
         // Check for the command-line argument header line.  If not present, add it in.
-        if ( !skipWritingHeader ) {
-            VCFHeaderLine commandLineArgHeaderLine = getCommandLineArgumentHeaderLine();
-            boolean foundCommandLineHeaderLine = false;
-            for (VCFHeaderLine line: vcfHeader.getMetaData()) {
-                if ( line.getKey().equals(commandLineArgHeaderLine.getKey()) )
-                    foundCommandLineHeaderLine = true;
+        if (!skipWritingHeader && header.isWriteEngineHeaders()) {
+            
+            if (header.isWriteCommandLine()) {
+                VCFHeaderLine commandLineArgHeaderLine = getCommandLineArgumentHeaderLine();
+                boolean foundCommandLineHeaderLine = false;
+                for (VCFHeaderLine line: vcfHeader.getMetaData()) {
+                    if ( line.getKey().equals(commandLineArgHeaderLine.getKey()) )
+                        foundCommandLineHeaderLine = true;
+                }
+                if ( !foundCommandLineHeaderLine )
+                    vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
-            if ( !foundCommandLineHeaderLine )
-                vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
 
             // also put in the reference contig header lines
             String assembly = getReferenceAssembly(engine.getArguments().referenceFile.getName());
             for ( SAMSequenceRecord contig : engine.getReferenceDataSource().getReference().getSequenceDictionary().getSequences() )
                 vcfHeader.addMetaDataLine(getContigHeaderLine(contig, assembly));
 
-            vcfHeader.addMetaDataLine(new VCFHeaderLine("reference", "file://" + engine.getArguments().referenceFile.getAbsolutePath()));
+            vcfHeader.addMetaDataLine(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, "file://" + engine.getArguments().referenceFile.getAbsolutePath()));
         }
 
         outputTracker.getStorage(this).writeHeader(vcfHeader);
@@ -225,7 +237,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     /**
      * Gets a string representation of this object.
-     * @return
+     * @return a string representation of this object.
      */
     @Override
     public String toString() {
@@ -247,19 +259,19 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
             val = String.format("<ID=%s,length=%d,assembly=%s>", contig.getSequenceName(), contig.getSequenceLength(), assembly);
         else
             val = String.format("<ID=%s,length=%d>", contig.getSequenceName(), contig.getSequenceLength());
-        return new VCFHeaderLine("contig", val);
+        return new VCFHeaderLine(VCFHeader.CONTIG_KEY, val);
     }
 
     private String getReferenceAssembly(String refPath) {
         // This doesn't need to be perfect as it's not a required VCF header line, but we might as well give it a shot
         String assembly = null;
-        if ( refPath.indexOf("b37") != -1 || refPath.indexOf("v37") != -1 )
+        if (refPath.contains("b37") || refPath.contains("v37"))
             assembly = "b37";
-        else if ( refPath.indexOf("b36") != -1 )
+        else if (refPath.contains("b36"))
             assembly = "b36";
-        else if ( refPath.indexOf("hg18") != -1 )
+        else if (refPath.contains("hg18"))
             assembly = "hg18";
-        else if ( refPath.indexOf("hg19") != -1 )
+        else if (refPath.contains("hg19"))
             assembly = "hg19";
         return assembly;
     }

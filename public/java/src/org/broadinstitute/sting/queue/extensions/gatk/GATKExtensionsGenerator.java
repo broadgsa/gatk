@@ -194,6 +194,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private static final List<String> gatkPackages = Arrays.asList(
             "org.broadinstitute.sting.gatk",
+            "org.broadinstitute.sting.pipeline",
             "org.broadinstitute.sting.analyzecovariates",
             "org.broadinstitute.sting.gatk.datasources.reads.utilities");
 
@@ -251,7 +252,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private void writeFilter(String className, List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) throws IOException {
         String content = getContent(TRAIT_TEMPLATE, "org.broadinstitute.sting.queue.function.CommandLineFunction",
-                className, "", false, String.format(" + \" -read_filter %s\"", className), argumentFields, dependents);
+                className, "", false, String.format(" + \" --read_filter %s\"", className), argumentFields, dependents);
         writeFile(GATK_EXTENSIONS_PACKAGE_NAME + "." + className, content);
     }
 
