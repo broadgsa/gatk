@@ -165,9 +165,9 @@ public class VariantDataManager {
             bottomPercentage = ((float) numToAdd) / ((float) data.size());
         }
         int index = 0, numAdded = 0;
-        while( numAdded < numToAdd ) {
+        while( numAdded < numToAdd && index < data.size() ) {
             final VariantDatum datum = data.get(index++);
-            if( !datum.atAntiTrainingSite && !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+            if( datum != null && !datum.atAntiTrainingSite && !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
                 datum.atAntiTrainingSite = true;
                 trainingData.add( datum );
                 numAdded++;
