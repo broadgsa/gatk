@@ -42,13 +42,13 @@ public class GATKReportUnitTest extends BaseTest {
         Assert.assertEquals(report.getTables().size(), 5);
 
         GATKReportTable countVariants = report.getTable("CountVariants");
-        Object countVariantsPK = countVariants.getPrimaryKeyByData("dbsnp.eval.none.all");
+        Object countVariantsPK = countVariants.getPrimaryKeyByData("CountVariants", "dbsnp", "eval", "none", "all");
         Assert.assertEquals(countVariants.get(countVariantsPK, "nProcessedLoci"), "63025520");
         Assert.assertEquals(countVariants.get(countVariantsPK, "nNoCalls"), "0");
         Assert.assertEquals(countVariants.get(countVariantsPK, "heterozygosity"), 4.73e-06);
 
         GATKReportTable validationReport = report.getTable("ValidationReport");
-        Object validationReportPK = countVariants.getPrimaryKeyByData("dbsnp.eval.none.novel");
+        Object validationReportPK = countVariants.getPrimaryKeyByData("CountVariants", "dbsnp", "eval", "none", "novel");
         Assert.assertEquals(validationReport.get(validationReportPK, "PPV"), Double.NaN);
     }
 
@@ -77,6 +77,49 @@ public class GATKReportUnitTest extends BaseTest {
     @Test(dataProvider = "rightAlignValues")
     public void testIsRightAlign(String value, boolean expected) {
         Assert.assertEquals(GATKReportColumn.isRightAlign(value), expected, "right align of '" + value + "'");
+    }
+
+    private GATKReportTable makeBasicTable() {
+        GATKReport report = GATKReport.newSimpleReport("TableName", "sample", "value");
+        GATKReportTable table = report.getTable("TableName");
+        report.addRow("foo.1", "hello");
+        report.addRow("foo.2", "world");
+        return table;
+    }
+
+    @Test
+    public void testDottedSampleName() {
+        GATKReportTable table = makeBasicTable();
+        Object pk;
+
+        pk = table.getPrimaryKeyByData("foo.1");
+        Assert.assertEquals(table.get(pk, "value"), "hello");
+
+        pk = table.getPrimaryKeyByData("foo.2");
+        Assert.assertEquals(table.get(pk, "value"), "world");
+    }
+
+    @Test
+    public void testFindPrimaryKeyByData() {
+        GATKReportTable table = makeBasicTable();
+        Assert.assertNotNull(table.findPrimaryKeyByData("foo.1"));
+        Assert.assertNotNull(table.findPrimaryKeyByData("foo.1", "hello"));
+        Assert.assertNotNull(table.findPrimaryKeyByData("foo.2"));
+        Assert.assertNotNull(table.findPrimaryKeyByData("foo.2", "world"));
+        Assert.assertNull(table.findPrimaryKeyByData("list", "longer", "than", "column", "count"));
+        Assert.assertNull(table.findPrimaryKeyByData("short"));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testEmptyFindPrimaryKeyByData() {
+        GATKReportTable table = makeBasicTable();
+        table.findPrimaryKeyByData();
+    }
+
+    @Test(expectedExceptions = NullPointerException.class)
+    public void testNullFindPrimaryKeyByData() {
+        GATKReportTable table = makeBasicTable();
+        table.findPrimaryKeyByData((Object[]) null);
     }
 
     @Test

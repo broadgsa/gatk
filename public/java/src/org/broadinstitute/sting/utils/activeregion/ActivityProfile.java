@@ -24,8 +24,10 @@
 
 package org.broadinstitute.sting.utils.activeregion;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
@@ -45,8 +47,16 @@ public class ActivityProfile {
     final boolean presetRegions;
     GenomeLoc regionStartLoc = null;
     final List<Double> isActiveList;
-
     private GenomeLoc lastLoc = null;
+    private static final int FILTER_SIZE = 65;
+    private static final Double[] GaussianKernel;
+
+    static {
+        GaussianKernel = new Double[2*FILTER_SIZE + 1];
+        for( int iii = 0; iii < 2*FILTER_SIZE + 1; iii++ ) {
+            GaussianKernel[iii] = MathUtils.NormalDistribution(FILTER_SIZE, 40.0, iii);
+        }
+    }
 
     // todo -- add upfront the start and stop of the intervals
     // todo -- check that no regions are unexpectedly missing
@@ -85,15 +95,13 @@ public class ActivityProfile {
     public ActivityProfile bandPassFilter() {
         final Double[] activeProbArray = isActiveList.toArray(new Double[isActiveList.size()]);
         final Double[] filteredProbArray = new Double[activeProbArray.length];
-        final int FILTER_SIZE = ( presetRegions ? 0 : 50 ); // TODO: needs to be set-able by the walker author
-        for( int iii = 0; iii < activeProbArray.length; iii++ ) {
-            double maxVal = 0;
-            for( int jjj = Math.max(0, iii-FILTER_SIZE); jjj < Math.min(isActiveList.size(), iii+FILTER_SIZE+1); jjj++ ) {
-                if( activeProbArray[jjj] > maxVal ) { maxVal = activeProbArray[jjj]; }
+        if( !presetRegions ) {
+            for( int iii = 0; iii < activeProbArray.length; iii++ ) {
+                final Double[] kernel = (Double[]) ArrayUtils.subarray(GaussianKernel, Math.max(FILTER_SIZE-iii, 0), Math.min(GaussianKernel.length,FILTER_SIZE + activeProbArray.length - iii));
+                final Double[] activeProbSubArray = (Double[]) ArrayUtils.subarray(activeProbArray, Math.max(0,iii - FILTER_SIZE), Math.min(activeProbArray.length,iii + FILTER_SIZE + 1));
+                filteredProbArray[iii] = MathUtils.dotProduct(activeProbSubArray, kernel);
             }
-            filteredProbArray[iii] = maxVal;
         }
-
         return new ActivityProfile(parser, presetRegions, Arrays.asList(filteredProbArray), regionStartLoc);
     }
 
@@ -102,9 +110,9 @@ public class ActivityProfile {
      * @param activeRegionExtension
      * @return
      */
-    public List<ActiveRegion> createActiveRegions( final int activeRegionExtension ) {
-        final int MAX_ACTIVE_REGION = ( presetRegions ? 16001 : 425 ); // TODO: needs to be set-able by the walker author
-        final double ACTIVE_PROB_THRESHOLD = 0.2; // TODO: needs to be set-able by the walker author
+    public List<ActiveRegion> createActiveRegions( final int activeRegionExtension, final int maxRegionSize ) {
+        final double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
+        final ArrayList<ActiveRegion> returnList = new ArrayList<ActiveRegion>();
 
         if( isActiveList.size() == 0 ) {
             // no elements in the active list, just return an empty one
@@ -112,25 +120,22 @@ public class ActivityProfile {
         } else if( isActiveList.size() == 1 ) {
             // there's a single element, it's either active or inactive
             boolean isActive = isActiveList.get(0) > ACTIVE_PROB_THRESHOLD;
-            final ActiveRegion region = createActiveRegion(isActive, 0, 0, activeRegionExtension );
-            return Collections.singletonList(region);
+            returnList.addAll(createActiveRegion(isActive, 0, 0, activeRegionExtension, maxRegionSize));
         } else {
             // there are 2+ elements, divide these up into regions
-            final ArrayList<ActiveRegion> returnList = new ArrayList<ActiveRegion>();
             boolean isActive = isActiveList.get(0) > ACTIVE_PROB_THRESHOLD;
             int curStart = 0;
             for(int iii = 1; iii < isActiveList.size(); iii++ ) {
                 final boolean thisStatus = isActiveList.get(iii) > ACTIVE_PROB_THRESHOLD;
-                if( isActive != thisStatus || (iii-curStart) > MAX_ACTIVE_REGION ) {
-                    returnList.add( createActiveRegion(isActive, curStart, iii-1, activeRegionExtension) );
+                if( isActive != thisStatus ) {
+                    returnList.addAll(createActiveRegion(isActive, curStart, iii - 1, activeRegionExtension, maxRegionSize));
                     isActive = thisStatus;
                     curStart = iii;
                 }
             }
-            returnList.add( createActiveRegion(isActive, curStart, isActiveList.size()-1, activeRegionExtension) ); // close out the current active region
-
-            return returnList;
+            returnList.addAll(createActiveRegion(isActive, curStart, isActiveList.size() - 1, activeRegionExtension, maxRegionSize)); // close out the current active region
         }
+        return returnList;
     }
 
     /**
@@ -141,8 +146,25 @@ public class ActivityProfile {
      * @param activeRegionExtension
      * @return a fully initialized ActiveRegion with the above properties
      */
-    private final ActiveRegion createActiveRegion(final boolean isActive, final int curStart, final int curEnd, final int activeRegionExtension) {
-        final GenomeLoc loc = parser.createGenomeLoc(regionStartLoc.getContig(), regionStartLoc.getStart() + curStart, regionStartLoc.getStart() + curEnd);
-        return new ActiveRegion( loc, isActive, parser, activeRegionExtension );
+    private final List<ActiveRegion> createActiveRegion(final boolean isActive, final int curStart, final int curEnd, final int activeRegionExtension, final int maxRegionSize) {
+        return createActiveRegion(isActive, curStart, curEnd, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
+    }
+    private final List<ActiveRegion> createActiveRegion(final boolean isActive, final int curStart, final int curEnd, final int activeRegionExtension, final int maxRegionSize, final List<ActiveRegion> returnList) {
+        if( !isActive || curEnd - curStart < maxRegionSize ) {
+            final GenomeLoc loc = parser.createGenomeLoc(regionStartLoc.getContig(), regionStartLoc.getStart() + curStart, regionStartLoc.getStart() + curEnd);
+            returnList.add(new ActiveRegion(loc, isActive, parser, activeRegionExtension));
+            return returnList;
+        }
+        // find the best place to break up the large active region
+        Double minProb = Double.MAX_VALUE;
+        int cutPoint = -1;
+        for( int iii = curStart + 45; iii < curEnd - 45; iii++ ) { // BUGBUG: assumes maxRegionSize >> 45
+            if( isActiveList.get(iii) < minProb ) { minProb = isActiveList.get(iii); cutPoint = iii; }
+        }
+        final List<ActiveRegion> leftList = createActiveRegion(isActive, curStart, cutPoint, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
+        final List<ActiveRegion> rightList = createActiveRegion(isActive, cutPoint, curEnd, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
+        returnList.addAll( leftList );
+        returnList.addAll( rightList );
+        return returnList;
     }
 }

@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -14,15 +15,23 @@ import java.util.*;
 
 public final class EvaluationContext {
     // NOTE: must be hashset to avoid O(log n) cost of iteration in the very frequently called apply function
-    private final HashSet<VariantEvaluator> evaluationInstances;
+    final VariantEvalWalker walker;
+    private final ArrayList<VariantEvaluator> evaluationInstances;
+    private final Set<Class<? extends VariantEvaluator>> evaluationClasses;
 
     public EvaluationContext(final VariantEvalWalker walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses) {
-        evaluationInstances = new HashSet<VariantEvaluator>(evaluationClasses.size());
+        this(walker, evaluationClasses, true);
+    }
+
+    private EvaluationContext(final VariantEvalWalker walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses, final boolean doInitialize) {
+        this.walker = walker;
+        this.evaluationClasses = evaluationClasses;
+        this.evaluationInstances = new ArrayList<VariantEvaluator>(evaluationClasses.size());
 
         for ( final Class<? extends VariantEvaluator> c : evaluationClasses ) {
             try {
                 final VariantEvaluator eval = c.newInstance();
-                eval.initialize(walker);
+                if ( doInitialize ) eval.initialize(walker);
                 evaluationInstances.add(eval);
             } catch (InstantiationException e) {
                 throw new ReviewedStingException("Unable to instantiate eval module '" + c.getSimpleName() + "'", e);
@@ -60,6 +69,22 @@ public final class EvaluationContext {
                 default:
                     throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
             }
+        }
+    }
+
+    public void combine(final EvaluationContext rhs) {
+        for ( int i = 0; i < evaluationInstances.size(); i++ )
+            evaluationInstances.get(i).combine(rhs.evaluationInstances.get(i));
+    }
+
+    public final static EvaluationContextCombiner COMBINER = new EvaluationContext.EvaluationContextCombiner();
+    private static class EvaluationContextCombiner implements StratificationManager.Combiner<EvaluationContext> {
+        @Override
+        public EvaluationContext combine(EvaluationContext lhs, final EvaluationContext rhs) {
+            if ( lhs == null )
+                lhs = new EvaluationContext(rhs.walker, rhs.evaluationClasses, false);
+            lhs.combine(rhs);
+            return lhs;
         }
     }
 }

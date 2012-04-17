@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,15 +12,14 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.broadinstitute.sting.utils.text;
@@ -48,75 +47,92 @@ import java.util.List;
  * For the love of god, please use this system for reading lines in a file.
  */
 public class XReadLines implements Iterator<String>, Iterable<String> {
-    private BufferedReader in;          // The stream we're reading from
-    private String nextline = null;     // Return value of next call to next()
-    private boolean trimWhitespace = true;
+    private final BufferedReader in;      // The stream we're reading from
+    private String nextLine = null;       // Return value of next call to next()
+    private final boolean trimWhitespace;
+    private final String commentPrefix;
+
+    public XReadLines(final File filename) throws FileNotFoundException {
+        this(new FileReader(filename), true, null);
+    }
+
+    public XReadLines(final File filename, final boolean trimWhitespace) throws FileNotFoundException {
+        this(new FileReader(filename), trimWhitespace, null);
+    }
 
     /**
      * Creates a new xReadLines object to read lines from filename
      *
-     * @param filename
-     * @throws FileNotFoundException
+     * @param filename file name
+     * @param trimWhitespace trim whitespace
+     * @param commentPrefix prefix for comments or null if no prefix is set
+     * @throws FileNotFoundException when the file is not found
      */
-    public XReadLines(final File filename, final boolean trimWhitespace) throws FileNotFoundException {
-        this(new FileReader(filename), trimWhitespace);
+    public XReadLines(final File filename, final boolean trimWhitespace, final String commentPrefix) throws FileNotFoundException {
+        this(new FileReader(filename), trimWhitespace, commentPrefix);
     }
 
-    public XReadLines(final File filename) throws FileNotFoundException {
-        this(filename, true);
+    public XReadLines(final InputStream inputStream) throws FileNotFoundException {
+        this(new InputStreamReader(inputStream), true, null);
     }
 
-    /**
-     * Creates a new xReadLines object to read lines from fileReader
-     *
-     * @param fileReader
-     * @throws FileNotFoundException
-     */
-    public XReadLines(final FileReader fileReader, final boolean trimWhitespace) throws FileNotFoundException {
-        this(new BufferedReader(fileReader), trimWhitespace);
-    }
-
-    public XReadLines(final FileReader fileReader) throws FileNotFoundException {
-        this(fileReader, true);
+    public XReadLines(final InputStream inputStream, final boolean trimWhitespace) {
+        this(new InputStreamReader(inputStream), trimWhitespace, null);
     }
 
     /**
      * Creates a new xReadLines object to read lines from an input stream
      *
-     * @param inputStream
+     * @param inputStream input stream
+     * @param trimWhitespace trim whitespace
+     * @param commentPrefix prefix for comments or null if no prefix is set
      */
-    public XReadLines(final InputStream inputStream, final boolean trimWhitespace) {
-        this(new BufferedReader(new InputStreamReader(inputStream)), trimWhitespace);
-    }
-
-    public XReadLines(final InputStream inputStream) throws FileNotFoundException {
-        this(inputStream, true);
+    public XReadLines(final InputStream inputStream, final boolean trimWhitespace, final String commentPrefix) {
+        this(new InputStreamReader(inputStream), trimWhitespace, commentPrefix);
     }
 
 
     /**
-     * Creates a new xReadLines object to read lines from an bufferedReader
+     * Creates a new xReadLines object to read lines from a reader
      *
-     * @param reader
+     * @param reader reader
+     */
+    public XReadLines(final Reader reader) {
+        this(reader, true, null);
+    }
+
+    /**
+     * Creates a new xReadLines object to read lines from an reader
+     *
+     * @param reader reader
+     * @param trimWhitespace trim whitespace
      */
     public XReadLines(final Reader reader, final boolean trimWhitespace) {
+        this(reader, trimWhitespace, null);
+    }
+
+    /**
+     * Creates a new xReadLines object to read lines from an bufferedReader
+     *
+     * @param reader file name
+     * @param trimWhitespace trim whitespace
+     * @param commentPrefix prefix for comments or null if no prefix is set
+     */
+    public XReadLines(final Reader reader, final boolean trimWhitespace, final String commentPrefix) {
+        this.in = (reader instanceof BufferedReader) ? (BufferedReader)reader : new BufferedReader(reader);
+        this.trimWhitespace = trimWhitespace;
+        this.commentPrefix = commentPrefix;
         try {
-            this.in = new BufferedReader(reader);
-            nextline = readNextLine();
-            this.trimWhitespace = trimWhitespace;
+            this.nextLine = readNextLine();
         } catch(IOException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
-    public XReadLines(final Reader reader) {
-        this(reader, true);
-    }
-
     /**
      * Reads all of the lines in the file, and returns them as a list of strings
      *
-     * @return
+     * @return all of the lines in the file.
      */
     public List<String> readLines() {
         List<String> lines = new LinkedList<String>();
@@ -128,38 +144,48 @@ public class XReadLines implements Iterator<String>, Iterable<String> {
 
     /**
      * I'm an iterator too...
-     * @return
+     * @return an iterator
      */
     public Iterator<String> iterator() {
         return this;
     }
 
     public boolean hasNext() {
-        return nextline != null;
+        return this.nextLine != null;
     }
 
     /**
-     * Actually reads the next line from the stream, not accessible publically
-     * @return
+     * Actually reads the next line from the stream, not accessible publicly
+     * @return the next line or null
+     * @throws IOException if an error occurs
      */
     private String readNextLine() throws IOException {
-        String nextline = in.readLine();   // Read another line
-        if (nextline != null && trimWhitespace )
-            nextline = nextline.trim();
-        return nextline;
+        String nextLine;
+        while ((nextLine = this.in.readLine()) != null) {
+            if (this.trimWhitespace) {
+                nextLine = nextLine.trim();
+                if (nextLine.length() == 0)
+                    continue;
+            }
+            if (this.commentPrefix != null)
+                if (nextLine.startsWith(this.commentPrefix))
+                    continue;
+            break;
+        }
+        return nextLine;
     }
 
     /**
-     * Returns the next line (minus whitespace) 
-     * @return
+     * Returns the next line (optionally minus whitespace)
+     * @return the next line
      */
     public String next() {
         try {
-            String result = nextline;
-            nextline = readNextLine();
+            String result = this.nextLine;
+            this.nextLine = readNextLine();
 
             // If we haven't reached EOF yet
-            if (nextline == null) {
+            if (this.nextLine == null) {
                 in.close();             // And close on EOF
             }
 

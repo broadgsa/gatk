@@ -36,10 +36,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -273,15 +270,14 @@ public class ConsensusAlleleCounter {
             builder.alleles(Arrays.asList(refAllele, altAllele));
             builder.referenceBaseForIndel(ref.getBase());
             builder.noGenotypes();
-            if (doMultiAllelicCalls)
+            if (doMultiAllelicCalls) {
                 vcs.add(builder.make());
-            else {
-                if (curCnt > maxAlleleCnt) {
-                    maxAlleleCnt = curCnt;
-                    vcs.clear();
-                    vcs.add(builder.make());
-                }
-
+                if (vcs.size() >= GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
+                    break;
+            } else if (curCnt > maxAlleleCnt) {
+                maxAlleleCnt = curCnt;
+                vcs.clear();
+                vcs.add(builder.make());
             }
         }
 

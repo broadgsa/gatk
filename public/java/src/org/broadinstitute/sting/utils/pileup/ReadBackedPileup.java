@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A data retrieval interface for accessing parts of the pileup.
@@ -158,6 +159,16 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return A subset of this pileup containing only reads with the given sample.
      */
     public ReadBackedPileup getPileupForSamples(Collection<String> sampleNames);
+
+    /**
+     * Gets the particular subset of this pileup for each given sample name.
+     *
+     * Same as calling getPileupForSample for all samples, but in O(n) instead of O(n^2).
+     *
+     * @param sampleNames Name of the sample to use.
+     * @return A subset of this pileup containing only reads with the given sample.
+     */
+    public Map<String, ReadBackedPileup> getPileupsForSamples(Collection<String> sampleNames);
 
 
     /**

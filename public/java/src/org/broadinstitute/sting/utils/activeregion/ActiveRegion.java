@@ -15,7 +15,7 @@ import java.util.ArrayList;
  * Date: 1/4/12
  */
 
-public class ActiveRegion implements HasGenomeLocation {
+public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion> {
 
     private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
     private final GenomeLoc activeRegionLoc;
@@ -71,6 +71,11 @@ public class ActiveRegion implements HasGenomeLocation {
        return referenceReader.getSubsequenceAt( fullExtentReferenceLoc.getContig(),
                Math.max(1, fullExtentReferenceLoc.getStart() - padding), 
                Math.min(referenceReader.getSequenceDictionary().getSequence(fullExtentReferenceLoc.getContig()).getSequenceLength(), fullExtentReferenceLoc.getStop() + padding) ).getBases();
+    }
+
+    @Override
+    public int compareTo( final ActiveRegion other ) {
+        return this.getLocation().compareTo(other.getLocation());
     }
 
     @Override

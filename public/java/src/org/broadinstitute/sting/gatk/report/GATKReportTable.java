@@ -250,53 +250,40 @@ public class GATKReportTable {
     }
 
     /**
-     * Returns the first primary key matching the dotted column values.
-     * Ex: dbsnp.eval.called.all.novel.all
-     *
-     * @param dottedColumnValues Period concatenated values.
+     * Returns the first primary key matching the column values.
+     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
+     * @param columnValues column values.
      * @return The first primary key matching the column values or throws an exception.
      */
-    public Object getPrimaryKeyByData(String dottedColumnValues) {
-        Object key = findPrimaryKey(dottedColumnValues);
+    public Object getPrimaryKeyByData(Object... columnValues) {
+        Object key = findPrimaryKeyByData(columnValues);
         if (key == null)
-            throw new ReviewedStingException("Attempted to get non-existent GATKReportTable key for values: " + dottedColumnValues);
+            throw new ReviewedStingException("Attempted to get non-existent GATKReportTable key for values: " + Arrays.asList(columnValues));
         return key;
     }
 
     /**
-     * Returns true if there is at least on row with the dotted column values.
-     * Ex: dbsnp.eval.called.all.novel.all
-     *
-     * @param dottedColumnValues Period concatenated values.
-     * @return true if there is at least one row matching the columns.
-     */
-    public boolean containsPrimaryKey(String dottedColumnValues) {
-        return findPrimaryKey(dottedColumnValues) != null;
-    }
-
-    /**
-     * Returns the first primary key matching the dotted column values.
-     * Ex: dbsnp.eval.called.all.novel.all
-     *
-     * @param dottedColumnValues Period concatenated values.
-     * @return The first primary key matching the column values or null.
-     */
-    private Object findPrimaryKey(String dottedColumnValues) {
-        return findPrimaryKey(dottedColumnValues.split("\\."));
-    }
-
-    /**
      * Returns the first primary key matching the column values.
-     * Ex: new String[] { "dbsnp", "eval", "called", "all", "novel", "all" }
+     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
      *
      * @param columnValues column values.
-     * @return The first primary key matching the column values.
+     * @return The first primary key matching the column values or null if the key does not exist.
      */
-    private Object findPrimaryKey(Object[] columnValues) {
+    public Object findPrimaryKeyByData(Object... columnValues) {
+        if (columnValues == null)
+            throw new NullPointerException("Column values is null");
+        if (columnValues.length == 0)
+            throw new IllegalArgumentException("Column values is empty");
+        int columnCount = columns.size();
         for (Object primaryKey : primaryKeyColumn) {
             boolean matching = true;
-            for (int i = 0; matching && i < columnValues.length; i++) {
-                matching = ObjectUtils.equals(columnValues[i], get(primaryKey, i + 1));
+            // i --> index into columnValues parameter
+            // j --> index into columns collection
+            for (int i = 0, j = 0; matching && i < columnValues.length && j < columnCount; j++) {
+                if (!columns.getByIndex(j).isDisplayable())
+                    continue;
+                matching = ObjectUtils.equals(columnValues[i], get(primaryKey, i));
+                i++;
             }
             if (matching)
                 return primaryKey;
@@ -360,8 +347,8 @@ public class GATKReportTable {
      * output file), and the format string used to display the data.
      *
      * @param columnName   the name of the column
-     * @param defaultValue the default value of a blank cell
-     * @param display      if true - the column will be displayed; if false - the column will be hidden
+     * @param defaultValue if true - the column will be displayed; if false - the column will be hidden
+     * @param display      display the column
      * @param format       the format string used to display data
      */
     public void addColumn(String columnName, Object defaultValue, boolean display, String format) {

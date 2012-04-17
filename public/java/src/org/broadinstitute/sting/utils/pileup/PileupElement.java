@@ -32,8 +32,6 @@ public class PileupElement implements Comparable<PileupElement> {
     protected final int eventLength;            // what is the length of the event (insertion or deletion) *after* this base
     protected final String eventBases;          // if it is a deletion, we do not have information about the actual deleted bases in the read itself, so we fill the string with D's; for insertions we keep actual inserted bases
 
-    
-
     /**
      * Creates a new pileup element.
      *

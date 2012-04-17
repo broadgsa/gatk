@@ -223,12 +223,12 @@ public class GenotypeLikelihoods {
     /**
      * The maximum number of alleles that we can represent as genotype likelihoods
      */
-    final static int MAX_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
+    public final static int MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
 
     /*
      * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
      */
-    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALLELES_THAT_CAN_BE_GENOTYPED);
+    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
 
     private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
         final int numLikelihoods = calculateNumLikelihoods(1+altAlleles, 2);
@@ -311,7 +311,7 @@ public class GenotypeLikelihoods {
     public static GenotypeLikelihoodsAllelePair getAllelePair(final int PLindex) {
         // make sure that we've cached enough data
         if ( PLindex >= PLIndexToAlleleIndex.length )
-            throw new ReviewedStingException("GATK limitation: cannot genotype more than " + MAX_ALLELES_THAT_CAN_BE_GENOTYPED + " alleles");
+            throw new ReviewedStingException("GATK limitation: cannot genotype more than " + MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED + " alleles");
 
         return PLIndexToAlleleIndex[PLindex];
     }

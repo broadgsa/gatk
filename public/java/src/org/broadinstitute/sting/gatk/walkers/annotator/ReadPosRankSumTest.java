@@ -11,12 +11,10 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
@@ -47,6 +45,27 @@ public class ReadPosRankSumTest extends RankSumTest {
                     altQuals.add((double) readPos);
             }
         }
+    }
+
+    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals) {
+        // TODO -- implement me; how do we pull out the correct offset from the read?
+        return;
+
+/*
+        for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
+            final boolean matchesRef = ref.equals(alleleBin.getKey());
+            final boolean matchesAlt = alts.contains(alleleBin.getKey());
+            if ( !matchesRef && !matchesAlt )
+                continue;
+
+            for ( final GATKSAMRecord read : alleleBin.getValue() ) {
+                if ( matchesRef )
+                    refQuals.add((double)read.getMappingQuality());
+                else
+                    altQuals.add((double)read.getMappingQuality());
+            }
+        }
+*/
     }
 
     protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {

@@ -49,7 +49,6 @@ case class GATKIntervals(reference: File, intervals: Seq[String]) {
       else
         IntervalUtils.parseIntervalArguments(parser, intervals)
     Collections.sort(parsedLocs)
-    Collections.unmodifiableList(parsedLocs)
     val mergedLocs = IntervalUtils.mergeIntervalLocations(parsedLocs, IntervalMergingRule.OVERLAPPING_ONLY)
     Collections.unmodifiableList(mergedLocs)
   }

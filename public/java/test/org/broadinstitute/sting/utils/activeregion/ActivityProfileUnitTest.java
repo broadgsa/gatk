@@ -130,7 +130,7 @@ public class ActivityProfileUnitTest extends BaseTest {
         Assert.assertEquals(profile.size(), cfg.probs.size());
         Assert.assertEquals(profile.isActiveList, cfg.probs);
 
-        assertRegionsAreEqual(profile.createActiveRegions(0), cfg.expectedRegions);
+        assertRegionsAreEqual(profile.createActiveRegions(0, 100), cfg.expectedRegions);
     }
 
     private void assertRegionsAreEqual(List<ActiveRegion> actual, List<ActiveRegion> expected) {

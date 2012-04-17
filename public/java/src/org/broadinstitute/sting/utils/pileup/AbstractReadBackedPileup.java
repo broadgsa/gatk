@@ -677,11 +677,11 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             PileupElementTracker<PE> filteredElements = tracker.getElements(sampleNames);
             return filteredElements != null ? (RBP) createNewPileup(loc, filteredElements) : null;
         } else {
-            HashSet<String> hashSampleNames = new HashSet<String>(sampleNames);    // to speed up the "contains" access in the for loop
+            HashSet<String> hashSampleNames = new HashSet<String>(sampleNames);                                         // to speed up the "contains" access in the for loop
             UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
             for (PE p : pileupElementTracker) {
                 GATKSAMRecord read = p.getRead();
-                if (sampleNames != null) {                                          // still checking on sampleNames because hashSampleNames will never be null. And empty means something else.
+                if (sampleNames != null) {                                                                              // still checking on sampleNames because hashSampleNames will never be null. And empty means something else.
                     if (read.getReadGroup() != null && hashSampleNames.contains(read.getReadGroup().getSample()))
                         filteredTracker.add(p);
                 } else {
@@ -691,6 +691,38 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             }
             return filteredTracker.size() > 0 ? (RBP) createNewPileup(loc, filteredTracker) : null;
         }
+    }
+
+    @Override
+    public Map<String, ReadBackedPileup> getPileupsForSamples(Collection<String> sampleNames) {
+        Map<String, ReadBackedPileup> result = new HashMap<String, ReadBackedPileup>();
+        if (pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>) pileupElementTracker;
+            for (String sample : sampleNames) {
+                PileupElementTracker<PE> filteredElements = tracker.getElements(sampleNames);
+                if (filteredElements != null)
+                    result.put(sample, createNewPileup(loc, filteredElements));
+            }
+        } else {
+            Map<String, UnifiedPileupElementTracker<PE>> trackerMap = new HashMap<String, UnifiedPileupElementTracker<PE>>();
+            
+            for (String sample : sampleNames) {                                                                         // initialize pileups for each sample
+                UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+                trackerMap.put(sample, filteredTracker);
+            }            
+            for (PE p : pileupElementTracker) {                                                                         // go through all pileup elements only once and add them to the respective sample's pileup
+                GATKSAMRecord read = p.getRead();
+                if (read.getReadGroup() != null) {
+                    String sample = read.getReadGroup().getSample();
+                    UnifiedPileupElementTracker<PE> tracker = trackerMap.get(sample);
+                    if (tracker != null)                                                                                // we only add the pileup the requested samples. Completely ignore the rest
+                        tracker.add(p);
+                }
+            }
+            for (Map.Entry<String, UnifiedPileupElementTracker<PE>> entry : trackerMap.entrySet())                      // create the RBP for each sample
+                result.put(entry.getKey(), createNewPileup(loc, entry.getValue()));
+        }
+        return result;
     }
 
 

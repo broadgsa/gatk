@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
@@ -66,5 +67,42 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
     @Override
     public int compareTo(final VariantEvaluator variantEvaluator) {
         return getSimpleName().compareTo(variantEvaluator.getSimpleName());
+    }
+
+    /**
+     * Evaluation modules that override this function to indicate that they support
+     * combining the results of two independent collections of eval data into
+     * a single meaningful result.  The purpose of this interface is to
+     * allow us to cut up the input data into many independent stratifications, and then
+     * at the end of the eval run decide which stratifications to combine.  This is
+     * important in the case of AC, where you may have thousands of distinct AC
+     * values that chop up the number of variants to too small a number of variants,
+     * and you'd like to combine the AC values into ranges containing some percent
+     * of the data.
+     *
+     * For example, suppose you have an eval that
+     * counts variants in a variable nVariants.  If you want to be able to combine
+     * multiple evaluations of this type, overload the combine function
+     * with a function that sets this.nVariants += other.nVariants.
+     *
+     * Add in the appropriate fields of the VariantEvaluator T
+     * (of the same type as this object) to the values of this object.
+     *
+     * The values in this and other are implicitly independent, so that
+     * the values can be added together.
+     *
+     * @param other a VariantEvaluator of the same type of this object
+     */
+    public void combine(final VariantEvaluator other) {
+        throw new ReviewedStingException(getSimpleName() + " doesn't support combining results, sorry");
+    }
+
+    /**
+     * Must be overloaded to return true for evaluation modules that support the combine operation
+     *
+     * @return
+     */
+    public boolean supportsCombine() {
+        return false;
     }
 }

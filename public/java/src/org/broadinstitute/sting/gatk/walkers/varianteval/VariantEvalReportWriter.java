@@ -68,7 +68,7 @@ public class VariantEvalReportWriter {
      */
     public final void writeReport(final PrintStream out) {
         for ( int key = 0; key < stratManager.size(); key++ ) {
-            final String stratStateString = stratManager.getStratsAndStatesForKeyString(key);
+            final String stratStateString = stratManager.getStratsAndStatesStringForKey(key);
             final List<Pair<VariantStratifier, Object>> stratsAndStates = stratManager.getStratsAndStatesForKey(key);
             final EvaluationContext nec = stratManager.get(key);
 

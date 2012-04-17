@@ -22,23 +22,26 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.activeregionqc;
+package org.broadinstitute.sting.queue.qscripts.examples
 
-import org.broadinstitute.sting.WalkerTest;
-import org.testng.annotations.Test;
-
-import java.util.Arrays;
+import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.sting.queue.extensions.gatk._
 
 /**
- * Tests CountReadsInActiveRegions
+ * Script used for testing output to /dev/null
  */
-public class CountReadsInActiveRegionsIntegrationTest extends WalkerTest {
-    @Test
-    public void basicTest() {
-        WalkerTestSpec spec = new WalkerTestSpec(
-                "-T CountReadsInActiveRegions -R " + b37KGReference + " -I " + b37GoodNA12878BAM + " -L 20:10,000,000-10,200,000 -o %s",
-                1,
-                Arrays.asList("1e9e8d637d2acde23fa99fe9dc07e3e2"));
-        executeTest("CountReadsInActiveRegions:", spec);
-    }
+class ExampleReadFilter extends QScript {
+  @Input(doc="The reference file for the bam files.", shortName="R")
+  var referenceFile: File = _
+
+  @Input(doc="Bam file to genotype.", shortName="I")
+  var bamFile: File = _
+
+  def script() {
+    val genotyper = new UnifiedGenotyper with BadMate
+    genotyper.reference_sequence = referenceFile
+    genotyper.memoryLimit = 2
+    genotyper.input_file :+= bamFile
+    add(genotyper)
+  }
 }

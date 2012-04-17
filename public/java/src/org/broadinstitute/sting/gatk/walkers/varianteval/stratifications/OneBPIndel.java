@@ -50,7 +50,7 @@ public class OneBPIndel extends VariantStratifier {
     public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (eval != null && eval.isIndel()) {
             for ( int l : eval.getIndelLengths() )
-                if ( l > 1 )
+                if ( Math.abs(l) > 1 )
                     return TWO_PLUS_BP; // someone is too long
             return ONE_BP; // all lengths are one
         } else

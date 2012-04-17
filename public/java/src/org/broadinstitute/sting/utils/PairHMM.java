@@ -52,7 +52,7 @@ public class PairHMM {
     }
 
     
-    public void initializeArrays(final double[][] matchMetricArray, final double[][] XMetricArray, final double[][] YMetricArray,
+    public static void initializeArrays(final double[][] matchMetricArray, final double[][] XMetricArray, final double[][] YMetricArray,
                                  final int X_METRIC_LENGTH) {
 
         for( int iii=0; iii < X_METRIC_LENGTH; iii++ ) {
