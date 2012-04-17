@@ -62,8 +62,7 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
             mongoCollection.ensureIndex("stop");
 
             // set up primary key
-            mongoCollection.ensureIndex(new BasicDBObject("location", 1).append("sample", 1).append("sourceROD", 1), new BasicDBObject("unique", 1));
-
+            mongoCollection.ensureIndex(new BasicDBObject("location", 1).append("sample", 1).append("sourceROD", 1).append("alleles", 1), new BasicDBObject("unique", 1));
         }
         catch (MongoException e) {}
         catch (java.net.UnknownHostException e) {}

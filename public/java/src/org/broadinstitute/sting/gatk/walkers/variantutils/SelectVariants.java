@@ -562,9 +562,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         BasicDBObject query = new BasicDBObject();
         query.put("contig", contig);
         query.put("start", start);
-        query.put("stop", stop);
-        //query.put("sample", "NA12878");    // TODO: remove kluge
-        query.put("sample", new BasicDBObject("$ne", "NA12878"));    // TODO: remove kluge
+        // can't know stop location for deletions from reference
 
         DBCursor cursor = mongoCollection.find(query);
         Map<String,DBObject> results = new HashMap<String,DBObject>();
