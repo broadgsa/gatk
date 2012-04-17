@@ -567,15 +567,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         query.put("sample", new BasicDBObject("$ne", "NA12878"));    // TODO: remove kluge
 
         DBCursor cursor = mongoCollection.find(query);
-        DBObject result = null;
-
-        Collection<Genotype> genotypes = new ArrayList<Genotype>();
+        Map<String,DBObject> results = new HashMap<String,DBObject>();
+        Map<String,ArrayList<Genotype>> genotypes = new HashMap<String,ArrayList<Genotype>>();
         while(cursor.hasNext()) {
-            result = cursor.next();
+            DBObject oneResult = cursor.next();
 
-            String sample = (String)result.get("sample");
+            String type = (String)oneResult.get("type");
+            results.put(type, oneResult);
 
-            BasicDBObject genotypeInDb = (BasicDBObject)result.get("genotype");
+            String sample = (String)oneResult.get("sample");
+
+            BasicDBObject genotypeInDb = (BasicDBObject)oneResult.get("genotype");
             Double genotypeError = (Double)genotypeInDb.get("error");
 
             ArrayList<Allele> genotypeAlleles = new ArrayList<Allele>();
@@ -597,10 +599,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             }
 
             Genotype genotype = new Genotype(sample, genotypeAlleles, genotypeError);
-            genotypes.add(Genotype.modifyAttributes(genotype, genotypeAttributes));
+
+            if (!genotypes.containsKey(type))
+                genotypes.put(type, new ArrayList<Genotype>());
+
+            Collection<Genotype> genotypesByType = genotypes.get(type);
+            genotypesByType.add(Genotype.modifyAttributes(genotype, genotypeAttributes));
         }
 
-        if (result != null) {
+        for (String type : results.keySet()) {
+            DBObject result = results.get(type);
+
             ArrayList<Allele> alleles = new ArrayList<Allele>();
             BasicDBObject allelesInDb = (BasicDBObject)result.get("alleles");
             for (Object alleleInDb : allelesInDb.values()) {
@@ -635,7 +644,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
             builder.id(id);
             builder.log10PError(error);
-            builder.genotypes(genotypes);
+            builder.genotypes(genotypes.get(type));
             builder.attributes(attributes);
             builder.filters(filters);
 
