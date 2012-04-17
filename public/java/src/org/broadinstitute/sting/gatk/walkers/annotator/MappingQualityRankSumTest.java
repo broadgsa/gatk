@@ -34,7 +34,7 @@ public class MappingQualityRankSumTest extends RankSumTest {
         }
     }
 
-    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals) {
+    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
         for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
             final boolean matchesRef = ref.equals(alleleBin.getKey());
             final boolean matchesAlt = alts.contains(alleleBin.getKey());
