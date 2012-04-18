@@ -73,6 +73,8 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         } catch ( UserException.MalformedGenomeLoc e ) {
             Utils.warnUser("RefSeq file is potentially incorrect, as some transcripts or exons have a negative length ("+fields[2]+")");
             return null;
+        } catch ( NumberFormatException e ) {
+            throw new UserException.MalformedFile("Could not parse location from line: " + line);
         }
     }
 
