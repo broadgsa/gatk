@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.io.Resource;
@@ -136,7 +137,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     // Outputs
     /////////////////////////////
     @Output(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
-    private PrintStream RECAL_FILE;
+    private VCFWriter recalWriter;
     @Output(fullName="tranches_file", shortName="tranchesFile", doc="The output tranches file used by ApplyRecalibration", required=true)
     private File TRANCHES_FILE;
 
@@ -246,9 +247,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                     // Populate the datum with lots of fields from the VariantContext, unfortunately the VC is too big so we just pull in only the things we absolutely need.
                     dataManager.decodeAnnotations( datum, vc, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine
-                    datum.contig = vc.getChr();
-                    datum.start = vc.getStart();
-                    datum.stop = vc.getEnd();
+                    datum.loc = getToolkit().getGenomeLocParser().createGenomeLoc(vc);
                     datum.originalQual = vc.getPhredScaledQual();
                     datum.isSNP = vc.isSNP() && vc.isBiallelic();
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
@@ -345,7 +344,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
 
         logger.info( "Writing out recalibration table..." );
-        dataManager.writeOutRecalibrationTable( RECAL_FILE );
+        dataManager.writeOutRecalibrationTable( recalWriter );
         if( RSCRIPT_FILE != null ) {
             logger.info( "Writing out visualization Rscript file...");
             createVisualizationScript( dataManager.getRandomDataForPlotting( 6000 ), goodModel, badModel, lodCutoff );

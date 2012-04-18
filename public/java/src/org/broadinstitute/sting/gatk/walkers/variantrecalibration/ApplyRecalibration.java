@@ -37,14 +37,11 @@ import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 /**
@@ -98,9 +95,9 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     @Input(fullName="input", shortName = "input", doc="The raw input variants to be recalibrated", required=true)
     public List<RodBinding<VariantContext>> input;
     @Input(fullName="recal_file", shortName="recalFile", doc="The input recal file used by ApplyRecalibration", required=true)
-    private File RECAL_FILE;
+    protected RodBinding<VariantContext> recal;
     @Input(fullName="tranches_file", shortName="tranchesFile", doc="The input tranches file describing where to cut the data", required=true)
-    private File TRANCHES_FILE;
+    protected File TRANCHES_FILE;
 
     /////////////////////////////
     // Outputs
@@ -123,8 +120,6 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     /////////////////////////////
     final private List<Tranche> tranches = new ArrayList<Tranche>();
     final private Set<String> inputNames = new HashSet<String>();
-    final private NestedHashMap lodMap = new NestedHashMap();
-    final private NestedHashMap annotationMap = new NestedHashMap();
     final private Set<String> ignoreInputFilterSet = new TreeSet<String>();
 
     //---------------------------------------------------------------------------------------------------------------
@@ -174,20 +169,6 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
-
-        try {
-            logger.info("Reading in recalibration table...");
-            for ( final String line : new XReadLines( RECAL_FILE ) ) {
-                final String[] vals = line.split(",");
-                lodMap.put( Double.parseDouble(vals[3]), vals[0], Integer.parseInt(vals[1]), Integer.parseInt(vals[2]) ); // value comes before the keys
-                annotationMap.put( vals[4], vals[0], Integer.parseInt(vals[1]), Integer.parseInt(vals[2]) ); // value comes before the keys
-            }
-        } catch ( FileNotFoundException e ) {
-            throw new UserException.CouldNotReadInputFile(RECAL_FILE, e);
-        } catch ( Exception e ) {
-            throw new UserException.MalformedFile(RECAL_FILE, "Could not parse LOD and annotation information in input recal file. File is somehow malformed.");
-        }
-
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -202,21 +183,27 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
+        for( final VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
             if( vc != null ) {
-                if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
-                    VariantContextBuilder builder = new VariantContextBuilder(vc);
-                    String filterString = null;
 
-                    final Double lod = (Double) lodMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
-                    final String worstAnnotation = (String) annotationMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
-                    if( lod == null ) {
+                if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
+
+                    final VariantContext recalDatum = tracker.getFirstValue(recal, context.getLocation());
+                    if( recalDatum == null ) {
                         throw new UserException("Encountered input variant which isn't found in the input recal file. Please make sure VariantRecalibrator and ApplyRecalibration were run on the same set of input variants. First seen at: " + vc );
                     }
 
+                    final double lod = recalDatum.getAttributeAsDouble(VariantRecalibrator.VQS_LOD_KEY, Double.NEGATIVE_INFINITY);
+                    if( lod == Double.NEGATIVE_INFINITY ) {
+                        throw new UserException("Encountered a malformed record in the input recal file. There is no lod for the record at: " + vc );
+                    }
+
+                    VariantContextBuilder builder = new VariantContextBuilder(vc);
+                    String filterString = null;
+
                     // Annotate the new record with its VQSLOD and the worst performing annotation
-                    builder.attribute(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
-                    builder.attribute(VariantRecalibrator.CULPRIT_KEY, worstAnnotation);
+                    builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lod);
+                    builder.attribute(VariantRecalibrator.CULPRIT_KEY, recalDatum.getAttribute(VariantRecalibrator.CULPRIT_KEY));
 
                     for( int i = tranches.size() - 1; i >= 0; i-- ) {
                         final Tranche tranche = tranches.get(i);
