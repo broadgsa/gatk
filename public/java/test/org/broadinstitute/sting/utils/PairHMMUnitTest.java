@@ -194,9 +194,9 @@ public class PairHMMUnitTest extends BaseTest {
         // context on either side is ACGTTGCA REF ACGTTGCA
         // test all combinations
         final List<Integer> baseQuals = EXTENSIVE_TESTING ? Arrays.asList(10, 20, 30, 40, 50) : Arrays.asList(30);
-        final List<Integer> indelQuals = EXTENSIVE_TESTING ? Arrays.asList(10, 20, 30, 40, 50) : Arrays.asList(40);
+        final List<Integer> indelQuals = EXTENSIVE_TESTING ? Arrays.asList(20, 30, 40, 50) : Arrays.asList(40);
         final List<Integer> gcps = EXTENSIVE_TESTING ? Arrays.asList(10, 20, 30) : Arrays.asList(10);
-        final List<Integer> sizes = EXTENSIVE_TESTING ? Arrays.asList(2,3,4,5,6,7,8,9,10,20) : Arrays.asList(2);
+        final List<Integer> sizes = EXTENSIVE_TESTING ? Arrays.asList(2,3,4,5,7,8,9,10,20) : Arrays.asList(2);
 
         for ( final int baseQual : baseQuals ) {
             for ( final int indelQual : indelQuals ) {
@@ -253,7 +253,7 @@ public class PairHMMUnitTest extends BaseTest {
         final List<Integer> baseQuals = EXTENSIVE_TESTING ? Arrays.asList(25, 30, 40, 50) : Arrays.asList(30);
         final List<Integer> indelQuals = EXTENSIVE_TESTING ? Arrays.asList(30, 40, 50) : Arrays.asList(40);
         final List<Integer> gcps = EXTENSIVE_TESTING ? Arrays.asList(10, 12) : Arrays.asList(10);
-        final List<Integer> sizes = EXTENSIVE_TESTING ? Arrays.asList(2,3,4,5,6,7,8,9,10,20) : Arrays.asList(2);
+        final List<Integer> sizes = EXTENSIVE_TESTING ? Arrays.asList(2,3,4,5,7,8,9,10,20) : Arrays.asList(2);
 
         for ( final int baseQual : baseQuals ) {
             for ( final int indelQual : indelQuals ) {
@@ -301,5 +301,67 @@ public class PairHMMUnitTest extends BaseTest {
         double expectedLogL = cfg.expectedLogL();
         logger.warn(String.format("Test: logL calc=%.2f expected=%.2f for %s", calculatedLogL, expectedLogL, cfg.toString()));
         Assert.assertEquals(calculatedLogL, expectedLogL, cfg.tolerance());
+    }
+
+    @Test
+    public void testMismatchInEveryPositionInTheReadWithCenteredHaplotype() {
+        byte[] haplotype1 = "TTCTCTTCTGTTGTGGCTGGTT".getBytes();
+
+        final int offset = 2;
+        byte[] gop = new byte[haplotype1.length - 2 * offset];
+        Arrays.fill(gop, (byte) 80);
+        byte[] gcp = new byte[haplotype1.length - 2 * offset];
+        Arrays.fill(gcp, (byte) 80);
+
+        for( int k = 0; k < haplotype1.length - 2 * offset; k++ ) {
+            byte[] quals = new byte[haplotype1.length - 2 * offset];
+            Arrays.fill(quals, (byte) 90);
+            // one read mismatches the haplotype
+            quals[k] = 20;
+
+            byte[] mread = Arrays.copyOfRange(haplotype1,offset,haplotype1.length-offset);
+            // change single base at position k to C. If it's a C, change to T
+            mread[k] = ( mread[k] == (byte)'C' ? (byte)'T' : (byte)'C');
+            double res1 = hmm.computeReadLikelihoodGivenHaplotype(
+                    haplotype1, mread,
+                    quals, gop, gop,
+                    gcp);
+
+
+            System.out.format("H:%s\nR:  %s\n Pos:%d Result:%4.2f\n",new String(haplotype1), new String(mread), k,res1);
+
+            Assert.assertEquals(res1, -2.0, 1e-2);
+        }
+    }
+
+    @Test
+    public void testMismatchInEveryPositionInTheRead() {
+        byte[] haplotype1 = "TTCTCTTCTGTTGTGGCTGGTT".getBytes();
+
+        final int offset = 2;
+        byte[] gop = new byte[haplotype1.length - offset];
+        Arrays.fill(gop, (byte) 80);
+        byte[] gcp = new byte[haplotype1.length - offset];
+        Arrays.fill(gcp, (byte) 80);
+
+        for( int k = 0; k < haplotype1.length - offset; k++ ) {
+            byte[] quals = new byte[haplotype1.length - offset];
+            Arrays.fill(quals, (byte) 90);
+            // one read mismatches the haplotype
+            quals[k] = 20;
+
+            byte[] mread = Arrays.copyOfRange(haplotype1,offset,haplotype1.length);
+            // change single base at position k to C. If it's a C, change to T
+            mread[k] = ( mread[k] == (byte)'C' ? (byte)'T' : (byte)'C');
+            double res1 = hmm.computeReadLikelihoodGivenHaplotype(
+                    haplotype1, mread,
+                    quals, gop, gop,
+                    gcp);
+
+
+            System.out.format("H:%s\nR:  %s\n Pos:%d Result:%4.2f\n",new String(haplotype1), new String(mread), k,res1);
+
+            Assert.assertEquals(res1, -2.0, 1e-2);
+        }
     }
 }

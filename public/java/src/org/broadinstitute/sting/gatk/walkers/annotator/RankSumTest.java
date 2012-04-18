@@ -123,7 +123,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
             if ( context == null )
                 continue;
 
-            fillQualsFromPileup(vc.getReference(), vc.getAlternateAlleles(), context, refQuals, altQuals);
+            fillQualsFromPileup(vc.getReference(), vc.getAlternateAlleles(), vc.getStart(), context, refQuals, altQuals);
         }
 
         if ( refQuals.size() == 0 || altQuals.size() == 0 )
@@ -146,7 +146,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
         return map;
     }
 
-    protected abstract void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals);
+    protected abstract void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals);
 
     protected abstract void fillQualsFromPileup(final byte ref, final List<Byte> alts, final ReadBackedPileup pileup, final List<Double> refQuals, final List<Double> altQuals);
 

@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
+
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -46,9 +48,7 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public double originalQual;
     public double prior;
     public int consensusCount;
-    public String contig;
-    public int start;
-    public int stop;
+    public GenomeLoc loc;
     public int worstAnnotation;
     public MultivariateGaussian assignment; // used in K-means implementation 
 

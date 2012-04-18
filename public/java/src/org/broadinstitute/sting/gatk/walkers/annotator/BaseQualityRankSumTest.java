@@ -30,7 +30,7 @@ public class BaseQualityRankSumTest extends RankSumTest {
             }
         }
     }
-    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals) {
+    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
         // TODO -- implement me; how do we pull out the correct offset from the read?
         return;
 

@@ -14,9 +14,9 @@ import java.util.BitSet;
  * @since 2/8/12
  */
 public class CovariateValues {
-    private BitSet[] mismatches;
-    private BitSet[] insertions;
-    private BitSet[] deletions;
+    private final BitSet[] mismatches;
+    private final BitSet[] insertions;
+    private final BitSet[] deletions;
 
     public CovariateValues(BitSet[] mismatch, BitSet[] insertion, BitSet[] deletion) {
         this.mismatches = mismatch;

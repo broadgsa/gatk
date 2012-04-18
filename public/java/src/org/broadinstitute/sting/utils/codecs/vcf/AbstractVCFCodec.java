@@ -473,7 +473,12 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     protected static Allele oneAllele(String index, List<Allele> alleles) {
         if ( index.equals(VCFConstants.EMPTY_ALLELE) )
             return Allele.NO_CALL;
-        int i = Integer.valueOf(index);
+        final int i;
+        try {
+            i = Integer.valueOf(index);
+        } catch ( NumberFormatException e ) {
+            throw new TribbleException.InternalCodecException("The following invalid GT allele index was encountered in the file: " + index);
+        }
         if ( i >= alleles.size() )
             throw new TribbleException.InternalCodecException("The allele with index " + index + " is not defined in the REF/ALT columns in the record");
         return alleles.get(i);

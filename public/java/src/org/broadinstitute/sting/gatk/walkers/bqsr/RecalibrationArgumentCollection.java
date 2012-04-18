@@ -30,7 +30,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.Utils;
 
-import java.io.PrintStream;
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,7 +62,7 @@ public class RecalibrationArgumentCollection {
      */
     @Gather(BQSRGatherer.class)
     @Output
-    public PrintStream RECAL_FILE;
+    public File RECAL_FILE;
 
     /**
      * List all implemented covariates.

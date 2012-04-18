@@ -381,15 +381,19 @@ public class AlignmentUtils {
         return alignment;
     }
 
-    public static int calcAlignmentByteArrayOffset(final Cigar cigar, PileupElement pileup, final int alignmentStart, final int refLocus) {
-        int pileupOffset = pileup.getOffset();
+    public static int calcAlignmentByteArrayOffset(final Cigar cigar, final PileupElement pileupElement, final int alignmentStart, final int refLocus) {
+        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), pileupElement.isInsertionAtBeginningOfRead(), pileupElement.isDeletion(), alignmentStart, refLocus );
+    }
+
+    public static int calcAlignmentByteArrayOffset(final Cigar cigar, final int offset, final boolean isInsertionAtBeginningOfRead, final boolean isDeletion, final int alignmentStart, final int refLocus) {
+        int pileupOffset = offset;
 
         // Special case for reads starting with insertion
-        if (pileup.isInsertionAtBeginningOfRead())
+        if (isInsertionAtBeginningOfRead)
             return 0;
 
         // Reassign the offset if we are in the middle of a deletion because of the modified representation of the read bases
-        if (pileup.isDeletion()) {
+        if (isDeletion) {
             pileupOffset = refLocus - alignmentStart;
             final CigarElement ce = cigar.getCigarElement(0);
             if (ce.getOperator() == CigarOperator.S) {
@@ -414,7 +418,7 @@ public class AlignmentUtils {
                     break;
                 case D:
                 case N:
-                    if (!pileup.isDeletion()) {
+                    if (!isDeletion) {
                         alignmentPos += elementLength;
                     } else {
                         if (pos + elementLength - 1 >= pileupOffset) {

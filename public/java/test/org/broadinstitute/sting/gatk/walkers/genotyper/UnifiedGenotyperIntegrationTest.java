@@ -66,6 +66,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("test Multiple SNP alleles", spec);
     }
 
+    @Test
+    public void testBadRead() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm BOTH -I " + validationDataLocation + "badRead.test.bam -o %s -L 1:22753424-22753464", 1,
+                Arrays.asList("7678827a2ee21870a41c09d28d26b996"));
+        executeTest("test bad read", spec);
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing compressed output

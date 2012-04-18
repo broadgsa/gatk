@@ -19,9 +19,9 @@ import java.util.Map;
 public class QuantizationInfo {
     private List<Byte> quantizedQuals;
     private List<Long> empiricalQualCounts;
-    int quantizationLevels;
+    private int quantizationLevels;
 
-    public QuantizationInfo(List<Byte> quantizedQuals, List<Long> empiricalQualCounts, int quantizationLevels) {
+    private QuantizationInfo(List<Byte> quantizedQuals, List<Long> empiricalQualCounts, int quantizationLevels) {
         this.quantizedQuals = quantizedQuals;
         this.empiricalQualCounts = empiricalQualCounts;
         this.quantizationLevels = quantizationLevels;

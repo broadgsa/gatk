@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -221,7 +220,7 @@ public class RecalDataManager {
         logger.info("");
     }
 
-    public static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
+    private static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
         List<GATKReportTable> result = new LinkedList<GATKReportTable>();
         int tableIndex = 0;
 
@@ -349,7 +348,7 @@ public class RecalDataManager {
      * @param read     The SAMRecord to parse
      * @return whether or not this read should be skipped   
      */
-    public static boolean checkColorSpace(final SOLID_NOCALL_STRATEGY strategy, final GATKSAMRecord read) {
+    public static boolean isColorSpaceConsistent(final SOLID_NOCALL_STRATEGY strategy, final GATKSAMRecord read) {
         if (ReadUtils.isSOLiDRead(read)) {                                                                              // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
             if (read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null) {                            // Haven't calculated the inconsistency array yet for this read
                 final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
@@ -378,99 +377,10 @@ public class RecalDataManager {
                     throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() + " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
 
                 else
-                    return false;                                                                                       // otherwise, just skip the read
+                    return true;                                                                                       // otherwise, just skip the read
             }
         }
-        return true;
-    }
-
-    /**
-     * Parse through the color space of the read and apply the desired --solid_recal_mode correction to the bases
-     * This method doesn't add the inconsistent tag to the read like parseColorSpace does
-     *
-     * @param read               The SAMRecord to parse
-     * @param originalQualScores The array of original quality scores to modify during the correction
-     * @param solidRecalMode     Which mode of solid recalibration to apply
-     * @param refBases           The reference for this read
-     * @return A new array of quality scores that have been ref bias corrected
-     */
-    public static byte[] calcColorSpace(final GATKSAMRecord read, byte[] originalQualScores, final SOLID_RECAL_MODE solidRecalMode, final byte[] refBases) {
-
-        final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
-        if (attr != null) {
-            byte[] colorSpace;
-            if (attr instanceof String) {
-                colorSpace = ((String) attr).getBytes();
-            }
-            else {
-                throw new ReviewedStingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
-            }
-
-            // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
-            byte[] readBases = read.getReadBases();
-            final byte[] colorImpliedBases = readBases.clone();
-            byte[] refBasesDirRead = AlignmentUtils.alignmentToByteArray(read.getCigar(), read.getReadBases(), refBases); //BUGBUG: This needs to change when read walkers are changed to give the aligned refBases
-            if (read.getReadNegativeStrandFlag()) {
-                readBases = BaseUtils.simpleReverseComplement(read.getReadBases());
-                refBasesDirRead = BaseUtils.simpleReverseComplement(refBasesDirRead.clone());
-            }
-            final int[] inconsistency = new int[readBases.length];
-            byte prevBase = colorSpace[0]; // The sentinel
-            for (int iii = 0; iii < readBases.length; iii++) {
-                final byte thisBase = getNextBaseFromColor(read, prevBase, colorSpace[iii + 1]);
-                colorImpliedBases[iii] = thisBase;
-                inconsistency[iii] = (thisBase == readBases[iii] ? 0 : 1);
-                prevBase = readBases[iii];
-            }
-
-            // Now that we have the inconsistency array apply the desired correction to the inconsistent bases
-            if (solidRecalMode == SOLID_RECAL_MODE.SET_Q_ZERO) { // Set inconsistent bases and the one before it to Q0
-                final boolean setBaseN = false;
-                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, setBaseN);
-            }
-            else if (solidRecalMode == SOLID_RECAL_MODE.SET_Q_ZERO_BASE_N) {
-                final boolean setBaseN = true;
-                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, setBaseN);
-            }
-            else if (solidRecalMode == SOLID_RECAL_MODE.REMOVE_REF_BIAS) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
-                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead);
-            }
-
-        }
-        else {
-            throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
-                    " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
-        }
-
-        return originalQualScores;
-    }
-
-    public static boolean checkNoCallColorSpace(final GATKSAMRecord read) {
-        if (ReadUtils.isSOLiDRead(read)) {
-            final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
-            if (attr != null) {
-                byte[] colorSpace;
-                if (attr instanceof String) {
-                    colorSpace = ((String) attr).substring(1).getBytes(); // trim off the Sentinel
-                }
-                else {
-                    throw new ReviewedStingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
-                }
-
-                for (byte color : colorSpace) {
-                    if (color != (byte) '0' && color != (byte) '1' && color != (byte) '2' && color != (byte) '3') {
-                        return true; // There is a bad color in this SOLiD read and the user wants to skip over it
-                    }
-                }
-
-            }
-            else {
-                throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
-                        " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
-            }
-        }
-
-        return false; // There aren't any color no calls in this SOLiD read
+        return false;
     }
 
     /**
@@ -625,16 +535,16 @@ public class RecalDataManager {
      * @param offset The offset in the read at which to check
      * @return Returns true if the base was inconsistent with the color space
      */
-    public static boolean isInconsistentColorSpace(final GATKSAMRecord read, final int offset) {
+    public static boolean isColorSpaceConsistent(final GATKSAMRecord read, final int offset) {
         final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG);
         if (attr != null) {
             final byte[] inconsistency = (byte[]) attr;
             // NOTE: The inconsistency array is in the direction of the read, not aligned to the reference!
             if (read.getReadNegativeStrandFlag()) { // Negative direction
-                return inconsistency[inconsistency.length - offset - 1] != (byte) 0;
+                return inconsistency[inconsistency.length - offset - 1] == (byte) 0;
             }
             else { // Forward direction
-                return inconsistency[offset] != (byte) 0;
+                return inconsistency[offset] == (byte) 0;
             }
 
             // This block of code is for if you want to check both the offset and the next base for color space inconsistency
@@ -654,7 +564,7 @@ public class RecalDataManager {
 
         }
         else { // No inconsistency array, so nothing is inconsistent
-            return false;
+            return true;
         }
     }
 

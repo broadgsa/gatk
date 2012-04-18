@@ -146,6 +146,10 @@ public class ConsensusAlleleCounter {
                 String indelString = p.getEventBases();
 
                 if ( p.isBeforeInsertion() ) {
+                    // edge case: ignore a deletion immediately preceding an insertion as p.getEventBases() returns null [EB]
+                    if ( indelString == null )
+                        continue;
+
                     boolean foundKey = false;
                     // copy of hashmap into temp arrayList
                     ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();

@@ -33,12 +33,11 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * An individual piece of recalibration data. Each bin counts up the number of observations and the number of reference mismatches seen for that combination of covariates.
  */
 
-public class RecalDatum extends RecalDatumOptimized {
+public class RecalDatum extends Datum {
 
     private double estimatedQReported;                                                                                  // estimated reported quality score based on combined data's individual q-reporteds and number of observations
     private double empiricalQuality;                                                                                    // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
 
-    private static final int SMOOTHING_CONSTANT = 1;                                                                    // used when calculating empirical qualities to avoid division by zero
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -50,7 +49,7 @@ public class RecalDatum extends RecalDatumOptimized {
         numObservations = 0L;
         numMismatches = 0L;
         estimatedQReported = 0.0;
-        empiricalQuality = 0.0;
+        empiricalQuality = -1.0;
     }
 
     public RecalDatum(final long _numObservations, final long _numMismatches, final double _estimatedQReported, final double _empiricalQuality) {
@@ -67,52 +66,29 @@ public class RecalDatum extends RecalDatumOptimized {
         this.empiricalQuality = copy.empiricalQuality;
     }
 
-    //---------------------------------------------------------------------------------------------------------------
-    //
-    // increment methods
-    //
-    //---------------------------------------------------------------------------------------------------------------
-
-    public final void combine(final RecalDatum other) {
+    public void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         this.increment(other.numObservations, other.numMismatches);
         this.estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
+        this.empiricalQuality = -1.0;                                                                                   // reset the empirical quality calculation so we never have a wrongly calculated empirical quality stored
     }
 
-    //---------------------------------------------------------------------------------------------------------------
-    //
-    // methods to derive empirical quality score
-    //
-    //---------------------------------------------------------------------------------------------------------------
-
-    public final void calcCombinedEmpiricalQuality(final int maxQual) {
-        this.empiricalQuality = empiricalQualDouble(SMOOTHING_CONSTANT, maxQual);                                       // cache the value so we don't call log over and over again
+    public final void calcCombinedEmpiricalQuality() {
+        this.empiricalQuality = empiricalQualDouble();                   // cache the value so we don't call log over and over again
     }
     
     public final void calcEstimatedReportedQuality() {
         this.estimatedQReported = -10 * Math.log10(calcExpectedErrors() / numObservations);
     }
 
-    //---------------------------------------------------------------------------------------------------------------
-    //
-    // misc. methods
-    //
-    //---------------------------------------------------------------------------------------------------------------
-
     public final double getEstimatedQReported() {
         return estimatedQReported;
     }
 
     public final double getEmpiricalQuality() {
+        if (empiricalQuality < 0)
+            calcCombinedEmpiricalQuality();
         return empiricalQuality;
-    }
-
-    private double calcExpectedErrors() {
-        return (double) this.numObservations * qualToErrorProb(estimatedQReported);
-    }
-
-    private double qualToErrorProb(final double qual) {
-        return Math.pow(10.0, qual / -10.0);
     }
 
     /**
@@ -120,7 +96,22 @@ public class RecalDatum extends RecalDatumOptimized {
      *
      * @return a new recal datum object with the same contents of this datum.
      */
-    protected RecalDatum copy() {
+    public RecalDatum copy() {
         return new RecalDatum(numObservations, numMismatches, estimatedQReported, empiricalQuality);
     }
+
+    @Override
+    public String toString() {
+        return String.format("%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()));
+    }
+
+
+        private double calcExpectedErrors() {
+        return (double) this.numObservations * qualToErrorProb(estimatedQReported);
+    }
+
+    private double qualToErrorProb(final double qual) {
+        return Math.pow(10.0, qual / -10.0);
+    }
+
 }

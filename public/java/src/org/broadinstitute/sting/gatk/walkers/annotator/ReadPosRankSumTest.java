@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.*;
@@ -47,11 +48,7 @@ public class ReadPosRankSumTest extends RankSumTest {
         }
     }
 
-    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals) {
-        // TODO -- implement me; how do we pull out the correct offset from the read?
-        return;
-
-/*
+    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
         for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
             final boolean matchesRef = ref.equals(alleleBin.getKey());
             final boolean matchesAlt = alts.contains(alleleBin.getKey());
@@ -59,13 +56,21 @@ public class ReadPosRankSumTest extends RankSumTest {
                 continue;
 
             for ( final GATKSAMRecord read : alleleBin.getValue() ) {
+                final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate( read.getUnclippedStart(), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true );
+                if ( offset == ReadUtils.CLIPPING_GOAL_NOT_REACHED )
+                    continue;
+                int readPos = AlignmentUtils.calcAlignmentByteArrayOffset( read.getCigar(), offset, false, false, 0, 0 );
+
+                final int numAlignedBases = AlignmentUtils.getNumAlignedBases( read );
+                if (readPos > numAlignedBases / 2)
+                    readPos = numAlignedBases - (readPos + 1);
+
                 if ( matchesRef )
-                    refQuals.add((double)read.getMappingQuality());
+                    refQuals.add((double) readPos);
                 else
-                    altQuals.add((double)read.getMappingQuality());
+                    altQuals.add((double) readPos);
             }
         }
-*/
     }
 
     protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {

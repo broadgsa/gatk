@@ -47,9 +47,6 @@ public class ContextCovariate implements StandardCovariate {
     private int insertionsContextSize;
     private int deletionsContextSize;
 
-    private final BitSet NO_CONTEXT_BITSET = BitSetUtils.bitSetFrom(-1L);
-//    protected final String NO_CONTEXT_VALUE = "N";                          // protected so we can UNIT TEST it
-    
     private byte LOW_QUAL_TAIL;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
