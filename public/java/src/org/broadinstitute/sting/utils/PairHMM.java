@@ -41,14 +41,14 @@ public class PairHMM {
     private static final byte DEFAULT_GCP = (byte) 10;
     private static final double BANDING_TOLERANCE = 22.0;
     private static final int BANDING_CLUSTER_WINDOW = 12;
-    private final boolean doBanded;
+    private final boolean noBanded;
 
     public PairHMM() {
-        doBanded = false;
+        noBanded = false;
     }
 
-    public PairHMM( final boolean doBanded ) {
-        this.doBanded = doBanded;
+    public PairHMM( final boolean noBanded ) {
+        this.noBanded = noBanded;
     }
 
     
@@ -100,7 +100,7 @@ public class PairHMM {
             readQuals[iii] = ( readQuals[iii] < QualityUtils.MIN_USABLE_Q_SCORE ? QualityUtils.MIN_USABLE_Q_SCORE : (readQuals[iii] > MAX_CACHED_QUAL ? MAX_CACHED_QUAL : readQuals[iii]) );
         }
 
-        if( doBanded ) {
+        if( false ) {
             final ArrayList<Integer> workQueue = new ArrayList<Integer>(); // holds a queue of starting work location (indices along the diagonal). Will be sorted each step
             final ArrayList<Integer> workToBeAdded = new ArrayList<Integer>();
             final ArrayList<Double> calculatedValues = new ArrayList<Double>();

@@ -124,7 +124,7 @@ public class PairHMMIndelErrorModel {
 
     }
 
-    static private void getContextHomopolymerLength(final byte[] refBytes, final int[] hrunArray) {
+     static private void getContextHomopolymerLength(final byte[] refBytes, final int[] hrunArray) {
         // compute forward hrun length, example:
         // AGGTGACCCCCCTGAGAG
         // 001000012345000000
