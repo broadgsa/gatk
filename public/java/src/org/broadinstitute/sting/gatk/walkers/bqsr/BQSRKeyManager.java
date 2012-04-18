@@ -52,7 +52,7 @@ public class BQSRKeyManager {
         for (Covariate required : requiredCovariates) {                                                                 // create a list of required covariates with the extra information for key management
             int nBits = required.numberOfBits();                                                                        // number of bits used by this covariate
             BitSet mask = genericMask(nRequiredBits, nBits);                                                            // create a mask for this covariate
-            this.requiredCovariates.add(new RequiredCovariateInfo(nRequiredBits, nBits, mask, required));               // Create an object for this required covariate
+            this.requiredCovariates.add(new RequiredCovariateInfo(nRequiredBits, mask, required));                      // Create an object for this required covariate
             nRequiredBits += nBits;
         }
 
@@ -184,7 +184,7 @@ public class BQSRKeyManager {
      * @return an object array with the values for each key
      */
     public List<Object> keySetFrom(BitSet key) {
-        List<Object> objectKeys = new ArrayList<Object>();
+        List<Object> objectKeys = new LinkedList<Object>();
         for (RequiredCovariateInfo info : requiredCovariates) {
             BitSet covariateBitSet = extractBitSetFromKey(key, info.mask, info.bitsBefore);                             // get the covariate's bitset
             objectKeys.add(info.covariate.keyFromBitSet(covariateBitSet));                                              // convert the bitset to object using covariate's interface
@@ -286,7 +286,7 @@ public class BQSRKeyManager {
         public final BitSet mask;                                                                                       // the mask to pull out this covariate from the combined bitset key ( a mask made from bitsBefore and nBits )
         public final Covariate covariate;                                                                               // this allows reverse lookup of the Covariates in order
 
-        RequiredCovariateInfo(int bitsBefore, int nBits, BitSet mask, Covariate covariate) {
+        RequiredCovariateInfo(int bitsBefore, BitSet mask, Covariate covariate) {
             this.bitsBefore = bitsBefore;
             this.mask = mask;
             this.covariate = covariate;

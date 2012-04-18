@@ -335,10 +335,11 @@ public class GATKSAMRecord extends BAMRecord {
     /**
      * Clears all attributes except ReadGroup of the read.
      */
-    public void simplify () {
+    public GATKSAMRecord simplify () {
         GATKSAMReadGroupRecord rg = getReadGroup();
         this.clearAttributes();
         setReadGroup(rg);
+        return this;
     }
 
     /**

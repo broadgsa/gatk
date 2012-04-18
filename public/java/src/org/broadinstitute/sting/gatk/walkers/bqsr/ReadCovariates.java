@@ -13,9 +13,9 @@ import java.util.BitSet;
  * @since 2/8/12
  */
 public class ReadCovariates {
-    private BitSet[][] mismatchesKeySet;
-    private BitSet[][] insertionsKeySet;
-    private BitSet[][] deletionsKeySet;
+    private final BitSet[][] mismatchesKeySet;
+    private final BitSet[][] insertionsKeySet;
+    private final BitSet[][] deletionsKeySet;
 
     private int nextCovariateIndex;
 

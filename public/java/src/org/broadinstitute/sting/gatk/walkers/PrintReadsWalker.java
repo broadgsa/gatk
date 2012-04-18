@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -91,7 +90,7 @@ import java.util.TreeSet;
  */
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
+public class PrintReadsWalker extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
 
     @Output(doc="Write output to this BAM filename instead of STDOUT")
     SAMFileWriter out;
@@ -129,6 +128,13 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
     public Set<String> sampleNames = new TreeSet<String>();
 
+    /**
+     * Erase all extra attributes in the read but keep the read group information 
+     */
+    @Argument(fullName="simplify", shortName="s", doc="Simplify all reads.", required=false)
+    public boolean simplifyReads = false;
+    
+
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
     private boolean SAMPLES_SPECIFIED = false;
     
@@ -162,7 +168,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * The reads filter function.
      *
      * @param ref  the reference bases that correspond to our read, if a reference was provided
-     * @param read the read itself, as a SAMRecord
+     * @param read the read itself, as a GATKSAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
     public boolean filter(ReferenceContext ref, GATKSAMRecord read) {
@@ -208,11 +214,11 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * The reads map function.
      *
      * @param ref  the reference bases that correspond to our read, if a reference was provided
-     * @param read the read itself, as a SAMRecord
+     * @param read the read itself, as a GATKSAMRecord
      * @return the read itself
      */
-    public SAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
-        return read;
+    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+        return simplifyReads ? read.simplify() : read;
     }
 
     /**
@@ -232,7 +238,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @param output the output source
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
-    public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
+    public SAMFileWriter reduce( GATKSAMRecord read, SAMFileWriter output ) {
         output.addAlignment(read);
         return output;
     }

@@ -7,8 +7,8 @@ public enum EventType {
     BASE_INSERTION(1, "I"),
     BASE_DELETION(2, "D");
 
-    public int index;
-    public String representation;
+    public final int index;
+    private final String representation;
 
     private EventType(int index, String representation) {
         this.index = index;
