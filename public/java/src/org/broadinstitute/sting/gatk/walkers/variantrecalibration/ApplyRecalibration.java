@@ -109,7 +109,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="ts_filter_level", shortName="ts_filter_level", doc="The truth sensitivity level at which to start filtering", required=false)
-    private double TS_FILTER_LEVEL = 99.0;
+    protected double TS_FILTER_LEVEL = 99.0;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the variant recalibrator will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
     @Argument(fullName = "mode", shortName = "mode", doc = "Recalibration mode to employ: 1.) SNP for recalibrating only SNPs (emitting indels untouched in the output VCF); 2.) INDEL for indels; and 3.) BOTH for recalibrating both SNPs and indels simultaneously.", required = false)
@@ -183,56 +183,67 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( final VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
-            if( vc != null ) {
+        final List<VariantContext> VCs =  tracker.getValues(input, context.getLocation());
+        final List<VariantContext> recals =  tracker.getValues(recal, context.getLocation());
 
-                if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
+        for( final VariantContext vc : VCs ) {
 
-                    final VariantContext recalDatum = tracker.getFirstValue(recal, context.getLocation());
-                    if( recalDatum == null ) {
-                        throw new UserException("Encountered input variant which isn't found in the input recal file. Please make sure VariantRecalibrator and ApplyRecalibration were run on the same set of input variants. First seen at: " + vc );
-                    }
+            if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
 
-                    final double lod = recalDatum.getAttributeAsDouble(VariantRecalibrator.VQS_LOD_KEY, Double.NEGATIVE_INFINITY);
-                    if( lod == Double.NEGATIVE_INFINITY ) {
-                        throw new UserException("Encountered a malformed record in the input recal file. There is no lod for the record at: " + vc );
-                    }
-
-                    VariantContextBuilder builder = new VariantContextBuilder(vc);
-                    String filterString = null;
-
-                    // Annotate the new record with its VQSLOD and the worst performing annotation
-                    builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lod);
-                    builder.attribute(VariantRecalibrator.CULPRIT_KEY, recalDatum.getAttribute(VariantRecalibrator.CULPRIT_KEY));
-
-                    for( int i = tranches.size() - 1; i >= 0; i-- ) {
-                        final Tranche tranche = tranches.get(i);
-                        if( lod >= tranche.minVQSLod ) {
-                            if( i == tranches.size() - 1 ) {
-                                filterString = VCFConstants.PASSES_FILTERS_v4;
-                            } else {
-                                filterString = tranche.name;
-                            }
-                            break;
-                        }
-                    }
-
-                    if( filterString == null ) {
-                        filterString = tranches.get(0).name+"+";
-                    }
-
-                    if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                        builder.filters(filterString);
-                    }
-
-                    vcfWriter.add( builder.make() );
-                } else { // valid VC but not compatible with this mode, so just emit the variant untouched
-                    vcfWriter.add( vc );
+                final VariantContext recalDatum = getMatchingRecalVC(vc, recals);
+                if( recalDatum == null ) {
+                    throw new UserException("Encountered input variant which isn't found in the input recal file. Please make sure VariantRecalibrator and ApplyRecalibration were run on the same set of input variants. First seen at: " + vc );
                 }
+
+                final double lod = recalDatum.getAttributeAsDouble(VariantRecalibrator.VQS_LOD_KEY, Double.NEGATIVE_INFINITY);
+                if( lod == Double.NEGATIVE_INFINITY ) {
+                    throw new UserException("Encountered a malformed record in the input recal file. There is no lod for the record at: " + vc );
+                }
+
+                VariantContextBuilder builder = new VariantContextBuilder(vc);
+                String filterString = null;
+
+                // Annotate the new record with its VQSLOD and the worst performing annotation
+                builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lod);
+                builder.attribute(VariantRecalibrator.CULPRIT_KEY, recalDatum.getAttribute(VariantRecalibrator.CULPRIT_KEY));
+
+                for( int i = tranches.size() - 1; i >= 0; i-- ) {
+                    final Tranche tranche = tranches.get(i);
+                    if( lod >= tranche.minVQSLod ) {
+                        if( i == tranches.size() - 1 ) {
+                            filterString = VCFConstants.PASSES_FILTERS_v4;
+                        } else {
+                            filterString = tranche.name;
+                        }
+                        break;
+                    }
+                }
+
+                if( filterString == null ) {
+                    filterString = tranches.get(0).name+"+";
+                }
+
+                if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                    builder.filters(filterString);
+                }
+
+                vcfWriter.add( builder.make() );
+            } else { // valid VC but not compatible with this mode, so just emit the variant untouched
+                vcfWriter.add( vc );
             }
         }
 
         return 1; // This value isn't used for anything
+    }
+
+    private static VariantContext getMatchingRecalVC(final VariantContext target, final List<VariantContext> recalVCs) {
+        for( final VariantContext recalVC : recalVCs ) {
+            if ( target.getEnd() == recalVC.getEnd() ) {
+                return recalVC;
+            }
+        }
+
+        return null;
     }
 
     //---------------------------------------------------------------------------------------------------------------

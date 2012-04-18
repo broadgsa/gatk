@@ -299,9 +299,6 @@ public class VariantDataManager {
         alleles.add(Allele.create("N", true));
         alleles.add(Allele.create("<VQSR>", false));
 
-        final VCFHeader vcfHeader = new VCFHeader( null, Collections.<String>emptySet() );
-        recalWriter.writeHeader(vcfHeader);
-
         // to be used for the important INFO tags
         final HashMap<String, Object> attributes = new HashMap<String, Object>(3);
 
@@ -310,7 +307,7 @@ public class VariantDataManager {
             attributes.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", datum.lod));
             attributes.put(VariantRecalibrator.CULPRIT_KEY, (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL"));
 
-            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStop(), alleles).attributes(attributes);
+            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStart(), alleles).attributes(attributes);
             recalWriter.add(builder.make());
         }
     }

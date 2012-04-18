@@ -27,7 +27,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
 
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
             "0ddd1e0e483d2eaf56004615cea23ec7",  // tranches
-            "58780f63182e139fdbe17f6c18b5b774",  // recal file
+            "f8e21a1987960b950db1f0d98be45352",  // recal file
             "f67d844b6252a55452cf4167b77530b1"); // cut VCF
 
     @DataProvider(name = "VRTest")
@@ -74,7 +74,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
 
     VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
             "6d7ee4cb651c8b666e4a4523363caaff",  // tranches
-            "4759b111a5aa53975d46e0f22c7983bf",  // recal file
+            "ee5b408c8434a594496118875690c438",  // recal file
             "5d7e07d8813db96ba3f3dfe4737f83d1"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
