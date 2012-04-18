@@ -118,5 +118,21 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                 Arrays.asList(params.cutVCFMD5));
         executeTest("testApplyRecalibrationIndel-"+params.inVCF, spec);
     }
+
+    @Test
+    public void testApplyRecalibrationSnpAndIndelTogether() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b37KGReference +
+                        " -T ApplyRecalibration" +
+                        " -L 20:1000100-1000500" +
+                        " -mode BOTH" +
+                        " -NO_HEADER" +
+                        " -input " + validationDataLocation + "VQSR.mixedTest.input" +
+                        " -o %s" +
+                        " -tranchesFile " + validationDataLocation + "VQSR.mixedTest.tranches" +
+                        " -recalFile " + validationDataLocation + "VQSR.mixedTest.recal",
+                Arrays.asList("08060b7f5c9cf3bb1692b50c58fd5a4b"));
+        executeTest("testApplyRecalibrationSnpAndIndelTogether", spec);
+    }
 }
 

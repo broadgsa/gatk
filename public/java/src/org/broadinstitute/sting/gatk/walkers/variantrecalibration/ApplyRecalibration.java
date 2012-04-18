@@ -195,16 +195,22 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                     throw new UserException("Encountered input variant which isn't found in the input recal file. Please make sure VariantRecalibrator and ApplyRecalibration were run on the same set of input variants. First seen at: " + vc );
                 }
 
-                final double lod = recalDatum.getAttributeAsDouble(VariantRecalibrator.VQS_LOD_KEY, Double.NEGATIVE_INFINITY);
-                if( lod == Double.NEGATIVE_INFINITY ) {
+                final String lodString = recalDatum.getAttributeAsString(VariantRecalibrator.VQS_LOD_KEY, null);
+                if( lodString == null ) {
                     throw new UserException("Encountered a malformed record in the input recal file. There is no lod for the record at: " + vc );
+                }
+                final double lod;
+                try {
+                    lod = Double.valueOf(lodString);
+                } catch (NumberFormatException e) {
+                    throw new UserException("Encountered a malformed record in the input recal file. The lod is unreadable for the record at: " + vc );
                 }
 
                 VariantContextBuilder builder = new VariantContextBuilder(vc);
                 String filterString = null;
 
                 // Annotate the new record with its VQSLOD and the worst performing annotation
-                builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lod);
+                builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lodString); // use the String representation so that we don't lose precision on output
                 builder.attribute(VariantRecalibrator.CULPRIT_KEY, recalDatum.getAttribute(VariantRecalibrator.CULPRIT_KEY));
 
                 for( int i = tranches.size() - 1; i >= 0; i-- ) {
