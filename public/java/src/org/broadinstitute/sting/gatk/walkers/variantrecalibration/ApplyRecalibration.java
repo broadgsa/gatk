@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -83,8 +84,8 @@ import java.util.*;
  *
  */
 
-@PartitionBy(PartitionType.NONE)
-public class ApplyRecalibration extends RodWalker<Integer, Integer> {
+@PartitionBy(PartitionType.LOCUS)
+public class ApplyRecalibration extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
 
     /////////////////////////////
     // Inputs
@@ -263,6 +264,10 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     }
 
     public Integer reduce( final Integer mapValue, final Integer reduceSum ) {
+        return 1; // This value isn't used for anything
+    }
+
+    public Integer treeReduce( final Integer lhs, final Integer rhs ) {
         return 1; // This value isn't used for anything
     }
 
