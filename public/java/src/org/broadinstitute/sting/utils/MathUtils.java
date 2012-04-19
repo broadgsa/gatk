@@ -106,6 +106,10 @@ public class MathUtils {
         return approxSum;
     }
 
+    public static double approximateLog10SumLog10(double a, double b, double c) {
+        return approximateLog10SumLog10(a, approximateLog10SumLog10(b, c));
+    }
+
     public static double approximateLog10SumLog10(double small, double big) {
         // make sure small is really the smaller value
         if (small > big) {
