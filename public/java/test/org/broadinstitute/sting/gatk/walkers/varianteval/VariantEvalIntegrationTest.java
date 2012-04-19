@@ -34,6 +34,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
     private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
+    private static String fundamentalTestSNPsSplit1of2VCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.split_1_of_2.vcf";
+    private static String fundamentalTestSNPsSplit2of2VCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.split_2_of_2.vcf";
     private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.NA12045.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
@@ -437,22 +439,67 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testAlleleCountStrat() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                                buildCommandLine(
-                                        "-T VariantEval",
-                                        "-R " + b37KGReference,
-                                        "--dbsnp " + b37dbSNP132,
-                                        "--eval " + fundamentalTestSNPsVCF,
-                                        "-noEV",
-                                        "-EV CountVariants",
-                                        "-noST",
-                                        "-ST AlleleCount",
-                                        "-L " + fundamentalTestSNPsVCF,
-                                        "-o %s"
-                                ),
-                                1,
-                                Arrays.asList("1198bfea6183bd43219071a84c79a386")
-                              );
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsVCF,
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsVCF,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("1198bfea6183bd43219071a84c79a386")
+        );
         executeTest("testAlleleCountStrat", spec);
+    }
+
+    @Test
+    public void testMultipleEvalTracksAlleleCountWithMerge() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsSplit1of2VCF,
+                        "--eval " + fundamentalTestSNPsSplit2of2VCF,
+                        "--mergeEvals",
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsVCF,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("1198bfea6183bd43219071a84c79a386")
+        );
+        executeTest("testMultipleEvalTracksAlleleCountWithMerge", spec);
+    }
+
+    @Test
+    public void testMultipleEvalTracksAlleleCountWithoutMerge() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsSplit1of2VCF,
+                        "--eval " + fundamentalTestSNPsSplit2of2VCF,
+                        //"--mergeEvals", No merge with AC strat ==> error
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsVCF
+                ),
+                0,
+                UserException.class
+        );
+        executeTest("testMultipleEvalTracksAlleleCountWithoutMerge", spec);
     }
 
     @Test
