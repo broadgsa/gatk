@@ -402,6 +402,12 @@ public class PairHMMIndelErrorModel {
                                     contextLogGapOpenProbabilities, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities,
                                     startIndexInHaplotype, matchMetricArray, XMetricArray, YMetricArray);
 
+                            previousHaplotypeSeen = haplotypeBases.clone();
+    
+    
+/*                            double l2 = computeReadLikehoodGivenHaplotype(haplotypeBases, readBases, readQuals, contextLogGapOpenProbabilities,
+                                    contextLogGapContinuationProbabilities, bandedLikelihoods);
+  */
                             if (DEBUG) {
                                 System.out.println("H:"+new String(haplotypeBases));
                                 System.out.println("R:"+new String(readBases));
