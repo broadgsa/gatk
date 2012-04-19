@@ -43,14 +43,13 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 
 public class PairHMMIndelErrorModel {
     public static final int BASE_QUAL_THRESHOLD = 20;
 
     private boolean DEBUG = false;
-    private boolean bandedLikelihoods = true;
+    private boolean bandedLikelihoods = false;
 
     private static final int MAX_CACHED_QUAL = 127;
 
@@ -157,7 +156,7 @@ public class PairHMMIndelErrorModel {
     }
 
 
-    private void updateCell(final int indI, final int indJ, final int X_METRIC_LENGTH, final int Y_METRIC_LENGTH, byte[] readBases, byte[] readQuals, byte[] haplotypeBases,
+    private static void updateCell(final int indI, final int indJ, final int X_METRIC_LENGTH, final int Y_METRIC_LENGTH, byte[] readBases, byte[] readQuals, byte[] haplotypeBases,
                             byte[] currentGOP, byte[] currentGCP,  double[][] matchMetricArray,  double[][] XMetricArray,  double[][] YMetricArray) {
         if (indI > 0 && indJ > 0) {
             final int im1 = indI -1;
@@ -183,9 +182,27 @@ public class PairHMMIndelErrorModel {
         }
     }
 
-    private double computeReadLikelihoodGivenHaplotypeAffineGaps(byte[] haplotypeBases, byte[] readBases, byte[] readQuals,
+    public static double computeReadLikehoodGivenHaplotype(byte[] haplotypeBases, byte[] readBases, byte[] readQuals,
+                                                           byte[] currentGOP, byte[] currentGCP, boolean bandedLikelihoods) {
+        // M, X, and Y arrays are of size read and haplotype + 1 because of an extra column for initial conditions
+        final int X_METRIC_LENGTH = readBases.length + 1;
+        final int Y_METRIC_LENGTH = haplotypeBases.length + 1;
+
+        // initial arrays to hold the probabilities of being in the match, insertion and deletion cases
+        final double[][] matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+        final double[][] XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+        final double[][] YMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
+
+        PairHMM.initializeArrays(matchMetricArray, XMetricArray, YMetricArray, X_METRIC_LENGTH);
+
+        return computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, currentGOP,
+                currentGCP, 0, matchMetricArray, XMetricArray, YMetricArray, bandedLikelihoods);
+
+    }
+    private static double computeReadLikelihoodGivenHaplotypeAffineGaps(byte[] haplotypeBases, byte[] readBases, byte[] readQuals,
                                                                  byte[] currentGOP, byte[] currentGCP, int indToStart,
-                                                                 double[][] matchMetricArray, double[][] XMetricArray, double[][] YMetricArray) {
+                                                                 double[][] matchMetricArray, double[][] XMetricArray, double[][] YMetricArray,
+                                                                 boolean bandedLikelihoods) {
 
         final int X_METRIC_LENGTH = readBases.length+1;
         final int Y_METRIC_LENGTH = haplotypeBases.length+1;
@@ -391,6 +408,9 @@ public class PairHMMIndelErrorModel {
                 }
             }
             else {
+                if (DEBUG) {
+                    System.out.format("Read Name:%s, aln start:%d aln stop:%d orig cigar:%s\n",p.getRead().getReadName(), p.getRead().getAlignmentStart(), p.getRead().getAlignmentEnd(), p.getRead().getCigarString());
+                }
                 // System.out.format("%d %s\n",p.getRead().getAlignmentStart(), p.getRead().getClass().getName());
                 GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
 
@@ -577,8 +597,8 @@ public class PairHMMIndelErrorModel {
                             final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBases(),
                                     (int)indStart, (int)indStop);
 
-                            final int X_METRIC_LENGTH = readBases.length+1;
-                            final int Y_METRIC_LENGTH = haplotypeBases.length+1;
+                            final int X_METRIC_LENGTH = readBases.length+2;
+                            final int Y_METRIC_LENGTH = haplotypeBases.length+2;
 
                             if (matchMetricArray == null) {
                                 //no need to reallocate arrays for each new haplotype, as length won't change
@@ -588,7 +608,7 @@ public class PairHMMIndelErrorModel {
 
                             }
 
-                            pairHMM.initializeArrays(matchMetricArray, XMetricArray, YMetricArray, X_METRIC_LENGTH);
+                            PairHMM.initializeArrays(matchMetricArray, XMetricArray, YMetricArray, X_METRIC_LENGTH);
 
   /*
                             if (previousHaplotypeSeen == null)
@@ -602,17 +622,14 @@ public class PairHMMIndelErrorModel {
                                     contextLogGapOpenProbabilities, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities,
                                     startIndexInHaplotype, matchMetricArray, XMetricArray, YMetricArray);
 
-                      /*      double r2 = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, contextLogGapOpenProbabilities,
-                                    contextLogGapContinuationProbabilities, 0, matchMetricArray, XMetricArray, YMetricArray);
-
-                            if (readLikelihood > 0) {
-                                int k=0;
-                            }
-                        */    if (DEBUG) {
+/*                            double l2 = computeReadLikehoodGivenHaplotype(haplotypeBases, readBases, readQuals, contextLogGapOpenProbabilities,
+                                    contextLogGapContinuationProbabilities, bandedLikelihoods);
+  */
+                            if (DEBUG) {
                                 System.out.println("H:"+new String(haplotypeBases));
                                 System.out.println("R:"+new String(readBases));
                                 System.out.format("L:%4.2f\n",readLikelihood);
-                               // System.out.format("Lorig:%4.2f\n",r2);
+                       //         System.out.format("Lorig:%4.2f\n",r2);
                                 System.out.format("StPos:%d\n", startIndexInHaplotype);
                             }
                         }
