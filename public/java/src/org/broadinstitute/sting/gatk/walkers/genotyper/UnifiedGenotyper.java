@@ -116,6 +116,8 @@ import java.util.*;
 @ReadFilters( {BadMateFilter.class, MappingQualityUnavailableFilter.class} )
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
+// TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
+// TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
 
@@ -155,6 +157,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     @Argument(fullName = "debug_file", shortName = "debug_file", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected PrintStream verboseWriter = null;
 
+    @Hidden
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
     protected PrintStream metricsWriter = null;
 
@@ -347,14 +350,6 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     }
 
     public void onTraversalDone(UGStatistics sum) {
-        logger.info(String.format("Visited bases                                %d", sum.nBasesVisited));
-        logger.info(String.format("Callable bases                               %d", sum.nBasesCallable));
-        logger.info(String.format("Confidently called bases                     %d", sum.nBasesCalledConfidently));
-        logger.info(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
-        logger.info(String.format("%% confidently called bases of all loci       %3.3f", sum.percentCalledOfAll()));
-        logger.info(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
-        logger.info(String.format("Actual calls made                            %d", sum.nCallsMade));
-
         if ( metricsWriter != null ) {
             metricsWriter.println(String.format("Visited bases                                %d", sum.nBasesVisited));
             metricsWriter.println(String.format("Callable bases                               %d", sum.nBasesCallable));
