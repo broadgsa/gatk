@@ -109,4 +109,10 @@ public class RecalDatum extends RecalDatumOptimized {
     private double qualToErrorProb( final double qual ) {
         return Math.pow(10.0, qual / -10.0);
     }
+
+
+    @Override
+    public String toString() {
+        return String.format("%d,%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()), (byte) Math.floor(getEstimatedQReported()));
+    }
 }
