@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -152,7 +151,7 @@ public class RecalDataManager {
         ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
         for (Covariate covariate : requiredCovariates) {
             requiredCovariatesToAdd.add(covariate);
-            final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>(QualityUtils.MAX_QUAL_SCORE);    // initializing a new recal table for each required covariate (cumulatively)
+            final Map<BitSet, RecalDatum> recalTable = new HashMap<BitSet, RecalDatum>();                               // initializing a new recal table for each required covariate (cumulatively)
             final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
             tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
         }
