@@ -80,9 +80,8 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
             }
         }
 
-        double rms = MathUtils.rms(qualities);
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.2f", rms));
+        final Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyNames().get(0), String.format("%.2f", MathUtils.rms(qualities)));
         return map;
     }
 

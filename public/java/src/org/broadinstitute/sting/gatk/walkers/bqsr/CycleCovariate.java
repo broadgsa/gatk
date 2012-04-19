@@ -66,18 +66,18 @@ public class CycleCovariate implements StandardCovariate {
 
         // Discrete cycle platforms
         if (DISCRETE_CYCLE_PLATFORMS.contains(ngsPlatform)) {
-            final short init;
+            final short readOrderFactor = read.getReadPairedFlag() && read.getSecondOfPairFlag() ? (short) -1 : 1;
             final short increment;
-            if (!read.getReadNegativeStrandFlag()) {
-                init = 1;
-                increment = 1;
+            short cycle;
+            if (read.getReadNegativeStrandFlag()) {
+                cycle = (short) (read.getReadLength() * readOrderFactor);
+                increment = (short) (-1 * readOrderFactor);
             }
             else {
-                init = (short) read.getReadLength();
-                increment = -1;
+                cycle = readOrderFactor;
+                increment = readOrderFactor;
             }
 
-            short cycle = init;
             for (int i = 0; i < read.getReadLength(); i++) {
                 cycles[i] = BitSetUtils.bitSetFrom(cycle);
                 cycle += increment;
