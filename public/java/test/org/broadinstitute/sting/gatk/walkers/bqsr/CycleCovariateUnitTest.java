@@ -26,8 +26,9 @@ public class CycleCovariateUnitTest {
 
     @Test(enabled = true)
     public void testSimpleCycles() {
-        short readLength = 10;        
+        short readLength = 10;
         GATKSAMRecord read = ReadUtils.createRandomRead(readLength);
+        read.setReadPairedFlag(true);
         read.setReadGroup(new GATKSAMReadGroupRecord("MY.ID"));
         read.getReadGroup().setPlatform("illumina");
 
@@ -38,6 +39,13 @@ public class CycleCovariateUnitTest {
         values = covariate.getValues(read);
         verifyCovariateArray(values.getMismatches(), readLength, (short) -1);
 
+        read.setSecondOfPairFlag(true);
+        values = covariate.getValues(read);
+        verifyCovariateArray(values.getMismatches(), (short) -readLength, (short) 1);
+
+        read.setReadNegativeStrandFlag(false);
+        values = covariate.getValues(read);
+        verifyCovariateArray(values.getMismatches(), (short) -1, (short) -1);
     }
 
     private void verifyCovariateArray(BitSet[] values, short init, short increment) {

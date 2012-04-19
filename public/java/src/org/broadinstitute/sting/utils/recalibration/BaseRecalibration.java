@@ -66,6 +66,19 @@ public class BaseRecalibration {
     }
 
     /**
+     * This constructor only exists for testing purposes.
+     *
+     * @param quantizationInfo
+     * @param keysAndTablesMap
+     * @param requestedCovariates
+     */
+    protected BaseRecalibration(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, ArrayList<Covariate> requestedCovariates) {
+        this.quantizationInfo = quantizationInfo;
+        this.keysAndTablesMap = keysAndTablesMap;
+        this.requestedCovariates = requestedCovariates;
+    }
+
+    /**
      * Recalibrates the base qualities of a read
      *
      * It updates the base qualities of the read with the new recalibrated qualities (for all event types)
@@ -110,7 +123,7 @@ public class BaseRecalibration {
      * @param errorModel the event type
      * @return A recalibrated quality score as a byte
      */
-    private byte performSequentialQualityCalculation(BitSet[] key, EventType errorModel) {
+    protected byte performSequentialQualityCalculation(BitSet[] key, EventType errorModel) {
         final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
         final String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
 

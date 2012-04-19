@@ -279,6 +279,12 @@ public class RecalibrationReport {
 
             else if (primaryKey.equals("quantizing_levels"))
                 RAC.QUANTIZING_LEVELS = Integer.parseInt((String) value);
+
+            else if (primaryKey.equals("keep_intermediate_files"))
+                RAC.KEEP_INTERMEDIATE_FILES = Boolean.parseBoolean((String) value);
+
+            else if (primaryKey.equals("no_plots"))
+                RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
         }
 
         return RAC;

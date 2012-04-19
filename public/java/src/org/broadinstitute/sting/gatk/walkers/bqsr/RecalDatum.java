@@ -102,7 +102,7 @@ public class RecalDatum extends Datum {
 
     @Override
     public String toString() {
-        return String.format("%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()));
+        return String.format("%d,%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()), (byte) Math.floor(getEstimatedQReported()));
     }
 
 

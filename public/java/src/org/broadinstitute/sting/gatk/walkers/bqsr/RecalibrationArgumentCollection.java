@@ -143,9 +143,18 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "deletions_default_quality", shortName = "ddq", doc = "default quality for the base deletions covariate", required = false)
     public byte DELETIONS_DEFAULT_QUALITY = 45;
 
+    /**
+     * Reads with low quality bases on either tail (beginning or end) will not be considered in the context. This parameter defines the quality below which (inclusive) a tail is considered low quality
+     */
     @Argument(fullName = "low_quality_tail", shortName = "lqt", doc = "minimum quality for the bases in the tail of the reads to be considered", required = false)
     public byte LOW_QUAL_TAIL = 2;
 
+    /**
+     * BQSR generates a quantization table for quick quantization later by subsequent tools. BQSR does not quantize the base qualities, this is done by the engine with the -qq or -BQSR options.
+     * This parameter tells BQSR the number of levels of quantization to use to build the quantization table.
+     */
+    @Argument(fullName = "quantizing_levels", shortName = "ql", required = false, doc = "number of distinct quality scores in the quantized output")
+    public int QUANTIZING_LEVELS = 16;
 
 
     @Hidden
@@ -155,8 +164,11 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
     @Hidden
-    @Argument(fullName = "quantizing_levels", shortName = "ql", required = false, doc = "number of distinct quality scores in the quantized output")
-    public int QUANTIZING_LEVELS = 16;
+    @Argument(fullName = "keep_intermediate_files", shortName = "k", required = false, doc ="does not remove the temporary csv file created to generate the plots")
+    public boolean KEEP_INTERMEDIATE_FILES = false;
+    @Hidden
+    @Argument(fullName = "no_plots", shortName = "np", required = false, doc = "does not generate any plots -- useful for queue scatter/gathering")
+    public boolean NO_PLOTS = false;
 
     public GATKReportTable generateReportTable() {
         GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run");
@@ -176,6 +188,8 @@ public class RecalibrationArgumentCollection {
         argumentsTable.set("default_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
         argumentsTable.set("force_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
         argumentsTable.set("quantizing_levels", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
+        argumentsTable.set("keep_intermediate_files", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
+        argumentsTable.set("no_plots", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
         return argumentsTable;
     }
 
