@@ -39,8 +39,8 @@ public class ContextCovariateUnitTest {
     private void verifyCovariateArray(BitSet[] values, int contextSize, String bases) {
         for (int i = 0; i < values.length; i++) {
             String expectedContext = null;
-            if (i >= contextSize) {
-                String context = bases.substring(i - contextSize, i);
+            if (i - contextSize + 1 >= 0) {
+                String context = bases.substring(i - contextSize + 1, i + 1);
                 if (!context.contains("N"))
                     expectedContext = context;
             }

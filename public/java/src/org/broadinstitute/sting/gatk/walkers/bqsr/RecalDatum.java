@@ -74,7 +74,7 @@ public class RecalDatum extends Datum {
     }
 
     public final void calcCombinedEmpiricalQuality() {
-        this.empiricalQuality = empiricalQualDouble();                   // cache the value so we don't call log over and over again
+        this.empiricalQuality = empiricalQualDouble();                                                                  // cache the value so we don't call log over and over again
     }
     
     public final void calcEstimatedReportedQuality() {
@@ -102,7 +102,7 @@ public class RecalDatum extends Datum {
 
     @Override
     public String toString() {
-        return String.format("%d,%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()), (byte) Math.floor(getEstimatedQReported()));
+        return String.format("%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()));
     }
 
 
