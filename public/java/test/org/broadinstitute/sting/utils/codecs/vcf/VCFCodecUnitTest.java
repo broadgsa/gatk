@@ -85,7 +85,7 @@ public class VCFCodecUnitTest extends BaseTest {
 
     @Test(dataProvider = "AlleleClippingTestProvider")
     public void TestAlleleClipping(AlleleClippingTestProvider cfg) {
-        int result = AbstractVCFCodec.computeReverseClipping(cfg.alleles, cfg.ref, 0, 1);
+        int result = AbstractVCFCodec.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false, 1);
         Assert.assertEquals(result, cfg.expectedClip);
     }
 }
