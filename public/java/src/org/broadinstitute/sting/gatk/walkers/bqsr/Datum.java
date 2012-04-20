@@ -76,7 +76,7 @@ public class Datum {
         final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
         final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT);
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
-        return Math.min(empiricalQual, (double) QualityUtils.MAX_QUAL_SCORE);
+        return Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
 
     byte empiricalQualByte() {

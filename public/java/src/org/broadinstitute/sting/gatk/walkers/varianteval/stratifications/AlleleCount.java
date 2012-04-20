@@ -20,10 +20,8 @@ import java.util.*;
 public class AlleleCount extends VariantStratifier {
     @Override
     public void initialize() {
-        List<RodBinding<VariantContext>> evals = getVariantEvalWalker().getEvals();
-
         // we can only work with a single eval VCF, and it must have genotypes
-        if ( evals.size() != 1 )
+        if ( getVariantEvalWalker().getEvals().size() != 1 && !getVariantEvalWalker().mergeEvals )
             throw new UserException.BadArgumentValue("AlleleCount", "AlleleCount stratification only works with a single eval vcf");
 
         // There are 2 x n sample chromosomes for diploids

@@ -24,10 +24,6 @@ public class BaseRecalibrationUnitTest {
     private org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager dataManager;
     private LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;
 
-    private BQSRKeyManager rgKeyManager;
-    private BQSRKeyManager qsKeyManager;
-    private BQSRKeyManager cvKeyManager;
-
     private ReadGroupCovariate rgCovariate;
     private QualityScoreCovariate qsCovariate;
     private ContextCovariate cxCovariate;
@@ -60,13 +56,13 @@ public class BaseRecalibrationUnitTest {
         rgCovariate = new ReadGroupCovariate();
         rgCovariate.initialize(RAC);
         requiredCovariates.add(rgCovariate);
-        rgKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
+        BQSRKeyManager rgKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
         keysAndTablesMap.put(rgKeyManager, new HashMap<BitSet, RecalDatum>());
 
         qsCovariate = new QualityScoreCovariate();
         qsCovariate.initialize(RAC);
         requiredCovariates.add(qsCovariate);
-        qsKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
+        BQSRKeyManager qsKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
         keysAndTablesMap.put(qsKeyManager, new HashMap<BitSet, RecalDatum>());
 
         cxCovariate = new ContextCovariate();
@@ -75,7 +71,7 @@ public class BaseRecalibrationUnitTest {
         cyCovariate = new CycleCovariate();
         cyCovariate.initialize(RAC);
         optionalCovariates.add(cyCovariate);
-        cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
+        BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
         keysAndTablesMap.put(cvKeyManager, new HashMap<BitSet, RecalDatum>());
 
 
@@ -108,7 +104,7 @@ public class BaseRecalibrationUnitTest {
                     updateCovariateWithKeySet(mapEntry.getValue(), key, newDatum);
             }
         }
-        dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_QUAL_SCORE);
+        dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
 
         List<Byte> quantizedQuals = new ArrayList<Byte>();
         List<Long> qualCounts = new ArrayList<Long>();
@@ -179,7 +175,7 @@ public class BaseRecalibrationUnitTest {
                 BitSet key = entry.getKey();
                 RecalDatum datum = entry.getValue();
                 List<Object> keySet = keyManager.keySetFrom(key);
-                System.out.println(String.format("%s => %s", Utils.join(",", keySet), datum));
+                System.out.println(String.format("%s => %s", Utils.join(",", keySet), datum) + "," + datum.getEstimatedQReported());
             }
             System.out.println();
         }
@@ -187,9 +183,9 @@ public class BaseRecalibrationUnitTest {
 
     }
 
-    private static void printNestedHashMap(Map<Object,Object> table, String output) {
+    private static void printNestedHashMap(Map table, String output) {
         for (Object key : table.keySet()) {
-            String ret = "";
+            String ret;
             if (output.isEmpty())
                 ret = "" + key;
             else
@@ -199,7 +195,7 @@ public class BaseRecalibrationUnitTest {
             if (next instanceof org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum)
                 System.out.println(ret + " => " + next);
             else
-                printNestedHashMap((Map<Object, Object>) next, "" + ret);
+                printNestedHashMap((Map) next, "" + ret);
         }
     }
 
@@ -269,7 +265,7 @@ public class BaseRecalibrationUnitTest {
         }
 
         final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
-        return QualityUtils.boundQual((int) Math.round(newQuality), QualityUtils.MAX_QUAL_SCORE);
+        return QualityUtils.boundQual((int) Math.round(newQuality), QualityUtils.MAX_RECALIBRATED_Q_SCORE);
 
         // Verbose printouts used to validate with old recalibrator
         //if(key.contains(null)) {
@@ -289,6 +285,6 @@ public class BaseRecalibrationUnitTest {
         final double doubleMismatches = (double) (errors + smoothing);
         final double doubleObservations = (double) ( observations + smoothing );
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
-        return Math.min(QualityUtils.MAX_QUAL_SCORE, empiricalQual);
+        return Math.min(QualityUtils.MAX_RECALIBRATED_Q_SCORE, empiricalQual);
     }
 }
