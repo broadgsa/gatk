@@ -661,7 +661,68 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             vcs.add(builder.make());
         }
 
-        return vcs;
+        return combineVariants(vcs);
+    }
+
+    // Copied from CombineVariants
+    private Collection<VariantContext> combineVariants(ArrayList<VariantContext> vcs) {
+        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
+
+        //defaults from CombineVariants
+        VariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = VariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
+        List<String> priority = null;
+        VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
+        VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
+        boolean printComplexMerges = false;
+        String SET_KEY = "set";
+        boolean filteredAreUncalled = false;
+        boolean MERGE_INFO_WITH_MAX_AC = false;
+
+        if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
+            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+
+            // TODO -- clean this up in a refactoring
+            // merge NO_VARIATION into another type of variant (based on the ordering in VariantContext.Type)
+            if ( VCsByType.containsKey(VariantContext.Type.NO_VARIATION) && VCsByType.size() > 1 ) {
+                final List<VariantContext> refs = VCsByType.remove(VariantContext.Type.NO_VARIATION);
+                for ( VariantContext.Type type : VariantContext.Type.values() ) {
+                    if ( VCsByType.containsKey(type) ) {
+                        VCsByType.get(type).addAll(refs);
+                        break;
+                    }
+                }
+            }
+
+            // iterate over the types so that it's deterministic
+            for (VariantContext.Type type : VariantContext.Type.values()) {
+                if (VCsByType.containsKey(type))
+                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                            SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+            }
+        }
+        else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
+            mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcs,
+                    priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                    SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+        }
+        else {
+            logger.warn("Ignoring all records at site");
+        }
+
+        List<VariantContext> recomputedVCs = new ArrayList<VariantContext>();
+        for ( VariantContext mergedVC : mergedVCs ) {
+            // only operate at the start of events
+            if ( mergedVC == null )
+                continue;
+
+            final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);
+            // re-compute chromosome counts
+            VariantContextUtils.calculateChromosomeCounts(builder, false);
+            recomputedVCs.add(builder.make());
+        }
+
+        return recomputedVCs;
     }
 
     /**
