@@ -158,11 +158,11 @@ public class ActivityProfile {
         // find the best place to break up the large active region
         Double minProb = Double.MAX_VALUE;
         int cutPoint = -1;
-        for( int iii = curStart + 45; iii < curEnd - 45; iii++ ) { // BUGBUG: assumes maxRegionSize >> 45
+        for( int iii = curStart + 50; iii < curEnd - 50; iii++ ) { // BUGBUG: assumes maxRegionSize >> 50
             if( isActiveList.get(iii) < minProb ) { minProb = isActiveList.get(iii); cutPoint = iii; }
         }
         final List<ActiveRegion> leftList = createActiveRegion(isActive, curStart, cutPoint, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
-        final List<ActiveRegion> rightList = createActiveRegion(isActive, cutPoint, curEnd, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
+        final List<ActiveRegion> rightList = createActiveRegion(isActive, cutPoint+1, curEnd, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
         returnList.addAll( leftList );
         returnList.addAll( rightList );
         return returnList;
