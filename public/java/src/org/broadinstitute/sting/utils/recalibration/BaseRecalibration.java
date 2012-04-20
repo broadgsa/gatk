@@ -68,9 +68,9 @@ public class BaseRecalibration {
     /**
      * This constructor only exists for testing purposes.
      *
-     * @param quantizationInfo
-     * @param keysAndTablesMap
-     * @param requestedCovariates
+     * @param quantizationInfo the quantization info object
+     * @param keysAndTablesMap the map of key managers and recalibration tables
+     * @param requestedCovariates the list of requested covariates
      */
     protected BaseRecalibration(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, ArrayList<Covariate> requestedCovariates) {
         this.quantizationInfo = quantizationInfo;
@@ -179,9 +179,8 @@ public class BaseRecalibration {
         }
 
         double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;                      // calculate the recalibrated qual using the BQSR formula 
-        recalibratedQual = QualityUtils.boundQual((int) Math.round(recalibratedQual), QualityUtils.MAX_QUAL_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
+        recalibratedQual = QualityUtils.boundQual((int) Math.round(recalibratedQual), QualityUtils.MAX_RECALIBRATED_Q_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
 
-        
         return quantizationInfo.getQuantizedQuals().get((int) recalibratedQual);                                        // return the quantized version of the recalibrated quality
     }
 

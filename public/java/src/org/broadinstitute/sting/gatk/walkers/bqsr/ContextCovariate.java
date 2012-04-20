@@ -125,8 +125,8 @@ public class ContextCovariate implements StandardCovariate {
      */
     private BitSet contextWith(byte[] bases, int offset, int contextSize) {
         BitSet result = null;
-        if (offset >= contextSize) {
-            String context = new String(Arrays.copyOfRange(bases, offset - contextSize, offset));
+        if (offset - contextSize + 1 >= 0) {
+            String context = new String(Arrays.copyOfRange(bases, offset - contextSize + 1, offset + 1));
             if (!context.contains("N"))
                 result = BitSetUtils.bitSetFrom(context);
         }
