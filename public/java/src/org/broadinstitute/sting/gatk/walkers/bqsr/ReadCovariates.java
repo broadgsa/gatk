@@ -62,4 +62,19 @@ public class ReadCovariates {
         for (int i = 0; i < covariateValues.length; i++)
             keySet[i][nextCovariateIndex] = covariateValues[i];
     }
+
+    /**
+     * Testing routines
+     */
+    protected BitSet[][] getMismatchesKeySet() {
+        return mismatchesKeySet;
+    }
+
+    protected BitSet[][] getInsertionsKeySet() {
+        return insertionsKeySet;
+    }
+
+    protected BitSet[][] getDeletionsKeySet() {
+        return deletionsKeySet;
+    }
 }

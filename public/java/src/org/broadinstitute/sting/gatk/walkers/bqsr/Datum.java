@@ -55,6 +55,11 @@ public class Datum {
         numMismatches = 0L;
     }
 
+    public Datum(long numObservations, long numMismatches) {
+        this.numObservations = numObservations;
+        this.numMismatches = numMismatches;
+    }
+
     //---------------------------------------------------------------------------------------------------------------
     //
     // increment methods
@@ -90,4 +95,11 @@ public class Datum {
         return String.format("%d,%d,%d", numObservations, numMismatches, (int) empiricalQualByte());
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Datum))
+            return false;
+        Datum other = (Datum) o;
+        return numMismatches == other.numMismatches && numObservations == other.numObservations;
+    }
 }

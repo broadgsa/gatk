@@ -65,6 +65,14 @@ public class BQSRGatherer extends Gatherer  {
         if (generalReport == null)
             throw new ReviewedStingException(EMPTY_INPUT_LIST);
 
+        RecalibrationArgumentCollection RAC = generalReport.getRAC();
+        if (RAC.recalibrationReport != null) {
+            RecalibrationReport originalReport = new RecalibrationReport(RAC.recalibrationReport);
+            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, originalReport.getKeysAndTablesMap(), generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
+        }
+        else
+            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
+
         generalReport.calculateEmpiricalAndQuantizedQualities();
         generalReport.output(outputFile);
     }

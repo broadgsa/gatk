@@ -25,22 +25,24 @@
 
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import net.sf.samtools.SAMUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.io.Resource;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -74,10 +76,12 @@ public class RecalDataManager {
     public final static String NUMBER_OBSERVATIONS_COLUMN_NAME = "Observations";
     public final static String NUMBER_ERRORS_COLUMN_NAME = "Errors";
 
-    private final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ";                       // The tag that holds the color space quality scores for SOLID bams
     private final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
     private final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
+
+    private static final String SCRIPT_FILE = "BQSR.R";
+
 
     public enum SOLID_RECAL_MODE {
         /**
@@ -309,6 +313,130 @@ public class RecalDataManager {
         report.print(outputFile);
     }
 
+    private static Pair<PrintStream, File> initializeRecalibrationPlot(File filename) {
+        final PrintStream deltaTableStream;
+        final File deltaTableFileName = new File(filename + ".csv");
+        try {
+            deltaTableStream = new PrintStream(deltaTableFileName);
+        } catch (FileNotFoundException e) {
+            throw new UserException.CouldNotCreateOutputFile(deltaTableFileName, "File " + deltaTableFileName + " could not be created");
+        }
+        return new Pair<PrintStream, File>(deltaTableStream, deltaTableFileName);
+    }
+
+    private static void outputRecalibrationPlot(Pair<PrintStream, File> files, boolean keepIntermediates) {
+        final File csvFileName = files.getSecond();
+        final File plotFileName = new File(csvFileName + ".pdf");
+        files.getFirst().close();
+
+        RScriptExecutor executor = new RScriptExecutor();
+        executor.addScript(new Resource(SCRIPT_FILE, RecalDataManager.class));
+        executor.addArgs(csvFileName.getAbsolutePath());
+        executor.addArgs(plotFileName.getAbsolutePath());
+        executor.exec();
+
+        if (!keepIntermediates)
+            if (!csvFileName.delete())
+                throw new ReviewedStingException("Could not find file " + csvFileName.getAbsolutePath());
+
+    }
+
+    public static void generateRecalibrationPlot(File filename, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> original, boolean keepIntermediates) {
+        Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
+        writeCSV(files.getFirst(), original, "ORIGINAL", true);
+        outputRecalibrationPlot(files, keepIntermediates);
+    }
+
+    public static void generateRecalibrationPlot(File filename, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> original, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> recalibrated, boolean keepIntermediates) {
+        Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
+        writeCSV(files.getFirst(), recalibrated, "RECALIBRATED", true);
+        writeCSV(files.getFirst(), original, "ORIGINAL", false);
+        outputRecalibrationPlot(files, keepIntermediates);
+    }
+
+    private static void writeCSV(PrintStream deltaTableFile, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> map, String recalibrationMode, boolean printHeader) {
+        final int QUALITY_SCORE_COVARIATE_INDEX = 1;
+        final Map<BitSet, AccuracyDatum> deltaTable = new HashMap<BitSet, AccuracyDatum>();
+
+
+        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> tableEntry : map.entrySet()) {
+            BQSRKeyManager keyManager = tableEntry.getKey();
+
+            if (keyManager.getOptionalCovariates().size() > 0) {                                                        // only need the 'all covariates' table
+                Map<BitSet, RecalDatum> table = tableEntry.getValue();
+
+                // create a key manager for the delta table
+                List<Covariate> requiredCovariates = keyManager.getRequiredCovariates().subList(0, 1);                  // include the read group covariate as the only required covariate
+                List<Covariate> optionalCovariates = keyManager.getRequiredCovariates().subList(1, 2);                  // include the quality score covariate as an optional covariate
+                optionalCovariates.addAll(keyManager.getOptionalCovariates());                                          // include all optional covariates
+                BQSRKeyManager deltaKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);            // initialize the key manager
+
+
+                // create delta table
+                for (Map.Entry<BitSet, RecalDatum> entry : table.entrySet()) {                                          // go through every element in the covariates table to create the delta table
+                    RecalDatum recalDatum = entry.getValue();                                                           // the current element (recal datum)
+
+                    List<Object> covs = keyManager.keySetFrom(entry.getKey());                                          // extract the key objects from the bitset key
+                    byte originalQuality = Byte.parseByte((String) covs.get(QUALITY_SCORE_COVARIATE_INDEX));            // save the original quality for accuracy calculation later on
+                    covs.remove(QUALITY_SCORE_COVARIATE_INDEX);                                                         // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
+                    BitSet deltaKey = deltaKeyManager.bitSetFromKey(covs.toArray());                                    // create a new bitset key for the delta table
+                    addToDeltaTable(deltaTable, deltaKey, recalDatum, originalQuality);                                 // add this covariate to the delta table
+
+                    covs.set(1, originalQuality);                                                                       // replace the covariate value with the quality score
+                    covs.set(2, "QualityScore");                                                                        // replace the covariate name with QualityScore (for the QualityScore covariate)
+                    deltaKey = deltaKeyManager.bitSetFromKey(covs.toArray());                                           // create a new bitset key for the delta table
+                    addToDeltaTable(deltaTable, deltaKey, recalDatum, originalQuality);                                 // add this covariate to the delta table
+                }
+
+                // print header
+                if (printHeader) {
+                    List<String> header = new LinkedList<String>();
+                    header.add("ReadGroup");
+                    header.add("CovariateValue");
+                    header.add("CovariateName");
+                    header.add("EventType");
+                    header.add("Observations");
+                    header.add("Errors");
+                    header.add("EmpiricalQuality");
+                    header.add("AverageReportedQuality");
+                    header.add("Accuracy");
+                    header.add("Recalibration");
+                    deltaTableFile.println(Utils.join(",", header));
+                }
+
+                // print each data line
+                for(Map.Entry<BitSet, AccuracyDatum> deltaEntry : deltaTable.entrySet()) {
+                    List<Object> deltaKeys = deltaKeyManager.keySetFrom(deltaEntry.getKey());
+                    RecalDatum deltaDatum = deltaEntry.getValue();
+                    deltaTableFile.print(Utils.join(",", deltaKeys));
+                    deltaTableFile.print("," + deltaDatum.toString());
+                    deltaTableFile.println("," + recalibrationMode);
+                }
+
+            }
+
+        }
+    }
+
+    /**
+     * Updates the current AccuracyDatum element in the delta table.
+     *
+     * If it doesn't have an element yet, it creates an AccuracyDatum element and adds it to the delta table.
+     *
+     * @param deltaTable the delta table
+     * @param deltaKey the key to the table
+     * @param recalDatum the recal datum to combine with the accuracyDatum element in the table
+     * @param originalQuality the quality score to we can calculate the accuracy for the accuracyDatum element
+     */
+    private static void addToDeltaTable(Map<BitSet, AccuracyDatum> deltaTable, BitSet deltaKey, RecalDatum recalDatum, byte originalQuality) {
+        AccuracyDatum deltaDatum = deltaTable.get(deltaKey);                                                            // check if we already have a RecalDatum for this key
+        if (deltaDatum == null)
+            deltaTable.put(deltaKey, new AccuracyDatum(recalDatum, originalQuality));                                   // if we don't have a key yet, create a new one with the same values as the curent datum
+        else
+            deltaDatum.combine(recalDatum, originalQuality);                                                            // if we do have a datum, combine it with this one.
+    }
+
+
     /**
      * Section of code shared between the two recalibration walkers which uses the command line arguments to adjust attributes of the read such as quals or platform string
      *
@@ -380,127 +508,6 @@ public class RecalDataManager {
             }
         }
         return false;
-    }
-
-    /**
-     * Perform the SET_Q_ZERO solid recalibration. Inconsistent color space bases and their previous base are set to quality zero
-     *
-     * @param read               The SAMRecord to recalibrate
-     * @param readBases          The bases in the read which have been RC'd if necessary
-     * @param inconsistency      The array of 1/0 that says if this base is inconsistent with its color
-     * @param originalQualScores The array of original quality scores to set to zero if needed
-     * @param refBases           The reference which has been RC'd if necessary
-     * @param setBaseN           Should we also set the base to N as well as quality zero in order to visualize in IGV or something similar
-     * @return The byte array of original quality scores some of which might have been set to zero
-     */
-    private static byte[] solidRecalSetToQZero(final GATKSAMRecord read, byte[] readBases, final int[] inconsistency, final byte[] originalQualScores, final byte[] refBases, final boolean setBaseN) {
-
-        final boolean negStrand = read.getReadNegativeStrandFlag();
-        for (int iii = 1; iii < originalQualScores.length; iii++) {
-            if (inconsistency[iii] == 1) {
-                if (readBases[iii] == refBases[iii]) {
-                    if (negStrand) {
-                        originalQualScores[originalQualScores.length - (iii + 1)] = (byte) 0;
-                    }
-                    else {
-                        originalQualScores[iii] = (byte) 0;
-                    }
-                    if (setBaseN) {
-                        readBases[iii] = (byte) 'N';
-                    }
-                }
-                // Set the prev base to Q0 as well
-                if (readBases[iii - 1] == refBases[iii - 1]) {
-                    if (negStrand) {
-                        originalQualScores[originalQualScores.length - iii] = (byte) 0;
-                    }
-                    else {
-                        originalQualScores[iii - 1] = (byte) 0;
-                    }
-                    if (setBaseN) {
-                        readBases[iii - 1] = (byte) 'N';
-                    }
-                }
-            }
-        }
-        if (negStrand) {
-            readBases = BaseUtils.simpleReverseComplement(readBases.clone()); // Put the bases back in reverse order to stuff them back in the read
-        }
-        read.setReadBases(readBases);
-
-        return originalQualScores;
-    }
-
-    /**
-     * Peform the REMOVE_REF_BIAS solid recalibration. Look at the color space qualities and probabilistically decide if the base should be change to match the color or left as reference
-     *
-     * @param read              The SAMRecord to recalibrate
-     * @param readBases         The bases in the read which have been RC'd if necessary
-     * @param inconsistency     The array of 1/0 that says if this base is inconsistent with its color
-     * @param colorImpliedBases The bases implied by the color space, RC'd if necessary
-     * @param refBases          The reference which has been RC'd if necessary
-     */
-    private static void solidRecalRemoveRefBias(final GATKSAMRecord read, byte[] readBases, final int[] inconsistency, final byte[] colorImpliedBases, final byte[] refBases) {
-
-        final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG);
-        if (attr != null) {
-            byte[] colorSpaceQuals;
-            if (attr instanceof String) {
-                String x = (String) attr;
-                colorSpaceQuals = x.getBytes();
-                SAMUtils.fastqToPhred(colorSpaceQuals);
-            }
-            else {
-                throw new ReviewedStingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-            }
-
-            for (int iii = 1; iii < inconsistency.length - 1; iii++) {
-                if (inconsistency[iii] == 1) {
-                    for (int jjj = iii - 1; jjj <= iii; jjj++) { // Correct this base and the one before it along the direction of the read
-                        if (jjj == iii || inconsistency[jjj] == 0) { // Don't want to correct the previous base a second time if it was already corrected in the previous step
-                            if (readBases[jjj] == refBases[jjj]) {
-                                if (colorSpaceQuals[jjj] == colorSpaceQuals[jjj + 1]) { // Equal evidence for the color implied base and the reference base, so flip a coin
-                                    final int rand = GenomeAnalysisEngine.getRandomGenerator().nextInt(2);
-                                    if (rand == 0) { // The color implied base won the coin flip
-                                        readBases[jjj] = colorImpliedBases[jjj];
-                                    }
-                                }
-                                else {
-                                    final int maxQuality = Math.max((int) colorSpaceQuals[jjj], (int) colorSpaceQuals[jjj + 1]);
-                                    final int minQuality = Math.min((int) colorSpaceQuals[jjj], (int) colorSpaceQuals[jjj + 1]);
-                                    int diffInQuality = maxQuality - minQuality;
-                                    int numLow = minQuality;
-                                    if (numLow == 0) {
-                                        numLow++;
-                                        diffInQuality++;
-                                    }
-                                    final int numHigh = Math.round(numLow * (float) Math.pow(10.0f, (float) diffInQuality / 10.0f)); // The color with higher quality is exponentially more likely
-                                    final int rand = GenomeAnalysisEngine.getRandomGenerator().nextInt(numLow + numHigh);
-                                    if (rand >= numLow) { // higher q score won
-                                        if (maxQuality == (int) colorSpaceQuals[jjj]) {
-                                            readBases[jjj] = colorImpliedBases[jjj];
-                                        } // else ref color had higher q score, and won out, so nothing to do here
-                                    }
-                                    else { // lower q score won
-                                        if (minQuality == (int) colorSpaceQuals[jjj]) {
-                                            readBases[jjj] = colorImpliedBases[jjj];
-                                        } // else ref color had lower q score, and won out, so nothing to do here
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (read.getReadNegativeStrandFlag()) {
-                readBases = BaseUtils.simpleReverseComplement(readBases.clone()); // Put the bases back in reverse order to stuff them back in the read
-            }
-            read.setReadBases(readBases);
-        }
-        else { // No color space quality tag in file
-            throw new UserException.MalformedBAM(read, "REMOVE_REF_BIAS recal mode requires color space qualities but they can't be found for read: " + read.getReadName());
-        }
     }
 
     /**

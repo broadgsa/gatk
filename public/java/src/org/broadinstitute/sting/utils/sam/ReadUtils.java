@@ -738,8 +738,12 @@ public class ReadUtils {
     }
 
     public static GATKSAMRecord createRandomRead(int length) {
+        return createRandomRead(length, true);
+    }
+
+    public static GATKSAMRecord createRandomRead(int length, boolean allowNs) {
         byte[] quals = ReadUtils.createRandomReadQuals(length);
-        byte[] bbases = ReadUtils.createRandomReadBases(length, true);
+        byte[] bbases = ReadUtils.createRandomReadBases(length, allowNs);
         return ArtificialSAMUtils.createArtificialRead(bbases, quals, bbases.length + "M");
     }
 

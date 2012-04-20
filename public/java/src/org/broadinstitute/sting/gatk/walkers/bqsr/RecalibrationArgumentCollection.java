@@ -170,6 +170,8 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "no_plots", shortName = "np", required = false, doc = "does not generate any plots -- useful for queue scatter/gathering")
     public boolean NO_PLOTS = false;
 
+    public File recalibrationReport = null;
+
     public GATKReportTable generateReportTable() {
         GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run");
         argumentsTable.addPrimaryKey("Argument");
@@ -190,6 +192,7 @@ public class RecalibrationArgumentCollection {
         argumentsTable.set("quantizing_levels", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
         argumentsTable.set("keep_intermediate_files", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
         argumentsTable.set("no_plots", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
+        argumentsTable.set("recalibration_report", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
         return argumentsTable;
     }
 

@@ -277,7 +277,42 @@ public class BQSRKeyManager {
         bitSet.and(mask);
         return chopNBitsFrom(bitSet, leadingBits);
     }
-    
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof BQSRKeyManager))
+            return false;
+
+        BQSRKeyManager other = (BQSRKeyManager) o;
+        if (this == other)
+            return true;
+
+        if (requiredCovariates.size() != other.requiredCovariates.size() || optionalCovariates.size() != other.optionalCovariates.size())
+            return false;
+
+        Iterator<RequiredCovariateInfo> otherRequiredIterator = other.requiredCovariates.iterator();
+        for (RequiredCovariateInfo thisInfo: requiredCovariates) {
+            RequiredCovariateInfo otherInfo = otherRequiredIterator.next();
+
+            String thisName = thisInfo.covariate.getClass().getSimpleName();
+            String otherName = otherInfo.covariate.getClass().getSimpleName();
+            if (!thisName.equals(otherName))
+                return false;
+        }
+
+        Iterator<OptionalCovariateInfo> otherOptionalIterator = other.optionalCovariates.iterator();
+        for (OptionalCovariateInfo thisInfo : optionalCovariates) {
+            OptionalCovariateInfo otherInfo = otherOptionalIterator.next();
+            String thisName = thisInfo.covariate.getClass().getSimpleName();
+            String otherName = otherInfo.covariate.getClass().getSimpleName();
+            if (!thisName.equals(otherName))
+                return false;
+        }
+
+        return true;
+    }
+
+
     /**
      * Aggregate information for each Covariate
      */
@@ -292,7 +327,7 @@ public class BQSRKeyManager {
             this.covariate = covariate;
         }
     }
-    
+
     class OptionalCovariateInfo {
         public final BitSet covariateID;                                                                                // cache the covariate ID
         public final Covariate covariate;
