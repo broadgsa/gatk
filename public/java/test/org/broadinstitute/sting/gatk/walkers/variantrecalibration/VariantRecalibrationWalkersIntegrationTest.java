@@ -73,9 +73,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
-            "6d7ee4cb651c8b666e4a4523363caaff",  // tranches
-            "ee5b408c8434a594496118875690c438",  // recal file
-            "5d7e07d8813db96ba3f3dfe4737f83d1"); // cut VCF
+            "da4458d05f6396f5c4ab96f274e5ccdc",  // tranches
+            "cf380d9b0ae04c8918be8425f82035b4",  // recal file
+            "b00e5e5a6807df8ed1682317948e8a6d"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
     public Object[][] createData2() {
