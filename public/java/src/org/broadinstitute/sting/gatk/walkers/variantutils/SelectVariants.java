@@ -665,12 +665,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     // Copied from CombineVariants
-    private Collection<VariantContext> combineVariants(ArrayList<VariantContext> vcs) {
+    private Collection<VariantContext> combineVariants(Collection<VariantContext> vcs) {
+        if (vcs.size() < 2)
+            return vcs;
+
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
 
         //defaults from CombineVariants
         VariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = VariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
-        List<String> priority = null;
+        List<String> priority = new ArrayList<String>(VCFUtils.getVCFHeadersFromRods(getToolkit()).keySet());
         VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
         VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
         boolean printComplexMerges = false;
