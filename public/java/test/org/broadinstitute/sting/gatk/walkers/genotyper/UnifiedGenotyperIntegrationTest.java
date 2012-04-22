@@ -62,7 +62,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultipleSNPAlleles() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm BOTH --dbsnp " + b37dbSNP129 + " -I " + validationDataLocation + "multiallelic.snps.bam -o %s -L " + validationDataLocation + "multiallelic.snps.intervals", 1,
-                Arrays.asList("e948543b83bfd0640fcb994d72f8e234"));
+                Arrays.asList("ec907c65da5ed9b6046404b0f81422d4"));
         executeTest("test Multiple SNP alleles", spec);
     }
 
@@ -72,6 +72,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm BOTH -I " + validationDataLocation + "badRead.test.bam -o %s -L 1:22753424-22753464", 1,
                 Arrays.asList("7678827a2ee21870a41c09d28d26b996"));
         executeTest("test bad read", spec);
+    }
+
+    @Test
+    public void testReverseTrim() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b37KGReference + " -nosl -NO_HEADER -glm INDEL -I " + validationDataLocation + "CEUTrio.HiSeq.b37.chr20.10_11mb.bam -o %s -L 20:10289124 -L 20:10090289", 1,
+                Arrays.asList("a70593bbb5042e2d0e46e3c932cae170"));
+        executeTest("test reverse trim", spec);
     }
 
     // --------------------------------------------------------------------------------------------------------------

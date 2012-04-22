@@ -617,10 +617,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         return true;
     }
 
-    public static int computeForwardClipping(List<Allele> unclippedAlleles, String ref) {
+    public static int computeForwardClipping(final List<Allele> unclippedAlleles, final byte ref0) {
         boolean clipping = true;
         int symbolicAlleleCount = 0;
-        final byte ref0 = (byte)ref.charAt(0);
 
         for ( Allele a : unclippedAlleles ) {
             if ( a.isSymbolic() ) {
@@ -638,7 +637,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         return (clipping && symbolicAlleleCount != unclippedAlleles.size()) ? 1 : 0;
     }
 
-    protected static int computeReverseClipping(List<Allele> unclippedAlleles, String ref, int forwardClipping, int lineNo) {
+    public static int computeReverseClipping(final List<Allele> unclippedAlleles, final byte[] ref, final int forwardClipping, final boolean allowFullClip, final int lineNo) {
         int clipping = 0;
         boolean stillClipping = true;
 
@@ -650,14 +649,20 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                 // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
                 // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
                 if ( a.length() - clipping == 0 )
-                    return clipping - 1;
+                    return clipping - (allowFullClip ? 0 : 1);
 
-                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 )
+                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 ) {
                     stillClipping = false;
-                else if ( ref.length() == clipping )
-                    generateException("bad alleles encountered", lineNo);
-                else if ( a.getBases()[a.length()-clipping-1] != ((byte)ref.charAt(ref.length()-clipping-1)) )
+                }
+                else if ( ref.length == clipping ) {
+                    if ( allowFullClip )
+                        stillClipping = false;
+                    else
+                        generateException("bad alleles encountered", lineNo);
+                }
+                else if ( a.getBases()[a.length()-clipping-1] != ref[ref.length-clipping-1] ) {
                     stillClipping = false;
+                }
             }
             if ( stillClipping )
                 clipping++;
@@ -678,8 +683,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      */
     protected static int clipAlleles(int position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
 
-        int forwardClipping = computeForwardClipping(unclippedAlleles, ref);
-        int reverseClipping = computeReverseClipping(unclippedAlleles, ref, forwardClipping, lineNo);
+        int forwardClipping = computeForwardClipping(unclippedAlleles, (byte)ref.charAt(0));
+        int reverseClipping = computeReverseClipping(unclippedAlleles, ref.getBytes(), forwardClipping, false, lineNo);
 
         if ( clippedAlleles != null ) {
             for ( Allele a : unclippedAlleles ) {
