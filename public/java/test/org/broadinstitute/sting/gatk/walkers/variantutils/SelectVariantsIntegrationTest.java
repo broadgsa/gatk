@@ -163,4 +163,16 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
         executeTest("testParallelization (4 threads)--" + testfile, spec);
     }
+
+    @Test
+    public void testSelectFromMultiAllelic() {
+        String testfile = validationDataLocation + "multi-allelic.bi-allelicInGIH.vcf";
+        String samplesFile = validationDataLocation + "GIH.samples.list";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b37KGReference + " -o %s -NO_HEADER -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
+                1,
+                Arrays.asList("3fb50cc1c955491048108956d7087c35")
+        );
+        executeTest("test select from multi allelic with excludeNonVariants --" + testfile, spec);
+    }
 }

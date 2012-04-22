@@ -189,7 +189,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * or the sample is called reference in this track.
      */
     @Input(fullName="discordance", shortName = "disc", doc="Output variants that were not called in this comparison track", required=false)
-    private RodBinding<VariantContext> discordanceTrack;
+    protected RodBinding<VariantContext> discordanceTrack;
 
     /**
      * A site is considered concordant if (1) we are not looking for specific samples and there is a variant called
@@ -197,7 +197,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * concordance track and they have the sample genotype call.
      */
     @Input(fullName="concordance", shortName = "conc", doc="Output variants that were also called in this comparison track", required=false)
-    private RodBinding<VariantContext> concordanceTrack;
+    protected RodBinding<VariantContext> concordanceTrack;
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -230,10 +230,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<String>();
 
     @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include loci found to be non-variant after the subsetting procedure", required=false)
-    private boolean EXCLUDE_NON_VARIANTS = false;
+    protected boolean EXCLUDE_NON_VARIANTS = false;
 
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
-    private boolean EXCLUDE_FILTERED = false;
+    protected boolean EXCLUDE_FILTERED = false;
 
 
     /**
@@ -257,23 +257,23 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private Boolean MENDELIAN_VIOLATIONS = false;
 
     @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
-    private double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
+    protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
     /**
      * Variants are kept in memory to guarantee that exactly n variants will be chosen randomly, so make sure you supply the program with enough memory
      * given your input set.  This option will NOT work well for large callsets; use --select_random_fraction for sets with a large numbers of variants.
      */
     @Argument(fullName="select_random_number", shortName="number", doc="Selects a number of variants at random from the variant track", required=false)
-    private int numRandom = 0;
+    protected int numRandom = 0;
 
     /**
      * This routine is based on probability, so the final result is not guaranteed to carry the exact fraction.  Can be used for large fractions.
      */
     @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track", required=false)
-    private double fractionRandom = 0;
+    protected double fractionRandom = 0;
 
     @Argument(fullName="remove_fraction_genotypes", shortName="fractionGenotypes", doc="Selects a fraction (a number between 0 and 1) of the total genotypes at random from the variant track and sets them to nocall", required=false)
-    private double fractionGenotypes = 0;
+    protected double fractionGenotypes = 0;
 
     /**
      * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
@@ -508,7 +508,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
-            VariantContext sub = subsetRecord(vc, samples);
+            VariantContext sub = subsetRecord(vc, samples, EXCLUDE_NON_VARIANTS);
             if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                 boolean failedJexlMatch = false;
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
@@ -645,11 +645,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * @param samples  the samples to extract
      * @return the subsetted VariantContext
      */
-    private VariantContext subsetRecord(VariantContext vc, Set<String> samples) {
+    private VariantContext subsetRecord(final VariantContext vc, final Set<String> samples, final boolean excludeNonVariants) {
         if ( samples == null || samples.isEmpty() )
             return vc;
 
-        final VariantContext sub = vc.subContextFromSamples(samples, vc.getAlleles());
+        final VariantContext sub;
+        if ( excludeNonVariants )
+            sub = vc.subContextFromSamples(samples); // strip out the alternate alleles that aren't being used
+        else
+            sub = vc.subContextFromSamples(samples, vc.getAlleles());
         VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         GenotypesContext newGC = sub.getGenotypes();

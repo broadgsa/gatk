@@ -612,7 +612,7 @@ public class VariantContextUtils {
                 continue;
             if ( hasPLIncompatibleAlleles(alleles, vc.alleles)) {
                 if ( ! genotypes.isEmpty() )
-                    logger.warn(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
+                    logger.debug(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
                             genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
                 genotypes = stripPLs(genotypes);
                 // this will remove stale AC,AF attributed from vc
@@ -714,17 +714,13 @@ public class VariantContextUtils {
         else if (refAllele.isNull())
             trimVC = false;
         else {
-            trimVC = (AbstractVCFCodec.computeForwardClipping(new ArrayList<Allele>(inputVC.getAlternateAlleles()),
-                    inputVC.getReference().getDisplayString()) > 0);
+            trimVC = (AbstractVCFCodec.computeForwardClipping(inputVC.getAlternateAlleles(), (byte)inputVC.getReference().getDisplayString().charAt(0)) > 0);
          }
 
         // nothing to do if we don't need to trim bases
         if (trimVC) {
             List<Allele> alleles = new ArrayList<Allele>();
             GenotypesContext genotypes = GenotypesContext.create();
-
-            // set the reference base for indels in the attributes
-            Map<String,Object> attributes = new TreeMap<String,Object>(inputVC.getAttributes());
 
             Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
@@ -768,10 +764,53 @@ public class VariantContextUtils {
             }
 
             final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
-            return builder.alleles(alleles).genotypes(genotypes).attributes(attributes).referenceBaseForIndel(new Byte(inputVC.getReference().getBases()[0])).make();
+            return builder.alleles(alleles).genotypes(genotypes).referenceBaseForIndel(new Byte(inputVC.getReference().getBases()[0])).make();
         }
 
         return inputVC;
+    }
+
+    public static VariantContext reverseTrimAlleles(VariantContext inputVC) {
+        // see if we need to trim common reference base from all alleles
+
+        final int trimExtent = AbstractVCFCodec.computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, true, -1);
+        if ( trimExtent <= 0 )
+        return inputVC;
+
+        final List<Allele> alleles = new ArrayList<Allele>();
+        GenotypesContext genotypes = GenotypesContext.create();
+
+        Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
+
+        for (final Allele a : inputVC.getAlleles()) {
+            if (a.isSymbolic()) {
+                alleles.add(a);
+                originalToTrimmedAlleleMap.put(a, a);
+            } else {
+                // get bases for current allele and create a new one with trimmed bases
+                byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
+                Allele trimmedAllele = Allele.create(newBases, a.isReference());
+                alleles.add(trimmedAllele);
+                originalToTrimmedAlleleMap.put(a, trimmedAllele);
+            }
+        }
+
+        // now we can recreate new genotypes with trimmed alleles
+        for ( final Genotype genotype : inputVC.getGenotypes() ) {
+
+            List<Allele> originalAlleles = genotype.getAlleles();
+            List<Allele> trimmedAlleles = new ArrayList<Allele>();
+            for ( final Allele a : originalAlleles ) {
+                if ( a.isCalled() )
+                    trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
+                else
+                    trimmedAlleles.add(Allele.NO_CALL);
+            }
+            genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
+        }
+
+        final VariantContextBuilder builder = new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length());
+        return builder.alleles(alleles).genotypes(genotypes).make();
     }
 
     public static GenotypesContext stripPLs(GenotypesContext genotypes) {
