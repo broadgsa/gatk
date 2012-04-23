@@ -30,6 +30,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -66,7 +67,7 @@ public class GenotypeLikelihoodsUnitTest {
         Assert.assertEquals(gl.getAsString(), vPLString);
     }
 
-    @Test (expectedExceptions = NumberFormatException.class)
+    @Test (expectedExceptions = UserException.MalformedVCF.class)
     public void testErrorBadFormat() {
         GenotypeLikelihoods gl = new GenotypeLikelihoods("adf,b,c");
         gl.getAsVector();
