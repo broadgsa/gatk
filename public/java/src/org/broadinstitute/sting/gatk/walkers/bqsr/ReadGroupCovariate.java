@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.regex.Pattern;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -47,10 +46,6 @@ public class ReadGroupCovariate implements RequiredCovariate {
     private final HashMap<String, Short> readGroupLookupTable = new HashMap<String, Short>();
     private final HashMap<Short, String> readGroupReverseLookupTable = new HashMap<Short, String>();
     private short nextId = 0;
-    
-    private static final String LANE_TAG = "LN";
-    private static final String SAMPLE_TAG = "SM";
-
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
@@ -105,31 +100,14 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     /**
-     * Gather the sample and lane information from the read group record and return sample.lane
-     *
-     * If the bam file is missing the lane information, it tries to use the id regex standardized
-     * by the Broad Institute to extract the lane information
-     *
-     * If it fails to find either of the two pieces of information, will return the read group id instead.
+     * If the sample has a PU tag annotation, return that. If not, return the read group id.
      *
      * @param rg the read group record
-     * @return sample.lane or id if information is missing.
+     * @return platform unit or readgroup id
      */
     private String readGroupValueFromRG(GATKSAMReadGroupRecord rg) {
-        String lane = rg.getLane();                                     // take the sample's lane from the read group lane tag
-        String sample = rg.getSample();                                 // take the sample's name from the read group sample tag
-        String value = rg.getId();                                      // initialize the return value with the read group ID in case we can't find the sample or the lane
-
-        if (lane == null) {                                             // if this bam doesn't have the lane annotation in the read group try to take it from the read group id
-            String [] splitID = rg.getId().split(Pattern.quote("."));
-            if (splitID.length > 1)                                     // if the id doesn't follow the BROAD defined regex (PU.LANE), fall back to the read group id
-                lane = splitID[splitID.length - 1];                     // take the lane from the readgroup id
-        }
-
-        if (sample != null && lane != null)
-            value = sample + "." + lane;                                // the read group covariate is sample.lane (where the inforamtion is available)
-
-        return value;
+        String platformUnit = rg.getPlatformUnit();
+        return platformUnit == null ? rg.getId() : platformUnit;
     }
     
 }

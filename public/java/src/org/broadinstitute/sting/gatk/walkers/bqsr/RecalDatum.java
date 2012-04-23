@@ -109,6 +109,10 @@ public class RecalDatum extends Datum {
         return String.format("%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()));
     }
 
+    public String stringForCSV() {
+        return String.format("%s,%d,%.2f", toString(), (byte) Math.floor(getEstimatedQReported()), getEmpiricalQuality() - getEstimatedQReported());
+    }
+
 
         private double calcExpectedErrors() {
         return (double) this.numObservations * qualToErrorProb(estimatedQReported);

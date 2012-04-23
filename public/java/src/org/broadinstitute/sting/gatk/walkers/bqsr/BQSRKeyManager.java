@@ -184,7 +184,7 @@ public class BQSRKeyManager {
      * @return an object array with the values for each key
      */
     public List<Object> keySetFrom(BitSet key) {
-        List<Object> objectKeys = new LinkedList<Object>();
+        List<Object> objectKeys = new ArrayList<Object>();
         for (RequiredCovariateInfo info : requiredCovariates) {
             BitSet covariateBitSet = extractBitSetFromKey(key, info.mask, info.bitsBefore);                             // get the covariate's bitset
             objectKeys.add(info.covariate.keyFromBitSet(covariateBitSet));                                              // convert the bitset to object using covariate's interface

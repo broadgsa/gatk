@@ -28,27 +28,17 @@ public class ReadGroupCovariateUnitTest {
     public void testSingleRecord() {
         final String expected = "SAMPLE.1";
         GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("MY.ID");
-        rg.setSample("SAMPLE");
-        rg.setLane("1");
+        rg.setPlatformUnit(expected);
         runTest(rg, expected);
     }
 
     @Test(enabled = true)
-    public void testMissingLane() {
-        final String expected = "SAMPLE.7";
-        GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("MY.7");
-        rg.setSample("SAMPLE");
+    public void testMissingPlatformUnit() {
+        final String expected = "MY.7";
+        GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(expected);
         runTest(rg, expected);
     }
-    
-    @Test(enabled = true)
-    public void testMissingSample() {
-        final String expected = "MY.ID";
-        GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("MY.ID");
-        rg.setLane("1");
-        runTest(rg, expected);
-    }
-    
+
     private void runTest(GATKSAMReadGroupRecord rg, String expected) {
         GATKSAMRecord read = ReadUtils.createRandomRead(10);
         read.setReadGroup(rg);

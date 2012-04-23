@@ -9,7 +9,7 @@ import net.sf.samtools.SAMUtils;
  * @author Kiran Garimella
  */
 public class QualityUtils {
-    public final static byte MAX_RECALIBRATED_Q_SCORE = 50;
+    public final static byte MAX_RECALIBRATED_Q_SCORE = 93;
     public final static byte MAX_QUAL_SCORE = SAMUtils.MAX_PHRED_SCORE;
     public final static double ERROR_RATE_OF_MAX_QUAL_SCORE = qualToErrorProbRaw(MAX_QUAL_SCORE);
 
@@ -104,9 +104,8 @@ public class QualityUtils {
      */
     static public byte probToQual(double prob, double eps) {
         double lp = Math.round(-10.0*Math.log10(1.0 - prob + eps));
-        byte b = boundQual((int)lp);
         //System.out.printf("LP is %f, byte is %d%n", lp, b);
-        return b;
+        return boundQual((int)lp);
     }
 
     static public double phredScaleCorrectRate(double trueRate) {
@@ -117,10 +116,6 @@ public class QualityUtils {
         return Math.abs(-10.0*Math.log10(errorRate));
     }
 
-    static public double lodToPhredScaleErrorRate(double lod) {
-        return phredScaleErrorRate(1.0 / (Math.pow(10.0, lod) + 1.0));
-    }
-    
     /**
      * Return a quality score, capped at max qual.
      *
@@ -134,12 +129,11 @@ public class QualityUtils {
     /**
      * Returns an integer quality score bounded by 1 - maxQual.
      *
-     * @param qual
-     * @param maxQual
-     * @return
+     * @param qual    the quality score
+     * @param maxQual the maximum quality
+     * @return the integer betwen 1 and maxqual.
      */
     static public byte boundQual(int qual, byte maxQual) {
-        //return (byte) Math.min(qual, maxQual);
         return (byte) Math.max(Math.min(qual, maxQual), 1);
     }
 }

@@ -65,15 +65,19 @@ public class BQSRGatherer extends Gatherer  {
         if (generalReport == null)
             throw new ReviewedStingException(EMPTY_INPUT_LIST);
 
-        RecalibrationArgumentCollection RAC = generalReport.getRAC();
-        if (RAC.recalibrationReport != null) {
-            RecalibrationReport originalReport = new RecalibrationReport(RAC.recalibrationReport);
-            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, originalReport.getKeysAndTablesMap(), generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
-        }
-        else
-            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
-
         generalReport.calculateEmpiricalAndQuantizedQualities();
+
+        RecalibrationArgumentCollection RAC = generalReport.getRAC();
+        if (RAC.recalibrationReport != null && !RAC.NO_PLOTS) {
+            File recal_out = new File(output.getName() + ".original");
+            RecalibrationReport originalReport = new RecalibrationReport(RAC.recalibrationReport);
+            RecalDataManager.generateRecalibrationPlot(recal_out, originalReport.getKeysAndTablesMap(), generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
+        }
+        else if (!RAC.NO_PLOTS) {
+            File recal_out = new File(output.getName() + ".recal");
+            RecalDataManager.generateRecalibrationPlot(recal_out, generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
+        }
+
         generalReport.output(outputFile);
     }
 }

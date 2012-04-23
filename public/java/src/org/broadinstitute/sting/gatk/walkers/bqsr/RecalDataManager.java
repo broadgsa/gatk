@@ -356,39 +356,65 @@ public class RecalDataManager {
 
     private static void writeCSV(PrintStream deltaTableFile, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> map, String recalibrationMode, boolean printHeader) {
         final int QUALITY_SCORE_COVARIATE_INDEX = 1;
-        final Map<BitSet, AccuracyDatum> deltaTable = new HashMap<BitSet, AccuracyDatum>();
+        final Map<BitSet, RecalDatum> deltaTable = new HashMap<BitSet, RecalDatum>();
+        BQSRKeyManager deltaKeyManager = null;
 
 
         for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> tableEntry : map.entrySet()) {
             BQSRKeyManager keyManager = tableEntry.getKey();
 
-            if (keyManager.getOptionalCovariates().size() > 0) {                                                        // only need the 'all covariates' table
-                Map<BitSet, RecalDatum> table = tableEntry.getValue();
-
+            if (keyManager.getOptionalCovariates().size() > 0) {                                                        // initialize with the 'all covariates' table
                 // create a key manager for the delta table
                 List<Covariate> requiredCovariates = keyManager.getRequiredCovariates().subList(0, 1);                  // include the read group covariate as the only required covariate
                 List<Covariate> optionalCovariates = keyManager.getRequiredCovariates().subList(1, 2);                  // include the quality score covariate as an optional covariate
                 optionalCovariates.addAll(keyManager.getOptionalCovariates());                                          // include all optional covariates
-                BQSRKeyManager deltaKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);            // initialize the key manager
+                deltaKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                           // initialize the key manager
+            }
+        }
 
+        if (deltaKeyManager == null)
+            throw new ReviewedStingException ("Couldn't find the covariates table");
 
-                // create delta table
+        boolean readyToPrint = false;
+        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> tableEntry : map.entrySet()) {
+            BQSRKeyManager keyManager = tableEntry.getKey();
+
+            if (keyManager.getRequiredCovariates().size() == 2 && keyManager.getOptionalCovariates().isEmpty()) {       // look for the QualityScore table
+                Map<BitSet, RecalDatum> table = tableEntry.getValue();
+
+                // add the quality score table to the delta table
                 for (Map.Entry<BitSet, RecalDatum> entry : table.entrySet()) {                                          // go through every element in the covariates table to create the delta table
                     RecalDatum recalDatum = entry.getValue();                                                           // the current element (recal datum)
 
                     List<Object> covs = keyManager.keySetFrom(entry.getKey());                                          // extract the key objects from the bitset key
-                    byte originalQuality = Byte.parseByte((String) covs.get(QUALITY_SCORE_COVARIATE_INDEX));            // save the original quality for accuracy calculation later on
+                    List<Object> newCovs = new ArrayList<Object>(4);
+                    newCovs.add(0, covs.get(0));                                                                        // replace the covariate value with the quality score
+                    newCovs.add(1, covs.get(1));
+                    newCovs.add(2, "QualityScore");                                                                     // replace the covariate name with QualityScore (for the QualityScore covariate)
+                    newCovs.add(3, covs.get(2));
+                    BitSet deltaKey = deltaKeyManager.bitSetFromKey(newCovs.toArray());                                 // create a new bitset key for the delta table
+                    addToDeltaTable(deltaTable, deltaKey, recalDatum);                                                  // add this covariate to the delta table
+                }
+            }
+
+            else if (keyManager.getOptionalCovariates().size() > 0) {                                                   // look for the optional covariates table
+                Map<BitSet, RecalDatum> table = tableEntry.getValue();
+
+                // add the optional covariates to the delta table
+                for (Map.Entry<BitSet, RecalDatum> entry : table.entrySet()) {                                          // go through every element in the covariates table to create the delta table
+                    RecalDatum recalDatum = entry.getValue();                                                           // the current element (recal datum)
+
+                    List<Object> covs = keyManager.keySetFrom(entry.getKey());                                          // extract the key objects from the bitset key
                     covs.remove(QUALITY_SCORE_COVARIATE_INDEX);                                                         // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
                     BitSet deltaKey = deltaKeyManager.bitSetFromKey(covs.toArray());                                    // create a new bitset key for the delta table
-                    addToDeltaTable(deltaTable, deltaKey, recalDatum, originalQuality);                                 // add this covariate to the delta table
-
-                    covs.set(1, originalQuality);                                                                       // replace the covariate value with the quality score
-                    covs.set(2, "QualityScore");                                                                        // replace the covariate name with QualityScore (for the QualityScore covariate)
-                    deltaKey = deltaKeyManager.bitSetFromKey(covs.toArray());                                           // create a new bitset key for the delta table
-                    addToDeltaTable(deltaTable, deltaKey, recalDatum, originalQuality);                                 // add this covariate to the delta table
+                    addToDeltaTable(deltaTable, deltaKey, recalDatum);                                                  // add this covariate to the delta table
                 }
+                readyToPrint = true;
+            }
 
-                // print header
+            // output the csv file
+            if (readyToPrint) {
+
                 if (printHeader) {
                     List<String> header = new LinkedList<String>();
                     header.add("ReadGroup");
@@ -405,11 +431,11 @@ public class RecalDataManager {
                 }
 
                 // print each data line
-                for(Map.Entry<BitSet, AccuracyDatum> deltaEntry : deltaTable.entrySet()) {
+                for(Map.Entry<BitSet, RecalDatum> deltaEntry : deltaTable.entrySet()) {
                     List<Object> deltaKeys = deltaKeyManager.keySetFrom(deltaEntry.getKey());
                     RecalDatum deltaDatum = deltaEntry.getValue();
                     deltaTableFile.print(Utils.join(",", deltaKeys));
-                    deltaTableFile.print("," + deltaDatum.toString());
+                    deltaTableFile.print("," + deltaDatum.stringForCSV());
                     deltaTableFile.println("," + recalibrationMode);
                 }
 
@@ -419,21 +445,20 @@ public class RecalDataManager {
     }
 
     /**
-     * Updates the current AccuracyDatum element in the delta table.
+     * Updates the current RecalDatum element in the delta table.
      *
-     * If it doesn't have an element yet, it creates an AccuracyDatum element and adds it to the delta table.
+     * If it doesn't have an element yet, it creates an RecalDatum element and adds it to the delta table.
      *
      * @param deltaTable the delta table
      * @param deltaKey the key to the table
      * @param recalDatum the recal datum to combine with the accuracyDatum element in the table
-     * @param originalQuality the quality score to we can calculate the accuracy for the accuracyDatum element
      */
-    private static void addToDeltaTable(Map<BitSet, AccuracyDatum> deltaTable, BitSet deltaKey, RecalDatum recalDatum, byte originalQuality) {
-        AccuracyDatum deltaDatum = deltaTable.get(deltaKey);                                                            // check if we already have a RecalDatum for this key
+    private static void addToDeltaTable(Map<BitSet, RecalDatum> deltaTable, BitSet deltaKey, RecalDatum recalDatum) {
+        RecalDatum deltaDatum = deltaTable.get(deltaKey);                                                               // check if we already have a RecalDatum for this key
         if (deltaDatum == null)
-            deltaTable.put(deltaKey, new AccuracyDatum(recalDatum, originalQuality));                                   // if we don't have a key yet, create a new one with the same values as the curent datum
+            deltaTable.put(deltaKey, new RecalDatum(recalDatum));                                                       // if we don't have a key yet, create a new one with the same values as the curent datum
         else
-            deltaDatum.combine(recalDatum, originalQuality);                                                            // if we do have a datum, combine it with this one.
+            deltaDatum.combine(recalDatum);                                                                             // if we do have a datum, combine it with this one.
     }
 
 

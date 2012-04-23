@@ -293,9 +293,6 @@ public class RecalibrationReport {
             else if (primaryKey.equals("no_plots"))
                 RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
 
-            else if (primaryKey.equals("no_plots"))
-                RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
-
             else if (primaryKey.equals("recalibration_report"))
                 RAC.recalibrationReport = (value == null) ? null : new File((String) value);
         }
