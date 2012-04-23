@@ -16,11 +16,14 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Inserts all of the RODs in the input data set. Data is inserted using VariantContext.toMongoDB().
@@ -35,10 +38,12 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
     private final static String MONGO_HOST = "gsa4.broadinstitute.org";
     private final static Integer MONGO_PORT = 43054;
     private final static String MONGO_DB_NAME = "bjorn";
-    private final static String MONGO_VC_COLLECTION = "vcs";
+    private final static String MONGO_ATTRIBUTES_COLLECTION = "attributes";
+    private final static String MONGO_SAMPLES_COLLECTION = "samples";
 
     protected Mongo mongo;
-    protected DBCollection mongoCollection;
+    protected DBCollection mongoAttributes;
+    protected DBCollection mongoSamples;
 
     private String RODFileName;
 
@@ -47,22 +52,31 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
         try {
             mongo = new Mongo(MONGO_HOST, MONGO_PORT);
             DB mongoDb = mongo.getDB(MONGO_DB_NAME);
-            mongoCollection = mongoDb.getCollection(MONGO_VC_COLLECTION);
+            mongoAttributes = mongoDb.getCollection(MONGO_ATTRIBUTES_COLLECTION);
+            mongoSamples = mongoDb.getCollection(MONGO_SAMPLES_COLLECTION);
 
             RODFileName = input.getSource();
             int lastSep = RODFileName.lastIndexOf(File.separator);
             RODFileName = RODFileName.substring(lastSep + 1);
 
             // set up indices
-            mongoCollection.ensureIndex("location");
-            mongoCollection.ensureIndex("sample");
-            mongoCollection.ensureIndex("sourceROD");
-            mongoCollection.ensureIndex("contig");
-            mongoCollection.ensureIndex("start");
-            mongoCollection.ensureIndex("stop");
 
-            // set up primary key
-            mongoCollection.ensureIndex(new BasicDBObject("location", 1).append("sample", 1).append("sourceROD", 1).append("alleles", 1), new BasicDBObject("unique", 1));
+            mongoAttributes.ensureIndex("location");
+            mongoAttributes.ensureIndex("sourceROD");
+            mongoAttributes.ensureIndex("contig");
+            mongoAttributes.ensureIndex("start");
+            mongoAttributes.ensureIndex("stop");
+
+            mongoSamples.ensureIndex("location");
+            mongoSamples.ensureIndex("sample");
+            mongoSamples.ensureIndex("sourceROD");
+            mongoSamples.ensureIndex("contig");
+            mongoSamples.ensureIndex("start");
+            mongoSamples.ensureIndex("stop");
+
+            // set up primary keys
+            mongoAttributes.ensureIndex(new BasicDBObject("location", 1).append("sourceROD", 1).append("alleles", 1), new BasicDBObject("unique", 1));
+            mongoSamples.ensureIndex(new BasicDBObject("location", 1).append("sourceROD", 1).append("alleles", 1).append("sample", 1), new BasicDBObject("unique", 1));
         }
         catch (MongoException e) {
             throw e;
@@ -93,11 +107,13 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
         for ( Feature feature : tracker.getValues(Feature.class, context.getLocation()) ) {
             if ( feature instanceof VariantContext ) {
                 VariantContext vc = (VariantContext) feature;
-                for (BasicDBObject vcForMongo : vc.toMongoDB(RODFileName)) {
-                    mongoCollection.insert(vcForMongo);
+
+                Pair<BasicDBObject,List<BasicDBObject>> mongoCollections = vc.toMongoDB(RODFileName);
+                mongoAttributes.insert(mongoCollections.first);
+                for (BasicDBObject sampleForMongo : mongoCollections.second) {
+                    mongoSamples.insert(sampleForMongo);
                 }
             }
-
         }
 
         return 1;

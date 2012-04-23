@@ -352,10 +352,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private final static String MONGO_HOST = "gsa4.broadinstitute.org";
     private final static Integer MONGO_PORT = 43054;
     private final static String MONGO_DB_NAME = "bjorn";
-    private final static String MONGO_VC_COLLECTION = "vcs";
+    private final static String MONGO_ATTRIBUTES_COLLECTION = "attributes";
+    private final static String MONGO_SAMPLES_COLLECTION = "samples";
 
     protected Mongo mongo;
-    protected DBCollection mongoCollection;
+    protected DBCollection mongoAttributes;
+    protected DBCollection mongoSamples;
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -460,7 +462,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         try {
             mongo = new Mongo(MONGO_HOST, MONGO_PORT);
             DB mongoDb = mongo.getDB(MONGO_DB_NAME);
-            mongoCollection = mongoDb.getCollection(MONGO_VC_COLLECTION);
+            mongoAttributes = mongoDb.getCollection(MONGO_ATTRIBUTES_COLLECTION);
+            mongoSamples = mongoDb.getCollection(MONGO_SAMPLES_COLLECTION);
         }
         catch (MongoException e) {
             throw e;
@@ -568,14 +571,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         query.put("start", start);
         // can't know stop location for deletions from reference
 
-        DBCursor cursor = mongoCollection.find(query);
-        Map<Pair<String,List<Allele>>,DBObject> results = new HashMap<Pair<String,List<Allele>>,DBObject>();
-        Map<Pair<String,List<Allele>>,List<Genotype>> genotypes = new HashMap<Pair<String,List<Allele>>,List<Genotype>>();
+        DBCursor attributesCursor = mongoAttributes.find(query);
+        DBCursor samplesCursor = mongoSamples.find(query);
 
-        while(cursor.hasNext()) {
-            DBObject oneResult = cursor.next();
+        Map<Pair<String,List<Allele>>,VariantContextBuilder> attributesFromDB = new HashMap<Pair<String,List<Allele>>,VariantContextBuilder>();
 
-            String sample = (String)oneResult.get("sample");
+        while(attributesCursor.hasNext()) {
+            DBObject oneResult = attributesCursor.next();
+
             String sourceROD = (String)oneResult.get("sourceROD");
 
             ArrayList<Allele> alleles = new ArrayList<Allele>();
@@ -586,6 +589,69 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 String allele = rawAllele.replace("*", "");
                 alleles.add(Allele.create(allele, isRef));
             }
+
+            // primary key to uniquely identify variant
+            Pair<String, List<Allele>> sourceRodAllelePair = new Pair<String, List<Allele>>(sourceROD, alleles);
+
+            Map<String, Object> attributes = new TreeMap<String, Object>();
+            BasicDBList attrsInDb = (BasicDBList)oneResult.get("attributes");
+            for (Object attrInDb : attrsInDb) {
+                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
+                String key = (String)attrKVP.get("key");
+                Object value = attrKVP.get("value");
+                attributes.put(key, value);
+            }
+
+            Set<String> filters = new HashSet<String>();
+            BasicDBObject filtersInDb = (BasicDBObject)oneResult.get("filters");
+            if (filtersInDb != null) {
+                for (Object filterInDb : filtersInDb.values()) {
+                    filters.add((String)filterInDb);
+                }
+            }
+
+            String source = (String)oneResult.get("source");
+            String id = (String)oneResult.get("id");
+            Double error = (Double)oneResult.get("error");
+            Long stop = (Long)oneResult.get("stop");
+
+            VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, sourceRodAllelePair.getSecond());
+
+            builder.id(id);
+            builder.log10PError(error);
+            builder.attributes(attributes);
+            builder.filters(filters);
+
+            long index = start - ref.getWindow().getStart() - 1;
+            if ( index >= 0 ) {
+                // we were given enough reference context to create the VariantContext
+                builder.referenceBaseForIndel(ref.getBases()[(int)index]);        // TODO: needed?
+            }
+
+            builder.referenceBaseForIndel(ref.getBases()[0]);                   // TODO: correct?
+
+            attributesFromDB.put(sourceRodAllelePair, builder);
+        }
+
+        while(samplesCursor.hasNext()) {
+            DBObject oneResult = samplesCursor.next();
+
+            String sourceROD = (String)oneResult.get("sourceROD");
+
+            ArrayList<Allele> alleles = new ArrayList<Allele>();
+            BasicDBObject allelesInDb = (BasicDBObject)oneResult.get("alleles");
+            for (Object alleleInDb : allelesInDb.values()) {
+                String rawAllele = (String)alleleInDb;
+                boolean isRef = rawAllele.contains("*");
+                String allele = rawAllele.replace("*", "");
+                alleles.add(Allele.create(allele, isRef));
+            }
+
+            // primary key to uniquely identify variant
+            Pair<String, List<Allele>> sourceRodAllelePair = new Pair<String, List<Allele>>(sourceROD, alleles);
+            VariantContextBuilder builder = attributesFromDB.get(sourceRodAllelePair);
+
+            String sample = (String)oneResult.get("sample");
 
             BasicDBObject genotypeInDb = (BasicDBObject)oneResult.get("genotype");
             Double genotypeError = (Double)genotypeInDb.get("error");
@@ -609,59 +675,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             }
 
             Genotype genotype = new Genotype(sample, genotypeAlleles, genotypeError);
-
-            // primary key to uniquely identify variant
-            Pair<String, List<Allele>> sourceRodAllelePair = new Pair<String, List<Allele>>(sourceROD, alleles);
-
-            if (!genotypes.containsKey(sourceRodAllelePair))
-                genotypes.put(sourceRodAllelePair, new ArrayList<Genotype>());
-
-            Collection<Genotype> genotypesBySourceROD = genotypes.get(sourceRodAllelePair);
-            genotypesBySourceROD.add(Genotype.modifyAttributes(genotype, genotypeAttributes));
-
-            results.put(sourceRodAllelePair, oneResult);
-        }
-
-        for (Pair<String, List<Allele>> sourceRodAllelePair : results.keySet()) {
-            DBObject result = results.get(sourceRodAllelePair);
-
-            Map<String, Object> attributes = new TreeMap<String, Object>();
-            BasicDBList attrsInDb = (BasicDBList)result.get("attributes");
-            for (Object attrInDb : attrsInDb) {
-                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
-                String key = (String)attrKVP.get("key");
-                Object value = attrKVP.get("value");
-                attributes.put(key, value);
-            }
-
-            Set<String> filters = new HashSet<String>();
-            BasicDBObject filtersInDb = (BasicDBObject)result.get("filters");
-            if (filtersInDb != null) {
-                for (Object filterInDb : filtersInDb.values()) {
-                    filters.add((String)filterInDb);
-                }
-            }
-
-            String source = (String)result.get("source");
-            String id = (String)result.get("id");
-            Double error = (Double)result.get("error");
-            Long stop = (Long)result.get("stop");
-
-            VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, sourceRodAllelePair.getSecond());
-
-            builder.id(id);
-            builder.log10PError(error);
-            builder.genotypes(genotypes.get(sourceRodAllelePair));
-            builder.attributes(attributes);
-            builder.filters(filters);
-
-            long index = start - ref.getWindow().getStart() - 1;
-            if ( index >= 0 ) {
-                // we were given enough reference context to create the VariantContext
-                builder.referenceBaseForIndel(ref.getBases()[(int)index]);
-            }
-
-            builder.referenceBaseForIndel(ref.getBases()[0]);
+            builder.genotypes(Genotype.modifyAttributes(genotype, genotypeAttributes));
             vcs.add(builder.make());
         }
 
@@ -827,6 +841,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     public void onTraversalDone(Integer result) {
+        mongo.close();
         logger.info(result + " records processed.");
 
         if (SELECT_RANDOM_NUMBER) {
