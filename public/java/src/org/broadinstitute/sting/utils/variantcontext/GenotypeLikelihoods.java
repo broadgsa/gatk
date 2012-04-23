@@ -155,7 +155,7 @@ public class GenotypeLikelihoods {
                     likelihoodsAsVector[i] = Integer.parseInt(strings[i]) / -10.0;
                 }
             } catch (NumberFormatException e) {
-                throw new UserException.MalformedVCF("The GL/PL tag contains non-integer values");
+                throw new UserException.MalformedVCF("The GL/PL tag contains non-integer values: " + likelihoodsAsString_PLs);
             }
             return likelihoodsAsVector;
         } else
