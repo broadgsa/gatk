@@ -28,6 +28,7 @@ import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.EnumMap;
 
@@ -149,8 +150,12 @@ public class GenotypeLikelihoods {
         if ( !likelihoodsAsString_PLs.equals(VCFConstants.MISSING_VALUE_v4) ) {
             String[] strings = likelihoodsAsString_PLs.split(",");
             double[] likelihoodsAsVector = new double[strings.length];
-            for ( int i = 0; i < strings.length; i++ ) {
-                likelihoodsAsVector[i] = Integer.parseInt(strings[i]) / -10.0;
+            try {
+                for ( int i = 0; i < strings.length; i++ ) {
+                    likelihoodsAsVector[i] = Integer.parseInt(strings[i]) / -10.0;
+                }
+            } catch (NumberFormatException e) {
+                throw new UserException.MalformedVCF("The GL/PL tag contains non-integer values");
             }
             return likelihoodsAsVector;
         } else

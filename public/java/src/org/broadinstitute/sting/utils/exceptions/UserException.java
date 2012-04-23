@@ -203,7 +203,11 @@ public class UserException extends ReviewedStingException {
 
     public static class MalformedVCF extends UserException {
         public MalformedVCF(String message, String line) {
-            super(String.format("The provided VCF file is malformed at approximately line %s: %s", line, message));
+            super(String.format("The provided VCF file is malformed at line %s: %s", line, message));
+        }
+
+        public MalformedVCF(String message) {
+            super(String.format("The provided VCF file is malformed: %s", message));
         }
 
         public MalformedVCF(String message, int lineNo) {
