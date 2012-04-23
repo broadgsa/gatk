@@ -84,13 +84,13 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         if ( !vc.isVariant() )
             return null;
 
-        int[][] table = getContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+        final int[][] table = getContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
 
-        Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
+        final Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
         if ( pvalue == null )
             return null;
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new HashMap<String, Object>();
         map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
 
