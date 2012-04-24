@@ -73,19 +73,26 @@ public class RecalibrationReport {
         keysAndTablesMap.put(keyManager, table);
     }
 
+    protected RecalibrationReport(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, GATKReportTable argumentTable, RecalibrationArgumentCollection RAC) {
+        this.quantizationInfo = quantizationInfo;
+        this.keysAndTablesMap = keysAndTablesMap;
+        this.argumentTable = argumentTable;
+        this.RAC = RAC;
+    }
+
     /**
-     * Combines two recalibration reports by adding all observations and errors
-     * 
-     * Note: This method DOES NOT recalculate the empirical qualities and quantized qualities. You have to recalculate
-     * them after combining. The reason for not calculating it is because this function is inteded for combining a
-     * series of recalibration reports, and it only makes sense to calculate the empirical qualities and quantized
-     * qualities after all the recalibration reports have been combined. Having the user recalculate when appropriate,
-     * makes this method faster
-     *
-     * Note2: The empirical quality reported, however, is recalculated given its simplicity.
-     * 
-     * @param other the recalibration report to combine with this one
-     */
+    * Combines two recalibration reports by adding all observations and errors
+    *
+    * Note: This method DOES NOT recalculate the empirical qualities and quantized qualities. You have to recalculate
+    * them after combining. The reason for not calculating it is because this function is inteded for combining a
+    * series of recalibration reports, and it only makes sense to calculate the empirical qualities and quantized
+    * qualities after all the recalibration reports have been combined. Having the user recalculate when appropriate,
+    * makes this method faster
+    *
+    * Note2: The empirical quality reported, however, is recalculated given its simplicity.
+    *
+    * @param other the recalibration report to combine with this one
+    */
     public void combine(RecalibrationReport other) {
         Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> thisIterator = keysAndTablesMap.entrySet().iterator();
 
@@ -285,6 +292,12 @@ public class RecalibrationReport {
 
             else if (primaryKey.equals("no_plots"))
                 RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
+
+            else if (primaryKey.equals("no_plots"))
+                RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
+
+            else if (primaryKey.equals("recalibration_report"))
+                RAC.recalibrationReport = (value == null) ? null : new File((String) value);
         }
 
         return RAC;
@@ -304,5 +317,46 @@ public class RecalibrationReport {
 
     public void output(PrintStream output) {
         RecalDataManager.outputRecalibrationReport(argumentTable, quantizationInfo, keysAndTablesMap, output);
+    }
+
+    public RecalibrationArgumentCollection getRAC() {
+        return RAC;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof RecalibrationReport))
+            return false;
+        RecalibrationReport other = (RecalibrationReport) o;
+        if (this == o)
+            return true;
+        return isEqualTable(this.keysAndTablesMap, other.keysAndTablesMap);
+    }
+
+    private boolean isEqualTable(LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> t1, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> t2) {
+        if (t1.size() != t2.size())
+            return false;
+
+        Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> t1Iterator = t1.entrySet().iterator();
+        Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> t2Iterator = t2.entrySet().iterator();
+
+        while (t1Iterator.hasNext() && t2Iterator.hasNext()) {
+            Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> t1MapEntry = t1Iterator.next();
+            Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> t2MapEntry = t2Iterator.next();
+
+            if (!(t1MapEntry.getKey().equals(t2MapEntry.getKey())))
+                return false;
+
+            Map<BitSet, RecalDatum> table2 = t2MapEntry.getValue();
+            for (Map.Entry<BitSet, RecalDatum> t1TableEntry : t1MapEntry.getValue().entrySet()) {
+                BitSet t1Key = t1TableEntry.getKey();
+                if (!table2.containsKey(t1Key))
+                    return false;
+                RecalDatum t1Datum = t1TableEntry.getValue();
+                if (!t1Datum.equals(table2.get(t1Key)))
+                    return false;
+            }
+        }
+        return true;
     }
 }

@@ -31,24 +31,29 @@ public class ContextCovariateUnitTest {
         GATKSAMRecord read = ReadUtils.createRandomRead(1000);
         GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, RAC.LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);
         CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), RAC.MISMATCHES_CONTEXT_SIZE, stringFrom(clippedRead.getReadBases()));
-        verifyCovariateArray(values.getInsertions(), RAC.INSERTIONS_CONTEXT_SIZE, stringFrom(clippedRead.getReadBases()));
-        verifyCovariateArray(values.getDeletions(),  RAC.DELETIONS_CONTEXT_SIZE,  stringFrom(clippedRead.getReadBases()));
+        verifyCovariateArray(values.getMismatches(), RAC.MISMATCHES_CONTEXT_SIZE, clippedRead, covariate);
+        verifyCovariateArray(values.getInsertions(), RAC.INSERTIONS_CONTEXT_SIZE, clippedRead, covariate);
+        verifyCovariateArray(values.getDeletions(),  RAC.DELETIONS_CONTEXT_SIZE,  clippedRead, covariate);
     }
 
-    private void verifyCovariateArray(BitSet[] values, int contextSize, String bases) {
-        for (int i = 0; i < values.length; i++) {
-            String expectedContext = null;
-            if (i - contextSize + 1 >= 0) {
-                String context = bases.substring(i - contextSize + 1, i + 1);
-                if (!context.contains("N"))
-                    expectedContext = context;
-            }
-            Assert.assertEquals(covariate.keyFromBitSet(values[i]), expectedContext);
+    public static void verifyCovariateArray(BitSet[] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
+        for (int i = 0; i < values.length; i++)
+            Assert.assertEquals(contextCovariate.keyFromBitSet(values[i]), expectedContext(read, i, contextSize));
+
+    }
+
+    public static String expectedContext (GATKSAMRecord read, int offset, int contextSize) {
+        final String bases = stringFrom(read.getReadBases());
+        String expectedContext = null;
+        if (offset - contextSize + 1 >= 0) {
+            String context = bases.substring(offset - contextSize + 1, offset + 1);
+            if (!context.contains("N"))
+                expectedContext = context;
         }
+        return expectedContext;
     }
 
-    private String stringFrom(byte[] array) {
+    private static String stringFrom(byte[] array) {
         String s = "";
         for (byte value : array)
             s += (char) value;

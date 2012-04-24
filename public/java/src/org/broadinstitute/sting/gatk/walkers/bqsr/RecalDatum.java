@@ -25,6 +25,10 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import org.broadinstitute.sting.utils.MathUtils;
+
+import java.util.Random;
+
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -114,4 +118,29 @@ public class RecalDatum extends Datum {
         return Math.pow(10.0, qual / -10.0);
     }
 
+    public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
+        Random random = new Random();
+        int nObservations = random.nextInt(maxObservations);
+        int nErrors = random.nextInt(maxErrors);
+        Datum datum = new Datum(nObservations, nErrors);
+        double empiricalQuality = datum.empiricalQualDouble();
+        double estimatedQReported = empiricalQuality + ((10 * random.nextDouble()) - 5);                                // empirical quality +/- 5.
+        return new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
+    }
+
+    /**
+     * We don't compare the estimated quality reported because it may be different when read from
+     * report tables.
+     *
+     * @param o the other recal datum
+     * @return true if the two recal datums have the same number of observations, errors and empirical quality.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof RecalDatum))
+            return false;
+        RecalDatum other = (RecalDatum) o;
+        return super.equals(o) &&
+               MathUtils.compareDoubles(this.empiricalQuality, other.empiricalQuality, 0.001) == 0;
+    }
 }
