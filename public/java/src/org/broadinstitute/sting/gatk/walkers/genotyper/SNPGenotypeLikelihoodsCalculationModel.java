@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -67,11 +68,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         final byte refBase = ref.getBase();
         final int indexOfRefBase = BaseUtils.simpleBaseToBaseIndex(refBase);
+        final Allele refAllele = Allele.create(refBase, true);
 
         // start making the VariantContext
         final GenomeLoc loc = ref.getLocus();
         final List<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(Allele.create(refBase, true));
+        alleles.add(refAllele);
         final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
 
         // calculate the GLs
@@ -97,7 +99,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             // ignore places where we don't have a SNP
             if ( vc == null || !vc.isSNP() )
                 return null;
-           
+
+            // make sure a user isn't passing the REF base in as an ALT
+            if ( vc.hasAlternateAllele(refAllele, true) )
+                throw new UserException.BadInput("Alternate allele '" + (char)refBase + "' passed in is the same as the reference at location " + vc.getChr() + ":" + vc.getStart());
+
             alleles.addAll(vc.getAlternateAlleles());
         } else {
 
