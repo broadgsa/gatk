@@ -592,15 +592,27 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * @return True if this context contains Allele allele, or false otherwise
      */
-    public boolean hasAllele(Allele allele) {
-        return hasAllele(allele, false);
+    public boolean hasAllele(final Allele allele) {
+        return hasAllele(allele, false, getAlleles());
     }
 
-    public boolean hasAllele(Allele allele, boolean ignoreRefState) {
+    public boolean hasAllele(final Allele allele, final boolean ignoreRefState) {
+        return hasAllele(allele, ignoreRefState, getAlleles());
+    }
+
+    public boolean hasAlternateAllele(final Allele allele) {
+        return hasAllele(allele, false, getAlternateAlleles());
+    }
+
+    public boolean hasAlternateAllele(final Allele allele, final boolean ignoreRefState) {
+        return hasAllele(allele, ignoreRefState, getAlternateAlleles());
+    }
+
+    private boolean hasAllele(final Allele allele, final boolean ignoreRefState, final List<Allele> allelesToConsider) {
         if ( allele == REF || allele == ALT ) // optimization for cached cases
             return true;
 
-        for ( Allele a : getAlleles() ) {
+        for ( Allele a : allelesToConsider ) {
             if ( a.equals(allele, ignoreRefState) )
                 return true;
         }
