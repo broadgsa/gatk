@@ -12,7 +12,7 @@ import java.util.*;
 
 
 /**
- * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for base qualities (ref bases vs. bases of the alternate allele).
+ * The u-based z-approximation from the Mann-Whitney Rank Sum Test for base qualities (ref bases vs. bases of the alternate allele).
  * Note that the base quality rank sum test can not be calculated for homozygous sites.
  */
 public class BaseQualityRankSumTest extends RankSumTest {
