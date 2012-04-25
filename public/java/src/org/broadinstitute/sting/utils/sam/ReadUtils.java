@@ -783,4 +783,43 @@ public class ReadUtils {
         return location;
     }
 
+    /**
+     * Creates a map with each event in the read (cigar operator) and the read coordinate where it happened.
+     *
+     * Example:
+     *  D -> 2, 34, 75
+     *  I -> 55
+     *  S -> 0, 101
+     *  H -> 101
+     *
+     * @param read the read
+     * @return a map with the properties described above. See example
+     */
+    public static Map<CigarOperator, ArrayList<Integer>> getCigarOperatorForAllBases (GATKSAMRecord read) {
+        Map<CigarOperator, ArrayList<Integer>> events = new HashMap<CigarOperator, ArrayList<Integer>>();
+
+        int position = 0;
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            CigarOperator op = cigarElement.getOperator();
+            if (op.consumesReadBases()) {
+                ArrayList<Integer> list = events.get(op);
+                if (list == null) {
+                    list = new ArrayList<Integer>();
+                    events.put(op, list);
+                }
+                for (int i = position; i < cigarElement.getLength(); i++)
+                    list.add(position++);
+            }
+            else {
+                ArrayList<Integer> list = events.get(op);
+                if (list == null) {
+                    list = new ArrayList<Integer>();
+                    events.put(op, list);
+                }
+                list.add(position);
+            }
+        }
+        return events;
+    }
+
 }
