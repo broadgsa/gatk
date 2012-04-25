@@ -198,4 +198,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         executeTest("Testing ChromosomeCounts annotation with PED file", spec);
     }
 
+    @Test
+    public void testInbreedingCoeffPed() {
+        final String MD5 = "7f1314fada5cb1f35ba1996f8a7a686b";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T VariantAnnotator -R " + b37KGReference + " -A InbreedingCoeff --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                Arrays.asList(MD5));
+        executeTest("Testing InbreedingCoeff annotation with PED file", spec);
+    }
+
 }
