@@ -215,6 +215,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class MalformedBCF2 extends UserException {
+        public MalformedBCF2( String message ) {
+            super(String.format("Malformed BCF2 file: %s", message));
+        }
+    }
+
     public static class MalformedVCFHeader extends UserException {
         public MalformedVCFHeader(String message) {
             super(String.format("The provided VCF file has a malformed header: %s", message));
