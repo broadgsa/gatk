@@ -169,7 +169,8 @@ compute.ratio.on.LogLinear.AC.intervals <- function(ACs, num, denom, scaleFactor
 
 plotVariantQC <- function(metrics, measures, requestedStrat = "Sample", 
                           fixHistogramX=F, anotherStrat = NULL, nObsField = "n_indels", 
-                          onSamePage=F, facetVariableOnXPerSample = F, facetVariableOnXForDist = T, moreTitle="") {
+                          onSamePage=F, facetVariableOnXPerSample = F, facetVariableOnXForDist = T, 
+                          moreTitle="", note = NULL) {
   metrics$strat = metrics[[requestedStrat]]
   
   otherFacet = "."
@@ -184,7 +185,14 @@ plotVariantQC <- function(metrics, measures, requestedStrat = "Sample",
   
   molten <- melt(metrics, id.vars=id.vars, measure.vars=c(measures))
   perSampleGraph <- ggplot(data=molten, aes(x=strat, y=value, group=variable, color=variable, fill=variable))
-  title <- opts(title=paste(paste(paste(measures, collapse=", "), "by", requestedStrat), moreTitle))
+
+  # create the title
+  titleText=paste(paste(paste(measures, collapse=", "), "by", requestedStrat), moreTitle)
+  if ( !is.null(note) ) {
+    titleText=paste(titleText, note, sep="\n")
+  }
+  paste(titleText)
+  title <- opts(title=titleText)
   
   determineFacet <- function(onX) {
     if ( onX ) { 
@@ -200,7 +208,7 @@ plotVariantQC <- function(metrics, measures, requestedStrat = "Sample",
   if ( requestedStrat == "Sample" ) {
     perSampleGraph <- perSampleGraph + geom_text(aes(label=strat), size=1.5) + geom_blank() # don't display a scale
     perSampleGraph <- perSampleGraph + scale_x_discrete("Sample (ordered by nSNPs)", formatter=function(x) "")
-  } else {
+  } else { # by AlleleCount
     perSampleGraph <- perSampleGraph + geom_point(aes(size=log10(nobs))) #+ geom_smooth(aes(weight=log10(nobs)))
     perSampleGraph <- perSampleGraph + scale_x_log10("AlleleCount")
   }    
