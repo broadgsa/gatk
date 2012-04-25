@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -38,13 +39,12 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -59,11 +59,18 @@ public class ChromosomeCounts extends InfoFieldAnnotation implements StandardAnn
             new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"),
             new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes") };
 
+    private Set<String> founderIds = new HashSet<String>();
+
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( ! vc.hasGenotypes() )
             return null;
 
-        return VariantContextUtils.calculateChromosomeCounts(vc, new HashMap<String, Object>(), true);
+        return VariantContextUtils.calculateChromosomeCounts(vc, new HashMap<String, Object>(), true,founderIds);
+    }
+
+    public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ){
+        //If families were given, get the founders ids
+        founderIds = ((Walker)walker).getSampleDB().getFounderIds();
     }
 
     public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {

@@ -64,6 +64,21 @@ public class VariantContextUtils {
      * @return the attributes map provided as input, returned for programming convenience
      */
     public static Map<String, Object> calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
+        return calculateChromosomeCounts(vc, attributes,  removeStaleValues, new HashSet<String>(0));
+    }
+
+    /**
+     * Update the attributes of the attributes map given the VariantContext to reflect the
+     * proper chromosome-based VCF tags
+     *
+     * @param vc          the VariantContext
+     * @param attributes  the attributes map to populate; must not be null; may contain old values
+     * @param removeStaleValues should we remove stale values from the mapping?
+     * @param founderIds - Set of founders Ids to take into account. AF and FC will be calculated over the founders.
+     *                  If empty or null, counts are generated for all samples as unrelated individuals
+     * @return the attributes map provided as input, returned for programming convenience
+     */
+    public static Map<String, Object> calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues, final Set<String> founderIds) {
         final int AN = vc.getCalledChrCount();
 
         // if everyone is a no-call, remove the old attributes if requested
@@ -82,16 +97,20 @@ public class VariantContextUtils {
 
             // if there are alternate alleles, record the relevant tags
             if ( vc.getAlternateAlleles().size() > 0 ) {
-                final ArrayList<String> alleleFreqs = new ArrayList<String>();
-                final ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+                ArrayList<String> alleleFreqs = new ArrayList<String>();
+                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+                ArrayList<Integer> foundersAlleleCounts = new ArrayList<Integer>();
+                double totalFoundersChromosomes = (double)vc.getCalledChrCount(founderIds);
+                int foundersAltChromosomes;
                 for ( Allele allele : vc.getAlternateAlleles() ) {
-                    int altChromosomes = vc.getCalledChrCount(allele);
-                    alleleCounts.add(altChromosomes);
+                    foundersAltChromosomes = vc.getCalledChrCount(allele,founderIds);
+                    alleleCounts.add(vc.getCalledChrCount(allele));
+                    foundersAlleleCounts.add(foundersAltChromosomes);
                     if ( AN == 0 ) {
                         alleleFreqs.add("0.0");
                     } else {
                         // todo -- this is a performance problem
-                        final String freq = String.format(makePrecisionFormatStringFromDenominatorValue((double)AN), ((double)altChromosomes / (double)AN));
+                        final String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalFoundersChromosomes), ((double)foundersAltChromosomes / totalFoundersChromosomes));
                         alleleFreqs.add(freq);
                     }
                 }
@@ -116,9 +135,22 @@ public class VariantContextUtils {
      * @param removeStaleValues should we remove stale values from the mapping?
      */
     public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues) {
-        final VariantContext vc = builder.make();
-        final Map<String, Object> attrs = calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues);
-        builder.attributes(attrs);
+        VariantContext vc = builder.make();
+        builder.attributes(calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues, new HashSet<String>(0)));
+    }
+
+    /**
+     * Update the attributes of the attributes map in the VariantContextBuilder to reflect the proper
+     * chromosome-based VCF tags based on the current VC produced by builder.make()
+     *
+     * @param builder     the VariantContextBuilder we are updating
+     * @param founderIds - Set of founders to take into account. AF and FC will be calculated over the founders only.
+     *                   If empty or null, counts are generated for all samples as unrelated individuals
+     * @param removeStaleValues should we remove stale values from the mapping?
+     */
+    public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues, final Set<String> founderIds) {
+        VariantContext vc = builder.make();
+        builder.attributes(calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues, founderIds));
     }
 
     public static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {

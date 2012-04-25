@@ -805,11 +805,22 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return chromosome count
      */
     public int getCalledChrCount() {
-        int n = 0;
+        return  getCalledChrCount(new HashSet<String>(0));
+    }
 
-        for ( final Genotype g : getGenotypes() ) {
-            for ( final Allele a : g.getAlleles() )
-                n += a.isNoCall() ? 0 : 1;
+     /**
+     * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS)
+     *
+     * @param sampleIds IDs of samples to take into account. If empty then all samples are included.
+     * @return chromosome count
+     */
+    public int getCalledChrCount(Set<String> sampleIds) {
+        int n = 0;
+        GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
+
+        for ( final Genotype g : genotypes) {
+                for ( final Allele a : g.getAlleles() )
+                    n += a.isNoCall() ? 0 : 1;
         }
 
         return n;
@@ -822,10 +833,22 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return chromosome count
      */
     public int getCalledChrCount(Allele a) {
-        int n = 0;
+        return getCalledChrCount(a,new HashSet<String>(0));
+    }
 
-        for ( final Genotype g : getGenotypes() ) {
-            n += g.getAlleles(a).size();
+    /**
+     * Returns the number of chromosomes carrying allele A in the genotypes
+     *
+     * @param a allele
+     * @param sampleIds - IDs of samples to take into account. If empty then all samples are included.
+     * @return chromosome count
+     */
+    public int getCalledChrCount(Allele a, Set<String> sampleIds) {
+        int n = 0;
+        GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
+
+        for ( final Genotype g : genotypes ) {
+                n += g.getAlleles(a).size();
         }
 
         return n;
