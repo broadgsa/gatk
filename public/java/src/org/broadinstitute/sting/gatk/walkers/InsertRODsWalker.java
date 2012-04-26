@@ -8,7 +8,8 @@ package org.broadinstitute.sting.gatk.walkers;
  * To change this template use File | Settings | File Templates.
  */
 
-import com.mongodb.*;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
@@ -17,7 +18,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.db.MongoDB;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -35,55 +36,36 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
     @Output
     PrintStream out;
 
-    private final static String MONGO_HOST = "gsa4.broadinstitute.org";
-    private final static Integer MONGO_PORT = 43054;
-    private final static String MONGO_DB_NAME = "bjorn";
-    private final static String MONGO_ATTRIBUTES_COLLECTION = "attributes";
-    private final static String MONGO_SAMPLES_COLLECTION = "samples";
-
-    protected Mongo mongo;
-    protected DBCollection mongoAttributes;
-    protected DBCollection mongoSamples;
 
     private String RODFileName;
 
     @Override
     public void initialize() {
-        try {
-            mongo = new Mongo(MONGO_HOST, MONGO_PORT);
-            DB mongoDb = mongo.getDB(MONGO_DB_NAME);
-            mongoAttributes = mongoDb.getCollection(MONGO_ATTRIBUTES_COLLECTION);
-            mongoSamples = mongoDb.getCollection(MONGO_SAMPLES_COLLECTION);
+        DBCollection mongoAttributes = MongoDB.getAttributesCollection();
+        DBCollection mongoSamples = MongoDB.getSamplesCollection();
 
-            RODFileName = input.getSource();
-            int lastSep = RODFileName.lastIndexOf(File.separator);
-            RODFileName = RODFileName.substring(lastSep + 1);
+        RODFileName = input.getSource();
+        int lastSep = RODFileName.lastIndexOf(File.separator);
+        RODFileName = RODFileName.substring(lastSep + 1);
 
-            // set up indices
+        // set up indices
 
-            mongoAttributes.ensureIndex("location");
-            mongoAttributes.ensureIndex("sourceROD");
-            mongoAttributes.ensureIndex("contig");
-            mongoAttributes.ensureIndex("start");
-            mongoAttributes.ensureIndex("stop");
+        mongoAttributes.ensureIndex("location");
+        mongoAttributes.ensureIndex("sourceROD");
+        mongoAttributes.ensureIndex("contig");
+        mongoAttributes.ensureIndex("start");
+        mongoAttributes.ensureIndex("stop");
 
-            mongoSamples.ensureIndex("location");
-            mongoSamples.ensureIndex("sample");
-            mongoSamples.ensureIndex("sourceROD");
-            mongoSamples.ensureIndex("contig");
-            mongoSamples.ensureIndex("start");
-            mongoSamples.ensureIndex("stop");
+        mongoSamples.ensureIndex("location");
+        mongoSamples.ensureIndex("sample");
+        mongoSamples.ensureIndex("sourceROD");
+        mongoSamples.ensureIndex("contig");
+        mongoSamples.ensureIndex("start");
+        mongoSamples.ensureIndex("stop");
 
-            // set up primary keys
-            mongoAttributes.ensureIndex(new BasicDBObject("location", 1).append("sourceROD", 1).append("alleles", 1), new BasicDBObject("unique", 1));
-            mongoSamples.ensureIndex(new BasicDBObject("location", 1).append("sourceROD", 1).append("alleles", 1).append("sample", 1), new BasicDBObject("unique", 1));
-        }
-        catch (MongoException e) {
-            throw e;
-        }
-        catch (java.net.UnknownHostException e) {
-            throw new StingException(e.getMessage(), e);
-        }
+        // set up primary keys
+        mongoAttributes.ensureIndex(new BasicDBObject("location", 1).append("sourceROD", 1).append("alleles", 1), new BasicDBObject("unique", 1));
+        mongoSamples.ensureIndex(new BasicDBObject("location", 1).append("sourceROD", 1).append("alleles", 1).append("sample", 1), new BasicDBObject("unique", 1));
     }
 
     /**
@@ -103,6 +85,9 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return 0;
+
+        DBCollection mongoAttributes = MongoDB.getAttributesCollection();
+        DBCollection mongoSamples = MongoDB.getSamplesCollection();
 
         for ( Feature feature : tracker.getValues(Feature.class, context.getLocation()) ) {
             if ( feature instanceof VariantContext ) {
@@ -131,6 +116,6 @@ public class InsertRODsWalker extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        mongo.close();
+        MongoDB.close();
     }
 }

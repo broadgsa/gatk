@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
-import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

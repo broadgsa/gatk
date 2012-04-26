@@ -24,7 +24,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import com.mongodb.*;
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
@@ -39,7 +42,7 @@ import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.db.MongoDB;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -349,16 +352,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     private Set<String> IDsToKeep = null;
 
-    private final static String MONGO_HOST = "gsa4.broadinstitute.org";
-    private final static Integer MONGO_PORT = 43054;
-    private final static String MONGO_DB_NAME = "bjorn";
-    private final static String MONGO_ATTRIBUTES_COLLECTION = "attributes";
-    private final static String MONGO_SAMPLES_COLLECTION = "samples";
-
-    protected Mongo mongo;
-    protected DBCollection mongoAttributes;
-    protected DBCollection mongoSamples;
-
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
@@ -457,19 +450,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             } catch ( FileNotFoundException e ) {
                 throw new UserException.CouldNotReadInputFile(rsIDFile, e);
             }
-        }
-
-        try {
-            mongo = new Mongo(MONGO_HOST, MONGO_PORT);
-            DB mongoDb = mongo.getDB(MONGO_DB_NAME);
-            mongoAttributes = mongoDb.getCollection(MONGO_ATTRIBUTES_COLLECTION);
-            mongoSamples = mongoDb.getCollection(MONGO_SAMPLES_COLLECTION);
-        }
-        catch (MongoException e) {
-            throw e;
-        }
-        catch (java.net.UnknownHostException e) {
-            throw new StingException(e.getMessage(), e);
         }
     }
 
@@ -571,8 +551,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         query.put("start", start);
         // can't know stop location for deletions from reference
 
-        DBCursor attributesCursor = mongoAttributes.find(query);
-        DBCursor samplesCursor = mongoSamples.find(query);
+        DBCursor attributesCursor = MongoDB.getAttributesCollection().find(query);
+        DBCursor samplesCursor = MongoDB.getSamplesCollection().find(query);
 
         Map<Pair<String,List<Allele>>,VariantContextBuilder> attributesFromDB = new HashMap<Pair<String,List<Allele>>,VariantContextBuilder>();
 
@@ -841,7 +821,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     public void onTraversalDone(Integer result) {
-        mongo.close();
+        MongoDB.close();
+
         logger.info(result + " records processed.");
 
         if (SELECT_RANDOM_NUMBER) {
