@@ -15,7 +15,7 @@ import java.net.UnknownHostException;
  * Handles Mongo DB connections
  */
 final public class MongoDB {
-    private final static String MONGO_HOST = "gsa4.broadinstitute.org";
+    private final static String MONGO_HOST = "couchdb.broadinstitute.org";
     private final static Integer MONGO_PORT = 43054;
     private final static String MONGO_DB_NAME = "bjorn";
     private final static String MONGO_ATTRIBUTES_COLLECTION = "attributes";
