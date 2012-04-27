@@ -28,6 +28,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -154,8 +155,8 @@ class IntervalOverlapFilteringIterator implements CloseableIterator<SAMRecord> {
                 }
             }
             else {
-                // Found an unmapped read.  We're done.
-                if(candidateRead.getReadUnmappedFlag()) {
+                // Found a -L UNMAPPED read. NOTE: this is different than just being flagged as unmapped! We're done.
+                if(AlignmentUtils.isReadGenomeLocUnmapped(candidateRead)) {
                     nextRead = candidateRead;
                     break;
                 }

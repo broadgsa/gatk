@@ -334,6 +334,33 @@ public class ArtificialSAMUtils {
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
     }
 
+    /**
+     * Create an iterator containing the specified reads
+     *
+     * @param reads the reads
+     * @return iterator for the reads
+     */
+    public static StingSAMIterator createReadIterator(SAMRecord... reads) {
+        return createReadIterator(Arrays.asList(reads));
+    }
+
+    /**
+     * Create an iterator containing the specified reads
+     *
+     * @param reads the reads
+     * @return iterator for the reads
+     */
+    public static StingSAMIterator createReadIterator(List<SAMRecord> reads) {
+        final Iterator<SAMRecord> iter = reads.iterator();
+        return new StingSAMIterator() {
+            @Override public void close() {}
+            @Override public Iterator<SAMRecord> iterator() { return iter; }
+            @Override public boolean hasNext() { return iter.hasNext(); }
+            @Override public SAMRecord next() { return iter.next(); }
+            @Override public void remove() { iter.remove(); }
+        };
+    }
+
     private final static int ranIntInclusive(Random ran, int start, int stop) {
         final int range = stop - start;
         return ran.nextInt(range) + start;
