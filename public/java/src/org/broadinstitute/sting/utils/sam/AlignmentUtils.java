@@ -526,6 +526,17 @@ public class AlignmentUtils {
     }
 
     /**
+     * Returns true if the read does not belong to a contig, i.e. it's location is GenomeLoc.UNMAPPED.
+     * NOTE: A read can have a mapped GenomeLoc and still have an unmapped flag!
+     *
+     * @param r record
+     * @return true if read is unmapped to a genome loc
+     */
+    public static boolean isReadGenomeLocUnmapped(final SAMRecord r) {
+        return SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(r.getReferenceName());
+    }
+
+    /**
      * Due to (unfortunate) multiple ways to indicate that read is unmapped allowed by SAM format
      * specification, one may need this convenience shortcut. Checks both 'read unmapped' flag and
      * alignment reference index/start.
