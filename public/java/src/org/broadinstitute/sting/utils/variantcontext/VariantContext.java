@@ -922,6 +922,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of hom var calls
      */
     public int getHomVarCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.HOM_VAR.ordinal()];
     }
 
@@ -931,6 +932,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of mixed calls
      */
     public int getMixedCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.MIXED.ordinal()];
     }
 

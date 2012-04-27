@@ -468,6 +468,28 @@ public class VariantContextUnitTest extends BaseTest {
     }
 
     @Test
+    public void testGetGenotypeCounts() {
+        List<Allele> alleles = Arrays.asList(Aref, T);
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T));
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T));
+        Genotype g4 = new Genotype("A.", Arrays.asList(Aref, Allele.NO_CALL));
+        Genotype g5 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL));
+
+        // we need to create a new VariantContext each time
+        VariantContext vc = new VariantContextBuilder("foo", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
+        Assert.assertEquals(1, vc.getHetCount());
+        vc = new VariantContextBuilder("foo", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
+        Assert.assertEquals(1, vc.getHomRefCount());
+        vc = new VariantContextBuilder("foo", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
+        Assert.assertEquals(1, vc.getHomVarCount());
+        vc = new VariantContextBuilder("foo", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
+        Assert.assertEquals(1, vc.getMixedCount());
+        vc = new VariantContextBuilder("foo", snpLoc, snpLocStart, snpLocStop, alleles).genotypes(g1,g2,g3,g4,g5).make();
+        Assert.assertEquals(1, vc.getNoCallCount());
+    }
+
+        @Test
     public void testVCFfromGenotypes() {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
         Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref));
