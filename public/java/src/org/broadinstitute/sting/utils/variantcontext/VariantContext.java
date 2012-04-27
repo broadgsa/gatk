@@ -160,7 +160,7 @@ import java.util.*;
  *
  * @author depristo
  */
-public class VariantContext implements Feature { // to enable tribble intergration
+public class VariantContext implements Feature { // to enable tribble integration
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
 
@@ -377,7 +377,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * Not currently supported:
      *
-     * Heterozygous sequencea
+     * Heterozygous sequence
      * The term heterozygous is used to specify a region detected by certain methods that do not
      * resolve the polymorphism into a specific sequence motif. In these cases, a unique flanking
      * sequence must be provided to define a sequence context for the variation.
