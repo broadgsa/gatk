@@ -243,7 +243,7 @@ public class MathUtils {
 
         double maxValue = arrayMax(log10p, finish);
         if(maxValue == Double.NEGATIVE_INFINITY)
-            return sum;
+            return maxValue;
 
         for (int i = start; i < finish; i++) {
             sum += Math.pow(10.0, log10p[i] - maxValue);

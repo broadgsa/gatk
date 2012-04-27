@@ -78,8 +78,10 @@ public class CycleCovariate implements StandardCovariate {
                 increment = readOrderFactor;
             }
 
-            for (int i = 0; i < read.getReadLength(); i++) {
-                cycles[i] = BitSetUtils.bitSetFrom(cycle);
+            final int CUSHION = 4;
+            final int MAX_CYCLE = read.getReadLength() - CUSHION - 1;
+            for (int i = 0; i < MAX_CYCLE; i++) {
+                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? null : BitSetUtils.bitSetFrom(cycle);
                 cycle += increment;
             }
         }
