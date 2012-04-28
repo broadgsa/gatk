@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -50,22 +51,25 @@ import java.util.Map;
  */
 public class AlleleBalance extends InfoFieldAnnotation {
 
+
+    char[] BASES = {'A','C','G','T'};
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
-        
+
         if ( !vc.isBiallelic() )
             return null;
         final GenotypesContext genotypes = vc.getGenotypes();
         if ( !vc.hasGenotypes() )
             return null;
 
-        double ratio = 0.0;
-        double totalWeights = 0.0;
+        double ratioHom = 0.0;
+        double ratioHet = 0.0;
+        double weightHom = 0.0;
+        double weightHet = 0.0;
+        double overallNonDiploid = 0.0;
         for ( Genotype genotype : genotypes ) {
             // we care only about het calls
-            if ( !genotype.isHet() )
-                continue;
 
             AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
             if ( context == null || !context.hasBasePileup() )
@@ -76,35 +80,72 @@ public class AlleleBalance extends InfoFieldAnnotation {
                 final String bases = new String(pileup.getBases());
                 if ( bases.length() == 0 )
                     return null;
-                final char refChr = vc.getReference().toString().charAt(0);
-                final char altChr = vc.getAlternateAllele(0).toString().charAt(0);
 
-                final int refCount = MathUtils.countOccurrences(refChr, bases);
-                final int altCount = MathUtils.countOccurrences(altChr, bases);
+                double pTrue = 1.0 - Math.pow(10.0,genotype.getLog10PError());
+                if ( genotype.isHet() ) {
+                    final char refChr = vc.getReference().toString().charAt(0);
+                    final char altChr = vc.getAlternateAllele(0).toString().charAt(0);
 
-                // sanity check
-                if ( refCount + altCount == 0 )
-                    continue;
+                    final int refCount = MathUtils.countOccurrences(refChr, bases);
+                    final int altCount = MathUtils.countOccurrences(altChr, bases);
+                    final int otherCount = bases.length()-refCount-altCount;
 
-                // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
-                ratio += genotype.getLog10PError() * ((double)refCount / (double)(refCount + altCount));
-                totalWeights += genotype.getLog10PError();
+                    // sanity check
+                    if ( refCount + altCount == 0 )
+                        continue;
+
+                    // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
+                    ratioHet += pTrue * ((double)refCount / (double)(refCount + altCount));
+                    weightHet += pTrue;
+                    overallNonDiploid += ( (double) otherCount )/(bases.length()*genotypes.size());
+                } else if ( genotype.isHom() ) {
+                    char alleleChr;
+                    if ( genotype.isHomRef() ) {
+                        alleleChr = vc.getReference().toString().charAt(0);
+                    } else {
+                        alleleChr = vc.getAlternateAllele(0).toString().charAt(0);
+                    }
+                    final int alleleCount = MathUtils.countOccurrences(alleleChr,bases);
+                    int bestOtherCount = 0;
+                    for ( char b : BASES ) {
+                        if ( b == alleleChr )
+                            continue;
+                        int count = MathUtils.countOccurrences(b,bases);
+                        if ( count > bestOtherCount )
+                            bestOtherCount = count;
+                    }
+                    final int otherCount = bases.length() - alleleCount;
+                    ratioHom += pTrue*( (double) alleleCount)/(alleleCount+bestOtherCount);
+                    weightHom += pTrue;
+                    overallNonDiploid += ((double ) otherCount)/(bases.length()*genotypes.size());
+                }
+                // Allele Balance for indels was not being computed correctly (since there was no allele matching).  Instead of
+                // prolonging the life of imperfect code, I've decided to delete it.  If someone else wants to try again from
+                // scratch, be my guest - but make sure it's done correctly!  [EB]
             }
-            // Allele Balance for indels was not being computed correctly (since there was no allele matching).  Instead of
-            // prolonging the life of imperfect code, I've decided to delete it.  If someone else wants to try again from
-            // scratch, be my guest - but make sure it's done correctly!  [EB]
         }
 
         // make sure we had a het genotype
-        if ( MathUtils.compareDoubles(totalWeights, 0.0) == 0 )
-            return null;
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.3f", (ratio / totalWeights)));
+        if ( weightHet > 0.0 ) {
+            map.put("ABHet",ratioHet/weightHet);
+        }
+
+        if ( weightHom > 0.0 ) {
+            map.put("ABHom",ratioHom/weightHom);
+        }
+
+        if ( overallNonDiploid > 0.0 ) {
+            map.put("OND",overallNonDiploid);
+        }
         return map;
     }
 
-    public List<String> getKeyNames() { return Arrays.asList("AB"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("AB", 1, VCFHeaderLineType.Float, "Allele Balance for hets (ref/(ref+alt))")); }
+    public List<String> getKeyNames() { return Arrays.asList("ABHet","ABHom","OND"); }
+
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("ABHet", 1, VCFHeaderLineType.Float, "Allele Balance for hets (ref/(ref+alt))"),
+            new VCFInfoHeaderLine("ABHom", 1, VCFHeaderLineType.Float, "Allele Balance for homs (A/(A+O))"),
+            new VCFInfoHeaderLine("OND", 1, VCFHeaderLineType.Float, "Overall non-diploid ratio (alleles/(alleles+non-alleles))")); }
 }
