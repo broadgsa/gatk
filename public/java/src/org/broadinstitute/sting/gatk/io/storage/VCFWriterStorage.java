@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.apache.log4j.Logger;
-import org.broad.tribble.source.BasicFeatureSource;
+import org.broad.tribble.AbstractFeatureReader;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
@@ -114,7 +114,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
             String sourceFilePath = file.getAbsolutePath();
             String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
             logger.debug(String.format("Merging %s into %s",sourceFilePath,targetFilePath));
-            BasicFeatureSource<VariantContext> source = BasicFeatureSource.getFeatureSource(file.getAbsolutePath(), new VCFCodec(), false);
+            AbstractFeatureReader<VariantContext> source = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
             
             for ( VariantContext vc : source.iterator() ) {
                 target.writer.add(vc);
