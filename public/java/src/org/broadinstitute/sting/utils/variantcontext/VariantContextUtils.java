@@ -839,7 +839,7 @@ public class VariantContextUtils {
             genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
         }
 
-        return new VariantContextBuilder(inputVC).stop(inputVC.getEnd() - trimExtent).alleles(alleles).genotypes(genotypes).make();
+        return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() + (inputVC.isMixed() ? -1 : 0)).alleles(alleles).genotypes(genotypes).make();
     }
 
     public static GenotypesContext stripPLs(GenotypesContext genotypes) {
