@@ -65,8 +65,9 @@ public class ArtificialReadPileupTestProvider {
     public final GenomeLoc window = genomeLocParser.createGenomeLoc(artificialContig,artificialRefStart,10);
     public final ReferenceContext referenceContext = new ReferenceContext(genomeLocParser,loc,window,this.refBases.getBytes());
 
+    byte BASE_QUAL = 50;
 
-    public ArtificialReadPileupTestProvider(int numSamples, final String SAMPLE_PREFIX) {
+    public ArtificialReadPileupTestProvider(final int numSamples, final String SAMPLE_PREFIX) {
         sampleRGs = new ArrayList<SAMReadGroupRecord>();
 
         for ( int i = 0; i < numSamples; i++ ) {
@@ -78,12 +79,19 @@ public class ArtificialReadPileupTestProvider {
 
     }
 
+    public ArtificialReadPileupTestProvider(final int numSamples, final String SAMPLE_PREFIX, final byte q) {
+        this(numSamples,SAMPLE_PREFIX);
+        BASE_QUAL = q;
+    }
     public List<String> getSampleNames() {
         return sampleNames;
     }
     public byte getRefByte() {
         return refBases.substring(offset,offset+1).getBytes()[0];
     }
+
+    public ReferenceContext getReferenceContext()   { return referenceContext;}
+    public GenomeLocParser getGenomeLocParser()     { return genomeLocParser; }
 
     public Map<String,AlignmentContext> getAlignmentContextFromAlleles(int eventLength, String altBases, int[] numReadsPerAllele) {
         //    RefMetaDataTracker tracker = new RefMetaDataTracker(null,referenceContext);
@@ -151,7 +159,7 @@ public class ArtificialReadPileupTestProvider {
             for ( int d = 0; d < numReadsPerAllele[alleleCounter]; d++ ) {
                 byte[] readBases = trueHaplotype(allele, offset, refAlleleLength);
                 byte[] readQuals = new byte[readBases.length];
-                Arrays.fill(readQuals, (byte) 50);
+                Arrays.fill(readQuals, (byte)BASE_QUAL);
 
                 GATKSAMRecord read = new GATKSAMRecord(header);
                 read.setBaseQualities(readQuals);
