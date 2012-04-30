@@ -620,8 +620,8 @@ public class VariantContextUtils {
                 String key = p.getKey();
                 // if we don't like the key already, don't go anywhere
                 if ( ! inconsistentAttributes.contains(key) ) {
-                    boolean alreadyFound = attributes.containsKey(key);
-                    Object boundValue = attributes.get(key);
+                    final boolean alreadyFound = attributes.containsKey(key);
+                    final Object boundValue = attributes.get(key);
                     final boolean boundIsMissingValue = alreadyFound && boundValue.equals(VCFConstants.MISSING_VALUE_v4);
 
                     if ( alreadyFound && ! boundValue.equals(p.getValue()) && ! boundIsMissingValue ) {
@@ -802,17 +802,16 @@ public class VariantContextUtils {
         return inputVC;
     }
 
-    public static VariantContext reverseTrimAlleles(VariantContext inputVC) {
+    public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
         // see if we need to trim common reference base from all alleles
 
         final int trimExtent = AbstractVCFCodec.computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, true, -1);
-        if ( trimExtent <= 0 )
-        return inputVC;
+        if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
+            return inputVC;
 
         final List<Allele> alleles = new ArrayList<Allele>();
-        GenotypesContext genotypes = GenotypesContext.create();
-
-        Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
+        final GenotypesContext genotypes = GenotypesContext.create();
+        final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
         for (final Allele a : inputVC.getAlleles()) {
             if (a.isSymbolic()) {
@@ -820,8 +819,8 @@ public class VariantContextUtils {
                 originalToTrimmedAlleleMap.put(a, a);
             } else {
                 // get bases for current allele and create a new one with trimmed bases
-                byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
-                Allele trimmedAllele = Allele.create(newBases, a.isReference());
+                final byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
+                final Allele trimmedAllele = Allele.create(newBases, a.isReference());
                 alleles.add(trimmedAllele);
                 originalToTrimmedAlleleMap.put(a, trimmedAllele);
             }
@@ -829,9 +828,8 @@ public class VariantContextUtils {
 
         // now we can recreate new genotypes with trimmed alleles
         for ( final Genotype genotype : inputVC.getGenotypes() ) {
-
-            List<Allele> originalAlleles = genotype.getAlleles();
-            List<Allele> trimmedAlleles = new ArrayList<Allele>();
+            final List<Allele> originalAlleles = genotype.getAlleles();
+            final List<Allele> trimmedAlleles = new ArrayList<Allele>();
             for ( final Allele a : originalAlleles ) {
                 if ( a.isCalled() )
                     trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
@@ -841,8 +839,7 @@ public class VariantContextUtils {
             genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
         }
 
-        final VariantContextBuilder builder = new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length());
-        return builder.alleles(alleles).genotypes(genotypes).make();
+        return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() + (inputVC.isMixed() ? -1 : 0)).alleles(alleles).genotypes(genotypes).make();
     }
 
     public static GenotypesContext stripPLs(GenotypesContext genotypes) {

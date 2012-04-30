@@ -642,7 +642,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         boolean stillClipping = true;
 
         while ( stillClipping ) {
-            for ( Allele a : unclippedAlleles ) {
+            for ( final Allele a : unclippedAlleles ) {
                 if ( a.isSymbolic() )
                     continue;
 
