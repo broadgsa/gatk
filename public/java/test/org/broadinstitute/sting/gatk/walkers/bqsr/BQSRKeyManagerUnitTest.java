@@ -25,7 +25,7 @@ public class BQSRKeyManagerUnitTest {
         RAC = new RecalibrationArgumentCollection();
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testCombineBitSets() {
         final int nRequired = 2;
         final ArrayList<Covariate> covariates = new ArrayList<Covariate>();
@@ -53,7 +53,7 @@ public class BQSRKeyManagerUnitTest {
         createReadAndTest(covariates, nRequired);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testOneCovariateWithOptionalCovariates() {
         final int nRequired = 1;
         final ArrayList<Covariate> covariates = new ArrayList<Covariate>(4);

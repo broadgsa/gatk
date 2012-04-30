@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class ReadCovariatesUnitTest {
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testCovariateGeneration() {
         final String RGID = "id";
         final int length = 10;

@@ -24,7 +24,7 @@ public class CycleCovariateUnitTest {
         covariate.initialize(RAC);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testSimpleCycles() {
         short readLength = 10;
         GATKSAMRecord read = ReadUtils.createRandomRead(readLength);

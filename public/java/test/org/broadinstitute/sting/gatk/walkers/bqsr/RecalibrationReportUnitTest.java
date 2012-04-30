@@ -18,7 +18,7 @@ import java.util.*;
  * @since 4/21/12
  */
 public class RecalibrationReportUnitTest {
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testOutput() {
         final int length = 100;
 
