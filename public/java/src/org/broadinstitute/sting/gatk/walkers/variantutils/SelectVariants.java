@@ -660,11 +660,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             vcs.add(builder.make());
         }
 
-        return combineVariants(vcs);
+        return combineMongoVariants(vcs);
     }
 
     // Copied from CombineVariants
-    private Collection<VariantContext> combineVariants(Collection<VariantContext> vcs) {
+    private Collection<VariantContext> combineMongoVariants(Collection<VariantContext> vcs) {
         if (vcs.size() < 2)
             return vcs;
 
@@ -822,8 +822,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     public void onTraversalDone(Integer result) {
-        MongoDB.close();
-
+        if (mongoOn) {
+            MongoDB.close();
+        }
+        
         logger.info(result + " records processed.");
 
         if (SELECT_RANDOM_NUMBER) {
