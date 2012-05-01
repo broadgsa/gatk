@@ -24,10 +24,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
@@ -40,12 +36,9 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.db.MongoDB;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -191,8 +184,7 @@ import java.util.*;
  *
  */
 public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
-    @ArgumentCollection
-    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
      * A site is considered discordant if there exists some sample in the variant track that has a non-reference genotype
@@ -365,8 +357,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     private Set<String> IDsToKeep = null;
 
-    private final static boolean mongoOn = false;
-
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
@@ -488,7 +478,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = mongoOn ? getMongoVariants(ref, context.getLocation()) : tracker.getValues(variantCollection.variants, context.getLocation());
+        Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         if ( vcs == null || vcs.size() == 0) {
             return 0;
@@ -566,193 +556,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         return 1;
-    }
-
-    private Collection<VariantContext> getMongoVariants(ReferenceContext ref, GenomeLoc location) {
-        String contig = location.getContig();
-        long start = location.getStart();
-
-        ArrayList<VariantContext> vcs = new ArrayList<VariantContext>();
-
-        BasicDBObject query = new BasicDBObject();
-        query.put("contig", contig);
-        query.put("start", start);
-        // can't know stop location for deletions from reference
-
-        DBCursor attributesCursor = MongoDB.getAttributesCollection().find(query);
-        DBCursor samplesCursor = MongoDB.getSamplesCollection().find(query);
-
-        Map<Pair<String,List<Allele>>,VariantContextBuilder> attributesFromDB = new HashMap<Pair<String,List<Allele>>,VariantContextBuilder>();
-
-        while(attributesCursor.hasNext()) {
-            DBObject oneResult = attributesCursor.next();
-
-            String sourceROD = (String)oneResult.get("sourceROD");
-
-            ArrayList<Allele> alleles = new ArrayList<Allele>();
-            BasicDBObject allelesInDb = (BasicDBObject)oneResult.get("alleles");
-            for (Object alleleInDb : allelesInDb.values()) {
-                String rawAllele = (String)alleleInDb;
-                boolean isRef = rawAllele.contains("*");
-                String allele = rawAllele.replace("*", "");
-                alleles.add(Allele.create(allele, isRef));
-            }
-
-            // primary key to uniquely identify variant
-            Pair<String, List<Allele>> sourceRodAllelePair = new Pair<String, List<Allele>>(sourceROD, alleles);
-
-            Map<String, Object> attributes = new TreeMap<String, Object>();
-            BasicDBList attrsInDb = (BasicDBList)oneResult.get("attributes");
-            for (Object attrInDb : attrsInDb) {
-                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
-                String key = (String)attrKVP.get("key");
-                Object value = attrKVP.get("value");
-                attributes.put(key, value);
-            }
-
-            Set<String> filters = new HashSet<String>();
-            BasicDBObject filtersInDb = (BasicDBObject)oneResult.get("filters");
-            if (filtersInDb != null) {
-                for (Object filterInDb : filtersInDb.values()) {
-                    filters.add((String)filterInDb);
-                }
-            }
-
-            String source = (String)oneResult.get("source");
-            String id = (String)oneResult.get("id");
-            Double error = (Double)oneResult.get("error");
-            Long stop = (Long)oneResult.get("stop");
-
-            VariantContextBuilder builder = new VariantContextBuilder(source, contig, start, stop, sourceRodAllelePair.getSecond());
-
-            builder.id(id);
-            builder.log10PError(error);
-            builder.attributes(attributes);
-            builder.filters(filters);
-
-            long index = start - ref.getWindow().getStart() - 1;
-            if ( index >= 0 ) {
-                // we were given enough reference context to create the VariantContext
-                builder.referenceBaseForIndel(ref.getBases()[(int)index]);        // TODO: needed?
-            }
-
-            builder.referenceBaseForIndel(ref.getBases()[0]);                   // TODO: correct?
-
-            attributesFromDB.put(sourceRodAllelePair, builder);
-        }
-
-        while(samplesCursor.hasNext()) {
-            DBObject oneResult = samplesCursor.next();
-
-            String sourceROD = (String)oneResult.get("sourceROD");
-
-            ArrayList<Allele> alleles = new ArrayList<Allele>();
-            BasicDBObject allelesInDb = (BasicDBObject)oneResult.get("alleles");
-            for (Object alleleInDb : allelesInDb.values()) {
-                String rawAllele = (String)alleleInDb;
-                boolean isRef = rawAllele.contains("*");
-                String allele = rawAllele.replace("*", "");
-                alleles.add(Allele.create(allele, isRef));
-            }
-
-            // primary key to uniquely identify variant
-            Pair<String, List<Allele>> sourceRodAllelePair = new Pair<String, List<Allele>>(sourceROD, alleles);
-            VariantContextBuilder builder = attributesFromDB.get(sourceRodAllelePair);
-
-            String sample = (String)oneResult.get("sample");
-
-            BasicDBObject genotypeInDb = (BasicDBObject)oneResult.get("genotype");
-            Double genotypeError = (Double)genotypeInDb.get("error");
-
-            ArrayList<Allele> genotypeAlleles = new ArrayList<Allele>();
-            BasicDBObject genotypeAllelesInDb = (BasicDBObject)genotypeInDb.get("alleles");
-            for (Object alleleInDb : genotypeAllelesInDb.values()) {
-                String rawAllele = (String)alleleInDb;
-                boolean isRef = rawAllele.contains("*");
-                String allele = rawAllele.replace("*", "");
-                genotypeAlleles.add(Allele.create(allele, isRef));
-            }
-
-            Map<String, Object> genotypeAttributes = new TreeMap<String, Object>();
-            BasicDBList genotypeAttrsInDb = (BasicDBList)genotypeInDb.get("attributes");
-            for (Object attrInDb : genotypeAttrsInDb) {
-                BasicDBObject attrKVP = (BasicDBObject)attrInDb;
-                String key = (String)attrKVP.get("key");
-                Object value = attrKVP.get("value");
-                genotypeAttributes.put(key, value);
-            }
-
-            Genotype genotype = new Genotype(sample, genotypeAlleles, genotypeError);
-            builder.genotypes(Genotype.modifyAttributes(genotype, genotypeAttributes));
-            vcs.add(builder.make());
-        }
-
-        return combineMongoVariants(vcs);
-    }
-
-    // Copied from CombineVariants
-    private Collection<VariantContext> combineMongoVariants(Collection<VariantContext> vcs) {
-        if (vcs.size() < 2)
-            return vcs;
-
-        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
-
-        //defaults from CombineVariants
-        VariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = VariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
-        List<String> priority = new ArrayList<String>();
-        priority.add("input");
-        VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
-        VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
-        boolean printComplexMerges = false;
-        String SET_KEY = "set";
-        boolean filteredAreUncalled = false;
-        boolean MERGE_INFO_WITH_MAX_AC = false;
-
-        if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
-            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
-
-            // TODO -- clean this up in a refactoring
-            // merge NO_VARIATION into another type of variant (based on the ordering in VariantContext.Type)
-            if ( VCsByType.containsKey(VariantContext.Type.NO_VARIATION) && VCsByType.size() > 1 ) {
-                final List<VariantContext> refs = VCsByType.remove(VariantContext.Type.NO_VARIATION);
-                for ( VariantContext.Type type : VariantContext.Type.values() ) {
-                    if ( VCsByType.containsKey(type) ) {
-                        VCsByType.get(type).addAll(refs);
-                        break;
-                    }
-                }
-            }
-
-            // iterate over the types so that it's deterministic
-            for (VariantContext.Type type : VariantContext.Type.values()) {
-                if (VCsByType.containsKey(type))
-                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                            SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
-            }
-        }
-        else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
-            mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcs,
-                    priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                    SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
-        }
-        else {
-            logger.warn("Ignoring all records at site");
-        }
-
-        List<VariantContext> recomputedVCs = new ArrayList<VariantContext>();
-        for ( VariantContext mergedVC : mergedVCs ) {
-            // only operate at the start of events
-            if ( mergedVC == null )
-                continue;
-
-            final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);
-            // re-compute chromosome counts
-            VariantContextUtils.calculateChromosomeCounts(builder, false);
-            recomputedVCs.add(builder.make());
-        }
-
-        return recomputedVCs;
     }
 
     private boolean hasPLs(final VariantContext vc) {
@@ -857,10 +660,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     public void onTraversalDone(Integer result) {
-        if (mongoOn) {
-            MongoDB.close();
-        }
-        
         logger.info(result + " records processed.");
 
         if (SELECT_RANDOM_NUMBER) {
