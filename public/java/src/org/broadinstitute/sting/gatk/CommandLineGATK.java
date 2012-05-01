@@ -100,10 +100,11 @@ public class CommandLineGATK extends CommandLineExecutable {
         } catch(PicardException e) {
             // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedStingExceptions?
             exitSystemWithError(e);
-        }
-        catch (SAMException e) {
+        } catch (SAMException e) {
             checkForTooManyOpenFilesProblem(e.getMessage());
             exitSystemWithSamError(e);
+        } catch (OutOfMemoryError e) {
+            exitSystemWithUserError(new UserException.NotEnoughMemory());
         } catch (Throwable t) {
             checkForTooManyOpenFilesProblem(t.getMessage());
             exitSystemWithError(t);

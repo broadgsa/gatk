@@ -177,7 +177,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         for (int i = 0; i < reads.size(); i++) {
             GATKSAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-            pileup.add(createNewPileupElement(read, offset, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
+            pileup.add(createNewPileupElement(read, offset, false, false, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
         }
 
         return pileup;
@@ -196,7 +196,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
         UnifiedPileupElementTracker<PE> pileup = new UnifiedPileupElementTracker<PE>();
         for (GATKSAMRecord read : reads) {
-            pileup.add(createNewPileupElement(read, offset, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
+            pileup.add(createNewPileupElement(read, offset, false, false, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
         }
 
         return pileup;
@@ -204,8 +204,8 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     protected abstract AbstractReadBackedPileup<RBP, PE> createNewPileup(GenomeLoc loc, PileupElementTracker<PE> pileupElementTracker);
 
-    protected abstract PE createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip);
-    protected abstract PE createNewPileupElement(GATKSAMRecord read, int offset, boolean isDeletion, boolean isBeforeDeletion, boolean isBeforeInsertion, boolean isNextToSoftClip, String nextEventBases, int nextEventLength );
+    protected abstract PE createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip);
+    protected abstract PE createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength );
 
     // --------------------------------------------------------
     //
@@ -677,11 +677,11 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             PileupElementTracker<PE> filteredElements = tracker.getElements(sampleNames);
             return filteredElements != null ? (RBP) createNewPileup(loc, filteredElements) : null;
         } else {
-            HashSet<String> hashSampleNames = new HashSet<String>(sampleNames);    // to speed up the "contains" access in the for loop
+            HashSet<String> hashSampleNames = new HashSet<String>(sampleNames);                                         // to speed up the "contains" access in the for loop
             UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
             for (PE p : pileupElementTracker) {
                 GATKSAMRecord read = p.getRead();
-                if (sampleNames != null) {                                          // still checking on sampleNames because hashSampleNames will never be null. And empty means something else.
+                if (sampleNames != null) {                                                                              // still checking on sampleNames because hashSampleNames will never be null. And empty means something else.
                     if (read.getReadGroup() != null && hashSampleNames.contains(read.getReadGroup().getSample()))
                         filteredTracker.add(p);
                 } else {
@@ -691,6 +691,32 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             }
             return filteredTracker.size() > 0 ? (RBP) createNewPileup(loc, filteredTracker) : null;
         }
+    }
+
+    @Override
+    public Map<String, ReadBackedPileup> getPileupsForSamples(Collection<String> sampleNames) {
+        Map<String, ReadBackedPileup> result = new HashMap<String, ReadBackedPileup>();
+        Map<String, UnifiedPileupElementTracker<PE>> trackerMap = new HashMap<String, UnifiedPileupElementTracker<PE>>();
+
+        for (String sample : sampleNames) {                                                                         // initialize pileups for each sample
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+            trackerMap.put(sample, filteredTracker);
+        }
+
+        for (PE p : pileupElementTracker) {                                                                         // go through all pileup elements only once and add them to the respective sample's pileup
+            GATKSAMRecord read = p.getRead();
+            if (read.getReadGroup() != null) {
+                String sample = read.getReadGroup().getSample();
+                UnifiedPileupElementTracker<PE> tracker = trackerMap.get(sample);
+                if (tracker != null)                                                                                // we only add the pileup the requested samples. Completely ignore the rest
+                    tracker.add(p);
+            }
+        }
+
+        for (Map.Entry<String, UnifiedPileupElementTracker<PE>> entry : trackerMap.entrySet())                      // create the RBP for each sample
+            result.put(entry.getKey(), createNewPileup(loc, entry.getValue()));
+
+        return result;
     }
 
 
@@ -873,6 +899,26 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         return reads;
     }
 
+    @Override
+    public int getNumberOfDeletionsAfterThisElement() {
+        int count = 0;
+        for (PileupElement p : this) {
+            if (p.isBeforeDeletionStart())
+                count++;
+        }
+        return count;
+    }
+
+    @Override
+    public int getNumberOfInsertionsAfterThisElement() {
+        int count = 0;
+        for (PileupElement p : this) {
+            if (p.isBeforeInsertion())
+                count++;
+        }
+        return count;
+
+    }
     /**
      * Returns a list of the offsets in this pileup. Note this call costs O(n) and allocates fresh lists each time
      *

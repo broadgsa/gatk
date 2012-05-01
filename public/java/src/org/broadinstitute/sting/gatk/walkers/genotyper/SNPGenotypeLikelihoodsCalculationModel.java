@@ -30,10 +30,13 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -59,21 +62,18 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final ReferenceContext ref,
                                          final Map<String, AlignmentContext> contexts,
                                          final AlignmentContextUtils.ReadOrientation contextType,
-                                         final GenotypePriors priors,
                                          final List<Allele> alternateAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
 
-        if ( !(priors instanceof DiploidSNPGenotypePriors) )
-            throw new StingException("Only diploid-based SNP priors are supported in the SNP GL model");
-
         final byte refBase = ref.getBase();
         final int indexOfRefBase = BaseUtils.simpleBaseToBaseIndex(refBase);
+        final Allele refAllele = Allele.create(refBase, true);
 
         // start making the VariantContext
         final GenomeLoc loc = ref.getLocus();
         final List<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(Allele.create(refBase, true));
+        alleles.add(refAllele);
         final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
 
         // calculate the GLs
@@ -84,7 +84,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 pileup = createBAQedPileup( pileup );
 
             // create the GenotypeLikelihoods object
-            final DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
+            final DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering GL = new DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering(UAC.PCR_error);
             final int nGoodBases = GL.add(pileup, true, true, UAC.MIN_BASE_QUALTY_SCORE);
             if ( nGoodBases > 0 )
                 GLs.add(new SampleGenotypeData(sample.getKey(), GL, getFilteredDepth(pileup)));
@@ -99,7 +99,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             // ignore places where we don't have a SNP
             if ( vc == null || !vc.isSNP() )
                 return null;
-           
+
+            // make sure a user isn't passing the REF base in as an ALT
+            if ( vc.hasAlternateAllele(refAllele, true) )
+                throw new UserException.BadInput("Alternate allele '" + (char)refBase + "' passed in is the same as the reference at location " + vc.getChr() + ":" + vc.getStart());
+
             alleles.addAll(vc.getAlternateAlleles());
         } else {
 
@@ -135,7 +139,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             for ( int j = i; j <= numAltAlleles; j++ ) {
                 // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
                 // In other words, for biallelic sites the ordering is: AA,AB,BB; for triallelic sites the ordering is: AA,AB,BB,AC,BC,CC, etc."
-                PLordering[(j * (j+1) / 2) + i] = DiploidGenotype.createDiploidGenotype(alleleOrdering[i], alleleOrdering[j]).ordinal();
+                PLordering[(j * (j+1) / 2) + i] = DiploidGenotypeWithCorrectAlleleOrdering.createDiploidGenotype(alleleOrdering[i], alleleOrdering[j]).ordinal();
             }
         }
 
@@ -167,7 +171,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     protected List<Allele> determineAlternateAlleles(final byte ref, final List<SampleGenotypeData> sampleDataList) {
 
         final int baseIndexOfRef = BaseUtils.simpleBaseToBaseIndex(ref);
-        final int PLindexOfRef = DiploidGenotype.createDiploidGenotype(ref, ref).ordinal();
+        final int PLindexOfRef = DiploidGenotypeWithCorrectAlleleOrdering.createDiploidGenotype(ref, ref).ordinal();
         for ( int i = 0; i < 4; i++ )
             likelihoodSums[i] = 0.0;
         
@@ -176,7 +180,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             final double[] likelihoods = sampleData.GL.getLikelihoods();
             final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
             if ( PLindexOfBestGL != PLindexOfRef ) {
-                GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePairUsingDeprecatedOrdering(PLindexOfBestGL);
+                GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindexOfBestGL);
                 if ( alleles.alleleIndex1 != baseIndexOfRef )
                     likelihoodSums[alleles.alleleIndex1] += likelihoods[PLindexOfBestGL] - likelihoods[PLindexOfRef];
                 // don't double-count it
@@ -205,7 +209,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
     public class BAQedPileupElement extends PileupElement {
         public BAQedPileupElement( final PileupElement PE ) {
-            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletion(), PE.isBeforeInsertion(), PE.isNextToSoftClip());
+            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletedBase(), PE.isAfterDeletedBase(), PE.isBeforeInsertion(), PE.isAfterInsertion(), PE.isNextToSoftClip());
         }
 
         @Override
@@ -215,10 +219,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     private static class SampleGenotypeData {
 
         public final String name;
-        public final DiploidSNPGenotypeLikelihoods GL;
+        public final DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering GL;
         public final int depth;
 
-        public SampleGenotypeData(final String name, final DiploidSNPGenotypeLikelihoods GL, final int depth) {
+        public SampleGenotypeData(final String name, final DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering GL, final int depth) {
             this.name = name;
             this.GL = GL;
             this.depth = depth;

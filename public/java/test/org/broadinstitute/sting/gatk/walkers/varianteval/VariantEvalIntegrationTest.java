@@ -1,6 +1,31 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -9,6 +34,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
     private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
+    private static String fundamentalTestSNPsSplit1of2VCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.split_1_of_2.vcf";
+    private static String fundamentalTestSNPsSplit2of2VCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.split_2_of_2.vcf";
     private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.NA12045.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
@@ -30,7 +57,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("c8d8bffa5c572df9dec7364f71a1b943")
+                                Arrays.asList("e87932ffa1d310cecee49e7829a0f056")
                               );
         executeTest("testFunctionClassWithSnpeff", spec);
     }
@@ -50,7 +77,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("081fcaa532c7ba8f23da739389e6f7c3")
+                                Arrays.asList("8279ee42a6785f9c2b3dda8d82674e00")
                               );
         executeTest("testStratifySamplesAndExcludeMonomorphicSites", spec);
     }
@@ -70,7 +97,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("b3852f84d07c270b8a12874083c3e31b")
+                                Arrays.asList("0bac64d5615f901d3005247c6d016549")
                               );
         executeTest("testFundamentalsCountVariantsSNPsandIndels", spec);
     }
@@ -91,7 +118,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("cf70468b5ebaec408419da69b0a7fcb9")
+                Arrays.asList("b84d8b4429116c887ceb5489c8782f00")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithNovelty", spec);
     }
@@ -113,7 +140,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("5e3b8b85acfc41365c8208c23abf746b")
+                Arrays.asList("e4f37642d9113a65fbe8bc1d091c206f")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithNoveltyAndFilter", spec);
     }
@@ -134,7 +161,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("ccdbc50d30ece6d0d3b199c397f03ed3")
+                Arrays.asList("c5412ee824b4815dc8eea62a4c5462ef")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithCpG", spec);
     }
@@ -155,7 +182,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("95c690d5af8ed51573eb2f0503dcd9c2")
+                Arrays.asList("1d42e97643afd3e7f5f8c9f6416c5883")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithFunctionalClass", spec);
     }
@@ -176,7 +203,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("8e8547eb38b34bec0095b0500fd9641d")
+                Arrays.asList("8c2ba70bed2f0fdb0ca371f7038819ef")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithDegeneracy", spec);
     }
@@ -197,7 +224,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("158a4651a656aea7f84c79548f6fe519")
+                Arrays.asList("c912b4b0bf1925d042119b301c183b93")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithSample", spec);
     }
@@ -220,7 +247,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("76c8a0b28d2993644120f7afa5833ab2")
+                Arrays.asList("dea3d2cc53265ff8ed2f0030c40f3747")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithJexlExpression", spec);
     }
@@ -245,7 +272,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("34682193f458b93b39efac00b4fc6723")
+                Arrays.asList("dede22b15936c38e29b850c805c7b706")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithMultipleJexlExpressions", spec);
     }
@@ -264,7 +291,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("52f6655f1532bcea24b402010d93ce73")
+                Arrays.asList("9a94c4c613bf69feb3d9579c353baaf2")
         );
         executeTest("testFundamentalsCountVariantsNoCompRod", spec);
     }
@@ -277,7 +304,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
                 " --comp:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                1, Arrays.asList("c49e239292704447a36e01ee9a71e729"));
+                1, Arrays.asList("8d4530e9cef8531c46bbb693b84d04c7"));
         executeTestParallel("testSelect1", spec);
     }
 
@@ -287,7 +314,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG --eval:VCF3 " + validationDataLocation + vcfFile + " --comp:VCF3 " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                 1,
-                Arrays.asList("9a56c20a7b9a554a7b530f2cb1dd776d"));
+                Arrays.asList("9bbc762f459023af0480774eb2986af4"));
         executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
     }
 
@@ -298,14 +325,14 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         WalkerTestSpec spec = new WalkerTestSpec("-T VariantEval -R "+b37KGReference+" --eval " + variantEvalTestDataRoot + vcfFile + " -ped "+ variantEvalTestDataRoot + pedFile +" -noEV -EV MendelianViolationEvaluator -L 1:10109-10315 -o %s -mvq 0 -noST",
                 1,
-                Arrays.asList("66e72c887124f40933d32254b2dd44a3"));
+                Arrays.asList("ddcabc30c88a755a78100e30e0d491d2"));
         executeTestParallel("testVEMendelianViolationEvaluator" + vcfFile, spec);
     }
 
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("fa13eb59892892c07711c6ffe31bf870"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("bb076f7239039191fde883c5e68483ea"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
 
@@ -323,7 +350,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompOverlap() {
         String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals --comp:comphapmap " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf --eval " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("9002023b8aa8fc2c9aac58b8a79bca1e"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("98f9c2f5fef43dbda688d32360908615"));
         executeTestParallel("testCompOverlap",spec);
     }
 
@@ -335,7 +362,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " --dbsnp " + b37dbSNP132 +
                            " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("e42cda858649a35eaa9d14ea2d70a956"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("9d24f34d94d74417e00e3b7bcf84650f"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -347,7 +374,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " --eval:evalBC " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("9561cb4c7aa36dcf30ba253385299859"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("7329b0bc73c9ccaf5facd754f3410c38"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
@@ -364,13 +391,13 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("61052c19211e7eb61fbbb62db5e40b56"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("d0218c5435c8601f2355b7d183ab032f"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
     @Test
     public void testPerSampleAndSubsettedSampleHaveSameResults1() {
-        String md5 = "0edded1cd578db62fa296c99c34a909d";
+        String md5 = "b5cd5c286d459b8edd4ca54320e560a3";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
@@ -412,22 +439,67 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testAlleleCountStrat() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                                buildCommandLine(
-                                        "-T VariantEval",
-                                        "-R " + b37KGReference,
-                                        "--dbsnp " + b37dbSNP132,
-                                        "--eval " + fundamentalTestSNPsVCF,
-                                        "-noEV",
-                                        "-EV CountVariants",
-                                        "-noST",
-                                        "-ST AlleleCount",
-                                        "-L " + fundamentalTestSNPsVCF,
-                                        "-o %s"
-                                ),
-                                1,
-                                Arrays.asList("ee22604616b3e9fc48a6dcbbf73a056d")
-                              );
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsVCF,
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsVCF,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("1198bfea6183bd43219071a84c79a386")
+        );
         executeTest("testAlleleCountStrat", spec);
+    }
+
+    @Test
+    public void testMultipleEvalTracksAlleleCountWithMerge() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsSplit1of2VCF,
+                        "--eval " + fundamentalTestSNPsSplit2of2VCF,
+                        "--mergeEvals",
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsVCF,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("1198bfea6183bd43219071a84c79a386")
+        );
+        executeTest("testMultipleEvalTracksAlleleCountWithMerge", spec);
+    }
+
+    @Test
+    public void testMultipleEvalTracksAlleleCountWithoutMerge() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsSplit1of2VCF,
+                        "--eval " + fundamentalTestSNPsSplit2of2VCF,
+                        //"--mergeEvals", No merge with AC strat ==> error
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsVCF
+                ),
+                0,
+                UserException.class
+        );
+        executeTest("testMultipleEvalTracksAlleleCountWithoutMerge", spec);
     }
 
     @Test
@@ -446,7 +518,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("240369cd651c77e05e8a6659f4a6237e")
+                                Arrays.asList("6decba040051daafad4ecad5a411e1e1")
                               );
         executeTest("testIntervalStrat", spec);
     }
@@ -463,8 +535,60 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("397b0e77459b9b69d2e0dd1dac320c3c")
+                                Arrays.asList("aad01b26198b30da5d59a05c08d863bb")
                               );
         executeTest("testModernVCFWithLargeIndels", spec);
     }
+
+    @Test
+    public void testStandardIndelEval() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + validationDataLocation + "/NA12878.HiSeq.WGS.b37_decoy.indel.recalibrated.vcf",
+                        "-L 20",
+                        "-noST -ST Sample -ST OneBPIndel -ST TandemRepeat",
+                        "-noEV -EV IndelSummary -EV IndelLengthHistogram",
+                        "-gold " + validationDataLocation + "/Mills_and_1000G_gold_standard.indels.b37.sites.vcf",
+                        "-D " + b37dbSNP132,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("4fa2557663ef8fb4cdeecd667791985c")
+        );
+        executeTest("testStandardIndelEval", spec);
+    }
+
+
+    @Test()
+    public void testIncompatibleEvalAndStrat() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + validationDataLocation + "/NA12878.HiSeq.WGS.b37_decoy.indel.recalibrated.vcf",
+                        "-L 20 -noST -ST AlleleCount -noEV -EV VariantSummary"
+                ),
+                0,
+                UserException.class);
+        executeTest("testIncompatibleEvalAndStrat", spec);
+    }
+
+    public void testIncludingAC0(boolean includeAC0, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + testDir + "/ac0.vcf",
+                        "-L 20:81006 -noST -noEV -EV VariantSummary -o %s" + (includeAC0 ? " -keepAC0" : "")
+                ),
+                1,
+                Arrays.asList(md5));
+        executeTest("testIncludingAC0 keep ac 0 = " + includeAC0, spec);
+    }
+
+    @Test public void testWithAC0() { testIncludingAC0(true, "0ed2c8e4b4e06973a06838bc930a132d"); }
+    @Test public void testWithoutAC0() { testIncludingAC0(false, "79d28ddd0ab9584776b6cbefe48331df"); }
+
 }

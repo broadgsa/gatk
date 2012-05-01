@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.util.*;
 
@@ -168,19 +167,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
     public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 
-    @Hidden
-    @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
-    protected boolean indelsOnly = false;
-
     @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality treshold in order to annotate mendelian violation ratio")
     public double minGenotypeQualityP = 0.0;
 
     @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp tracks that exactly match both reference and alternate alleles will be counted as concordant", required=false)
-    private boolean requireStrictAlleleMatch = false;
+    protected boolean requireStrictAlleleMatch = false;
 
     private VariantAnnotatorEngine engine;
-
-    private Collection<VariantContext> indelBufferContext;
 
 
     private void listAnnotationsAndExit() {
@@ -240,7 +233,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(expression.binding.getName())) ) {
                 if ( line instanceof VCFInfoHeaderLine ) {
                     VCFInfoHeaderLine infoline = (VCFInfoHeaderLine)line;
-                    if ( infoline.getName().equals(expression.fieldName) ) {
+                    if ( infoline.getID().equals(expression.fieldName) ) {
                         targetHeaderLine = infoline;
                         break;
                     }
@@ -261,10 +254,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
-
-        if ( indelsOnly ) {
-            indelBufferContext = null;
-        }
     }
 
     public static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {
@@ -295,13 +284,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     /**
-     * We want to see extended events if annotating indels
-     *
-     * @return true
-     */
-    public boolean generateExtendedEvents() { return indelsOnly; }
-
-    /**
      * For each site of interest, annotate based on the requested annotation types
      *
      * @param tracker  the meta-data tracker
@@ -322,31 +304,16 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // if the reference base is not ambiguous, we can annotate
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
-            if ( ! context.hasExtendedEventPileup() ) {
+            if ( context.hasBasePileup() ) {
                 stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
-            } else {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getExtendedEventPileup());
-            }
-            if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());
                 for ( VariantContext vc : VCs )
                     annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
             }
         }
 
-        if ( ! indelsOnly ) {
-            for ( VariantContext annotatedVC : annotatedVCs )
-                vcfWriter.add(annotatedVC);
-        } else {
-            // check to see if the buffered context is different (in location) this context
-            if ( indelBufferContext != null && ! VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),indelBufferContext.iterator().next()).equals(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),annotatedVCs.iterator().next())) ) {
-                for ( VariantContext annotatedVC : indelBufferContext )
-                    vcfWriter.add(annotatedVC);
-                indelBufferContext = annotatedVCs;
-            } else {
-                indelBufferContext = annotatedVCs;
-            }
-        }
+        for ( VariantContext annotatedVC : annotatedVCs )
+            vcfWriter.add(annotatedVC);
 
         return 1;
     }

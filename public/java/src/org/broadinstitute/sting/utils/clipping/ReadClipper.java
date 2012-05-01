@@ -231,15 +231,16 @@ public class ReadClipper {
 
 
     /**
-     * Hard clips any contiguous tail (left, right or both) with base quality lower than lowQual.
+     * Clips any contiguous tail (left, right or both) with base quality lower than lowQual using the desired algorithm.
      *
      * This function will look for low quality tails and hard clip them away. A low quality tail
      * ends when a base has base quality greater than lowQual.
      *
+     * @param algorithm the algorithm to use (HardClip, SoftClip, Write N's,...)
      * @param lowQual every base quality lower than or equal to this in the tail of the read will be hard clipped
      * @return a new read without low quality tails
      */
-    private GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
+    private GATKSAMRecord clipLowQualEnds(ClippingRepresentation algorithm, byte lowQual) {
         if (read.isEmpty())
             return read;
 
@@ -254,7 +255,6 @@ public class ReadClipper {
         // if the entire read should be clipped, then return an empty read.
         if (leftClipIndex > rightClipIndex)
             return GATKSAMRecord.emptyRead(read);
-//            return (new GATKSAMRecord(read.getHeader()));
 
         if (rightClipIndex < read.getReadLength() - 1) {
             this.addOp(new ClippingOp(rightClipIndex + 1, read.getReadLength() - 1));
@@ -262,10 +262,17 @@ public class ReadClipper {
         if (leftClipIndex > 0 ) {
             this.addOp(new ClippingOp(0, leftClipIndex - 1));
         }
-        return this.clipRead(ClippingRepresentation.HARDCLIP_BASES);
+        return this.clipRead(algorithm);
+    }
+
+    private GATKSAMRecord hardClipLowQualEnds(byte lowQual) {
+        return this.clipLowQualEnds(ClippingRepresentation.HARDCLIP_BASES, lowQual);
     }
     public static GATKSAMRecord hardClipLowQualEnds(GATKSAMRecord read, byte lowQual) {
         return (new ReadClipper(read)).hardClipLowQualEnds(lowQual);
+    }
+    public static GATKSAMRecord clipLowQualEnds(GATKSAMRecord read, byte lowQual, ClippingRepresentation algorithm) {
+        return (new ReadClipper(read)).clipLowQualEnds(algorithm, lowQual);
     }
 
 
@@ -311,6 +318,42 @@ public class ReadClipper {
         return (new ReadClipper(read)).hardClipSoftClippedBases();
     }
 
+
+    /**
+     * Hard clip the read to the variable region (from refStart to refStop)
+     *
+     * @param read     the read to be clipped
+     * @param refStart the beginning of the variant region (inclusive)
+     * @param refStop  the end of the variant region (inclusive)
+     * @return the read hard clipped to the variant region
+     */
+    public static GATKSAMRecord hardClipToRegion( final GATKSAMRecord read, final int refStart, final int refStop ) {
+        final int start = read.getAlignmentStart();
+        final int stop = read.getAlignmentEnd();
+
+        // check if the read is contained in region
+        if (start <= refStop && stop >= refStart) {
+            if (start < refStart && stop > refStop)
+                return hardClipBothEndsByReferenceCoordinates(read, refStart - 1, refStop + 1);
+            else if (start < refStart)
+                return hardClipByReferenceCoordinatesLeftTail(read, refStart - 1);
+            else if (stop > refStop)
+                return hardClipByReferenceCoordinatesRightTail(read, refStop + 1);
+            return read;
+        } else
+            return GATKSAMRecord.emptyRead(read);
+
+    }
+    public static ArrayList<GATKSAMRecord> hardClipToRegion( final ArrayList<GATKSAMRecord> reads, final int refStart, final int refStop ) {
+        final ArrayList<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>( reads.size() );
+        for( final GATKSAMRecord read : reads ) {
+            final GATKSAMRecord clippedRead = hardClipToRegion( read, refStart, refStop );
+            if( !clippedRead.isEmpty() ) {
+                returnList.add( clippedRead );
+            }
+        }
+        return returnList;
+    }
 
     /**
      * Checks if a read contains adaptor sequences. If it does, hard clips them out.

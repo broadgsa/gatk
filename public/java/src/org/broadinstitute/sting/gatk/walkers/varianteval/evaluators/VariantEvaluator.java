@@ -4,31 +4,36 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.NewEvaluationContext;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.StateKey;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Collection;
+public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
+    private VariantEvalWalker walker;
+    private final String simpleName;
 
-public abstract class VariantEvaluator {
-    public void initialize(VariantEvalWalker walker) {}
+    protected VariantEvaluator() {
+        this.simpleName = getClass().getSimpleName();
+    }
 
-    public abstract boolean enabled();
+    public void initialize(VariantEvalWalker walker) {
+        this.walker = walker;
+    }
+
+    public VariantEvalWalker getWalker() {
+        return walker;
+    }
 
     // Should return the number of VariantContexts expected as inputs to update.  Can be 1 or 2
     public abstract int getComparisonOrder();
 
     // called at all sites, regardless of eval context itself; useful for counting processed bases
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    // No longer available.  The processed bp is kept in VEW itself for performance reasons
+    //    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
+    public void update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
     }
 
-    public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return null;
-    }
-
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return null;
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
     }
 
     public void finalizeEvaluation() {}
@@ -45,8 +50,59 @@ public abstract class VariantEvaluator {
         return ((double)num) / (Math.max(denom, 1));
     }
 
-    public boolean stateIsApplicable(StateKey stateKey) {
-        return true;
+    /**
+     * Returns true if the variant in vc was a singleton in the original input evaluation
+     * set, regardless of variant context subsetting that has occurred.
+     * @param eval the VariantContext being assessed for this previous status as a singleton
+     * @return true if eval was originally a singleton site
+     */
+    protected static boolean variantWasSingleton(final VariantContext eval) {
+        return eval.getAttributeAsBoolean(VariantEvalWalker.IS_SINGLETON_KEY, false);
     }
 
+    public final String getSimpleName() {
+        return simpleName;
+    }
+
+    @Override
+    public int compareTo(final VariantEvaluator variantEvaluator) {
+        return getSimpleName().compareTo(variantEvaluator.getSimpleName());
+    }
+
+    /**
+     * Evaluation modules that override this function to indicate that they support
+     * combining the results of two independent collections of eval data into
+     * a single meaningful result.  The purpose of this interface is to
+     * allow us to cut up the input data into many independent stratifications, and then
+     * at the end of the eval run decide which stratifications to combine.  This is
+     * important in the case of AC, where you may have thousands of distinct AC
+     * values that chop up the number of variants to too small a number of variants,
+     * and you'd like to combine the AC values into ranges containing some percent
+     * of the data.
+     *
+     * For example, suppose you have an eval that
+     * counts variants in a variable nVariants.  If you want to be able to combine
+     * multiple evaluations of this type, overload the combine function
+     * with a function that sets this.nVariants += other.nVariants.
+     *
+     * Add in the appropriate fields of the VariantEvaluator T
+     * (of the same type as this object) to the values of this object.
+     *
+     * The values in this and other are implicitly independent, so that
+     * the values can be added together.
+     *
+     * @param other a VariantEvaluator of the same type of this object
+     */
+    public void combine(final VariantEvaluator other) {
+        throw new ReviewedStingException(getSimpleName() + " doesn't support combining results, sorry");
+    }
+
+    /**
+     * Must be overloaded to return true for evaluation modules that support the combine operation
+     *
+     * @return
+     */
+    public boolean supportsCombine() {
+        return false;
+    }
 }

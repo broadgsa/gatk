@@ -9,9 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnota
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -44,9 +42,9 @@ import java.util.Map;
  */
 public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
 
-    private static String REF_ALLELE = "REF";
+    private static final String REF_ALLELE = "REF";
 
-    private static String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
+    private static final String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )
@@ -62,7 +60,8 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
 
     private Map<String,Object> annotateSNP(AlignmentContext stratifiedContext, VariantContext vc) {
 
-        if ( ! stratifiedContext.hasBasePileup() ) return null;
+        if ( ! stratifiedContext.hasBasePileup() )
+            return null;
 
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
         for ( Allele allele : vc.getAlleles() )
@@ -87,17 +86,16 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
 
     private Map<String,Object> annotateIndel(AlignmentContext stratifiedContext, VariantContext vc) {
 
-        if ( ! stratifiedContext.hasExtendedEventPileup() ) {
+        if ( ! stratifiedContext.hasBasePileup() )
             return null;
-        }
 
-        ReadBackedExtendedEventPileup pileup = stratifiedContext.getExtendedEventPileup();
+        ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         if ( pileup == null )
             return null;
 
-        HashMap<String, Integer> alleleCounts = new HashMap<String, Integer>();
-        alleleCounts.put(REF_ALLELE,0);
-        Allele refAllele = vc.getReference();
+        final HashMap<String, Integer> alleleCounts = new HashMap<String, Integer>();
+        alleleCounts.put(REF_ALLELE, 0);
+        final Allele refAllele = vc.getReference();
 
         for ( Allele allele : vc.getAlternateAlleles() ) {
 
@@ -108,33 +106,24 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
             alleleCounts.put(getAlleleRepresentation(allele), 0);
         }
 
-        for ( ExtendedEventPileupElement e : pileup.toExtendedIterable() ) {
-            if ( e.isInsertion() ) {
+        for ( PileupElement p : pileup ) {
+            if ( p.isBeforeInsertion() ) {
 
-                final String b =  e.getEventBases();
+                final String b = p.getEventBases();
                 if ( alleleCounts.containsKey(b) ) {
                     alleleCounts.put(b, alleleCounts.get(b)+1);
                 }
 
-            } else {
-                if ( e.isDeletion() ) {
-                    if ( e.getEventLength() == refAllele.length() ) {
+            } else if ( p.isBeforeDeletionStart() ) {
+                    if ( p.getEventLength() == refAllele.length() ) {
                         // this is indeed the deletion allele recorded in VC
                         final String b = DEL;
                         if ( alleleCounts.containsKey(b) ) {
                             alleleCounts.put(b, alleleCounts.get(b)+1);
                         }
                     }
-//                    else {
-//                        System.out.print("   deletion of WRONG length found");
-//                    }
-                }
-                else {
-                    if ( e.getRead().getAlignmentEnd() <= vc.getStart() ) {
-                        continue;
-                    }
-                    alleleCounts.put(REF_ALLELE,alleleCounts.get(REF_ALLELE)+1);
-                }
+            } else if ( p.getRead().getAlignmentEnd() > vc.getStart() ) {
+                alleleCounts.put(REF_ALLELE, alleleCounts.get(REF_ALLELE)+1);
             }
         }
 

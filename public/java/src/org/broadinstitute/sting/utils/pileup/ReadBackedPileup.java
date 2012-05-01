@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A data retrieval interface for accessing parts of the pileup.
@@ -159,6 +160,16 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public ReadBackedPileup getPileupForSamples(Collection<String> sampleNames);
 
+    /**
+     * Gets the particular subset of this pileup for each given sample name.
+     *
+     * Same as calling getPileupForSample for all samples, but in O(n) instead of O(n^2).
+     *
+     * @param sampleNames Name of the sample to use.
+     * @return A subset of this pileup containing only reads with the given sample.
+     */
+    public Map<String, ReadBackedPileup> getPileupsForSamples(Collection<String> sampleNames);
+
 
     /**
      * Gets the particular subset of this pileup with the given sample name.
@@ -173,6 +184,20 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return
      */
     public int getNumberOfDeletions();
+
+    /**
+     * Simple useful routine to count the number of deletion bases in at the next position this pileup
+     *
+     * @return
+     */
+    public int getNumberOfDeletionsAfterThisElement();
+
+    /**
+     * Simple useful routine to count the number of insertions right after this pileup
+     *
+     * @return
+     */
+    public int getNumberOfInsertionsAfterThisElement();
 
     public int getNumberOfMappingQualityZeroReads();
 

@@ -184,7 +184,18 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
                 "-T VariantAnnotator -R " + b37KGReference + " -A TransmissionDisequilibriumTest --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
                         " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
                 Arrays.asList(MD5));
-        executeTest("Testing TDT annotation", spec);
+        executeTest("Testing TDT annotation ", spec);
+    }
+
+
+    @Test
+    public void testChromosomeCountsPed() {
+        final String MD5 = "32df3ceb63c277df442ed55fb8684933";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T VariantAnnotator -R " + b37KGReference + " -A ChromosomeCounts --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                Arrays.asList(MD5));
+        executeTest("Testing ChromosomeCounts annotation with PED file", spec);
     }
 
 }

@@ -24,24 +24,26 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 public class Haplotype {
     protected final byte[] bases;
     protected final double[] quals;
     private GenomeLoc genomeLocation = null;
-    private boolean isReference = false;
+    private HashMap<String, double[]> readLikelihoodsPerSample = null;
+    private HashMap<Integer, VariantContext> eventMap = null;
+    private boolean isRef = false;
+    private Cigar cigar;
+    private int alignmentStartHapwrtRef;
  
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -69,14 +71,46 @@ public class Haplotype {
         this.genomeLocation = loc;
     }
 
-    public Haplotype(byte[] bases, GenomeLoc loc, boolean isRef) {
-        this(bases, loc);
-        this.isReference = isRef;
-    }
-
     @Override
     public boolean equals( Object h ) {
         return h instanceof Haplotype && Arrays.equals(bases, ((Haplotype) h).bases);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(bases);
+    }
+
+    public void addReadLikelihoods( final String sample, final double[] readLikelihoods ) {
+        if( readLikelihoodsPerSample == null ) {
+            readLikelihoodsPerSample = new HashMap<String, double[]>();
+        }
+        readLikelihoodsPerSample.put(sample, readLikelihoods);
+    }
+
+    @Ensures({"result != null"})
+    public double[] getReadLikelihoods( final String sample ) {
+        return readLikelihoodsPerSample.get(sample);
+    }
+    
+    public Set<String> getSampleKeySet() {
+        return readLikelihoodsPerSample.keySet();
+    }
+
+    public HashMap<Integer, VariantContext> getEventMap() {
+        return eventMap;
+    }
+
+    public void setEventMap( final HashMap<Integer, VariantContext> eventMap ) {
+        this.eventMap = eventMap;
+    }
+
+    public boolean isReference() {
+        return isRef;
+    }
+
+    public void setIsReference( boolean isRef ) {
+        this.isRef = isRef;
     }
 
     public double getQualitySum() {
@@ -87,12 +121,9 @@ public class Haplotype {
         return s;
     }
 
+    @Override
     public String toString() {
-        String returnString = "";
-        for(int iii = 0; iii < bases.length; iii++) {
-            returnString += (char) bases[iii];
-        }
-        return returnString;
+        return new String(bases);
     }
 
     public double[] getQuals() {
@@ -110,15 +141,27 @@ public class Haplotype {
         return genomeLocation.getStop();
     }
 
-    public boolean isReference() {
-        return isReference;
+    public int getAlignmentStartHapwrtRef() {
+        return alignmentStartHapwrtRef;
     }
 
-    @Requires({"refInsertLocation >= 0", "hapStartInRefCoords >= 0"})
-    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation, final int hapStartInRefCoords, final Cigar haplotypeCigar ) {
+    public void setAlignmentStartHapwrtRef( final int alignmentStartHapwrtRef ) {
+        this.alignmentStartHapwrtRef = alignmentStartHapwrtRef;
+    }
+
+    public Cigar getCigar() {
+        return cigar;
+    }
+
+    public void setCigar( final Cigar cigar ) {
+        this.cigar = cigar;
+    }
+
+    @Requires({"refInsertLocation >= 0"})
+    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation ) {
         
         if( refAllele.length() != altAllele.length() ) { refInsertLocation++; }
-        int haplotypeInsertLocation = getHaplotypeCoordinateForReferenceCoordinate(hapStartInRefCoords, haplotypeCigar, refInsertLocation);
+        int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
         if( haplotypeInsertLocation == -1 ) { // desired change falls inside deletion so don't bother creating a new haplotype
             return bases.clone();
         }
@@ -162,7 +205,6 @@ public class Haplotype {
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
                                                                final int haplotypeSize, final int numPrefBases) {
 
-
         LinkedHashMap<Allele,Haplotype> haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
 
         Allele refAllele = null;
@@ -195,104 +237,23 @@ public class Haplotype {
 
 
         // Create location for all haplotypes
-        int startLoc = ref.getWindow().getStart() + startIdxInReference;
-        int stopLoc = startLoc + haplotypeSize-1;
+        final int startLoc = ref.getWindow().getStart() + startIdxInReference;
+        final int stopLoc = startLoc + haplotypeSize-1;
 
-        GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
+        final GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
 
 
-        for (Allele a : alleleList) {
+        for (final Allele a : alleleList) {
 
             byte[] alleleBases = a.getBases();
             // use string concatenation
             String haplotypeString = new String(basesBeforeVariant) + new String(alleleBases) + new String(basesAfterVariant);
             haplotypeString = haplotypeString.substring(0,haplotypeSize);
 
-           haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus, a.isReference()));
+           haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus));
 
         }
 
         return haplotypeMap;
     }
-
-    private static Integer getHaplotypeCoordinateForReferenceCoordinate( final int haplotypeStart, final Cigar haplotypeCigar, final int refCoord ) {
-        int readBases = 0;
-        int refBases = 0;
-        boolean fallsInsideDeletion = false;
-
-        int goal = refCoord - haplotypeStart;  // The goal is to move this many reference bases
-        boolean goalReached = refBases == goal;
-
-        Iterator<CigarElement> cigarElementIterator = haplotypeCigar.getCigarElements().iterator();
-        while (!goalReached && cigarElementIterator.hasNext()) {
-            CigarElement cigarElement = cigarElementIterator.next();
-            int shift = 0;
-
-            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP) {
-                if (refBases + cigarElement.getLength() < goal)
-                    shift = cigarElement.getLength();
-                else
-                    shift = goal - refBases;
-
-                refBases += shift;
-            }
-            goalReached = refBases == goal;
-
-            if (!goalReached && cigarElement.getOperator().consumesReadBases())
-                readBases += cigarElement.getLength();
-
-            if (goalReached) {
-                // Is this base's reference position within this cigar element? Or did we use it all?
-                boolean endsWithinCigar = shift < cigarElement.getLength();
-
-                // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
-                // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
-                if (!endsWithinCigar && !cigarElementIterator.hasNext())
-                    return -1;
-
-                CigarElement nextCigarElement;
-
-                // if we end inside the current cigar element, we just have to check if it is a deletion
-                if (endsWithinCigar)
-                    fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
-
-                    // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
-                else {
-                    nextCigarElement = cigarElementIterator.next();
-
-                    // if it's an insertion, we need to clip the whole insertion before looking at the next element
-                    if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
-                        readBases += nextCigarElement.getLength();
-                        if (!cigarElementIterator.hasNext())
-                            return -1;
-
-                        nextCigarElement = cigarElementIterator.next();
-                    }
-
-                    // if it's a deletion, we will pass the information on to be handled downstream.
-                    fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
-                }
-
-                // If we reached our goal outside a deletion, add the shift
-                if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
-                    readBases += shift;
-
-                    // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
-                    // to add the shift of the current cigar element but go back to it's last element to return the last
-                    // base before the deletion (see warning in function contracts)
-                else if (fallsInsideDeletion && !endsWithinCigar)
-                    readBases += shift - 1;
-
-                    // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
-                else if (fallsInsideDeletion && endsWithinCigar)
-                    readBases--;
-            }
-        }
-
-        if (!goalReached)
-            return -1;
-
-        return (fallsInsideDeletion ? -1 : readBases);
-    }
-
 }

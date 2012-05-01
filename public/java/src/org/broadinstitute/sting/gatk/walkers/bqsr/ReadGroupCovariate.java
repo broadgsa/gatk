@@ -1,8 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.BitSetUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 
 /*
@@ -39,7 +42,7 @@ import java.util.HashMap;
  */
 
 public class ReadGroupCovariate implements RequiredCovariate {
-    
+
     private final HashMap<String, Short> readGroupLookupTable = new HashMap<String, Short>();
     private final HashMap<Short, String> readGroupReverseLookupTable = new HashMap<Short, String>();
     private short nextId = 0;
@@ -52,30 +55,61 @@ public class ReadGroupCovariate implements RequiredCovariate {
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
         final int l = read.getReadLength();
-        final String readGroupId = read.getReadGroup().getReadGroupId();
+        final String readGroupId = readGroupValueFromRG(read.getReadGroup());
+        BitSet rg = bitSetForReadGroup(readGroupId);                            // All objects must output a BitSet, so we convert the "compressed" representation of the Read Group into a bitset
+        BitSet[] readGroups = new BitSet[l];
+        Arrays.fill(readGroups, rg);
+        return new CovariateValues(readGroups, readGroups, readGroups);
+    }
+
+    @Override
+    public final Object getValue(final String str) {
+        return str;
+    }
+
+    @Override
+    public String keyFromBitSet(BitSet key) {
+        return decodeReadGroup((short) BitSetUtils.longFrom(key));
+    }
+
+    @Override
+    public BitSet bitSetFromKey(Object key) {
+        return bitSetForReadGroup((String) key);
+    }
+
+    @Override
+    public int numberOfBits() {
+        return BitSetUtils.numberOfBitsToRepresent(Short.MAX_VALUE);
+    }
+
+    private String decodeReadGroup(final short id) {
+        return readGroupReverseLookupTable.get(id);
+    }
+
+    private BitSet bitSetForReadGroup(String readGroupId) {
         short shortId;
-        if (readGroupLookupTable.containsKey(readGroupId)) 
+        if (readGroupLookupTable.containsKey(readGroupId))
             shortId = readGroupLookupTable.get(readGroupId);
         else {
             shortId = nextId;
             readGroupLookupTable.put(readGroupId, nextId);
             readGroupReverseLookupTable.put(nextId, readGroupId);
             nextId++;
-        }
-        Short [] readGroups = new Short[l];
-        Arrays.fill(readGroups, shortId);
-        return new CovariateValues(readGroups, readGroups, readGroups);
+        }        
+        return BitSetUtils.bitSetFrom(shortId);
     }
 
-    // Used to get the covariate's value from input csv file during on-the-fly recalibration
-    @Override
-    public final Object getValue(final String str) {
-        return str;
+    /**
+     * If the sample has a PU tag annotation, return that. If not, return the read group id.
+     *
+     * @param rg the read group record
+     * @return platform unit or readgroup id
+     */
+    private String readGroupValueFromRG(GATKSAMReadGroupRecord rg) {
+        String platformUnit = rg.getPlatformUnit();
+        return platformUnit == null ? rg.getId() : platformUnit;
     }
     
-    public final String decodeReadGroup(final short id) {
-        return readGroupReverseLookupTable.get(id);
-    }
 }
 
 

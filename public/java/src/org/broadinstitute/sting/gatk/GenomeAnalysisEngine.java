@@ -26,7 +26,9 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.samtools.*;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
@@ -35,8 +37,6 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
@@ -45,6 +45,8 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
@@ -190,7 +192,7 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(File recalFile) { baseRecalibration = new BaseRecalibration(recalFile); }
+    public void setBaseRecalibration(File recalFile, int quantizationLevels) { baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels); }
 
     /**
      * Actually run the GATK with the specified walker.
@@ -216,7 +218,7 @@ public class GenomeAnalysisEngine {
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (this.getArguments().BQSR_RECAL_FILE != null)
-            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE);
+            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE, this.getArguments().quantizationLevels);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
@@ -355,10 +357,6 @@ public class GenomeAnalysisEngine {
 
     public BAQ.QualityMode getWalkerBAQQualityMode()         { return WalkerManager.getBAQQualityMode(walker); }
     public BAQ.ApplicationTime getWalkerBAQApplicationTime() { return WalkerManager.getBAQApplicationTime(walker); }    
-
-    protected boolean generateExtendedEvents() {
-        return walker.generateExtendedEvents();
-    }
 
     protected boolean includeReadsWithDeletionAtLoci() {
         return walker.includeReadsWithDeletionAtLoci();
@@ -613,7 +611,7 @@ public class GenomeAnalysisEngine {
      */
     protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
 
-        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>(0);
+        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
         for ( IntervalBinding intervalBinding : argList ) {
             List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
 
@@ -766,7 +764,6 @@ public class GenomeAnalysisEngine {
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 includeReadsWithDeletionAtLoci(),
-                generateExtendedEvents(),
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,

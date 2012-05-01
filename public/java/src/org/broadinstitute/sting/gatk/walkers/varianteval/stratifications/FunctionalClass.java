@@ -28,8 +28,8 @@ public class FunctionalClass extends VariantStratifier {
     }
 
 
-public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        ArrayList<Object> relevantStates = new ArrayList<Object>();
 
         relevantStates.add("all");
 
@@ -52,8 +52,8 @@ public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker t
                         try {
                             FunctionalType newType = FunctionalType.valueOf(newtypeStr);
                             if ( type == null ||
-                                ( type == FunctionalType.silent && newType != FunctionalType.silent ) ||
-                                ( type == FunctionalType.missense && newType == FunctionalType.nonsense ) ) {
+                                    ( type == FunctionalType.silent && newType != FunctionalType.silent ) ||
+                                    ( type == FunctionalType.missense && newType == FunctionalType.nonsense ) ) {
                                 type = newType;
                             }
                         } catch ( Exception e ) {} // don't error out if the type isn't supported
@@ -71,7 +71,7 @@ public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker t
                         type = FunctionalType.missense;
                     else if ( snpEffFunctionalClass == SnpEff.EffectFunctionalClass.SILENT )
                         type = FunctionalType.silent;
-                    }
+                }
                 catch ( Exception e ) {} // don't error out if the type isn't supported
             }
 

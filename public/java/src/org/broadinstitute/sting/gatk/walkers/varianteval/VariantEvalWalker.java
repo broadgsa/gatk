@@ -12,23 +12,23 @@ import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.DynamicStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
+import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -93,6 +92,7 @@ import java.util.*;
  */
 @Reference(window=@Window(start=-50, stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
+    public static final String IS_SINGLETON_KEY = "ISSINGLETON";
 
     @Output
     protected PrintStream out;
@@ -116,6 +116,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
+
+    /**
+     * Some analyses want to count overlap not with dbSNP (which is in general very open) but
+     * actually want to itemize their overlap specifically with a set of gold standard sites
+     * such as HapMap, OMNI, or the gold standard indels.  Theis argument provides a mechanism
+     * for communicating which file to use
+     */
+    @Input(fullName="goldStandard", shortName = "gold", doc="Evaluations that count calls at sites of true variation (e.g., indel calls) will use this argument as their gold standard for comparison", required=false)
+    public RodBinding<VariantContext> goldStandard = null;
 
     // Help arguments
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit", required=false)
@@ -154,10 +163,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -EV option)", required=false)
     protected Boolean NO_STANDARD_MODULES = false;
 
-    // Other arguments
-    @Argument(fullName="numSamples", shortName="ns", doc="Number of samples (used if no samples are available in the VCF file", required=false)
-    protected Integer NUM_SAMPLES = 0;
-
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
 
@@ -169,6 +174,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp and eval tracks with exactly matching reference and alternate alleles will be counted as overlapping", required=false)
     private boolean requireStrictAlleleMatch = false;
+
+    @Argument(fullName="keepAC0", shortName="keepAC0", doc="If provided, modules that track polymorphic sites will not require that a site have AC > 0 when the input eval has genotypes", required=false)
+    private boolean keepSitesWithAC0 = false;
 
     /**
      * If true, VariantEval will treat -eval 1 -eval 2 as separate tracks from the same underlying
@@ -195,29 +203,26 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     private Set<String> sampleNamesForEvaluation = new TreeSet<String>();
     private Set<String> sampleNamesForStratification = new TreeSet<String>();
-    private int numSamples = 0;
-
-    // The list of stratifiers and evaluators to use
-    private TreeSet<VariantStratifier> stratificationObjects = null;
-
-    // The set of all possible evaluation contexts
-    private HashMap<StateKey, NewEvaluationContext> evaluationContexts = null;
 
     // important stratifications
     private boolean byFilterIsEnabled = false;
     private boolean perSampleIsEnabled = false;
 
-    // Output report
-    private GATKReport report = null;
-
     // Public constants
     private static String ALL_SAMPLE_NAME = "all";
+
+    // the number of processed bp for this walker
+    long nProcessedLoci = 0;
 
     // Utility class
     private final VariantEvalUtils variantEvalUtils = new VariantEvalUtils(this);
 
     // Ancestral alignments
     private IndexedFastaSequenceFile ancestralAlignments = null;
+
+    // The set of all possible evaluation contexts
+    StratificationManager<VariantStratifier, EvaluationContext> stratManager;
+    //Set<DynamicStratification> dynamicStratifications = Collections.emptySet();
 
     /**
      * Initialize the stratifications, evaluations, evaluation contexts, and reporting object
@@ -249,7 +254,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         // Load the sample list
         sampleNamesForEvaluation.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
-        numSamples = NUM_SAMPLES > 0 ? NUM_SAMPLES : sampleNamesForEvaluation.size();
 
         if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
             sampleNamesForStratification.addAll(sampleNamesForEvaluation);
@@ -263,9 +267,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         // Initialize the set of stratifications and evaluations to use
-        stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
-        Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
-        for ( VariantStratifier vs : getStratificationObjects() ) {
+        // The list of stratifiers and evaluators to use
+        final List<VariantStratifier> stratificationObjects = variantEvalUtils.initializeStratificationObjects(NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
+        final Set<Class<? extends VariantEvaluator>> evaluationClasses = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+
+        checkForIncompatibleEvaluatorsAndStratifiers(stratificationObjects, evaluationClasses);
+
+        for ( VariantStratifier vs : stratificationObjects ) {
             if ( vs.getName().equals("Filter") )
                 byFilterIsEnabled = true;
             else if ( vs.getName().equals("Sample") )
@@ -283,10 +291,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         // Initialize the evaluation contexts
-        evaluationContexts = variantEvalUtils.initializeEvaluationContexts(stratificationObjects, evaluationObjects, null, null);
-
-        // Initialize report table
-        report = variantEvalUtils.initializeGATKReport(stratificationObjects, evaluationObjects);
+        createStratificationStates(stratificationObjects, evaluationClasses);
 
         // Load ancestral alignments
         if (ancestralAlignmentsFile != null) {
@@ -297,13 +302,36 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             }
         }
 
-
         // initialize CNVs
         if ( knownCNVsFile != null ) {
             knownCNVsByContig = createIntervalTreeByContig(knownCNVsFile);
         }
     }
 
+    final void checkForIncompatibleEvaluatorsAndStratifiers( final List<VariantStratifier> stratificationObjects,
+                                                             Set<Class<? extends VariantEvaluator>> evaluationClasses) {
+        for ( final VariantStratifier vs : stratificationObjects ) {
+            for ( Class<? extends VariantEvaluator> ec : evaluationClasses )
+                if ( vs.getIncompatibleEvaluators().contains(ec) )
+                    throw new UserException.BadArgumentValue("ST and ET", 
+                            "The selected stratification " + vs.getName() + 
+                                    " and evaluator " + ec.getSimpleName() +
+                                    " are incompatible due to combinatorial memory requirements." +
+                                    " Please disable one");
+        }
+    }
+    
+    final void createStratificationStates(final List<VariantStratifier> stratificationObjects, final Set<Class<? extends VariantEvaluator>> evaluationObjects) {
+        final List<VariantStratifier> strats = new ArrayList<VariantStratifier>(stratificationObjects);
+        stratManager = new StratificationManager<VariantStratifier, EvaluationContext>(strats);
+
+        logger.info("Creating " + stratManager.size() + " combinatorial stratification states");
+        for ( int i = 0; i < stratManager.size(); i++ ) {
+            EvaluationContext ec = new EvaluationContext(this, evaluationObjects);
+            stratManager.set(i, ec);
+        }
+    }    
+    
     public final Map<String, IntervalTree<GenomeLoc>> createIntervalTreeByContig(final IntervalBinding<Feature> intervals) {
         final Map<String, IntervalTree<GenomeLoc>> byContig = new HashMap<String, IntervalTree<GenomeLoc>>();
 
@@ -325,14 +353,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( NewEvaluationContext nec : evaluationContexts.values() ) {
-            synchronized (nec) {
-                nec.update0(tracker, ref, context);
-            }
+        // we track the processed bp and expose this for modules instead of wasting CPU power on calculating
+        // the same thing over and over in evals that want the processed bp
+        synchronized (this) {
+            nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
         }
 
         if (tracker != null) {
             String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
+
+//            // update the dynamic stratifications
+//            for (final VariantContext vc : tracker.getValues(evals, ref.getLocus())) {
+//                // don't worry -- DynamicStratification only work with one eval object
+//                for ( final DynamicStratification ds :  dynamicStratifications ) {
+//                    ds.update(vc);
+//                }
+//            }
 
             //      --------- track ---------           sample  - VariantContexts -
             HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
@@ -367,19 +403,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
 
-                            HashMap<VariantStratifier, List<String>> stateMap = new HashMap<VariantStratifier, List<String>>();
-                            for ( VariantStratifier vs : stratificationObjects ) {
-                                List<String> states = vs.getRelevantStates(ref, tracker, comp, compRod.getName(), eval, evalRod.getName(), sampleName);
-                                stateMap.put(vs, states);
-                            }
-
-                            ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
-                            variantEvalUtils.initializeStateKeys(stateMap, null, null, stateKeys);
-
-                            HashSet<StateKey> stateKeysHash = new HashSet<StateKey>(stateKeys);
-
-                            for ( StateKey stateKey : stateKeysHash ) {
-                                NewEvaluationContext nec = evaluationContexts.get(stateKey);
+                            for ( EvaluationContext nec : getEvaluationContexts(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), sampleName) ) {
 
                                 // eval against the comp
                                 synchronized (nec) {
@@ -405,6 +429,57 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         return null;
     }
+
+    /**
+     * Given specific eval and comp VCs and the sample name, return an iterable
+     * over all of the applicable state keys.
+     *
+     * this code isn't structured yet for efficiency.  Here we currently are
+     * doing the following inefficient algorithm:
+     *
+     * for each strat:
+     *   get list of relevant states that eval and comp according to strat
+     *   add this list of states to a list of list states
+     *
+     * then
+     *
+     * ask the strat manager to look up all of the keys associated with the combinations
+     * of these states.  For example, suppose we have a single variant S.  We have active
+     * strats EvalRod, CompRod, and Novelty.  We produce a list that looks like:
+     *
+     *   L = [[Eval], [Comp], [All, Novel]]
+     *
+     * We then go through the strat manager tree to produce the keys associated with these states:
+     *
+     *   K = [0, 1] where EVAL x COMP x ALL = 0 and EVAL x COMP x NOVEL = 1
+     *
+     * It's clear that a better
+     *
+     * TODO -- create an inline version that doesn't create the intermediate list of list
+     *
+     * @param tracker
+     * @param ref
+     * @param eval
+     * @param evalName
+     * @param comp
+     * @param compName
+     * @param sampleName
+     * @return
+     */
+    protected Collection<EvaluationContext> getEvaluationContexts(final RefMetaDataTracker tracker,
+                                                                  final ReferenceContext ref,
+                                                                  final VariantContext eval,
+                                                                  final String evalName,
+                                                                  final VariantContext comp,
+                                                                  final String compName,
+                                                                  final String sampleName ) {
+        final List<List<Object>> states = new LinkedList<List<Object>>();
+        for ( final VariantStratifier vs : stratManager.getStratifiers() ) {
+            states.add(vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName));
+        }
+        return stratManager.values(states);
+    }
+
 
     @Requires({"comp != null", "evals != null"})
     private boolean compHasMatchingEval(final VariantContext comp, final Collection<VariantContext> evals) {
@@ -454,7 +529,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     if ( lenientMatch == null ) lenientMatch = comp;
                     break;
                 case NO_MATCH:
-                    ;
+                    // do nothing
             }
         }
 
@@ -477,108 +552,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      */
     public void onTraversalDone(Integer result) {
         logger.info("Finalizing variant report");
-
-        for ( StateKey stateKey : evaluationContexts.keySet() ) {
-            NewEvaluationContext nec = evaluationContexts.get(stateKey);
-
-            for ( VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
+        
+        // go through the evaluations and finalize them
+        for ( final EvaluationContext nec : stratManager.values() )
+            for ( final VariantEvaluator ve : nec.getVariantEvaluators() )
                 ve.finalizeEvaluation();
-
-                AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
-                Map<Field, DataPoint> datamap = scanner.getData();
-
-                for (Field field : datamap.keySet()) {
-                    try {
-                        field.setAccessible(true);
-
-                        if (field.get(ve) instanceof TableType) {
-                            TableType t = (TableType) field.get(ve);
-
-                            String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
-                            final DataPoint dataPointAnn = datamap.get(field);
-
-                            GATKReportTable table;
-                            if (!report.hasTable(subTableName)) {
-                                report.addTable(subTableName, dataPointAnn.description());
-                                table = report.getTable(subTableName);
-
-                                table.addPrimaryKey("entry", false);
-                                table.addColumn(subTableName, subTableName);
-
-                                for ( VariantStratifier vs : stratificationObjects ) {
-                                    table.addColumn(vs.getName(), "unknown");
-                                }
-
-                                table.addColumn("row", "unknown");
-
-                                for ( Object o : t.getColumnKeys() ) {
-                                    String c;
-
-                                    if (o instanceof String) {
-                                        c = (String) o;
-                                    } else {
-                                        c = o.toString();
-                                    }
-
-                                    table.addColumn(c, 0.0);
-                                }
-                            } else {
-                                table = report.getTable(subTableName);
-                            }
-
-                            for (int row = 0; row < t.getRowKeys().length; row++) {
-                                String r = (String) t.getRowKeys()[row];
-
-                                for ( VariantStratifier vs : stratificationObjects ) {
-                                    final String columnName = vs.getName();
-                                    table.set(stateKey.toString() + r, columnName, stateKey.get(columnName));
-                                }
-
-                                for (int col = 0; col < t.getColumnKeys().length; col++) {
-                                    String c;
-                                    if (t.getColumnKeys()[col] instanceof String) {
-                                        c = (String) t.getColumnKeys()[col];
-                                    } else {
-                                        c = t.getColumnKeys()[col].toString();
-                                    }
-
-                                    String newStateKey = stateKey.toString() + r;
-                                    table.set(newStateKey, c, t.getCell(row, col));
-
-                                    table.set(newStateKey, "row", r);
-                                }
-                            }
-                        } else {
-                            GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
-
-                            for ( VariantStratifier vs : stratificationObjects ) {
-                                String columnName = vs.getName();
-
-                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getName()));
-                            }
-
-                            table.set(stateKey.toString(), field.getName(), field.get(ve));
-                        }
-                    } catch (IllegalAccessException e) {
-                        throw new StingException("IllegalAccessException: " + e);
-                    }
-                }
-            }
-        }
-
-        report.print(out);
+        
+        final VariantEvalReportWriter writer = new VariantEvalReportWriter(stratManager, stratManager.getStratifiers(), stratManager.get(0).getVariantEvaluators());
+        writer.writeReport(out);
     }
 
     // Accessors
     public Logger getLogger() { return logger; }
 
-    public int getNumSamples() { return numSamples; }
-
     public double getMinPhaseQuality() { return MIN_PHASE_QUALITY; }
 
     public double getMendelianViolationQualThreshold() { return MENDELIAN_VIOLATION_QUAL_THRESHOLD; }
-
-    public TreeSet<VariantStratifier> getStratificationObjects() { return stratificationObjects; }
 
     public static String getAllSampleName() { return ALL_SAMPLE_NAME; }
 
@@ -594,6 +583,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
 
+    public long getnProcessedLoci() {
+        return nProcessedLoci;
+    }
+
     public Set<String> getContigNames() {
         final TreeSet<String> contigs = new TreeSet<String>();
         for( final SAMSequenceRecord r :  getToolkit().getReferenceDataSource().getReference().getSequenceDictionary().getSequences()) {
@@ -602,11 +595,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return contigs;
     }
 
-    public GenomeLocParser getGenomeLocParser() {
-        return getToolkit().getGenomeLocParser();
-    }
-
+    /**
+     * getToolkit is protected, so we have to pseudo-overload it here so eval / strats can get the toolkit
+     * @return
+     */
     public GenomeAnalysisEngine getToolkit() {
         return super.getToolkit();
+    }
+
+    public boolean ignoreAC0Sites() {
+        return ! keepSitesWithAC0;
     }
 }

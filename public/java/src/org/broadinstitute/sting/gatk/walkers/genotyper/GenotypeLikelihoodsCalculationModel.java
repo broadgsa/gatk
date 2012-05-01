@@ -47,9 +47,17 @@ import java.util.Map;
  */
 public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
 
+/*    public enum Model {
+        SNP,
+        INDEL,
+        BOTH
+    }
+  */
     public enum Model {
         SNP,
         INDEL,
+        POOLSNP,
+        POOLINDEL,
         BOTH
     }
 
@@ -60,7 +68,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
         GENOTYPE_GIVEN_ALLELES
     }
 
-    protected UnifiedArgumentCollection UAC;
+    protected final UnifiedArgumentCollection UAC;
     protected Logger logger;
 
     /**
@@ -70,7 +78,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      */
     protected GenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         if ( logger == null || UAC == null ) throw new ReviewedStingException("Bad arguments");
-        this.UAC = UAC.clone();
+        this.UAC = UAC;
         this.logger = logger;
     }
 
@@ -81,7 +89,6 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
       * @param ref                   reference context
       * @param contexts              stratified alignment contexts
       * @param contextType           stratified context type
-      * @param priors                priors to use for GLs
       * @param alternateAllelesToUse the alternate allele to use, null if not set
       * @param useBAQedPileup        should we use the BAQed pileup or the raw one?
       * @param locParser             Genome Loc Parser
@@ -91,7 +98,6 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                                    final ReferenceContext ref,
                                                    final Map<String, AlignmentContext> contexts,
                                                    final AlignmentContextUtils.ReadOrientation contextType,
-                                                   final GenotypePriors priors,
                                                    final List<Allele> alternateAllelesToUse,
                                                    final boolean useBAQedPileup,
                                                    final GenomeLocParser locParser);

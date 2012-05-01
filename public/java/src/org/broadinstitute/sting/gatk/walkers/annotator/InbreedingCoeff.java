@@ -3,12 +3,15 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -27,12 +30,19 @@ import java.util.Map;
  * more information.  Note that the Inbreeding Coefficient will not be calculated for files
  * with fewer than a minimum (generally 10) number of samples.
  */
-public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnnotation {
+public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
     private static final int MIN_SAMPLES = 10;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+        return calculateIC(vc);
+    }
 
+    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
+        return calculateIC(vc);
+    }
+
+    private Map<String, Object> calculateIC(final VariantContext vc) {
         final GenotypesContext genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
             return null;

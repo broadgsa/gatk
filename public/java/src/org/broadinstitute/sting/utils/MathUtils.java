@@ -49,20 +49,25 @@ public class MathUtils {
     }
 
     public static final double[] log10Cache;
+    public static final double[] log10FactorialCache;
     private static final double[] jacobianLogTable;
     private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
-    private static final double MAX_JACOBIAN_TOLERANCE = 10.0;
+    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
+    private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
     private static final int MAXN = 11000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
+        log10FactorialCache = new double[LOG10_CACHE_SIZE];
         jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
 
         log10Cache[0] = Double.NEGATIVE_INFINITY;
-        for (int k = 1; k < LOG10_CACHE_SIZE; k++)
+        for (int k = 1; k < LOG10_CACHE_SIZE; k++) {
             log10Cache[k] = Math.log10(k);
+            log10FactorialCache[k] = log10FactorialCache[k-1] + log10Cache[k];
+        }
 
         for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
             jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
@@ -74,7 +79,7 @@ public class MathUtils {
     // under/overflow checking, so this shouldn't be used in the general case (but is fine
     // if one is already make those checks before calling in to the rounding).
     public static int fastRound(double d) {
-        return (d > 0) ? (int) (d + 0.5d) : (int) (d - 0.5d);
+        return (d > 0.0) ? (int) (d + 0.5d) : (int) (d - 0.5d);
     }
 
     public static double approximateLog10SumLog10(final double[] vals) {
@@ -85,8 +90,6 @@ public class MathUtils {
 
         final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
         double approxSum = vals[maxElementIndex];
-        if (approxSum == Double.NEGATIVE_INFINITY)
-            return approxSum;
 
         for (int i = 0; i < endIndex; i++) {
             if (i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY)
@@ -95,12 +98,16 @@ public class MathUtils {
             final double diff = approxSum - vals[i];
             if (diff < MathUtils.MAX_JACOBIAN_TOLERANCE) {
                 // See notes from the 2-inout implementation below
-                final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+                final int ind = fastRound(diff * MathUtils.JACOBIAN_LOG_TABLE_INV_STEP); // hard rounding
                 approxSum += MathUtils.jacobianLogTable[ind];
             }
         }
 
         return approxSum;
+    }
+
+    public static double approximateLog10SumLog10(double a, double b, double c) {
+        return approximateLog10SumLog10(a, approximateLog10SumLog10(b, c));
     }
 
     public static double approximateLog10SumLog10(double small, double big) {
@@ -124,15 +131,15 @@ public class MathUtils {
         // max(x,y) + log10(1+10^-abs(x-y))
         // we compute the second term as a table lookup with integer quantization
         // we have pre-stored correction for 0,0.1,0.2,... 10.0
-        final int ind = fastRound(diff / MathUtils.JACOBIAN_LOG_TABLE_STEP); // hard rounding
+        final int ind = fastRound(diff * MathUtils.JACOBIAN_LOG_TABLE_INV_STEP); // hard rounding
         return big + MathUtils.jacobianLogTable[ind];
     }
 
-    public static double sum(Collection<Number> numbers) {
+    public static double sum(Collection<? extends Number> numbers) {
         return sum(numbers, false);
     }
 
-    public static double sum(Collection<Number> numbers, boolean ignoreNan) {
+    public static double sum(Collection<? extends Number> numbers, boolean ignoreNan) {
         double sum = 0;
         for (Number n : numbers) {
             if (!ignoreNan || !Double.isNaN(n.doubleValue())) {
@@ -152,8 +159,8 @@ public class MathUtils {
         return size;
     }
 
-    public static double average(Collection<Integer> x) {
-        return (double) sum(x) / x.size();
+    public static double average(Collection<? extends Number> x) {
+        return sum(x) / x.size();
     }
 
     public static double average(Collection<Number> numbers, boolean ignoreNan) {
@@ -206,7 +213,7 @@ public class MathUtils {
     /**
      * Calculates the log10 cumulative sum of an array with log10 probabilities
      *
-     * @param log10p the array with log10 probabilites
+     * @param log10p the array with log10 probabilities
      * @param upTo   index in the array to calculate the cumsum up to
      * @return the log10 of the cumulative sum
      */
@@ -234,7 +241,10 @@ public class MathUtils {
     public static double log10sumLog10(double[] log10p, int start, int finish) {
         double sum = 0.0;
 
-        double maxValue = Utils.findMaxEntry(log10p);
+        double maxValue = arrayMax(log10p, finish);
+        if(maxValue == Double.NEGATIVE_INFINITY)
+            return maxValue;
+
         for (int i = start; i < finish; i++) {
             sum += Math.pow(10.0, log10p[i] - maxValue);
         }
@@ -548,7 +558,7 @@ public class MathUtils {
 
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = Utils.findMaxEntry(array);
+        double maxValue = arrayMax(array);
 
         // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
@@ -592,12 +602,12 @@ public class MathUtils {
     }
 
     public static int maxElementIndex(final double[] array, final int endIndex) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int maxI = -1;
-        for (int i = 0; i < endIndex; i++) {
-            if (maxI == -1 || array[i] > array[maxI])
+        int maxI = 0;
+        for (int i = 1; i < endIndex; i++) {
+            if (array[i] > array[maxI])
                 maxI = i;
         }
 
@@ -609,20 +619,24 @@ public class MathUtils {
     }
 
     public static int maxElementIndex(final int[] array, int endIndex) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int maxI = -1;
-        for (int i = 0; i < endIndex; i++) {
-            if (maxI == -1 || array[i] > array[maxI])
+        int maxI = 0;
+        for (int i = 1; i < endIndex; i++) {
+            if (array[i] > array[maxI])
                 maxI = i;
         }
 
         return maxI;
     }
 
-    public static double arrayMax(double[] array) {
+    public static double arrayMax(final double[] array) {
         return array[maxElementIndex(array)];
+    }
+
+    public static double arrayMax(final double[] array, final int endIndex) {
+        return array[maxElementIndex(array, endIndex)];
     }
 
     public static double arrayMin(double[] array) {
@@ -638,12 +652,12 @@ public class MathUtils {
     }
 
     public static int minElementIndex(double[] array) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int minI = -1;
-        for (int i = 0; i < array.length; i++) {
-            if (minI == -1 || array[i] < array[minI])
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
                 minI = i;
         }
 
@@ -651,12 +665,12 @@ public class MathUtils {
     }
 
     public static int minElementIndex(byte[] array) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int minI = -1;
-        for (int i = 0; i < array.length; i++) {
-            if (minI == -1 || array[i] < array[minI])
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
                 minI = i;
         }
 
@@ -664,12 +678,12 @@ public class MathUtils {
     }
 
     public static int minElementIndex(int[] array) {
-        if (array == null)
+        if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int minI = -1;
-        for (int i = 0; i < array.length; i++) {
-            if (minI == -1 || array[i] < array[minI])
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
                 minI = i;
         }
 
@@ -1048,6 +1062,28 @@ public class MathUtils {
 
     }
 
+    /**
+     * Given two log-probability vectors, compute log of vector product of them:
+     * in Matlab notation, return log10(10.*x'*10.^y)
+     * @param x vector 1
+     * @param y vector 2
+     * @return a double representing log (dotProd(10.^x,10.^y)
+     */
+    public static double logDotProduct(double [] x, double[] y) {
+        if (x.length != y.length)
+            throw new ReviewedStingException("BUG: Vectors of different lengths");
+
+        double tmpVec[] = new double[x.length];
+
+        for (int k=0; k < tmpVec.length; k++ ) {
+            tmpVec[k] = x[k]+y[k];
+        }
+
+        return log10sumLog10(tmpVec);
+
+
+
+    }
     public static Object getMedian(List<Comparable> list) {
         return orderStatisticSearch((int) Math.ceil(list.size() / 2), list);
     }
@@ -1098,13 +1134,6 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int) Math.floor(reads.size() / 2.));
-    }
-
-    public static long sum(Collection<Integer> x) {
-        long sum = 0;
-        for (int v : x)
-            sum += v;
-        return sum;
     }
 
     /**
@@ -1494,6 +1523,24 @@ public class MathUtils {
         return result;
     }
 
+    /** Same routine, unboxed types for efficiency
+     *
+     * @param x
+     * @param y
+     * @return Vector of same length as x and y so that z[k] = x[k]+y[k]
+     */
+    public static double[] vectorSum(double[]x, double[] y) {
+        if (x.length != y.length)
+            throw new ReviewedStingException("BUG: Lengths of x and y must be the same");
+
+        double[] result = new double[x.length];
+        for (int k=0; k <x.length; k++)
+            result[k] = x[k]+y[k];
+
+        return result;
+    }
+
+
     public static <E extends Number> Double[] scalarTimesVector(E a, E[] v1) {
 
         Double result[] = new Double[v1.length];
@@ -1534,124 +1581,4 @@ public class MathUtils {
 
     }
 
-    /**
-     * Creates an integer out of a bitset
-     *
-     * @param bitSet the bitset
-     * @return an integer with the bitset representation
-     */
-    public static long intFrom(final BitSet bitSet) {
-        long number = 0;
-        for (int bitIndex = bitSet.nextSetBit(0); bitIndex >= 0; bitIndex = bitSet.nextSetBit(bitIndex+1))
-            number |= 1L << bitIndex;
-
-        return number;
-    }
-
-    /**
-     * Creates a BitSet representation of a given integer
-     *
-     * @param number the number to turn into a bitset
-     * @return a bitset representation of the integer
-     */
-    public static BitSet bitSetFrom(long number) {
-        BitSet bitSet = new BitSet();
-        int bitIndex = 0;
-        while (number > 0) {
-            if (number%2 > 0)
-                bitSet.set(bitIndex);
-            bitIndex++;
-            number /= 2;
-        }
-        return bitSet;
-    }
-
-    /**
-     * Converts a BitSet into the dna string representation.
-     *
-     * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
-     * be longer than 31 bases. To increase this limit, use BigNumbers instead of long and create
-     * a bitSetFrom(BigNumber) method.
-     *
-     * We calculate the length of the resulting DNA sequence by looking at the sum(4^i) that exceeds the
-     * base_10 representation of the sequence. This is important for us to know how to bring the number
-     * to a quasi-canonical base_4 representation, and to fill in leading A's (since A's are represented
-     * as 0's and leading 0's are omitted).
-     *
-     * quasi-canonical because A is represented by a 0, therefore,
-     *  instead of : 0, 1, 2, 3, 10, 11, 12, ...
-     *  we have    : 0, 1, 2, 3, 00, 01, 02, ...
-     *
-     * but we can correctly decode it because we know the final length.
-     *
-     * @param bitSet the bitset representation of the dna sequence
-     * @return the dna sequence represented by the bitset
-     */
-    public static String dnaFrom(final BitSet bitSet) {
-        long number = intFrom(bitSet);      // the base_10 representation of the bit set
-        long preContext = 0;                // the number of combinations skipped to get to the quasi-canonical representation (we keep it to subtract later)
-        long nextContext = 4;               // the next context (we advance it so we know which one was preceding it).
-        int i = 1;                          // the calculated length of the DNA sequence given the base_10 representation of its BitSet.
-        while (nextContext <= number) {     // find the length of the dna string (i)
-            preContext = nextContext;       // keep track of the number of combinations in the preceding context
-            nextContext += Math.pow(4, ++i);// calculate the next context
-        }
-        number -= preContext;               // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
-
-        String dna = "";
-        while (number > 0) {                // perform a simple base_10 to base_4 conversion (quasi-canonical)
-            byte base = (byte) (number % 4);
-            switch (base) {
-                case 0 : dna = "A" + dna; break;
-                case 1 : dna = "C" + dna; break;
-                case 2 : dna = "G" + dna; break;
-                case 3 : dna = "T" + dna; break;
-            }
-            number /= 4;
-        }
-        for (int j = dna.length(); j < i; j++)
-            dna = "A" + dna;                // add leading A's as necessary (due to the "quasi" canonical status, see description above)
-
-        return dna;
-    }
-
-    /**
-     * Creates a BitSet representation of a given dna string.
-     *
-     * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
-     * be longer than 31 bases. To increase this limit, use BigNumbers instead of long and create
-     * a bitSetFrom(BigNumber) method.
-     *
-     * The bit representation of a dna string is the simple:
-     * 0 A      4 AA     8 CA
-     * 1 C      5 AC     ...
-     * 2 G      6 AG     1343 TTGGT
-     * 3 T      7 AT     1364 TTTTT
-     *
-     * To convert from dna to number, we convert the dna string to base10 and add all combinations that
-     * preceded the string (with smaller lengths). 
-     * 
-     * @param dna the dna sequence
-     * @return the bitset representing the dna sequence 
-     */
-    public static BitSet bitSetFrom(String dna) {
-        if (dna.length() > 31)
-            throw new ReviewedStingException(String.format("DNA Length cannot be bigger than 31. dna: %s (%d)", dna, dna.length()));
-        
-        long baseTen = 0;                       // the number in base_10 that we are going to use to generate the bit set 
-        long preContext = 0;                    // the sum of all combinations that preceded the length of the dna string
-        for (int i=0; i<dna.length(); i++) {
-            baseTen *= 4;
-            switch(dna.charAt(i)) {
-                case 'A': baseTen += 0; break;
-                case 'C': baseTen += 1; break;
-                case 'G': baseTen += 2; break;
-                case 'T': baseTen += 3; break;
-            }
-            if (i>0)
-                preContext += Math.pow(4, i);   // each length will have 4^i combinations (e.g 1 = 4, 2 = 16, 3 = 64, ...) 
-        }
-
-        return bitSetFrom(baseTen+preContext);  // the number representing this DNA string is the base_10 representation plus all combinations that preceded this string length.
-    }
 }

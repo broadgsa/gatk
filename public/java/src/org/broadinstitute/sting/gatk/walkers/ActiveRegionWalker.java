@@ -7,10 +7,7 @@ import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
-import org.broadinstitute.sting.gatk.filters.FailsVendorQualityCheckFilter;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
-import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
+import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -33,8 +30,8 @@ import java.util.List;
 @By(DataSource.READS)
 @Requires({DataSource.READS, DataSource.REFERENCE_BASES})
 @PartitionBy(PartitionType.READ)
-@ActiveRegionExtension(extension=50)
-@ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class})
+@ActiveRegionExtension(extension=50,maxRegion=1500)
+@ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
 
     @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)
@@ -44,6 +41,10 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     protected List<IntervalBinding<Feature>> activeRegionBindings = null;
 
     public GenomeLocSortedSet presetActiveRegions = null;
+
+    public boolean hasPresetActiveRegions() {
+        return presetActiveRegions != null;
+    }
 
     @Override
     public void initialize() {

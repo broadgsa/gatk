@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -50,8 +50,8 @@ public class DiffObjectsIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "data")
     public Object[][] createData() {
-        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "da3dc85a0e35a9aade5520591891b4fa");
-        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "7dc8200730313e6753237a696296fb73");
+        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "dba5eab2b9587c1062721b164e4fd9a6");
+        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "de35c93450b46db5fc5516af3c55d62a");
         return TestParams.getTests(TestParams.class);
     }
 

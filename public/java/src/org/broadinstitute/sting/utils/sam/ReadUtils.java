@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -44,10 +45,15 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
+    
+    private static final String OFFSET_OUT_OF_BOUNDS_EXCEPTION = "Offset cannot be greater than read length %d : %d";
+    private static final String OFFSET_NOT_ZERO_EXCEPTION = "We ran past the end of the read and never found the offset, something went wrong!";
+    
     private ReadUtils() {
     }
 
     private static int DEFAULT_ADAPTOR_SIZE = 100;
+    public static int CLIPPING_GOAL_NOT_REACHED = -1;
 
     /**
      * A marker to tell which end of the read has been clipped
@@ -361,7 +367,11 @@ public class ReadUtils {
     @Requires({"refCoord >= read.getUnclippedStart()", "refCoord <= read.getUnclippedEnd() || (read.getUnclippedEnd() < read.getUnclippedStart())"})
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord, ClippingTail tail) {
-        Pair<Integer, Boolean> result = getReadCoordinateForReferenceCoordinate(read, refCoord);
+        return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, tail, false);
+    }
+
+    public static int getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final ClippingTail tail, final boolean allowGoalNotReached) {
+        Pair<Integer, Boolean> result = getReadCoordinateForReferenceCoordinate(alignmentStart, cigar, refCoord, allowGoalNotReached);
         int readCoord = result.getFirst();
 
         // Corner case one: clipping the right tail and falls on deletion, move to the next
@@ -373,9 +383,9 @@ public class ReadUtils {
         // clipping the left tail and first base is insertion, go to the next read coordinate
         // with the same reference coordinate. Advance to the next cigar element, or to the
         // end of the read if there is no next element.
-        Pair<Boolean, CigarElement> firstElementIsInsertion = readStartsWithInsertion(read);
+        Pair<Boolean, CigarElement> firstElementIsInsertion = readStartsWithInsertion(cigar);
         if (readCoord == 0 && tail == ClippingTail.LEFT_TAIL && firstElementIsInsertion.getFirst())
-            readCoord = Math.min(firstElementIsInsertion.getSecond().getLength(), read.getReadLength() - 1);
+            readCoord = Math.min(firstElementIsInsertion.getSecond().getLength(), cigar.getReadLength() - 1);
 
         return readCoord;
     }
@@ -399,14 +409,25 @@ public class ReadUtils {
     @Requires({"refCoord >= read.getSoftStart()", "refCoord <= read.getSoftEnd()"})
     @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord) {
+        return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, false);
+    }
+
+    public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final boolean allowGoalNotReached) {
         int readBases = 0;
         int refBases = 0;
         boolean fallsInsideDeletion = false;
 
-        int goal = refCoord - read.getSoftStart();  // The goal is to move this many reference bases
+        int goal = refCoord - alignmentStart;  // The goal is to move this many reference bases
+        if (goal < 0) {
+            if (allowGoalNotReached) {
+                return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+            } else {
+                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+            }
+        }
         boolean goalReached = refBases == goal;
 
-        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        Iterator<CigarElement> cigarElementIterator = cigar.getCigarElements().iterator();
         while (!goalReached && cigarElementIterator.hasNext()) {
             CigarElement cigarElement = cigarElementIterator.next();
             int shift = 0;
@@ -430,8 +451,13 @@ public class ReadUtils {
 
                 // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
                 // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
-                if (!endsWithinCigar && !cigarElementIterator.hasNext())
-                    throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                if (!endsWithinCigar && !cigarElementIterator.hasNext()) {
+                    if (allowGoalNotReached) {
+                        return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+                    } else {
+                        throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                    }
+                }
 
                 CigarElement nextCigarElement;
 
@@ -446,8 +472,13 @@ public class ReadUtils {
                     // if it's an insertion, we need to clip the whole insertion before looking at the next element
                     if (nextCigarElement.getOperator() == CigarOperator.INSERTION) {
                         readBases += nextCigarElement.getLength();
-                        if (!cigarElementIterator.hasNext())
-                            throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                        if (!cigarElementIterator.hasNext()) {
+                            if (allowGoalNotReached) {
+                                return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+                            } else {
+                                throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                            }
+                        }
 
                         nextCigarElement = cigarElementIterator.next();
                     }
@@ -472,8 +503,13 @@ public class ReadUtils {
             }
         }
 
-        if (!goalReached)
-            throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+        if (!goalReached) {
+            if (allowGoalNotReached) {
+                return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
+            } else {
+                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+            }
+        }
 
         return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
     }
@@ -495,7 +531,7 @@ public class ReadUtils {
     /**
      * Is a base inside a read?
      *
-     * @param read the read to evaluate
+     * @param read                the read to evaluate
      * @param referenceCoordinate the reference coordinate of the base to test
      * @return true if it is inside the read, false otherwise.
      */
@@ -526,7 +562,11 @@ public class ReadUtils {
      * @return A pair with the answer (true/false) and the element or null if it doesn't exist
      */
     public static Pair<Boolean, CigarElement> readStartsWithInsertion(GATKSAMRecord read) {
-        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+        return readStartsWithInsertion(read.getCigar());
+    }
+
+    public static Pair<Boolean, CigarElement> readStartsWithInsertion(final Cigar cigar) {
+        for (CigarElement cigarElement : cigar.getCigarElements()) {
             if (cigarElement.getOperator() == CigarOperator.INSERTION)
                 return new Pair<Boolean, CigarElement>(true, cigarElement);
 
@@ -541,9 +581,9 @@ public class ReadUtils {
      *
      * See getCoverageDistributionOfRead for information on how the coverage is calculated.
      *
-     * @param list the list of reads covering the region
+     * @param list          the list of reads covering the region
      * @param startLocation the first reference coordinate of the region (inclusive)
-     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @param stopLocation  the last reference coordinate of the region (inclusive)
      * @return an array with the coverage of each position from startLocation to stopLocation
      */
     public static int [] getCoverageDistributionOfReads(List<GATKSAMRecord> list, int startLocation, int stopLocation) {
@@ -563,9 +603,9 @@ public class ReadUtils {
      * Note: This function counts DELETIONS as coverage (since the main purpose is to downsample
      * reads for variant regions, and deletions count as variants)
      *
-     * @param read the read to get the coverage distribution of
+     * @param read          the read to get the coverage distribution of
      * @param startLocation the first reference coordinate of the region (inclusive)
-     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @param stopLocation  the last reference coordinate of the region (inclusive)
      * @return an array with the coverage of each position from startLocation to stopLocation
      */
     public static int [] getCoverageDistributionOfRead(GATKSAMRecord read, int startLocation, int stopLocation) {
@@ -611,9 +651,9 @@ public class ReadUtils {
      *    Note: Locus is a boolean array, indexed from 0 (= startLocation) to N (= stopLocation), with value==true meaning it contributes to the coverage.
      *    Example: Read => {true, true, false, ... false}
      *
-     * @param readList the list of reads to generate the association mappings
+     * @param readList      the list of reads to generate the association mappings
      * @param startLocation the first reference coordinate of the region (inclusive)
-     * @param stopLocation the last reference coordinate of the region (inclusive)
+     * @param stopLocation  the last reference coordinate of the region (inclusive)
      * @return the two hashmaps described above
      */
     public static Pair<HashMap<Integer, HashSet<GATKSAMRecord>> , HashMap<GATKSAMRecord, Boolean[]>> getBothReadToLociMappings (List<GATKSAMRecord> readList, int startLocation, int stopLocation) {
@@ -621,7 +661,6 @@ public class ReadUtils {
 
         HashMap<Integer, HashSet<GATKSAMRecord>> locusToReadMap = new HashMap<Integer, HashSet<GATKSAMRecord>>(2*(stopLocation - startLocation + 1), 0.5f);
         HashMap<GATKSAMRecord, Boolean[]> readToLocusMap = new HashMap<GATKSAMRecord, Boolean[]>(2*readList.size(), 0.5f);
-
 
         for (int i = startLocation; i <= stopLocation; i++)
             locusToReadMap.put(i, new HashSet<GATKSAMRecord>()); // Initialize the locusToRead map with empty lists
@@ -631,7 +670,7 @@ public class ReadUtils {
 
             int [] readCoverage = getCoverageDistributionOfRead(read, startLocation, stopLocation);
 
-            for (int i=0; i<readCoverage.length; i++) {
+            for (int i = 0; i < readCoverage.length; i++) {
                 int refLocation = i + startLocation;
                 if (readCoverage[i] > 0) {
                     // Update the hash for this locus
@@ -649,6 +688,66 @@ public class ReadUtils {
         return new Pair<HashMap<Integer, HashSet<GATKSAMRecord>>, HashMap<GATKSAMRecord, Boolean[]>>(locusToReadMap, readToLocusMap);
     }
 
+    /**
+     * Create random read qualities
+     *
+     * @param length the length of the read
+     * @return an array with randomized base qualities between 0 and 50
+     */
+    public static byte[] createRandomReadQuals(int length) {
+        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        byte[] quals = new byte[length];
+        for (int i = 0; i < length; i++)
+            quals[i] = (byte) random.nextInt(50);
+        return quals;
+    }
+
+    /**
+     * Create random read qualities
+     *
+     * @param length  the length of the read
+     * @param allowNs whether or not to allow N's in the read
+     * @return an array with randomized bases (A-N) with equal probability
+     */
+    public static byte[] createRandomReadBases(int length, boolean allowNs) {
+        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        int numberOfBases = allowNs ? 5 : 4;
+        byte[] bases = new byte[length];
+        for (int i = 0; i < length; i++) {
+            switch (random.nextInt(numberOfBases)) {
+                case 0:
+                    bases[i] = 'A';
+                    break;
+                case 1:
+                    bases[i] = 'C';
+                    break;
+                case 2:
+                    bases[i] = 'G';
+                    break;
+                case 3:
+                    bases[i] = 'T';
+                    break;
+                case 4:
+                    bases[i] = 'N';
+                    break;
+                default:
+                    throw new ReviewedStingException("Something went wrong, this is just impossible");
+            }
+        }
+        return bases;
+    }
+
+    public static GATKSAMRecord createRandomRead(int length) {
+        return createRandomRead(length, true);
+    }
+
+    public static GATKSAMRecord createRandomRead(int length, boolean allowNs) {
+        byte[] quals = ReadUtils.createRandomReadQuals(length);
+        byte[] bbases = ReadUtils.createRandomReadBases(length, allowNs);
+        return ArtificialSAMUtils.createArtificialRead(bbases, quals, bbases.length + "M");
+    }
+
+
     public static String prettyPrintSequenceRecords ( SAMSequenceDictionary sequenceDictionary ) {
         String[] sequenceRecordNames = new String[sequenceDictionary.size()];
         int sequenceRecordIndex = 0;
@@ -656,4 +755,71 @@ public class ReadUtils {
             sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
         return Arrays.deepToString(sequenceRecordNames);
     }
+
+    /**
+     * Calculates the reference coordinate for a read coordinate
+     *
+     * @param read   the read
+     * @param offset the base in the read (coordinate in the read)
+     * @return the reference coordinate correspondent to this base
+     */
+    public static long getReferenceCoordinateForReadCoordinate(GATKSAMRecord read, int offset) {
+        if (offset > read.getReadLength()) 
+            throw new ReviewedStingException(String.format(OFFSET_OUT_OF_BOUNDS_EXCEPTION, offset, read.getReadLength()));
+
+        long location = read.getAlignmentStart();
+        Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
+        while (offset > 0 && cigarElementIterator.hasNext()) {
+            CigarElement cigarElement = cigarElementIterator.next();
+            long move = 0;
+            if (cigarElement.getOperator().consumesReferenceBases())  
+                move = (long) Math.min(cigarElement.getLength(), offset);
+            location += move;
+            offset -= move;
+        }
+        if (offset > 0 && !cigarElementIterator.hasNext()) 
+            throw new ReviewedStingException(OFFSET_NOT_ZERO_EXCEPTION);
+
+        return location;
+    }
+
+    /**
+     * Creates a map with each event in the read (cigar operator) and the read coordinate where it happened.
+     *
+     * Example:
+     *  D -> 2, 34, 75
+     *  I -> 55
+     *  S -> 0, 101
+     *  H -> 101
+     *
+     * @param read the read
+     * @return a map with the properties described above. See example
+     */
+    public static Map<CigarOperator, ArrayList<Integer>> getCigarOperatorForAllBases (GATKSAMRecord read) {
+        Map<CigarOperator, ArrayList<Integer>> events = new HashMap<CigarOperator, ArrayList<Integer>>();
+
+        int position = 0;
+        for (CigarElement cigarElement : read.getCigar().getCigarElements()) {
+            CigarOperator op = cigarElement.getOperator();
+            if (op.consumesReadBases()) {
+                ArrayList<Integer> list = events.get(op);
+                if (list == null) {
+                    list = new ArrayList<Integer>();
+                    events.put(op, list);
+                }
+                for (int i = position; i < cigarElement.getLength(); i++)
+                    list.add(position++);
+            }
+            else {
+                ArrayList<Integer> list = events.get(op);
+                if (list == null) {
+                    list = new ArrayList<Integer>();
+                    events.put(op, list);
+                }
+                list.add(position);
+            }
+        }
+        return events;
+    }
+
 }

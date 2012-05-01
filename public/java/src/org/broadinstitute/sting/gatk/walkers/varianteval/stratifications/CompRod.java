@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -15,16 +16,12 @@ import java.util.List;
 public class CompRod extends VariantStratifier implements RequiredStratification {
     @Override
     public void initialize() {
-        for ( RodBinding<VariantContext> rod : getVariantEvalWalker().getComps() )
+        for ( RodBinding<VariantContext> rod : getVariantEvalWalker().getComps() ) {
             states.add(rod.getName());
+        }
     }
 
-
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
-
-        relevantStates.add(compName);
-
-        return relevantStates;
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        return Collections.singletonList((Object)compName);
     }
 }

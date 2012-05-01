@@ -38,12 +38,10 @@ import java.util.List;
 public class VariantType extends VariantStratifier {
     @Override
     public void initialize() {
-        for ( VariantContext.Type t : VariantContext.Type.values() ) {
-            states.add(t.toString());
-        }
+        states.addAll(Arrays.asList(VariantContext.Type.values()));
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        return eval == null ? Collections.<String>emptyList() : Arrays.asList(eval.getType().toString());
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        return eval == null ? Collections.emptyList() : Collections.singletonList((Object)eval.getType());
     }
 }

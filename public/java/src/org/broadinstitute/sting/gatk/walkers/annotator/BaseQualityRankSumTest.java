@@ -5,16 +5,14 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 
 /**
- * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for base qualities (ref bases vs. bases of the alternate allele).
+ * The u-based z-approximation from the Mann-Whitney Rank Sum Test for base qualities (ref bases vs. bases of the alternate allele).
  * Note that the base quality rank sum test can not be calculated for homozygous sites.
  */
 public class BaseQualityRankSumTest extends RankSumTest {
@@ -31,8 +29,31 @@ public class BaseQualityRankSumTest extends RankSumTest {
                     altQuals.add((double)p.getQual());
             }
         }
-
     }
+    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
+        // TODO -- implement me; how do we pull out the correct offset from the read?
+        return;
+
+/*
+        for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
+            final boolean matchesRef = ref.equals(alleleBin.getKey());
+            final boolean matchesAlt = alts.contains(alleleBin.getKey());
+            if ( !matchesRef && !matchesAlt )
+                continue;
+
+            for ( final GATKSAMRecord read : alleleBin.getValue() ) {
+
+                if ( isUsableBase(p) ) {
+                    if ( matchesRef )
+                        refQuals.add((double)p.getQual());
+                    else
+                        altQuals.add((double)p.getQual());
+                }
+            }
+        }
+*/
+    }
+
     protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
         // equivalent is whether indel likelihoods for reads corresponding to ref allele are more likely than reads corresponding to alt allele ?
         HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();

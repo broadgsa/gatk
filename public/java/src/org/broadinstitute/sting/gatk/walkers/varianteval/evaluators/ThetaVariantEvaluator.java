@@ -14,31 +14,27 @@ import java.util.concurrent.ConcurrentMap;
 
 @Analysis(description = "Computes different estimates of theta based on variant sites and genotypes")
 public class ThetaVariantEvaluator extends VariantEvaluator {
-    @DataPoint(description = "Average heterozygosity at variant sites; note that missing genotypes are ignored when computing this value")
-    double avgHet = 0.0;
-    @DataPoint(description = "Average pairwise differences at aligned sequences; averaged over both number of sequeneces and number of variant sites; note that missing genotypes are ignored when computing this value")
-    double avgAvgDiffs = 0.0;
-    @DataPoint(description = "Sum of heterozygosity over all variant sites; divide this by total target to get estimate of per base theta")
-    double totalHet = 0.0;
-    @DataPoint(description = "Sum of pairwise diffs over all variant sites; divide this by total target to get estimate of per base theta")
-    double totalAvgDiffs = 0.0;
-    @DataPoint(description = "Theta for entire region estimated based on number of segregating sites; divide ths by total target to get estimate of per base theta")
-    double thetaRegionNumSites = 0.0;
+    @DataPoint(description = "Average heterozygosity at variant sites; note that missing genotypes are ignored when computing this value", format = "%.8f")
+    public double avgHet = 0.0;
+    @DataPoint(description = "Average pairwise differences at aligned sequences; averaged over both number of sequeneces and number of variant sites; note that missing genotypes are ignored when computing this value", format = "%.8f")
+    public double avgAvgDiffs = 0.0;
+    @DataPoint(description = "Sum of heterozygosity over all variant sites; divide this by total target to get estimate of per base theta", format = "%.8f")
+    public double totalHet = 0.0;
+    @DataPoint(description = "Sum of pairwise diffs over all variant sites; divide this by total target to get estimate of per base theta", format = "%.8f")
+    public double totalAvgDiffs = 0.0;
+    @DataPoint(description = "Theta for entire region estimated based on number of segregating sites; divide ths by total target to get estimate of per base theta", format = "%.8f")
+    public double thetaRegionNumSites = 0.0;
 
     //helper variables
     double numSites = 0;
-
-    public boolean enabled() {
-        return true;
-    }
 
     public int getComparisonOrder() {
         return 1;
     }
 
-    public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (vc == null || !vc.isSNP() || !vc.hasGenotypes() || vc.isMonomorphicInSamples()) {
-            return null; //no interesting sites
+    public void update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if (vc == null || !vc.isSNP() || (getWalker().ignoreAC0Sites() && vc.isMonomorphicInSamples())) {
+            return;
         }
 
         //this maps allele to a count
@@ -107,8 +103,6 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
                 this.totalAvgDiffs += numDiffs / numPairwise;
             }
         }
-
-        return null;
     }
 
     @Override

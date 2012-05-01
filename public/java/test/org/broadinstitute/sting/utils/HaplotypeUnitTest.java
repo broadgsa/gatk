@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2012 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -99,8 +99,7 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(10, CigarOperator.I));
         h1CigarList.add(new CigarElement(8, CigarOperator.M));
         h1CigarList.add(new CigarElement(3, CigarOperator.D));
-        h1CigarList.add(new CigarElement(7, CigarOperator.M));
-        h1CigarList.add(new CigarElement(4, CigarOperator.M));
+        h1CigarList.add(new CigarElement(7 + 4, CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
         String h1bases = "AACTTTCG" + "CCGGCCGGCC" + "ATCGATCG" + "AGGGGGA" + "AGGC";
         basicInsertTest("-", "ACTT", 1, h1Cigar, bases, h1bases);
@@ -119,8 +118,7 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(10, CigarOperator.I));
         h1CigarList.add(new CigarElement(8, CigarOperator.M));
         h1CigarList.add(new CigarElement(3, CigarOperator.D));
-        h1CigarList.add(new CigarElement(7, CigarOperator.M));
-        h1CigarList.add(new CigarElement(4, CigarOperator.M));
+        h1CigarList.add(new CigarElement(7 + 4, CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
         String h1bases = "A" + "CGGCCGGCC" + "ATCGATCG" + "AGGGGGA" + "AGGC";
         basicInsertTest("ACTT", "-", 1, h1Cigar, bases, h1bases);
@@ -139,8 +137,7 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(10, CigarOperator.I));
         h1CigarList.add(new CigarElement(8, CigarOperator.M));
         h1CigarList.add(new CigarElement(3, CigarOperator.D));
-        h1CigarList.add(new CigarElement(7, CigarOperator.M));
-        h1CigarList.add(new CigarElement(4, CigarOperator.M));
+        h1CigarList.add(new CigarElement(7 + 4, CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
         String h1bases = "AGCG" + "CCGGCCGGCC" + "ATCGATCG" + "AGGGGGA" + "AGGC";
         basicInsertTest("T", "G", 1, h1Cigar, bases, h1bases);
@@ -155,9 +152,10 @@ public class HaplotypeUnitTest extends BaseTest {
         final Haplotype h = new Haplotype(hap.getBytes());
         final Allele h1refAllele = Allele.create(ref, true);
         final Allele h1altAllele = Allele.create(alt, false);
-        final Haplotype h1 = new Haplotype( h.insertAllele(h1refAllele, h1altAllele, loc - INDEL_PADDING_BASE, 0, cigar) );
+        h.setAlignmentStartHapwrtRef(0);
+        h.setCigar(cigar);
+        final Haplotype h1 = new Haplotype( h.insertAllele(h1refAllele, h1altAllele, loc - INDEL_PADDING_BASE) );
         final Haplotype h1expected = new Haplotype(newHap.getBytes());
         Assert.assertEquals(h1, h1expected);
-
     }
 }

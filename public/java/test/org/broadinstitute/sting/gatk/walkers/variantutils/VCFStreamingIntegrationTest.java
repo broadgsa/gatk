@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -98,7 +98,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
             " -EV CompOverlap -noEV -noST" +
             " -o %s",
             1,
-            Arrays.asList("addf5f4596ddacef40808f6d3d281111")
+            Arrays.asList("3212b375b8c440abe436be42ec7e1524")
         );
         executeTest("testVCFStreamingChain", selectTestSpec);
 

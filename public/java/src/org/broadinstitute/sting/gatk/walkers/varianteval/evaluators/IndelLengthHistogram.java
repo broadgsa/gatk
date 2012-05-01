@@ -1,111 +1,122 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.Molten;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.util.*;
+
 /**
- * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
+ * Simple utility for histogramming indel lengths
  *
- * @Author chartl
- * @Date May 26, 2010
+ * Based on code from chartl
+ *
+ * @author Mark DePristo
+ * @since 3/21/12
  */
-@Analysis(name = "Indel length histograms", description = "Shows the distribution of insertion/deletion event lengths (negative for deletion, positive for insertion)")
-public class IndelLengthHistogram extends VariantEvaluator {
-    private static final int SIZE_LIMIT = 100;
-    @DataPoint(description="Histogram of indel lengths")
-    IndelHistogram indelHistogram = new IndelHistogram(SIZE_LIMIT);
+@Analysis(description = "Indel length histogram", molten = true)
+public class IndelLengthHistogram extends VariantEvaluator implements StandardEval {
+    private final Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
+    private final static boolean asFrequencies = true;
+    int nIndels = 0;
 
-    /*
-     * Indel length histogram table object
-     */
+    @Molten(variableName = "Length", valueName = "Freq", variableFormat = "%d", valueFormat = "%.2f")
+    public TreeMap<Object, Object> results;
+    
+    public final static int MAX_SIZE_FOR_HISTOGRAM = 10;
+    private final static boolean INCLUDE_LONG_EVENTS_AT_MAX_SIZE = false;
 
-    static class IndelHistogram implements TableType {
-        private Integer[] colKeys;
-        private int limit;
-        private String[] rowKeys = {"EventLength"};
-        private Integer[] indelHistogram;
+    public IndelLengthHistogram() {
+        initializeCounts(MAX_SIZE_FOR_HISTOGRAM);
+    }
 
-        public IndelHistogram(int limit) {
-            colKeys = initColKeys(limit);
-            indelHistogram = initHistogram(limit);
-            this.limit = limit;
-        }
-
-        public Object[] getColumnKeys() {
-            return colKeys;
-        }
-
-        public Object[] getRowKeys() {
-            return rowKeys;
-        }
-
-        public Object getCell(int row, int col) {
-            return indelHistogram[col];
-        }
-
-        private Integer[] initColKeys(int size) {
-            Integer[] cK = new Integer[size*2+1];
-            int index = 0;
-            for ( int i = -size; i <= size; i ++ ) {
-                cK[index] = i;
-                index++;
-            }
-
-            return cK;
-        }
-
-        private Integer[] initHistogram(int size) {
-            Integer[] hist = new Integer[size*2+1];
-            for ( int i = 0; i < 2*size+1; i ++ ) {
-                hist[i] = 0;
-            }
-
-            return hist;
-        }
-
-        public String getName() { return "indelHistTable"; }
-
-        public void update(int eLength) {
-            indelHistogram[len2index(eLength)]++;
-        }
-
-        private int len2index(int len) {
-            if ( len > limit || len < -limit ) {
-                throw new ReviewedStingException("Indel length exceeds limit of "+limit+" please increase indel limit size");
-            }
-            return len + limit;
+    private void initializeCounts(int size) {
+        for ( int i = -size; i <= size; i++ ) {
+            if ( i != 0 ) counts.put(i, 0);
         }
     }
 
-    public boolean enabled() { return true; }
-
-    public String getName() { return "IndelLengthHistogram"; }
-
-    public int getComparisonOrder() { return 1; } // need only the evals
-
-    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-
-        if ( vc1.isIndel() && vc1.isPolymorphicInSamples() ) {
-
-            if ( ! vc1.isBiallelic() ) {
-                //veWalker.getLogger().warn("[IndelLengthHistogram] Non-biallelic indel at "+ref.getLocus()+" ignored.");
-                return vc1.toString(); // biallelic sites are output
+    @Override
+    public void finalizeEvaluation() {
+        if ( asFrequencies ) {
+            results = new TreeMap<Object, Object>();
+            for ( final int len : counts.keySet() ) {
+                final double value = nIndels == 0 ? 0.0 : counts.get(len) / (1.0 * nIndels);
+                results.put(len, value);
             }
+        } else {
+            results = new TreeMap<Object, Object>(results);
+        }
+    }
 
-            // only count simple insertions/deletions, not complex indels
-            if ( vc1.isSimpleInsertion() ) {
-                indelHistogram.update(vc1.getAlternateAllele(0).length());
-            } else if ( vc1.isSimpleDeletion() ) {
-                indelHistogram.update(-vc1.getReference().length());
+    @Override
+    public int getComparisonOrder() {
+        return 1;
+    }
+
+    @Override
+    public void update1(final VariantContext eval, final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
+        if ( eval.isIndel() && ! eval.isComplexIndel() ) {
+            if ( ! ( getWalker().ignoreAC0Sites() && eval.isMonomorphicInSamples() )) {
+                // only if we are actually polymorphic in the subsetted samples should we count the allele
+                for ( Allele alt : eval.getAlternateAlleles() ) {
+                    final int alleleSize = alt.length() - eval.getReference().length();
+                    if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
+                    updateLengthHistogram(eval.getReference(), alt);
+                }
             }
         }
+    }
 
-        return null;
+    /**
+     * Update the histogram with the implied length of the indel allele between ref and alt (alt.len - ref.len).
+     *
+     * If this size is outside of MAX_SIZE_FOR_HISTOGRAM, the size is capped to MAX_SIZE_FOR_HISTOGRAM,
+     * if INCLUDE_LONG_EVENTS_AT_MAX_SIZE is set.
+     *
+     * @param ref
+     * @param alt
+     */
+    public void updateLengthHistogram(final Allele ref, final Allele alt) {
+        int len = alt.length() - ref.length();
+        if ( INCLUDE_LONG_EVENTS_AT_MAX_SIZE ) {
+            if ( len > MAX_SIZE_FOR_HISTOGRAM ) len = MAX_SIZE_FOR_HISTOGRAM;
+            if ( len < -MAX_SIZE_FOR_HISTOGRAM ) len = -MAX_SIZE_FOR_HISTOGRAM;
+        }
+        
+        if ( Math.abs(len) > MAX_SIZE_FOR_HISTOGRAM )
+            return;
+        
+        nIndels++;
+        counts.put(len, counts.get(len) + 1);
     }
 }

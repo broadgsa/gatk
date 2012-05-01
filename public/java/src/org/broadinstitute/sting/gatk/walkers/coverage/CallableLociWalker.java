@@ -1,23 +1,25 @@
 /*
- * Copyright (c) 2009 The Broad Institute
- *  Permission is hereby granted, free of charge, to any person
- *  obtaining a copy of this software and associated documentation
- *  files (the "Software"), to deal in the Software without
- *  restriction, including without limitation the rights to use,
- *  copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the
- *  Software is furnished to do so, subject to the following
- *  conditions:
- *  The above copyright notice and this permission notice shall be
- *  included in all copies or substantial portions of the Software.
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- *  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- *  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- *  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- *  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- *  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- *  * OTHER DEALINGS IN THE SOFTWARE.
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.broadinstitute.sting.gatk.walkers.coverage;
@@ -42,40 +44,40 @@ import java.io.PrintStream;
 
 /**
  * Emits a data file containing information about callable, uncallable, poorly mapped, and other parts of the genome
- *
+ * <p/>
  * <p>
  * A very common question about a NGS set of reads is what areas of the genome are considered callable. The system
  * considers the coverage at each locus and emits either a per base state or a summary interval BED file that
  * partitions the genomic intervals into the following callable states:
  * <dl>
- *     <dt>REF_N</dt>
- *        <dd>the reference base was an N, which is not considered callable the GATK</dd>
- *     <dt>CALLABLE</dt>
- *        <dd>the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE</dd>
- *     <dt>NO_COVERAGE</dt>
- *        <dd>absolutely no reads were seen at this locus, regardless of the filtering parameters</dd>
- *     <dt>LOW_COVERAGE</dt>
- *        <dd>there were less than min. depth bases at the locus, after applying filters</dd>
- *     <dt>EXCESSIVE_COVERAGE</dt>
- *        <dd>more than -maxDepth read at the locus, indicating some sort of mapping problem</dd>
- *     <dt>POOR_MAPPING_QUALITY</dt>
- *        <dd>more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads</dd>
+ * <dt>REF_N</dt>
+ * <dd>the reference base was an N, which is not considered callable the GATK</dd>
+ * <dt>PASS</dt>
+ * <dd>the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE</dd>
+ * <dt>NO_COVERAGE</dt>
+ * <dd>absolutely no reads were seen at this locus, regardless of the filtering parameters</dd>
+ * <dt>LOW_COVERAGE</dt>
+ * <dd>there were less than min. depth bases at the locus, after applying filters</dd>
+ * <dt>EXCESSIVE_COVERAGE</dt>
+ * <dd>more than -maxDepth read at the locus, indicating some sort of mapping problem</dd>
+ * <dt>POOR_MAPPING_QUALITY</dt>
+ * <dd>more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads</dd>
  * </dl>
  * </p>
- *
+ * <p/>
  * <h2>Input</h2>
  * <p>
- *     A BAM file containing <b>exactly one sample</b>.
+ * A BAM file containing <b>exactly one sample</b>.
  * </p>
- *
+ * <p/>
  * <h2>Output</h2>
  * <p>
  * <ul>
- *     <li>-o: a OutputFormatted (recommended BED) file with the callable status covering each base</li>
- *     <li>-summary: a table of callable status x count of all examined bases</li>
+ * <li>-o: a OutputFormatted (recommended BED) file with the callable status covering each base</li>
+ * <li>-summary: a table of callable status x count of all examined bases</li>
  * </ul>
  * </p>
- *
+ * <p/>
  * <h2>Examples</h2>
  * <pre>
  *     -T CallableLociWalker \
@@ -83,31 +85,31 @@ import java.io.PrintStream;
  *     -summary my.summary \
  *     -o my.bed
  * </pre>
- *
+ * <p/>
  * would produce a BED file (my.bed) that looks like:
- *
+ * <p/>
  * <pre>
- *     20 10000000 10000864 CALLABLE
+ *     20 10000000 10000864 PASS
  *     20 10000865 10000985 POOR_MAPPING_QUALITY
- *     20 10000986 10001138 CALLABLE
+ *     20 10000986 10001138 PASS
  *     20 10001139 10001254 POOR_MAPPING_QUALITY
- *     20 10001255 10012255 CALLABLE
+ *     20 10001255 10012255 PASS
  *     20 10012256 10012259 POOR_MAPPING_QUALITY
- *     20 10012260 10012263 CALLABLE
+ *     20 10012260 10012263 PASS
  *     20 10012264 10012328 POOR_MAPPING_QUALITY
- *     20 10012329 10012550 CALLABLE
+ *     20 10012329 10012550 PASS
  *     20 10012551 10012551 LOW_COVERAGE
- *     20 10012552 10012554 CALLABLE
+ *     20 10012552 10012554 PASS
  *     20 10012555 10012557 LOW_COVERAGE
- *     20 10012558 10012558 CALLABLE
+ *     20 10012558 10012558 PASS
  *     et cetera...
  * </pre>
  * as well as a summary table that looks like:
- *
+ * <p/>
  * <pre>
  *                        state nBases
  *                        REF_N 0
- *                     CALLABLE 996046
+ *                     PASS 996046
  *                  NO_COVERAGE 121
  *                 LOW_COVERAGE 928
  *           EXCESSIVE_COVERAGE 0
@@ -139,21 +141,21 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     byte maxLowMAPQ = 1;
 
     /**
-     * Reads with MAPQ > minMappingQuality are treated as usable for variation detection, contributing to the CALLABLE
+     * Reads with MAPQ > minMappingQuality are treated as usable for variation detection, contributing to the PASS
      * state.
      */
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth.", required = false)
     byte minMappingQuality = 10;
 
     /**
-     * Bases with less than minBaseQuality are viewed as not sufficiently high quality to contribute to the CALLABLE state
+     * Bases with less than minBaseQuality are viewed as not sufficiently high quality to contribute to the PASS state
      */
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth.", required = false)
     byte minBaseQuality = 20;
 
     /**
      * If the number of QC+ bases (on reads with MAPQ > minMappingQuality and with base quality > minBaseQuality) exceeds this
-     * value and is less than maxDepth the site is considered CALLABLE.
+     * value and is less than maxDepth the site is considered PASS.
      */
     @Advanced
     @Argument(fullName = "minDepth", shortName = "minDepth", doc = "Minimum QC+ read depth before a locus is considered callable", required = false)
@@ -191,7 +193,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     public enum OutputFormat {
         /**
          * The output will be written as a BED file.  There's a BED element for each
-         * continuous run of callable states (i.e., CALLABLE, REF_N, etc).  This is the recommended
+         * continuous run of callable states (i.e., PASS, REF_N, etc).  This is the recommended
          * format
          */
         BED,
@@ -204,17 +206,29 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     }
 
     public enum CalledState {
-        /** the reference base was an N, which is not considered callable the GATK */
+        /**
+         * the reference base was an N, which is not considered callable the GATK
+         */
         REF_N,
-        /** the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE */
+        /**
+         * the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE
+         */
         CALLABLE,
-        /** absolutely no reads were seen at this locus, regardless of the filtering parameters */
+        /**
+         * absolutely no reads were seen at this locus, regardless of the filtering parameters
+         */
         NO_COVERAGE,
-        /** there were less than min. depth bases at the locus, after applying filters */
+        /**
+         * there were less than min. depth bases at the locus, after applying filters
+         */
         LOW_COVERAGE,
-        /** more than -maxDepth read at the locus, indicating some sort of mapping problem */
+        /**
+         * more than -maxDepth read at the locus, indicating some sort of mapping problem
+         */
         EXCESSIVE_COVERAGE,
-        /** more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads */
+        /**
+         * more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads
+         */
         POOR_MAPPING_QUALITY
     }
 
@@ -223,11 +237,13 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     ////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public boolean includeReadsWithDeletionAtLoci() { return true; }
+    public boolean includeReadsWithDeletionAtLoci() {
+        return true;
+    }
 
     @Override
     public void initialize() {
-        if ( getSampleDB().getSamples().size() != 1 ) {
+        if (getSampleDB().getSamples().size() != 1) {
             throw new UserException.BadArgumentValue("-I", "CallableLoci only works for a single sample, but multiple samples were found in the provided BAM files: " + getSampleDB().getSamples());
         }
 
@@ -249,7 +265,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         public GenomeLoc loc;
         final public CalledState state;
 
-        public CallableBaseState(GenomeLocParser genomeLocParser,GenomeLoc loc, CalledState state) {
+        public CallableBaseState(GenomeLocParser genomeLocParser, GenomeLoc loc, CalledState state) {
             this.genomeLocParser = genomeLocParser;
             this.loc = loc;
             this.state = state;
@@ -264,12 +280,13 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         }
 
         // update routines
-        public boolean changingState( CalledState newState ) {
+        public boolean changingState(CalledState newState) {
             return state != newState;
         }
 
         /**
          * Updating the location of this CalledBaseState by the new stop location
+         *
          * @param newStop
          */
         public void update(GenomeLoc newStop) {
@@ -285,7 +302,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     public CallableBaseState map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         CalledState state;
 
-        if ( BaseUtils.isNBase(ref.getBase()) ) {
+        if (BaseUtils.isNBase(ref.getBase())) {
             state = CalledState.REF_N;
         } else {
             // count up the depths of all and QC+ bases
@@ -293,29 +310,29 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
             for (PileupElement e : context.getBasePileup()) {
                 rawDepth++;
 
-                if ( e.getMappingQual() <= maxLowMAPQ )
+                if (e.getMappingQual() <= maxLowMAPQ)
                     lowMAPQDepth++;
 
-                if ( e.getMappingQual() >= minMappingQuality && ( e.getQual() >= minBaseQuality || e.isDeletion() ) ) {
+                if (e.getMappingQual() >= minMappingQuality && (e.getQual() >= minBaseQuality || e.isDeletion())) {
                     QCDepth++;
                 }
             }
 
             //System.out.printf("%s rawdepth = %d QCDepth = %d lowMAPQ = %d%n", context.getLocation(), rawDepth, QCDepth, lowMAPQDepth);
-            if ( rawDepth == 0 ) {
+            if (rawDepth == 0) {
                 state = CalledState.NO_COVERAGE;
-            } else if ( rawDepth >= minDepthLowMAPQ && MathUtils.ratio( lowMAPQDepth, rawDepth ) >= maxLowMAPQFraction ) {
+            } else if (rawDepth >= minDepthLowMAPQ && MathUtils.ratio(lowMAPQDepth, rawDepth) >= maxLowMAPQFraction) {
                 state = CalledState.POOR_MAPPING_QUALITY;
-            } else if ( QCDepth < minDepth ) {
+            } else if (QCDepth < minDepth) {
                 state = CalledState.LOW_COVERAGE;
-            } else if ( rawDepth >= maxDepth && maxDepth != -1 ) {
+            } else if (rawDepth >= maxDepth && maxDepth != -1) {
                 state = CalledState.EXCESSIVE_COVERAGE;
             } else {
                 state = CalledState.CALLABLE;
             }
         }
 
-        return new CallableBaseState(getToolkit().getGenomeLocParser(),context.getLocation(), state);
+        return new CallableBaseState(getToolkit().getGenomeLocParser(), context.getLocation(), state);
     }
 
     @Override
@@ -328,15 +345,15 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         // update counts
         integrator.counts[state.getState().ordinal()]++;
 
-        if ( outputFormat == OutputFormat.STATE_PER_BASE ) {
+        if (outputFormat == OutputFormat.STATE_PER_BASE) {
             out.println(state.toString());
         }
 
         // format is integrating
-        if ( integrator.state == null )
+        if (integrator.state == null)
             integrator.state = state;
-        else if ( state.getLocation().getStart() != integrator.state.getLocation().getStop() + 1 ||
-                integrator.state.changingState(state.getState()) ) {
+        else if (state.getLocation().getStart() != integrator.state.getLocation().getStop() + 1 ||
+                integrator.state.changingState(state.getState())) {
             out.println(integrator.state.toString());
             integrator.state = state;
         } else {
@@ -354,14 +371,14 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     @Override
     public void onTraversalDone(Integrator result) {
         // print out the last state
-        if ( result != null ) {
-            if ( outputFormat == OutputFormat.BED )  // get the last interval
+        if (result != null) {
+            if (outputFormat == OutputFormat.BED)  // get the last interval
                 out.println(result.state.toString());
 
             try {
                 PrintStream summaryOut = new PrintStream(summaryFile);
                 summaryOut.printf("%30s %s%n", "state", "nBases");
-                for ( CalledState state : CalledState.values() ) {
+                for (CalledState state : CalledState.values()) {
                     summaryOut.printf("%30s %d%n", state, result.counts[state.ordinal()]);
                 }
                 summaryOut.close();

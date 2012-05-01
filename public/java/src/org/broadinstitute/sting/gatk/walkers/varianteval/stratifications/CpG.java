@@ -27,7 +27,8 @@ public class CpG extends VariantStratifier {
         states.add("non_CpG");
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    @Override
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         boolean isCpG = false;
         if (ref != null && ref.getBases() != null) {
             String fwRefBases = new String(ref.getBases());
@@ -41,7 +42,7 @@ public class CpG extends VariantStratifier {
             }
         }
 
-        ArrayList<String> relevantStates = new ArrayList<String>();
+        ArrayList<Object> relevantStates = new ArrayList<Object>(2);
         relevantStates.add("all");
         relevantStates.add(isCpG ? "CpG" : "non_CpG");
 

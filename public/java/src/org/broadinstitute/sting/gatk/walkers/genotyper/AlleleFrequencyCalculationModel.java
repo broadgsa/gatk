@@ -26,10 +26,14 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -41,7 +45,8 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     public enum Model {
         /** The default model with the best performance in all cases */
-        EXACT
+        EXACT,
+        POOL
     }
 
     protected int N;
@@ -62,6 +67,42 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
     }
 
     /**
+     * Wrapper class that compares two likelihoods associated with two alleles
+     */
+    protected static final class LikelihoodSum implements Comparable<LikelihoodSum> {
+        public double sum = 0.0;
+        public Allele allele;
+
+        public LikelihoodSum(Allele allele) { this.allele = allele; }
+
+        public int compareTo(LikelihoodSum other) {
+            final double diff = sum - other.sum;
+            return ( diff < 0.0 ) ? 1 : (diff > 0.0 ) ? -1 : 0;
+        }
+    }
+
+    /**
+     * Unpack GenotypesContext into arraylist of doubel values
+     * @param GLs            Input genotype context
+     * @return               ArrayList of doubles corresponding to GL vectors
+     */
+    protected static ArrayList<double[]> getGLs(GenotypesContext GLs) {
+        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size());
+
+        genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
+        for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
+            if ( sample.hasLikelihoods() ) {
+                double[] gls = sample.getLikelihoods().getAsVector();
+
+                if ( MathUtils.sum(gls) < UnifiedGenotyperEngine.SUM_GL_THRESH_NOCALL )
+                    genotypeLikelihoods.add(gls);
+            }
+        }
+
+        return genotypeLikelihoods;
+    }
+
+    /**
      * Must be overridden by concrete subclasses
      * @param vc                                variant context with alleles and genotype likelihoods
      * @param log10AlleleFrequencyPriors        priors
@@ -69,6 +110,19 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @return the alleles used for genotyping
      */
     protected abstract List<Allele> getLog10PNonRef(final VariantContext vc,
-                                                    final double[][] log10AlleleFrequencyPriors,
+                                                    final double[] log10AlleleFrequencyPriors,
                                                     final AlleleFrequencyCalculationResult result);
+
+    /**
+     * Must be overridden by concrete subclasses
+     * @param vc                                variant context with alleles and genotype likelihoods
+     * @param allelesToUse                      alleles to subset
+     * @param assignGenotypes
+     * @param ploidy
+     * @return GenotypesContext object
+     */
+    protected abstract GenotypesContext subsetAlleles(final VariantContext vc,
+                                                      final List<Allele> allelesToUse,
+                                                      final boolean assignGenotypes,
+                                                      final int ploidy);
 }

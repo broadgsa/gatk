@@ -81,7 +81,7 @@ class GATKResourcesBundle extends QScript {
 
   def initializeTestDataFiles() = {
     //
-    // Standard evaluation files for indels
+    // Standard evaluation files for indel
     //
     b37 = new Reference("b37", new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta"))
     hg18 = new Reference("hg18", new File("/Users/depristo/Desktop/broadLocal/localData/Homo_sapiens_assembly18.fasta"))
@@ -122,8 +122,8 @@ class GATKResourcesBundle extends QScript {
     //
     // standard VCF files.  Will be lifted to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf",
-      "dbsnp_132", b37, true, false))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_135_b37.leftAligned.vcf",
+      "dbsnp_135", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_genotypes_1525_samples.b37.vcf",
       "1000G_omni2.5", b37, true, true))
@@ -131,8 +131,8 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
       "hapmap_3.3", b37, true, true))
 
-    addResource(new Resource("/humgen/1kg/processing/official_release/phase1/ALL.wgs.VQSR_consensus_biallelic.20101123.indels.sites.vcf",
-      "1000G_biallelic.indels", b37, true, false))
+    addResource(new Resource("/humgen/1kg/DCC/ftp/technical/working/20120312_phase1_v2_indel_cleaned_sites_list/ALL.wgs.phase1_release_v2.20101123.official_indel_calls.20120312.sites.vcf",
+      "1000G_phase1.indels", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, true))
@@ -242,6 +242,7 @@ class GATKResourcesBundle extends QScript {
 
   def createDownloadsFromBundle(in: File, out: File) {
     Console.printf("Visiting %s%n", in)
+    // todo -- ignore some of the other files too (e.g. *.out); will test next time we make a bundle
     if (! in.getName.startsWith(".")) {
       if ( in.isDirectory ) {
         out.mkdirs
@@ -320,7 +321,7 @@ class GATKResourcesBundle extends QScript {
   }
 
   class LiftOverPerl(@Input val in: File, @Output val out: File, @Input val chain: File, oldRef: Reference, newRef: Reference) extends CommandLineFunction {
-    this.memoryLimit = 8
+    this.memoryLimit = 12
     def commandLine = ("%s -vcf %s -chain %s -out %s " +
       "-gatk ./ -newRef %s -oldRef %s -tmp %s").format(liftOverPerl, in.getAbsolutePath, chain,
       out.getAbsolutePath, newRef.file.replace(".fasta", ""),

@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -233,7 +234,17 @@ public class ArtificialSAMUtils {
         return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 10000, bases, qual, cigar);
     }
 
+    public static GATKSAMRecord createArtificialRead(Cigar cigar) {
+        int length = cigar.getReadLength();
+        byte [] base = {'A'};
+        byte [] qual = {30};
+        byte [] bases = Utils.arrayFromArrayWithLength(base, length);
+        byte [] quals = Utils.arrayFromArrayWithLength(qual, length);
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
+        return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 10000, bases, quals, cigar.toString());
+    }
 
+    
     public final static List<GATKSAMRecord> createPair(SAMFileHeader header, String name, int readLen, int leftStart, int rightStart, boolean leftIsFirst, boolean leftIsNegative) {
         GATKSAMRecord left = ArtificialSAMUtils.createArtificialRead(header, name, 0, leftStart, readLen);
         GATKSAMRecord right = ArtificialSAMUtils.createArtificialRead(header, name, 0, rightStart, readLen);
@@ -323,6 +334,33 @@ public class ArtificialSAMUtils {
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
     }
 
+    /**
+     * Create an iterator containing the specified reads
+     *
+     * @param reads the reads
+     * @return iterator for the reads
+     */
+    public static StingSAMIterator createReadIterator(SAMRecord... reads) {
+        return createReadIterator(Arrays.asList(reads));
+    }
+
+    /**
+     * Create an iterator containing the specified reads
+     *
+     * @param reads the reads
+     * @return iterator for the reads
+     */
+    public static StingSAMIterator createReadIterator(List<SAMRecord> reads) {
+        final Iterator<SAMRecord> iter = reads.iterator();
+        return new StingSAMIterator() {
+            @Override public void close() {}
+            @Override public Iterator<SAMRecord> iterator() { return iter; }
+            @Override public boolean hasNext() { return iter.hasNext(); }
+            @Override public SAMRecord next() { return iter.next(); }
+            @Override public void remove() { iter.remove(); }
+        };
+    }
+
     private final static int ranIntInclusive(Random ran, int start, int stop) {
         final int range = stop - start;
         return ran.nextInt(range) + start;
@@ -361,10 +399,10 @@ public class ArtificialSAMUtils {
             final GATKSAMRecord left = pair.get(0);
             final GATKSAMRecord right = pair.get(1);
 
-            pileupElements.add(new PileupElement(left, pos - leftStart, false, false, false, false));
+            pileupElements.add(new PileupElement(left, pos - leftStart, false, false, false, false, false, false));
 
             if (pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd()) {
-                pileupElements.add(new PileupElement(right, pos - rightStart, false, false, false, false));
+                pileupElements.add(new PileupElement(right, pos - rightStart, false, false, false, false, false, false));
             }
         }
 

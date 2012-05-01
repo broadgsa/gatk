@@ -33,12 +33,8 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 @Analysis(name = "PrintMissingComp", description = "the overlap between eval and comp sites")
 public class PrintMissingComp extends VariantEvaluator {
-    @DataPoint(description = "number of eval sites outside of comp sites")
-    long nMissing = 0;
-
-    //public PrintMissingComp(VariantEvalWalker parent) {
-    //    super(parent);
-    //}
+    @DataPoint(description = "number of eval sites outside of comp sites", format = "%d")
+    public long nMissing = 0;
 
     public String getName() {
         return "PrintMissingComp";
@@ -48,20 +44,13 @@ public class PrintMissingComp extends VariantEvaluator {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public boolean enabled() {
-        return true;
-    }
-
-
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        boolean compIsGood = comp != null && comp.isNotFiltered() && comp.isSNP();
-        boolean evalIsGood = eval != null && eval.isSNP();
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        final boolean compIsGood = comp != null && comp.isNotFiltered() && comp.isSNP();
+        final boolean evalIsGood = eval != null && eval.isSNP();
 
         if ( compIsGood & ! evalIsGood ) {
             nMissing++;
-            return "MissingFrom" + comp.getSource();
-        } else {
-            return null;
+            super.getWalker().getLogger().info("MissingFrom" + eval.toString() + " is missing from " + comp.getSource());
         }
     }
 }

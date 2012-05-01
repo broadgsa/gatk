@@ -118,6 +118,13 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     boolean onlyOutputValidAmplicons = false;
 
     /**
+     * If ignoreComplexEvents is true, the output fasta file will contain only sequences coming from SNPs and Indels.
+     * Complex substitutions will be ignored.
+     */
+    @Argument(doc="Ignore complex genomic records.",fullName="ignoreComplexEvents",required=false)
+    boolean ignoreComplexEvents = false;
+
+    /**
      * BWA single-end alignment is used as a primer specificity proxy. Low-complexity regions (that don't align back to themselves as a best hit) are lowercased.
      * This changes the size of the k-mer used for alignment.
      */
@@ -146,6 +153,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     StringBuilder rawSequence;
     boolean sequenceInvalid;
     boolean isSiteSNP;
+    boolean isSiteIndel;
     List<String> invReason;
     int indelCounter;
 
@@ -244,6 +252,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         } else if ( validate != null ) {
             // record variant type in case it's needed in output format
             isSiteSNP = (validate.isSNP());
+            isSiteIndel = (validate.isIndel());
             // doesn't matter if there's a mask here too -- this is what we want to validate
             if ( validate.isFiltered() ) {
                 logger.warn("You are attempting to validate a filtered site. Why are you attempting to validate a filtered site? You should not be attempting to validate a filtered site.");
@@ -504,6 +513,9 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
         }
 
 
+        if (ignoreComplexEvents && !isSiteIndel && !isSiteSNP)
+            return;
+
         if (!onlyOutputValidAmplicons || !sequenceInvalid) {
             String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
             if (sequenomOutput) {
@@ -512,7 +524,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
                 out.printf("%s_%s %s%n", allelePos != null ? allelePos.toString() : "multiple", probeName, seqIdentity);
             }
             else if (ilmnOutput) {
-                String type = isSiteSNP?"SNP":"INDEL";
+                String type = isSiteSNP?"SNP":(isSiteIndel?"INDEL":"OTHER");
                 seqIdentity = seqIdentity.replace("*","");    // no * in ref allele
                 out.printf("%s,%s,%s,%s,%d,37,1000G,ExomePhase1,Forward,Plus,FALSE%n",probeName,type,seqIdentity,allelePos.getContig(),allelePos.getStart());
             } 

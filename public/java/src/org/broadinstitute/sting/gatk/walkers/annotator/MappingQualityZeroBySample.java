@@ -53,14 +53,8 @@ public class MappingQualityZeroBySample extends GenotypeAnnotation {
             return null;
 
         int mq0 = 0;
-        ReadBackedPileup pileup = null;
-        if (vc.isIndel() && context.hasExtendedEventPileup())
-            pileup = context.getExtendedEventPileup();
-        else if (context.hasBasePileup())
-            pileup = context.getBasePileup();
-        else return null;
-
-        if (pileup != null) {
+        if ( context.hasBasePileup() ) {
+            final ReadBackedPileup pileup = context.getBasePileup();
             for (PileupElement p : pileup ) {
                 if ( p.getMappingQual() == 0 )
                     mq0++;

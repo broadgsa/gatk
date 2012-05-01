@@ -91,6 +91,25 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
             this.cycle = cycle;
         }
 
+        // Must overload hashCode and equals to properly work with GATKReportColumn
+        @Override
+        public int hashCode() {
+            return readGroup.hashCode() + 33 * cycle;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            final TableKey oKey = (TableKey) o;
+
+            if ( cycle != oKey.cycle ) return false;
+            if ( !readGroup.equals(oKey.readGroup) ) return false;
+
+            return true;
+        }
+
         @Override
         public int compareTo(final TableKey tableKey) {
             final int scmp = readGroup.compareTo(tableKey.readGroup);

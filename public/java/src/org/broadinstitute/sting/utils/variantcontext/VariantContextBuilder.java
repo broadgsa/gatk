@@ -28,6 +28,7 @@ import com.google.java.contract.*;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -339,6 +340,21 @@ public class VariantContextBuilder {
         this.contig = contig;
         this.start = start;
         this.stop = stop;
+        toValidate.add(VariantContext.Validation.ALLELES);
+        toValidate.add(VariantContext.Validation.REF_PADDING);
+        return this;
+    }
+
+    /**
+     * Tells us that the resulting VariantContext should have the specified location
+     * @param loc
+     * @return
+     */
+    @Requires({"loc.getContig() != null", "loc.getStart() >= 0", "loc.getStop() >= 0"})
+    public VariantContextBuilder loc(final GenomeLoc loc) {
+        this.contig = loc.getContig();
+        this.start = loc.getStart();
+        this.stop = loc.getStop();
         toValidate.add(VariantContext.Validation.ALLELES);
         toValidate.add(VariantContext.Validation.REF_PADDING);
         return this;

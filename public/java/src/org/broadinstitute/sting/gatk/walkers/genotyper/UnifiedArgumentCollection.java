@@ -38,14 +38,14 @@ public class UnifiedArgumentCollection {
      * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
      */
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
-    public AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
+    protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
 
     /**
      * The expected heterozygosity value used to compute prior likelihoods for any locus. The default priors are:
      * het = 1e-3, P(hom-ref genotype) = 1 - 3 * het / 2, P(het genotype) = het, P(hom-var genotype) = het / 2
      */
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
-    public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
+    public Double heterozygosity = UnifiedGenotyperEngine.HUMAN_SNP_HETEROZYGOSITY;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
@@ -53,15 +53,12 @@ public class UnifiedArgumentCollection {
      * effectively acts as a cap on the base qualities.
      */
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
-    public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
+    public Double PCR_error = DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering.DEFAULT_PCR_ERROR_RATE;
 
-    /**
-     * Specifies how to determine the alternate allele to use for genotyping
-     */
-    @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
+    @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Specifies how to determine the alternate alleles to use for genotyping", required = false)
     public GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY;
 
-    @Argument(fullName = "output_mode", shortName = "out_mode", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
+    @Argument(fullName = "output_mode", shortName = "out_mode", doc = "Specifies which type of calls we should output", required = false)
     public UnifiedGenotyperEngine.OUTPUT_MODE OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY;
 
     /**
@@ -82,15 +79,22 @@ public class UnifiedArgumentCollection {
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
     /**
-     * This argument is not enabled by default because it increases the runtime by an appreciable amount.
+     * Note that calculating the SLOD increases the runtime by an appreciable amount.
      */
     @Argument(fullName = "noSLOD", shortName = "nosl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
 
     /**
+     * Depending on the value of the --max_alternate_alleles argument, we may genotype only a fraction of the alleles being sent on for genotyping.
+     * Using this argument instructs the genotyper to annotate (in the INFO field) the number of alternate alleles that were originally discovered at the site.
+     */
+    @Argument(fullName = "annotateNDA", shortName = "nda", doc = "If provided, we will annotate records with the number of alternate alleles that were discovered (but not necessarily genotyped) at a given site", required = false)
+    public boolean ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = false;
+
+    /**
      * When the UnifiedGenotyper is put into GENOTYPE_GIVEN_ALLELES mode it will genotype the samples using only the alleles provide in this rod binding
      */
-    @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when in GENOTYPE_MODE = GENOTYPE_GIVEN_ALLELES", required=false)
+    @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when --genotyping_mode is GENOTYPE_GIVEN_ALLELES", required=false)
     public RodBinding<VariantContext> alleles;
 
     /**
@@ -122,6 +126,17 @@ public class UnifiedArgumentCollection {
     public int MIN_INDEL_COUNT_FOR_GENOTYPING = 5;
 
     /**
+     * Complementary argument to minIndelCnt.  Only samples with at least this fraction of indel-containing reads will contribute
+     * to counting and overcoming the threshold minIndelCnt.  This parameter ensures that in deep data you don't end
+     * up summing lots of super rare errors up to overcome the 5 read default threshold.  Should work equally well for
+     * low-coverage and high-coverage samples, as low coverage samples with any indel containing reads should easily over
+     * come this threshold.
+     */
+    @Argument(fullName = "min_indel_fraction_per_sample", shortName = "minIndelFrac", doc = "Minimum fraction of all reads at a locus that must contain an indel (of any allele) for that sample to contribute to the indel count for alleles", required = false)
+    public double MIN_INDEL_FRACTION_PER_SAMPLE = 0.25;
+
+
+    /**
      * This argument informs the prior probability of having an indel at a site.
      */
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
@@ -129,11 +144,11 @@ public class UnifiedArgumentCollection {
 
     @Hidden
     @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty", required = false)
-    public double INDEL_GAP_CONTINUATION_PENALTY = 10.0;
+    public byte INDEL_GAP_CONTINUATION_PENALTY = 10;
 
     @Hidden
     @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty", required = false)
-    public double INDEL_GAP_OPEN_PENALTY = 45.0;
+    public byte INDEL_GAP_OPEN_PENALTY = 45;
 
     @Hidden
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
@@ -163,11 +178,13 @@ public class UnifiedArgumentCollection {
         uac.GenotypingMode = GenotypingMode;
         uac.OutputMode = OutputMode;
         uac.NO_SLOD = NO_SLOD;
+        uac.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
+        uac.MIN_INDEL_FRACTION_PER_SAMPLE = MIN_INDEL_FRACTION_PER_SAMPLE;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
         uac.INDEL_GAP_OPEN_PENALTY = INDEL_GAP_OPEN_PENALTY;
         uac.INDEL_GAP_CONTINUATION_PENALTY = INDEL_GAP_CONTINUATION_PENALTY;

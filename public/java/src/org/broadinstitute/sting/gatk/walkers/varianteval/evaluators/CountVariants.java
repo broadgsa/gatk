@@ -11,54 +11,51 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 @Analysis(description = "Counts different classes of variants in the sample")
 public class CountVariants extends VariantEvaluator implements StandardEval {
-
     // the following fields are in output order:
 
     // basic counts on various rates found
-    @DataPoint(description = "Number of processed loci")
+    @DataPoint(description = "Number of processed loci", format = "%d")
     public long nProcessedLoci = 0;
-    @DataPoint(description = "Number of called loci")
+    @DataPoint(description = "Number of called loci", format = "%d")
     public long nCalledLoci = 0;
-    @DataPoint(description = "Number of reference loci")
+    @DataPoint(description = "Number of reference loci", format = "%d")
     public long nRefLoci = 0;
-    @DataPoint(description = "Number of variant loci")
+    @DataPoint(description = "Number of variant loci", format = "%d")
     public long nVariantLoci = 0;
 
     // the following two calculations get set in the finalizeEvaluation
-    @DataPoint(description = "Variants per loci rate")
+    @DataPoint(description = "Variants per loci rate", format = "%.8f")
     public double variantRate = 0;
-    @DataPoint(description = "Number of variants per base")
+    @DataPoint(description = "Number of variants per base", format = "%.8f")
     public double variantRatePerBp = 0;
 
-
-    @DataPoint(description = "Number of snp loci")
+    @DataPoint(description = "Number of snp loci", format = "%d")
     public long nSNPs = 0;
-    @DataPoint(description = "Number of mnp loci")
+    @DataPoint(description = "Number of mnp loci", format = "%d")
     public long nMNPs = 0;
-    @DataPoint(description = "Number of insertions")
+    @DataPoint(description = "Number of insertions", format = "%d")
     public long nInsertions = 0;
-    @DataPoint(description = "Number of deletions")
+    @DataPoint(description = "Number of deletions", format = "%d")
     public long nDeletions = 0;
-    @DataPoint(description = "Number of complex indels")
+    @DataPoint(description = "Number of complex indels", format = "%d")
     public long nComplex = 0;
-    @DataPoint(description = "Number of symbolic events")
+    @DataPoint(description = "Number of symbolic events", format = "%d")
     public long nSymbolic = 0;
 
-    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)")
+    @DataPoint(description = "Number of mixed loci (loci that can't be classified as a SNP, Indel or MNP)", format = "%d")
     public long nMixed = 0;
 
-
-    @DataPoint(description = "Number of no calls loci")
+    @DataPoint(description = "Number of no calls loci", format = "%d")
     public long nNoCalls = 0;
-    @DataPoint(description = "Number of het loci")
+    @DataPoint(description = "Number of het loci", format = "%d")
     public long nHets = 0;
-    @DataPoint(description = "Number of hom ref loci")
+    @DataPoint(description = "Number of hom ref loci", format = "%d")
     public long nHomRef = 0;
-    @DataPoint(description = "Number of hom var loci")
+    @DataPoint(description = "Number of hom var loci", format = "%d")
     public long nHomVar = 0;
-    @DataPoint(description = "Number of singletons")
+    @DataPoint(description = "Number of singletons", format = "%d")
     public long nSingletons = 0;
-    @DataPoint(description = "Number of derived homozygotes")
+    @DataPoint(description = "Number of derived homozygotes", format = "%d")
     public long nHomDerived = 0;
 
     // calculations that get set in the finalizeEvaluation method
@@ -72,8 +69,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public double indelRate = 0;
     @DataPoint(description = "indel rate per base pair", format = "%.2f")
     public double indelRatePerBp = 0;
-    @DataPoint(description = "deletion to insertion ratio", format = "%.2f")
-    public double deletionInsertionRatio = 0;
+    @DataPoint(description = "insertion  to deletion ratio", format = "%.2f")
+    public double insertionDeletionRatio = 0;
     
     private double perLocusRate(long n) {
         return rate(n, nProcessedLoci);
@@ -83,19 +80,12 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         return inverseRate(n, nProcessedLoci);
     }
 
-    public boolean enabled() {
-        return true;
-    }
 
     public int getComparisonOrder() {
         return 1;   // we only need to see each eval track
     }
 
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
-    }
-
-    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nCalledLoci++;
 
         // Note from Eric:
@@ -103,7 +93,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         // So in order to maintain consistency with the previous implementation (and the intention of the original author), I've
         // added in a proxy check for monomorphic status here.
         // Protect against case when vc only as no-calls too - can happen if we strafity by sample and sample as a single no-call.
-       if ( vc1.isMonomorphicInSamples() ) {
+       if ( getWalker().ignoreAC0Sites() && vc1.isMonomorphicInSamples() ) {
             nRefLoci++;
         } else {
              switch (vc1.getType()) {
@@ -113,12 +103,12 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 case SNP:
                     nVariantLoci++;
                     nSNPs++;
-                    if (vc1.getAttributeAsBoolean("ISSINGLETON", false)) nSingletons++;
+                    if (variantWasSingleton(vc1)) nSingletons++;
                     break;
                 case MNP:
                     nVariantLoci++;
                     nMNPs++;
-                    if (vc1.getAttributeAsBoolean("ISSINGLETON", false)) nSingletons++;
+                    if (variantWasSingleton(vc1)) nSingletons++;
                     break;
                 case INDEL:
                     nVariantLoci++;
@@ -141,12 +131,9 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
             }
         }
 
-        String refStr = vc1.getReference().getBaseString().toUpperCase();
-
-        String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE", null).toUpperCase() : null;
-//        if (aaStr.equals(".")) {
-//            aaStr = refStr;
-//        }
+        // these operations are ordered to ensure that we don't get the base string of the ref unless we need it
+        final String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE", null).toUpperCase() : null;
+        final String refStr = aaStr != null ? vc1.getReference().getBaseString().toUpperCase() : null;
 
         // ref  aa  alt  class
         // A    C   A    der homozygote
@@ -189,11 +176,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     throw new ReviewedStingException("BUG: Unexpected genotype type: " + g);
             }
         }
-
-        return null; // we don't capture any interesting sites
     }
 
     public void finalizeEvaluation() {
+        nProcessedLoci = getWalker().getnProcessedLoci();
         variantRate = perLocusRate(nVariantLoci);
         variantRatePerBp = perLocusRInverseRate(nVariantLoci);
         heterozygosity = perLocusRate(nHets);
@@ -201,6 +187,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
         hetHomRatio = ratio(nHets, nHomVar);
         indelRate = perLocusRate(nDeletions + nInsertions + nComplex);
         indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions + nComplex);
-        deletionInsertionRatio = ratio(nDeletions, nInsertions);
+        insertionDeletionRatio = ratio(nInsertions, nDeletions);
     }
 }

@@ -32,6 +32,8 @@ import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor
  * Merges a vcf text file.
  */
 class VcfGatherFunction extends CombineVariants with GatherFunction {
+  this.assumeIdenticalSamples = true
+  this.suppressCommandLineHeader = true
 
   private lazy val originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
 
@@ -43,7 +45,6 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
 
     this.variant = this.gatherParts.zipWithIndex map { case (input, index) => new TaggedFile(input, "input"+index) }
     this.out = this.originalOutput
-    this.assumeIdenticalSamples = true
 
     // NO_HEADER and sites_only from VCFWriterArgumentTypeDescriptor
     // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK

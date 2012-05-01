@@ -27,7 +27,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
 
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
             "0ddd1e0e483d2eaf56004615cea23ec7",  // tranches
-            "58780f63182e139fdbe17f6c18b5b774",  // recal file
+            "f8e21a1987960b950db1f0d98be45352",  // recal file
             "f67d844b6252a55452cf4167b77530b1"); // cut VCF
 
     @DataProvider(name = "VRTest")
@@ -73,9 +73,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
-            "6d7ee4cb651c8b666e4a4523363caaff",  // tranches
-            "4759b111a5aa53975d46e0f22c7983bf",  // recal file
-            "5d7e07d8813db96ba3f3dfe4737f83d1"); // cut VCF
+            "da4458d05f6396f5c4ab96f274e5ccdc",  // tranches
+            "cf380d9b0ae04c8918be8425f82035b4",  // recal file
+            "b00e5e5a6807df8ed1682317948e8a6d"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
     public Object[][] createData2() {
@@ -117,6 +117,22 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -recalFile " + MD5DB.getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
         executeTest("testApplyRecalibrationIndel-"+params.inVCF, spec);
+    }
+
+    @Test
+    public void testApplyRecalibrationSnpAndIndelTogether() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b37KGReference +
+                        " -T ApplyRecalibration" +
+                        " -L 20:1000100-1000500" +
+                        " -mode BOTH" +
+                        " -NO_HEADER" +
+                        " -input " + validationDataLocation + "VQSR.mixedTest.input" +
+                        " -o %s" +
+                        " -tranchesFile " + validationDataLocation + "VQSR.mixedTest.tranches" +
+                        " -recalFile " + validationDataLocation + "VQSR.mixedTest.recal",
+                Arrays.asList("08060b7f5c9cf3bb1692b50c58fd5a4b"));
+        executeTest("testApplyRecalibrationSnpAndIndelTogether", spec);
     }
 }
 

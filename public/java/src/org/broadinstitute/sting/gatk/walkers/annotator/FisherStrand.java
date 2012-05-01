@@ -28,6 +28,7 @@ import cern.jet.math.Arithmetic;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
@@ -37,6 +38,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -49,7 +51,7 @@ import java.util.*;
  * indicative of false positive calls.  Note that the fisher strand test may not be
  * calculated for certain complex indel cases or for multi-allelic sites.
  */
-public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation {
+public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
 
@@ -76,6 +78,22 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
+    }
+
+    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
+        if ( !vc.isVariant() )
+            return null;
+
+        final int[][] table = getContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+
+        final Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
+        if ( pvalue == null )
+            return null;
+
+        final Map<String, Object> map = new HashMap<String, Object>();
+        map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
+        return map;
+
     }
 
     public List<String> getKeyNames() {
@@ -200,6 +218,38 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
+    private static int[][] getContingencyTable(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, Allele ref, Allele alt) {
+        int[][] table = new int[2][2];
+
+        for ( final Map<Allele, List<GATKSAMRecord>> alleleBins : stratifiedContexts.values() ) {
+            for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : alleleBins.entrySet() ) {
+
+                final boolean matchesRef = ref.equals(alleleBin.getKey());
+                final boolean matchesAlt = alt.equals(alleleBin.getKey());
+                if ( !matchesRef && !matchesAlt )
+                    continue;
+
+                for ( final GATKSAMRecord read : alleleBin.getValue() ) {
+                    boolean isFW = read.getReadNegativeStrandFlag();
+
+                    int row = matchesRef ? 0 : 1;
+                    int column = isFW ? 0 : 1;
+
+                    table[row][column]++;
+                }
+            }
+        }
+
+        return table;
+    }
+
+    /**
+     Allocate and fill a 2x2 strand contingency table.  In the end, it'll look something like this:
+     *             fw      rc
+     *   allele1   #       #
+     *   allele2   #       #
+     * @return a 2x2 contingency table
+     */
     private static int[][] getSNPContingencyTable(Map<String, AlignmentContext> stratifiedContexts, Allele ref, Allele alt) {
         int[][] table = new int[2][2];
 
@@ -214,8 +264,8 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                 Allele base = Allele.create(p.getBase(), false);
                 boolean isFW = !p.getRead().getReadNegativeStrandFlag();
 
-                boolean matchesRef = ref.equals(base, true);
-                boolean matchesAlt = alt.equals(base, true);
+                final boolean matchesRef = ref.equals(base, true);
+                final boolean matchesAlt = alt.equals(base, true);
                 if ( matchesRef || matchesAlt ) {
                     int row = matchesRef ? 0 : 1;
                     int column = isFW ? 0 : 1;
@@ -227,6 +277,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         return table;
     }
+
     /**
      Allocate and fill a 2x2 strand contingency table.  In the end, it'll look something like this:
      *             fw      rc
@@ -245,24 +296,16 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( String sample : stratifiedContexts.keySet() ) {
             final AlignmentContext context = stratifiedContexts.get(sample);
-            if ( context == null ) 
+            if ( context == null || !context.hasBasePileup() )
                 continue;
 
-            ReadBackedPileup pileup = null;
-             if (context.hasExtendedEventPileup())
-                 pileup = context.getExtendedEventPileup();
-             else if (context.hasBasePileup())
-                 pileup = context.getBasePileup();
-
-             if (pileup == null)
-                 continue;
-
-            for (final PileupElement p: pileup) {
+            final ReadBackedPileup pileup = context.getBasePileup();
+            for ( final PileupElement p : pileup ) {
                 if ( p.getRead().isReducedRead() ) // ignore reduced reads
                     continue;
-                if ( p.getRead().getMappingQuality() < 20)
+                if ( p.getRead().getMappingQuality() < 20 )
                     continue;
-                if (indelLikelihoodMap.containsKey(p)) {
+                if ( indelLikelihoodMap.containsKey(p) ) {
                     // to classify a pileup element as ref or alt, we look at the likelihood associated with the allele associated to this element.
                     // A pileup element then has a list of pairs of form (Allele, likelihood of this allele).
                     // To classify a pileup element as Ref or Alt, we look at the likelihood of corresponding alleles.

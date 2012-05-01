@@ -28,6 +28,7 @@ import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.EnumMap;
 
@@ -149,8 +150,12 @@ public class GenotypeLikelihoods {
         if ( !likelihoodsAsString_PLs.equals(VCFConstants.MISSING_VALUE_v4) ) {
             String[] strings = likelihoodsAsString_PLs.split(",");
             double[] likelihoodsAsVector = new double[strings.length];
-            for ( int i = 0; i < strings.length; i++ ) {
-                likelihoodsAsVector[i] = Integer.parseInt(strings[i]) / -10.0;
+            try {
+                for ( int i = 0; i < strings.length; i++ ) {
+                    likelihoodsAsVector[i] = Integer.parseInt(strings[i]) / -10.0;
+                }
+            } catch (NumberFormatException e) {
+                throw new UserException.MalformedVCF("The GL/PL tag contains non-integer values: " + likelihoodsAsString_PLs);
             }
             return likelihoodsAsVector;
         } else
@@ -223,15 +228,15 @@ public class GenotypeLikelihoods {
     /**
      * The maximum number of alleles that we can represent as genotype likelihoods
      */
-    public final static int MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED = 500;
+    public final static int MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
 
     /*
      * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
      */
-    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED); // start with data for 10 alternate alleles
+    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
 
     private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
-        final int numLikelihoods = calculateNumLikelihoods(altAlleles);
+        final int numLikelihoods = calculateNumLikelihoods(1+altAlleles, 2);
         final GenotypeLikelihoodsAllelePair[] cache = new GenotypeLikelihoodsAllelePair[numLikelihoods];
 
         // for all possible combinations of 2 alleles
@@ -249,13 +254,50 @@ public class GenotypeLikelihoods {
             
         return cache;
     }
-    
-    // how many likelihoods are associated with the given number of alternate alleles?
-    public static int calculateNumLikelihoods(final int numAltAlleles) {
-        int numLikelihoods = 1;
-        for ( int i = 1; i <= numAltAlleles; i++ )
-            numLikelihoods += i + 1;
-        return numLikelihoods;
+
+    /**
+    * Compute how many likelihood elements are associated with the given number of alleles
+    * Equivalent to asking in how many ways N non-negative integers can add up to P is S(N,P)
+    * where P = ploidy (number of chromosomes) and N = total # of alleles.
+    * Each chromosome can be in one single state (0,...,N-1) and there are P of them.
+    * Naive solution would be to store N*P likelihoods, but this is not necessary because we can't distinguish chromosome states, but rather
+    * only total number of alt allele counts in all chromosomes.
+    *
+    * For example, S(3,2) = 6: For alleles A,B,C, on a diploid organism we have six possible genotypes:
+    * AA,AB,BB,AC,BC,CC.
+    * Another way of expressing is with vector (#of A alleles, # of B alleles, # of C alleles)
+    * which is then, for ordering above, (2,0,0), (1,1,0), (0,2,0), (1,1,0), (0,1,1), (0,0,2)
+    * In general, for P=2 (regular biallelic), then S(N,2) = N*(N+1)/2
+    *
+    * Recursive implementation:
+    *   S(N,P) = sum_{k=0}^P S(N-1,P-k)
+    *  because if we have N integers, we can condition 1 integer to be = k, and then N-1 integers have to sum to P-K
+    * With initial conditions
+    *   S(N,1) = N  (only way to have N integers add up to 1 is all-zeros except one element with a one. There are N of these vectors)
+    *   S(1,P) = 1 (only way to have 1 integer add to P is with that integer P itself).
+    *
+    *   @param  numAlleles      Number of alleles (including ref)
+    *   @param  ploidy          Ploidy, or number of chromosomes in set
+    *   @return    Number of likelihood elements we need to hold.
+    */
+
+    public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
+
+        // fast, closed form solution for diploid samples (most common use case)
+        if (ploidy==2)
+            return numAlleles*(numAlleles+1)/2;
+
+        if (numAlleles == 1)
+            return 1;
+        else if (ploidy == 1)
+            return numAlleles;
+
+        int acc =0;
+        for (int k=0; k <= ploidy; k++ )
+            acc += calculateNumLikelihoods(numAlleles-1, ploidy-k);
+
+        return acc;
+
     }
 
     // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
@@ -289,11 +331,11 @@ public class GenotypeLikelihoods {
      *    ordering and I know with certainty that external users have built code on top of it; changing it now would
      *    cause a whole lot of heartache for our collaborators, so for now at least there's a standard conversion method.
      * This method assumes at most 3 alternate alleles.
-     * TODO -- address this issue at the source by updating DiploidSNPGenotypeLikelihoods.
      *
      * @param PLindex   the PL index
      * @return the allele index pair
      */
+    @Deprecated
     public static GenotypeLikelihoodsAllelePair getAllelePairUsingDeprecatedOrdering(final int PLindex) {
         return getAllelePair(PLindexConversion[PLindex]);
     }

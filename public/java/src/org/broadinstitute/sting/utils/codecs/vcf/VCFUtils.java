@@ -155,10 +155,10 @@ public class VCFUtils {
         for ( VCFHeader source : headers ) {
             //System.out.printf("Merging in header %s%n", source);
             for ( VCFHeaderLine line : source.getMetaData()) {
-                String key = line.getKey();
 
-                if ( line instanceof VCFNamedHeaderLine)
-                    key = key + "" + ((VCFNamedHeaderLine) line).getName();
+                String key = line.getKey();
+                if ( line instanceof VCFIDHeaderLine )
+                    key = key + "-" + ((VCFIDHeaderLine)line).getID();
 
                 if ( map.containsKey(key) ) {
                     VCFHeaderLine other = map.get(key);
@@ -166,8 +166,8 @@ public class VCFUtils {
                         continue;
                     else if ( ! line.getClass().equals(other.getClass()) )
                         throw new IllegalStateException("Incompatible header types: " + line + " " + other );
-                    else if ( line instanceof VCFFilterHeaderLine) {
-                        String lineName = ((VCFFilterHeaderLine) line).getName();                                                                                                         String otherName = ((VCFFilterHeaderLine) other).getName();
+                    else if ( line instanceof VCFFilterHeaderLine ) {
+                        String lineName = ((VCFFilterHeaderLine) line).getID();                                                                                                         String otherName = ((VCFFilterHeaderLine) other).getID();
                         if ( ! lineName.equals(otherName) )
                             throw new IllegalStateException("Incompatible header types: " + line + " " + other );
                     } else if ( line instanceof VCFCompoundHeaderLine ) {

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -45,8 +46,7 @@ public class DepthOfCoverageStats {
 
     public static int[] calculateBinEndpoints(int lower, int upper, int bins) {
         if ( bins > upper - lower || lower < 1 ) {
-            throw new IllegalArgumentException("Illegal argument to calculateBinEndpoints; "+
-                    "lower bound must be at least 1, and number of bins may not exceed stop - start");
+            throw new UserException.BadInput("the start must be at least 1 and the number of bins may not exceed stop - start");
         }
 
         int[] binLeftEndpoints = new int[bins+1];

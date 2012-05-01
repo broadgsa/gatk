@@ -160,7 +160,7 @@ import java.util.*;
  *
  * @author depristo
  */
-public class VariantContext implements Feature { // to enable tribble intergration
+public class VariantContext implements Feature { // to enable tribble integration
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
 
@@ -377,7 +377,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      *
      * Not currently supported:
      *
-     * Heterozygous sequencea
+     * Heterozygous sequence
      * The term heterozygous is used to specify a region detected by certain methods that do not
      * resolve the polymorphism into a specific sequence motif. In these cases, a unique flanking
      * sequence must be provided to define a sequence context for the variation.
@@ -592,15 +592,28 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * @return True if this context contains Allele allele, or false otherwise
      */
-    public boolean hasAllele(Allele allele) {
-        return hasAllele(allele, false);
+    public boolean hasAllele(final Allele allele) {
+        return hasAllele(allele, false, true);
     }
 
-    public boolean hasAllele(Allele allele, boolean ignoreRefState) {
-        if ( allele == REF || allele == ALT ) // optimization for cached cases
+    public boolean hasAllele(final Allele allele, final boolean ignoreRefState) {
+        return hasAllele(allele, ignoreRefState, true);
+    }
+
+    public boolean hasAlternateAllele(final Allele allele) {
+        return hasAllele(allele, false, false);
+    }
+
+    public boolean hasAlternateAllele(final Allele allele, final boolean ignoreRefState) {
+        return hasAllele(allele, ignoreRefState, false);
+    }
+
+    private boolean hasAllele(final Allele allele, final boolean ignoreRefState, final boolean considerRefAllele) {
+        if ( (considerRefAllele && allele == REF) || allele == ALT ) // optimization for cached cases
             return true;
 
-        for ( Allele a : getAlleles() ) {
+        final List<Allele> allelesToConsider = considerRefAllele ? getAlleles() : getAlternateAlleles();
+        for ( Allele a : allelesToConsider ) {
             if ( a.equals(allele, ignoreRefState) )
                 return true;
         }
@@ -657,11 +670,20 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     /**
+     * @param  other  VariantContext whose alleles to compare against
+     * @return true if this VariantContext has the same alleles (both ref and alts) as other,
+     *         regardless of ordering. Otherwise returns false.
+     */
+    public boolean hasSameAllelesAs ( final VariantContext other ) {
+        return hasSameAlternateAllelesAs(other) && other.getReference().equals(getReference(), false);
+    }
+
+    /**
      * @param  other  VariantContext whose alternate alleles to compare against
      * @return true if this VariantContext has the same alternate alleles as other,
      *         regardless of ordering. Otherwise returns false.
      */
-    public boolean hasSameAlternateAllelesAs ( VariantContext other ) {
+    public boolean hasSameAlternateAllelesAs ( final VariantContext other ) {
         List<Allele> thisAlternateAlleles = getAlternateAlleles();
         List<Allele> otherAlternateAlleles = other.getAlternateAlleles();
 
@@ -783,11 +805,22 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return chromosome count
      */
     public int getCalledChrCount() {
-        int n = 0;
+        return  getCalledChrCount(new HashSet<String>(0));
+    }
 
-        for ( final Genotype g : getGenotypes() ) {
-            for ( final Allele a : g.getAlleles() )
-                n += a.isNoCall() ? 0 : 1;
+     /**
+     * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS)
+     *
+     * @param sampleIds IDs of samples to take into account. If empty then all samples are included.
+     * @return chromosome count
+     */
+    public int getCalledChrCount(Set<String> sampleIds) {
+        int n = 0;
+        GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
+
+        for ( final Genotype g : genotypes) {
+                for ( final Allele a : g.getAlleles() )
+                    n += a.isNoCall() ? 0 : 1;
         }
 
         return n;
@@ -800,10 +833,22 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return chromosome count
      */
     public int getCalledChrCount(Allele a) {
-        int n = 0;
+        return getCalledChrCount(a,new HashSet<String>(0));
+    }
 
-        for ( final Genotype g : getGenotypes() ) {
-            n += g.getAlleles(a).size();
+    /**
+     * Returns the number of chromosomes carrying allele A in the genotypes
+     *
+     * @param a allele
+     * @param sampleIds - IDs of samples to take into account. If empty then all samples are included.
+     * @return chromosome count
+     */
+    public int getCalledChrCount(Allele a, Set<String> sampleIds) {
+        int n = 0;
+        GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
+
+        for ( final Genotype g : genotypes ) {
+                n += g.getAlleles(a).size();
         }
 
         return n;
@@ -877,6 +922,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of hom var calls
      */
     public int getHomVarCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.HOM_VAR.ordinal()];
     }
 
@@ -886,6 +932,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of mixed calls
      */
     public int getMixedCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.MIXED.ordinal()];
     }
 
@@ -1031,7 +1078,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     private void validateReferencePadding() {
-        if (hasSymbolicAlleles()) // symbolic alleles don't need padding...
+        if ( hasSymbolicAlleles() ) // symbolic alleles don't need padding...
             return;
 
         boolean needsPadding = (getReference().length() == getEnd() - getStart()); // off by one because padded base was removed
@@ -1069,7 +1116,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 //            if ( getReference().length() != (getLocation().size()-1) ) {
         long length = (stop - start) + 1;
         if ( (getReference().isNull() && length != 1 ) ||
-                (getReference().isNonNull() && (length - getReference().length()  > 1))) {
+                (!isSymbolic() && getReference().isNonNull() && (length - getReference().length()  > 1))) {
             throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
         }
     }

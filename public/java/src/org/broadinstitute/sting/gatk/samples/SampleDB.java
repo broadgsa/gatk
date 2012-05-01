@@ -235,4 +235,14 @@ public class SampleDB {
         }
         return children;
     }
+
+    public Set<String> getFounderIds(){
+        Set<String> founders = new HashSet<String>();
+        for(Sample sample : getSamples()){
+            if(sample.getParents().size()<1)
+                founders.add(sample.getID());
+
+        }
+        return founders;
+    }
 }

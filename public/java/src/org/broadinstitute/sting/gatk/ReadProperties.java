@@ -36,7 +36,6 @@ public class ReadProperties {
     private final Collection<ReadFilter> supplementalFilters;
     private final boolean includeReadsWithDeletionAtLoci;
     private final boolean useOriginalBaseQualities;
-    private final boolean generateExtendedEvents;
     private final BAQ.CalculationMode cmode;
     private final BAQ.QualityMode qmode;
     private final IndexedFastaSequenceFile refReader; // read for BAQ, if desired
@@ -52,16 +51,9 @@ public class ReadProperties {
         return includeReadsWithDeletionAtLoci;
     }
 
-    /**
-     * Return true if the walker wants to see additional piles of "extended" events (indels). An indel is associated,
-     * by convention, with the reference base immediately preceding the insertion/deletion, and if this flag is set
-     * to 'true', any locus with an indel associated with it will cause exactly two subsequent calls to walker's map(): first call
-     * will be made with a "conventional" base pileup, the next call will be made with a pileup of extended (indel/noevent)
-     * events.
-     * @return
-     */
+    @Deprecated
     public boolean generateExtendedEvents() {
-        return generateExtendedEvents;
+        return false;
     }
 
     /**
@@ -144,9 +136,6 @@ public class ReadProperties {
      * @param downsamplingMethod Method for downsampling reads at a given locus.
      * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
-     * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
-     *        a pile of indel/noevent extended events at every locus with at least one indel associated with it
-     *        (in addition to a "regular" call to map() at this locus performed with base pileup)
      * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
@@ -163,7 +152,6 @@ public class ReadProperties {
            ValidationExclusion exclusionList,
            Collection<ReadFilter> supplementalFilters,
            boolean includeReadsWithDeletionAtLoci,
-           boolean generateExtendedEvents,
            BAQ.CalculationMode cmode,
            BAQ.QualityMode qmode,           
            IndexedFastaSequenceFile refReader,
@@ -176,7 +164,6 @@ public class ReadProperties {
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
         this.supplementalFilters = supplementalFilters;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
-        this.generateExtendedEvents = generateExtendedEvents;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
         this.cmode = cmode;
         this.qmode = qmode;

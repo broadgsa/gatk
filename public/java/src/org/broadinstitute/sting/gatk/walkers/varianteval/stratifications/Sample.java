@@ -2,10 +2,11 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantSummary;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * Stratifies the eval RODs by each sample in the eval ROD.
@@ -20,7 +21,12 @@ public class Sample extends VariantStratifier {
         states.addAll(getVariantEvalWalker().getSampleNamesForStratification());
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        return Arrays.asList(sampleName);
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        return Collections.singletonList((Object) sampleName);
+    }
+
+    @Override
+    public Set<Class<? extends VariantEvaluator>> getIncompatibleEvaluators() {
+        return new HashSet<Class<? extends VariantEvaluator>>(Arrays.asList(VariantSummary.class));
     }
 }

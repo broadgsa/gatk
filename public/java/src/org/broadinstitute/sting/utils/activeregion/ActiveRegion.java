@@ -4,6 +4,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import java.util.ArrayList;
  * Date: 1/4/12
  */
 
-public class ActiveRegion implements HasGenomeLocation {
+public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion> {
 
     private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
     private final GenomeLoc activeRegionLoc;
@@ -33,22 +34,48 @@ public class ActiveRegion implements HasGenomeLocation {
         fullExtentReferenceLoc = extendedLoc;
     }
 
+    @Override
+    public String toString() {
+        return "ActiveRegion " + activeRegionLoc.toString();
+    }
+
     // add each read to the bin and extend the reference genome activeRegionLoc if needed
     public void add( final GATKSAMRecord read ) {
         fullExtentReferenceLoc = fullExtentReferenceLoc.union( genomeLocParser.createGenomeLoc( read ) );
         reads.add( read );
     }
+    
+    public void hardClipToActiveRegion() {
+        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, activeRegionLoc.getStart(), activeRegionLoc.getStop() );
+        reads.clear();
+        reads.addAll(clippedReads);
+    }
 
     public ArrayList<GATKSAMRecord> getReads() { return reads; }
 
-    public byte[] getReference( final IndexedFastaSequenceFile referenceReader ) {
-        return getReference( referenceReader, 0 );
+    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader ) {
+        return getActiveRegionReference(referenceReader, 0);
     }
 
-    public byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+        return referenceReader.getSubsequenceAt( activeRegionLoc.getContig(),
+                Math.max(1, activeRegionLoc.getStart() - padding),
+                Math.min(referenceReader.getSequenceDictionary().getSequence(activeRegionLoc.getContig()).getSequenceLength(), activeRegionLoc.getStop() + padding) ).getBases();
+    }
+
+    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
+        return getFullReference(referenceReader, 0);
+    }
+
+    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
        return referenceReader.getSubsequenceAt( fullExtentReferenceLoc.getContig(),
                Math.max(1, fullExtentReferenceLoc.getStart() - padding), 
                Math.min(referenceReader.getSequenceDictionary().getSequence(fullExtentReferenceLoc.getContig()).getSequenceLength(), fullExtentReferenceLoc.getStop() + padding) ).getBases();
+    }
+
+    @Override
+    public int compareTo( final ActiveRegion other ) {
+        return this.getLocation().compareTo(other.getLocation());
     }
 
     @Override
@@ -61,4 +88,13 @@ public class ActiveRegion implements HasGenomeLocation {
     public void clearReads() { reads.clear(); }
     public void remove( final GATKSAMRecord read ) { reads.remove( read ); }
     public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
+
+    public boolean equalExceptReads(final ActiveRegion other) {
+        if ( ! activeRegionLoc.equals(other.activeRegionLoc)) return false;
+        if ( isActive != other.isActive ) return false;
+        if ( genomeLocParser != other.genomeLocParser ) return false;
+        if ( extension != other.extension ) return false;
+        if ( ! extendedLoc.equals(other.extendedLoc) ) return false;
+        return true;
+    }
 }

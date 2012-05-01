@@ -25,6 +25,10 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import org.broadinstitute.sting.utils.MathUtils;
+
+import java.util.Random;
+
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -33,10 +37,11 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * An individual piece of recalibration data. Each bin counts up the number of observations and the number of reference mismatches seen for that combination of covariates.
  */
 
-public class RecalDatum extends RecalDatumOptimized {
+public class RecalDatum extends Datum {
 
-    private double estimatedQReported; // estimated reported quality score based on combined data's individual q-reporteds and number of observations
-    private double empiricalQuality; // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
+    private double estimatedQReported;                                                                                  // estimated reported quality score based on combined data's individual q-reporteds and number of observations
+    private double empiricalQuality;                                                                                    // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
+
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -48,7 +53,7 @@ public class RecalDatum extends RecalDatumOptimized {
         numObservations = 0L;
         numMismatches = 0L;
         estimatedQReported = 0.0;
-        empiricalQuality = 0.0;
+        empiricalQuality = -1.0;
     }
 
     public RecalDatum(final long _numObservations, final long _numMismatches, final double _estimatedQReported, final double _empiricalQuality) {
@@ -65,48 +70,81 @@ public class RecalDatum extends RecalDatumOptimized {
         this.empiricalQuality = copy.empiricalQuality;
     }
 
-    //---------------------------------------------------------------------------------------------------------------
-    //
-    // increment methods
-    //
-    //---------------------------------------------------------------------------------------------------------------
-
-    public final void combine(final RecalDatum other) {
+    public void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         this.increment(other.numObservations, other.numMismatches);
-        this.estimatedQReported = -10 * Math.log10(sumErrors / (double) this.numObservations);
-        //if( this.estimatedQReported > QualityUtils.MAX_REASONABLE_Q_SCORE ) { this.estimatedQReported = QualityUtils.MAX_REASONABLE_Q_SCORE; }
+        this.estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
+        this.empiricalQuality = -1.0;                                                                                   // reset the empirical quality calculation so we never have a wrongly calculated empirical quality stored
     }
 
-    //---------------------------------------------------------------------------------------------------------------
-    //
-    // methods to derive empirical quality score
-    //
-    //---------------------------------------------------------------------------------------------------------------
-
-    public final void calcCombinedEmpiricalQuality(final int smoothing, final int maxQual) {
-        this.empiricalQuality = empiricalQualDouble(smoothing, maxQual);    // cache the value so we don't call log over and over again
+    public final void calcCombinedEmpiricalQuality() {
+        this.empiricalQuality = empiricalQualDouble();                                                                  // cache the value so we don't call log over and over again
     }
-
-    //---------------------------------------------------------------------------------------------------------------
-    //
-    // misc. methods
-    //
-    //---------------------------------------------------------------------------------------------------------------
+    
+    public final void calcEstimatedReportedQuality() {
+        this.estimatedQReported = -10 * Math.log10(calcExpectedErrors() / numObservations);
+    }
 
     public final double getEstimatedQReported() {
         return estimatedQReported;
     }
 
     public final double getEmpiricalQuality() {
+        if (empiricalQuality < 0)
+            calcCombinedEmpiricalQuality();
         return empiricalQuality;
     }
 
-    private double calcExpectedErrors() {
+    /**
+     * Makes a hard copy of the recal datum element
+     *
+     * @return a new recal datum object with the same contents of this datum.
+     */
+    public RecalDatum copy() {
+        return new RecalDatum(numObservations, numMismatches, estimatedQReported, empiricalQuality);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()));
+    }
+
+    public String stringForCSV() {
+        return String.format("%s,%d,%.2f", toString(), (byte) Math.floor(getEstimatedQReported()), getEmpiricalQuality() - getEstimatedQReported());
+    }
+
+
+        private double calcExpectedErrors() {
         return (double) this.numObservations * qualToErrorProb(estimatedQReported);
     }
 
     private double qualToErrorProb(final double qual) {
         return Math.pow(10.0, qual / -10.0);
+    }
+
+    public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
+        Random random = new Random();
+        int nObservations = random.nextInt(maxObservations);
+        int nErrors = random.nextInt(maxErrors);
+        Datum datum = new Datum(nObservations, nErrors);
+        double empiricalQuality = datum.empiricalQualDouble();
+        double estimatedQReported = empiricalQuality + ((10 * random.nextDouble()) - 5);                                // empirical quality +/- 5.
+        return new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
+    }
+
+    /**
+     * We don't compare the estimated quality reported because it may be different when read from
+     * report tables.
+     *
+     * @param o the other recal datum
+     * @return true if the two recal datums have the same number of observations, errors and empirical quality.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof RecalDatum))
+            return false;
+        RecalDatum other = (RecalDatum) o;
+        return super.equals(o) &&
+               MathUtils.compareDoubles(this.empiricalQuality, other.empiricalQuality, 0.001) == 0;
     }
 }

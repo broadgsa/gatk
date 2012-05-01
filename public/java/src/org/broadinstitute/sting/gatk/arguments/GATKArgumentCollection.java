@@ -107,11 +107,6 @@ public class GATKArgumentCollection {
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
-    @Deprecated
-    @Hidden
-    @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form :<name>,<type> <file>", required = false)
-    public ArrayList<String> RODBindings = new ArrayList<String>();
-
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
@@ -197,6 +192,16 @@ public class GATKArgumentCollection {
      */
     @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Filename for the input covariates table recalibration .csv file which enables on the fly base quality score recalibration")
     public File BQSR_RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
+
+    /**
+     * Turns on the base quantization module. It requires a recalibration report (-BQSR).
+     *
+     * A value of 0 here means "do not quantize".
+     * Any value greater than zero will be used to recalculate the quantization using this many levels.
+     * Negative values do nothing (i.e. quantize using the recalibration report's quantization level -- same as not providing this parameter at all)
+     */
+    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels.", required=false)
+    public int quantizationLevels = -1;
 
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;

@@ -98,6 +98,7 @@ public class AlignmentContext implements HasGenomeLocation {
      * only base pileup.
      * @return
      */
+    @Deprecated
     public ReadBackedExtendedEventPileup getExtendedEventPileup() {
         if(!hasExtendedEventPileup())
             throw new ReviewedStingException("No extended event pileup is present.");
@@ -115,6 +116,7 @@ public class AlignmentContext implements HasGenomeLocation {
      *
      * @return
      */
+    @Deprecated
     public boolean hasExtendedEventPileup() { return basePileup instanceof ReadBackedExtendedEventPileup; }
 
     /**

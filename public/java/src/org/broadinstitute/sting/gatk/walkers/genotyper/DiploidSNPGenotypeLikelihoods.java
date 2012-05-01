@@ -70,6 +70,7 @@ import static java.lang.Math.pow;
  * From then on, you can call any of the add() routines to update the likelihoods and posteriors in the above
  * model.
  */
+@Deprecated
 public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     public final static double DEFAULT_PCR_ERROR_RATE = 1e-4;
 

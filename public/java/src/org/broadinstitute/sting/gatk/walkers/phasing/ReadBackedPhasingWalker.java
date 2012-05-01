@@ -36,8 +36,10 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -121,8 +123,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public int MIN_MAPPING_QUALITY_SCORE = 20;
 
     @Argument(fullName = "sampleToPhase", shortName = "sampleToPhase", doc = "Only include these samples when phasing", required = false)
-    protected Set
-            <String> samplesToPhase = null;
+    protected Set<String> samplesToPhase = null;
+
+    @Hidden
+    @Argument(fullName = "permitNoSampleOverlap", shortName = "permitNoSampleOverlap", doc = "Don't exit (just WARN) when the VCF and BAMs do not overlap in samples", required = false)
+    private boolean permitNoSampleOverlap = false;
+
+    @Argument(fullName = "respectPhaseInInput", shortName = "respectPhaseInInput", doc = "Will only phase genotypes in cases where the resulting output will necessarily be consistent with any existing phase (for example, from trios)", required = false)
+    private boolean respectPhaseInInput = false;
 
     private GenomeLoc mostDownstreamLocusReached = null;
 
@@ -205,12 +213,18 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         // todo -- fix samplesToPhase
         String trackName = variantCollection.variants.getName();
         Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
-        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(trackName).getGenotypeSamples() : samplesToPhase);
-        writer.writeHeader(new VCFHeader(hInfo, samples));
-    }
+        Set<String> vcfSamples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(trackName).getGenotypeSamples() : samplesToPhase);
+        writer.writeHeader(new VCFHeader(hInfo, vcfSamples));
 
-    public boolean generateExtendedEvents() {
-        return false;
+        Set<String> readSamples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+        readSamples.retainAll(vcfSamples);
+        if (readSamples.isEmpty()) {
+            String noPhaseString = "No common samples in VCF and BAM headers" + (samplesToPhase == null ? "" : " (limited to sampleToPhase parameters)") + ", so nothing could possibly be phased!";
+            if (permitNoSampleOverlap)
+                logger.warn(noPhaseString);
+            else
+                throw new UserException(noPhaseString);
+        }
     }
 
     public PhasingStats reduceInit() {
@@ -256,9 +270,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             int numReads = 0;
             if (context.hasBasePileup()) {
                 numReads = context.getBasePileup().getNumberOfElements();
-            }
-            else if (context.hasExtendedEventPileup()) {
-                numReads = context.getExtendedEventPileup().getNumberOfElements();
             }
             PhasingStats addInPhaseStats = new PhasingStats(numReads, 1);
             phaseStats.addIn(addInPhaseStats);
@@ -472,6 +483,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private int phasingSiteIndex = -1;
         private Map<String, PhasingRead> readsAtHetSites = null;
 
+        private void clearFields() {
+            hetGenotypes = null;
+            prevHetAndInteriorIt = null;
+            phasingSiteIndex = -1;
+            readsAtHetSites = null;
+        }
+
         public boolean hasPreviousHets() {
             return phasingSiteIndex > 0;
         }
@@ -498,11 +516,19 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
             phasingSiteIndex = listHetGenotypes.size();
             if (phasingSiteIndex == 0) { // no previous sites against which to phase
-                hetGenotypes = null;
-                prevHetAndInteriorIt = null;
+                clearFields();
                 return;
             }
             prevHetAndInteriorIt.previous(); // so that it points to the previous het site [and NOT one after it, due to the last call to next()]
+
+            if (respectPhaseInInput) {
+                Genotype prevHetGenotype = prevHetAndInteriorIt.clone().next().unfinishedVariant.getGenotype(sample);
+                if (!prevHetGenotype.isPhased()) {
+                    // Make this genotype unphaseable, since its previous het is not already phased [as required by respectPhaseInInput]:
+                    clearFields();
+                    return;
+                }
+            }
 
             // Add the (het) position to be phased:
             GenomeLoc phaseLocus = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant);
@@ -1081,9 +1107,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 ReadBackedPileup pileup = null;
                 if (alignment.hasBasePileup()) {
                     pileup = alignment.getBasePileup();
-                }
-                else if (alignment.hasExtendedEventPileup()) {
-                    pileup = alignment.getExtendedEventPileup();
                 }
                 if (pileup != null) {
                     // filter the read-base pileup based on min base and mapping qualities:

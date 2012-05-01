@@ -43,7 +43,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     }
 
     public List<Allele> getLog10PNonRef(final VariantContext vc,
-                                        final double[][] log10AlleleFrequencyPriors,
+                                        final double[] log10AlleleFrequencyPriors,
                                         final AlleleFrequencyCalculationResult result) {
 
         GenotypesContext GLs = vc.getGenotypes();
@@ -56,26 +56,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
             alleles.add(vc.getReference());
             alleles.addAll(chooseMostLikelyAlternateAlleles(vc, MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
-            GLs = UnifiedGenotyperEngine.subsetAlleles(vc, alleles, false);
+            GLs = VariantContextUtils.subsetDiploidAlleles(vc, alleles, false);
         }
 
-        //linearExact(GLs, log10AlleleFrequencyPriors[0], log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
         linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result);
 
         return alleles;
     }
 
-    private static final class LikelihoodSum implements Comparable<LikelihoodSum> {
-        public double sum = 0.0;
-        public Allele allele;
-
-        public LikelihoodSum(Allele allele) { this.allele = allele; }
-
-        public int compareTo(LikelihoodSum other) {
-            final double diff = sum - other.sum;
-            return ( diff < 0.0 ) ? 1 : (diff > 0.0 ) ? -1 : 0;
-        }
-    }
 
     private static final int PL_INDEX_OF_HOM_REF = 0;
     private static final List<Allele> chooseMostLikelyAlternateAlleles(VariantContext vc, int numAllelesToChoose) {
@@ -113,22 +101,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return orderedBestAlleles;
     }
     
-    private static final ArrayList<double[]> getGLs(GenotypesContext GLs) {
-        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size());
-
-        genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
-        for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
-            if ( sample.hasLikelihoods() ) {
-                double[] gls = sample.getLikelihoods().getAsVector();
-
-                if ( MathUtils.sum(gls) < UnifiedGenotyperEngine.SUM_GL_THRESH_NOCALL )
-                    genotypeLikelihoods.add(gls);
-            }
-        }
-
-        return genotypeLikelihoods;
-    }
-
     // -------------------------------------------------------------------------------------
     //
     // Multi-allelic implementation.
@@ -153,7 +125,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         @Override
         public boolean equals(Object obj) {
-            return (obj instanceof ExactACcounts) ? Arrays.equals(counts, ((ExactACcounts)obj).counts) : false;
+            return (obj instanceof ExactACcounts) && Arrays.equals(counts, ((ExactACcounts)obj).counts);
         }
 
         @Override
@@ -203,24 +175,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         public boolean equals(Object obj) {
-            return (obj instanceof ExactACset) ? ACcounts.equals(((ExactACset)obj).ACcounts) : false;
+            return (obj instanceof ExactACset) && ACcounts.equals(((ExactACset)obj).ACcounts);
         }
     }
 
-    // TODO -- remove me
     public static void linearExactMultiAllelic(final GenotypesContext GLs,
                                                final int numAlternateAlleles,
-                                               final double[][] log10AlleleFrequencyPriors,
-                                               final AlleleFrequencyCalculationResult result,
-                                               final boolean foo) {
-        linearExactMultiAllelic(GLs, numAlternateAlleles, log10AlleleFrequencyPriors, result);
-    }
-
-
-
-    public static void linearExactMultiAllelic(final GenotypesContext GLs,
-                                               final int numAlternateAlleles,
-                                               final double[][] log10AlleleFrequencyPriors,
+                                               final double[] log10AlleleFrequencyPriors,
                                                final AlleleFrequencyCalculationResult result) {
 
         final ArrayList<double[]> genotypeLikelihoods = getGLs(GLs);
@@ -272,7 +233,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                            final int numChr,
                                                            final LinkedList<ExactACset> ACqueue,
                                                            final HashMap<ExactACcounts, ExactACset> indexesToACset,
-                                                           final double[][] log10AlleleFrequencyPriors,
+                                                           final double[] log10AlleleFrequencyPriors,
                                                            final AlleleFrequencyCalculationResult result) {
 
         //if ( DEBUG )
@@ -360,7 +321,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private static void computeLofK(final ExactACset set,
                                     final ArrayList<double[]> genotypeLikelihoods,
-                                    final double[][] log10AlleleFrequencyPriors,
+                                    final double[] log10AlleleFrequencyPriors,
                                     final AlleleFrequencyCalculationResult result) {
 
         set.log10Likelihoods[0] = 0.0; // the zero case
@@ -370,47 +331,39 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( totalK == 0 ) {
             for ( int j = 1; j < set.log10Likelihoods.length; j++ )
                 set.log10Likelihoods[j] = set.log10Likelihoods[j-1] + genotypeLikelihoods.get(j)[HOM_REF_INDEX];
+
+            final double log10Lof0 = set.log10Likelihoods[set.log10Likelihoods.length-1];
+            result.setLog10LikelihoodOfAFzero(log10Lof0);
+            result.setLog10PosteriorOfAFzero(log10Lof0 + log10AlleleFrequencyPriors[0]);
+            return;
         }
-        // k > 0 for at least one k
-        else {
-	        // the non-AA possible conformations were dealt with by pushes from dependent sets;
-	        // now deal with the AA case (which depends on previous cells in this column) and then update the L(j,k) value
-            for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
 
-                if ( totalK < 2*j-1 ) {
-                    final double[] gl = genotypeLikelihoods.get(j);
-                    final double conformationValue = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
-                    set.log10Likelihoods[j] = MathUtils.approximateLog10SumLog10(set.log10Likelihoods[j], conformationValue);
-                }
+        // if we got here, then k > 0 for at least one k.
+        // the non-AA possible conformations were already dealt with by pushes from dependent sets;
+        // now deal with the AA case (which depends on previous cells in this column) and then update the L(j,k) value
+        for ( int j = 1; j < set.log10Likelihoods.length; j++ ) {
 
-                final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
-                set.log10Likelihoods[j] = set.log10Likelihoods[j] - logDenominator;
+            if ( totalK < 2*j-1 ) {
+                final double[] gl = genotypeLikelihoods.get(j);
+                final double conformationValue = MathUtils.log10Cache[2*j-totalK] + MathUtils.log10Cache[2*j-totalK-1] + set.log10Likelihoods[j-1] + gl[HOM_REF_INDEX];
+                set.log10Likelihoods[j] = MathUtils.approximateLog10SumLog10(set.log10Likelihoods[j], conformationValue);
             }
+
+            final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
+            set.log10Likelihoods[j] = set.log10Likelihoods[j] - logDenominator;
         }
 
-        final double log10LofK = set.log10Likelihoods[set.log10Likelihoods.length-1];
+        double log10LofK = set.log10Likelihoods[set.log10Likelihoods.length-1];
 
-        // determine the power of theta to use
-        int nonRefAlleles = 0;
-        for ( int i = 0; i < set.ACcounts.getCounts().length; i++ ) {
-            if ( set.ACcounts.getCounts()[i] > 0 )
-                nonRefAlleles++;
+        // update the MLE if necessary
+        result.updateMLEifNeeded(log10LofK, set.ACcounts.counts);
+
+        // apply the priors over each alternate allele
+        for ( final int ACcount : set.ACcounts.getCounts() ) {
+            if ( ACcount > 0 )
+                log10LofK += log10AlleleFrequencyPriors[ACcount];
         }
-
-        // for k=0, we don't want to put that value into the likelihoods/posteriors matrix, but instead want to set the value in the results object
-        if ( nonRefAlleles == 0 ) {
-            result.log10LikelihoodOfAFzero = log10LofK;
-            result.log10PosteriorOfAFzero = log10LofK + log10AlleleFrequencyPriors[0][0];
-        } else {
-            // update the likelihoods/posteriors vectors which are collapsed views of each of the various ACs
-            for ( int i = 0; i < set.ACcounts.getCounts().length; i++ ) {
-                int AC = set.ACcounts.getCounts()[i];
-                result.log10AlleleFrequencyLikelihoods[i][AC] = MathUtils.approximateLog10SumLog10(result.log10AlleleFrequencyLikelihoods[i][AC], log10LofK);
-
-                final double prior = log10AlleleFrequencyPriors[nonRefAlleles-1][AC];
-                result.log10AlleleFrequencyPosteriors[i][AC] = MathUtils.approximateLog10SumLog10(result.log10AlleleFrequencyPosteriors[i][AC], log10LofK + prior);
-            }
-        }
+        result.updateMAPifNeeded(log10LofK, set.ACcounts.counts);
     }
 
     private static void pushData(final ExactACset targetSet,
@@ -466,6 +419,12 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return coeff;
     }
 
+    public GenotypesContext subsetAlleles(final VariantContext vc,
+                                                      final List<Allele> allelesToUse,
+                                                      final boolean assignGenotypes,
+                                                      final int ploidy) {
+        return VariantContextUtils.subsetDiploidAlleles(vc, allelesToUse, assignGenotypes);
+    }
 
     // -------------------------------------------------------------------------------------
     //

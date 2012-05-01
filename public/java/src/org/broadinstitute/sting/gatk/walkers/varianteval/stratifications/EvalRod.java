@@ -15,7 +15,6 @@ import java.util.List;
 public class EvalRod extends VariantStratifier implements RequiredStratification {
     @Override
     public void initialize() {
-        states = new ArrayList<String>();
         for ( RodBinding<VariantContext> rod : getVariantEvalWalker().getEvals() ) {
             states.add(rod.getName());
             if ( getVariantEvalWalker().mergeEvals )
@@ -23,11 +22,7 @@ public class EvalRod extends VariantStratifier implements RequiredStratification
         }
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
-
-        relevantStates.add(evalName);
-
-        return relevantStates;
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        return Arrays.asList((Object)evalName);
     }
 }

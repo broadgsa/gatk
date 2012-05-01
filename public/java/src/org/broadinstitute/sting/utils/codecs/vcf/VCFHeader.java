@@ -1,8 +1,30 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils.codecs.vcf;
 
-
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
 
 import java.util.*;
 
@@ -36,6 +58,11 @@ public class VCFHeader {
     // the header string indicator
     public static final String HEADER_INDICATOR = "#";
 
+    public static final String SOURCE_KEY = "source";
+    public static final String REFERENCE_KEY = "reference";
+    public static final String CONTIG_KEY = "contig";
+    public static final String INTERVALS_KEY = "intervals";
+
     // were the input samples sorted originally (or are we sorting them)?
     private boolean samplesWereAlreadySorted = true;
 
@@ -43,6 +70,8 @@ public class VCFHeader {
     protected ArrayList<String> sampleNamesInOrder = null;
     protected HashMap<String, Integer> sampleNameToOffset = null;
 
+    private boolean writeEngineHeaders = true;
+    private boolean writeCommandLine = true;
 
     /**
      * create a VCF header, given a list of meta data and auxillary tags
@@ -80,6 +109,7 @@ public class VCFHeader {
      * using this header (i.e., read by the VCFCodec) will have genotypes
      * occurring in the same order
      *
+     * @param genotypeSampleNamesInAppearenceOrder genotype sample names
      */
 
     protected void buildVCFReaderMaps(List<String> genotypeSampleNamesInAppearenceOrder) {
@@ -126,11 +156,11 @@ public class VCFHeader {
         for ( VCFHeaderLine line : mMetaData ) {
             if ( line instanceof VCFInfoHeaderLine )  {
                 VCFInfoHeaderLine infoLine = (VCFInfoHeaderLine)line;
-                mInfoMetaData.put(infoLine.getName(), infoLine);
+                mInfoMetaData.put(infoLine.getID(), infoLine);
             }
             else if ( line instanceof VCFFormatHeaderLine ) {
                 VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
-                mFormatMetaData.put(formatLine.getName(), formatLine);
+                mFormatMetaData.put(formatLine.getID(), formatLine);
             }
             else {
                 mOtherMetaData.put(line.getKey(), line);
@@ -145,10 +175,7 @@ public class VCFHeader {
      * @return a set of the header fields, in order
      */
     public Set<HEADER_FIELDS> getHeaderFields() {
-        Set<HEADER_FIELDS> fields = new LinkedHashSet<HEADER_FIELDS>();
-        for (HEADER_FIELDS field : HEADER_FIELDS.values())
-            fields.add(field);
-        return fields;
+        return new LinkedHashSet<HEADER_FIELDS>(Arrays.asList(HEADER_FIELDS.values()));
     }
 
     /**
@@ -218,7 +245,36 @@ public class VCFHeader {
     public VCFHeaderLine getOtherHeaderLine(String key) {
         return mOtherMetaData.get(key);
     }
+
+    /**
+     * If true additional engine headers will be written to the VCF, otherwise only the walker headers will be output.
+     * @return true if additional engine headers will be written to the VCF
+     */
+    public boolean isWriteEngineHeaders() {
+        return writeEngineHeaders;
+    }
+
+    /**
+     * If true additional engine headers will be written to the VCF, otherwise only the walker headers will be output.
+     * @param writeEngineHeaders true if additional engine headers will be written to the VCF
+     */
+    public void setWriteEngineHeaders(boolean writeEngineHeaders) {
+        this.writeEngineHeaders = writeEngineHeaders;
+    }
+
+    /**
+     * If true, and isWriteEngineHeaders also returns true, the command line will be written to the VCF.
+     * @return true if the command line will be written to the VCF
+     */
+    public boolean isWriteCommandLine() {
+        return writeCommandLine;
+    }
+
+    /**
+     * If true, and isWriteEngineHeaders also returns true, the command line will be written to the VCF.
+     * @param writeCommandLine true if the command line will be written to the VCF
+     */
+    public void setWriteCommandLine(boolean writeCommandLine) {
+        this.writeCommandLine = writeCommandLine;
+    }
 }
-
-
-

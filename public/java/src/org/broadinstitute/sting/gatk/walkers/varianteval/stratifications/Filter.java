@@ -18,8 +18,8 @@ public class Filter extends VariantStratifier {
         states.add("raw");
     }
 
-    public List<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
-        ArrayList<String> relevantStates = new ArrayList<String>();
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+        ArrayList<Object> relevantStates = new ArrayList<Object>();
 
         relevantStates.add("raw");
         if (eval != null) {

@@ -25,9 +25,15 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Requires;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMProgramRecord;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.net.InetAddress;
 import java.util.*;
@@ -282,32 +288,6 @@ public class Utils {
             m = b > m ? b : m;
         }
         return m;
-    }
-
-
-    // returns the maximum value in the array
-    public static double findMaxEntry(double[] array) {
-        return findIndexAndMaxEntry(array).first;
-    }
-
-    // returns the index of the maximum value in the array
-    public static int findIndexOfMaxEntry(double[] array) {
-        return findIndexAndMaxEntry(array).second;
-    }
-
-    // returns the the maximum value and its index in the array
-    private static Pair<Double, Integer> findIndexAndMaxEntry(double[] array) {
-        if ( array.length == 0 )
-            return new Pair<Double, Integer>(0.0, -1);
-        int index = 0;
-        double max = array[0];
-        for (int i = 1; i < array.length; i++) {
-            if ( array[i] > max ) {
-                max = array[i];
-                index = i;
-            }
-        }
-        return new Pair<Double, Integer>(max, index);
     }
 
     /**
@@ -666,6 +646,122 @@ public class Utils {
     public static void fillArrayWithByte(byte[] array, byte value) {
         for (int i=0; i<array.length; i++)
             array[i] = value;
+    }
+
+    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, boolean preSorted, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
+
+        SAMFileHeader header = toolkit.getSAMFileHeader();
+        List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+        List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+        for ( SAMProgramRecord record : oldRecords )
+            if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) || KEEP_ALL_PG_RECORDS )
+                newRecords.add(record);
+
+        newRecords.add(programRecord);
+        header.setProgramRecords(newRecords);
+
+        writer.writeHeader(header);
+        writer.setPresorted(preSorted);
+    }
+    
+    public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
+        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        try {
+            final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+            programRecord.setProgramVersion(version);
+        } catch (MissingResourceException e) {
+            // couldn't care less if the resource is missing...
+        }
+        programRecord.setCommandLine(toolkit.createApproximateCommandLineArgumentString(toolkit, walker));
+        return programRecord;
+    }
+
+    public static <E> Collection<E> makeCollection(Iterable<E> iter) {
+        Collection<E> list = new ArrayList<E>();
+        for (E item : iter) {
+            list.add(item);
+        }
+        return list;
+    }
+
+    /**
+     * Returns the number of combinations represented by this collection
+     * of collection of options.
+     *
+     * For example, if this is [[A, B], [C, D], [E, F, G]] returns 2 * 2 * 3 = 12
+     *
+     * @param options
+     * @param <T>
+     * @return
+     */
+    @Requires("options != null")
+    public static <T> int nCombinations(final Collection<T>[] options) {
+        int nStates = 1;
+        for ( Collection<T> states : options ) {
+            nStates *= states.size();
+        }
+        return nStates;
+    }
+
+    @Requires("options != null")
+    public static <T> int nCombinations(final List<List<T>> options) {
+        if ( options.isEmpty() )
+            return 0;
+        else {
+            int nStates = 1;
+            for ( Collection<T> states : options ) {
+                nStates *= states.size();
+            }
+            return nStates;
+        }
+    }
+
+    /**
+     * Convenience function that formats the novelty rate as a %.2f string
+     *
+     * @param known number of variants from all that are known
+     * @param all number of all variants
+     * @return a String novelty rate, or NA if all == 0
+     */
+    public static String formattedNoveltyRate(final int known, final int all) {
+        return formattedPercent(all - known, all);
+    }
+
+    /**
+     * Convenience function that formats the novelty rate as a %.2f string
+     *
+     * @param x number of objects part of total that meet some criteria
+     * @param total count of all objects, including x
+     * @return a String percent rate, or NA if total == 0
+     */
+    public static String formattedPercent(final long x, final long total) {
+        return total == 0 ? "NA" : String.format("%.2f", (100.0*x) / total);
+    }
+
+    /**
+     * Convenience function that formats a ratio as a %.2f string
+     *
+     * @param num  number of observations in the numerator
+     * @param denom number of observations in the denumerator
+     * @return a String formatted ratio, or NA if all == 0
+     */
+    public static String formattedRatio(final long num, final long denom) {
+        return denom == 0 ? "NA" : String.format("%.2f", num / (1.0 * denom));
+    }
+
+    /**
+     * Create a constant map that maps each value in values to itself
+     * @param values
+     * @param <T>
+     * @return
+     */
+    public static <T> Map<T, T> makeIdentityFunctionMap(Collection<T> values) {
+        Map<T,T> map = new HashMap<T, T>(values.size());
+        for ( final T value : values )
+            map.put(value, value);
+        return Collections.unmodifiableMap(map);
     }
 
 }

@@ -11,15 +11,14 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 /**
- * The phred-scaled p-value (u-based z-approximation) from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
+ * The u-based z-approximation from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
  * Note that the read position rank sum test can not be calculated for homozygous sites.
  */
 public class ReadPosRankSumTest extends RankSumTest {
@@ -44,6 +43,31 @@ public class ReadPosRankSumTest extends RankSumTest {
                 if ( p.getBase() == ref )
                     refQuals.add((double) readPos);
                 else if ( alts.contains(p.getBase()) )
+                    altQuals.add((double) readPos);
+            }
+        }
+    }
+
+    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
+        for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
+            final boolean matchesRef = ref.equals(alleleBin.getKey());
+            final boolean matchesAlt = alts.contains(alleleBin.getKey());
+            if ( !matchesRef && !matchesAlt )
+                continue;
+
+            for ( final GATKSAMRecord read : alleleBin.getValue() ) {
+                final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate( read.getUnclippedStart(), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true );
+                if ( offset == ReadUtils.CLIPPING_GOAL_NOT_REACHED )
+                    continue;
+                int readPos = AlignmentUtils.calcAlignmentByteArrayOffset( read.getCigar(), offset, false, false, 0, 0 );
+
+                final int numAlignedBases = AlignmentUtils.getNumAlignedBases( read );
+                if (readPos > numAlignedBases / 2)
+                    readPos = numAlignedBases - (readPos + 1);
+
+                if ( matchesRef )
+                    refQuals.add((double) readPos);
+                else
                     altQuals.add((double) readPos);
             }
         }

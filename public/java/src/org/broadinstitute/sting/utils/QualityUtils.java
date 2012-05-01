@@ -9,6 +9,7 @@ import net.sf.samtools.SAMUtils;
  * @author Kiran Garimella
  */
 public class QualityUtils {
+    public final static byte MAX_RECALIBRATED_Q_SCORE = 93;
     public final static byte MAX_QUAL_SCORE = SAMUtils.MAX_PHRED_SCORE;
     public final static double ERROR_RATE_OF_MAX_QUAL_SCORE = qualToErrorProbRaw(MAX_QUAL_SCORE);
 
@@ -22,6 +23,16 @@ public class QualityUtils {
         for (int i = 0; i < 256; i++) qualToErrorProbCache[i] = qualToErrorProbRaw(i);
     }
 
+    private static double qualToErrorProbLog10Cache[] = new double[256];
+    static {
+        for (int i = 0; i < 256; i++) qualToErrorProbLog10Cache[i] = qualToErrorProbLog10Raw(i);
+    }
+
+    private static double qualToProbLog10Cache[] = new double[256];
+    static {
+        for (int i = 0; i < 256; i++) qualToProbLog10Cache[i] = qualToProbLog10Raw(i);
+    }
+
     /**
      * Private constructor.  No instantiating this class!
      */
@@ -31,7 +42,7 @@ public class QualityUtils {
      * Convert a quality score to a probability.  This is the Phred-style
      * conversion, *not* the Illumina-style conversion (though asymptotically, they're the same).
      *
-     * @param qual a quality score (0-40)
+     * @param qual a quality score (0-255)
      * @return a probability (0.0-1.0)
      */
     static public double qualToProb(byte qual) {
@@ -40,6 +51,14 @@ public class QualityUtils {
 
     static public double qualToProb(double qual) {
         return 1.0 - Math.pow(10.0, qual/(-10.0));
+    }
+
+    static private double qualToProbLog10Raw(int qual) {
+        return Math.log10(1.0 - qualToErrorProbRaw(qual));
+    }
+
+    static public double qualToProbLog10(byte qual) {
+        return qualToProbLog10Cache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
     /**
@@ -57,14 +76,14 @@ public class QualityUtils {
         return qualToErrorProbCache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
-    static public double[] qualArrayToLog10ErrorProb(byte[] quals) {
-        double[] returnArray = new double[quals.length];
-        for( int iii = 0; iii < quals.length; iii++ ) {
-            returnArray[iii] = ((double) quals[iii])/-10.0;
-        }
-        return returnArray;
+    static private double qualToErrorProbLog10Raw(int qual) {
+        return ((double) qual)/-10.0;
     }
-    
+
+    static public double qualToErrorProbLog10(byte qual) {
+        return qualToErrorProbLog10Cache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
+    }
+
     /**
      * Convert a probability to a quality score.  Note, this is capped at Q40.
      *
@@ -85,9 +104,8 @@ public class QualityUtils {
      */
     static public byte probToQual(double prob, double eps) {
         double lp = Math.round(-10.0*Math.log10(1.0 - prob + eps));
-        byte b = boundQual((int)lp);
         //System.out.printf("LP is %f, byte is %d%n", lp, b);
-        return b;
+        return boundQual((int)lp);
     }
 
     static public double phredScaleCorrectRate(double trueRate) {
@@ -98,10 +116,6 @@ public class QualityUtils {
         return Math.abs(-10.0*Math.log10(errorRate));
     }
 
-    static public double lodToPhredScaleErrorRate(double lod) {
-        return phredScaleErrorRate(1.0 / (Math.pow(10.0, lod) + 1.0));
-    }
-    
     /**
      * Return a quality score, capped at max qual.
      *
@@ -115,12 +129,11 @@ public class QualityUtils {
     /**
      * Returns an integer quality score bounded by 1 - maxQual.
      *
-     * @param qual
-     * @param maxQual
-     * @return
+     * @param qual    the quality score
+     * @param maxQual the maximum quality
+     * @return the integer betwen 1 and maxqual.
      */
     static public byte boundQual(int qual, byte maxQual) {
-        //return (byte) Math.min(qual, maxQual);
         return (byte) Math.max(Math.min(qual, maxQual), 1);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -49,7 +50,6 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     /** Indels with size greater than this value are tallied in the CNV column */
     private final static int MAX_INDEL_LENGTH = 50;
     private final static double MIN_CNV_OVERLAP = 0.5;
-    private VariantEvalWalker walker;
 
     public enum Type {
         SNP, INDEL, CNV
@@ -58,39 +58,39 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     Map<String, IntervalTree<GenomeLoc>> knownCNVs = null;
 
     // basic counts on various rates found
-    @DataPoint(description = "Number of samples")
+    @DataPoint(description = "Number of samples", format = "%d")
     public long nSamples = 0;
 
-    @DataPoint(description = "Number of processed loci")
+    @DataPoint(description = "Number of processed loci", format = "%d")
     public long nProcessedLoci = 0;
 
-    @DataPoint(description = "Number of SNPs")
+    @DataPoint(description = "Number of SNPs", format = "%d")
     public long nSNPs = 0;
     @DataPoint(description = "Overall TiTv ratio", format = "%.2f")
     public double TiTvRatio = 0;
-    @DataPoint(description = "SNP Novelty Rate")
+    @DataPoint(description = "SNP Novelty Rate", format = "%s")
     public String SNPNoveltyRate = "NA";
-    @DataPoint(description = "Mean number of SNPs per individual")
+    @DataPoint(description = "Mean number of SNPs per individual", format = "%d")
     public long nSNPsPerSample = 0;
     @DataPoint(description = "Mean TiTv ratio per individual", format = "%.2f")
     public double TiTvRatioPerSample = 0;
     @DataPoint(description = "Mean depth of coverage per sample at SNPs", format = "%.1f")
     public double SNPDPPerSample = 0;
 
-    @DataPoint(description = "Number of Indels")
+    @DataPoint(description = "Number of Indels", format = "%d")
     public long nIndels = 0;
-    @DataPoint(description = "Indel Novelty Rate")
+    @DataPoint(description = "Indel Novelty Rate", format = "%s")
     public String IndelNoveltyRate = "NA";
-    @DataPoint(description = "Mean number of Indels per individual")
+    @DataPoint(description = "Mean number of Indels per individual", format = "%d")
     public long nIndelsPerSample = 0;
     @DataPoint(description = "Mean depth of coverage per sample at Indels", format = "%.1f")
     public double IndelDPPerSample = 0;
 
-    @DataPoint(description = "Number of SVs")
+    @DataPoint(description = "Number of SVs", format = "%d")
     public long nSVs = 0;
-    @DataPoint(description = "SV Novelty Rate")
+    @DataPoint(description = "SV Novelty Rate", format = "%s")
     public String SVNoveltyRate = "NA";
-    @DataPoint(description = "Mean number of SVs per individual")
+    @DataPoint(description = "Mean number of SVs per individual", format = "%d")
     public long nSVsPerSample = 0;
 
     TypeSampleMap allVariantCounts, knownVariantCounts;
@@ -126,7 +126,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             long sum = 0;
             int n = 0;
             for ( final Map.Entry<String, Integer> pair : get(type).entrySet() ) {
-                if ( pair.getKey() != ALL)  {
+                if ( pair.getKey() != ALL)  { // truly must be string ==
                     n++;
                     sum += pair.getValue();
                 }
@@ -138,7 +138,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             double sum = 0;
             int n = 0;
             for ( final String sample : get(type).keySet() ) {
-                if ( (allP && sample == ALL) || (!allP && sample != ALL) ) {
+                if ( (allP && sample == ALL) || (!allP && sample != ALL) ) { // truly must be string ==
                     final long num = get(type).get(sample);
                     final long denom = denoms.get(type).get(sample);
                     sum += ratio(num, denom);
@@ -152,7 +152,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
 
     public void initialize(VariantEvalWalker walker) {
-        this.walker = walker;
+        super.initialize(walker);
 
         nSamples = walker.getSampleNamesForEvaluation().size();
         countsPerSample = new TypeSampleMap(walker.getSampleNamesForEvaluation());
@@ -170,17 +170,11 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         }
     }
 
-    @Override public boolean enabled() { return true; }
-
     public int getComparisonOrder() {
         return 2;   // we only need to see each eval track
     }
 
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
-    }
-
-    private final Type getType(VariantContext vc) {
+    private Type getType(VariantContext vc) {
         switch (vc.getType()) {
             case SNP:
                 return Type.SNP;
@@ -196,9 +190,9 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         }
     }
 
-    private final boolean overlapsKnownCNV(VariantContext cnv) {
+    private boolean overlapsKnownCNV(VariantContext cnv) {
         if ( knownCNVs != null ) {
-            final GenomeLoc loc = walker.getGenomeLocParser().createGenomeLoc(cnv, true);
+            final GenomeLoc loc = getWalker().getToolkit().getGenomeLocParser().createGenomeLoc(cnv, true);
             IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
 
             final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());
@@ -212,8 +206,9 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
         return false;
     }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( eval == null || eval.isMonomorphicInSamples() ) return null;
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( eval == null || (getWalker().ignoreAC0Sites() && eval.isMonomorphicInSamples()) )
+            return;
 
         final Type type = getType(eval);
 
@@ -248,19 +243,16 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                     depthPerSample.inc(type, g.getSampleName());
             }
         }
-
-        return null; // we don't capture any interesting sites
     }
 
-    private final String noveltyRate(Type type) {
+    private String noveltyRate(Type type) {
         final int all = allVariantCounts.all(type);
         final int known = knownVariantCounts.all(type);
-        final int novel = all - known;
-        final double rate = (novel / (1.0 * all));
-        return all == 0 ? "NA" : String.format("%.2f", rate);
+        return Utils.formattedNoveltyRate(known, all);
     }
 
     public void finalizeEvaluation() {
+        nProcessedLoci = getWalker().getnProcessedLoci();
         nSNPs = allVariantCounts.all(Type.SNP);
         nIndels = allVariantCounts.all(Type.INDEL);
         nSVs = allVariantCounts.all(Type.CNV);

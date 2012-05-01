@@ -42,6 +42,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -115,8 +116,10 @@ import java.util.*;
 @ReadFilters( {BadMateFilter.class, MappingQualityUnavailableFilter.class} )
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
+// TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
+// TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -128,8 +131,19 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
+
+    /**
+     * If a call overlaps with a record from the provided comp track, the INFO field will be annotated
+     *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).
+     *  Records that are filtered in the comp track will be ignored.
+     *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
+     */
+    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
+    public List<RodBinding<VariantContext>> comps = Collections.emptyList();
+    public List<RodBinding<VariantContext>> getCompRodBindings() { return comps; }
+
+    // The following are not used by the Unified Genotyper
     public RodBinding<VariantContext> getSnpEffRodBinding() { return null; }
-    public List<RodBinding<VariantContext>> getCompRodBindings() { return Collections.emptyList(); }
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return Collections.emptyList(); }
     public boolean alwaysAppendDbsnpId() { return false; }
 
@@ -139,9 +153,11 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
 
+    @Hidden
     @Argument(fullName = "debug_file", shortName = "debug_file", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected PrintStream verboseWriter = null;
 
+    @Hidden
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
     protected PrintStream metricsWriter = null;
 
@@ -173,12 +189,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     // enable deletions in the pileup
     @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
-
-    // enable extended events for indels
-    @Override
-    public boolean generateExtendedEvents() {
-        return (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES);
-    }
 
     /**
      * Inner class for collecting output statistics from the UG
@@ -224,10 +234,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // initialize the verbose writer
         if ( verboseWriter != null )
-            verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
+            verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tMLE\tMAP");
 
         annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, annotationsToExclude, this, getToolkit());
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, VariantContextUtils.DEFAULT_PLOIDY);
 
         // initialize the header
         Set<VCFHeaderLine> headerInfo = getHeaderInfo();
@@ -248,6 +258,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         // annotation (INFO) fields from UnifiedGenotyper
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
+        if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
+            headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
         headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
 
         // also, check to see whether comp rods were included
@@ -286,7 +298,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @param rawContext contextual information around the locus
      * @return the VariantCallContext object
      */
-    public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    public List<VariantCallContext> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
     }
 
@@ -300,44 +312,44 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         return lhs;
     }
 
-    public UGStatistics reduce(VariantCallContext value, UGStatistics sum) {
+    public UGStatistics reduce(List<VariantCallContext> calls, UGStatistics sum) {
         // we get a point for reaching reduce
         sum.nBasesVisited++;
 
-        // can't call the locus because of no coverage
-        if ( value == null )
-            return sum;
+        boolean wasCallable = false;
+        boolean wasConfidentlyCalled = false;
 
-        // A call was attempted -- the base was potentially callable
-        sum.nBasesCallable++;
+        for ( VariantCallContext call : calls ) {
+            if ( call == null )
+                continue;
 
-        // the base was confidently callable
-        sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
+            // A call was attempted -- the base was callable
+            wasCallable = true;
 
-        // can't make a call here
-        if ( !value.shouldEmit )
-            return sum;
+            // was the base confidently callable?
+            wasConfidentlyCalled = call.confidentlyCalled;
 
-        try {
-            // we are actually making a call
-            sum.nCallsMade++;
-            writer.add(value);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
+            if ( call.shouldEmit ) {
+                try {
+                    // we are actually making a call
+                    sum.nCallsMade++;
+                    writer.add(call);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException(e.getMessage());
+                }
+            }
         }
+
+        if ( wasCallable )
+            sum.nBasesCallable++;
+
+        if ( wasConfidentlyCalled )
+            sum.nBasesCalledConfidently++;
 
         return sum;
     }
 
     public void onTraversalDone(UGStatistics sum) {
-        logger.info(String.format("Visited bases                                %d", sum.nBasesVisited));
-        logger.info(String.format("Callable bases                               %d", sum.nBasesCallable));
-        logger.info(String.format("Confidently called bases                     %d", sum.nBasesCalledConfidently));
-        logger.info(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
-        logger.info(String.format("%% confidently called bases of all loci       %3.3f", sum.percentCalledOfAll()));
-        logger.info(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
-        logger.info(String.format("Actual calls made                            %d", sum.nCallsMade));
-
         if ( metricsWriter != null ) {
             metricsWriter.println(String.format("Visited bases                                %d", sum.nBasesVisited));
             metricsWriter.println(String.format("Callable bases                               %d", sum.nBasesCallable));

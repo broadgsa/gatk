@@ -30,6 +30,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -66,7 +67,7 @@ public class GenotypeLikelihoodsUnitTest {
         Assert.assertEquals(gl.getAsString(), vPLString);
     }
 
-    @Test (expectedExceptions = NumberFormatException.class)
+    @Test (expectedExceptions = UserException.MalformedVCF.class)
     public void testErrorBadFormat() {
         GenotypeLikelihoods gl = new GenotypeLikelihoods("adf,b,c");
         gl.getAsVector();
@@ -95,6 +96,17 @@ public class GenotypeLikelihoodsUnitTest {
 
     }
 
+    @Test
+    public void testCalculateNumLikelihoods() {    
+        
+        for (int nAlleles=2; nAlleles<=5; nAlleles++)
+            // simplest case: diploid
+            Assert.assertEquals(GenotypeLikelihoods.calculateNumLikelihoods(nAlleles, 2), nAlleles*(nAlleles+1)/2);
+
+        // some special cases: ploidy = 20, #alleles = 4
+        Assert.assertEquals(GenotypeLikelihoods.calculateNumLikelihoods(4, 20), 1771);
+    }
+    
     @Test
     public void testGetLog10GQ(){
         GenotypeLikelihoods gl = new GenotypeLikelihoods(vPLString);

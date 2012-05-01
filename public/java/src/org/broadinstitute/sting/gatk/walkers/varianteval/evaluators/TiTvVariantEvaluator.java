@@ -11,29 +11,24 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 @Analysis(description = "Ti/Tv Variant Evaluator")
 public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEval {
-
-    @DataPoint(description = "number of transition loci")
-    long nTi = 0;
-    @DataPoint(description = "number of transversion loci")
-    long nTv = 0;
+    @DataPoint(description = "number of transition loci", format = "%d")
+    public long nTi = 0;
+    @DataPoint(description = "number of transversion loci", format = "%d")
+    public long nTv = 0;
     @DataPoint(description = "the transition to transversion ratio", format = "%.2f")
-    double tiTvRatio = 0.0;    
-    @DataPoint(description = "number of comp transition sites")
-    long nTiInComp = 0;
-    @DataPoint(description = "number of comp transversion sites")
-    long nTvInComp = 0;
+    public double tiTvRatio = 0.0;
+    @DataPoint(description = "number of comp transition sites", format = "%d")
+    public long nTiInComp = 0;
+    @DataPoint(description = "number of comp transversion sites", format = "%d")
+    public long nTvInComp = 0;
     @DataPoint(description = "the transition to transversion ratio for comp sites", format = "%.2f")
-    double TiTvRatioStandard = 0.0;
-    @DataPoint(description = "number of derived transition loci")
-    long nTiDerived = 0;
-    @DataPoint(description = "number of derived transversion loci")
-    long nTvDerived = 0;
+    public double TiTvRatioStandard = 0.0;
+    @DataPoint(description = "number of derived transition loci", format = "%d")
+    public long nTiDerived = 0;
+    @DataPoint(description = "number of derived transversion loci", format = "%d")
+    public long nTvDerived = 0;
     @DataPoint(description = "the derived transition to transversion ratio", format = "%.2f")
-    double tiTvDerivedRatio = 0.0;
-
-    public boolean enabled() {
-        return true;
-    }
+    public double tiTvDerivedRatio = 0.0;
 
     public int getComparisonOrder() {
         return 2;   // we only need to see each eval track
@@ -62,11 +57,9 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
         }
     }
 
-    public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public void update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (vc1 != null) updateTiTv(vc1, false);
         if (vc2 != null) updateTiTv(vc2, true);
-
-        return null; // we don't capture any interesting sites
     }
 
     @Override

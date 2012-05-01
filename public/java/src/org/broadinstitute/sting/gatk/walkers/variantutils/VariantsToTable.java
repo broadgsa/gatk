@@ -95,8 +95,13 @@ import java.util.*;
  * @since 2010
  */
 public class VariantsToTable extends RodWalker<Integer, Integer> {
-    @ArgumentCollection
-    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+    /**
+     * Variants from this VCF file are used by this tool as input.
+     * The file must at least contain the standard VCF header lines, but
+     * can be empty (i.e., no variants are contained in the file).
+     */
+    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+    public List<RodBinding<VariantContext>> variants;
 
     @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;
@@ -155,7 +160,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
-        for ( VariantContext vc : tracker.getValues(variantCollection.variants, context.getLocation())) {
+        for ( VariantContext vc : tracker.getValues(variants, context.getLocation())) {
             if ( showFiltered || vc.isNotFiltered() ) {
                 for ( final List<String> record : extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA, splitMultiAllelic) )
                     out.println(Utils.join("\t", record));

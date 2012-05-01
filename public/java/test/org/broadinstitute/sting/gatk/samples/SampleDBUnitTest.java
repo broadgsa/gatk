@@ -201,6 +201,13 @@ public class SampleDBUnitTest extends BaseTest {
     }
 
     @Test()
+    public void testGetFounderIds(){
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies2));
+        SampleDB db = builder.getFinalSampleDB();
+        Assert.assertEquals(db.getFounderIds(), new HashSet<String>(Arrays.asList("dad","mom","dad2","mom2","dad4")));
+    }
+
+    @Test()
     public void loadFamilyIDs() {
         builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
         SampleDB db = builder.getFinalSampleDB();

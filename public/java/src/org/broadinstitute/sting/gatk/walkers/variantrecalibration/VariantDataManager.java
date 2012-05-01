@@ -30,14 +30,16 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -239,14 +241,6 @@ public class VariantDataManager {
                   value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             }
 
-            if (vc.isIndel() && annotationKey.equalsIgnoreCase("QD")) {
-            // normalize QD by event length for indel case
-                int eventLength = Math.abs(vc.getAlternateAllele(0).getBaseString().length() - vc.getReference().getBaseString().length()); // ignore multi-allelic complication here for now
-                if (eventLength > 0) { // sanity check
-                    value /= (double)eventLength;
-                }
-            }
-
             if( jitter && annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
             if( jitter && annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
         } catch( Exception e ) {
@@ -285,11 +279,28 @@ public class VariantDataManager {
                         (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphicInSamples());
     }
 
-    public void writeOutRecalibrationTable( final PrintStream RECAL_FILE ) {
+    public void writeOutRecalibrationTable( final VCFWriter recalWriter ) {
+        // we need to sort in coordinate order in order to produce a valid VCF
+        Collections.sort( data, new Comparator<VariantDatum>() {
+            public int compare(VariantDatum vd1, VariantDatum vd2) {
+                return vd1.loc.compareTo(vd2.loc);
+            }} );
+
+        // create dummy alleles to be used
+        final List<Allele> alleles = new ArrayList<Allele>(2);
+        alleles.add(Allele.create("N", true));
+        alleles.add(Allele.create("<VQSR>", false));
+
+        // to be used for the important INFO tags
+        final HashMap<String, Object> attributes = new HashMap<String, Object>(3);
+
         for( final VariantDatum datum : data ) {
-            RECAL_FILE.println(String.format("%s,%d,%d,%.4f,%s",
-                    datum.contig, datum.start, datum.stop, datum.lod,
-                    (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL")));
+            attributes.put(VCFConstants.END_KEY, datum.loc.getStop());
+            attributes.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", datum.lod));
+            attributes.put(VariantRecalibrator.CULPRIT_KEY, (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL"));
+
+            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStart(), alleles).attributes(attributes);
+            recalWriter.add(builder.make());
         }
     }
 }

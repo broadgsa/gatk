@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -65,8 +66,8 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Output
     PrintStream out;
 
-    @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
-    public boolean SHOW_INDEL_PILEUPS = false;
+    @Argument(fullName="showVerbose",shortName="verbose",doc="Add an extra verbose section to the pileup output")
+    public boolean SHOW_VERBOSE = false;
 
     @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
@@ -74,28 +75,18 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     public void initialize() {
     }
 
-    public boolean generateExtendedEvents() { return SHOW_INDEL_PILEUPS; }
-
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
         String rods = getReferenceOrderedData( tracker );
 
         if ( context.hasBasePileup() ) {
             ReadBackedPileup basePileup = context.getBasePileup();
-            out.printf("%s %s%n", basePileup.getPileupString(ref.getBaseAsChar()), rods);
+            out.printf("%s %s", basePileup.getPileupString((char)ref.getBase()), rods);
+            if ( SHOW_VERBOSE )
+                out.printf(" %s", createVerboseOutput(basePileup));
+            out.println();
         }
 
-        if ( context.hasExtendedEventPileup() ) {
-            ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-            List<Pair<String,Integer>> eventCounts = indelPileup.getEventStringsWithCounts(ref.getBases());
-
-            out.printf("%s %s ", indelPileup.getShortPileupString(), rods);
-            int i = 0;
-            for ( ; i < eventCounts.size() - 1 ; i++ ) {
-                out.printf("%s:%d,",eventCounts.get(i).first,eventCounts.get(i).second);
-            }
-            out.printf("%s:%d%n",eventCounts.get(i).first,eventCounts.get(i).second);
-        }
         return 1;
     }
 
@@ -124,6 +115,31 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             rodString = "[ROD: " + rodString + "]";
 
         return rodString;
+    }
+
+    private static final String verboseDelimiter = "@"; // it's ugly to use "@" but it's literally the only usable character not allowed in read names
+
+    private static String createVerboseOutput(final ReadBackedPileup pileup) {
+        final StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+
+        sb.append(pileup.getNumberOfDeletions());
+        sb.append(" ");
+
+        for ( PileupElement p : pileup ) {
+            if ( isFirst )
+                isFirst = false;
+            else
+                sb.append(",");
+            sb.append(p.getRead().getReadName());
+            sb.append(verboseDelimiter);
+            sb.append(p.getOffset());
+            sb.append(verboseDelimiter);
+            sb.append(p.getRead().getReadLength());
+            sb.append(verboseDelimiter);
+            sb.append(p.getRead().getMappingQuality());
+        }
+        return sb.toString();
     }
 
     @Override

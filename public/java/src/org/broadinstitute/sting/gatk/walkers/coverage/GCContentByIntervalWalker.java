@@ -74,10 +74,6 @@ public class GCContentByIntervalWalker extends LocusWalker<Long, Long> {
     public void initialize() {
     }
 
-    public boolean generateExtendedEvents() {
-        return false;
-    }
-
     public Long reduceInit() {
         return 0L;
     }

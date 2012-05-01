@@ -103,21 +103,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             argumentSources.add(walker);
 
             Collection<RMDTriplet> rodBindings = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
-
-            // todo: remove me when the old style system is removed
-            if ( getArgumentCollection().RODBindings.size() > 0 ) {
-                logger.warn("################################################################################");
-                logger.warn("################################################################################");
-                logger.warn("Deprecated -B rod binding syntax detected.  This syntax has been eliminated in GATK 1.2.");
-                logger.warn("Please use arguments defined by each specific walker instead.");
-                for ( String oldStyleRodBinding : getArgumentCollection().RODBindings ) {
-                    logger.warn("  -B rod binding with value " + oldStyleRodBinding + " tags: " + parser.getTags(oldStyleRodBinding).getPositionalTags());
-                }
-                logger.warn("################################################################################");
-                logger.warn("################################################################################");
-                System.exit(1);
-            }
-
             engine.setReferenceMetaDataFiles(rodBindings);
 
             for (ReadFilter filter: filters) {
