@@ -158,7 +158,9 @@ public class ActivityProfile {
         // find the best place to break up the large active region
         Double minProb = Double.MAX_VALUE;
         int cutPoint = -1;
-        for( int iii = curStart + 50; iii < curEnd - 50; iii++ ) { // BUGBUG: assumes maxRegionSize >> 50
+
+        final int size = curEnd - curStart + 1;
+        for( int iii = curStart + (int)(size*0.25); iii < curEnd - (int)(size*0.25); iii++ ) {
             if( isActiveList.get(iii) < minProb ) { minProb = isActiveList.get(iii); cutPoint = iii; }
         }
         final List<ActiveRegion> leftList = createActiveRegion(isActive, curStart, cutPoint, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());

@@ -28,7 +28,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    private final Queue<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
+    private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
     @Override
@@ -112,7 +112,20 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize );
 
             // add active regions to queue of regions to process
-            workQueue.addAll( activeRegions );
+            // first check if can merge active regions over shard boundaries
+            if( !activeRegions.isEmpty() ) {
+                if( !workQueue.isEmpty() ) {
+                    final ActiveRegion last = workQueue.getLast();
+                    final ActiveRegion first = activeRegions.get(0);
+                    if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= maxRegionSize ) {
+                        workQueue.removeLast();
+                        activeRegions.remove(first);
+                        workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), activeRegionExtension) );
+                    }
+                }
+                workQueue.addAll( activeRegions );
+            }
+
             logger.debug("Integrated " + profile.size() + " isActive calls into " + activeRegions.size() + " regions." );
 
             // now go and process all of the active regions
