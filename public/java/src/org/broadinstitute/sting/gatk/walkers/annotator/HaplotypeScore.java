@@ -376,7 +376,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
             }
         }
 
-        // indel likelihoods are stric log-probs, not phred scored
+        // indel likelihoods are strict log-probs, not phred scored
         double overallScore = 0.0;
         for (final double[] readHaplotypeScores : haplotypeScores) {
             overallScore += MathUtils.arrayMin(readHaplotypeScores);
