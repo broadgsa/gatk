@@ -33,6 +33,9 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -235,6 +238,16 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
     protected boolean EXCLUDE_FILTERED = false;
 
+    /**
+     * This argument triggers re-genotyping of the selected samples through the Exact calculation model.  Note that this is truly the
+     * mathematically correct way to select samples (especially when calls were generated from low coverage sequencing data); using the
+     * hard genotypes to select (i.e. the default mode of SelectVariants) can lead to false positives when errors are confused for variants
+     * in the original genotyping.  We decided not to set the --regenotype option as the default though as the output can be unexpected if
+     * a user is strictly comparing against the original genotypes (GTs) in the file.
+     */
+    @Argument(fullName="regenotype", shortName="regenotype", doc="re-genotype the selected samples based on their GLs (or PLs)", required=false)
+    protected Boolean REGENOTYPE = false;
+    private UnifiedGenotyperEngine UG_engine = null;
 
     /**
      * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a vcf.
@@ -430,6 +443,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
+        if ( REGENOTYPE ) {
+            final UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
+            UAC.GLmodel = GenotypeLikelihoodsCalculationModel.Model.BOTH;
+            UAC.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
+            UAC.NO_SLOD = true;
+            UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, VariantContextUtils.DEFAULT_PLOIDY);
+        }
 
         /** load in the IDs file to a hashset for matching */
         if ( rsIDFile != null ) {
@@ -509,7 +529,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 continue;
 
             VariantContext sub = subsetRecord(vc, samples, EXCLUDE_NON_VARIANTS);
-            if ( (sub.isPolymorphicInSamples() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+
+            if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
+                final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(tracker, ref, context, sub)).filters(sub.getFiltersMaybeNull());
+                addAnnotations(builder, sub);
+                sub = builder.make();
+            }
+            
+            if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
                 boolean failedJexlMatch = false;
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
@@ -529,6 +556,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         return 1;
+    }
+
+    private boolean hasPLs(final VariantContext vc) {
+        for ( Genotype g : vc.getGenotypes() ) {
+            if ( g.hasLikelihoods() )
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -682,9 +717,26 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         builder.genotypes(newGC);
 
+        addAnnotations(builder, sub);
+
+        return builder.make();
+    }
+
+    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC) {
+        if (KEEP_ORIGINAL_CHR_COUNTS) {
+            if ( originalVC.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+                builder.attribute("AC_Orig", originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+            if ( originalVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                builder.attribute("AF_Orig", originalVC.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+            if ( originalVC.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
+                builder.attribute("AN_Orig", originalVC.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
+        }
+
+        VariantContextUtils.calculateChromosomeCounts(builder, false);
+
         int depth = 0;
-        for (String sample : sub.getSampleNames()) {
-            Genotype g = sub.getGenotype(sample);
+        for (String sample : originalVC.getSampleNames()) {
+            Genotype g = originalVC.getGenotype(sample);
 
             if ( g.isNotFiltered() ) {
 
@@ -694,21 +746,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 }
             }
         }
-
-
-        if (KEEP_ORIGINAL_CHR_COUNTS) {
-            if ( sub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-                builder.attribute("AC_Orig", sub.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
-            if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                builder.attribute("AF_Orig", sub.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
-            if ( sub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
-                builder.attribute("AN_Orig", sub.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
-        }
-
-        VariantContextUtils.calculateChromosomeCounts(builder, false);
         builder.attribute("DP", depth);
-
-        return builder.make();
     }
 
     private void randomlyAddVariant(int rank, VariantContext vc) {

@@ -117,6 +117,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testRegenotype() {
+        String testFile = validationDataLocation + "combine.3.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s -NO_HEADER",
+                1,
+                Arrays.asList("0fd8e52bdcd1f4b921d8fb5c689f196a")
+        );
+
+        executeTest("testRegenotype--" + testFile, spec);
+    }
+
+    @Test
     public void testMultipleRecordsAtOnePosition() {
         String testFile = validationDataLocation + "selectVariants.onePosition.vcf";
 
