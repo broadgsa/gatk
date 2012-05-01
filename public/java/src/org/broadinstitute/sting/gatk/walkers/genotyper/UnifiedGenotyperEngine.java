@@ -419,7 +419,7 @@ public class UnifiedGenotyperEngine {
 
         // if we are subsetting alleles (either because there were too many or because some were not polymorphic)
         // then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
-        if ( myAlleles.size() != vc.getAlleles().size() )
+        if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext ) // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
             vcCall = VariantContextUtils.reverseTrimAlleles(vcCall);
 
         if ( annotationEngine != null && !limitedContext && rawContext.hasBasePileup() ) {
