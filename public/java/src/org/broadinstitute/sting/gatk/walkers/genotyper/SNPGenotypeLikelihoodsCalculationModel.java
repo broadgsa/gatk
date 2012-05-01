@@ -84,7 +84,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 pileup = createBAQedPileup( pileup );
 
             // create the GenotypeLikelihoods object
-            final DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering GL = new DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering(UAC.PCR_error);
+            final DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods(UAC.PCR_error);
             final int nGoodBases = GL.add(pileup, true, true, UAC.MIN_BASE_QUALTY_SCORE);
             if ( nGoodBases > 0 )
                 GLs.add(new SampleGenotypeData(sample.getKey(), GL, getFilteredDepth(pileup)));
@@ -139,7 +139,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             for ( int j = i; j <= numAltAlleles; j++ ) {
                 // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.
                 // In other words, for biallelic sites the ordering is: AA,AB,BB; for triallelic sites the ordering is: AA,AB,BB,AC,BC,CC, etc."
-                PLordering[(j * (j+1) / 2) + i] = DiploidGenotypeWithCorrectAlleleOrdering.createDiploidGenotype(alleleOrdering[i], alleleOrdering[j]).ordinal();
+                PLordering[(j * (j+1) / 2) + i] = DiploidGenotype.createDiploidGenotype(alleleOrdering[i], alleleOrdering[j]).ordinal();
             }
         }
 
@@ -171,7 +171,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     protected List<Allele> determineAlternateAlleles(final byte ref, final List<SampleGenotypeData> sampleDataList) {
 
         final int baseIndexOfRef = BaseUtils.simpleBaseToBaseIndex(ref);
-        final int PLindexOfRef = DiploidGenotypeWithCorrectAlleleOrdering.createDiploidGenotype(ref, ref).ordinal();
+        final int PLindexOfRef = DiploidGenotype.createDiploidGenotype(ref, ref).ordinal();
         for ( int i = 0; i < 4; i++ )
             likelihoodSums[i] = 0.0;
         
@@ -219,10 +219,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     private static class SampleGenotypeData {
 
         public final String name;
-        public final DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering GL;
+        public final DiploidSNPGenotypeLikelihoods GL;
         public final int depth;
 
-        public SampleGenotypeData(final String name, final DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering GL, final int depth) {
+        public SampleGenotypeData(final String name, final DiploidSNPGenotypeLikelihoods GL, final int depth) {
             this.name = name;
             this.GL = GL;
             this.depth = depth;

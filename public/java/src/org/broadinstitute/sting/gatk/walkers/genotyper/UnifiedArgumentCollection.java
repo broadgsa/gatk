@@ -53,7 +53,7 @@ public class UnifiedArgumentCollection {
      * effectively acts as a cap on the base qualities.
      */
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
-    public Double PCR_error = DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering.DEFAULT_PCR_ERROR_RATE;
+    public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
 
     @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Specifies how to determine the alternate alleles to use for genotyping", required = false)
     public GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY;
