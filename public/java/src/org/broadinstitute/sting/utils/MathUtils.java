@@ -1463,7 +1463,8 @@ public class MathUtils {
     }
 
     public static double factorial(int x) {
-        return Math.pow(10, log10Factorial(x));
+        // avoid rounding errors caused by fact that 10^log(x) might be slightly lower than x and flooring may produce 1 less than real value
+        return (double)Math.round(Math.pow(10, log10Factorial(x)));
     }
 
     public static double log10Factorial(int x) {
