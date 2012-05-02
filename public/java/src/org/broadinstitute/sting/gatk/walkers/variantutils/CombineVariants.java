@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -189,6 +190,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         if ( SET_KEY != null )
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
+        if ( !ASSUME_IDENTICAL_SAMPLES )
+             headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
         VCFHeader vcfHeader = new VCFHeader(headerLines, sitesOnlyVCF ? Collections.<String>emptySet() : samples);
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);
