@@ -1419,7 +1419,7 @@ public class MathUtils {
      * @return the log10 of the binomial coefficient
      */
     public static double log10BinomialCoefficient(int n, int k) {
-        return log10Gamma(n + 1) - log10Gamma(k + 1) - log10Gamma(n - k + 1);
+        return log10Factorial(n) - log10Factorial(k) - log10Factorial(n - k);
     }
 
     public static double log10BinomialProbability(int n, int k, double log10p) {
@@ -1438,9 +1438,9 @@ public class MathUtils {
     public static double log10MultinomialCoefficient(int n, int[] k) {
         double denominator = 0.0;
         for (int x : k) {
-            denominator += log10Gamma(x + 1);
+            denominator += log10Factorial(x );
         }
-        return log10Gamma(n + 1) - denominator;
+        return log10Factorial(n) - denominator;
     }
 
     /**
@@ -1463,11 +1463,14 @@ public class MathUtils {
     }
 
     public static double factorial(int x) {
-        return Math.pow(10, log10Gamma(x + 1));
+        return Math.pow(10, log10Factorial(x));
     }
 
     public static double log10Factorial(int x) {
-        return log10Gamma(x + 1);
+        if (x >= log10FactorialCache.length || x < 0)
+            return log10Gamma(x + 1);
+        else
+            return log10FactorialCache[x];
     }
 
     /**
@@ -1525,8 +1528,8 @@ public class MathUtils {
 
     /** Same routine, unboxed types for efficiency
      *
-     * @param x
-     * @param y
+     * @param x                 First vector
+     * @param y                 Second vector
      * @return Vector of same length as x and y so that z[k] = x[k]+y[k]
      */
     public static double[] vectorSum(double[]x, double[] y) {
@@ -1540,6 +1543,39 @@ public class MathUtils {
         return result;
     }
 
+    /** Compute Z=X-Y for two numeric vectors X and Y
+     *
+     * @param x                 First vector
+     * @param y                 Second vector
+     * @return Vector of same length as x and y so that z[k] = x[k]-y[k]
+     */
+    public static double[] vectorDiff(double[]x, double[] y) {
+        if (x.length != y.length)
+            throw new ReviewedStingException("BUG: Lengths of x and y must be the same");
+
+        double[] result = new double[x.length];
+        for (int k=0; k <x.length; k++)
+            result[k] = x[k]-y[k];
+
+        return result;
+    }
+
+    /** Compute Z=X-Y for two numeric vectors X and Y
+     *
+     * @param x                 First vector
+     * @param y                 Second vector
+     * @return Vector of same length as x and y so that z[k] = x[k]-y[k]
+     */
+    public static int[] vectorDiff(int[]x, int[] y) {
+        if (x.length != y.length)
+            throw new ReviewedStingException("BUG: Lengths of x and y must be the same");
+
+        int[] result = new int[x.length];
+        for (int k=0; k <x.length; k++)
+            result[k] = x[k]-y[k];
+
+        return result;
+    }
 
     public static <E extends Number> Double[] scalarTimesVector(E a, E[] v1) {
 
