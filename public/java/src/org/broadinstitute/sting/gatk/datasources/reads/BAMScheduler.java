@@ -27,13 +27,12 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKChunk;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileSpan;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -265,7 +264,10 @@ public class BAMScheduler implements Iterator<FilePointer> {
             // Naive algorithm: find all elements in current contig for proper schedule creation.
             List<GenomeLoc> lociInContig = new LinkedList<GenomeLoc>();
             for(GenomeLoc locus: loci) {
-                if(!GenomeLoc.isUnmapped(locus) && dataSource.getHeader().getSequence(locus.getContig()).getSequenceIndex() == lastReferenceSequenceLoaded)
+                if (!GenomeLoc.isUnmapped(locus) && dataSource.getHeader().getSequence(locus.getContig()) == null)
+                    throw new ReviewedStingException("BAM file(s) do not have the contig: " + locus.getContig() + ". You are probably using a different reference than the one this file was aligned with");
+
+                if (!GenomeLoc.isUnmapped(locus) && dataSource.getHeader().getSequence(locus.getContig()).getSequenceIndex() == lastReferenceSequenceLoaded)
                     lociInContig.add(locus);
             }
 
