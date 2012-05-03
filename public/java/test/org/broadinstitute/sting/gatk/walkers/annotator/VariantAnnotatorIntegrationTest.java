@@ -54,7 +54,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testNoAnnotsNotAsking2() {
-        // this genotype annotations in this file are actually out of order.  If you don't parse the genotypes
+        // the genotype annotations in this file are actually out of order.  If you don't parse the genotypes
         // they don't get reordered.  It's a good test of the genotype ordering system.
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
@@ -124,6 +124,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
                 baseTestString() + " --comp:H3 " + validationDataLocation + "fakeHM3.vcf -G Standard --variant " + validationDataLocation + "vcfexample3empty.vcf -L " + validationDataLocation + "vcfexample3empty.vcf", 1,
                 Arrays.asList("31cc2ce157dd20771418c08d6b3be1fa"));
         executeTest("getting DB tag with HM3", spec);
+    }
+
+    @Test
+    public void testNoQuals() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " --variant " + validationDataLocation + "noQual.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L " + validationDataLocation + "noQual.vcf -A QualByDepth", 1,
+                Arrays.asList("e531c9f90c17f0f859cd1ac851a8edd8"));
+        executeTest("test file doesn't have QUALs", spec);
     }
 
     @Test

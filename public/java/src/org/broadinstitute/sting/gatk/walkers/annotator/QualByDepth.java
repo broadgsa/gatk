@@ -29,7 +29,7 @@ import java.util.Map;
 public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( stratifiedContexts.size() == 0 )
+        if ( !vc.hasLog10PError() || stratifiedContexts.size() == 0 )
             return null;
 
         final GenotypesContext genotypes = vc.getGenotypes();
