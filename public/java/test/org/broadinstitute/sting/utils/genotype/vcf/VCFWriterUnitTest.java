@@ -1,7 +1,10 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.AbstractFeatureReader;
+import org.broad.tribble.FeatureReader;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -59,16 +62,10 @@ public class VCFWriterUnitTest extends BaseTest {
         writer.add(createVC(header));
         writer.add(createVC(header));
         writer.close();
-        VCFCodec reader = new VCFCodec();
-        AsciiLineReader lineReader;
+        VCFCodec codec = new VCFCodec();
         VCFHeader headerFromFile = null;
-        try {
-             lineReader = new AsciiLineReader(new FileInputStream(fakeVCFFile));
-             headerFromFile = (VCFHeader)reader.readHeader(lineReader);
-        }
-        catch (FileNotFoundException e ) {
-            throw new ReviewedStingException(e.getMessage());
-        }
+        FeatureReader<VariantContext> reader = AbstractFeatureReader.getFeatureReader(fakeVCFFile.getAbsolutePath(), codec, false);
+        headerFromFile = (VCFHeader)reader.getHeader();
 
         int counter = 0;
 
@@ -76,12 +73,9 @@ public class VCFWriterUnitTest extends BaseTest {
         validateHeader(headerFromFile);
         
         try {
-            while(true) {
-                String line = lineReader.readLine();
-                if (line == null)
-                    break;
-
-                VariantContext vc = (VariantContext)reader.decode(line);
+            Iterator<VariantContext> it = reader.iterator();
+            while(it.hasNext()) {
+                VariantContext vc = it.next();
                 counter++;
             }
             Assert.assertEquals(counter, 2);

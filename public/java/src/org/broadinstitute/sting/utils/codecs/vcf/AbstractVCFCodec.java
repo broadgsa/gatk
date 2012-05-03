@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
@@ -10,14 +10,20 @@ import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.LazyGenotypesContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 
-public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
+public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext> implements NameAwareCodec {
     public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
 
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
@@ -60,6 +66,10 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     protected int lineNo = 0;
 
     protected Map<String, String> stringCache = new HashMap<String, String>();
+
+    protected AbstractVCFCodec() {
+        super(VariantContext.class);
+    }
 
     /**
      * Creates a LazyParser for a LazyGenotypesContext to use to decode
@@ -266,7 +276,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      * @param line the line
      * @return a VariantContext
      */
-    public Feature decode(String line) {
+    public VariantContext decode(String line) {
         // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
         if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
 
@@ -376,14 +386,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         }
 
         return vc;
-    }
-
-    /**
-     *
-     * @return the type of record
-     */
-    public Class<VariantContext> getFeatureType() {
-        return VariantContext.class;
     }
 
     /**

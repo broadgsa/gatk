@@ -78,30 +78,31 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     private GenomeLocParser b37GenomeLocParser;
 
     @Override protected void setUp() {
-        try {
-            ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.b37KGReference));
-            b37GenomeLocParser = new GenomeLocParser(seq);
-        } catch ( FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-        // read it into a String so that we don't try to benchmark IO issues
-        try {
-            FileInputStream s = new FileInputStream(new File(vcfFile));
-            AsciiLineReader lineReader = new AsciiLineReader(s);
-            int counter = 0;
-            StringBuffer sb = new StringBuffer();
-            while (counter++ < linesToRead ) {
-                String line = lineReader.readLine();
-                if ( line == null )
-                    break;
-                sb.append(line + "\n");
-            }
-            s.close();
-            INPUT_STRING = sb.toString();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        // TODO -- update for new tribble interface
+//        try {
+//            ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.b37KGReference));
+//            b37GenomeLocParser = new GenomeLocParser(seq);
+//        } catch ( FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        // read it into a String so that we don't try to benchmark IO issues
+//        try {
+//            FileInputStream s = new FileInputStream(new File(vcfFile));
+//            AsciiLineReader lineReader = new AsciiLineReader(s);
+//            int counter = 0;
+//            StringBuffer sb = new StringBuffer();
+//            while (counter++ < linesToRead ) {
+//                String line = lineReader.readLine();
+//                if ( line == null )
+//                    break;
+//                sb.append(line + "\n");
+//            }
+//            s.close();
+//            INPUT_STRING = sb.toString();
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     private interface FunctionToBenchmark<T extends Feature> {
@@ -109,23 +110,24 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     }
 
     private <T extends Feature> void runBenchmark(FeatureCodec<T> codec, FunctionToBenchmark<T> func) {
-        try {
-            InputStream is = new ByteArrayInputStream(INPUT_STRING.getBytes());
-            AsciiLineReader lineReader = new AsciiLineReader(is);
-            codec.readHeader(lineReader);
-
-            int counter = 0;
-            while (counter++ < linesToRead ) {
-                String line = lineReader.readLine();
-                if ( line == null )
-                    break;
-
-                T vc = codec.decode(line);
-                func.run(vc);
-            }
-        } catch (Exception e) {
-            System.out.println("Benchmarking run failure because of " + e.getMessage());
-        }
+        // TODO -- update for new Tribble interface
+//        try {
+//            InputStream is = new ByteArrayInputStream(INPUT_STRING.getBytes());
+//            AsciiLineReader lineReader = new AsciiLineReader(is);
+//            codec.readHeader(lineReader);
+//
+//            int counter = 0;
+//            while (counter++ < linesToRead ) {
+//                String line = lineReader.readLine();
+//                if ( line == null )
+//                    break;
+//
+//                T vc = codec.decode(line);
+//                func.run(vc);
+//            }
+//        } catch (Exception e) {
+//            System.out.println("Benchmarking run failure because of " + e.getMessage());
+//        }
     }
 
     public void timeV14(int rep) {

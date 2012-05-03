@@ -23,7 +23,7 @@ import java.util.Arrays;
 public class BedTableCodec extends TableCodec implements ReferenceDependentFeatureCodec {
 
     @Override
-    public Feature decode(String line) {
+    public TableFeature decode(String line) {
         if (line.startsWith(headerDelimiter) || line.startsWith(commentDelimiter) || line.startsWith(igvHeaderDelimiter))
             return null;
         String[] split = line.split(delimiterRegex);

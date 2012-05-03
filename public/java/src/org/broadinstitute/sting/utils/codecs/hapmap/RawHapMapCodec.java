@@ -24,8 +24,7 @@
 
 package org.broadinstitute.sting.utils.codecs.hapmap;
 
-import org.broad.tribble.AbstractFeatureCodec;
-import org.broad.tribble.Feature;
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.readers.LineReader;
 
@@ -71,18 +70,14 @@ import java.util.Arrays;
  * @author Mark DePristo
  * @since 2010
  */
-public class RawHapMapCodec extends AbstractFeatureCodec {
+public class RawHapMapCodec extends AsciiFeatureCodec<RawHapMapFeature> {
     // the minimum number of features in the HapMap file line
     private static final int minimumFeatureCount = 11;
 
     private String headerLine;
-    /**
-     * decode the location only
-     * @param line the input line to decode
-     * @return a HapMapFeature
-     */
-    public Feature decodeLoc(String line) {
-        return decode(line);
+
+    public RawHapMapCodec() {
+        super(RawHapMapFeature.class);
     }
 
     /**
@@ -90,7 +85,7 @@ public class RawHapMapCodec extends AbstractFeatureCodec {
      * @param line the input line to decode
      * @return a HapMapFeature, with the given fields 
      */
-    public Feature decode(String line) {
+    public RawHapMapFeature decode(String line) {
         String[] array = line.split("\\s+");
 
         // make sure the split was successful - that we got an appropriate number of fields
@@ -111,10 +106,6 @@ public class RawHapMapCodec extends AbstractFeatureCodec {
                 array[10],
                 Arrays.copyOfRange(array,11,array.length),
                 headerLine);
-    }
-
-    public Class<RawHapMapFeature> getFeatureType() {
-        return RawHapMapFeature.class;
     }
 
     public Object readHeader(LineReader reader) {

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
@@ -24,7 +25,7 @@ public class VCFHeaderUnitTest extends BaseTest {
 
     private VCFHeader createHeader(String headerStr) {
         VCFCodec codec = new VCFCodec();
-        VCFHeader header = (VCFHeader)codec.readHeader(new AsciiLineReader(new StringBufferInputStream(headerStr)));
+        VCFHeader header = (VCFHeader)codec.readHeader(new AsciiLineReader(new PositionalBufferedStream(new StringBufferInputStream(headerStr))));
         Assert.assertEquals(header.getMetaData().size(), VCF4headerStringCount);
         return header;
     }

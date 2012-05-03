@@ -6,12 +6,14 @@ import scala.io.Source._
 import net.sf.samtools.SAMFileReader
 import org.broadinstitute.sting.utils.codecs.vcf.{VCFHeader, VCFCodec}
 import scala.collection.JavaConversions._
-import org.broad.tribble.AbstractFeatureReader
+import org.broad.tribble.{FeatureCodec, AbstractFeatureReader}
 
 object VCF_BAM_utilities {
 
   def getSamplesFromVCF(vcfFile: File): List[String] = {
-    return AbstractFeatureReader.getFeatureReader(vcfFile.getPath(), new VCFCodec()).getHeader().asInstanceOf[VCFHeader].getGenotypeSamples().toList
+    List();
+    // TODO -- ask khalid for help here with type error
+    //return AbstractFeatureReader.getFeatureReader(vcfFile.getPath(), new VCFCodec()).getHeader().asInstanceOf[VCFHeader].getGenotypeSamples().toList
   }
 
   def getSamplesInBAM(bam: File): List[String] = {

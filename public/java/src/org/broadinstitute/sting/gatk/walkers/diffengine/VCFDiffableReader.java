@@ -25,15 +25,16 @@
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.AbstractFeatureReader;
+import org.broad.tribble.FeatureReader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.Iterator;
 import java.util.Map;
 
 
@@ -56,16 +57,14 @@ public class VCFDiffableReader implements DiffableReader {
         DiffNode root = DiffNode.rooted(file.getName());
         try {
             // read the version line from the file
-            LineReader lineReader = new AsciiLineReader(new FileInputStream(file));
-            final String version = lineReader.readLine();
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            final String version = br.readLine();
             root.add("VERSION", version);
-            lineReader.close();
-
-            lineReader = new AsciiLineReader(new FileInputStream(file));
-            VCFCodec vcfCodec = new VCFCodec();
+            br.close();
 
             // must be read as state is stored in reader itself
-            VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
+            FeatureReader<VariantContext> reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
+            VCFHeader header = (VCFHeader)reader.getHeader();
             for ( VCFHeaderLine headerLine : header.getMetaData() ) {
                 String key = headerLine.getKey();
                 if ( headerLine instanceof VCFIDHeaderLine)
@@ -76,14 +75,14 @@ public class VCFDiffableReader implements DiffableReader {
                     root.add(key, headerLine.toString());
             }
 
-            String line = lineReader.readLine();
             int count = 0, nRecordsAtPos = 1;
             String prevName = "";
-            while ( line != null ) {
+            Iterator<VariantContext> it = reader.iterator();
+            while ( it.hasNext() ) {
                 if ( count++ > maxElementsToRead && maxElementsToRead != -1)
                     break;
 
-                VariantContext vc = (VariantContext)vcfCodec.decode(line);
+                VariantContext vc = it.next();
                 String name = vc.getChr() + ":" + vc.getStart();
                 if ( name.equals(prevName) ) {
                     name += "_" + ++nRecordsAtPos;
@@ -121,10 +120,9 @@ public class VCFDiffableReader implements DiffableReader {
                 }
 
                 root.add(vcRoot);
-                line = lineReader.readLine();
             }
 
-            lineReader.close();
+            reader.close();
         } catch ( IOException e ) {
             return null;
         }
