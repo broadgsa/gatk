@@ -108,9 +108,13 @@ public class StandardVCFWriter extends IndexingVCFWriter {
 
             // write out the column line
             mWriter.write(VCFHeader.HEADER_INDICATOR);
+            boolean isFirst = true;
             for ( VCFHeader.HEADER_FIELDS field : mHeader.getHeaderFields() ) {
+                if ( isFirst )
+                    isFirst = false; // don't write out a field separator
+                else
+                    mWriter.write(VCFConstants.FIELD_SEPARATOR);
                 mWriter.write(field.toString());
-                mWriter.write(VCFConstants.FIELD_SEPARATOR);
             }
 
             if ( mHeader.hasGenotypingData() ) {
