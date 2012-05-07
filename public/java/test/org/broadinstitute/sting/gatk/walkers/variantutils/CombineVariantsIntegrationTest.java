@@ -96,8 +96,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "63fc20d6223e1387563a1164987d716c"); }
 
-    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "917b5cb759afd27bce86a59d8355e85c"); }
-    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "1b3a7f7ba51636173c33a56fefe7c0fe"); }
+    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "5c60eb8d5d4b957a0cf52ca008f021ba"); }
+    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "774b43e69cc7ec93090b4f6e9f4a1079"); }
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
@@ -129,15 +129,15 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void complexTestFull() { combineComplexSites("", "dd805f6edfc3cf724512dfbbe8df5183"); }
     @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "14a205edb022f79abf1863588cfee56b"); }
-    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "76fdd2acc8f80eb4f9372f542673a8e2"); }
-    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "76fdd2acc8f80eb4f9372f542673a8e2"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "e118d04d1d47c02ad38c046561a9f616"); }
+    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "e118d04d1d47c02ad38c046561a9f616"); }
 
     @Test
     public void combineDBSNPDuplicateSites() {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T CombineVariants -NO_HEADER -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
                  1,
-                 Arrays.asList("ac59209efa4b21feda6493e397932f07"));
+                 Arrays.asList("a838dc241cf357466cd4331fd298c73a"));
          executeTest("combineDBSNPDuplicateSites:", spec);
     }
 }

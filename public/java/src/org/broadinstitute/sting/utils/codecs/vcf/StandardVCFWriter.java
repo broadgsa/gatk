@@ -118,6 +118,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             }
 
             if ( mHeader.hasGenotypingData() ) {
+                mWriter.write(VCFConstants.FIELD_SEPARATOR);
                 mWriter.write("FORMAT");
                 for ( String sample : mHeader.getGenotypeSamples() ) {
                     mWriter.write(VCFConstants.FIELD_SEPARATOR);

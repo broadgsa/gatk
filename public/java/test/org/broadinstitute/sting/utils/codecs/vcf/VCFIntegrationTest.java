@@ -35,7 +35,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("76075307afd26b4db6234795d9fb3c2f"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("acee3b6bdb4b759992f54065c675a249"));
         executeTest("Test reading and writing breakpoint VCF", spec1);
     }
 

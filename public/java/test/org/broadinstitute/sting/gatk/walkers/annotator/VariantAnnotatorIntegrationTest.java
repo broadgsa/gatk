@@ -152,7 +152,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testTabixAnnotations() {
-        final String MD5 = "13269d5a2e16f06fd755cc0fb9271acf";
+        final String MD5 = "bb9a148716fc69d706c5be146c1afa00";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
             WalkerTestSpec spec = new WalkerTestSpec(
                     baseTestString() + " -A HomopolymerRun --variant:vcf " + validationDataLocation + file + " -L " + validationDataLocation + "CEU.exon.2010_03.sites.vcf -NO_HEADER", 1,

@@ -19,7 +19,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingDbsnpInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("d64942fed2a5b7b407f9537dd2b4832e");
+        md5.add("a26afcce2a89f905a49c3d09719586b2");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
