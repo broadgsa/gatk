@@ -425,7 +425,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         read.setBaseQualities(recalQuals); // Overwrite old qualities with new recalibrated qualities
         if (!DO_NOT_WRITE_OQ && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null) { // Save the old qualities if the tag isn't already taken in the read
-            read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, SAMUtils.phredToFastq(originalQuals));
+            try {
+                read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, SAMUtils.phredToFastq(originalQuals));
+            } catch (IllegalArgumentException e) {
+                throw  new UserException.MalformedBAM(read, "illegal base quality encountered; " + e.getMessage());
+            }
         }
 
         if (!skipUQUpdate && refBases != null && read.getAttribute(SAMTag.UQ.name()) != null) {
