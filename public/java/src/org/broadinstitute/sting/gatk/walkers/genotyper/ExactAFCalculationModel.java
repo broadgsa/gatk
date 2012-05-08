@@ -100,7 +100,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         
         return orderedBestAlleles;
     }
-    
+
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Multi-allelic implementation.
+    //
+    // -------------------------------------------------------------------------------------
 
     public static void linearExactMultiAllelic(final GenotypesContext GLs,
                                                final int numAlternateAlleles,

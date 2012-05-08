@@ -103,9 +103,34 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         return genotypeLikelihoods;
     }
 
+    /**
+     * Must be overridden by concrete subclasses
+     * @param vc                                variant context with alleles and genotype likelihoods
+     * @param log10AlleleFrequencyPriors        priors
+     * @param result                            (pre-allocated) object to store likelihoods results
+     * @return the alleles used for genotyping
+     */
+    protected abstract List<Allele> getLog10PNonRef(final VariantContext vc,
+                                                    final double[] log10AlleleFrequencyPriors,
+                                                    final AlleleFrequencyCalculationResult result);
+
+    /**
+     * Must be overridden by concrete subclasses
+     * @param vc                                variant context with alleles and genotype likelihoods
+     * @param allelesToUse                      alleles to subset
+     * @param assignGenotypes
+     * @param ploidy
+     * @return GenotypesContext object
+     */
+    protected abstract GenotypesContext subsetAlleles(final VariantContext vc,
+                                                      final List<Allele> allelesToUse,
+                                                      final boolean assignGenotypes,
+                                                      final int ploidy);
+
+
     // -------------------------------------------------------------------------------------
     //
-    // Multi-allelic implementation.
+    // protected classes used to store exact model matrix columns
     //
     // -------------------------------------------------------------------------------------
 
@@ -180,27 +205,4 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
             return (obj instanceof ExactACset) && ACcounts.equals(((ExactACset)obj).ACcounts);
         }
     }
-    /**
-     * Must be overridden by concrete subclasses
-     * @param vc                                variant context with alleles and genotype likelihoods
-     * @param log10AlleleFrequencyPriors        priors
-     * @param result                            (pre-allocated) object to store likelihoods results
-     * @return the alleles used for genotyping
-     */
-    protected abstract List<Allele> getLog10PNonRef(final VariantContext vc,
-                                                    final double[] log10AlleleFrequencyPriors,
-                                                    final AlleleFrequencyCalculationResult result);
-
-    /**
-     * Must be overridden by concrete subclasses
-     * @param vc                                variant context with alleles and genotype likelihoods
-     * @param allelesToUse                      alleles to subset
-     * @param assignGenotypes
-     * @param ploidy
-     * @return GenotypesContext object
-     */
-    protected abstract GenotypesContext subsetAlleles(final VariantContext vc,
-                                                      final List<Allele> allelesToUse,
-                                                      final boolean assignGenotypes,
-                                                      final int ploidy);
 }
