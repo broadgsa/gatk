@@ -133,7 +133,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
     /**
      * Because the realignment algorithm is N^2, allowing too large an interval might take too long to completely realign.
      */
-    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size", required=false)
+    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size; any intervals larger than this value will be dropped", required=false)
     protected int maxIntervalSize = 500;
 
 
