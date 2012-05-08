@@ -76,7 +76,7 @@ public class WalkerTest extends BaseTest {
 
     public static void assertOnDiskIndexEqualToNewlyCreatedIndex(final File indexFile, final String name, final File resultFile) {
         System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
-        Index indexFromOutputFile = IndexFactory.createIndex(resultFile, new VCFCodec());
+        Index indexFromOutputFile = IndexFactory.createDynamicIndex(resultFile, new VCFCodec());
         Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
         if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {

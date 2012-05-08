@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.codecs.hapmap;
 
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -152,7 +153,7 @@ public class HapMapUnitTest {
 
     public AsciiLineReader getReader() {
         try {
-            return new AsciiLineReader(new FileInputStream(hapMapFile));            
+            return new AsciiLineReader(new PositionalBufferedStream(new FileInputStream(hapMapFile)));
         } catch (FileNotFoundException e) {
             Assert.fail("Unable to open hapmap file : " + hapMapFile);
         }

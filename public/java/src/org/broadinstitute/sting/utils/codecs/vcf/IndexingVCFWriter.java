@@ -28,12 +28,10 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
-import org.broad.tribble.TribbleException;
 import org.broad.tribble.index.DynamicIndexCreator;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.util.LittleEndianOutputStream;
-import org.broad.tribble.util.PositionalStream;
 import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -141,4 +139,32 @@ public abstract class IndexingVCFWriter implements VCFWriter {
             throw new UserException.CouldNotCreateOutputFile(location, "Unable to create VCF writer", e);
         }
     }
+}
+
+class PositionalStream extends OutputStream {
+    OutputStream out = null;
+    private long position = 0;
+
+    public PositionalStream(OutputStream out) {
+        this.out = out;
+    }
+
+    public void write(final byte[] bytes) throws IOException {
+        write(bytes, 0, bytes.length);
+    }
+
+    public void write(final byte[] bytes, int startIndex, int numBytes) throws IOException {
+        //System.out.println("write: " + bytes + " " + numBytes);
+        position += numBytes;
+        out.write(bytes, startIndex, numBytes);
+    }
+
+    public void write(int c)  throws IOException {
+        System.out.println("write byte: " + c);
+        //System.out.printf("Position %d for %c\n", position, (char)c);
+        position++;
+        out.write(c);
+    }
+
+    public long getPosition() { return position; }
 }

@@ -172,7 +172,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testOutputParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-sites_only", "44f3b5b40e6ad44486cddfdb7e0bfcd8" );
+        e.put( "-sites_only", "446ed9a72d210671ed48aa1f572b77e3" );
         e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "ecf92054c1e4bd9d6529b8002d385165" );
         e.put( "--output_mode EMIT_ALL_SITES", "e10819a2a7960254e27ed2b958b45d56" );
 
@@ -376,7 +376,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMinIndelFraction0() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 assessMinIndelFraction + " -minIndelFrac 0.0", 1,
-                Arrays.asList("973178b97efd2daacc9e45c414275d59"));
+                Arrays.asList("1e4595c85159bd9b62eff575134b5dd9"));
         executeTest("test minIndelFraction 0.0", spec);
     }
 
@@ -384,7 +384,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMinIndelFraction25() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 assessMinIndelFraction + " -minIndelFrac 0.25", 1,
-                Arrays.asList("220facd2eb0923515d1d8ab874055564"));
+                Arrays.asList("6d9dbb949626fdb0bca6a7904e9b0c1f"));
         executeTest("test minIndelFraction 0.25", spec);
     }
 
@@ -392,7 +392,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMinIndelFraction100() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 assessMinIndelFraction + " -minIndelFrac 1", 1,
-                Arrays.asList("50fe9a4c5633f6395b45d9ec1e00d56a"));
+                Arrays.asList("a31a355bc2b8257b2a45494e97322694"));
         executeTest("test minIndelFraction 1.0", spec);
     }
 }

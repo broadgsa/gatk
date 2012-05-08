@@ -42,7 +42,7 @@ class DataProcessingPipelineTest {
       " -nv ",
       " -test ",
       " -p " + projectName).mkString
-    spec.fileMD5s += testOut -> "1f85e76de760167a77ed1d9ab4da2936"
+    spec.fileMD5s += testOut -> "0de95b5642e41e11ecd6fa1770242b88"
     PipelineTest.executeTest(spec)
   }
 
@@ -62,7 +62,7 @@ class DataProcessingPipelineTest {
       " -bwa /home/unix/carneiro/bin/bwa",
       " -bwape ",
       " -p " + projectName).mkString
-    spec.fileMD5s += testOut -> "57416a0abdf9524bc92834d466529708"
+    spec.fileMD5s += testOut -> "72beeb037bfc5a07599630a23d8b325b"
     PipelineTest.executeTest(spec)
   }
 

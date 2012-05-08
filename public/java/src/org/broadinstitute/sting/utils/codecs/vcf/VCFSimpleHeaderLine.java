@@ -48,7 +48,7 @@ public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLin
      * @param key            the key for this header line
      * @param expectedTagOrdering the tag ordering expected for this header line
      */
-    protected VCFSimpleHeaderLine(String line, VCFHeaderVersion version, String key, List<String> expectedTagOrdering) {
+    public VCFSimpleHeaderLine(String line, VCFHeaderVersion version, String key, List<String> expectedTagOrdering) {
         super(key, "");
         Map<String, String> mapping = VCFHeaderLineTranslator.parseLine(version, line, expectedTagOrdering);
         name = mapping.get("ID");

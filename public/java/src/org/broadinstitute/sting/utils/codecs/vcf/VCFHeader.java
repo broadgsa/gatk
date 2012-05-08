@@ -112,7 +112,7 @@ public class VCFHeader {
      * @param genotypeSampleNamesInAppearenceOrder genotype sample names
      */
 
-    protected void buildVCFReaderMaps(List<String> genotypeSampleNamesInAppearenceOrder) {
+    public void buildVCFReaderMaps(List<String> genotypeSampleNamesInAppearenceOrder) {
         sampleNamesInOrder = new ArrayList<String>(genotypeSampleNamesInAppearenceOrder.size());
         sampleNameToOffset = new HashMap<String, Integer>(genotypeSampleNamesInAppearenceOrder.size());
 

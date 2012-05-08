@@ -4,14 +4,16 @@ import java.io.File
 import org.apache.commons.io.FilenameUtils
 import scala.io.Source._
 import net.sf.samtools.SAMFileReader
-import org.broad.tribble.source.BasicFeatureSource
 import org.broadinstitute.sting.utils.codecs.vcf.{VCFHeader, VCFCodec}
 import scala.collection.JavaConversions._
+import org.broad.tribble.{FeatureCodec, AbstractFeatureReader}
+import org.broadinstitute.sting.utils.variantcontext.VariantContext
 
 object VCF_BAM_utilities {
 
   def getSamplesFromVCF(vcfFile: File): List[String] = {
-    return BasicFeatureSource.getFeatureSource(vcfFile.getPath(), new VCFCodec()).getHeader().asInstanceOf[VCFHeader].getGenotypeSamples().toList
+    val codec: FeatureCodec[VariantContext] = new VCFCodec().asInstanceOf[FeatureCodec[VariantContext]]
+    AbstractFeatureReader.getFeatureReader(vcfFile.getPath, codec).getHeader.asInstanceOf[VCFHeader].getGenotypeSamples.toList
   }
 
   def getSamplesInBAM(bam: File): List[String] = {

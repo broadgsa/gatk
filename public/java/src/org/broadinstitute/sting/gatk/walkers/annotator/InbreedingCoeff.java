@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
@@ -16,10 +17,7 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -33,8 +31,12 @@ import java.util.Map;
 public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
     private static final int MIN_SAMPLES = 10;
+    private Set<String> founderIds;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+        //If available, get the founder IDs and cache them. the IC will only be computed on founders then.
+        if(founderIds == null)
+            founderIds =  ((Walker)walker).getSampleDB().getFounderIds();
         return calculateIC(vc);
     }
 
@@ -43,7 +45,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
     }
 
     private Map<String, Object> calculateIC(final VariantContext vc) {
-        final GenotypesContext genotypes = vc.getGenotypes();
+        final GenotypesContext genotypes = (founderIds == null || founderIds.isEmpty()) ? vc.getGenotypes() : vc.getGenotypes(founderIds);
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
             return null;
 

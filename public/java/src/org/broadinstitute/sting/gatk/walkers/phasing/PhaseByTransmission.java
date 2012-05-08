@@ -82,6 +82,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     @Argument(shortName = "prior",required = false,fullName = "DeNovoPrior", doc="Prior for de novo mutations. Default: 1e-8")
     private double deNovoPrior=1e-8;
 
+    @Argument(shortName = "fatherAlleleFirst",required = false,fullName = "FatherAlleleFirst", doc="Ouputs the father allele as the first allele in phased child genotype. i.e. father|mother rather than mother|father.")
+    private boolean fatherFAlleleFirst=false;
+
     @Output
     protected VCFWriter vcfWriter = null;
 
@@ -183,12 +186,15 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             ArrayList<Allele> parentPhasedAlleles = new ArrayList<Allele>(2);
             ArrayList<Allele> childPhasedAlleles = new ArrayList<Allele>(2);
 
-            //If there is a possible phasing between the mother and child => phase
+            //If there is a possible phasing between the parent and child => phase
             int childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(0));
             if(childTransmittedAlleleIndex > -1){
                 trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, parentAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
                 childPhasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
-                childPhasedAlleles.add(childAlleles.get(0));
+                if(parent.equals(FamilyMember.MOTHER))
+                        childPhasedAlleles.add(childAlleles.get(0));
+                else
+                        childPhasedAlleles.add(0,childAlleles.get(0));
                 trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME, childPhasedAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
             }
             else if((childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(1))) > -1){
@@ -196,7 +202,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 parentPhasedAlleles.add(parentAlleles.get(0));
                 trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, parentPhasedAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
                 childPhasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
-                childPhasedAlleles.add(childAlleles.get(0));
+                if(parent.equals(FamilyMember.MOTHER))
+                    childPhasedAlleles.add(childAlleles.get(0));
+                else
+                    childPhasedAlleles.add(0,childAlleles.get(0));
                 trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME, childPhasedAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
             }
             //This is a Mendelian Violation => Do not phase
@@ -296,6 +305,14 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             else{
                 phaseFamilyAlleles(mother, father, child);
             }
+
+            //If child should phased genotype should be father first, then swap the alleles
+            if(fatherFAlleleFirst && trioPhasedGenotypes.get(FamilyMember.CHILD).isPhased()){
+                ArrayList<Allele> childAlleles = new ArrayList<Allele>(trioPhasedGenotypes.get(FamilyMember.CHILD).getAlleles());
+                childAlleles.add(childAlleles.remove(0));
+                trioPhasedGenotypes.put(FamilyMember.CHILD,new Genotype(DUMMY_NAME,childAlleles,Genotype.NO_LOG10_PERROR,null,null,true));
+            }
+
         }
 
         /**

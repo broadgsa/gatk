@@ -64,20 +64,20 @@ public class ContextCovariate implements StandardCovariate {
     }
 
     @Override
-    public CovariateValues getValues(GATKSAMRecord read) {
+    public CovariateValues getValues(final GATKSAMRecord read) {
         int l = read.getReadLength();
         BitSet[] mismatches = new BitSet[l];
         BitSet[] insertions = new BitSet[l];
         BitSet[] deletions = new BitSet[l];
 
-        read = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
+        GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
         
-        final boolean negativeStrand = read.getReadNegativeStrandFlag();
-        byte[] bases = read.getReadBases();
+        final boolean negativeStrand = clippedRead.getReadNegativeStrandFlag();
+        byte[] bases = clippedRead.getReadBases();
         if (negativeStrand)
             bases = BaseUtils.simpleReverseComplement(bases);
 
-        for (int i = 0; i < read.getReadLength(); i++) {
+        for (int i = 0; i < clippedRead.getReadLength(); i++) {
             mismatches[i] = contextWith(bases, i, mismatchesContextSize);
             insertions[i] = contextWith(bases, i, insertionsContextSize);
             deletions[i] = contextWith(bases, i, deletionsContextSize);

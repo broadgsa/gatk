@@ -136,7 +136,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -select 'KG_FREQ < 0.5' --variant " + testFile + " -o %s -NO_HEADER",
                 1,
-                Arrays.asList("20b52c96f5c48258494d072752b53693")
+                Arrays.asList("ffa2524380d84a870d2e4a33d9f3d31a")
         );
 
         executeTest("testMultipleRecordsAtOnePositionFirstIsFiltered--" + testFile, spec);

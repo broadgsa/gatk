@@ -54,7 +54,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testNoAnnotsNotAsking2() {
-        // this genotype annotations in this file are actually out of order.  If you don't parse the genotypes
+        // the genotype annotations in this file are actually out of order.  If you don't parse the genotypes
         // they don't get reordered.  It's a good test of the genotype ordering system.
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
@@ -127,6 +127,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testNoQuals() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " --variant " + validationDataLocation + "noQual.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L " + validationDataLocation + "noQual.vcf -A QualByDepth", 1,
+                Arrays.asList("e531c9f90c17f0f859cd1ac851a8edd8"));
+        executeTest("test file doesn't have QUALs", spec);
+    }
+
+    @Test
     public void testUsingExpression() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --resource:foo " + validationDataLocation + "targetAnnotations.vcf -G Standard --variant:VCF3 " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -L " + validationDataLocation + "vcfexample3empty.vcf", 1,
@@ -144,7 +152,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testTabixAnnotations() {
-        final String MD5 = "13269d5a2e16f06fd755cc0fb9271acf";
+        final String MD5 = "bb9a148716fc69d706c5be146c1afa00";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
             WalkerTestSpec spec = new WalkerTestSpec(
                     baseTestString() + " -A HomopolymerRun --variant:vcf " + validationDataLocation + file + " -L " + validationDataLocation + "CEU.exon.2010_03.sites.vcf -NO_HEADER", 1,
@@ -196,6 +204,16 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
                 Arrays.asList(MD5));
         executeTest("Testing ChromosomeCounts annotation with PED file", spec);
+    }
+
+    @Test
+    public void testInbreedingCoeffPed() {
+        final String MD5 = "7f1314fada5cb1f35ba1996f8a7a686b";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T VariantAnnotator -R " + b37KGReference + " -A InbreedingCoeff --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                Arrays.asList(MD5));
+        executeTest("Testing InbreedingCoeff annotation with PED file", spec);
     }
 
 }

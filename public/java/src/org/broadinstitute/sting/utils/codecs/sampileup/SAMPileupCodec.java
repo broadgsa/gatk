@@ -25,10 +25,9 @@
 
 package org.broadinstitute.sting.utils.codecs.sampileup;
 
-import org.broad.tribble.AbstractFeatureCodec;
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
 
 import java.util.ArrayList;
@@ -76,7 +75,7 @@ import static org.broadinstitute.sting.utils.codecs.sampileup.SAMPileupFeature.V
  * @author Matt Hanna
  * @since 2009
  */
-public class SAMPileupCodec extends AbstractFeatureCodec<SAMPileupFeature> {
+public class SAMPileupCodec extends AsciiFeatureCodec<SAMPileupFeature> {
     // the number of tokens we expect to parse from a pileup line
     private static final int expectedTokenCount = 10;
     private static final char fldDelim = '\t';
@@ -88,24 +87,8 @@ public class SAMPileupCodec extends AbstractFeatureCodec<SAMPileupFeature> {
     private static final String baseT = "T";
     private static final String emptyStr = ""; // we will use this for "reference" allele in insertions
 
-    /**
-     * Return the # of header lines for this file.
-     *
-     * @param reader the line reader
-     * @return 0 in this case, we assume no header lines.
-     */
-    public Object readHeader(LineReader reader) {
-        // we don't require a header line, but it may exist.  We'll deal with that above.
-        return null;
-    }
-
-    @Override
-    public Class<SAMPileupFeature> getFeatureType() {
-        return SAMPileupFeature.class;
-    }
-
-    public Feature decodeLoc(String line) {
-        return decode(line);
+    public SAMPileupCodec() {
+        super(SAMPileupFeature.class);
     }
 
     public SAMPileupFeature decode(String line) {
@@ -285,5 +268,4 @@ public class SAMPileupCodec extends AbstractFeatureCodec<SAMPileupFeature> {
         feature.setPileupBases(baseBuilder.toString());
         feature.setPileupQuals(qualBuilder.toString());
     }
-
 }

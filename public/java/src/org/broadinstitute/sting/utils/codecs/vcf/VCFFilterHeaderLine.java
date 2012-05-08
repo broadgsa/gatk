@@ -24,7 +24,7 @@ public class VCFFilterHeaderLine extends VCFSimpleHeaderLine  {
      * @param line      the header line
      * @param version   the vcf header version
      */
-    protected VCFFilterHeaderLine(String line, VCFHeaderVersion version) {
+    public VCFFilterHeaderLine(String line, VCFHeaderVersion version) {
         super(line, version, "FILTER", Arrays.asList("ID", "Description"));
     }
 }
