@@ -384,6 +384,10 @@ public class VariantContextBuilder {
         return this;
     }
 
+    public long getStart() {
+        return start;
+    }
+
     /**
      * Tells us that the resulting VariantContext should have the specified contig stop
      * @param stop

@@ -611,7 +611,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             alleles.add(allele);
     }
 
-    protected static boolean isSingleNucleotideEvent(List<Allele> alleles) {
+    public static boolean isSingleNucleotideEvent(List<Allele> alleles) {
         for ( Allele a : alleles ) {
             if ( a.length() != 1 )
                 return false;
@@ -683,7 +683,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      * @param lineNo the current line number in the file
      * @return the new reference end position of this event
      */
-    protected static int clipAlleles(int position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
+    public static int clipAlleles(int position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
 
         int forwardClipping = computeForwardClipping(unclippedAlleles, (byte)ref.charAt(0));
         int reverseClipping = computeReverseClipping(unclippedAlleles, ref.getBytes(), forwardClipping, false, lineNo);

@@ -171,21 +171,33 @@ public class VariantContextUtils {
         return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
     }
 
-    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
-        // see if we need to pad common reference base from all alleles
-        boolean padVC = false;
-
-        // We need to pad a VC with a common base if the length of the reference allele is less than the length of the VariantContext.
-        // This happens because the position of e.g. an indel is always one before the actual event (as per VCF convention).
+    /**
+     * Returns true if the alleles in inputVC should have reference bases added for padding
+     *
+     * We need to pad a VC with a common base if the length of the reference allele is
+     * less than the length of the VariantContext. This happens because the position of
+     * e.g. an indel is always one before the actual event (as per VCF convention).
+     *
+     * @param inputVC the VC to evaluate, cannot be null
+     * @return true if
+     */
+    public static boolean needsPadding(final VariantContext inputVC) {
         final int recordLength = inputVC.getEnd() - inputVC.getStart() + 1;
         final int referenceLength = inputVC.getReference().length();
+
         if ( referenceLength == recordLength )
-            padVC = false;
+            return false;
         else if ( referenceLength == recordLength - 1 )
-            padVC = true;
+            return true;
         else if ( !inputVC.hasSymbolicAlleles() )
             throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
                     " in contig " + inputVC.getChr() + ". Reference length must be at most one base shorter than location size");
+        else
+            return false;
+    }
+
+    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
+        final boolean padVC = needsPadding(inputVC);
 
         // nothing to do if we don't need to pad bases
         if ( padVC ) {

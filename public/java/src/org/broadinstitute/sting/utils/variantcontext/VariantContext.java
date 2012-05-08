@@ -519,6 +519,17 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return REFERENCE_BASE_FOR_INDEL;
     }
 
+    public String getAlleleWithRefPadding(final Allele allele) {
+        if ( hasReferenceBaseForIndel() && isIndel() ) {
+            StringBuilder sb = new StringBuilder();
+            sb.append((char)getReferenceBaseForIndel().byteValue());
+            sb.append(allele.getDisplayString());
+            return sb.toString();
+        } else
+            return allele.getDisplayString();
+    }
+
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // get routines to access context info fields

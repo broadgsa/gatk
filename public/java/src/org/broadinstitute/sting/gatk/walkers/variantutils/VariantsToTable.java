@@ -278,7 +278,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 StringBuilder x = new StringBuilder();
-                x.append(getAlleleDisplayString(vc, vc.getReference()));
+                x.append(vc.getAlleleWithRefPadding(vc.getReference()));
                 return x.toString();
             }
         });
@@ -290,7 +290,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
                 for ( int i = 0; i < n; i++ ) {
                     if ( i != 0 ) x.append(",");
-                    x.append(getAlleleDisplayString(vc, vc.getAlternateAllele(i)));
+                    x.append(vc.getAlleleWithRefPadding(vc.getAlternateAllele(i)));
                 }
                 return x.toString();
             }
@@ -329,22 +329,14 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         }});
     }
     
-    private static String getAlleleDisplayString(VariantContext vc, Allele allele) {
-        StringBuilder sb = new StringBuilder();
-        if ( vc.hasReferenceBaseForIndel() && !vc.isSNP() )
-            sb.append((char)vc.getReferenceBaseForIndel().byteValue());
-        sb.append(allele.getDisplayString());
-        return sb.toString();
-    }
-    
     private static Object splitAltAlleles(VariantContext vc) {
         final int numAltAlleles = vc.getAlternateAlleles().size();
         if ( numAltAlleles == 1 )
-            return getAlleleDisplayString(vc, vc.getAlternateAllele(0));
+            return vc.getAlleleWithRefPadding(vc.getAlternateAllele(0));
 
         final List<String> alleles = new ArrayList<String>(numAltAlleles);
         for ( Allele allele : vc.getAlternateAlleles() )
-            alleles.add(getAlleleDisplayString(vc, allele));
+            alleles.add(vc.getAlleleWithRefPadding(allele));
         return alleles;
     }
 }
