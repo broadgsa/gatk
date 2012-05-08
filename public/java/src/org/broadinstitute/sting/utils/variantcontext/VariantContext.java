@@ -3,8 +3,11 @@ package org.broadinstitute.sting.utils.variantcontext;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCompoundHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -250,11 +253,11 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @param validationToPerform     set of validation steps to take
      */
     protected VariantContext(String source, String ID,
-                           String contig, long start, long stop,
-                           Collection<Allele> alleles, GenotypesContext genotypes,
-                           double log10PError, Set<String> filters, Map<String, Object> attributes,
-                           Byte referenceBaseForIndel,
-                           EnumSet<Validation> validationToPerform ) {
+                             String contig, long start, long stop,
+                             Collection<Allele> alleles, GenotypesContext genotypes,
+                             double log10PError, Set<String> filters, Map<String, Object> attributes,
+                             Byte referenceBaseForIndel,
+                             EnumSet<Validation> validationToPerform ) {
         if ( contig == null ) { throw new IllegalArgumentException("Contig cannot be null"); }
         this.contig = contig;
         this.start = start;
@@ -808,7 +811,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return  getCalledChrCount(new HashSet<String>(0));
     }
 
-     /**
+    /**
      * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS)
      *
      * @param sampleIds IDs of samples to take into account. If empty then all samples are included.
@@ -819,8 +822,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
         GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
 
         for ( final Genotype g : genotypes) {
-                for ( final Allele a : g.getAlleles() )
-                    n += a.isNoCall() ? 0 : 1;
+            for ( final Allele a : g.getAlleles() )
+                n += a.isNoCall() ? 0 : 1;
         }
 
         return n;
@@ -848,7 +851,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
 
         for ( final Genotype g : genotypes ) {
-                n += g.getAlleles(a).size();
+            n += g.getAlleles(a).size();
         }
 
         return n;
@@ -1015,7 +1018,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
     public void validateChromosomeCounts() {
         if ( !hasGenotypes() )
             return;
-        
+
         // AN
         if ( hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) ) {
             int reportedAN = Integer.valueOf(getAttribute(VCFConstants.ALLELE_NUMBER_KEY).toString());
@@ -1251,6 +1254,89 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     // ---------------------------------------------------------------------------------------------------------
     //
+    // Fully decode
+    //
+    // ---------------------------------------------------------------------------------------------------------
+    public VariantContext fullyDecode(final VCFHeader header) {
+        final VariantContextBuilder builder = new VariantContextBuilder(this);
+        fullyDecodeInfo(builder, header);
+        fullyDecodeGenotypes(builder, header);
+        return builder.make();
+    }
+
+    private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header) {
+        builder.attributes(fullyDecodeAttributes(getAttributes(), header));
+    }
+
+    private final Map<String, Object> fullyDecodeAttributes(final Map<String, Object> attributes, final VCFHeader header) {
+        final Map<String, Object> newAttributes = new HashMap<String, Object>(attributes.size());
+
+        for ( final Map.Entry<String, Object> attr : attributes.entrySet() ) {
+            final String field = attr.getKey();
+            final VCFCompoundHeaderLine format = getMetaDataForField(header, field);
+            final Object decoded = decodeValue(field, attr.getValue(), format);
+            if ( decoded != null )
+                newAttributes.put(field, decoded);
+        }
+
+        return newAttributes;
+    }
+
+    private final Object decodeValue(final String field, final Object value, final VCFCompoundHeaderLine format) {
+        if ( value instanceof String ) {
+            final String string = (String)value;
+            if ( string.indexOf(",") != -1 ) {
+                final String[] splits = string.split(",");
+                final List<Object> values = new ArrayList<Object>(splits.length);
+                for ( int i = 0; i < splits.length; i++ )
+                    values.add(decodeOne(field, splits[i], format));
+                return values;
+            } else {
+                return decodeOne(field, string, format);
+            }
+        } else {
+            return value;
+        }
+    }
+
+    private final Object decodeOne(final String field, final String string, final VCFCompoundHeaderLine format) {
+        if ( string.equals(VCFConstants.MISSING_VALUE_v4) )
+            return null;
+        else {
+            switch ( format.getType() ) {
+                case Character: return string;
+                case Flag:      return Boolean.valueOf(string);
+                case String:    return string;
+                case Integer:   return Integer.valueOf(string);
+                case Float:     return Float.valueOf(string);
+                default: throw new ReviewedStingException("Unexpected type for field" + field);
+            }
+        }
+    }
+
+    private final void fullyDecodeGenotypes(final VariantContextBuilder builder, final VCFHeader header) {
+        final GenotypesContext gc = new GenotypesContext();
+        for ( final Genotype g : getGenotypes() ) {
+            gc.add(fullyDecodeGenotypes(g, header));
+        }
+        builder.genotypesNoValidation(gc);
+    }
+
+    private final Genotype fullyDecodeGenotypes(final Genotype g, final VCFHeader header) {
+        final Map<String, Object> map = fullyDecodeAttributes(g.getAttributes(), header);
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.getFilters(), map, g.isPhased());
+    }
+
+    public final static VCFCompoundHeaderLine getMetaDataForField(final VCFHeader header, final String field) {
+        VCFCompoundHeaderLine metaData = header.getFormatHeaderLine(field);
+        if ( metaData == null ) metaData = header.getInfoHeaderLine(field);
+        if ( metaData == null )
+            throw new UserException.MalformedVCF("Fully decoding VariantContext requires header line for all fields, but none was found for " + field);
+        return metaData;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
     // tribble integration routines -- not for public consumption
     //
     // ---------------------------------------------------------------------------------------------------------
@@ -1279,7 +1365,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         // optimization: for bi-allelic sites, just return the 1only alt allele
         if ( isBiallelic() )
             return getAlternateAllele(0);
-        
+
         Allele best = null;
         int maxAC1 = 0;
         for ( Allele a : getAlternateAlleles() ) {

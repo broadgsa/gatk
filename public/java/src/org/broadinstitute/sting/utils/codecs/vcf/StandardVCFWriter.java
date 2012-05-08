@@ -167,8 +167,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, false);
             super.add(vc);
 
-            Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());
-            alleleMap.put(Allele.NO_CALL, VCFConstants.EMPTY_ALLELE); // convenience for lookup
+            Map<Allele, String> alleleMap = buildAlleleMap(vc);
 
             // CHROM
             mWriter.write(vc.getChr());
@@ -184,7 +183,6 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // REF
-            alleleMap.put(vc.getReference(), "0");
             String refString = vc.getReference().getDisplayString();
             mWriter.write(refString);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
@@ -192,13 +190,11 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             // ALT
             if ( vc.isVariant() ) {
                 Allele altAllele = vc.getAlternateAllele(0);
-                alleleMap.put(altAllele, "1");
                 String alt = altAllele.getDisplayString();
                 mWriter.write(alt);
 
                 for (int i = 1; i < vc.getAlternateAlleles().size(); i++) {
                     altAllele = vc.getAlternateAllele(i);
-                    alleleMap.put(altAllele, String.valueOf(i+1));
                     alt = altAllele.getDisplayString();
                     mWriter.write(",");
                     mWriter.write(alt);
@@ -258,6 +254,18 @@ public class StandardVCFWriter extends IndexingVCFWriter {
         } catch (IOException e) {
             throw new RuntimeException("Unable to write the VCF object to " + getStreamName());
         }
+    }
+
+    public static Map<Allele, String> buildAlleleMap(final VariantContext vc) {
+        final Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size()+1);
+        alleleMap.put(Allele.NO_CALL, VCFConstants.EMPTY_ALLELE); // convenience for lookup
+
+        final List<Allele> alleles = vc.getAlleles();
+        for ( int i = 0; i < alleles.size(); i++ ) {
+            alleleMap.put(alleles.get(i), String.valueOf(i));
+        }
+
+        return alleleMap;
     }
 
     // --------------------------------------------------------------------------------
@@ -440,7 +448,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
         return result;
     }
 
-    private static List<String> calcVCFGenotypeKeys(VariantContext vc) {
+    public static List<String> calcVCFGenotypeKeys(VariantContext vc) {
         Set<String> keys = new HashSet<String>();
 
         boolean sawGoodGT = false;
