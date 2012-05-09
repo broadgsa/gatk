@@ -32,9 +32,8 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

@@ -38,6 +38,8 @@ import java.util.*;
  * this class writes VCF files
  */
 public class StandardVCFWriter extends IndexingVCFWriter {
+    private final static String VERSION_LINE = VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_1.getFormatString() + "=" + VCFHeaderVersion.VCF4_1.getVersionString();
+
     // the print stream we're writing to
     final protected BufferedWriter mWriter;
 
@@ -87,50 +89,62 @@ public class StandardVCFWriter extends IndexingVCFWriter {
 
     @Override
     public void writeHeader(VCFHeader header) {
-        mHeader = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
+        mHeader = header;
+        writeHeader(mHeader, mWriter, doNotWriteGenotypes, VERSION_LINE, getStreamName());
+
+        // determine if we use filters, so we should FORCE pass the records
+        // TODO -- this might not be necessary any longer as we have unfiltered, filtered, and PASS VCs
+        for ( final VCFHeaderLine line : header.getMetaData() ) {
+            if ( line instanceof VCFFilterHeaderLine)
+                filtersWereAppliedToContext = true;
+        }
+    }
+
+    public static void writeHeader(VCFHeader header,
+                                   final Writer writer,
+                                   final boolean doNotWriteGenotypes,
+                                   final String versionLine,
+                                   final String streamNameForError) {
+        header = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
         
         try {
             // the file format field needs to be written first
-            mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_1.getFormatString() + "=" + VCFHeaderVersion.VCF4_1.getVersionString() + "\n");
+            writer.write(versionLine + "\n");
 
-            for ( VCFHeaderLine line : mHeader.getMetaData() ) {
+            for ( VCFHeaderLine line : header.getMetaData() ) {
                 if ( VCFHeaderVersion.isFormatString(line.getKey()) )
                     continue;
 
-                // are the records filtered (so we know what to put in the FILTER column of passing records) ?
-                if ( line instanceof VCFFilterHeaderLine)
-                    filtersWereAppliedToContext = true;
-
-                mWriter.write(VCFHeader.METADATA_INDICATOR);
-                mWriter.write(line.toString());
-                mWriter.write("\n");
+                writer.write(VCFHeader.METADATA_INDICATOR);
+                writer.write(line.toString());
+                writer.write("\n");
             }
 
             // write out the column line
-            mWriter.write(VCFHeader.HEADER_INDICATOR);
+            writer.write(VCFHeader.HEADER_INDICATOR);
             boolean isFirst = true;
-            for ( VCFHeader.HEADER_FIELDS field : mHeader.getHeaderFields() ) {
+            for ( VCFHeader.HEADER_FIELDS field : header.getHeaderFields() ) {
                 if ( isFirst )
                     isFirst = false; // don't write out a field separator
                 else
-                    mWriter.write(VCFConstants.FIELD_SEPARATOR);
-                mWriter.write(field.toString());
+                    writer.write(VCFConstants.FIELD_SEPARATOR);
+                writer.write(field.toString());
             }
 
-            if ( mHeader.hasGenotypingData() ) {
-                mWriter.write(VCFConstants.FIELD_SEPARATOR);
-                mWriter.write("FORMAT");
-                for ( String sample : mHeader.getGenotypeSamples() ) {
-                    mWriter.write(VCFConstants.FIELD_SEPARATOR);
-                    mWriter.write(sample);
+            if ( header.hasGenotypingData() ) {
+                writer.write(VCFConstants.FIELD_SEPARATOR);
+                writer.write("FORMAT");
+                for ( String sample : header.getGenotypeSamples() ) {
+                    writer.write(VCFConstants.FIELD_SEPARATOR);
+                    writer.write(sample);
                 }
             }
 
-            mWriter.write("\n");
-            mWriter.flush();  // necessary so that writing to an output stream will work
+            writer.write("\n");
+            writer.flush();  // necessary so that writing to an output stream will work
         }
         catch (IOException e) {
-            throw new ReviewedStingException("IOException writing the VCF header to " + getStreamName(), e);
+            throw new ReviewedStingException("IOException writing the VCF header to " + streamNameForError, e);
         }
     }
 

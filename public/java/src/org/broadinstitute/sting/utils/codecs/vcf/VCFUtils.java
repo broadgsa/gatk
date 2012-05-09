@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
@@ -32,6 +34,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -224,5 +227,63 @@ public class VCFUtils {
         }
 
         return rsID;
+    }
+
+    /**
+     * Add / replace the contig header lines in the VCFHeader with the information in the GATK engine
+     *
+     * @param header the header to update
+     * @param engine the GATK engine containing command line arguments and the master sequence dictionary
+     */
+    public final static VCFHeader withUpdatedContigs(final VCFHeader header, final GenomeAnalysisEngine engine) {
+        return VCFUtils.withUpdatedContigs(header, engine.getArguments().referenceFile, engine.getMasterSequenceDictionary());
+    }
+
+    /**
+     * Add / replace the contig header lines in the VCFHeader with the in the reference file and master reference dictionary
+     *
+     * @param oldHeader the header to update
+     * @param referenceFile the file path to the reference sequence used to generate this vcf
+     * @param refDict the SAM formatted reference sequence dictionary
+     */
+    public final static VCFHeader withUpdatedContigs(final VCFHeader oldHeader, final File referenceFile, final SAMSequenceDictionary refDict) {
+        final Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>(oldHeader.getMetaData().size());
+
+        for ( final VCFHeaderLine line : oldHeader.getMetaData() ) {
+            if ( line instanceof VCFContigHeaderLine )
+                continue; // skip old contig lines
+            if ( line.getKey().equals(VCFHeader.REFERENCE_KEY) )
+                continue; // skip the old reference key
+            lines.add(line);
+        }
+
+        final String assembly = getReferenceAssembly(referenceFile.getName());
+        for ( SAMSequenceRecord contig : refDict.getSequences() )
+            lines.add(getContigHeaderLine(contig, assembly));
+
+        lines.add(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, "file://" + referenceFile.getAbsolutePath()));
+        return new VCFHeader(lines, oldHeader.getGenotypeSamples());
+    }
+
+    private final static VCFHeaderLine getContigHeaderLine(final SAMSequenceRecord contig, final String assembly) {
+        final Map<String, String> map = new LinkedHashMap<String, String>(3);
+        map.put("ID", contig.getSequenceName());
+        map.put("length", String.valueOf(contig.getSequenceLength()));
+        if ( assembly != null ) map.put("assembly", assembly);
+        return new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, map, contig.getSequenceIndex());
+    }
+
+    private final static String getReferenceAssembly(final String refPath) {
+        // This doesn't need to be perfect as it's not a required VCF header line, but we might as well give it a shot
+        String assembly = null;
+        if (refPath.contains("b37") || refPath.contains("v37"))
+            assembly = "b37";
+        else if (refPath.contains("b36"))
+            assembly = "b36";
+        else if (refPath.contains("hg18"))
+            assembly = "hg18";
+        else if (refPath.contains("hg19"))
+            assembly = "hg19";
+        return assembly;
     }
 }

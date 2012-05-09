@@ -44,10 +44,11 @@ public class VCFHeader {
     }
 
     // the associated meta data
-    private final Set<VCFHeaderLine> mMetaData;
+    private final Set<VCFHeaderLine> mMetaData = new TreeSet<VCFHeaderLine>();
     private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new HashMap<String, VCFInfoHeaderLine>();
     private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new HashMap<String, VCFFormatHeaderLine>();
     private final Map<String, VCFHeaderLine> mOtherMetaData = new HashMap<String, VCFHeaderLine>();
+    private final List<VCFContigHeaderLine> contigMetaData = new ArrayList<VCFContigHeaderLine>();
 
     // the list of auxillary tags
     private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
@@ -79,7 +80,7 @@ public class VCFHeader {
      * @param metaData     the meta data associated with this header
      */
     public VCFHeader(Set<VCFHeaderLine> metaData) {
-        mMetaData = new TreeSet<VCFHeaderLine>(metaData);
+        mMetaData.addAll(metaData);
         loadVCFVersion();
         loadMetaDataMaps();
     }
@@ -91,16 +92,10 @@ public class VCFHeader {
      * @param genotypeSampleNames the sample names
      */
     public VCFHeader(Set<VCFHeaderLine> metaData, Set<String> genotypeSampleNames) {
-        mMetaData = new TreeSet<VCFHeaderLine>();
-        if ( metaData != null )
-            mMetaData.addAll(metaData);
-
+        this(metaData);
         mGenotypeSampleNames.addAll(genotypeSampleNames);
-
-        loadVCFVersion();
-        loadMetaDataMaps();
-
         samplesWereAlreadySorted = ParsingUtils.isSorted(genotypeSampleNames);
+        buildVCFReaderMaps(genotypeSampleNames);
     }
 
     /**
@@ -109,10 +104,9 @@ public class VCFHeader {
      * using this header (i.e., read by the VCFCodec) will have genotypes
      * occurring in the same order
      *
-     * @param genotypeSampleNamesInAppearenceOrder genotype sample names
+     * @param genotypeSampleNamesInAppearenceOrder genotype sample names, must iterator in order of appearence
      */
-
-    public void buildVCFReaderMaps(List<String> genotypeSampleNamesInAppearenceOrder) {
+    private void buildVCFReaderMaps(Collection<String> genotypeSampleNamesInAppearenceOrder) {
         sampleNamesInOrder = new ArrayList<String>(genotypeSampleNamesInAppearenceOrder.size());
         sampleNameToOffset = new HashMap<String, Integer>(genotypeSampleNamesInAppearenceOrder.size());
 
@@ -131,7 +125,14 @@ public class VCFHeader {
      * @param headerLine Line to add to the existing metadata component.
      */
     public void addMetaDataLine(VCFHeaderLine headerLine) {
-        mMetaData.add(headerLine);    
+        mMetaData.add(headerLine);
+    }
+
+    /**
+     * @return all of the VCF header lines of the ##contig form in order, or an empty set if none were present
+     */
+    public List<VCFContigHeaderLine> getContigLines() {
+        return Collections.unmodifiableList(contigMetaData);
     }
 
     /**
@@ -157,12 +158,12 @@ public class VCFHeader {
             if ( line instanceof VCFInfoHeaderLine )  {
                 VCFInfoHeaderLine infoLine = (VCFInfoHeaderLine)line;
                 mInfoMetaData.put(infoLine.getID(), infoLine);
-            }
-            else if ( line instanceof VCFFormatHeaderLine ) {
+            } else if ( line instanceof VCFFormatHeaderLine ) {
                 VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
                 mFormatMetaData.put(formatLine.getID(), formatLine);
-            }
-            else {
+            } else if ( line instanceof VCFContigHeaderLine ) {
+                contigMetaData.add((VCFContigHeaderLine)line);
+            } else {
                 mOtherMetaData.put(line.getKey(), line);
             }
         }

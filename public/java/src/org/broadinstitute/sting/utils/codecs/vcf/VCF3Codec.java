@@ -37,6 +37,7 @@ public class VCF3Codec extends AbstractVCFCodec {
         List<String> headerStrings = new ArrayList<String>();
 
         String line;
+        VCFHeaderVersion version = null;
         try {
             boolean foundHeaderVersion = false;
             while ((line = reader.readLine()) != null) {
@@ -57,7 +58,7 @@ public class VCF3Codec extends AbstractVCFCodec {
                     if (!foundHeaderVersion) {
                         throw new TribbleException.InvalidHeader("We never saw a header line specifying VCF version");
                     }
-                    return createHeader(headerStrings, line);
+                    return createAndSetVCFHeader(headerStrings, line, version);
                 }
                 else {
                     throw new TribbleException.InvalidHeader("We never saw the required CHROM header line (starting with one #) for the input VCF file");

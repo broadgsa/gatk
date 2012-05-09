@@ -29,8 +29,6 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
     protected final static Logger log = Logger.getLogger(VCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
 
-    protected VCFHeaderVersion version;
-
     // we have to store the list of strings that make up the header until they're needed
     protected VCFHeader header = null;
 
@@ -122,16 +120,13 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
 
     /**
      * create a VCF header
-     * @param headerStrings a list of strings that represent all the ## entries
-     * @param line the single # line (column names)
-     * @return the count of header lines
+     * @param headerStrings a list of strings that represent all the ## and # entries
+     * @return a VCFHeader object
      */
-    protected Object createHeader(List<String> headerStrings, String line) {
-
-        headerStrings.add(line);
-
+    public static VCFHeader parseHeader(final List<String> headerStrings, final VCFHeaderVersion version) {
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
         Set<String> sampleNames = new LinkedHashSet<String>();
+        int contigCounter = 0;
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
             if ( !str.startsWith(VCFHeader.METADATA_INDICATOR) ) {
@@ -166,19 +161,16 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
 
             } else {
                 if ( str.startsWith(VCFConstants.INFO_HEADER_START) ) {
-                    final VCFInfoHeaderLine info = new VCFInfoHeaderLine(str.substring(7),version);
+                    final VCFInfoHeaderLine info = new VCFInfoHeaderLine(str.substring(7), version);
                     metaData.add(info);
-                    infoFields.put(info.getID(), info.getType());
                 } else if ( str.startsWith(VCFConstants.FILTER_HEADER_START) ) {
                     final VCFFilterHeaderLine filter = new VCFFilterHeaderLine(str.substring(9), version);
                     metaData.add(filter);
-                    filterFields.add(filter.getID());
                 } else if ( str.startsWith(VCFConstants.FORMAT_HEADER_START) ) {
                     final VCFFormatHeaderLine format = new VCFFormatHeaderLine(str.substring(9), version);
                     metaData.add(format);
-                    formatFields.put(format.getID(), format.getType());
                 } else if ( str.startsWith(VCFConstants.CONTIG_HEADER_START) ) {
-                    final VCFSimpleHeaderLine contig = new VCFSimpleHeaderLine(str.substring(9), version, VCFConstants.CONTIG_HEADER_START.substring(2), null);
+                    final VCFContigHeaderLine contig = new VCFContigHeaderLine(str.substring(9), version, VCFConstants.CONTIG_HEADER_START.substring(2), contigCounter++);
                     metaData.add(contig);
                 } else if ( str.startsWith(VCFConstants.ALT_HEADER_START) ) {
                     final VCFSimpleHeaderLine alt = new VCFSimpleHeaderLine(str.substring(6), version, VCFConstants.ALT_HEADER_START.substring(2), Arrays.asList("ID", "Description"));
@@ -191,8 +183,12 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             }
         }
 
-        header = new VCFHeader(metaData, sampleNames);
-        header.buildVCFReaderMaps(new ArrayList<String>(sampleNames));
+        return new VCFHeader(metaData, sampleNames);
+    }
+
+    protected VCFHeader createAndSetVCFHeader(final List<String> headerStrings, final String line, final VCFHeaderVersion version) {
+        headerStrings.add(line);
+        header = parseHeader(headerStrings, version);
         return header;
     }
 

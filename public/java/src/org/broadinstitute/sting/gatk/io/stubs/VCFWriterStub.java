@@ -25,13 +25,13 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -210,12 +210,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
                     vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
 
-            // also put in the reference contig header lines
-            String assembly = getReferenceAssembly(engine.getArguments().referenceFile.getName());
-            for ( SAMSequenceRecord contig : engine.getReferenceDataSource().getReference().getSequenceDictionary().getSequences() )
-                vcfHeader.addMetaDataLine(getContigHeaderLine(contig, assembly));
-
-            vcfHeader.addMetaDataLine(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, "file://" + engine.getArguments().referenceFile.getAbsolutePath()));
+            vcfHeader = VCFUtils.withUpdatedContigs(vcfHeader, engine);
         }
 
         outputTracker.getStorage(this).writeHeader(vcfHeader);
@@ -251,28 +246,5 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     private VCFHeaderLine getCommandLineArgumentHeaderLine() {
         CommandLineExecutable executable = JVMUtils.getObjectOfType(argumentSources,CommandLineExecutable.class);
         return new VCFHeaderLine(executable.getAnalysisName(), "\"" + engine.createApproximateCommandLineArgumentString(argumentSources.toArray()) + "\"");
-    }
-
-    private VCFHeaderLine getContigHeaderLine(SAMSequenceRecord contig, String assembly) {
-        String val;
-        if ( assembly != null )
-            val = String.format("<ID=%s,length=%d,assembly=%s>", contig.getSequenceName(), contig.getSequenceLength(), assembly);
-        else
-            val = String.format("<ID=%s,length=%d>", contig.getSequenceName(), contig.getSequenceLength());
-        return new VCFHeaderLine(VCFHeader.CONTIG_KEY, val);
-    }
-
-    private String getReferenceAssembly(String refPath) {
-        // This doesn't need to be perfect as it's not a required VCF header line, but we might as well give it a shot
-        String assembly = null;
-        if (refPath.contains("b37") || refPath.contains("v37"))
-            assembly = "b37";
-        else if (refPath.contains("b36"))
-            assembly = "b36";
-        else if (refPath.contains("hg18"))
-            assembly = "hg18";
-        else if (refPath.contains("hg19"))
-            assembly = "hg19";
-        return assembly;
     }
 }
