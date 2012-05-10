@@ -84,7 +84,7 @@ public abstract class BaseTest {
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
     public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
-    public static final boolean REQUIRE_NETWORK_CONNECTION = true;
+    public static final boolean REQUIRE_NETWORK_CONNECTION = false;
     public static final String networkTempDir;
     public static final File networkTempDirFile;
 

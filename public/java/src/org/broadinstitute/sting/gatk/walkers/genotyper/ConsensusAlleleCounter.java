@@ -253,14 +253,14 @@ public class ConsensusAlleleCounter {
                 stop = loc.getStart() + dLen;
                 final byte[] refBases = Arrays.copyOfRange(ref.getBases(), startIdxInReference, startIdxInReference + dLen);
 
-                if (Allele.acceptableAlleleBases(refBases)) {
+                if (Allele.acceptableAlleleBases(refBases, false)) {
                     refAllele = Allele.create(refBases, true);
                     altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
                 }
                 else continue; // don't go on with this allele if refBases are non-standard
             } else {
                 // insertion case
-                if (Allele.acceptableAlleleBases(s)) {
+                if (Allele.acceptableAlleleBases(s, false)) { // don't allow N's in insertions
                     refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
                     altAllele = Allele.create(s, false);
                     stop = loc.getStart();
