@@ -43,11 +43,11 @@ import java.io.*;
  * this class writes VCF files
  */
 public abstract class IndexingVCFWriter implements VCFWriter {
-    final private String name;
+    private final String name;
     private final SAMSequenceDictionary refDict;
 
     private OutputStream outputStream;
-    private PositionalStream positionalStream = null;
+    private PositionalOutputStream positionalOutputStream = null;
     private DynamicIndexCreator indexer = null;
     private LittleEndianOutputStream idxStream = null;
 
@@ -65,13 +65,13 @@ public abstract class IndexingVCFWriter implements VCFWriter {
                 //System.out.println("Creating index on the fly for " + location);
                 indexer = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
                 indexer.initialize(location, indexer.defaultBinSize());
-                positionalStream = new PositionalStream(output);
-                outputStream = positionalStream;
+                positionalOutputStream = new PositionalOutputStream(output);
+                outputStream = positionalOutputStream;
             } catch ( IOException ex ) {
                 // No matter what we keep going, since we don't care if we can't create the index file
                 idxStream = null;
                 indexer = null;
-                positionalStream = null;
+                positionalOutputStream = null;
             }
         }
     }
@@ -95,7 +95,7 @@ public abstract class IndexingVCFWriter implements VCFWriter {
         // try to close the index stream (keep it separate to help debugging efforts)
         if ( indexer != null ) {
             try {
-                Index index = indexer.finalizeIndex(positionalStream.getPosition());
+                Index index = indexer.finalizeIndex(positionalOutputStream.getPosition());
                 IndexDictionaryUtils.setIndexSequenceDictionary(index, refDict);
                 index.write(idxStream);
                 idxStream.close();
@@ -113,7 +113,7 @@ public abstract class IndexingVCFWriter implements VCFWriter {
     public void add(VariantContext vc) {
         // if we are doing on the fly indexing, add the record ***before*** we write any bytes
         if ( indexer != null )
-            indexer.addFeature(vc, positionalStream.getPosition());
+            indexer.addFeature(vc, positionalOutputStream.getPosition());
     }
 
     /**
@@ -141,30 +141,27 @@ public abstract class IndexingVCFWriter implements VCFWriter {
     }
 }
 
-class PositionalStream extends OutputStream {
-    OutputStream out = null;
+final class PositionalOutputStream extends OutputStream {
+    private final OutputStream out;
     private long position = 0;
 
-    public PositionalStream(OutputStream out) {
+    public PositionalOutputStream(final OutputStream out) {
         this.out = out;
     }
 
-    public void write(final byte[] bytes) throws IOException {
+    public final void write(final byte[] bytes) throws IOException {
         write(bytes, 0, bytes.length);
     }
 
-    public void write(final byte[] bytes, int startIndex, int numBytes) throws IOException {
-        //System.out.println("write: " + bytes + " " + numBytes);
+    public final void write(final byte[] bytes, final int startIndex, final int numBytes) throws IOException {
         position += numBytes;
         out.write(bytes, startIndex, numBytes);
     }
 
-    public void write(int c)  throws IOException {
-        System.out.println("write byte: " + c);
-        //System.out.printf("Position %d for %c\n", position, (char)c);
+    public final void write(int c)  throws IOException {
         position++;
         out.write(c);
     }
 
-    public long getPosition() { return position; }
+    public final long getPosition() { return position; }
 }
