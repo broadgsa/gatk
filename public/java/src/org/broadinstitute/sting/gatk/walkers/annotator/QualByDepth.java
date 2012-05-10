@@ -86,8 +86,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
                 continue;
 
             for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : alleleBins.entrySet() ) {
-                if ( !alleleBin.getKey().equals(Allele.NO_CALL) )
-                    depth += alleleBin.getValue().size();
+                depth += alleleBin.getValue().size();
             }
         }
 

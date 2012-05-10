@@ -451,12 +451,12 @@ public class LocusIteratorByState extends LocusIterator {
                 nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup), hasBeenSampled);
             }
             else {                                                                      // this is a regular event pileup (not extended)
-                GenomeLoc location = getLocation();
-                Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
+                final GenomeLoc location = getLocation();
+                final Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
                 boolean hasBeenSampled = false;
                 for (final String sample : samples) {
-                    Iterator<SAMRecordState> iterator = readStates.iterator(sample);
-                    List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
+                    final Iterator<SAMRecordState> iterator = readStates.iterator(sample);
+                    final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
                     hasBeenSampled |= location.getStart() <= readStates.getDownsamplingExtent(sample);
 
                     size = 0;                                                           // number of elements in this sample's pileup
