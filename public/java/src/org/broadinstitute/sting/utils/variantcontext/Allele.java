@@ -226,7 +226,11 @@ public class Allele implements Comparable<Allele> {
      * @return true if the bases represent the well formatted allele
      */
     public static boolean acceptableAlleleBases(String bases) {
-        return acceptableAlleleBases(bases.getBytes());
+        return acceptableAlleleBases(bases.getBytes(), true);
+    }
+
+    public static boolean acceptableAlleleBases(String bases, boolean allowNsAsAcceptable) {
+        return acceptableAlleleBases(bases.getBytes(), allowNsAsAcceptable);
     }
 
     /**
@@ -234,13 +238,22 @@ public class Allele implements Comparable<Allele> {
      * @return true if the bases represent the well formatted allele
      */
     public static boolean acceptableAlleleBases(byte[] bases) {
+        return acceptableAlleleBases(bases, true); // default: N bases are acceptable
+    }
+    
+    public static boolean acceptableAlleleBases(byte[] bases, boolean allowNsAsAcceptable) {
         if ( wouldBeNullAllele(bases) || wouldBeNoCallAllele(bases) || wouldBeSymbolicAllele(bases) )
             return true;
 
-        for ( int i = 0; i < bases.length; i++ ) {
-            switch (bases[i]) {
-                case 'A': case 'C': case 'G': case 'T': case 'N' : case 'a': case 'c': case 'g': case 't': case 'n' :
+        for (byte base :  bases ) {
+            switch (base) {
+                case 'A': case 'C': case 'G': case 'T':  case 'a': case 'c': case 'g': case 't': 
                     break;
+                case 'N' : case 'n' :
+                    if (allowNsAsAcceptable)
+                        break;
+                    else
+                        return false;
                 default:
                     return false;
             }
