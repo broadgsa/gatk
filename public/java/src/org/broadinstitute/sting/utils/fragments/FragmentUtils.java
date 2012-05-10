@@ -166,6 +166,9 @@ public class FragmentUtils {
             if( firstReadQuals[iii] > MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] > MIN_QUAL_BAD_OVERLAP && firstReadBases[iii] != secondReadBases[iii-firstReadStop] ) {
                 return overlappingPair;// high qual bases don't match exactly, probably indel in only one of the fragments, so don't merge them
             }
+            if( firstReadQuals[iii] < MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] < MIN_QUAL_BAD_OVERLAP ) {
+                return overlappingPair; // both reads have low qual bases in the overlap region so don't merge them because don't know what is going on
+            }
             bases[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadBases[iii] : secondReadBases[iii-firstReadStop] );
             quals[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadQuals[iii] : secondReadQuals[iii-firstReadStop] );
         }
