@@ -1225,8 +1225,10 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     public String toString() {
-        return String.format("[VC %s @ %s of type=%s alleles=%s attr=%s GT=%s",
-                getSource(), contig + ":" + (start - stop == 0 ? start : start + "-" + stop), this.getType(),
+        return String.format("[VC %s @ %s Q%s of type=%s alleles=%s attr=%s GT=%s",
+                getSource(), contig + ":" + (start - stop == 0 ? start : start + "-" + stop),
+                hasLog10PError() ? String.format("%.2f", getPhredScaledQual()) : ".",
+                this.getType(),
                 ParsingUtils.sortList(this.getAlleles()),
                 ParsingUtils.sortedString(this.getAttributes()),
                 this.getGenotypes());
