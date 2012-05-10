@@ -24,130 +24,177 @@
 
 <project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute the Sting toolkit</description>
+
+    <!-- ******************************************************************************** -->
+    <!-- Properties                                                                       -->
+    <!-- ******************************************************************************** -->
+
+    <!-- The system classpath should take precedence over classpaths specified in this file -->
     <property name="build.sysclasspath" value="first" />
 
+    <!-- Use this prefix to access environment variables -->
+    <property environment="env"/>
+
+    <!-- Build defaults: -->
+    <property name="default.build.target" value="all" />       <!-- can be "all", "public" (public only), or "protected" (public + protected) -->
+    <property name="compile.scala.by.default" value="true" />  <!-- compile Scala by default? "true" or "false" -->
+    <property name="use.contracts.by.default" value="false" /> <!-- should contracts be built by default? "true" or "false -->
+
+    <!-- Top-level directories -->
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
-    <property name="contract.dump.dir" value="dump" />
-    <property name="pipelinetest.dir" value="pipelinetests" />
     <property name="lib.dir" value="lib" />
-    <property name="external.dir" value="external" />
     <property name="public.dir" value="public" />
     <property name="private.dir" value="private" />
+    <property name="protected.dir" value="protected" />
+    <property name="external.dir" value="external" />
+
+    <!-- Source directories -->
     <property name="java.public.source.dir" value="${public.dir}/java/src" />
     <property name="java.private.source.dir" value="${private.dir}/java/src" />
-    <property name="java.classes" value="${build.dir}/java/classes" />
-    <property name="R.public.scripts.dir" value="${public.dir}/R/scripts" />
-    <property name="R.private.scripts.dir" value="${private.dir}/R/scripts" />
-    <property name="R.public.src.dir" value="${public.dir}/R/src" />
-    <!-- Legacy: Installing libraries back into the source directory
-    instead of the build or dist directory... intentionally avoids ant clean?? -->
-    <property name="R.library.dir" value="${public.dir}/R" />
-    <property name="R.tar.dir" value="${build.dir}/R/src" />
-    <property name="R.package.path" value="org/broadinstitute/sting/utils/R" />
-    <property name="resource.file" value="StingText.properties" />
-    <property name="resource.path" value="${java.classes}/StingText.properties" />
-    <property name="key.dir" value="${public.dir}/keys" />
-
+    <property name="java.protected.source.dir" value="${protected.dir}/java/src" />
     <property name="scala.public.source.dir" value="${public.dir}/scala/src" />
     <property name="scala.private.source.dir" value="${private.dir}/scala/src" />
-    <property name="scala.classes" value="${build.dir}/scala/classes" />
-
+    <property name="scala.protected.source.dir" value="${protected.dir}/scala/src" />
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
+    <property name="R.public.scripts.dir" value="${public.dir}/R/scripts" />
+    <property name="R.private.scripts.dir" value="${private.dir}/R/scripts" />
+    <property name="R.protected.scripts.dir" value="${protected.dir}/R/scripts" />
+    <property name="R.public.src.dir" value="${public.dir}/R/src" />
 
+    <!-- Build directories -->
+    <property name="java.classes" value="${build.dir}/java/classes" />
+    <property name="scala.classes" value="${build.dir}/scala/classes" />
+    <property name="R.library.dir" value="${public.dir}/R" />  <!-- TODO: Installing libraries back into the source directory: intentionally avoids ant clean?? -->
+    <property name="R.tar.dir" value="${build.dir}/R/src" />
+    <property name="R.package.path" value="org/broadinstitute/sting/utils/R" />
+    <property name="R.script.staging.dir" value="${build.dir}/R/stage" />
+
+    <!-- Packaging system properties -->
+    <property name="package.xml.dir" value="${public.dir}/packages" />
+    <property name="package.output.dir" value="${dist.dir}/packages" />
+    <property name="staging.dir" value="staging" />
+    <property name="executable" value="GenomeAnalysisTK" />  <!-- If running the 'package' task, this property controls the name of the xml file to package -->
+
+    <!-- Javadoc/Scaladoc directories -->
     <property name="javadoc.dir" value="javadoc" />
     <property name="scaladoc.dir" value="scaladoc" />
+
+    <!-- Resource file used for help text and version information -->
+    <property name="resource.file" value="StingText.properties" />
+    <property name="resource.path" value="${java.classes}/StingText.properties" />
+
+    <!-- Directory containing cryptographic keys used by the GATK -->
+    <property name="key.dir" value="${public.dir}/keys" />
 
     <!-- Contracts for Java -->
     <!-- By default, enabled only for test targets -->
     <!-- To disable for test targets, run with -Duse.contracts=false -->
     <!-- To enable for non-test targets, run with -Duse.contracts=true -->
-    <property name="java.contracts" value="${build.dir}/java/contracts" />
+    <property name="java.contracts.dir" value="${build.dir}/java/contracts" />
     <property name="contracts.version" value="1.0-20110609" />
     <property name="cofoja.jar" value="${lib.dir}/cofoja-${contracts.version}.jar"/>
+    <property name="contract.dump.dir" value="dump" />
 
-    <!-- where to find 'findbugs', which you must set if you plan to use 'ant findbugs' -->
-    <property name="findbugs.home" value="./findbugs"/>
+    <property name="gatkdocs.dir" value="gatkdocs" />
 
     <!-- do we want to halt on failure of a unit test? default to yes (Bamboo uses 'no') -->
     <property name="halt" value="yes" />
 
-    <!-- should our unit test output go to a file or the screen?
-    false means it goes to the screen (default) true to file -->
+    <!-- should our unit test output go to a file or the screen? false means it goes to the screen (default) true to file -->
     <property name="usefile" value="false" />
 
-    <!-- If running the 'package' task, this property controls the name of the xml file to package -->
-    <property name="package.xml.dir" value="${public.dir}/packages" />
-    <property name="package.output.dir" value="${dist.dir}/packages" />
-    <property name="staging.dir" value="staging" />
-    <property name="executable" value="GenomeAnalysisTK" />
+    <!-- To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
+    <property name="test.debug.port" value="5005" />  <!-- override on the command line if desired -->
 
-    <property environment="env"/>
 
-    <patternset id="java.source.pattern">
+    <!-- ******************************************************************************** -->
+    <!-- Filesets and paths                                                               -->
+    <!-- ******************************************************************************** -->
+
+    <!-- All the complexity of selecting among public/private/protected should be up here, not down in the targets -->
+
+    <patternset id="java.source.directories.pattern">
+        <include name="${java.public.source.dir}" />
+        <include name="${java.private.source.dir}" if="include.private" />
+        <include name="${java.protected.source.dir}" if="include.protected" />
+    </patternset>
+
+    <patternset id="java.source.files.pattern">
         <include name="${java.public.source.dir}/**/*.java" />
         <include name="${java.private.source.dir}/**/*.java" if="include.private" />
+        <include name="${java.protected.source.dir}/**/*.java" if="include.protected" />
     </patternset>
+
+    <patternset id="scala.source.directories.pattern">
+        <include name="${scala.public.source.dir}" />
+        <include name="${scala.private.source.dir}" if="include.private" />
+        <include name="${scala.protected.source.dir}" if="include.protected" />
+    </patternset>
+
+    <patternset id="scala.source.files.pattern">
+        <include name="${scala.public.source.dir}/**/*.scala" />
+        <include name="${scala.private.source.dir}/**/*.scala" if="include.private" />
+        <include name="${scala.protected.source.dir}/**/*.scala" if="include.protected" />
+    </patternset>
+
+    <patternset id="R.script.source.directories.pattern">
+        <include name="${R.public.scripts.dir}" />
+        <include name="${R.private.scripts.dir}" if="include.private" />
+        <include name="${R.protected.scripts.dir}" if="include.protected" />
+    </patternset>
+
+    <patternset id="R.script.source.files.pattern">
+        <include name="${R.public.scripts.dir}/**/*.R" />
+        <include name="${R.private.scripts.dir}/**/*.R" if="include.private" />
+        <include name="${R.protected.scripts.dir}/**.*.R" if="include.protected" />
+    </patternset>
+
+    <path id="java.source.path">
+        <dirset dir="${basedir}">
+            <patternset refid="java.source.directories.pattern" />
+        </dirset>
+    </path>
+
+    <path id="scala.source.path">
+        <dirset dir="${basedir}">
+            <patternset refid="scala.source.directories.pattern" />
+        </dirset>
+    </path>
+
+    <path id="R.script.source.path">
+        <dirset dir="${basedir}">
+            <patternset refid="R.script.source.directories.pattern" />
+        </dirset>
+    </path>
 
     <fileset id="java.source.files" dir="${basedir}">
-        <patternset refid="java.source.pattern" />
+        <patternset refid="java.source.files.pattern" />
     </fileset>
 
-    <!-- terrible hack to get gatkdocs to see all files -->
-    <patternset id="all.java.source.pattern">
-        <include name="${java.public.source.dir}/**/*.java" />
-        <include name="${java.private.source.dir}/**/*.java" />
-    </patternset>
-
-    <fileset id="all.java.source.files" dir="${basedir}">
-        <patternset refid="all.java.source.pattern" />
+    <fileset id="scala.source.files" dir="${basedir}">
+        <patternset refid="scala.source.files.pattern" />
     </fileset>
 
-    <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
-        <include name="**/*.java" />
+    <fileset id="R.script.source.files" dir="${basedir}">
+        <patternset refid="R.script.source.files.pattern" />
     </fileset>
 
     <fileset id="java.class.files" dir="${java.classes}" erroronmissingdir="false">
         <include name="**/*.class"/>
     </fileset>
 
-    <!-- the path for resources that need to go into the GATK jar;
-         any additional resources should go into this set. -->
-    <path id="gatk.resources">
-        <fileset dir="${basedir}">
-            <include name="${java.public.source.dir}/**/templates/*" />
-            <include name="${java.private.source.dir}/**/templates/*" if="include.private" />
-        </fileset>
-    </path>
-
     <patternset id="dependency.mask" includes="*.jar">
-      <exclude name="testng*.jar" />
-      <exclude name="bcel*.jar" />
+        <exclude name="testng*.jar" />
+        <exclude name="bcel*.jar" />
     </patternset>
 
     <path id="external.dependencies">
-      <fileset dir="${lib.dir}">
-        <patternset refid="dependency.mask" />
-      </fileset>
-    </path>
-
-    <path id="testng.dependencies">
-        <fileset dir="${lib.dir}">
-            <include name="jcommander*.jar"/>
-            <include name="guice*.jar"/>
-            <include name="junit*.jar"/>
-            <include name="bsh*.jar"/>
-            <include name="snakeyaml*.jar"/>
+        <fileset dir="${lib.dir}" erroronmissingdir="false">
+            <patternset refid="dependency.mask" />
         </fileset>
     </path>
 
-    <path id="build.results">
-      <fileset dir="dist">
-        <patternset refid="dependency.mask" />
-      </fileset>
-    </path>
-
-    <!-- Path to scala dependencies. -->
     <path id="scala.dependencies">
         <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
@@ -156,6 +203,45 @@
         <!-- Add any previously compiled scala classes to the path. -->
         <pathelement location="${scala.classes}" />
     </path>
+
+    <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
+        <include name="**/*.java" />
+    </fileset>
+
+    <pathconvert property="external.build.dir">
+        <path path="${java.classes}"/>
+    </pathconvert>
+
+    <pathconvert property="external.dist.dir">
+        <path path="${dist.dir}" />
+    </pathconvert>
+
+    <!-- GATK dependencies consist of 3rd party plugins plus compiled GATK classes -->
+    <pathconvert property="external.gatk.classpath">
+        <path path="${java.classes}"/>
+        <path refid="external.dependencies" />
+    </pathconvert>
+
+    <!-- the path for resources that need to go into the GATK jar;
+         any additional resources should go into this set. -->
+    <path id="gatk.resources">
+        <fileset dir="${basedir}">
+            <include name="${java.public.source.dir}/**/templates/*" />
+            <include name="${java.private.source.dir}/**/templates/*" if="include.private" />
+            <include name="${java.protected.source.dir}/**/templates/*" if="include.protected" />
+        </fileset>
+    </path>
+
+    <path id="build.results">
+        <fileset dir="${dist.dir}">
+            <patternset refid="dependency.mask" />
+         </fileset>
+    </path>
+
+
+    <!-- ******************************************************************************** -->
+    <!-- Ivy Retrieve                                                                     -->
+    <!-- ******************************************************************************** -->
 
     <target name="init.resolve" unless="init.resolve.done">
         <!-- ivy properties -->
@@ -166,54 +252,35 @@
         <property name="ivy.settings.dir" value="settings"/>
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
 
-      <mkdir dir="${lib.dir}"/>
-      <mkdir dir="${ivy.jar.dir}"/>
+        <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${ivy.jar.dir}"/>
 
-      <!-- Comment out the following two lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
-      <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
-           dest="${ivy.jar.dir}/${ivy.jar.file}"
-           usetimestamp="true"/>
-      <taskdef resource="org/apache/ivy/ant/antlib.xml"
-               uri="antlib:org.apache.ivy.ant"
-               classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+        <!-- Comment out the following two lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
+        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
+             dest="${ivy.jar.dir}/${ivy.jar.file}"
+             usetimestamp="true"/>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                 uri="antlib:org.apache.ivy.ant"
+                 classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
 
-      <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
+        <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
         <property name="init.resolve.done" value="true"/>
     </target>
 
-    <target name="resolve" depends="init.resolve,init"
-            description="locate and download library dependencies">
+    <target name="resolve" depends="init.resolve,init" description="locate and download library dependencies">
         <property name="ivy.conf" value="default"/>
-      <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
-      <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
-      <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
-      <delete file="${ivy.jar.dir}/ivy-2.2.0-rc1.jar"/>
-      <!--
-         An old versions of the ivy-1.4.1.xml does not contain /ivy-module/configuration/conf/@name="compile".
-         Easier to upgrade to 1.4.4 than try to deal with xmlproperty and conditional deletion in ant.
-         Just in case we remove explicit 1.4.4 and go back to 1.4.1, try to clean out the file for now.
-        -->
-      <delete file="${ivy.home}/cache/javax.mail/mail/ivy-1.4.1.xml"/>
-      <delete file="${ivy.home}/cache/javax.mail/mail/ivydata-1.4.1.properties"/>
-      <delete file="${ivy.home}/cache/javax.mail/mail/jars/mail-1.4.1.jar"/>
+        <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
+        <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
+        <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
+        <delete file="${ivy.jar.dir}/ivy-2.2.0-rc1.jar"/>
     </target>
 
-    <target name="init.buildall">
-        <!-- Set the properties needed to build everything -->
-        <property name="gatk.target" value="private"/>
-        <property name="scala.target" value="core"/>
-    </target>
 
-    <target name="init.buildpublic">
-        <!-- Set the properties needed to build public only -->
-        <property name="gatk.target" value="core"/>
-        <property name="scala.target" value="core"/>
-    </target>
+    <!-- ******************************************************************************** -->
+    <!-- Initialization                                                                   -->
+    <!-- ******************************************************************************** -->
 
-    <target name="init.usecontracts">
-        <property name="use.contracts" value="true" />
-    </target>
-
+    <!-- Targets for generating the build version -->
     <target name="git.describe">
       <exec executable="git" outputproperty="git.describe.output" resultproperty="git.describe.exit.value" failonerror="false">
         <arg line="describe --long" />
@@ -245,98 +312,118 @@
         <property name="build.version" value="exported" />
     </target>
 
-    <!-- define some key locations that might change based on how the build is run -->
+
+    <!-- INIT OVERRIDES: call these targets BEFORE init to override build defaults -->
+    <target name="init.publiconly">
+        <property name="build.target" value="public" />
+    </target>
+
+    <target name="init.publicprotectedonly">
+        <property name="build.target" value="protected" />
+    </target>
+
+    <target name="init.javaonly">
+        <property name="compile.scala" value="false" />
+    </target>
+
+    <target name="init.usecontracts">
+        <property name="use.contracts" value="true" />
+    </target>
+
+
+    <!-- INIT -->
     <target name="init" depends="generate.build.version">
-      <tstamp>
-        <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
-      </tstamp>
+        <tstamp>
+            <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
+        </tstamp>
 
-        <!-- Set target based on STING_BUILD_TYPE environment variable -->
-        <condition property="sting.target" value="core" else="${env.STING_BUILD_TYPE}">
-            <equals arg1="${env.STING_BUILD_TYPE}" arg2="$${env.STING_BUILD_TYPE}" />
+        <!-- These properties should be overridden before init is called if the defaults are not desired -->
+        <property name="build.target" value="${default.build.target}" />
+        <property name="compile.scala" value="${compile.scala.by.default}" />
+        <property name="use.contracts" value="${use.contracts.by.default}" />
+
+        <!-- Determine what should be built -->
+        <condition property="include.scala">
+            <equals arg1="${compile.scala}" arg2="true" />
         </condition>
 
-        <!-- Get the gatk build target.  Default to the STING_BUILD_TYPE.  -->
-        <condition property="gatk.target" value="${sting.target}" else="${env.GATK_BUILD_TYPE}">
-            <equals arg1="${env.GATK_BUILD_TYPE}" arg2="$${env.GATK_BUILD_TYPE}" />
+        <condition property="include.private">
+            <and>
+                <available file="${private.dir}" />
+                <equals arg1="${build.target}" arg2="all" />
+            </and>
         </condition>
 
-        <!-- Get the queue build target.  Default to none.  -->
-        <condition property="scala.target" value="none" else="${env.QUEUE_BUILD_TYPE}">
-            <equals arg1="${env.QUEUE_BUILD_TYPE}" arg2="$${env.QUEUE_BUILD_TYPE}" />
+        <condition property="include.protected">
+            <and>
+                <available file="${protected.dir}" />
+                <or>
+                    <equals arg1="${build.target}" arg2="all" />
+                    <equals arg1="${build.target}" arg2="protected" />
+                </or>
+            </and>
         </condition>
 
-        <!-- If the scala target is set, then include all scala tasks. -->
-        <condition property="scala.include">
-            <or>
-                <not><equals arg1="${scala.target}" arg2="none" /></not>
-            </or>
+        <condition property="include.contracts">
+            <equals arg1="${use.contracts}" arg2="true" />
         </condition>
 
-        <echo message="GATK build      : ${gatk.target}"/>
-        <echo message="Scala build     : ${scala.target}"/>
-      <echo message="source revision : ${build.version}"/>
-      <echo message="build time      : ${build.timestamp}" />
+        <condition property="include.external">
+            <available file="${external.dir}"/>
+        </condition>
 
-      <condition property="include.private">
-        <equals arg1="${gatk.target}" arg2="private" casesensitive="false" />
-      </condition>
+        <!-- Construct display strings for the build properties print out -->
 
-      <condition property="include.external">
-          <available file="${external.dir}"/>
-      </condition>
+        <condition property="include.scala.display.string" value="yes" else="no">
+            <isset property="include.scala" />
+        </condition>
 
-      <condition property="include.contracts">
-        <equals arg1="${use.contracts}" arg2="true" />
-      </condition>
+        <condition property="include.private.display.string" value="yes" else="no">
+            <isset property="include.private" />
+        </condition>
 
-      <!-- Create the build directory structure used by compile -->
-      <mkdir dir="${build.dir}"/>
-      <mkdir dir="${lib.dir}"/>
-      <mkdir dir="${java.classes}"/>
-      <mkdir dir="${java.contracts}"/>
+        <condition property="include.protected.display.string" value="yes" else="no">
+            <isset property="include.protected" />
+        </condition>
 
-      <pathconvert property="external.build.dir">
-        <path path="${java.classes}"/>
-      </pathconvert>
+        <condition property="include.external.display.string" value="yes" else="no">
+            <isset property="include.external" />
+        </condition>
 
-      <pathconvert property="external.dist.dir">
-        <path path="${dist.dir}" />
-      </pathconvert>
+        <condition property="include.contracts.display.string" value="yes" else="no">
+            <isset property="include.contracts" />
+        </condition>
 
-      <!-- GATK dependencies consist of 3rd party plugins plus compiled GATK classes -->
-      <pathconvert property="external.gatk.classpath">
-        <path path="${java.classes}"/>
-        <path refid="external.dependencies" />
-      </pathconvert>
+        <!-- Print out build properties -->
+        <echo message="BUILD PROPERTIES" />
+        <echo message="Include Scala?     : ${include.scala.display.string}" />
+        <echo message="Include Private?   : ${include.private.display.string}" />
+        <echo message="Include Protected? : ${include.protected.display.string}" />
+        <echo message="Include External?  : ${include.external.display.string}" />
+        <echo message="Include Contracts? : ${include.contracts.display.string}" />
+        <echo message="Source revision    : ${build.version}" />
+        <echo message="Build time         : ${build.timestamp}" />
+
+        <!-- Create the build directory structure used by compile -->
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${java.classes}"/>
+        <mkdir dir="${java.contracts.dir}"/>
     </target>
 
-    <target name="init.scala.compile" depends="resolve"
-            description="Initializes the scala ant tasks from scala-compiler.jar">
-        <path id="scala.classpath">
-            <fileset dir="${lib.dir}">
-                <include name="scala-compiler-*.jar"/>
-                <include name="scala-library-*.jar"/>
-            </fileset>
-        </path>
-        <taskdef resource="scala/tools/ant/antlib.xml">
-            <classpath refid="scala.classpath"/>
-        </taskdef>
-    </target>
 
-    <target name="gatk.compile.public.source" depends="init,resolve">
-        <javac fork="true" srcdir="${java.public.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
-          <compilerarg value="-proc:none"/>
+    <!-- ******************************************************************************** -->
+    <!-- Java Compilation                                                                 -->
+    <!-- ******************************************************************************** -->
+
+    <target name="gatk.compile.internal.source" depends="init,resolve">
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
+            <src refid="java.source.path" />
+            <compilerarg value="-proc:none" />
         </javac>
     </target>
 
-    <target name="gatk.compile.private.source" depends="gatk.compile.public.source" if="include.private">
-        <javac fork="true" srcdir="${java.private.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
-          <compilerarg value="-proc:none"/>
-        </javac>
-    </target>
-
-    <target name="gatk.compile.external.source" depends="gatk.compile.public.source,gatk.compile.private.source" if="include.external">
+    <target name="gatk.compile.external.source" depends="gatk.compile.internal.source" if="include.external">
         <subant target="compile" genericantfile="build.xml">
             <property name="build.dir" value="${external.build.dir}" />
             <property name="dist.dir" value="${external.dist.dir}" />
@@ -345,12 +432,11 @@
         </subant>
     </target>
 
-    <target name="gatk.compile.source"
-            depends="gatk.compile.public.source,gatk.compile.private.source,gatk.compile.external.source"
-            description="compile the GATK source" />
+    <target name="gatk.compile.source" depends="gatk.compile.internal.source,gatk.compile.external.source" description="Compile the GATK source" />
 
-   <target name="gatk.contracts.public" depends="gatk.compile.source" if="include.contracts">
-        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.public.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
+    <target name="gatk.contracts" depends="gatk.compile.source" if="include.contracts">
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.contracts.dir}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
+            <src refid="java.source.path" />
             <classpath>
                 <path refid="external.dependencies" />
                 <pathelement path="${java.classes}" />
@@ -359,39 +445,20 @@
             <compilerarg value="-Acom.google.java.contract.dump=${contract.dump.dir}"/>
             <compilerarg value="-proc:only"/>
         </javac>
-   </target>
-
-    <target name="check.contracts.private" depends="gatk.contracts.public">
-        <condition property="include.contracts.private">
-          <and>
-            <isset property="include.contracts" />
-            <isset property="include.private" />
-          </and>
-        </condition>
     </target>
 
-   <target name="gatk.contracts.private" depends="check.contracts.private" if="include.contracts.private">
-        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.private.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
-            <classpath>
-                <path refid="external.dependencies" />
-                <pathelement path="${java.classes}" />
-            </classpath>
-            <compilerarg value="-Acom.google.java.contract.debug"/>
-            <compilerarg value="-Acom.google.java.contract.dump=${contract.dump.dir}"/>
-            <compilerarg value="-proc:only"/>
-        </javac>
-   </target>
-
-    <target name="gatk.contracts" depends="gatk.contracts.public,gatk.contracts.private"
-            description="create GATK contracts" if="include.contracts" />
-
     <target name="gatk.compile" depends="init,resolve,gatk.compile.source,gatk.contracts" />
+
+
+    <!-- ******************************************************************************** -->
+    <!-- Scala Compilation                                                                -->
+    <!-- ******************************************************************************** -->
 
     <target name="init.queue-extensions.generate" depends="gatk.compile">
         <condition property="uptodate.queue-extensions.generate">
             <or>
                 <not>
-                    <isset property="scala.include"/>
+                    <isset property="include.scala"/>
                 </not>
                 <uptodate targetfile="${queue-extensions.source.dir}">
                     <srcfiles refid="java.class.files"/>
@@ -402,7 +469,7 @@
     </target>
 
     <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
-    <target name="queue-extensions.generate" depends="extracthelp,init.queue-extensions.generate" unless="uptodate.queue-extensions.generate" description="generate GATK modules for Queue">
+    <target name="queue-extensions.generate" depends="gatk.compile,extracthelp,init.queue-extensions.generate" unless="uptodate.queue-extensions.generate" description="generate GATK modules for Queue">
         <mkdir dir="${queue-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
         <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" >
@@ -420,34 +487,33 @@
         </touch>
     </target>
 
+    <target name="init.scala.compile" depends="resolve" description="Initializes the scala ant tasks from scala-compiler.jar">
+        <path id="scala.classpath">
+            <fileset dir="${lib.dir}">
+                <include name="scala-compiler-*.jar"/>
+                <include name="scala-library-*.jar"/>
+            </fileset>
+        </path>
+        <taskdef resource="scala/tools/ant/antlib.xml">
+            <classpath refid="scala.classpath"/>
+        </taskdef>
+    </target>
+
     <!-- Scala depends on the java compile -->
-    <target name="scala.compile.public" depends="init,resolve,gatk.compile,queue-extensions.generate,init.scala.compile" if="scala.include">
+    <target name="scala.compile" depends="init,resolve,gatk.compile,queue-extensions.generate,init.scala.compile" if="include.scala">
         <mkdir dir="${scala.classes}"/>
         <echo>Building Scala...</echo>
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${scala.public.source.dir}" />
+            <src refid="scala.source.path" />
             <src path="${queue-extensions.source.dir}" />
-            <include name="**/*.scala"/>
+            <include name="**/*.scala" />
         </scalac>
     </target>
 
-    <target name="check.scala.private" depends="scala.compile.public">
-        <condition property="include.scala.private">
-          <and>
-            <isset property="include.private" />
-            <isset property="scala.include" />
-          </and>
-        </condition>
-    </target>
 
-    <target name="scala.compile.private" depends="check.scala.private" if="include.scala.private">
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${scala.private.source.dir}" />
-            <include name="**/*.scala"/>
-        </scalac>
-    </target>
-
-    <target name="scala.compile" depends="scala.compile.public,scala.compile.private" if="scala.include" description="compile Scala" />
+    <!-- ******************************************************************************** -->
+    <!-- Sting Resource File Generation                                                   -->
+    <!-- ******************************************************************************** -->
 
     <target name="init.extracthelp" depends="gatk.compile">
         <loadfile property="properties.version" srcfile="${basedir}/${resource.path}" failonerror="false" quiet="true">
@@ -465,7 +531,7 @@
         <!-- This fileset will contain only source files modified since the resource file was last generated,
              or all source files if the resource file doesn't exist -->
         <fileset dir="${basedir}" id="modified.source.files">
-            <patternset refid="java.source.pattern" />
+            <patternset refid="java.source.files.pattern" />
             <include name="${external.dir}/**/*.java"/>
             <depend targetdir="${basedir}">
                 <mapper type="merge" to="${resource.path}"/>
@@ -479,6 +545,7 @@
         <fileset dir="${basedir}" id="package.info.files">
             <include name="${java.public.source.dir}/**/package-info.java"/>
             <include name="${java.private.source.dir}/**/package-info.java" if="include.private" />
+            <include name="${java.protected.source.dir}/**/package-info.java" if="include.protected" />
             <include name="${external.dir}/**/package-info.java"/>
         </fileset>
 
@@ -516,41 +583,12 @@
         </javadoc>
     </target>
 
-    <target name="clean.gatkdocs">
-        <delete dir="gatkdocs"/>
-    </target>
 
-    <target name="gatkdocs" depends="gatk.compile"
-	        description="Extract help key/value pair file from the JavaDoc tags.">
-        <path id="doclet.classpath">
-            <path refid="external.dependencies" />
-            <pathelement location="${java.classes}" />
-        </path>
-
-        <!-- Run with -Dgatkdocs.include.hidden=true to include documentation for hidden features -->
-        <condition property="gatkdocs.include.hidden.arg" value="-include-hidden" else="">
-            <isset property="gatkdocs.include.hidden" />
-        </condition>
-
-        <javadoc doclet="org.broadinstitute.sting.utils.help.GATKDoclet"
-                 docletpathref="doclet.classpath"
-                 classpathref="external.dependencies"
-                 classpath="${java.classes}"
-                 additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet"> <!-- -test to only do DocumentationTest walker -->
-            <sourcefiles>
-                <union>
-                    <fileset refid="all.java.source.files"/>
-                </union>
-            </sourcefiles>
-        </javadoc>
-    </target>
+    <!-- ******************************************************************************** -->
+    <!-- Build Jars                                                                       -->
+    <!-- ******************************************************************************** -->
 
     <target name="sting.compile" depends="gatk.compile, scala.compile" />
-
-    <target name="R.public.tar">
-        <mkdir dir="${R.tar.dir}/${R.package.path}" />
-        <tar compression="gzip" basedir="${R.public.src.dir}/${R.package.path}" includes="gsalib/**" destfile="${R.tar.dir}/${R.package.path}/gsalib.tar.gz" />
-    </target>
 
     <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
@@ -559,7 +597,22 @@
         </copy>
     </target>
 
-    <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar">
+    <target name="R.public.tar">
+        <mkdir dir="${R.tar.dir}/${R.package.path}" />
+        <tar compression="gzip" basedir="${R.public.src.dir}/${R.package.path}" includes="gsalib/**" destfile="${R.tar.dir}/${R.package.path}/gsalib.tar.gz" />
+    </target>
+
+    <target name="R.script.stage">
+        <mkdir dir="${R.script.staging.dir}" />
+        <copy todir="${R.script.staging.dir}" overwrite="true">
+            <fileset refid="R.script.source.files" />
+            <!-- remove the initial path components (eg., public/R/scripts) when doing the copy -->
+            <!-- ant 1.8.2 has a cutdirsmapper, but ant versions < 1.8.2 are too common to use it -->
+            <mapper type="regexp" from="^(${R.public.scripts.dir}|${R.private.scripts.dir}|${R.protected.scripts.dir})/(.*)" to="\2" />
+        </copy>
+    </target>
+
+    <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar, R.script.stage">
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}">
               <include name="**/utils/**/*.class"/>
@@ -575,11 +628,8 @@
             <fileset dir="${R.tar.dir}">
                 <include name="**/${R.package.path}/**/*.tar.gz"/>
             </fileset>
-            <fileset dir="${R.public.scripts.dir}">
-              <include name="**/utils/**/*.R"/>
-            </fileset>
-            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
-              <include name="**/utils/**/*.R"/>
+            <fileset dir="${R.script.staging.dir}">
+                <include name="**/utils/**/*.R"/>
             </fileset>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
@@ -592,28 +642,22 @@
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
               <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
-              <include name="org/broadinstitute/sting/gatk/refdata/SelfScopingFeatureCodec.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**"/>
-	      <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
+	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
             </fileset>
         </jar>
     </target>
 
-    <target name="gatk.jar" depends="gatk.compile, init.jar"
-            description="generate the GATK distribution">
+    <target name="gatk.jar" depends="gatk.compile, init.jar, R.script.stage" description="generate the GATK distribution">
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <path refid="gatk.resources"/>
-            <fileset dir="${java.contracts}" />
+            <fileset dir="${java.contracts.dir}" />
             <fileset dir="${java.classes}">
 	          <include name="${resource.file}" />
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
             </fileset>
-            <fileset dir="${R.public.scripts.dir}">
-                <include name="**/gatk/**/*.R"/>
-                <include name="**/alignment/**/*.R"/>
-            </fileset>
-            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+            <fileset dir="${R.script.staging.dir}">
                 <include name="**/gatk/**/*.R"/>
                 <include name="**/alignment/**/*.R"/>
             </fileset>
@@ -630,21 +674,17 @@
         </jar>
 
         <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" whenmanifestonly="skip">
-          <fileset dir="${java.classes}">
-            <include name="**/analyzecovariates/**/*.class" />
-            <include name="**/gatk/walkers/recalibration/*.class" />
-          </fileset>
-            <fileset dir="${R.public.scripts.dir}">
+            <fileset dir="${java.classes}">
+                <include name="**/analyzecovariates/**/*.class" />
+                <include name="**/gatk/walkers/recalibration/*.class" />
+            </fileset>
+            <fileset dir="${R.script.staging.dir}">
                 <include name="**/analyzecovariates/**/*.R"/>
                 <include name="**/gatk/walkers/recalibration/**/*.R"/>
             </fileset>
-            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
-                <include name="**/analyzecovariates/**/*.R"/>
-                <include name="**/gatk/walkers/recalibration/**/*.R"/>
-            </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
-          </manifest>
+            <manifest>
+                <attribute name="Main-Class" value="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
+            </manifest>
         </jar>
 
         <subant target="dist" genericantfile="build.xml">
@@ -655,7 +695,7 @@
         </subant>
     </target>
 
-    <target name="scala.jar" depends="scala.compile, init.jar" if="scala.include">
+    <target name="scala.jar" depends="scala.compile, init.jar" if="include.scala">
         <jar jarfile="${dist.dir}/GATKScala.jar">
           <fileset dir="${scala.classes}">
             <include name="org/broadinstitute/sting/scala/**/*.class"/>
@@ -663,7 +703,7 @@
         </jar>
     </target>
 
-    <target name="queue.jar" depends="scala.compile, init.jar" if="scala.include">
+    <target name="queue.jar" depends="scala.compile, init.jar, R.script.stage" if="include.scala">
         <jar jarfile="${dist.dir}/Queue.jar">
             <fileset dir="${scala.classes}">
                 <include name="org/broadinstitute/sting/queue/**/*.class"/>
@@ -671,10 +711,7 @@
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/queue/**/*.class" />
             </fileset>
-            <fileset dir="${R.public.scripts.dir}">
-                <include name="org/broadinstitute/sting/queue/**/*.R"/>
-            </fileset>
-            <fileset dir="${R.private.scripts.dir}" erroronmissingdir="false">
+            <fileset dir="${R.script.staging.dir}">
                 <include name="org/broadinstitute/sting/queue/**/*.R"/>
             </fileset>
             <manifest>
@@ -702,7 +739,6 @@
     </target>
 
     <target name="gatk.manifests" depends="gatk.jar, init.manifests">
-
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
@@ -714,10 +750,9 @@
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
-
     </target>
 
-    <target name="queue.manifests" depends="queue.jar, init.manifests" if="scala.include">
+    <target name="queue.manifests" depends="queue.jar, init.manifests" if="include.scala">
         <jar jarfile="${dist.dir}/Queue.jar" update="true" >
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
@@ -727,409 +762,80 @@
 
     <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, queue.manifests" />
 
+
+    <!-- ******************************************************************************** -->
+    <!-- Top-Level Build Targets                                                          -->
+    <!-- ******************************************************************************** -->
+
     <target name="dist" depends="sting.manifests" />
 
-    <target name="core" description="force a build of the Sting core code">
-        <antcall target="dist" inheritAll="false">
-            <param name="sting.target" value="core" />
-        </antcall>
-    </target>
+    <target name="gatk" depends="init.javaonly, sting.manifests" />
 
-    <target name="private" description="force a build of the Sting private code">
-      <antcall target="dist" inheritAll="false">
-        <param name="sting.target" value="private" />
-	  </antcall>
-    </target>
+    <target name="queue" depends="dist" />  <!-- Obsolete target. Now just an alias for dist -->
 
-    <target name="queue" description="force a build of Queue">
-        <!--
-        inheritAll is false so that 'ant queue' does not accidentally import
-        params if the build was called with 'ant clean oneoffs queue'.
-        Instead this task resets the parameters and is just like running
-        a fresh 'ant dist -Dscala.target=core'.
-        -->
-        <antcall target="dist" inheritAll="false">
-            <param name="scala.target" value="core" />
-        </antcall>
-    </target>
-
-    <!-- new scala target -->
-    
-    <target name="scala" description="build the scala directory">
-        <antcall target="scala.jar" inheritAll="false">
-            <param name="scala.target" value="core" />
-        </antcall>
-    </target>
-    
-    <!-- ***************************************************************************** -->
-    <!-- ***********               Tests and associated tasks                ********* -->
-    <!-- ***************************************************************************** -->
-    <!-- where to put reports and tests-->
-    <property name="report" value="${build.dir}/report"/>
-    <property name="test.output" value="${dist.dir}/test"/>
-    <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
-    <property name="java.public.test.classes" value="${java.test.classes}/public"/>
-    <property name="java.private.test.classes" value="${java.test.classes}/private"/>
-    <property name="java.external.test.classes" value="${java.test.classes}/external"/>
-    <property name="java.public.test.sources" value="${public.dir}/java/test"/>
-    <property name="java.private.test.sources" value="${private.dir}/java/test"/>
-    <property name="scala.test.classes" value="${build.dir}/scala/testclasses"/>
-    <property name="scala.public.test.classes" value="${scala.test.classes}/public"/>
-    <property name="scala.private.test.classes" value="${scala.test.classes}/private"/>
-    <property name="scala.public.test.sources" value="${public.dir}/scala/test"/>
-    <property name="scala.private.test.sources" value="${private.dir}/scala/test"/>
-    <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
-    <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
-    <property name="test.maxmemory" value="4g"/>
-
-    <target name="test.init.compile">
-        <mkdir dir="${java.test.classes}"/>
-        <mkdir dir="${scala.test.classes}"/>
-        <antcall target="resolve">
-          <param name="ivy.conf" value="test"/>
-        </antcall>
-    </target>
-
-   <target name="test.java.public.compile" depends="dist,test.init.compile">
-        <mkdir dir="${java.public.test.classes}"/>
-        <echo message="Sting: Compiling public test cases!"/>
-        <javac fork="true" memoryMaximumSize="512m" destdir="${java.public.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
-            <src path="${java.public.test.sources}"/>
-            <classpath>
-                <path refid="external.dependencies" />
-                <pathelement location="${java.classes}"/>
-                <pathelement location="${java.contracts}"/>
-                <pathelement location="${testng.jar}"/>
-            </classpath>
-            <compilerarg value="-proc:none"/>
-        </javac>
-    </target>
-
-    <target name="test.java.private.compile" depends="dist,test.init.compile,test.java.public.compile" if="include.private">
-        <mkdir dir="${java.private.test.classes}"/>
-        <echo message="Sting: Compiling private test cases!"/>
-        <javac fork="true" memoryMaximumSize="512m" destdir="${java.private.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
-            <src path="${java.private.test.sources}"/>
-            <classpath>
-                <path refid="external.dependencies" />
-                <pathelement location="${java.public.test.classes}"/>
-                <pathelement location="${java.classes}"/>
-                <pathelement location="${java.contracts}"/>
-                <pathelement location="${testng.jar}"/>
-            </classpath>
-            <compilerarg value="-proc:none"/>
-        </javac>
-    </target>
-
-    <target name="test.java.external.compile" depends="dist,test.init.compile,test.java.public.compile" if="include.external">
-        <mkdir dir="${java.external.test.classes}"/>
-        <echo message="Sting: Compiling external test cases!"/>
-        <javac fork="true" memoryMaximumSize="512m" destdir="${java.external.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}" srcdir="${external.dir}">
-            <include name="*/test/**/*.java"/>
-            <classpath>
-                <path refid="external.dependencies" />
-                <pathelement location="${java.public.test.classes}"/>
-                <pathelement location="${java.classes}"/>
-                <pathelement location="${java.contracts}"/>
-                <pathelement location="${testng.jar}"/>
-            </classpath>
-            <compilerarg value="-proc:none"/>
-        </javac>
-    </target>
-
-    <target name="test.java.compile" depends="test.java.public.compile, test.java.private.compile, test.java.external.compile"/>
-
-    <target name="test.scala.public.compile" depends="test.java.compile,scala.compile" if="scala.include">
-        <mkdir dir="${scala.public.test.classes}"/>
-        <echo message="Scala: Compiling public test cases!"/>
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.public.test.classes}" deprecation="yes" unchecked="yes">
-	        <src path="${scala.public.test.sources}" />
-            <classpath>
-                <path refid="scala.dependencies"/>
-                <pathelement location="${java.public.test.classes}"/>
-                <pathelement location="${testng.jar}"/>
-            </classpath>
-        </scalac>
-    </target>
-
-    <target name="test.scala.private.compile" depends="test.java.compile,scala.compile,test.scala.public.compile" if="include.scala.private">
-        <mkdir dir="${scala.private.test.classes}"/>
-        <echo message="Scala: Compiling private test cases!"/>
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.private.test.classes}" deprecation="yes" unchecked="yes">
-	        <src path="${scala.private.test.sources}" />
-            <classpath>
-                <path refid="scala.dependencies"/>
-                <pathelement location="${scala.public.test.classes}"/>
-                <pathelement location="${java.public.test.classes}"/>
-                <pathelement location="${java.private.test.classes}"/>
-                <pathelement location="${testng.jar}"/>
-            </classpath>
-        </scalac>
-    </target>
-
-    <target name="test.scala.compile" depends="test.scala.public.compile,test.scala.private.compile"/>
-
-    <target name="test.compile" depends="init.usecontracts,test.java.compile,test.scala.compile" />
+    <target name="scala" depends="scala.jar" description="build the scala directory" />
 
 
-    <path id="testng.default.classpath">
-        <pathelement location="${java.classes}" />
-        <pathelement location="${scala.classes}" />
-        <pathelement location="${java.contracts}" />
-        <pathelement location="${java.public.test.classes}" />
-        <pathelement location="${java.private.test.classes}" />
-        <pathelement location="${java.external.test.classes}" />
-        <pathelement location="${scala.public.test.classes}" />
-        <pathelement location="${scala.private.test.classes}" />
-        <pathelement location="${R.tar.dir}" />
-        <pathelement location="${R.public.scripts.dir}" />
-        <pathelement location="${R.private.scripts.dir}" />
-        <pathelement location="${key.dir}" />
-        <path refid="external.dependencies" />
-    </path>
+    <!-- ******************************************************************************** -->
+    <!-- GATKDocs                                                                          -->
+    <!-- ******************************************************************************** -->
 
-    <path id="testng.gatk.releasetest.classpath">
-        <path refid="testng.dependencies" />
-        <path>
-            <fileset dir="${package.output.dir}">
-                <include name="**/${executable}.jar" />
-            </fileset>
+    <target name="gatkdocs" depends="gatk.compile" description="Extract help key/value pair file from the JavaDoc tags.">
+        <path id="doclet.classpath">
+            <path refid="external.dependencies" />
+            <pathelement location="${java.classes}" />
         </path>
-        <pathelement location="${java.contracts}" />
-        <pathelement location="${java.public.test.classes}" />
-        <pathelement location="${scala.public.test.classes}" />
-        <pathelement location="${scala.classes}" />
-        <path>
-            <fileset dir="${lib.dir}">
-                <include name="scala*.jar"/>
-                <include name="jna*.jar"/>
-            </fileset>
-        </path>
-    </path>
 
-    <path id="testng.queue.releasetest.classpath">
-        <path refid="testng.dependencies" />
-        <path>
-            <fileset dir="${package.output.dir}">
-                <include name="**/${executable}.jar" />
-            </fileset>
-        </path>
-        <pathelement location="${java.contracts}" />
-        <pathelement location="${java.public.test.classes}" />
-        <pathelement location="${scala.public.test.classes}" />
-    </path>
-
-    <!-- TEST -->
-    <macrodef name="run-test">
-        <attribute name="testtype"/>
-        <attribute name="outputdir"/>
-        <attribute name="classpath"/>
-        <attribute name="runfailed"/>
-
-        <sequential>
-            <condition property="run.failed.tests">
-                <equals arg1="@{runfailed}" arg2="true"/>
-            </condition>
-
-            <!-- Get the pipeline run type.  Default to dry.  -->
-            <condition property="pipeline.run" value="dry" else="${pipeline.run}">
-                <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
-            </condition>
-
-            <condition property="cofoja.jvm.args" value="-javaagent:${cofoja.jar} -Dcom.google.java.contract.log.contract=false" else="">
-                <isset property="include.contracts" />
-            </condition>
-
-            <mkdir dir="@{outputdir}"/>
-            <echo message="Sting: Running @{testtype} test cases!"/>
-            <taskdef resource="testngtasks" classpath="${testng.jar}"/>
-            <testng outputDir="@{outputdir}"
-                    classpathref="@{classpath}"
-                    haltOnFailure="false" failureProperty="test.failure"
-                    verbose="2"
-                    workingDir="${basedir}"
-                    useDefaultListeners="false"
-                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter">
-                <jvmarg value="-Xmx${test.maxmemory}" />
-                <jvmarg value="-Djava.awt.headless=true" />
-                <jvmarg value="-Dpipeline.run=${pipeline.run}" />
-                <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-                <jvmarg line="${cofoja.jvm.args}"/>
-<!--                 <jvmarg value="-Xdebug"/> -->
-<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
-
-                <classfileset dir="${java.public.test.classes}" includes="**/@{testtype}.class"/>
-                <classfileset dir="${java.private.test.classes}" erroronmissingdir="false">
-                    <include name="**/@{testtype}.class" if="include.private"/>
-                </classfileset>
-                <classfileset dir="${java.external.test.classes}" erroronmissingdir="false">
-                    <include name="**/@{testtype}.class" if="include.external"/>
-                </classfileset>
-                <classfileset dir="${scala.public.test.classes}" erroronmissingdir="false">
-                    <include name="**/@{testtype}*.class" if="scala.include"/>
-                </classfileset>
-                <classfileset dir="${scala.private.test.classes}" erroronmissingdir="false">
-                    <include name="**/@{testtype}*.class" if="include.scala.private"/>
-                </classfileset>
-
-                <xmlfileset dir="${basedir}">
-                    <include name="@{testtype}" if="run.failed.tests"/>
-                </xmlfileset>
-            </testng>
-
-            <!-- generate a report for Bamboo or Hudson to read in -->
-            <junitreport todir="@{outputdir}">
-                <fileset dir="@{outputdir}">
-                    <include name="*/*.xml"/>
-                </fileset>
-                <report format="noframes" todir="@{outputdir}"/>
-            </junitreport>
-
-            <fail message="test failed" if="test.failure" />
-        </sequential>
-    </macrodef>
-
-    <target name="test.init">
-        <property name="testng.classpath" value="testng.default.classpath" />
-    </target>
-
-    <target name="committests">
-        <antcall target="test" inheritAll="false"/>
-        <antcall target="integrationtest" inheritAll="false"/>
-        <antcall target="pipelinetest" inheritAll="false"/>
-    </target>
-
-    <target name="committests.public">
-        <antcall target="test.public" inheritAll="false"/>
-        <antcall target="integrationtest.public" inheritAll="false"/>
-        <antcall target="pipelinetest.public" inheritAll="false"/>
-    </target>
-
-    <target name="releasetests.gatk.packagejar" depends="init.buildpublic,package">
-        <antcall target="test.public" inheritAll="false">
-            <param name="testng.classpath" value="testng.gatk.releasetest.classpath" />
-        </antcall>
-        <antcall target="integrationtest.public" inheritAll="false">
-            <param name="testng.classpath" value="testng.gatk.releasetest.classpath" />
-        </antcall>
-    </target>
-
-    <target name="releasetests.queue.packagejar" depends="init.buildpublic,queue">
-        <antcall target="package" inheritAll="false">
-            <param name="executable" value="Queue" />
-        </antcall>
-        <antcall target="pipelinetest.public" inheritAll="false">
-            <param name="executable" value="Queue" />
-            <param name="testng.classpath" value="testng.queue.releasetest.classpath" />
-        </antcall>
-    </target>
-
-    <!-- Our four different test conditions: Test, IntegrationTest, LargeScaleTest, PipelineTest -->
-    <target name="test" depends="init.buildall,test.compile,vcf.jar,test.init" description="Run unit tests">
-        <condition property="ttype" value="*UnitTest" else="${single}">
-            <not><isset property="single"/></not>
+        <!-- Run with -Dgatkdocs.include.hidden=true to include documentation for hidden features -->
+        <condition property="gatkdocs.include.hidden.arg" value="-include-hidden" else="">
+            <isset property="gatkdocs.include.hidden" />
         </condition>
-        <run-test testtype="${ttype}" outputdir="${report}/${ttype}" classpath="${testng.classpath}" runfailed="false"/>
-    </target>
-    <target name="test.public" depends="init.buildpublic,test"/>
 
-    <target name="integrationtest" depends="init.buildall,test.compile,test.init" description="Run integration tests">
-        <condition property="itype" value="*IntegrationTest" else="${single}">
-            <not><isset property="single"/></not>
-        </condition>
-        <run-test testtype="${itype}" outputdir="${report}/${itype}" classpath="${testng.classpath}" runfailed="false"/>
-    </target>
-    <target name="integrationtest.public" depends="init.buildpublic,integrationtest"/>
-
-    <target name="largescaletest" depends="init.buildall,test.compile,test.init" description="Run large-scale tests">
-       <condition property="ptype" value="*LargeScaleTest" else="${single}">
-            <not><isset property="single"/></not>
-        </condition>
-        <run-test testtype="${ptype}" outputdir="${report}/${ptype}" classpath="${testng.classpath}" runfailed="false"/>
-    </target>
-    <target name="largescaletest.public" depends="init.buildpublic,largescaletest" />
-
-    <target name="pipelinetest" depends="init.buildall,test.compile,test.init" description="Run pipeline tests">
-        <condition property="pipetype" value="*PipelineTest" else="${single}">
-            <not><isset property="single"/></not>
-        </condition>
-        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" classpath="${testng.classpath}" runfailed="false"/>
-    </target>
-    <target name="pipelinetest.public" depends="init.buildpublic,pipelinetest" />
-
-    <target name="pipelinetestrun" depends="init.buildall,test.compile,test.init" description="Run pipeline tests">
-        <property name="pipeline.run" value="run"/>
-        <condition property="pipetype" value="*PipelineTest" else="${single}">
-            <not><isset property="single"/></not>
-        </condition>
-        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" classpath="${testng.classpath}" runfailed="false"/>
-    </target>
-    <target name="pipelinetestrun.public" depends="init.buildpublic,pipelinetestrun" />
-
-    <target name="failed-test" depends="init.buildall,test.compile,test.init">
-        <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
+        <javadoc doclet="org.broadinstitute.sting.utils.help.GATKDoclet"
+                 docletpathref="doclet.classpath"
+                 classpathref="external.dependencies"
+                 classpath="${java.classes}"
+                 additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet"> <!-- -test to only do DocumentationTest walker -->
+            <sourcefiles>
+                <fileset refid="java.source.files"/>
+            </sourcefiles>
+        </javadoc>
     </target>
 
-    <target name="failed-integration" depends="init.buildall,test.compile,test.init">
-        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
-    </target>
-
-    <target name="failed-largescale" depends="init.buildall,test.compile,test.init">
-        <run-test testtype="${report}/*LargeScaleTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
-    </target>
-
-    <target name="failed-pipeline" depends="init.buildall,test.compile,test.init">
-        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" classpath="${testng.classpath}" runfailed="true"/>
-    </target>
 
     <!-- ******************************************************************************** -->
     <!-- Javadoc                                                                          -->
     <!-- ******************************************************************************** -->
 
-    <target name="clean.javadoc">
-        <delete dir="${javadoc.dir}" />
-    </target>
-
     <target name="init.javadoc">
         <mkdir dir="${javadoc.dir}" />
     </target>
 
-    <target name="javadoc" depends="init.buildpublic,generate.javadoc" description="Generates public javadoc" />
-
-    <target name="javadoc.private" depends="init.buildall,generate.javadoc" description="Generates public and private javadoc" />
-
-    <target name="generate.javadoc" depends="init.javadoc,resolve">
+    <target name="javadoc" depends="init.javadoc,resolve">
         <javadoc destdir="${javadoc.dir}" classpathref="external.dependencies">
             <fileset refid="java.source.files" />
             <sourcepath path="${external.dir}" />
         </javadoc>
     </target>
 
+
     <!-- ******************************************************************************** -->
     <!-- Scaladoc                                                                         -->
     <!-- ******************************************************************************** -->
-
-    <target name="clean.scaladoc">
-        <delete dir="${scaladoc.dir}" />
-    </target>
 
     <target name="init.scaladoc">
         <mkdir dir="${scaladoc.dir}" />
     </target>
 
-    <!-- NOTE: the scaladoc targets require that the environment variable ANT_OPTS has been set to "-Xmx1G" -->
+    <!-- NOTE: the scaladoc target requires that the environment variable ANT_OPTS has been set to "-Xmx1G" -->
 
-    <target name="scaladoc" depends="init.buildpublic,generate.scaladoc" description="Generates public scaladoc -- set ANT_OPTS to -Xmx1G" />
-
-    <target name="scaladoc.private" depends="init.buildall,generate.scaladoc" description="Generates public and private scaladoc -- set ANT_OPTS to -Xmx1G" />
-
-    <target name="generate.scaladoc" depends="resolve,queue-extensions.generate,init.scala.compile,scala.compile,init.scaladoc">
+    <target name="scaladoc" depends="resolve,queue-extensions.generate,init.scala.compile,scala.compile,init.scaladoc">
         <scaladoc srcdir="${basedir}" destdir="${scaladoc.dir}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
-            <include name="${scala.public.source.dir}/**/*.scala" />
+            <patternset refid="scala.source.files.pattern" />
             <include name="${queue-extensions.source.dir}/**/*.scala" />
-            <include name="${scala.private.source.dir}/**/*.scala" if="include.private" />
         </scaladoc>
     </target>
+
 
     <!-- ******************************************************************************** -->
     <!-- Release-related tasks                                                            -->
@@ -1164,17 +870,21 @@
           <fileset dir="${package.xml.dir}">
               <include name="${executable}.xml" />
           </fileset>
-
           <fileset dir="${external.dir}" erroronmissingdir="false">
               <include name="*/${executable}.xml" />
           </fileset>
-
       </xslt>
       <ant antfile="${package.output.dir}/${executable}.xml" target="package" />
     </target>
 
+    <target name="package.gatk" depends="init.javaonly, package" />
+
     <target name="release" depends="package" description="release a build, putting each file in a location specified by the package">
       <ant antfile="${package.output.dir}/${executable}.xml" target="release" />
+    </target>
+
+    <target name="protected.release" depends="package" description="release a protected build, putting each file in a location specified by the package">
+      <ant antfile="${package.output.dir}/${executable}.xml" target="protectedrelease" />
     </target>
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
@@ -1203,30 +913,28 @@
       </ant>
     </target>
 
+
     <!-- ******************************************************************************** -->
-    <!-- Find bug tasks                                                                   -->
+    <!-- Clean                                                                            -->
     <!-- ******************************************************************************** -->
-    <path id="findbugs.classpath">
-      <fileset dir="${lib.dir}" erroronmissingdir="true" includes="*.jar"/>
-    </path>
-    <target         name="findbugs" depends="dist">
-        <antcall    target  ="resolve">
-            <param  name    ="ivy.conf" value="test"/>
-        </antcall>
-        <!-- setup the taskdef, telling ant where to find the defined task for ant -->
-        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="findbugs.classpath"/>
-        <!-- what should findbug look at: we want to aim it at the GATK.jar -->
-        <findbugs       home="${findbugs.home}"
-                        output="xml"
-                        outputFile="${build.dir}/findbugs.xml"
-                        classpathref="findbugs.classpath"
-                        debug="false">
-         <auxClasspath>
-                <fileset dir="dist" includes="**/*.jar" excludes="**/GenomeAnalysisTK.jar"/>            
-         </auxClasspath>
-         <sourcePath    path="../java/src" />
-         <class         location="dist/GenomeAnalysisTK.jar" />
-       </findbugs>
+
+    <target name="clean.gatkdocs">
+        <delete dir="${gatkdocs.dir}"/>
+    </target>
+
+    <target name="clean.javadoc">
+        <delete dir="${javadoc.dir}" />
+    </target>
+
+    <target name="clean.scaladoc">
+        <delete dir="${scaladoc.dir}" />
+    </target>
+
+    <target name="clean.gsalib">
+        <!-- Currently not cleaning out the lib during 'ant clean' -->
+      <exec executable="R" failonerror="false">
+        <arg line="R CMD REMOVE gsalib" />
+      </exec>
     </target>
 
     <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs">
@@ -1238,6 +946,11 @@
         <delete dir="${pipelinetest.dir}"/>
     </target>
 
+
+    <!-- ******************************************************************************** -->
+    <!-- gsalib                                                                           -->
+    <!-- ******************************************************************************** -->
+
     <!-- Build gsalib R module -->
     <target name="gsalib">
       <exec executable="R" failonerror="true">
@@ -1245,10 +958,306 @@
       </exec>
     </target>
 
-    <target name="clean.gsalib">
-        <!-- Currently not cleaning out the lib during 'ant clean' -->
-      <exec executable="R" failonerror="false">
-        <arg line="R CMD REMOVE gsalib" />
-      </exec>
+
+    <!-- ***************************************************************************** -->
+    <!-- ***********               Tests and associated tasks                ********* -->
+    <!-- ***************************************************************************** -->
+
+    <!-- Properties and Paths -->
+
+    <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
+    <property name="java.public.test.sources" value="${public.dir}/java/test"/>
+    <property name="java.private.test.sources" value="${private.dir}/java/test"/>
+    <property name="java.protected.test.sources" value="${protected.dir}/java/test"/>
+    <property name="scala.test.classes" value="${build.dir}/scala/testclasses"/>
+    <property name="scala.public.test.sources" value="${public.dir}/scala/test"/>
+    <property name="scala.private.test.sources" value="${private.dir}/scala/test"/>
+    <property name="scala.protected.test.sources" value="${protected.dir}/scala/test"/>
+    <property name="pipelinetest.dir" value="pipelinetests" />
+    <property name="report" value="${build.dir}/report"/>
+    <property name="test.output" value="${dist.dir}/test"/>
+    <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
+    <property name="test.maxmemory" value="4g"/>  <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
+
+    <path id="java.test.source.path">
+        <dirset dir="${basedir}">
+            <include name="${java.public.test.sources}" />
+            <include name="${java.private.test.sources}" if="include.private" />
+            <include name="${java.protected.test.sources}" if="include.protected" />
+        </dirset>
+    </path>
+
+    <path id="scala.test.source.path">
+        <dirset dir="${basedir}">
+            <include name="${scala.public.test.sources}" />
+            <include name="${scala.private.test.sources}" if="include.private" />
+            <include name="${scala.protected.test.sources}" if="include.protected" />
+        </dirset>
+    </path>
+
+    <path id="testng.dependencies">
+        <fileset dir="${lib.dir}">
+            <include name="jcommander*.jar"/>
+            <include name="guice*.jar"/>
+            <include name="junit*.jar"/>
+            <include name="bsh*.jar"/>
+            <include name="snakeyaml*.jar"/>
+        </fileset>
+    </path>
+
+    <path id="testng.default.classpath">
+        <pathelement location="${java.classes}" />
+        <pathelement location="${scala.classes}" />
+        <pathelement location="${java.contracts.dir}" />
+        <pathelement location="${java.test.classes}" />
+        <pathelement location="${scala.test.classes}" />
+        <pathelement location="${R.tar.dir}" />
+        <path refid="R.script.source.path" />
+        <pathelement location="${key.dir}" />
+        <path refid="external.dependencies" />
+    </path>
+
+    <path id="gatk.binary.release.tests.classpath">
+        <path refid="testng.dependencies" />
+        <path>
+            <fileset dir="${package.output.dir}">
+                <include name="**/${executable}.jar" />
+            </fileset>
+        </path>
+        <pathelement location="${java.contracts.dir}" />
+        <pathelement location="${java.test.classes}" />
+        <pathelement location="${scala.test.classes}" />
+        <pathelement location="${scala.classes}" />
+        <path>
+            <fileset dir="${lib.dir}">
+                <include name="scala*.jar"/>
+                <include name="jna*.jar"/>
+            </fileset>
+        </path>
+    </path>
+
+    <path id="queue.binary.release.tests.classpath">
+        <path refid="testng.dependencies" />
+        <path>
+            <fileset dir="${package.output.dir}">
+                <include name="**/${executable}.jar" />
+            </fileset>
+        </path>
+        <pathelement location="${java.contracts.dir}" />
+        <pathelement location="${java.test.classes}" />
+        <pathelement location="${scala.test.classes}" />
+    </path>
+
+
+    <!-- Test targets -->
+
+    <target name="test.init.compile">
+        <mkdir dir="${java.test.classes}"/>
+        <mkdir dir="${scala.test.classes}"/>
+        <antcall target="resolve">
+          <param name="ivy.conf" value="test"/>
+        </antcall>
     </target>
+
+   <target name="test.java.internal.compile" depends="dist,test.init.compile">
+        <echo message="Sting: Compiling java test cases!"/>
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
+            <src refid="java.test.source.path" />
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement location="${java.classes}"/>
+                <pathelement location="${java.contracts.dir}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+            <compilerarg value="-proc:none"/>
+        </javac>
+    </target>
+
+    <target name="test.java.external.compile" depends="dist,test.init.compile,test.java.internal.compile" if="include.external">
+        <echo message="Sting: Compiling external java test cases!"/>
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}" srcdir="${external.dir}">
+            <include name="*/test/**/*.java"/>
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement location="${java.test.classes}"/>
+                <pathelement location="${java.classes}"/>
+                <pathelement location="${java.contracts.dir}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+            <compilerarg value="-proc:none"/>
+        </javac>
+    </target>
+
+    <target name="test.java.compile" depends="test.java.internal.compile, test.java.external.compile"/>
+
+    <target name="test.scala.compile" depends="test.java.compile,scala.compile" if="include.scala">
+        <echo message="Scala: Compiling test cases!"/>
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
+	        <src refid="scala.test.source.path" />
+            <classpath>
+                <path refid="scala.dependencies"/>
+                <pathelement location="${java.test.classes}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+        </scalac>
+    </target>
+
+    <!-- NOTE: contracts enabled for all tests -->
+    <target name="test.compile" depends="init.usecontracts,dist,test.java.compile,test.scala.compile" />
+
+
+    <!-- Run test macro -->
+    <macrodef name="run-test">
+        <attribute name="testtype"/>
+        <attribute name="outputdir"/>
+        <attribute name="runfailed"/>
+
+        <sequential>
+            <condition property="run.failed.tests">
+                <equals arg1="@{runfailed}" arg2="true"/>
+            </condition>
+
+            <!-- Get the pipeline run type.  Default to dry.  -->
+            <condition property="pipeline.run" value="dry" else="${pipeline.run}">
+                <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
+            </condition>
+
+            <condition property="cofoja.jvm.args" value="-javaagent:${cofoja.jar} -Dcom.google.java.contract.log.contract=false" else="">
+                <isset property="include.contracts" />
+            </condition>
+
+            <condition property="debug.jvm.args" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${test.debug.port}" else="">
+                <isset property="test.debug" />
+            </condition>
+
+            <mkdir dir="@{outputdir}"/>
+            <echo message="Sting: Running @{testtype} test cases!"/>
+            <taskdef resource="testngtasks" classpath="${testng.jar}"/>
+            <testng outputDir="@{outputdir}"
+                    classpathref="${testng.classpath}"
+                    haltOnFailure="false" failureProperty="test.failure"
+                    verbose="2"
+                    workingDir="${basedir}"
+                    useDefaultListeners="false"
+                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter">
+                <jvmarg value="-Xmx${test.maxmemory}" />
+                <jvmarg value="-Djava.awt.headless=true" />
+                <jvmarg value="-Dpipeline.run=${pipeline.run}" />
+                <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
+                <jvmarg line="${cofoja.jvm.args}"/>
+                <jvmarg line="${debug.jvm.args}"/>
+
+                <!-- NOTE: To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
+
+                <classfileset dir="${java.test.classes}" includes="**/@{testtype}.class"/>
+                <classfileset dir="${java.external.test.classes}" erroronmissingdir="false">
+                    <include name="**/@{testtype}.class" if="include.external"/>
+                </classfileset>
+                <classfileset dir="${scala.test.classes}" erroronmissingdir="false">
+                    <include name="**/@{testtype}*.class" if="include.scala"/>
+                </classfileset>
+
+                <xmlfileset dir="${basedir}">
+                    <include name="@{testtype}" if="run.failed.tests"/>
+                </xmlfileset>
+            </testng>
+
+            <!-- generate a report for Bamboo or Hudson to read in -->
+            <junitreport todir="@{outputdir}">
+                <fileset dir="@{outputdir}">
+                    <include name="*/*.xml"/>
+                </fileset>
+                <report format="noframes" todir="@{outputdir}"/>
+            </junitreport>
+
+            <fail message="test failed" if="test.failure" />
+        </sequential>
+    </macrodef>
+
+
+    <target name="test.init">
+        <property name="testng.classpath" value="testng.default.classpath" />
+    </target>
+
+    <target name="committests">
+        <antcall target="unittest" inheritAll="false"/>
+        <antcall target="integrationtest" inheritAll="false"/>
+        <antcall target="pipelinetest" inheritAll="false"/>
+    </target>
+
+    <target name="gatk.binary.release.tests" depends="package">
+        <antcall target="unittest" inheritAll="false">
+            <param name="testng.classpath" value="gatk.binary.release.tests.classpath" />
+        </antcall>
+        <antcall target="integrationtest" inheritAll="false">
+            <param name="testng.classpath" value="gatk.binary.release.tests.classpath" />
+        </antcall>
+    </target>
+
+    <target name="queue.binary.release.tests">
+        <antcall target="package" inheritAll="false">
+            <param name="executable" value="Queue" />
+        </antcall>
+        <antcall target="pipelinetest" inheritAll="false">
+            <param name="executable" value="Queue" />
+            <param name="testng.classpath" value="queue.binary.release.tests.classpath" />
+        </antcall>
+    </target>
+
+    <!-- Our four different test types: UnitTest, IntegrationTest, LargeScaleTest, PipelineTest -->
+    <target name="unittest" depends="test.compile,test.init" description="Run unit tests">
+        <condition property="ttype" value="*UnitTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${ttype}" outputdir="${report}/${ttype}" runfailed="false"/>
+    </target>
+
+    <!-- Keep the alias "test" for "unittest" for backwards compatibility -->
+    <target name="test" depends="unittest" />
+
+    <target name="integrationtest" depends="test.compile,test.init" description="Run integration tests">
+        <condition property="itype" value="*IntegrationTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${itype}" outputdir="${report}/${itype}" runfailed="false"/>
+    </target>
+
+    <target name="largescaletest" depends="test.compile,test.init" description="Run large-scale tests">
+       <condition property="ptype" value="*LargeScaleTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${ptype}" outputdir="${report}/${ptype}" runfailed="false"/>
+    </target>
+
+    <target name="pipelinetest" depends="test.compile,test.init" description="Run pipeline tests">
+        <condition property="pipetype" value="*PipelineTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
+    </target>
+
+    <target name="pipelinetestrun" depends="test.compile,test.init" description="Run pipeline tests">
+        <property name="pipeline.run" value="run"/>
+        <condition property="pipetype" value="*PipelineTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
+    </target>
+
+    <target name="failed-unit" depends="test.compile,test.init">
+        <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    </target>
+
+    <target name="failed-integration" depends="test.compile,test.init">
+        <run-test testtype="${report}/*IntegrationTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    </target>
+
+    <target name="failed-largescale" depends="test.compile,test.init">
+        <run-test testtype="${report}/*LargeScaleTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    </target>
+
+    <target name="failed-pipeline" depends="test.compile,test.init">
+        <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
+    </target>
+
 </project>

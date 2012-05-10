@@ -24,4 +24,9 @@
     <executable directory="/humgen/gsa-hpprojects/GATK/bin" symlink="current" />
     <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTK-latest.tar.bz2" />
   </release>
+  <protectedrelease>
+    <!-- TODO: Determine where the protected releases should be stored -->
+    <executable directory="" symlink="current" />
+    <archive directory="" symlink="GenomeAnalysisTK-latest.tar.bz2" />
+  </protectedrelease>
 </package>

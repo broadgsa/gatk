@@ -100,6 +100,21 @@
 	</xsl:if>
       </xsl:for-each>
     </target>
+
+    <target name="protectedrelease">
+        <xsl:for-each select="protectedrelease/executable">
+	        <copy todir="{@directory}/{$package.basename}"><fileset dir="{$package.dir}" /></copy>
+	        <xsl:if test="@symlink">
+	             <symlink link="{@directory}/{@symlink}" resource="{$package.basename}" overwrite="true" />
+	        </xsl:if>
+        </xsl:for-each>
+        <xsl:for-each select="protectedrelease/archive">
+	        <copy file="{$dist.dir}/packages/{$package.filename}" todir="{@directory}" />
+	        <xsl:if test="@symlink">
+	            <symlink link="{@directory}/{@symlink}" resource="{$package.filename}" overwrite="true" />
+	        </xsl:if>
+        </xsl:for-each>
+    </target>
   </project>
 </xsl:template>
 
