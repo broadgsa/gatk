@@ -1,0 +1,362 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+// our package
+package org.broadinstitute.sting.utils.codecs.bcf2;
+
+
+// the imports for unit testing.
+
+
+import org.broadinstitute.sting.BaseTest;
+import org.testng.Assert;
+import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
+
+
+public class EncoderDecoderUnitTest extends BaseTest {
+    private final float FLOAT_TOLERANCE = (float)1e-8;
+    final List<BCF2TypedValue> primitives = new ArrayList<BCF2TypedValue>();
+    final List<BCF2TypedValue> basicTypes = new ArrayList<BCF2TypedValue>();
+    final List<BCF2TypedValue> forCombinations = new ArrayList<BCF2TypedValue>();
+
+    @BeforeSuite
+    public void before() {
+        basicTypes.add(new BCF2TypedValue(1, BCFType.INT8));
+        basicTypes.add(new BCF2TypedValue(1000, BCFType.INT16));
+        basicTypes.add(new BCF2TypedValue(1000000, BCFType.INT32));
+        basicTypes.add(new BCF2TypedValue(1.2345e6, BCFType.FLOAT));
+        basicTypes.add(new BCF2TypedValue(new Byte((byte)'A'), BCFType.CHAR));
+
+        // small ints
+        primitives.add(new BCF2TypedValue(0, BCFType.INT8));
+        primitives.add(new BCF2TypedValue(10, BCFType.INT8));
+        primitives.add(new BCF2TypedValue(-1, BCFType.INT8));
+        primitives.add(new BCF2TypedValue(100, BCFType.INT8));
+        primitives.add(new BCF2TypedValue(-100, BCFType.INT8));
+        primitives.add(new BCF2TypedValue(-127, BCFType.INT8));    // last value in range
+        primitives.add(new BCF2TypedValue( 127, BCFType.INT8));    // last value in range
+
+        // medium ints
+        primitives.add(new BCF2TypedValue(-1000, BCFType.INT16));
+        primitives.add(new BCF2TypedValue(1000, BCFType.INT16));
+        primitives.add(new BCF2TypedValue(-128, BCFType.INT16));    // first value in range
+        primitives.add(new BCF2TypedValue( 128, BCFType.INT16));    // first value in range
+        primitives.add(new BCF2TypedValue(-32767, BCFType.INT16)); // last value in range
+        primitives.add(new BCF2TypedValue( 32767, BCFType.INT16)); // last value in range
+
+        // larger ints
+        primitives.add(new BCF2TypedValue(-32768, BCFType.INT32)); // first value in range
+        primitives.add(new BCF2TypedValue( 32768, BCFType.INT32)); // first value in range
+        primitives.add(new BCF2TypedValue(-100000, BCFType.INT32));
+        primitives.add(new BCF2TypedValue(100000, BCFType.INT32));
+        primitives.add(new BCF2TypedValue(-2147483647, BCFType.INT32));
+        primitives.add(new BCF2TypedValue(2147483647, BCFType.INT32));
+
+        // floats
+        primitives.add(new BCF2TypedValue(0.0, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-0.0, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.0, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.0, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.1, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.1, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(5.0 / 3.0, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-5.0 / 3.0, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e3, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e6, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e9, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e12, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e15, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e3, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e6, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e9, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e12, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e15, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.MIN_VALUE, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.MAX_VALUE, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.NEGATIVE_INFINITY, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.POSITIVE_INFINITY, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.NaN, BCFType.FLOAT));
+
+        // strings
+        //primitives.add(new BCF2TypedValue("", BCFType.CHAR)); <- will be null (which is right)
+        primitives.add(new BCF2TypedValue("S", BCFType.CHAR));
+        primitives.add(new BCF2TypedValue("S2", BCFType.CHAR));
+        primitives.add(new BCF2TypedValue("12345678910", BCFType.CHAR));
+        primitives.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
+        primitives.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
+
+        // missing values
+        for ( BCFType type : BCFType.values() ) {
+            primitives.add(new BCF2TypedValue(null, type));
+        }
+
+        forCombinations.add(new BCF2TypedValue(10, BCFType.INT8));
+        forCombinations.add(new BCF2TypedValue(100, BCFType.INT8));
+        forCombinations.add(new BCF2TypedValue(-100, BCFType.INT8));
+        forCombinations.add(new BCF2TypedValue(-128, BCFType.INT16));    // first value in range
+        forCombinations.add(new BCF2TypedValue( 128, BCFType.INT16));    // first value in range
+        forCombinations.add(new BCF2TypedValue(-100000, BCFType.INT32));
+        forCombinations.add(new BCF2TypedValue(100000, BCFType.INT32));
+        forCombinations.add(new BCF2TypedValue(0.0, BCFType.FLOAT));
+        forCombinations.add(new BCF2TypedValue(1.23e6, BCFType.FLOAT));
+        forCombinations.add(new BCF2TypedValue(-1.23e6, BCFType.FLOAT));
+        forCombinations.add(new BCF2TypedValue("S", BCFType.CHAR));
+        forCombinations.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
+        forCombinations.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
+
+        // missing values
+        for ( BCFType type : BCFType.values() ) {
+            forCombinations.add(new BCF2TypedValue(null, type));
+        }
+
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // merge case Provider
+    //
+    // --------------------------------------------------------------------------------
+
+    private class BCF2TypedValue {
+        final BCFType type;
+        final Object value;
+
+        private BCF2TypedValue(final int value, final BCFType type) {
+            this(new Integer(value), type);
+        }
+
+        private BCF2TypedValue(final double value, final BCFType type) {
+            this(new Float(value), type);
+        }
+
+        private BCF2TypedValue(final Object value, final BCFType type) {
+            this.type = type;
+            this.value = value;
+        }
+
+        public boolean isMissing() { return value == null; }
+
+        @Override
+        public String toString() {
+            return String.format("%s of %s", value, type);
+        }
+    }
+
+    @DataProvider(name = "BCF2EncodingTestProviderSingletons")
+    public Object[][] BCF2EncodingTestProviderSingletons() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        for ( BCF2TypedValue tv : primitives )
+            tests.add(new Object[]{Arrays.asList(tv)});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @DataProvider(name = "BCF2EncodingTestProviderBasicTypes")
+    public Object[][] BCF2EncodingTestProviderBasicTypes() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        for ( BCF2TypedValue tv : basicTypes )
+            tests.add(new Object[]{Arrays.asList(tv)});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @DataProvider(name = "BCF2EncodingTestProviderSequences")
+    public Object[][] BCF2EncodingTestProviderSequences() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        for ( BCF2TypedValue tv1 : forCombinations )
+            for ( BCF2TypedValue tv2 : forCombinations )
+                for ( BCF2TypedValue tv3 : forCombinations )
+                    tests.add(new Object[]{Arrays.asList(tv1, tv2, tv3)});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "BCF2EncodingTestProviderSingletons")
+    public void testBCF2EncodingSingletons(final List<BCF2TypedValue> toEncode) throws IOException {
+        final byte[] record = encodeRecord(toEncode);
+        decodeRecord(toEncode, record);
+    }
+
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2EncodingVectors(final List<BCF2TypedValue> toEncode) throws IOException {
+        for ( final BCF2TypedValue tv : toEncode ) {
+            for ( final int length : Arrays.asList(2, 5, 10, 15, 20, 25) ) {
+                BCF2Encoder encoder = new BCF2Encoder();
+                List<Object> expected = Collections.nCopies(length, tv.value);
+                encoder.encodeTypedVector(expected, tv.type);
+
+                BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
+                final Object decoded = decoder.decodeTypedValue();
+
+                if ( tv.type == BCFType.CHAR ) {
+                    Assert.assertTrue(decoded instanceof String);
+                    final String decodedString = (String)decoded;
+                    Assert.assertTrue(decodedString.length() == length);
+                } else {
+                    Assert.assertTrue(decoded instanceof List);
+                    final List<Object> decodedList = (List<Object>)decoded;
+                    Assert.assertEquals(decodedList.size(), expected.size());
+                    for ( Object decodedValue : decodedList )
+                        myAssertEquals(tv, decodedValue);
+                }
+            }
+        }
+    }
+
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2EncodingVectorsWithMissing(final List<BCF2TypedValue> toEncode) throws IOException {
+        for ( final BCF2TypedValue tv : toEncode ) {
+            if ( tv.type != BCFType.CHAR ) {
+                for ( final int length : Arrays.asList(2, 5, 10, 15, 20, 25) ) {
+                    final byte td = TypeDescriptor.encodeTypeDescriptor(1, tv.type);
+
+                    final BCF2Encoder encoder = new BCF2Encoder();
+                    for ( int i = 0; i < length; i++ ) {
+                        encoder.encodeRawValue(i % 2 == 0 ? null : tv.value, tv.type);
+                    }
+
+                    final BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
+
+                    for ( int i = 0; i < length; i++ ) {
+                        final Object decoded = decoder.decodeTypedValue(td);
+                        myAssertEquals(i % 2 == 0 ? new BCF2TypedValue(null, tv.type) : tv, decoded);
+                    }
+                }
+            }
+        }
+    }
+
+
+    @Test(dataProvider = "BCF2EncodingTestProviderSequences", dependsOnMethods = "testBCF2EncodingSingletons")
+    public void testBCF2EncodingTestProviderSequences(final List<BCF2TypedValue> toEncode) throws IOException {
+        final byte[] record = encodeRecord(toEncode);
+        decodeRecord(toEncode, record);
+    }
+
+    @Test(dataProvider = "BCF2EncodingTestProviderSequences", dependsOnMethods = "testBCF2EncodingTestProviderSequences")
+    public void testReadAndSkipWithMultipleBlocks(final List<BCF2TypedValue> block) throws IOException {
+        testReadAndSkipWithMultipleBlocks(block, forCombinations);
+        testReadAndSkipWithMultipleBlocks(forCombinations, block);
+    }
+
+    public void testReadAndSkipWithMultipleBlocks(final List<BCF2TypedValue> block1, final List<BCF2TypedValue> block2) throws IOException {
+        final byte[] record1 = encodeRecord(block1);
+        final byte[] record2 = encodeRecord(block2);
+
+        // each record is individually good
+        decodeRecord(block1, record1);
+        decodeRecord(block2, record2);
+
+        BCF2Decoder decoder = new BCF2Decoder();
+
+        // test setting
+        decoder.setRecordBytes(record1);
+        decodeRecord(block1, decoder);
+        decoder.setRecordBytes(record2);
+        decodeRecord(block2, decoder);
+
+        // test combining the streams
+        final byte[] combined = combineRecords(record1, record2);
+        final List<BCF2TypedValue> combinedObjects = new ArrayList<BCF2TypedValue>(block1);
+        combinedObjects.addAll(block2);
+
+        // the combined bytes is the same as the combined objects
+        InputStream stream = new ByteArrayInputStream(combined);
+        decoder.readNextBlock(record1.length, stream);
+        decodeRecord(block1, decoder);
+        decoder.readNextBlock(record2.length, stream);
+        decodeRecord(block2, decoder);
+
+        // skipping the first block allows us to read the second block directly
+        stream = new ByteArrayInputStream(combined);
+        decoder.skipNextBlock(record1.length, stream);
+        decoder.readNextBlock(record2.length, stream);
+        decodeRecord(block2, decoder);
+    }
+
+    private final byte[] combineRecords(final byte[] record1, final byte[] record2) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        baos.write(record1);
+        baos.write(record2);
+        return baos.toByteArray();
+    }
+
+    private final byte[] encodeRecord(final List<BCF2TypedValue> toEncode) throws IOException {
+        BCF2Encoder encoder = new BCF2Encoder();
+
+        for ( final BCF2TypedValue tv : toEncode ) {
+            if ( tv.isMissing() )
+                encoder.encodeTypedMissing(tv.type);
+            else {
+                final BCFType encodedType = encoder.encode(tv.value);
+                if ( tv.type != null ) // only if we have an expectation
+                    Assert.assertEquals(encodedType, tv.type);
+            }
+        }
+
+        // check output
+        final byte[] record = encoder.getRecordBytes();
+        Assert.assertNotNull(record);
+        Assert.assertTrue(record.length > 0);
+        return record;
+    }
+
+    private final void decodeRecord(final List<BCF2TypedValue> toEncode, final byte[] record) {
+        decodeRecord(toEncode, new BCF2Decoder(record));
+    }
+
+    private final void decodeRecord(final List<BCF2TypedValue> toEncode, final BCF2Decoder decoder) {
+        for ( final BCF2TypedValue tv : toEncode ) {
+            Assert.assertFalse(decoder.blockIsFullyDecoded());
+            final Object decoded = decoder.decodeTypedValue();
+
+            myAssertEquals(tv, decoded);
+        }
+
+        Assert.assertTrue(decoder.blockIsFullyDecoded());
+    }
+
+    private final void myAssertEquals(final BCF2TypedValue tv, final Object decoded) {
+        if ( tv.value == null ) { // special needs for instanceof double
+            Assert.assertEquals(decoded, tv.value);
+        } else if ( tv.type == BCFType.FLOAT ) { // need tolerance for floats, and they aren't null
+            Assert.assertTrue(decoded instanceof Double);
+
+            final float valueFloat = (float)(Float)tv.value;
+            final float decodedFloat = (float)(double)(Double)decoded;
+
+            if ( Float.isNaN(valueFloat) ) // NaN == NaN => false unfortunately
+                Assert.assertTrue(Float.isNaN(decodedFloat));
+            else {
+                Assert.assertEquals(decodedFloat, valueFloat, FLOAT_TOLERANCE);
+            }
+        } else
+            Assert.assertEquals(decoded, tv.value);
+    }
+}
