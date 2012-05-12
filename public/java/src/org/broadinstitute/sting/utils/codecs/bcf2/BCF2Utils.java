@@ -24,23 +24,63 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFIDHeaderLine;
+
+import java.util.ArrayList;
+
 /**
- * Convenience methods for encoding, decoding BCF2 type descriptors (size + type)
- * @author Mark DePristo
- * @since 5/3/12
+ * Common utilities for working with BCF2 files
+ *
+ * Includes convenience methods for encoding, decoding BCF2 type descriptors (size + type)
+ *
+ * @author depristo
+ * @since 5/12
  */
-class TypeDescriptor {
+public class BCF2Utils {
     public static final int OVERFLOW_ELEMENT_MARKER = 15;
     public static final int MAX_INLINE_ELEMENTS = 14;
-
     public final static BCF2Type[] INTEGER_TYPES_BY_SIZE = new BCF2Type[3];
-    public final static BCF2Type[] DICTIONARY_TYPES_BY_SIZE = INTEGER_TYPES_BY_SIZE;
     private final static BCF2Type[] LOOKUP = BCF2Type.values();
+    public static final String VERSION_LINE_FORMAT = "fileformat=BCF2v%d.%d";
+    public static final String VERSION_LINE = String.format(VCFHeader.METADATA_INDICATOR + VERSION_LINE_FORMAT, 0, 1);
+
+    // Note that these values are prefixed by FFFFFF for convenience
+    public static final int INT8_MISSING_VALUE  = 0xFFFFFF80;
+    public static final int INT16_MISSING_VALUE = 0xFFFF8000;
+    public static final int INT32_MISSING_VALUE = 0x80000000;
+    public static final int FLOAT_MISSING_VALUE = 0x7F800001;
 
     static {
-        INTEGER_TYPES_BY_SIZE[0] = BCF2Type.INT8;
-        INTEGER_TYPES_BY_SIZE[1] = BCF2Type.INT16;
-        INTEGER_TYPES_BY_SIZE[2] = BCF2Type.INT32;
+        BCF2Utils.INTEGER_TYPES_BY_SIZE[0] = BCF2Type.INT8;
+        BCF2Utils.INTEGER_TYPES_BY_SIZE[1] = BCF2Type.INT16;
+        BCF2Utils.INTEGER_TYPES_BY_SIZE[2] = BCF2Type.INT32;
+    }
+
+    /**
+     * Create a strings dictionary from the VCF header
+     *
+     * The dictionary is an ordered list of common VCF identifers (FILTER, INFO, and FORMAT)
+     * fields.
+     *
+     * @param header the VCFHeader from which to build the dictionary
+     * @return a non-null dictionary of elements, may be empty
+     */
+    public final static ArrayList<String> makeDictionary(final VCFHeader header) {
+        final ArrayList<String> dict = new ArrayList<String>();
+
+        // set up the strings dictionary
+        dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
+        for ( VCFHeaderLine line : header.getMetaData() ) {
+            if ( line instanceof VCFIDHeaderLine) {
+                VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
+                dict.add(idLine.getID());
+            }
+        }
+
+        return dict;
     }
 
     public final static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {

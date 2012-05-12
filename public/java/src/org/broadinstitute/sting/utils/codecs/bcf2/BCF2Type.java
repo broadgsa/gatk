@@ -32,11 +32,11 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
  */
 public enum BCF2Type {
     RESERVED_0,
-    INT8(1, BCF2Constants.INT8_MISSING_VALUE, -127, 127), // todo -- confirm range
-    INT16(2, BCF2Constants.INT16_MISSING_VALUE, -32767, 32767),
-    INT32(4, BCF2Constants.INT32_MISSING_VALUE, -2147483647, 2147483647),
+    INT8(1, BCF2Utils.INT8_MISSING_VALUE, -127, 127), // todo -- confirm range
+    INT16(2, BCF2Utils.INT16_MISSING_VALUE, -32767, 32767),
+    INT32(4, BCF2Utils.INT32_MISSING_VALUE, -2147483647, 2147483647),
     RESERVED_4,
-    FLOAT(4, BCF2Constants.FLOAT_MISSING_VALUE),
+    FLOAT(4, BCF2Utils.FLOAT_MISSING_VALUE),
     RESERVED_6,
     CHAR;
 

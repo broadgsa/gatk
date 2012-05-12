@@ -47,7 +47,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
     private VCFHeader header = null;
     private final ArrayList<String> contigNames = new ArrayList<String>();
-    private final ArrayList<String> dictionary = new ArrayList<String>();
+    private ArrayList<String> dictionary;
     private final BCF2Decoder decoder = new BCF2Decoder();
     private boolean skipGenotypes = false;
 
@@ -126,7 +126,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
             contigNames.add(contig.getID());
 
         // create the string dictionary
-        parseDictionary(header);
+        dictionary = parseDictionary(header);
 
         // position right before next line (would be right before first real record byte at end of header)
         return new FeatureCodecHeader(header, inputStream.getPosition());
@@ -138,7 +138,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
             FileInputStream fis = new FileInputStream(path);
             AsciiLineReader reader = new AsciiLineReader(new PositionalBufferedStream(fis));
             String firstLine = reader.readLine();
-            if ( firstLine != null && firstLine.equals(BCF2Constants.VERSION_LINE) ) {
+            if ( firstLine != null && firstLine.equals(BCF2Utils.VERSION_LINE) ) {
                 return true;
             }
         } catch ( FileNotFoundException e ) {
@@ -150,18 +150,14 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
         return false;
     }
 
-    private final void parseDictionary(final VCFHeader header) {
-        for ( final VCFHeaderLine line : header.getMetaData() ) {
-            if ( line.getKey().equals(BCF2Constants.DICTIONARY_LINE_TAG) ) {
-                for ( final String string : line.getValue().split(BCF2Constants.DICTIONARY_LINE_ENTRY_SEPARATOR) )
-                    dictionary.add(string);
-                break;
-            }
-        }
+    private final ArrayList<String> parseDictionary(final VCFHeader header) {
+        final ArrayList<String> dict = BCF2Utils.makeDictionary(header);
 
         // if we got here we never found a dictionary, or there are no elements in the dictionary
-        if ( dictionary.size() == 0 )
+        if ( dict.size() == 0 )
             throw new UserException.MalformedBCF2("Dictionary header element was absent or empty");
+
+        return dict;
     }
 
     public boolean isSkippingGenotypes() {

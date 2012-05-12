@@ -234,7 +234,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
         for ( final BCF2TypedValue tv : toEncode ) {
             if ( tv.type != BCF2Type.CHAR ) {
                 for ( final int length : Arrays.asList(2, 5, 10, 15, 20, 25) ) {
-                    final byte td = TypeDescriptor.encodeTypeDescriptor(1, tv.type);
+                    final byte td = BCF2Utils.encodeTypeDescriptor(1, tv.type);
 
                     final BCF2Encoder encoder = new BCF2Encoder();
                     for ( int i = 0; i < length; i++ ) {

@@ -26,10 +26,9 @@ package org.broadinstitute.sting.utils.codecs.bcf2.writer;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Constants;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.codecs.vcf.writer.IndexingVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
@@ -52,7 +51,7 @@ public class BCF2Writer extends IndexingVCFWriter {
     private OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
     private VCFHeader header;
     private Map<String, Integer> contigDictionary = new HashMap<String, Integer>();
-    private Map<String, Integer> stringDictionary = new LinkedHashMap<String, Integer>();
+    private Map<String, Integer> stringDictionaryMap = new LinkedHashMap<String, Integer>();
 
     private final BCF2Encoder encoder = new BCF2Encoder(); // initialized after the header arrives
 
@@ -75,22 +74,14 @@ public class BCF2Writer extends IndexingVCFWriter {
         for ( final VCFContigHeaderLine contig : header.getContigLines())
             contigDictionary.put(contig.getID(), contig.getContigIndex());
 
-        // set up the strings dictionary
-        int offset = 0;
-        stringDictionary.put(VCFConstants.PASSES_FILTERS_v4, offset++); // special case the special PASS field
-        for ( VCFHeaderLine line : header.getMetaData() ) {
-            if ( line instanceof VCFIDHeaderLine ) {
-                VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
-                stringDictionary.put(idLine.getID(), offset++);
-            }
+        // set up the map from dictionary string values -> offset
+        final ArrayList<String> dict = BCF2Utils.makeDictionary(header);
+        for ( int i = 0; i < dict.size(); i++ ) {
+            stringDictionaryMap.put(dict.get(i), i);
         }
 
-        // add the dictionary ##dictionary=x,y,z line to the header
-        final String dictionaryLineValue = Utils.join(BCF2Constants.DICTIONARY_LINE_ENTRY_SEPARATOR, stringDictionary.keySet());
-        header.addMetaDataLine(new VCFHeaderLine(BCF2Constants.DICTIONARY_LINE_TAG, dictionaryLineValue));
-
         // write out the header
-        StandardVCFWriter.writeHeader(header, new OutputStreamWriter(outputStream), doNotWriteGenotypes, BCF2Constants.VERSION_LINE, "BCF2 stream");
+        StandardVCFWriter.writeHeader(header, new OutputStreamWriter(outputStream), doNotWriteGenotypes, BCF2Utils.VERSION_LINE, "BCF2 stream");
     }
 
     @Override
@@ -369,7 +360,7 @@ public class BCF2Writer extends IndexingVCFWriter {
 
         // iterate over strings until we find one that needs 16 bits, and break
         for ( final String string : strings ) {
-            final int offset = stringDictionary.get(string);
+            final int offset = stringDictionaryMap.get(string);
             offsets.add(offset);
             final BCF2Type type1 = encoder.determineIntegerType(offset);
             switch ( type1 ) {

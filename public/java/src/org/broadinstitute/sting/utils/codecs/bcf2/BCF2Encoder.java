@@ -171,9 +171,9 @@ public class BCF2Encoder {
     }
 
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
-        final byte typeByte = TypeDescriptor.encodeTypeDescriptor(size, type);
+        final byte typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
         encodeStream.write(typeByte);
-        if ( TypeDescriptor.willOverflow(size) )
+        if ( BCF2Utils.willOverflow(size) )
             encodeTypedIntOfBestSize(size);
     }
 
@@ -206,7 +206,7 @@ public class BCF2Encoder {
     }
 
     public final BCF2Type determineIntegerType(final int value) {
-        for ( final BCF2Type potentialType : TypeDescriptor.INTEGER_TYPES_BY_SIZE ) {
+        for ( final BCF2Type potentialType : BCF2Utils.INTEGER_TYPES_BY_SIZE ) {
             if ( potentialType.withinRange(value) )
                 return potentialType;
         }

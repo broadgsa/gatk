@@ -129,8 +129,8 @@ public class BCF2Decoder {
     }
 
     public final Object decodeTypedValue(final byte typeDescriptor) {
-        final int size = TypeDescriptor.sizeIsOverflow(typeDescriptor) ? decodeVectorSize() : TypeDescriptor.decodeSize(typeDescriptor);
-        final BCF2Type type = TypeDescriptor.decodeType(typeDescriptor);
+        final int size = BCF2Utils.sizeIsOverflow(typeDescriptor) ? decodeVectorSize() : BCF2Utils.decodeSize(typeDescriptor);
+        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
         assert size >= 0;
 
@@ -186,8 +186,8 @@ public class BCF2Decoder {
 
     private final int decodeVectorSize() {
         final byte typeDescriptor = readTypeDescriptor();
-        final int size = TypeDescriptor.decodeSize(typeDescriptor);
-        final BCF2Type type = TypeDescriptor.decodeType(typeDescriptor);
+        final int size = BCF2Utils.decodeSize(typeDescriptor);
+        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
         assert size == 1;
         assert type == BCF2Type.INT8 || type == BCF2Type.INT16 || type == BCF2Type.INT32;
