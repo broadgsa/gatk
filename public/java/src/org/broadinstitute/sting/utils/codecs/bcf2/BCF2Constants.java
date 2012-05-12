@@ -34,8 +34,6 @@ public class BCF2Constants {
     public static final String DICTIONARY_LINE_TAG = "dictionary";
     public static final String DICTIONARY_LINE_ENTRY_SEPARATOR = ",";
 
-    public static final Charset BCF2_TEXT_CHARSET = Charset.forName("US-ASCII");  // TODO: enforce this!
-
     // Note that these values are prefixed by FFFFFF for convenience
     public static final int INT8_MISSING_VALUE  = 0xFFFFFF80;
     public static final int INT16_MISSING_VALUE = 0xFFFF8000;

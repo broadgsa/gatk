@@ -3,8 +3,8 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureReader;
 import org.broad.tribble.Tribble;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -19,7 +19,6 @@ import org.testng.annotations.Test;
 import org.testng.annotations.BeforeClass;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;

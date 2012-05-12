@@ -30,7 +30,7 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
  * @author depristo
  * @since 05/12
  */
-public enum BCFType {
+public enum BCF2Type {
     RESERVED_0,
     INT8(1, BCF2Constants.INT8_MISSING_VALUE, -127, 127), // todo -- confirm range
     INT16(2, BCF2Constants.INT16_MISSING_VALUE, -32767, 32767),
@@ -45,15 +45,15 @@ public enum BCFType {
     private final int sizeInBytes;
     private final long minValue, maxValue;
 
-    BCFType() {
+    BCF2Type() {
         this(-1, 0, 0, 0);
     }
 
-    BCFType(final int sizeInBytes, final int missingBytes) {
+    BCF2Type(final int sizeInBytes, final int missingBytes) {
         this(sizeInBytes, missingBytes, 0, 0);
     }
 
-    BCFType(final int sizeInBytes, final int missingBytes, final long minValue, final long maxValue) {
+    BCF2Type(final int sizeInBytes, final int missingBytes, final long minValue, final long maxValue) {
         this.sizeInBytes = sizeInBytes;
         this.missingJavaValue = null;
         this.missingBytes = missingBytes;

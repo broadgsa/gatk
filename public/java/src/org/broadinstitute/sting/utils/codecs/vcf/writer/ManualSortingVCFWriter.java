@@ -23,39 +23,30 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf;
-
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+package org.broadinstitute.sting.utils.codecs.vcf.writer;
 
 /**
- * this class writes VCF files, allowing records to be passed in unsorted (up to a certain genomic distance away)
+ * this class writes VCF files, allowing records to be passed in unsorted.
  */
-public class SortingVCFWriter extends SortingVCFWriterBase {
-
-    // the maximum START distance between records that we'll cache
-    private int maxCachingStartDistance;
+public class ManualSortingVCFWriter extends SortingVCFWriterBase {
 
     /**
      * create a local-sorting VCF writer, given an inner VCF writer to write to
      *
      * @param innerWriter        the VCFWriter to write to
-     * @param maxCachingStartDistance the maximum start distance between records that we'll cache
      * @param takeOwnershipOfInner Should this Writer close innerWriter when it's done with it
      */
-    public SortingVCFWriter(VCFWriter innerWriter, int maxCachingStartDistance, boolean takeOwnershipOfInner) {
+    public ManualSortingVCFWriter(VCFWriter innerWriter, boolean takeOwnershipOfInner) {
         super(innerWriter, takeOwnershipOfInner);
-        this.maxCachingStartDistance = maxCachingStartDistance;
     }
 
-    public SortingVCFWriter(VCFWriter innerWriter, int maxCachingStartDistance) {
-        this(innerWriter, maxCachingStartDistance, false); // by default, don't own inner
+    public ManualSortingVCFWriter(VCFWriter innerWriter) {
+        super(innerWriter);
     }
 
-    protected void noteCurrentRecord(VariantContext vc) {
-        super.noteCurrentRecord(vc); // first, check for errors
-
-        // then, update mostUpstreamWritableLoc:
-        int mostUpstreamWritableIndex = vc.getStart() - maxCachingStartDistance;
-        this.mostUpstreamWritableLoc = Math.max(BEFORE_MOST_UPSTREAM_LOC, mostUpstreamWritableIndex);
+    // Note that if mostUpstreamWritableLoc = null, then ALL records will be emitted (since not currently waiting for anything)
+    public void setmostUpstreamWritableLocus(Integer mostUpstreamWritableLoc) {
+        this.mostUpstreamWritableLoc = mostUpstreamWritableLoc;
+        emitSafeRecords();
     }
 }

@@ -130,13 +130,13 @@ public class BCF2Decoder {
 
     public final Object decodeTypedValue(final byte typeDescriptor) {
         final int size = TypeDescriptor.sizeIsOverflow(typeDescriptor) ? decodeVectorSize() : TypeDescriptor.decodeSize(typeDescriptor);
-        final BCFType type = TypeDescriptor.decodeType(typeDescriptor);
+        final BCF2Type type = TypeDescriptor.decodeType(typeDescriptor);
 
         assert size >= 0;
 
         if ( size == 0 ) {
             return null;
-        } else if ( type == BCFType.CHAR ) { // special case string decoding for efficiency
+        } else if ( type == BCF2Type.CHAR ) { // special case string decoding for efficiency
             return decodeLiteralString(size);
         } else if ( size == 1 ) {
             return decodeSingleValue(type);
@@ -149,7 +149,7 @@ public class BCF2Decoder {
         }
     }
 
-    public final Object decodeSingleValue(final BCFType type) {
+    public final Object decodeSingleValue(final BCF2Type type) {
         // TODO -- decodeTypedValue should integrate this routine
         final int value = readInt(type.getSizeInBytes(), recordStream);
 
@@ -187,10 +187,10 @@ public class BCF2Decoder {
     private final int decodeVectorSize() {
         final byte typeDescriptor = readTypeDescriptor();
         final int size = TypeDescriptor.decodeSize(typeDescriptor);
-        final BCFType type = TypeDescriptor.decodeType(typeDescriptor);
+        final BCF2Type type = TypeDescriptor.decodeType(typeDescriptor);
 
         assert size == 1;
-        assert type == BCFType.INT8 || type == BCFType.INT16 || type == BCFType.INT32;
+        assert type == BCF2Type.INT8 || type == BCF2Type.INT16 || type == BCF2Type.INT32;
 
         return decodeInt(type.getSizeInBytes());
     }

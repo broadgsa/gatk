@@ -23,8 +23,9 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf;
+package org.broadinstitute.sting.utils.codecs.vcf.writer;
 
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;

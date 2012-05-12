@@ -22,12 +22,17 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.bcf2;
+package org.broadinstitute.sting.utils.codecs.bcf2.writer;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Constants;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.codecs.vcf.writer.IndexingVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -135,19 +140,19 @@ public class BCF2Writer extends IndexingVCFWriter {
             throw new UserException(String.format("Contig %s not found in sequence dictionary from reference", vc.getChr()));
 
         // note use of encodeRawValue to not insert the typing byte
-        encoder.encodeRawValue(contigIndex, BCFType.INT32);
+        encoder.encodeRawValue(contigIndex, BCF2Type.INT32);
 
         // pos
-        encoder.encodeRawValue(vc.getStart(), BCFType.INT32);
+        encoder.encodeRawValue(vc.getStart(), BCF2Type.INT32);
 
         // ref length
-        encoder.encodeRawValue(vc.getEnd() - vc.getStart() + 1, BCFType.INT32);
+        encoder.encodeRawValue(vc.getEnd() - vc.getStart() + 1, BCF2Type.INT32);
 
         // qual
         if ( vc.hasLog10PError() )
-            encoder.encodeRawFloat((float) vc.getPhredScaledQual(), BCFType.FLOAT);
+            encoder.encodeRawFloat((float) vc.getPhredScaledQual(), BCF2Type.FLOAT);
         else
-            encoder.encodeRawMissingValue(BCFType.FLOAT);
+            encoder.encodeRawMissingValue(BCF2Type.FLOAT);
 
         // info fields
         final int nAlleles = vc.getNAlleles();
@@ -155,8 +160,8 @@ public class BCF2Writer extends IndexingVCFWriter {
         final int nGenotypeFormatFields = StandardVCFWriter.calcVCFGenotypeKeys(vc).size();
         final int nSamples = vc.getNSamples();
 
-        encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x00FF), BCFType.INT32);
-        encoder.encodeRawInt((nGenotypeFormatFields << 24) | (nSamples & 0x0FFF), BCFType.INT32);
+        encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x00FF), BCF2Type.INT32);
+        encoder.encodeRawInt((nGenotypeFormatFields << 24) | (nSamples & 0x0FFF), BCF2Type.INT32);
 
         buildID(vc);
         buildAlleles(vc);
@@ -181,7 +186,7 @@ public class BCF2Writer extends IndexingVCFWriter {
         if ( vc.isFiltered() ) {
             encodeStringsByRef(vc.getFilters());
         } else {
-            encoder.encodeTypedMissing(BCFType.INT32);
+            encoder.encodeTypedMissing(BCF2Type.INT32);
         }
     }
 
@@ -196,11 +201,11 @@ public class BCF2Writer extends IndexingVCFWriter {
 
             encodeStringByRef(key);
             if ( value instanceof List ) // NOTE: ONLY WORKS WITH LISTS
-                encoder.encodeTypedVector((List) value, typeEquiv.bcfType);
+                encoder.encodeTypedVector((List) value, typeEquiv.BCF2Type);
             else if ( value instanceof String )
                 encoder.encodeString((String)value);
             else
-                encoder.encodeTypedSingleton(value, typeEquiv.bcfType);
+                encoder.encodeTypedSingleton(value, typeEquiv.BCF2Type);
         }
     }
 
@@ -256,25 +261,25 @@ public class BCF2Writer extends IndexingVCFWriter {
         final int numInFormatField = getNGenotypeFieldValues(field, vc);
         final VCFToBCFType type = getBCF2TypeFromHeader(field, null);
 
-        startGenotypeField(field, numInFormatField, type.bcfType);
+        startGenotypeField(field, numInFormatField, type.BCF2Type);
         for ( final Genotype g : vc.getGenotypes() ) {
             if ( ! g.hasAttribute(field) ) {
-                encoder.encodeRawMissingValues(numInFormatField, type.bcfType);
+                encoder.encodeRawMissingValues(numInFormatField, type.BCF2Type);
             } else {
                 final Object val = g.getAttribute(field);
                 final Collection<Object> vals = numInFormatField == 1 ? Collections.singleton(val) : (Collection)val;
-                encoder.encodeRawValues(vals, type.bcfType);
+                encoder.encodeRawValues(vals, type.BCF2Type);
             }
         }
     }
 
     private final class VCFToBCFType {
         VCFHeaderLineType vcfType;
-        BCFType bcfType;
+        BCF2Type BCF2Type;
 
-        private VCFToBCFType(final VCFHeaderLineType vcfType, final BCFType bcfType) {
+        private VCFToBCFType(final VCFHeaderLineType vcfType, final BCF2Type BCF2Type) {
             this.vcfType = vcfType;
-            this.bcfType = bcfType;
+            this.BCF2Type = BCF2Type;
         }
     }
 
@@ -285,11 +290,11 @@ public class BCF2Writer extends IndexingVCFWriter {
 
         // TODO -- no sense in allocating these over and over
         switch ( metaData.getType() ) {
-            case Character: return new VCFToBCFType(metaData.getType(), BCFType.CHAR);
-            case Flag:      return new VCFToBCFType(metaData.getType(), BCFType.INT8);
-            case String:    return new VCFToBCFType(metaData.getType(), BCFType.CHAR);
-            case Integer:   return new VCFToBCFType(metaData.getType(), maybeIntValue != null ? encoder.determineIntegerType((Integer)maybeIntValue) : BCFType.INT32);
-            case Float:     return new VCFToBCFType(metaData.getType(), BCFType.FLOAT);
+            case Character: return new VCFToBCFType(metaData.getType(), BCF2Type.CHAR);
+            case Flag:      return new VCFToBCFType(metaData.getType(), BCF2Type.INT8);
+            case String:    return new VCFToBCFType(metaData.getType(), BCF2Type.CHAR);
+            case Integer:   return new VCFToBCFType(metaData.getType(), maybeIntValue != null ? encoder.determineIntegerType((Integer)maybeIntValue) : BCF2Type.INT32);
+            case Float:     return new VCFToBCFType(metaData.getType(), BCF2Type.FLOAT);
             default:        throw new ReviewedStingException("Unexpected type for field " + field);
         }
     }
@@ -308,14 +313,14 @@ public class BCF2Writer extends IndexingVCFWriter {
     }
 
     private final void addGQ(final VariantContext vc) throws IOException {
-        startGenotypeField(VCFConstants.GENOTYPE_QUALITY_KEY, 1, BCFType.INT8);
+        startGenotypeField(VCFConstants.GENOTYPE_QUALITY_KEY, 1, BCF2Type.INT8);
         for ( final Genotype g : vc.getGenotypes() ) {
             if ( g.hasLog10PError() ) {
                 final int GQ = (int)Math.round(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
                 if ( GQ > VCFConstants.MAX_GENOTYPE_QUAL ) throw new ReviewedStingException("Unexpectedly large GQ " + GQ + " at " + vc);
-                encoder.encodeRawValue(GQ, BCFType.INT8);
+                encoder.encodeRawValue(GQ, BCF2Type.INT8);
             } else {
-                encoder.encodeRawMissingValues(1, BCFType.INT8);
+                encoder.encodeRawMissingValues(1, BCF2Type.INT8);
             }
         }
     }
@@ -328,7 +333,7 @@ public class BCF2Writer extends IndexingVCFWriter {
 
         final Map<Allele, String> alleleMap = StandardVCFWriter.buildAlleleMap(vc);
         final int requiredPloidy = 2; // TODO -- handle ploidy, will need padding / depadding
-        startGenotypeField(VCFConstants.GENOTYPE_KEY, requiredPloidy, BCFType.INT8);
+        startGenotypeField(VCFConstants.GENOTYPE_KEY, requiredPloidy, BCF2Type.INT8);
         for ( final Genotype g : vc.getGenotypes() ) {
             if ( g.getPloidy() != requiredPloidy ) throw new ReviewedStingException("Cannot currently handle non-diploid calls!");
             final List<Integer> encoding = new ArrayList<Integer>(requiredPloidy);
@@ -336,7 +341,7 @@ public class BCF2Writer extends IndexingVCFWriter {
                 final int offset = a.isNoCall() ? -1 : Integer.valueOf(alleleMap.get(a));
                 encoding.add(((offset+1) << 1) | (g.isPhased() ? 0x01 : 0x00));
             }
-            encoder.encodeRawValues(encoding, BCFType.INT8);
+            encoder.encodeRawValues(encoding, BCF2Type.INT8);
         }
     }
 
@@ -348,29 +353,29 @@ public class BCF2Writer extends IndexingVCFWriter {
      * @throws IOException
      */
     private void writeBlock(final byte[] infoBlock, final byte[] genotypesBlock) throws IOException {
-        BCF2Encoder.encodePrimitive(infoBlock.length, BCFType.INT32, outputStream);
-        BCF2Encoder.encodePrimitive(genotypesBlock.length, BCFType.INT32, outputStream);
+        BCF2Encoder.encodePrimitive(infoBlock.length, BCF2Type.INT32, outputStream);
+        BCF2Encoder.encodePrimitive(genotypesBlock.length, BCF2Type.INT32, outputStream);
         outputStream.write(infoBlock);
         outputStream.write(genotypesBlock);
     }
 
-    public final BCFType encodeStringByRef(final String string) throws IOException {
+    public final BCF2Type encodeStringByRef(final String string) throws IOException {
         return encodeStringsByRef(Collections.singleton(string));
     }
 
-    public final BCFType encodeStringsByRef(final Collection<String> strings) throws IOException {
+    public final BCF2Type encodeStringsByRef(final Collection<String> strings) throws IOException {
         final List<Integer> offsets = new ArrayList<Integer>(strings.size());
-        BCFType maxType = BCFType.INT8; // start with the smallest size
+        BCF2Type maxType = BCF2Type.INT8; // start with the smallest size
 
         // iterate over strings until we find one that needs 16 bits, and break
         for ( final String string : strings ) {
             final int offset = stringDictionary.get(string);
             offsets.add(offset);
-            final BCFType type1 = encoder.determineIntegerType(offset);
+            final BCF2Type type1 = encoder.determineIntegerType(offset);
             switch ( type1 ) {
                 case INT8:  break;
-                case INT16: if ( maxType == BCFType.INT8 ) maxType = BCFType.INT16; break;
-                case INT32: maxType = BCFType.INT32; break;
+                case INT16: if ( maxType == BCF2Type.INT8 ) maxType = BCF2Type.INT16; break;
+                case INT32: maxType = BCF2Type.INT32; break;
                 default:    throw new ReviewedStingException("Unexpected type " + type1);
             }
         }
@@ -380,7 +385,7 @@ public class BCF2Writer extends IndexingVCFWriter {
         return maxType;
     }
 
-    public final void startGenotypeField(final String key, final int size, final BCFType valueType) throws IOException {
+    public final void startGenotypeField(final String key, final int size, final BCF2Type valueType) throws IOException {
         encodeStringByRef(key);
         encoder.encodeType(size, valueType);
     }

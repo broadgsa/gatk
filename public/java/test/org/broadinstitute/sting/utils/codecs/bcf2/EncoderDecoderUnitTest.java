@@ -50,91 +50,91 @@ public class EncoderDecoderUnitTest extends BaseTest {
 
     @BeforeSuite
     public void before() {
-        basicTypes.add(new BCF2TypedValue(1, BCFType.INT8));
-        basicTypes.add(new BCF2TypedValue(1000, BCFType.INT16));
-        basicTypes.add(new BCF2TypedValue(1000000, BCFType.INT32));
-        basicTypes.add(new BCF2TypedValue(1.2345e6, BCFType.FLOAT));
-        basicTypes.add(new BCF2TypedValue(new Byte((byte)'A'), BCFType.CHAR));
+        basicTypes.add(new BCF2TypedValue(1, BCF2Type.INT8));
+        basicTypes.add(new BCF2TypedValue(1000, BCF2Type.INT16));
+        basicTypes.add(new BCF2TypedValue(1000000, BCF2Type.INT32));
+        basicTypes.add(new BCF2TypedValue(1.2345e6, BCF2Type.FLOAT));
+        basicTypes.add(new BCF2TypedValue(new Byte((byte)'A'), BCF2Type.CHAR));
 
         // small ints
-        primitives.add(new BCF2TypedValue(0, BCFType.INT8));
-        primitives.add(new BCF2TypedValue(10, BCFType.INT8));
-        primitives.add(new BCF2TypedValue(-1, BCFType.INT8));
-        primitives.add(new BCF2TypedValue(100, BCFType.INT8));
-        primitives.add(new BCF2TypedValue(-100, BCFType.INT8));
-        primitives.add(new BCF2TypedValue(-127, BCFType.INT8));    // last value in range
-        primitives.add(new BCF2TypedValue( 127, BCFType.INT8));    // last value in range
+        primitives.add(new BCF2TypedValue(0, BCF2Type.INT8));
+        primitives.add(new BCF2TypedValue(10, BCF2Type.INT8));
+        primitives.add(new BCF2TypedValue(-1, BCF2Type.INT8));
+        primitives.add(new BCF2TypedValue(100, BCF2Type.INT8));
+        primitives.add(new BCF2TypedValue(-100, BCF2Type.INT8));
+        primitives.add(new BCF2TypedValue(-127, BCF2Type.INT8));    // last value in range
+        primitives.add(new BCF2TypedValue( 127, BCF2Type.INT8));    // last value in range
 
         // medium ints
-        primitives.add(new BCF2TypedValue(-1000, BCFType.INT16));
-        primitives.add(new BCF2TypedValue(1000, BCFType.INT16));
-        primitives.add(new BCF2TypedValue(-128, BCFType.INT16));    // first value in range
-        primitives.add(new BCF2TypedValue( 128, BCFType.INT16));    // first value in range
-        primitives.add(new BCF2TypedValue(-32767, BCFType.INT16)); // last value in range
-        primitives.add(new BCF2TypedValue( 32767, BCFType.INT16)); // last value in range
+        primitives.add(new BCF2TypedValue(-1000, BCF2Type.INT16));
+        primitives.add(new BCF2TypedValue(1000, BCF2Type.INT16));
+        primitives.add(new BCF2TypedValue(-128, BCF2Type.INT16));    // first value in range
+        primitives.add(new BCF2TypedValue( 128, BCF2Type.INT16));    // first value in range
+        primitives.add(new BCF2TypedValue(-32767, BCF2Type.INT16)); // last value in range
+        primitives.add(new BCF2TypedValue( 32767, BCF2Type.INT16)); // last value in range
 
         // larger ints
-        primitives.add(new BCF2TypedValue(-32768, BCFType.INT32)); // first value in range
-        primitives.add(new BCF2TypedValue( 32768, BCFType.INT32)); // first value in range
-        primitives.add(new BCF2TypedValue(-100000, BCFType.INT32));
-        primitives.add(new BCF2TypedValue(100000, BCFType.INT32));
-        primitives.add(new BCF2TypedValue(-2147483647, BCFType.INT32));
-        primitives.add(new BCF2TypedValue(2147483647, BCFType.INT32));
+        primitives.add(new BCF2TypedValue(-32768, BCF2Type.INT32)); // first value in range
+        primitives.add(new BCF2TypedValue( 32768, BCF2Type.INT32)); // first value in range
+        primitives.add(new BCF2TypedValue(-100000, BCF2Type.INT32));
+        primitives.add(new BCF2TypedValue(100000, BCF2Type.INT32));
+        primitives.add(new BCF2TypedValue(-2147483647, BCF2Type.INT32));
+        primitives.add(new BCF2TypedValue(2147483647, BCF2Type.INT32));
 
         // floats
-        primitives.add(new BCF2TypedValue(0.0, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-0.0, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.0, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.0, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.1, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.1, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(5.0 / 3.0, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-5.0 / 3.0, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.23e3, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.23e6, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.23e9, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.23e12, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(1.23e15, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.23e3, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.23e6, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.23e9, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.23e12, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(-1.23e15, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.MIN_VALUE, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.MAX_VALUE, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.NEGATIVE_INFINITY, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.POSITIVE_INFINITY, BCFType.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.NaN, BCFType.FLOAT));
+        primitives.add(new BCF2TypedValue(0.0, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-0.0, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.0, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.0, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.1, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.1, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(5.0 / 3.0, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-5.0 / 3.0, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e3, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e6, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e9, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e12, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(1.23e15, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e3, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e6, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e9, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e12, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(-1.23e15, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.MIN_VALUE, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.MAX_VALUE, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.NEGATIVE_INFINITY, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.POSITIVE_INFINITY, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Float.NaN, BCF2Type.FLOAT));
 
         // strings
         //primitives.add(new BCF2TypedValue("", BCFType.CHAR)); <- will be null (which is right)
-        primitives.add(new BCF2TypedValue("S", BCFType.CHAR));
-        primitives.add(new BCF2TypedValue("S2", BCFType.CHAR));
-        primitives.add(new BCF2TypedValue("12345678910", BCFType.CHAR));
-        primitives.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
-        primitives.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
+        primitives.add(new BCF2TypedValue("S", BCF2Type.CHAR));
+        primitives.add(new BCF2TypedValue("S2", BCF2Type.CHAR));
+        primitives.add(new BCF2TypedValue("12345678910", BCF2Type.CHAR));
+        primitives.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZ", BCF2Type.CHAR));
+        primitives.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", BCF2Type.CHAR));
 
         // missing values
-        for ( BCFType type : BCFType.values() ) {
+        for ( BCF2Type type : BCF2Type.values() ) {
             primitives.add(new BCF2TypedValue(null, type));
         }
 
-        forCombinations.add(new BCF2TypedValue(10, BCFType.INT8));
-        forCombinations.add(new BCF2TypedValue(100, BCFType.INT8));
-        forCombinations.add(new BCF2TypedValue(-100, BCFType.INT8));
-        forCombinations.add(new BCF2TypedValue(-128, BCFType.INT16));    // first value in range
-        forCombinations.add(new BCF2TypedValue( 128, BCFType.INT16));    // first value in range
-        forCombinations.add(new BCF2TypedValue(-100000, BCFType.INT32));
-        forCombinations.add(new BCF2TypedValue(100000, BCFType.INT32));
-        forCombinations.add(new BCF2TypedValue(0.0, BCFType.FLOAT));
-        forCombinations.add(new BCF2TypedValue(1.23e6, BCFType.FLOAT));
-        forCombinations.add(new BCF2TypedValue(-1.23e6, BCFType.FLOAT));
-        forCombinations.add(new BCF2TypedValue("S", BCFType.CHAR));
-        forCombinations.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
-        forCombinations.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", BCFType.CHAR));
+        forCombinations.add(new BCF2TypedValue(10, BCF2Type.INT8));
+        forCombinations.add(new BCF2TypedValue(100, BCF2Type.INT8));
+        forCombinations.add(new BCF2TypedValue(-100, BCF2Type.INT8));
+        forCombinations.add(new BCF2TypedValue(-128, BCF2Type.INT16));    // first value in range
+        forCombinations.add(new BCF2TypedValue( 128, BCF2Type.INT16));    // first value in range
+        forCombinations.add(new BCF2TypedValue(-100000, BCF2Type.INT32));
+        forCombinations.add(new BCF2TypedValue(100000, BCF2Type.INT32));
+        forCombinations.add(new BCF2TypedValue(0.0, BCF2Type.FLOAT));
+        forCombinations.add(new BCF2TypedValue(1.23e6, BCF2Type.FLOAT));
+        forCombinations.add(new BCF2TypedValue(-1.23e6, BCF2Type.FLOAT));
+        forCombinations.add(new BCF2TypedValue("S", BCF2Type.CHAR));
+        forCombinations.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZ", BCF2Type.CHAR));
+        forCombinations.add(new BCF2TypedValue("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", BCF2Type.CHAR));
 
         // missing values
-        for ( BCFType type : BCFType.values() ) {
+        for ( BCF2Type type : BCF2Type.values() ) {
             forCombinations.add(new BCF2TypedValue(null, type));
         }
 
@@ -147,18 +147,18 @@ public class EncoderDecoderUnitTest extends BaseTest {
     // --------------------------------------------------------------------------------
 
     private class BCF2TypedValue {
-        final BCFType type;
+        final BCF2Type type;
         final Object value;
 
-        private BCF2TypedValue(final int value, final BCFType type) {
+        private BCF2TypedValue(final int value, final BCF2Type type) {
             this(new Integer(value), type);
         }
 
-        private BCF2TypedValue(final double value, final BCFType type) {
+        private BCF2TypedValue(final double value, final BCF2Type type) {
             this(new Float(value), type);
         }
 
-        private BCF2TypedValue(final Object value, final BCFType type) {
+        private BCF2TypedValue(final Object value, final BCF2Type type) {
             this.type = type;
             this.value = value;
         }
@@ -214,7 +214,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
                 BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
                 final Object decoded = decoder.decodeTypedValue();
 
-                if ( tv.type == BCFType.CHAR ) {
+                if ( tv.type == BCF2Type.CHAR ) {
                     Assert.assertTrue(decoded instanceof String);
                     final String decodedString = (String)decoded;
                     Assert.assertTrue(decodedString.length() == length);
@@ -232,7 +232,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
     @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
     public void testBCF2EncodingVectorsWithMissing(final List<BCF2TypedValue> toEncode) throws IOException {
         for ( final BCF2TypedValue tv : toEncode ) {
-            if ( tv.type != BCFType.CHAR ) {
+            if ( tv.type != BCF2Type.CHAR ) {
                 for ( final int length : Arrays.asList(2, 5, 10, 15, 20, 25) ) {
                     final byte td = TypeDescriptor.encodeTypeDescriptor(1, tv.type);
 
@@ -314,7 +314,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
             if ( tv.isMissing() )
                 encoder.encodeTypedMissing(tv.type);
             else {
-                final BCFType encodedType = encoder.encode(tv.value);
+                final BCF2Type encodedType = encoder.encode(tv.value);
                 if ( tv.type != null ) // only if we have an expectation
                     Assert.assertEquals(encodedType, tv.type);
             }
@@ -345,7 +345,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
     private final void myAssertEquals(final BCF2TypedValue tv, final Object decoded) {
         if ( tv.value == null ) { // special needs for instanceof double
             Assert.assertEquals(decoded, tv.value);
-        } else if ( tv.type == BCFType.FLOAT ) { // need tolerance for floats, and they aren't null
+        } else if ( tv.type == BCF2Type.FLOAT ) { // need tolerance for floats, and they aren't null
             Assert.assertTrue(decoded instanceof Double);
 
             final float valueFloat = (float)(Float)tv.value;

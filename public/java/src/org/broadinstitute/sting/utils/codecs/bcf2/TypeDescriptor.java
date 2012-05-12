@@ -25,25 +25,25 @@
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
 /**
- * Simple BCF decoder
+ * Convenience methods for encoding, decoding BCF2 type descriptors (size + type)
  * @author Mark DePristo
  * @since 5/3/12
  */
-public class TypeDescriptor {
+class TypeDescriptor {
     public static final int OVERFLOW_ELEMENT_MARKER = 15;
     public static final int MAX_INLINE_ELEMENTS = 14;
 
-    public final static BCFType[] INTEGER_TYPES_BY_SIZE = new BCFType[3];
-    public final static BCFType[] DICTIONARY_TYPES_BY_SIZE = INTEGER_TYPES_BY_SIZE;
-    private final static BCFType[] lookup = BCFType.values();
+    public final static BCF2Type[] INTEGER_TYPES_BY_SIZE = new BCF2Type[3];
+    public final static BCF2Type[] DICTIONARY_TYPES_BY_SIZE = INTEGER_TYPES_BY_SIZE;
+    private final static BCF2Type[] LOOKUP = BCF2Type.values();
 
     static {
-        INTEGER_TYPES_BY_SIZE[0] = BCFType.INT8;
-        INTEGER_TYPES_BY_SIZE[1] = BCFType.INT16;
-        INTEGER_TYPES_BY_SIZE[2] = BCFType.INT32;
+        INTEGER_TYPES_BY_SIZE[0] = BCF2Type.INT8;
+        INTEGER_TYPES_BY_SIZE[1] = BCF2Type.INT16;
+        INTEGER_TYPES_BY_SIZE[2] = BCF2Type.INT32;
     }
 
-    public final static byte encodeTypeDescriptor(final int nElements, final BCFType type ) {
+    public final static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {
         int encodeSize = Math.min(nElements, OVERFLOW_ELEMENT_MARKER);
         byte typeByte = (byte)((0x0F & encodeSize) << 4 | (type.getID() & 0x0F));
         return typeByte;
@@ -57,8 +57,8 @@ public class TypeDescriptor {
         return typeDescriptor & 0x0F;
     }
 
-    public final static BCFType decodeType(final byte typeDescriptor) {
-        return lookup[decodeTypeID(typeDescriptor)];
+    public final static BCF2Type decodeType(final byte typeDescriptor) {
+        return LOOKUP[decodeTypeID(typeDescriptor)];
     }
 
     public final static boolean sizeIsOverflow(final byte typeDescriptor) {

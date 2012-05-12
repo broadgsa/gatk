@@ -186,22 +186,22 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     // --------------------------------------------------------------------------------
 
     private final SitesInfoForDecoding decodeSitesBlock(final VariantContextBuilder builder) {
-        final int contigOffset = decoder.decodeInt(BCFType.INT32.getSizeInBytes());
+        final int contigOffset = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
         final String contig = lookupContigName(contigOffset);
         builder.chr(contig);
 
-        final int pos = decoder.decodeInt(BCFType.INT32.getSizeInBytes());
-        final int refLength = decoder.decodeInt(BCFType.INT32.getSizeInBytes());
+        final int pos = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
+        final int refLength = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
         builder.start((long)pos);
         builder.stop((long)(pos + refLength - 1)); // minus one because of our open intervals
 
-        final Object qual = decoder.decodeSingleValue(BCFType.FLOAT);
+        final Object qual = decoder.decodeSingleValue(BCF2Type.FLOAT);
         if ( qual != null ) {
             builder.log10PError(((Double)qual) / -10.0);
         }
 
-        final int nAlleleInfo = decoder.decodeInt(BCFType.INT32.getSizeInBytes());
-        final int nFormatSamples = decoder.decodeInt(BCFType.INT32.getSizeInBytes());
+        final int nAlleleInfo = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
+        final int nFormatSamples = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
         final int nAlleles = nAlleleInfo >> 16;
         final int nInfo = nAlleleInfo & 0x00FF;
         final int nFormatFields = nFormatSamples >>  24;
@@ -326,7 +326,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
                     alleles = decodeGenotypeAlleles(siteInfo.alleles, (List<Integer>)values.get(i));
                 } else if ( field.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
                     final Integer value = (Integer)values.get(i);
-                    if ( value != BCFType.INT8.getMissingJavaValue() )
+                    if ( value != BCF2Type.INT8.getMissingJavaValue() )
                         log10PError = value / -10.0;
                 } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                     throw new ReviewedStingException("Genotype filters not implemented in GATK BCF2");

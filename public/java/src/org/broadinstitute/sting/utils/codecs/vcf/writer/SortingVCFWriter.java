@@ -23,30 +23,39 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf;
+package org.broadinstitute.sting.utils.codecs.vcf.writer;
+
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /**
- * this class writes VCF files, allowing records to be passed in unsorted.
+ * this class writes VCF files, allowing records to be passed in unsorted (up to a certain genomic distance away)
  */
-public class ManualSortingVCFWriter extends SortingVCFWriterBase {
+public class SortingVCFWriter extends SortingVCFWriterBase {
+
+    // the maximum START distance between records that we'll cache
+    private int maxCachingStartDistance;
 
     /**
      * create a local-sorting VCF writer, given an inner VCF writer to write to
      *
      * @param innerWriter        the VCFWriter to write to
+     * @param maxCachingStartDistance the maximum start distance between records that we'll cache
      * @param takeOwnershipOfInner Should this Writer close innerWriter when it's done with it
      */
-    public ManualSortingVCFWriter(VCFWriter innerWriter, boolean takeOwnershipOfInner) {
+    public SortingVCFWriter(VCFWriter innerWriter, int maxCachingStartDistance, boolean takeOwnershipOfInner) {
         super(innerWriter, takeOwnershipOfInner);
+        this.maxCachingStartDistance = maxCachingStartDistance;
     }
 
-    public ManualSortingVCFWriter(VCFWriter innerWriter) {
-        super(innerWriter);
+    public SortingVCFWriter(VCFWriter innerWriter, int maxCachingStartDistance) {
+        this(innerWriter, maxCachingStartDistance, false); // by default, don't own inner
     }
 
-    // Note that if mostUpstreamWritableLoc = null, then ALL records will be emitted (since not currently waiting for anything)
-    public void setmostUpstreamWritableLocus(Integer mostUpstreamWritableLoc) {
-        this.mostUpstreamWritableLoc = mostUpstreamWritableLoc;
-        emitSafeRecords();
+    protected void noteCurrentRecord(VariantContext vc) {
+        super.noteCurrentRecord(vc); // first, check for errors
+
+        // then, update mostUpstreamWritableLoc:
+        int mostUpstreamWritableIndex = vc.getStart() - maxCachingStartDistance;
+        this.mostUpstreamWritableLoc = Math.max(BEFORE_MOST_UPSTREAM_LOC, mostUpstreamWritableIndex);
     }
 }
