@@ -53,7 +53,7 @@ public class VCFJarClassLoadingUnitTest {
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCFCodec");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCFWriter");
-        classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter");
+        classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter");
     }
 
     /**
