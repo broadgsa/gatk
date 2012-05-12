@@ -28,8 +28,12 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFIDHeaderLine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Common utilities for working with BCF2 files
@@ -40,12 +44,10 @@ import java.util.ArrayList;
  * @since 5/12
  */
 public class BCF2Utils {
+    public static final byte[] MAGIC_HEADER_LINE = "BCF\2".getBytes();
+
     public static final int OVERFLOW_ELEMENT_MARKER = 15;
     public static final int MAX_INLINE_ELEMENTS = 14;
-    public final static BCF2Type[] INTEGER_TYPES_BY_SIZE = new BCF2Type[3];
-    private final static BCF2Type[] LOOKUP = BCF2Type.values();
-    public static final String VERSION_LINE_FORMAT = "fileformat=BCF2v%d.%d";
-    public static final String VERSION_LINE = String.format(VCFHeader.METADATA_INDICATOR + VERSION_LINE_FORMAT, 0, 1);
 
     // Note that these values are prefixed by FFFFFF for convenience
     public static final int INT8_MISSING_VALUE  = 0xFFFFFF80;
@@ -53,11 +55,9 @@ public class BCF2Utils {
     public static final int INT32_MISSING_VALUE = 0x80000000;
     public static final int FLOAT_MISSING_VALUE = 0x7F800001;
 
-    static {
-        BCF2Utils.INTEGER_TYPES_BY_SIZE[0] = BCF2Type.INT8;
-        BCF2Utils.INTEGER_TYPES_BY_SIZE[1] = BCF2Type.INT16;
-        BCF2Utils.INTEGER_TYPES_BY_SIZE[2] = BCF2Type.INT32;
-    }
+    public final static BCF2Type[] INTEGER_TYPES_BY_SIZE = new BCF2Type[]{BCF2Type.INT8, BCF2Type.INT16, BCF2Type.INT32};
+
+    private BCF2Utils() {}
 
     /**
      * Create a strings dictionary from the VCF header
@@ -98,7 +98,7 @@ public class BCF2Utils {
     }
 
     public final static BCF2Type decodeType(final byte typeDescriptor) {
-        return LOOKUP[decodeTypeID(typeDescriptor)];
+        return BCF2Type.values()[decodeTypeID(typeDescriptor)];
     }
 
     public final static boolean sizeIsOverflow(final byte typeDescriptor) {
@@ -107,5 +107,37 @@ public class BCF2Utils {
 
     public final static boolean willOverflow(final long nElements) {
         return nElements > MAX_INLINE_ELEMENTS;
+    }
+
+    public final static boolean startsWithBCF2Magic(final InputStream stream) throws IOException {
+        final byte[] magicBytes = new byte[BCF2Utils.MAGIC_HEADER_LINE.length];
+        stream.read(magicBytes);
+        return Arrays.equals(magicBytes, BCF2Utils.MAGIC_HEADER_LINE);
+    }
+
+    public final static byte readByte(final InputStream stream) {
+        try {
+            return (byte)(stream.read() & 0xFF);
+        } catch ( IOException e ) {
+            throw new ReviewedStingException("readByte failure", e);
+        }
+    }
+
+    public final static int readInt(int bytesForEachInt, final InputStream stream) {
+        switch ( bytesForEachInt ) {
+            case 1: {
+                return (byte)(readByte(stream));
+            } case 2: {
+                final int b1 = readByte(stream) & 0xFF;
+                final int b2 = readByte(stream) & 0xFF;
+                return (short)((b1 << 8) | b2);
+            } case 4: {
+                final int b1 = readByte(stream) & 0xFF;
+                final int b2 = readByte(stream) & 0xFF;
+                final int b3 = readByte(stream) & 0xFF;
+                final int b4 = readByte(stream) & 0xFF;
+                return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
+            } default: throw new ReviewedStingException("Unexpected size during decoding");
+        }
     }
 }

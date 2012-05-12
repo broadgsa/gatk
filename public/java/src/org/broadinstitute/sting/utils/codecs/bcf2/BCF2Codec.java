@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -50,6 +51,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     private ArrayList<String> dictionary;
     private final BCF2Decoder decoder = new BCF2Decoder();
     private boolean skipGenotypes = false;
+    private final static int MAX_HEADER_SIZE = 0x08000000;
 
     // ----------------------------------------------------------------------
     //
@@ -91,35 +93,28 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
 
     @Override
     public FeatureCodecHeader readHeader( final PositionalBufferedStream inputStream ) {
-        AsciiLineReader headerReader = new AsciiLineReader(inputStream);
-        String headerLine;
-        List<String> headerLines = new ArrayList<String>();
-        boolean foundHeaderEnd = false;
-
         try {
-            while ( ! foundHeaderEnd && (headerLine = headerReader.readLine()) != null) {
-                if ( headerLine.startsWith(VCFHeader.METADATA_INDICATOR) ) {
-                    headerLines.add(headerLine);
-                }
-                else if ( headerLine.startsWith(VCFHeader.HEADER_INDICATOR) ) {
-                    headerLines.add(headerLine);
-                    foundHeaderEnd = true;
-                }
-                else {
-                    throw new UserException.MalformedBCF2("Reached end of header without encountering a field layout line");
-                }
-            }
-        }
-        catch ( IOException e ) {
+            // note that this reads the magic as well, and so does double duty
+            if ( ! BCF2Utils.startsWithBCF2Magic(inputStream) )
+                throw new IllegalArgumentException("Input stream does not begin with BCF2 magic");
+
+            final int headerSizeInBytes = BCF2Utils.readInt(BCF2Type.INT32.getSizeInBytes(), inputStream);
+
+            if ( headerSizeInBytes <= 0 || headerSizeInBytes > MAX_HEADER_SIZE) // no bigger than 8 MB
+                throw new UserException.MalformedBCF2("BCF2 header has invalid length: " + headerSizeInBytes + " must be >= 0 and < "+ MAX_HEADER_SIZE);
+
+            final byte[] headerBytes = new byte[headerSizeInBytes];
+            if ( inputStream.read(headerBytes) != headerSizeInBytes )
+                throw new UserException.MalformedBCF2("Couldn't read all of the bytes specified in the header length = " + headerSizeInBytes);
+
+            final PositionalBufferedStream bps = new PositionalBufferedStream(new ByteArrayInputStream(headerBytes));
+            final AsciiLineReader headerReader = new AsciiLineReader(bps);
+            final VCFCodec headerParser = new VCFCodec();
+            this.header = (VCFHeader)headerParser.readHeader(headerReader);
+            bps.close();
+        } catch ( IOException e ) {
             throw new UserException.CouldNotReadInputFile("I/O error while reading BCF2 header");
         }
-
-        if ( ! foundHeaderEnd ) {
-            throw new UserException.MalformedBCF2("Reached end of header without encountering a field layout line");
-        }
-
-        // read the header
-        this.header = AbstractVCFCodec.parseHeader(headerLines, VCFHeaderVersion.VCF4_1);
 
         // create the config offsets
         for ( final VCFContigHeaderLine contig : header.getContigLines())
@@ -136,18 +131,12 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     public boolean canDecode( final String path ) {
         try {
             FileInputStream fis = new FileInputStream(path);
-            AsciiLineReader reader = new AsciiLineReader(new PositionalBufferedStream(fis));
-            String firstLine = reader.readLine();
-            if ( firstLine != null && firstLine.equals(BCF2Utils.VERSION_LINE) ) {
-                return true;
-            }
+            return BCF2Utils.startsWithBCF2Magic(fis);
         } catch ( FileNotFoundException e ) {
             return false;
         } catch ( IOException e ) {
             return false;
         }
-
-        return false;
     }
 
     private final ArrayList<String> parseDictionary(final VCFHeader header) {

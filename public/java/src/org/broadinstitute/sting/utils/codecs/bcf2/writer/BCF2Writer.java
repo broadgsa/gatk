@@ -39,10 +39,7 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.*;
 
 public class BCF2Writer extends IndexingVCFWriter {
@@ -80,8 +77,21 @@ public class BCF2Writer extends IndexingVCFWriter {
             stringDictionaryMap.put(dict.get(i), i);
         }
 
-        // write out the header
-        StandardVCFWriter.writeHeader(header, new OutputStreamWriter(outputStream), doNotWriteGenotypes, BCF2Utils.VERSION_LINE, "BCF2 stream");
+        try {
+            // write out the header into a byte stream, get it's length, and write everything to the file
+            final ByteArrayOutputStream capture = new ByteArrayOutputStream();
+            final OutputStreamWriter writer = new OutputStreamWriter(capture);
+            StandardVCFWriter.writeHeader(header, writer, doNotWriteGenotypes, StandardVCFWriter.getVersionLine(), "BCF2 stream");
+            writer.append('\0'); // the header is null terminated by a byte
+            writer.close();
+
+            final byte[] headerBytes = capture.toByteArray();
+            outputStream.write(BCF2Utils.MAGIC_HEADER_LINE);
+            BCF2Encoder.encodePrimitive(headerBytes.length, BCF2Type.INT32, outputStream);
+            outputStream.write(headerBytes);
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile("BCF2 stream", "Got IOException while trying to write BCF2 header", e);
+        }
     }
 
     @Override

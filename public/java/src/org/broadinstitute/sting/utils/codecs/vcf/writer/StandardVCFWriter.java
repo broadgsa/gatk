@@ -91,7 +91,7 @@ public class StandardVCFWriter extends IndexingVCFWriter {
     @Override
     public void writeHeader(VCFHeader header) {
         mHeader = header;
-        writeHeader(mHeader, mWriter, doNotWriteGenotypes, VERSION_LINE, getStreamName());
+        writeHeader(mHeader, mWriter, doNotWriteGenotypes, getVersionLine(), getStreamName());
 
         // determine if we use filters, so we should FORCE pass the records
         // TODO -- this might not be necessary any longer as we have unfiltered, filtered, and PASS VCs
@@ -99,6 +99,10 @@ public class StandardVCFWriter extends IndexingVCFWriter {
             if ( line instanceof VCFFilterHeaderLine)
                 filtersWereAppliedToContext = true;
         }
+    }
+
+    public static final String getVersionLine() {
+        return VERSION_LINE;
     }
 
     public static void writeHeader(VCFHeader header,

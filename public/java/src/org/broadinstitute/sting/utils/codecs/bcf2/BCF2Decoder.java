@@ -151,7 +151,7 @@ public class BCF2Decoder {
 
     public final Object decodeSingleValue(final BCF2Type type) {
         // TODO -- decodeTypedValue should integrate this routine
-        final int value = readInt(type.getSizeInBytes(), recordStream);
+        final int value = BCF2Utils.readInt(type.getSizeInBytes(), recordStream);
 
         if ( value == type.getMissingBytes() )
             return null;
@@ -196,7 +196,7 @@ public class BCF2Decoder {
     }
 
     public final int decodeInt(int bytesForEachInt) {
-        return readInt(bytesForEachInt, recordStream);
+        return BCF2Utils.readInt(bytesForEachInt, recordStream);
     }
 
     public final float rawFloatToFloat(final int rawFloat) {
@@ -216,7 +216,7 @@ public class BCF2Decoder {
      * @return
      */
     public final int readBlockSize(final InputStream inputStream) {
-        return readInt(4, inputStream);
+        return BCF2Utils.readInt(4, inputStream);
     }
 
     /**
@@ -246,32 +246,6 @@ public class BCF2Decoder {
     }
 
     public final byte readTypeDescriptor() {
-        return readByte(recordStream);
-    }
-
-    private final static byte readByte(final InputStream stream) {
-        try {
-            return (byte)(stream.read() & 0xFF);
-        } catch ( IOException e ) {
-            throw new ReviewedStingException("readByte failure", e);
-        }
-    }
-
-    private final static int readInt(int bytesForEachInt, final InputStream stream) {
-        switch ( bytesForEachInt ) {
-            case 1: {
-                return (byte)(readByte(stream));
-            } case 2: {
-                final int b1 = readByte(stream) & 0xFF;
-                final int b2 = readByte(stream) & 0xFF;
-                return (short)((b1 << 8) | b2);
-            } case 4: {
-                final int b1 = readByte(stream) & 0xFF;
-                final int b2 = readByte(stream) & 0xFF;
-                final int b3 = readByte(stream) & 0xFF;
-                final int b4 = readByte(stream) & 0xFF;
-                return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
-            } default: throw new ReviewedStingException("Unexpected size during decoding");
-        }
+        return BCF2Utils.readByte(recordStream);
     }
 }
