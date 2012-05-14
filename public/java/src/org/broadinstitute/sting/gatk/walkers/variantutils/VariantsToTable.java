@@ -169,6 +169,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             samples.addAll(vcfSamples);
             
             StringBuilder sb = new StringBuilder();
+            sb.append("\t");
             for (final String sample : samples) {
                 for (final String gf : genotypeFieldsToTake) {
                     sb.append(sample+"."+gf+"\t");
@@ -177,7 +178,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             genotypeHeader = sb.toString();
         }
         // print out the header
-        out.println(Utils.join("\t", fieldsToTake) + "\t"+genotypeHeader);
+        out.println(Utils.join("\t", fieldsToTake) + genotypeHeader);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
