@@ -118,7 +118,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public List<String> fieldsToTake = new ArrayList<String>();
 
     @Hidden
-    @Argument(fullName="genotypeFields", shortName="GF", doc="The name of each field to capture for output in the table", required=true)
+    @Argument(fullName="genotypeFields", shortName="GF", doc="The name of each genotype field to capture for output in the table", required=false)
     public List<String> genotypeFieldsToTake = new ArrayList<String>();
     
     /**
