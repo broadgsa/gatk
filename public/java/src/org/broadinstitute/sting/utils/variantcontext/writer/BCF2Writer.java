@@ -239,7 +239,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private final int computeMaxSizeOfGenotypeFieldFromValues(final String field, final VariantContext vc) {
-        int size = 1;
+        int size = -1;
         final GenotypesContext gc = vc.getGenotypes();
 
         for ( final Genotype g : gc ) {
@@ -248,8 +248,13 @@ class BCF2Writer extends IndexingVariantContextWriter {
             if ( o instanceof List ) {
                 // only do compute if first value is of type list
                 final List values = (List)g.getAttribute(field);
-                if ( values != null )
+                if ( values != null ) {
+                    if ( values.size() != size && size != -1 )
+                        throw new ReviewedStingException("BUG: BCF2 codec doesn't currently support padding " +
+                                "/ depadding of genotype fields with mixed length." +
+                                "Occurred in field " + field + " at " + vc.getChr() + ":" + vc.getStart());
                     size = Math.max(size, values.size());
+                }
             } else {
                 return 1;
             }
