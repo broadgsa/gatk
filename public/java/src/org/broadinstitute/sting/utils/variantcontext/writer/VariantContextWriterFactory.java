@@ -40,13 +40,8 @@ import java.util.EnumSet;
  * @since 5/12
  */
 public class VariantContextWriterFactory {
-    public enum Options {
-        ENABLE_ON_THE_FLY_INDEX,
-        DO_NOT_WRITE_GENOTYPES,
-        FORCE_BCF
-    }
 
-    public static final EnumSet<Options> DEFAULT_OPTIONS = EnumSet.of(Options.ENABLE_ON_THE_FLY_INDEX);
+    public static final EnumSet<Options> DEFAULT_OPTIONS = EnumSet.of(Options.INDEX_ON_THE_FLY);
     public static final EnumSet<Options> NO_OPTIONS = EnumSet.noneOf(Options.class);
 
     private VariantContextWriterFactory() {}
@@ -79,11 +74,11 @@ public class VariantContextWriterFactory {
 
         if ( enableBCF )
             return new BCF2Writer(location, output, refDict,
-                    options.contains(Options.ENABLE_ON_THE_FLY_INDEX),
+                    options.contains(Options.INDEX_ON_THE_FLY),
                     options.contains(Options.DO_NOT_WRITE_GENOTYPES));
         else {
             return new VCFWriter(location, output, refDict,
-                    options.contains(Options.ENABLE_ON_THE_FLY_INDEX),
+                    options.contains(Options.INDEX_ON_THE_FLY),
                     options.contains(Options.DO_NOT_WRITE_GENOTYPES));
         }
     }

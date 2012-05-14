@@ -35,7 +35,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  * This class writes VCF files, allowing records to be passed in unsorted.
  * It also enforces that it is never passed records of the same chromosome with any other chromosome in between them.
  */
-public abstract class SortingVariantContextWriterBase implements VariantContextWriter {
+abstract class SortingVariantContextWriterBase implements VariantContextWriter {
 
     // The VCFWriter to which to actually write the sorted VCF records
     private final VariantContextWriter innerWriter;

@@ -641,6 +641,7 @@
         <jar jarfile="${dist.dir}/vcf.jar">
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
+              <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/>
               <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**"/>
 	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
@@ -1141,6 +1142,7 @@
                     useDefaultListeners="false"
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
+                <jvmarg value="-ea" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />

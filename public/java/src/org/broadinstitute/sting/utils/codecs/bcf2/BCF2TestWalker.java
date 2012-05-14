@@ -26,17 +26,22 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.variantcontext.writer.BCF2Writer;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.variantcontext.writer.Options;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.*;
 import java.util.*;
@@ -69,14 +74,16 @@ public class BCF2TestWalker extends RodWalker<Integer, Integer> {
     protected File bcfFile;
 
     private final List<VariantContext> vcs = new ArrayList<VariantContext>();
-    protected BCF2Writer writer;
+    protected VariantContextWriter writer;
 
     @Override
     public void initialize() {
         final Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), Collections.singletonList(variants));
         final VCFHeader header = VCFUtils.withUpdatedContigs(vcfRods.values().iterator().next(), getToolkit());
         try {
-            writer = new BCF2Writer(bcfFile, new FileOutputStream(bcfFile), getToolkit().getMasterSequenceDictionary(), ! dontIndexOnTheFly, false );
+            EnumSet<Options> options = EnumSet.of(Options.FORCE_BCF);
+            if ( !dontIndexOnTheFly ) options.add(Options.INDEX_ON_THE_FLY);
+            writer = VariantContextWriterFactory.create(bcfFile, new FileOutputStream(bcfFile), getToolkit().getMasterSequenceDictionary(), options);
             writer.writeHeader(header);
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotCreateOutputFile(bcfFile, e);

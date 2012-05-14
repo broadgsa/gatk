@@ -41,8 +41,8 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.util.*;
 
@@ -199,7 +199,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         vcfWriter.writeHeader(vcfHeader);
 
         if ( vcfWriter instanceof VariantContextWriterStub) {
-            sitesOnlyVCF = ((VariantContextWriterStub)vcfWriter).getWriterOptions().contains(VariantContextWriterFactory.Options.DO_NOT_WRITE_GENOTYPES);
+            sitesOnlyVCF = ((VariantContextWriterStub)vcfWriter).getWriterOptions().contains(Options.DO_NOT_WRITE_GENOTYPES);
             if ( sitesOnlyVCF ) logger.info("Pre-stripping genotypes for performance");
         } else
             logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");

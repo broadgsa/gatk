@@ -32,9 +32,9 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -173,17 +173,17 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         return engine.getMasterSequenceDictionary();
     }
 
-    public EnumSet<VariantContextWriterFactory.Options> getWriterOptions() {
+    public EnumSet<Options> getWriterOptions() {
         return getWriterOptions(false);
     }
 
-    public EnumSet<VariantContextWriterFactory.Options> getWriterOptions(boolean indexOnTheFly) {
-        List<VariantContextWriterFactory.Options> options = new ArrayList<VariantContextWriterFactory.Options>();
+    public EnumSet<Options> getWriterOptions(boolean indexOnTheFly) {
+        List<Options> options = new ArrayList<Options>();
 
-        if ( doNotWriteGenotypes ) options.add(VariantContextWriterFactory.Options.DO_NOT_WRITE_GENOTYPES);
-        if ( indexOnTheFly && ! isCompressed() ) options.add(VariantContextWriterFactory.Options.ENABLE_ON_THE_FLY_INDEX);
+        if ( doNotWriteGenotypes ) options.add(Options.DO_NOT_WRITE_GENOTYPES);
+        if ( indexOnTheFly && ! isCompressed() ) options.add(Options.INDEX_ON_THE_FLY);
 
-        return options.isEmpty() ? EnumSet.noneOf(VariantContextWriterFactory.Options.class) : EnumSet.copyOf(options);
+        return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);
     }
 
     /**

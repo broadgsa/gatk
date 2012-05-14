@@ -43,7 +43,7 @@ import java.io.*;
 /**
  * this class writes VCF files
  */
-public abstract class IndexingVariantContextWriter implements VariantContextWriter {
+abstract class IndexingVariantContextWriter implements VariantContextWriter {
     private final String name;
     private final SAMSequenceDictionary refDict;
 

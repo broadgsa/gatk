@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 /**
  * this class writes VCF files, allowing records to be passed in unsorted (up to a certain genomic distance away)
  */
-public class SortingVariantContextWriter extends SortingVariantContextWriterBase {
+class SortingVariantContextWriter extends SortingVariantContextWriterBase {
 
     // the maximum START distance between records that we'll cache
     private int maxCachingStartDistance;

@@ -75,6 +75,13 @@ public class VCFHeader {
     private boolean writeCommandLine = true;
 
     /**
+     * Create an empty VCF header with no header lines and no samples
+     */
+    public VCFHeader() {
+        this(Collections.<VCFHeaderLine>emptySet(), Collections.<String>emptySet());
+    }
+
+    /**
      * create a VCF header, given a list of meta data and auxillary tags
      *
      * @param metaData     the meta data associated with this header

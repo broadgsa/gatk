@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.*;
 import java.util.*;
 
-public class BCF2Writer extends IndexingVariantContextWriter {
+class BCF2Writer extends IndexingVariantContextWriter {
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
 
     private final OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support

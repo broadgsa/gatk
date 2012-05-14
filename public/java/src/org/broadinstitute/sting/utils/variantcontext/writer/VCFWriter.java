@@ -38,7 +38,7 @@ import java.util.*;
 /**
  * this class writes VCF files
  */
-public class VCFWriter extends IndexingVariantContextWriter {
+class VCFWriter extends IndexingVariantContextWriter {
     private final static String VERSION_LINE = VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_1.getFormatString() + "=" + VCFHeaderVersion.VCF4_1.getVersionString();
 
     // the print stream we're writing to
