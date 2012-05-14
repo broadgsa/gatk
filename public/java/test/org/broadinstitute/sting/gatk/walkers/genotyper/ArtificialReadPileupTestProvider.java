@@ -26,10 +26,13 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -94,10 +97,14 @@ public class ArtificialReadPileupTestProvider {
     public GenomeLocParser getGenomeLocParser()     { return genomeLocParser; }
 
     public Map<String,AlignmentContext> getAlignmentContextFromAlleles(int eventLength, String altBases, int[] numReadsPerAllele) {
+        return getAlignmentContextFromAlleles(eventLength, altBases, numReadsPerAllele, false, BASE_QUAL);
+    }
+    public Map<String,AlignmentContext> getAlignmentContextFromAlleles(int eventLength, String altBases, int[] numReadsPerAllele,
+                                                                       boolean addBaseErrors, int phredScaledBaseErrorRate) {
         //    RefMetaDataTracker tracker = new RefMetaDataTracker(null,referenceContext);
 
 
-        ArrayList vcAlleles = new ArrayList<Allele>();
+        ArrayList<Allele> vcAlleles = new ArrayList<Allele>();
         Allele refAllele, altAllele;
         if (eventLength == 0)  {// SNP case
             refAllele =Allele.create(refBases.substring(offset,offset+1),true);
@@ -128,7 +135,7 @@ public class ArtificialReadPileupTestProvider {
         Map<String,AlignmentContext> contexts = new HashMap<String,AlignmentContext>();
 
         for (String sample: sampleNames) {
-            AlignmentContext context = new AlignmentContext(loc, generateRBPForVariant(loc,vc, altBases, numReadsPerAllele, sample));
+            AlignmentContext context = new AlignmentContext(loc, generateRBPForVariant(loc,vc, altBases, numReadsPerAllele, sample, addBaseErrors, phredScaledBaseErrorRate));
             contexts.put(sample,context);
 
         }
@@ -143,7 +150,7 @@ public class ArtificialReadPileupTestProvider {
         return rg;
     }
     private ReadBackedPileup generateRBPForVariant( GenomeLoc loc, VariantContext vc, String altBases,
-                                                    int[] numReadsPerAllele, String sample) {
+                                                    int[] numReadsPerAllele, String sample, boolean addErrors, int phredScaledErrorRate) {
         List<PileupElement> pileupElements = new ArrayList<PileupElement>();
         int readStart = contigStart;
         int offset = (contigStop-contigStart+1)/2;
@@ -158,8 +165,11 @@ public class ArtificialReadPileupTestProvider {
 
             for ( int d = 0; d < numReadsPerAllele[alleleCounter]; d++ ) {
                 byte[] readBases = trueHaplotype(allele, offset, refAlleleLength);
+                if (addErrors)
+                    addBaseErrors(readBases, phredScaledErrorRate);
+
                 byte[] readQuals = new byte[readBases.length];
-                Arrays.fill(readQuals, (byte)BASE_QUAL);
+                Arrays.fill(readQuals, (byte)phredScaledErrorRate);
 
                 GATKSAMRecord read = new GATKSAMRecord(header);
                 read.setBaseQualities(readQuals);
@@ -208,4 +218,20 @@ public class ArtificialReadPileupTestProvider {
 
     }
 
+    private void addBaseErrors(final byte[] readBases, final int phredScaledErrorRate) {
+        double errorProbability = QualityUtils.qualToErrorProb((byte)phredScaledErrorRate);
+
+        for (int k=0; k < readBases.length; k++) {
+            if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < errorProbability) {
+                // random offset
+                int offset = BaseUtils.simpleBaseToBaseIndex(readBases[k]);          //0..3
+                offset += (GenomeAnalysisEngine.getRandomGenerator().nextInt(3)+1);  // adds 1,2 or 3
+                offset %= 4;
+                readBases[k] = BaseUtils.baseIndexToSimpleBase(offset);
+
+            }
+
+        }
+
+    }
 }

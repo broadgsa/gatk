@@ -26,6 +26,9 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -114,6 +117,10 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     @Argument(fullName="fields", shortName="F", doc="The name of each field to capture for output in the table", required=true)
     public List<String> fieldsToTake = new ArrayList<String>();
 
+    @Hidden
+    @Argument(fullName="genotypeFields", shortName="GF", doc="The name of each field to capture for output in the table", required=true)
+    public List<String> genotypeFieldsToTake = new ArrayList<String>();
+    
     /**
      * By default this tool only emits values for fields where the FILTER field is either PASS or . (unfiltered).
      * Throwing this flag will cause VariantsToTable to emit values regardless of the FILTER field value.
@@ -151,9 +158,26 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public boolean ALLOW_MISSING_DATA = false;
     private final static String MISSING_DATA = "NA";
 
+    private TreeSet<String> samples = new TreeSet<String>();
+
     public void initialize() {
+
+        String genotypeHeader = "";
+        if (!genotypeFieldsToTake.isEmpty()) {
+            Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), variants);
+            TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+            samples.addAll(vcfSamples);
+            
+            StringBuilder sb = new StringBuilder();
+            for (final String sample : samples) {
+                for (final String gf : genotypeFieldsToTake) {
+                    sb.append(sample+"."+gf+"\t");
+                }
+            }
+            genotypeHeader = sb.toString();
+        }
         // print out the header
-        out.println(Utils.join("\t", fieldsToTake));
+        out.println(Utils.join("\t", fieldsToTake) + "\t"+genotypeHeader);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -162,7 +186,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
         for ( VariantContext vc : tracker.getValues(variants, context.getLocation())) {
             if ( showFiltered || vc.isNotFiltered() ) {
-                for ( final List<String> record : extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA, splitMultiAllelic) )
+                for ( final List<String> record : extractFields(vc, fieldsToTake, genotypeFieldsToTake, samples,
+                        ALLOW_MISSING_DATA, splitMultiAllelic) )
                     out.println(Utils.join("\t", record));
             }
         }
@@ -186,16 +211,25 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      *
      * @param vc the VariantContext whose field values we can to capture
      * @param fields a non-null list of fields to capture from VC
+     * @param genotypeFields a (possibly) null) list of fields to capture from each genotype
+     * @param samples set of samples in vc, can be null in case of sites-only file
      * @param allowMissingData if false, then throws a UserException if any field isn't found in vc.  Otherwise provides a value of NA
      * @param splitMultiAllelic  if true, multiallelic variants are to be split into multiple records
      * @return List of lists of field values
      */
-    private static List<List<String>> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData, boolean splitMultiAllelic) {
+    private static List<List<String>> extractFields(VariantContext vc, List<String> fields, List<String> genotypeFields,
+                                                    Set<String> samples, boolean allowMissingData, boolean splitMultiAllelic) {
         
         final int numRecordsToProduce = splitMultiAllelic ? vc.getAlternateAlleles().size() : 1;
         final List<List<String>> records = new ArrayList<List<String>>(numRecordsToProduce);
+
+        int numFields = fields.size();
+        final boolean addGenotypeFields = (genotypeFields != null && !genotypeFields.isEmpty() && samples != null && !samples.isEmpty());
+        if (addGenotypeFields)
+            numFields += genotypeFields.size()*samples.size();
+
         for ( int i = 0; i < numRecordsToProduce; i++ )
-            records.add(new ArrayList<String>(fields.size()));
+            records.add(new ArrayList<String>(numFields));
 
         for ( String field : fields ) {
 
@@ -228,6 +262,16 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
         }
 
+        if (addGenotypeFields) {
+            for (final String sample : samples) {
+                for (final String gf : genotypeFields) {
+                    if (vc.hasGenotype(sample) && vc.getGenotype(sample).hasAttribute(gf))
+                        addFieldValue(vc.getGenotype(sample).getAttribute(gf),records);
+                    else
+                        addFieldValue(MISSING_DATA, records);
+                }
+            }
+        }
         return records;
     }
 
@@ -253,7 +297,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     }
 
     public static List<List<String>> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData) {
-        return extractFields(vc, fields, allowMissingData, false);
+        return extractFields(vc, fields, null, null, allowMissingData, false);
     }
     //
     // default reduce -- doesn't do anything at all
