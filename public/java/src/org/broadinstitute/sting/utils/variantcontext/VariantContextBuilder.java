@@ -122,6 +122,27 @@ public class VariantContextBuilder {
         this.stop = parent.getEnd();
     }
 
+    public VariantContextBuilder(VariantContextBuilder parent) {
+        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContext parent argument cannot be null in VariantContextBuilder");
+        this.alleles = parent.alleles;
+        this.attributesCanBeModified = false;
+        this.contig = parent.contig;
+        this.genotypes = parent.genotypes;
+        this.ID = parent.ID;
+        this.log10PError = parent.log10PError;
+        this.referenceBaseForIndel = parent.referenceBaseForIndel;
+        this.source = parent.source;
+        this.start = parent.start;
+        this.stop = parent.stop;
+
+        this.attributes(parent.attributes);
+        this.filters(parent.filters);
+    }
+
+    public VariantContextBuilder copy() {
+        return new VariantContextBuilder(this);
+    }
+
     /**
      * Tells this builder to use this collection of alleles for the resulting VariantContext
      *
@@ -133,6 +154,20 @@ public class VariantContextBuilder {
         this.alleles = alleles;
         toValidate.add(VariantContext.Validation.ALLELES);
         return this;
+    }
+
+    public VariantContextBuilder alleles(final String ... alleleStrings) {
+        List<Allele> alleles = new ArrayList<Allele>(alleleStrings.length);
+
+        for ( int i = 0; i < alleleStrings.length; i++ ) {
+            alleles.add(Allele.create(alleleStrings[i], i == 0));
+        }
+
+        return alleles(alleles);
+    }
+
+    public List<Allele> getAlleles() {
+        return new ArrayList<Allele>(alleles);
     }
 
     /**
@@ -315,6 +350,10 @@ public class VariantContextBuilder {
         this.referenceBaseForIndel = referenceBaseForIndel;
         toValidate.add(VariantContext.Validation.REF_PADDING);
         return this;
+    }
+
+    public VariantContextBuilder referenceBaseForIndel(final String referenceBaseForIndel) {
+        return referenceBaseForIndel(referenceBaseForIndel.getBytes()[0]);
     }
 
     /**
