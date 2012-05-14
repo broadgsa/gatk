@@ -32,7 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -73,7 +73,7 @@ public class DocumentationTest extends RodWalker<Integer, Integer> {
     private RodBinding<Feature> featureArg = null;
 
     @Output(doc="VCFWriter",required=true)
-    protected VCFWriter vcfWriter = null;
+    protected VariantContextWriter vcfWriter = null;
 
     @Advanced
     @Argument(fullName="setString", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)

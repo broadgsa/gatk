@@ -4,21 +4,21 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.CloseableTribbleIterator;
 import org.broad.tribble.Tribble;
-import org.broad.tribble.index.*;
+import org.broad.tribble.index.Index;
+import org.broad.tribble.index.IndexFactory;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.testng.Assert;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
 
 /**
  * tests out the various functions in the index factory class
@@ -56,7 +56,7 @@ public class IndexFactoryUnitTest extends BaseTest {
             AbstractFeatureReader<VariantContext> source = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), new VCFCodec(), indexFromInputFile);
 
             int counter = 0;
-            VCFWriter writer = new StandardVCFWriter(outputFile, dict);
+            VariantContextWriter writer = VariantContextWriterFactory.create(outputFile, dict);
             writer.writeHeader((VCFHeader)source.getHeader());
             CloseableTribbleIterator<VariantContext> it = source.iterator();
             while (it.hasNext() && (counter++ < maxRecords || maxRecords == -1) ) {

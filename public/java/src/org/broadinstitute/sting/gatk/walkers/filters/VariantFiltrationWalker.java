@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
@@ -86,7 +86,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     public RodBinding<Feature> mask;
 
     @Output(doc="File to which variants should be written", required=true)
-    protected VCFWriter writer = null;
+    protected VariantContextWriter writer = null;
 
     /**
      * VariantFiltration accepts any number of JEXL expressions (so you can have two named filters by using

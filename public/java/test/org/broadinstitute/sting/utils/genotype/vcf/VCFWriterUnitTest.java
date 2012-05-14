@@ -1,29 +1,30 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureReader;
 import org.broad.tribble.Tribble;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderVersion;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-
-import org.testng.annotations.Test;
+import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
-
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 /**
@@ -56,7 +57,7 @@ public class VCFWriterUnitTest extends BaseTest {
     @Test
     public void testBasicWriteAndRead() {
         VCFHeader header = createFakeHeader(metaData,additionalColumns);
-        VCFWriter writer = new StandardVCFWriter(fakeVCFFile, seq.getSequenceDictionary());
+        VariantContextWriter writer = VariantContextWriterFactory.create(fakeVCFFile, seq.getSequenceDictionary());
         writer.writeHeader(header);
         writer.add(createVC(header));
         writer.add(createVC(header));

@@ -35,16 +35,18 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.SortingVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -80,8 +82,8 @@ import java.util.*;
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter baseWriter = null;
-    private SortingVCFWriter vcfwriter; // needed because hapmap/dbsnp indel records move
+    protected VariantContextWriter baseWriter = null;
+    private VariantContextWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 
     /**
      * Variants from this input file are used by this tool as input.
@@ -111,7 +113,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     CloseableIterator<GATKFeature> dbsnpIterator = null;
 
     public void initialize() {
-        vcfwriter = new SortingVCFWriter(baseWriter, 40, false);
+        vcfwriter = VariantContextWriterFactory.sortOnTheFly(baseWriter, 40, false);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

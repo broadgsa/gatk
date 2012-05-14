@@ -38,7 +38,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -65,7 +65,7 @@ public class VariantsToBeagleUnphasedWalker extends RodWalker<Integer, Integer> 
     public double bootstrap = 0.0;
 
     @Argument(fullName = "bootstrap_vcf",shortName = "bsvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
-    VCFWriter bootstrapVCFOutput = null;
+    VariantContextWriter bootstrapVCFOutput = null;
 
     @Argument(fullName = "missing", shortName = "missing", doc = "String to identify missing data in beagle output", required = false)
     public String MISSING = "?";

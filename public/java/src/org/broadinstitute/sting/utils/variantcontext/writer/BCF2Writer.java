@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.bcf2.writer;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
@@ -30,8 +30,6 @@ import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.IndexingVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -42,19 +40,21 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.*;
 import java.util.*;
 
-public class BCF2Writer extends IndexingVCFWriter {
+public class BCF2Writer extends IndexingVariantContextWriter {
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
-    private final static boolean doNotWriteGenotypes = false;
-    private OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
+
+    private final OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
     private VCFHeader header;
-    private Map<String, Integer> contigDictionary = new HashMap<String, Integer>();
-    private Map<String, Integer> stringDictionaryMap = new LinkedHashMap<String, Integer>();
+    private final Map<String, Integer> contigDictionary = new HashMap<String, Integer>();
+    private final Map<String, Integer> stringDictionaryMap = new LinkedHashMap<String, Integer>();
+    private final boolean doNotWriteGenotypes;
 
     private final BCF2Encoder encoder = new BCF2Encoder(); // initialized after the header arrives
 
-    public BCF2Writer(final String name, final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing) {
-        super(name, location, output, refDict, enableOnTheFlyIndexing);
+    public BCF2Writer(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, final boolean doNotWriteGenotypes) {
+        super(writerName(location, output), location, output, refDict, enableOnTheFlyIndexing);
         this.outputStream = getOutputStream();
+        this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
     // --------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ public class BCF2Writer extends IndexingVCFWriter {
             // write out the header into a byte stream, get it's length, and write everything to the file
             final ByteArrayOutputStream capture = new ByteArrayOutputStream();
             final OutputStreamWriter writer = new OutputStreamWriter(capture);
-            StandardVCFWriter.writeHeader(header, writer, doNotWriteGenotypes, StandardVCFWriter.getVersionLine(), "BCF2 stream");
+            VCFWriter.writeHeader(header, writer, doNotWriteGenotypes, VCFWriter.getVersionLine(), "BCF2 stream");
             writer.append('\0'); // the header is null terminated by a byte
             writer.close();
 
@@ -158,7 +158,7 @@ public class BCF2Writer extends IndexingVCFWriter {
         // info fields
         final int nAlleles = vc.getNAlleles();
         final int nInfo = vc.getAttributes().size();
-        final int nGenotypeFormatFields = StandardVCFWriter.calcVCFGenotypeKeys(vc).size();
+        final int nGenotypeFormatFields = VCFWriter.calcVCFGenotypeKeys(vc).size();
         final int nSamples = vc.getNSamples();
 
         encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x00FF), BCF2Type.INT32);
@@ -212,7 +212,7 @@ public class BCF2Writer extends IndexingVCFWriter {
 
     private byte[] buildSamplesData(final VariantContext vc) throws IOException {
         // write size
-        List<String> genotypeFields = StandardVCFWriter.calcVCFGenotypeKeys(vc);
+        List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc);
         for ( final String field : genotypeFields ) {
             if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
                 addGenotypes(vc);
@@ -332,7 +332,7 @@ public class BCF2Writer extends IndexingVCFWriter {
                     "with > 127 alleles, but you have " + vc.getNAlleles() + " at "
                     + vc.getChr() + ":" + vc.getStart());
 
-        final Map<Allele, String> alleleMap = StandardVCFWriter.buildAlleleMap(vc);
+        final Map<Allele, String> alleleMap = VCFWriter.buildAlleleMap(vc);
         final int requiredPloidy = 2; // TODO -- handle ploidy, will need padding / depadding
         startGenotypeField(VCFConstants.GENOTYPE_KEY, requiredPloidy, BCF2Type.INT8);
         for ( final Genotype g : vc.getGenotypes() ) {

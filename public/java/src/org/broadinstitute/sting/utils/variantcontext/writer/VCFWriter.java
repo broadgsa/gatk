@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf.writer;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.TribbleException;
@@ -38,7 +38,7 @@ import java.util.*;
 /**
  * this class writes VCF files
  */
-public class StandardVCFWriter extends IndexingVCFWriter {
+public class VCFWriter extends IndexingVariantContextWriter {
     private final static String VERSION_LINE = VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_1.getFormatString() + "=" + VCFHeaderVersion.VCF4_1.getVersionString();
 
     // the print stream we're writing to
@@ -53,30 +53,30 @@ public class StandardVCFWriter extends IndexingVCFWriter {
     // were filters applied?
     protected boolean filtersWereAppliedToContext = false;
 
-    /**         
-     * create a VCF writer, given a file to write to
-     *
-     * @param location the file location to write to
-     */
-    public StandardVCFWriter(final File location, final SAMSequenceDictionary refDict) {
-        this(location, openOutputStream(location), refDict, true, false);
-    }
+//    /**
+//     * create a VCF writer, given a file to write to
+//     *
+//     * @param location the file location to write to
+//     */
+//    public StandardVCFWriter(final File location, final SAMSequenceDictionary refDict) {
+//        this(location, openOutputStream(location), refDict, true, false);
+//    }
+//
+//    public StandardVCFWriter(File location, final SAMSequenceDictionary refDict, boolean enableOnTheFlyIndexing) {
+//        this(location, openOutputStream(location), refDict, enableOnTheFlyIndexing, false);
+//    }
+//
+//    /**
+//     * create a VCF writer, given a stream to write to
+//     *
+//     * @param output   the file location to write to
+//     * @param doNotWriteGenotypes   do not write genotypes
+//     */
+//    public StandardVCFWriter(final OutputStream output, final SAMSequenceDictionary refDict, final boolean doNotWriteGenotypes) {
+//        this(null, output, refDict, false, doNotWriteGenotypes);
+//    }
 
-    public StandardVCFWriter(File location, final SAMSequenceDictionary refDict, boolean enableOnTheFlyIndexing) {
-        this(location, openOutputStream(location), refDict, enableOnTheFlyIndexing, false);
-    }
-
-    /**
-     * create a VCF writer, given a stream to write to
-     *
-     * @param output   the file location to write to
-     * @param doNotWriteGenotypes   do not write genotypes
-     */
-    public StandardVCFWriter(final OutputStream output, final SAMSequenceDictionary refDict, final boolean doNotWriteGenotypes) {
-        this(null, output, refDict, false, doNotWriteGenotypes);
-    }
-
-    public StandardVCFWriter(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
+    public VCFWriter(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
         super(writerName(location, output), location, output, refDict, enableOnTheFlyIndexing);
         mWriter = new BufferedWriter(new OutputStreamWriter(getOutputStream())); // todo -- fix buffer size
         this.doNotWriteGenotypes = doNotWriteGenotypes;

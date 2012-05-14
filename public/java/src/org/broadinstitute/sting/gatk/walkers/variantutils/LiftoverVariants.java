@@ -28,7 +28,9 @@ import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -36,11 +38,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -55,7 +58,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
     protected File file = null;
-    protected StandardVCFWriter writer = null;
+    protected VariantContextWriter writer = null;
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
     protected File CHAIN = null;
@@ -100,7 +103,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
 
         final VCFHeader vcfHeader = new VCFHeader(metaData, samples);
-        writer = new StandardVCFWriter(file, getMasterSequenceDictionary(), false);
+        writer = VariantContextWriterFactory.create(file, getMasterSequenceDictionary(), VariantContextWriterFactory.NO_OPTIONS);
         writer.writeHeader(vcfHeader);
     }
 

@@ -34,13 +34,17 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.SortingVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.util.*;
 
@@ -79,9 +83,9 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter baseWriter = null;
+    protected VariantContextWriter baseWriter = null;
 
-    private SortingVCFWriter writer;
+    private VariantContextWriter writer;
 
     public void initialize() {
         String trackName = variantCollection.variants.getName();
@@ -91,7 +95,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaData();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        writer = new SortingVCFWriter(baseWriter, 200);
+        writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, 200);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

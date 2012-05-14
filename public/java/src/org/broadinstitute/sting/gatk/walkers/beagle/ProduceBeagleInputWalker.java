@@ -38,7 +38,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
@@ -109,7 +109,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public double bootstrap = 0.0;
     @Hidden
      @Argument(fullName = "bootstrap_vcf",shortName = "bvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
-    VCFWriter bootstrapVCFOutput = null;
+    VariantContextWriter bootstrapVCFOutput = null;
 
     /**
      * If sample gender is known, this flag should be set to true to ensure that Beagle treats male Chr X properly.

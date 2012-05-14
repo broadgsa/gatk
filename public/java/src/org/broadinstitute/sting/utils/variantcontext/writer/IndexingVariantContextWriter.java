@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf.writer;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -43,7 +43,7 @@ import java.io.*;
 /**
  * this class writes VCF files
  */
-public abstract class IndexingVCFWriter implements VCFWriter {
+public abstract class IndexingVariantContextWriter implements VariantContextWriter {
     private final String name;
     private final SAMSequenceDictionary refDict;
 
@@ -55,7 +55,7 @@ public abstract class IndexingVCFWriter implements VCFWriter {
     @Requires({"name != null",
             "! ( location == null && output == null )",
             "! ( enableOnTheFlyIndexing && location == null )"})
-    protected IndexingVCFWriter(final String name, final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing) {
+    protected IndexingVariantContextWriter(final String name, final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing) {
         outputStream = output;
         this.name = name;
         this.refDict = refDict;
@@ -126,19 +126,6 @@ public abstract class IndexingVCFWriter implements VCFWriter {
      */
     protected static final String writerName(final File location, final OutputStream stream) {
         return location == null ? stream.toString() : location.getAbsolutePath();
-    }
-
-    /**
-     * Returns a output stream writing to location, or throws a UserException if this fails
-     * @param location
-     * @return
-     */
-    protected static OutputStream openOutputStream(final File location) {
-        try {
-            return new FileOutputStream(location);
-        } catch (FileNotFoundException e) {
-            throw new UserException.CouldNotCreateOutputFile(location, "Unable to create VCF writer", e);
-        }
     }
 }
 

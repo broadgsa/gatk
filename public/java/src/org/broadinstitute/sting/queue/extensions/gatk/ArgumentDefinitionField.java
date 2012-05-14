@@ -29,7 +29,7 @@ import net.sf.samtools.SAMFileWriter;
 import org.broad.tribble.Tribble;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
@@ -157,7 +157,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                 gatherClass = gatherer.getName();
             else if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gatherClass = "BamGatherFunction";
-            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+            else if (VariantContextWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gatherClass = "VcfGatherFunction";
             else
                 gatherClass = "org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction";
@@ -168,7 +168,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                 fields.add(new SAMFileWriterIndexArgumentField(argumentDefinition));
                 fields.add(new SAMFileWriterMD5ArgumentField(argumentDefinition));
             }
-            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType)) {
+            else if (VariantContextWriter.class.isAssignableFrom(argumentDefinition.argumentType)) {
                 fields.add(new VCFWriterIndexArgumentField(argumentDefinition));
             }
 

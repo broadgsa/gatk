@@ -53,7 +53,7 @@ import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
 import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.utils.codecs.refseq.Transcript;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -131,7 +131,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;
     @Output(doc="File to write variants (indels) in VCF format",required=true)
-    protected VCFWriter vcf_writer = null;
+    protected VariantContextWriter vcf_writer = null;
 
     @Argument(fullName="outputFile", shortName="O", doc="output file name (BED format). DEPRECATED> Use --bed", required=true)
     @Deprecated
@@ -1113,7 +1113,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
     }
 
-    public void printVCFLine(VCFWriter vcf, IndelPrecall call, boolean discard_event) {
+    public void printVCFLine(VariantContextWriter vcf, IndelPrecall call, boolean discard_event) {
 
         long start = call.getPosition()-1;
         // If the beginning of the chromosome is deleted (possible, however unlikely), it's unclear how to proceed.
@@ -1185,7 +1185,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         }
     }
 
-    public void printVCFLine(VCFWriter vcf, IndelPrecall nCall, IndelPrecall tCall, boolean discard_event) {
+    public void printVCFLine(VariantContextWriter vcf, IndelPrecall nCall, IndelPrecall tCall, boolean discard_event) {
 
         long start = tCall.getPosition()-1;
         long stop = start;

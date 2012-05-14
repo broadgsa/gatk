@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.codecs.vcf.writer;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 /**
  * this class writes VCF files
  */
-public interface VCFWriter {
+public interface VariantContextWriter {
 
     public void writeHeader(VCFHeader header);
 

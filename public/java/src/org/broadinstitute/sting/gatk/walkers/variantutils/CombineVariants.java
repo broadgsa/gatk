@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
+import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -37,11 +37,12 @@ import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.util.*;
 
@@ -114,7 +115,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     public List<RodBinding<VariantContext>> variants;
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter vcfWriter = null;
+    protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
     public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
@@ -197,8 +198,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);
 
-        if ( vcfWriter instanceof VCFWriterStub) {
-            sitesOnlyVCF = ((VCFWriterStub)vcfWriter).doNotWriteGenotypes();
+        if ( vcfWriter instanceof VariantContextWriterStub) {
+            sitesOnlyVCF = ((VariantContextWriterStub)vcfWriter).getWriterOptions().contains(VariantContextWriterFactory.Options.DO_NOT_WRITE_GENOTYPES);
             if ( sitesOnlyVCF ) logger.info("Pre-stripping genotypes for performance");
         } else
             logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");

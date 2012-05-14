@@ -38,7 +38,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -201,7 +201,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
      * The optional output file that will have all the variants used in the Genotype and Validation essay.
      */
     @Output(doc="Generate a VCF file with the variants considered by the walker, with a new annotation \"callStatus\" which will carry the value called in the validation VCF or BAM file", required=false)
-    protected VCFWriter vcfWriter = null;
+    protected VariantContextWriter vcfWriter = null;
 
     /**
      * The callset to be used as truth (default) or validated (if BAM file is set to truth).

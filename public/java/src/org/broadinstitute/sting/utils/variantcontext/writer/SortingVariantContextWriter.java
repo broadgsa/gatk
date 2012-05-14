@@ -23,14 +23,14 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf.writer;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /**
  * this class writes VCF files, allowing records to be passed in unsorted (up to a certain genomic distance away)
  */
-public class SortingVCFWriter extends SortingVCFWriterBase {
+public class SortingVariantContextWriter extends SortingVariantContextWriterBase {
 
     // the maximum START distance between records that we'll cache
     private int maxCachingStartDistance;
@@ -42,12 +42,12 @@ public class SortingVCFWriter extends SortingVCFWriterBase {
      * @param maxCachingStartDistance the maximum start distance between records that we'll cache
      * @param takeOwnershipOfInner Should this Writer close innerWriter when it's done with it
      */
-    public SortingVCFWriter(VCFWriter innerWriter, int maxCachingStartDistance, boolean takeOwnershipOfInner) {
+    public SortingVariantContextWriter(VariantContextWriter innerWriter, int maxCachingStartDistance, boolean takeOwnershipOfInner) {
         super(innerWriter, takeOwnershipOfInner);
         this.maxCachingStartDistance = maxCachingStartDistance;
     }
 
-    public SortingVCFWriter(VCFWriter innerWriter, int maxCachingStartDistance) {
+    public SortingVariantContextWriter(VariantContextWriter innerWriter, int maxCachingStartDistance) {
         this(innerWriter, maxCachingStartDistance, false); // by default, don't own inner
     }
 

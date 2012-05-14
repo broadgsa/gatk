@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -79,7 +79,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> implements Annotato
     private IntervalBinding<Feature> intervalTrack = null;
 
     @Output(doc = "File to which variants should be written", required = true)
-    private VCFWriter vcfWriter = null;
+    private VariantContextWriter vcfWriter = null;
 
     @Argument(fullName = "minimum_base_quality", shortName = "mbq", doc = "", required = false)
     private int minimumBaseQuality = 20;

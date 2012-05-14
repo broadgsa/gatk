@@ -32,13 +32,17 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
 
 /**
  * A stub for routing and management of genotype reading and writing.
@@ -46,7 +50,7 @@ import java.util.Collection;
  * @author ebanks
  * @version 0.1
  */
-public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
+public class VariantContextWriterStub implements Stub<VariantContextWriter>, VariantContextWriter {
     /**
      * The engine, central to the GATK's processing.
      */
@@ -106,7 +110,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param skipWritingHeader skip writing header.
      * @param doNotWriteGenotypes do not write genotypes.
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
+    public VariantContextWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
@@ -126,7 +130,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param skipWritingHeader skip writing header.
      * @param doNotWriteGenotypes do not write genotypes.
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
+    public VariantContextWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
@@ -169,12 +173,17 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
         return engine.getMasterSequenceDictionary();
     }
 
-    /**
-     * Should we tell the VCF writer not to write genotypes?
-     * @return true if the writer should not write genotypes.
-     */
-    public boolean doNotWriteGenotypes() {
-        return doNotWriteGenotypes;
+    public EnumSet<VariantContextWriterFactory.Options> getWriterOptions() {
+        return getWriterOptions(false);
+    }
+
+    public EnumSet<VariantContextWriterFactory.Options> getWriterOptions(boolean indexOnTheFly) {
+        List<VariantContextWriterFactory.Options> options = new ArrayList<VariantContextWriterFactory.Options>();
+
+        if ( doNotWriteGenotypes ) options.add(VariantContextWriterFactory.Options.DO_NOT_WRITE_GENOTYPES);
+        if ( indexOnTheFly && ! isCompressed() ) options.add(VariantContextWriterFactory.Options.ENABLE_ON_THE_FLY_INDEX);
+
+        return options.isEmpty() ? EnumSet.noneOf(VariantContextWriterFactory.Options.class) : EnumSet.copyOf(options);
     }
 
     /**

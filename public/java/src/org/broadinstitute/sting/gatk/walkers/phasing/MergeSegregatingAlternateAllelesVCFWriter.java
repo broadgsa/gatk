@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -41,8 +41,8 @@ import java.util.*;
 
 // Streams in VariantContext objects and streams out VariantContexts produced by merging phased segregating polymorphisms into MNP VariantContexts
 
-class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
-    private VCFWriter innerWriter;
+class MergeSegregatingAlternateAllelesVCFWriter implements VariantContextWriter {
+    private VariantContextWriter innerWriter;
 
     private GenomeLocParser genomeLocParser;
 
@@ -68,7 +68,7 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     // Should we call innerWriter.close() in close()
     private boolean takeOwnershipOfInner;
 
-    public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, PhasingUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
+    public MergeSegregatingAlternateAllelesVCFWriter(VariantContextWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, PhasingUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.genomeLocParser = genomeLocParser;
         try {
@@ -94,7 +94,7 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
         this.takeOwnershipOfInner = takeOwnershipOfInner;
     }
 
-    public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, int maxGenomicDistanceForMNP, Logger logger, boolean takeOwnershipOfInner) {
+    public MergeSegregatingAlternateAllelesVCFWriter(VariantContextWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, int maxGenomicDistanceForMNP, Logger logger, boolean takeOwnershipOfInner) {
         this(innerWriter, genomeLocParser, referenceFile, new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser), new SegregatingMNPmergeAllelesRule(), null, false, logger, takeOwnershipOfInner, true); // by default: consider all samples, emit all records, keep track of alt allele statistics
     }
 

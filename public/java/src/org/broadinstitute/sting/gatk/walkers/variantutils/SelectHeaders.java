@@ -37,7 +37,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -105,7 +105,7 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc = "File to which variants should be written", required = true)
-    protected VCFWriter vcfWriter;
+    protected VariantContextWriter vcfWriter;
 
     @Argument(fullName = "header_name", shortName = "hn", doc = "Include header. Can be specified multiple times", required = false)
     public Set<String> headerNames;

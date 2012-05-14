@@ -38,7 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
@@ -105,7 +105,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
     // Outputs
     /////////////////////////////
     @Output( doc="The output filtered and recalibrated VCF file in which each variant is annotated with its VQSLOD value", required=true)
-    private VCFWriter vcfWriter = null;
+    private VariantContextWriter vcfWriter = null;
 
     /////////////////////////////
     // Command Line Arguments

@@ -34,7 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
@@ -54,7 +54,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
     private static final int MAX_VARIANT_SIZE = 100;
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter writer = null;
+    protected VariantContextWriter writer = null;
 
     private long failedLocs = 0, totalLocs = 0;
 

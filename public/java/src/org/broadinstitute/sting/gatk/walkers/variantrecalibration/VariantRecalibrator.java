@@ -37,13 +37,14 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.io.Resource;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -139,7 +140,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     /////////////////////////////
     @Output(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
     protected File recalFile = null;
-    protected StandardVCFWriter recalWriter = null;
+    protected VariantContextWriter recalWriter = null;
 
     @Output(fullName="tranches_file", shortName="tranchesFile", doc="The output tranches file used by ApplyRecalibration", required=true)
     protected File TRANCHES_FILE;
@@ -230,7 +231,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
 
         final VCFHeader vcfHeader = new VCFHeader( null, Collections.<String>emptySet() );
-        recalWriter = new StandardVCFWriter(recalFile, getMasterSequenceDictionary(), false);
+        recalWriter = VariantContextWriterFactory.create(recalFile, getMasterSequenceDictionary());
         recalWriter.writeHeader(vcfHeader);
     }
 

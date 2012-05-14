@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.codecs.bcf2.writer.BCF2Writer;
+import org.broadinstitute.sting.utils.variantcontext.writer.BCF2Writer;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -76,8 +76,7 @@ public class BCF2TestWalker extends RodWalker<Integer, Integer> {
         final Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), Collections.singletonList(variants));
         final VCFHeader header = VCFUtils.withUpdatedContigs(vcfRods.values().iterator().next(), getToolkit());
         try {
-            writer = new BCF2Writer("out", bcfFile, new FileOutputStream(bcfFile),
-                    getToolkit().getMasterSequenceDictionary(), ! dontIndexOnTheFly );
+            writer = new BCF2Writer(bcfFile, new FileOutputStream(bcfFile), getToolkit().getMasterSequenceDictionary(), ! dontIndexOnTheFly, false );
             writer.writeHeader(header);
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotCreateOutputFile(bcfFile, e);

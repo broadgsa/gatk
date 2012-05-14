@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -91,7 +91,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      */
     @Override
     public boolean supports( Class type ) {
-        return VCFWriter.class.equals(type);
+        return VariantContextWriter.class.equals(type);
     }
 
     @Override
@@ -117,7 +117,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
-        VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false, argumentSources, false, false);
+        VariantContextWriterStub stub = new VariantContextWriterStub(engine, defaultOutputStream, false, argumentSources, false, false);
         engine.addOutput(stub);
         return stub;
     }
@@ -148,8 +148,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         boolean doNotWriteGenotypes = argumentIsPresent(createSitesOnlyArgumentDefinition(),matches);
 
         // Create a stub for the given object.
-        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress, argumentSources, skipWritingHeader, doNotWriteGenotypes)
-                                                  : new VCFWriterStub(engine, defaultOutputStream, compress, argumentSources, skipWritingHeader, doNotWriteGenotypes);
+        VariantContextWriterStub stub = (writerFile != null) ? new VariantContextWriterStub(engine, writerFile, compress, argumentSources, skipWritingHeader, doNotWriteGenotypes)
+                                                  : new VariantContextWriterStub(engine, defaultOutputStream, compress, argumentSources, skipWritingHeader, doNotWriteGenotypes);
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));

@@ -38,13 +38,13 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.SortingVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.*;
 import java.util.*;
@@ -102,7 +102,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc = "File to which variants should be written", required = true)
-    protected VCFWriter writer = null;
+    protected VariantContextWriter writer = null;
 
     @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads for the phasing procedure", required = false)
     protected Integer cacheWindow = 20000;
@@ -187,7 +187,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private void initializeVcfWriter() {
         // Wrapper VCFWriters will take ownership of inner writers iff: inner writer != origWriter [which wasn't created here]
-        VCFWriter origWriter = writer;
+        VariantContextWriter origWriter = writer;
 
         if (enableMergePhasedSegregatingPolymorphismsToMNP)
             writer = new MergeSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getGenomeLocParser(), getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, writer != origWriter);
@@ -201,7 +201,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
            But, NOTE that map() is careful to pass out a list of records to be written that FIRST includes any records discarded due to having reached mostDownstreamLocusReached,
            and only THEN records located at mostDownstreamLocusReached.  The opposite order in map() would violate the startDistance limits imposed when contracting SortingVCFWriter with (2 * cacheWindow).
          */
-        writer = new SortingVCFWriter(writer, 2 * cacheWindow, writer != origWriter);
+        writer = VariantContextWriterFactory.sortOnTheFly(writer, 2 * cacheWindow, writer != origWriter);
 
         // setup the header fields:
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

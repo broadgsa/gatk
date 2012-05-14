@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.vcf.writer;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -35,10 +35,10 @@ import java.util.concurrent.PriorityBlockingQueue;
  * This class writes VCF files, allowing records to be passed in unsorted.
  * It also enforces that it is never passed records of the same chromosome with any other chromosome in between them.
  */
-public abstract class SortingVCFWriterBase implements VCFWriter {
+public abstract class SortingVariantContextWriterBase implements VariantContextWriter {
 
     // The VCFWriter to which to actually write the sorted VCF records
-    private final VCFWriter innerWriter;
+    private final VariantContextWriter innerWriter;
 
     // the current queue of un-emitted records
     private final Queue<VCFRecord> queue;
@@ -65,7 +65,7 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
      * @param innerWriter        the VCFWriter to write to
      * @param takeOwnershipOfInner Should this Writer close innerWriter when it's done with it
      */
-    public SortingVCFWriterBase(VCFWriter innerWriter, boolean takeOwnershipOfInner) {
+    public SortingVariantContextWriterBase(VariantContextWriter innerWriter, boolean takeOwnershipOfInner) {
         this.innerWriter = innerWriter;
         this.finishedChromosomes = new TreeSet<String>();
         this.takeOwnershipOfInner = takeOwnershipOfInner;
@@ -77,7 +77,7 @@ public abstract class SortingVCFWriterBase implements VCFWriter {
         this.mostUpstreamWritableLoc = BEFORE_MOST_UPSTREAM_LOC;
     }
 
-    public SortingVCFWriterBase(VCFWriter innerWriter) {
+    public SortingVariantContextWriterBase(VariantContextWriter innerWriter) {
         this(innerWriter, false); // by default, don't own inner
     }
 

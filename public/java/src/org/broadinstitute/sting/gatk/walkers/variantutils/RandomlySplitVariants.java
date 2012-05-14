@@ -24,7 +24,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -32,11 +34,13 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.StandardVCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -50,12 +54,12 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(fullName="out1", shortName="o1", doc="File #1 to which variants should be written", required=true)
-    protected VCFWriter vcfWriter1 = null;
+    protected VariantContextWriter vcfWriter1 = null;
 
     @Output(fullName="out2", shortName="o2", doc="File #2 to which variants should be written", required=true)
     // there's a reported bug in the GATK where we can't have 2 @Output writers
     protected File file2 = null;
-    protected StandardVCFWriter vcfWriter2 = null;
+    protected VariantContextWriter vcfWriter2 = null;
 
     @Argument(fullName="fractionToOut1", shortName="fraction", doc="Fraction of records to be placed in out1 (must be 0 >= fraction <= 1); all other records are placed in out2", required=false)
     protected double fraction = 0.5;
@@ -74,7 +78,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
 
         vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
-        vcfWriter2 = new StandardVCFWriter(file2, getMasterSequenceDictionary(), true);
+        vcfWriter2 = VariantContextWriterFactory.create(file2, getMasterSequenceDictionary());
         vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
     }
 

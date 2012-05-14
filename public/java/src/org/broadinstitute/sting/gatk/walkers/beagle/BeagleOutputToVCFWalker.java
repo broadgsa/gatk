@@ -36,7 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.codecs.vcf.writer.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -103,7 +103,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     public RodBinding<BeagleFeature> beaglePhased;
 
     @Output(doc="VCF File to which variants should be written",required=true)
-    protected VCFWriter vcfWriter = null;
+    protected VariantContextWriter vcfWriter = null;
 
     /**
      * If this argument is absent, and if Beagle determines that there is no sample in a site that has a variant genotype, the site will be marked as filtered (Default behavior).

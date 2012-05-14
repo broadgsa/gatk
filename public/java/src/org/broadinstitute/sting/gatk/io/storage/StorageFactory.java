@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
+import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -77,12 +77,12 @@ public class StorageFactory {
             else
                 storage = new SAMFileWriterStorage((SAMFileWriterStub)stub);
         }
-        else if(stub instanceof VCFWriterStub) {
-            VCFWriterStub vcfWriterStub = (VCFWriterStub)stub;
+        else if(stub instanceof VariantContextWriterStub) {
+            VariantContextWriterStub vcfWriterStub = (VariantContextWriterStub)stub;
             if( file != null )
-                storage = new VCFWriterStorage(vcfWriterStub,file);
+                storage = new VariantContextWriterStorage(vcfWriterStub,file);
             else
-                storage = new VCFWriterStorage(vcfWriterStub);
+                storage = new VariantContextWriterStorage(vcfWriterStub);
         }
         else
             throw new ReviewedStingException("Unsupported stub type: " + stub.getClass().getName());
