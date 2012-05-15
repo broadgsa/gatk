@@ -12,12 +12,8 @@ import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.DynamicStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
@@ -91,6 +87,7 @@ import java.util.*;
  *
  */
 @Reference(window=@Window(start=-50, stop=50))
+@PartitionBy(PartitionType.NONE)
 public class VariantEvalWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     public static final String IS_SINGLETON_KEY = "ISSINGLETON";
 
