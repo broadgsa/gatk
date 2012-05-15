@@ -31,13 +31,10 @@ import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;
-import org.testng.annotations.DataProvider;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.*;
 
 /**
@@ -47,6 +44,7 @@ import java.util.*;
  * @since Date created
  */
 public class VariantContextTestProvider {
+    final private static boolean ADVANCED_TESTS = false;
     final static VCFHeader header;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
     final static VariantContext ROOT;
@@ -85,6 +83,16 @@ public class VariantContextTestProvider {
 
         public boolean hasGenotypes() {
             return vcs.get(0).hasGenotypes();
+        }
+
+        public String toString() {
+            StringBuilder b = new StringBuilder();
+            b.append("VariantContextTestData: [");
+            for ( VariantContext vc : vcs ) {
+                b.append(vc.toString()).append(" ----- ");
+            }
+            b.append("]");
+            return b.toString();
         }
     }
 
@@ -143,6 +151,9 @@ public class VariantContextTestProvider {
         metaData.add(new VCFInfoHeaderLine("INT3", 3, VCFHeaderLineType.Integer, "x"));
         metaData.add(new VCFInfoHeaderLine("INT20", 20, VCFHeaderLineType.Integer, "x"));
 
+
+        metaData.add(new VCFInfoHeaderLine("INT.VAR", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "x"));
+
         add(builder().attribute("FLOAT1", 1.0));
         add(builder().attribute("FLOAT1", 100.0));
         add(builder().attribute("FLOAT1", 1000.0));
@@ -169,7 +180,11 @@ public class VariantContextTestProvider {
         metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
         metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));
 
-        addGenotypesData(new ArrayList<VariantContextTestData>(TEST_DATAs), metaData);
+        metaData.add(new VCFInfoHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
+        metaData.add(new VCFInfoHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
+        metaData.add(new VCFInfoHeaderLine("PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
+
+        addGenotypesToTestData();
 
         // prep the header
         metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
@@ -177,24 +192,151 @@ public class VariantContextTestProvider {
         header = new VCFHeader(metaData);
     }
 
-    private static void addGenotypesData(final ArrayList<VariantContextTestData> sites, Set<VCFHeaderLine> metaData) {
-        // TODO
+    private static void addGenotypesToTestData() {
+        final ArrayList<VariantContext> sites = new ArrayList<VariantContext>();
+
+        sites.add(builder().alleles("A").make());
+        sites.add(builder().alleles("A", "C", "T").make());
+        sites.add(builder().alleles("-", "C").referenceBaseForIndel("A").make());
+        sites.add(builder().alleles("-", "CAGT").referenceBaseForIndel("A").make());
+
+        for ( VariantContext site : sites ) {
+            addGenotypes(site);
+        }
+    }
+
+    private static void addGenotypeTests( final VariantContext site, Genotype ... genotypes ) {
         // for each sites VC, we are going to add create two root genotypes.
         // The first is the primary, and will be added to each new test
         // The second is variable.  In some tests it's absent (testing 1 genotype), in others it is duplicated
         // 1 once, 10, 100, or 1000 times to test scaling
-        // Also, create a "missing" genotype (corresponding to a . sample) in the VCF for inclusion as well.
 
-        // test GT
+        final VariantContextBuilder builder = new VariantContextBuilder(site);
 
-        // test GQ
+        // add a single context
+        builder.genotypes(genotypes[0]);
+        add(builder);
+
+        if ( genotypes.length > 1 ) {
+            // add all
+            add(builder.genotypes(Arrays.asList(genotypes)));
+
+            // add all with the last replicated 10x, 100x, 1000x times
+            for ( int nCopiesOfLast : Arrays.asList(10, 100, 1000) ) {
+                final GenotypesContext gc = new GenotypesContext();
+                final Genotype last = genotypes[genotypes.length-1];
+                for ( int i = 0; i < genotypes.length - 1; i++ )
+                    gc.add(genotypes[i]);
+                for ( int i = 0; i < nCopiesOfLast; i++ )
+                    gc.add(new Genotype("copy" + i, last));
+                add(builder.genotypes(gc));
+            }
+        }
+    }
+
+
+    private static void addGenotypes( final VariantContext site) {
+        final GenotypesContext gc = new GenotypesContext();
+
+        // test ref/ref
+        final Allele ref = site.getReference();
+        final Allele alt1 = site.getNAlleles() > 1 ? site.getAlternateAllele(0) : null;
+        final Genotype homRef = new Genotype("homRef", Arrays.asList(ref, ref));
+        addGenotypeTests(site, homRef);
+
+        if ( alt1 != null ) {
+            final Genotype het = new Genotype("het", Arrays.asList(ref, alt1));
+            final Genotype homVar = new Genotype("homVar", Arrays.asList(alt1, alt1));
+            addGenotypeTests(site, homRef, het);
+            addGenotypeTests(site, homRef, het, homVar);
+
+            // ploidy
+            if ( ADVANCED_TESTS ) {
+                addGenotypeTests(site,
+                        new Genotype("dip", Arrays.asList(ref, alt1)),
+                        new Genotype("hap", Arrays.asList(ref)));
+
+                addGenotypeTests(site,
+                        new Genotype("dip", Arrays.asList(ref, alt1)),
+                        new Genotype("tet", Arrays.asList(ref, alt1, alt1)));
+            }
+        }
+
+        if ( ADVANCED_TESTS ) {
+            // testing PLs
+            addGenotypeTests(site,
+                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2}),
+                    new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
+
+            addGenotypeTests(site,
+                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
+                    new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
+
+            addGenotypeTests(site,
+                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
+                    new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2000, -1000}));
+
+            addGenotypeTests(site, // missing PLs
+                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
+                    new Genotype("g2", Arrays.asList(ref, ref), -1));
+        }
+
+        // test attributes
+        addGenotypeTests(site,
+                attr("g1", ref, "INT1", 1),
+                attr("g2", ref, "INT1", 2));
+        addGenotypeTests(site,
+                attr("g1", ref, "INT1", 1),
+                attr("g2", ref, "INT1"));
+        addGenotypeTests(site,
+                attr("g1", ref, "INT3", 1, 2, 3),
+                attr("g2", ref, "INT3", 4, 5, 6));
+        addGenotypeTests(site,
+                attr("g1", ref, "INT3", 1, 2, 3),
+                attr("g2", ref, "INT3"));
+
+        if ( ADVANCED_TESTS ) {
+            addGenotypeTests(site,
+                    attr("g1", ref, "INT.VAR", 1, 2, 3),
+                    attr("g2", ref, "INT.VAR", 4, 5),
+                    attr("g3", ref, "INT.VAR", 6));
+            addGenotypeTests(site,
+                    attr("g1", ref, "INT.VAR", 1, 2, 3),
+                    attr("g2", ref, "INT.VAR"),
+                    attr("g3", ref, "INT.VAR", 5));
+        }
+
+        addGenotypeTests(site,
+                attr("g1", ref, "FLOAT1", 1.0),
+                attr("g2", ref, "FLOAT1", 2.0));
+        addGenotypeTests(site,
+                attr("g1", ref, "FLOAT1", 1.0),
+                attr("g2", ref, "FLOAT1"));
+        addGenotypeTests(site,
+                attr("g1", ref, "FLOAT3", 1.0, 2.0, 3.0),
+                attr("g2", ref, "FLOAT3", 4.0, 5.0, 6.0));
+        addGenotypeTests(site,
+                attr("g1", ref, "FLOAT3", 1.0, 2.0, 3.0),
+                attr("g2", ref, "FLOAT3"));
 
         // test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample
     }
 
+    private static Genotype attr(final String name, final Allele ref, final String key, final Object ... value) {
+        if ( value.length == 0 )
+            return new Genotype(name, Arrays.asList(ref, ref), -1);
+        else {
+            final Object toAdd = value.length == 1 ? value[0] : Arrays.asList(value);
+            Map<String, Object> attr = Collections.singletonMap(key, toAdd);
+            return new Genotype(name, Arrays.asList(ref, ref), -1, null, attr, false);
+        }
+    }
 
-    public static VCFHeader getHeader() {
-        return header;
+    private static VCFHeader getHeader(final List<VariantContext> vcs) {
+        final Set<String> samples = new HashSet<String>();
+        for ( final VariantContext vc : vcs )
+            samples.addAll(vc.getSampleNames());
+        return new VCFHeader(header.getMetaData(), samples);
     }
 
     public static List<VariantContextTestData> generateSiteTests() {
@@ -210,7 +352,7 @@ public class VariantContextTestProvider {
         // write
         final EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
         final VariantContextWriter writer = tester.makeWriter(tmpFile, options);
-        writer.writeHeader(VariantContextTestProvider.getHeader());
+        writer.writeHeader(VariantContextTestProvider.getHeader(data.vcs));
         final List<VariantContext> expected = data.vcs;
         for ( VariantContext vc : expected )
             writer.add(vc);

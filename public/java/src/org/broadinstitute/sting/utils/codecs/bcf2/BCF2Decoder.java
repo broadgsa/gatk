@@ -160,7 +160,7 @@ public class BCF2Decoder {
                 case INT8:
                 case INT16:
                 case INT32: return value;
-                case FLOAT: return (double)rawFloatToFloat(value);
+                case FLOAT: return rawFloatToFloat(value);
                 case CHAR:  return value & 0xFF; // TODO -- I cannot imagine why we'd get here, as string needs to be special cased
                 default:    throw new ReviewedStingException("BCF2 codec doesn't know how to decode type " + type );
             }
