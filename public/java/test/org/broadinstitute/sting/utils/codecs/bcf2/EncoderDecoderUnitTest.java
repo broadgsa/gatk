@@ -43,7 +43,7 @@ import java.util.*;
 
 
 public class EncoderDecoderUnitTest extends BaseTest {
-    private final float FLOAT_TOLERANCE = (float)1e-8;
+    private final double FLOAT_TOLERANCE = 1e-6;
     final List<BCF2TypedValue> primitives = new ArrayList<BCF2TypedValue>();
     final List<BCF2TypedValue> basicTypes = new ArrayList<BCF2TypedValue>();
     final List<BCF2TypedValue> forCombinations = new ArrayList<BCF2TypedValue>();
@@ -102,9 +102,9 @@ public class EncoderDecoderUnitTest extends BaseTest {
         primitives.add(new BCF2TypedValue(-1.23e15, BCF2Type.FLOAT));
         primitives.add(new BCF2TypedValue(Float.MIN_VALUE, BCF2Type.FLOAT));
         primitives.add(new BCF2TypedValue(Float.MAX_VALUE, BCF2Type.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.NEGATIVE_INFINITY, BCF2Type.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.POSITIVE_INFINITY, BCF2Type.FLOAT));
-        primitives.add(new BCF2TypedValue(Float.NaN, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Double.NEGATIVE_INFINITY, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Double.POSITIVE_INFINITY, BCF2Type.FLOAT));
+        primitives.add(new BCF2TypedValue(Double.NaN, BCF2Type.FLOAT));
 
         // strings
         //primitives.add(new BCF2TypedValue("", BCFType.CHAR)); <- will be null (which is right)
@@ -155,7 +155,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
         }
 
         private BCF2TypedValue(final double value, final BCF2Type type) {
-            this(new Float(value), type);
+            this(new Double(value), type);
         }
 
         private BCF2TypedValue(final Object value, final BCF2Type type) {
@@ -348,13 +348,17 @@ public class EncoderDecoderUnitTest extends BaseTest {
         } else if ( tv.type == BCF2Type.FLOAT ) { // need tolerance for floats, and they aren't null
             Assert.assertTrue(decoded instanceof Double);
 
-            final float valueFloat = (float)(Float)tv.value;
-            final float decodedFloat = (float)(double)(Double)decoded;
+            final double valueFloat = (Double)tv.value;
+            final double decodedFloat = (Double)decoded;
 
-            if ( Float.isNaN(valueFloat) ) // NaN == NaN => false unfortunately
-                Assert.assertTrue(Float.isNaN(decodedFloat));
+            if ( Double.isNaN(valueFloat) ) // NaN == NaN => false unfortunately
+                Assert.assertTrue(Double.isNaN(decodedFloat));
+            else if ( Double.isInfinite(valueFloat) ) // NaN == NaN => false unfortunately
+                Assert.assertTrue(Double.isInfinite(decodedFloat));
             else {
-                Assert.assertEquals(decodedFloat, valueFloat, FLOAT_TOLERANCE);
+                final double delta = Math.abs(decodedFloat - valueFloat);
+                final double ratio = Math.abs(decodedFloat / valueFloat - 1.0);
+                Assert.assertTrue(delta < FLOAT_TOLERANCE || ratio < FLOAT_TOLERANCE);
             }
         } else
             Assert.assertEquals(decoded, tv.value);

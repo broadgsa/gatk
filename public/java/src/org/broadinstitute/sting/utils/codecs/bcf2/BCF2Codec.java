@@ -129,13 +129,20 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
 
     @Override
     public boolean canDecode( final String path ) {
+        FileInputStream fis = null;
         try {
-            FileInputStream fis = new FileInputStream(path);
+            fis = new FileInputStream(path);
             return BCF2Utils.startsWithBCF2Magic(fis);
         } catch ( FileNotFoundException e ) {
             return false;
         } catch ( IOException e ) {
             return false;
+        } finally {
+            try {
+                if ( fis != null ) fis.close();
+            } catch ( IOException e ) {
+                ; // do nothing
+            }
         }
     }
 

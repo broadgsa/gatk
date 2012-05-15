@@ -64,12 +64,6 @@ public abstract class BaseTest {
     public static final String b37GoodNA12878BAM = validationDataLocation + "/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam";
     public static final String b37_NA12878_OMNI = validationDataLocation + "/NA12878.omni.vcf";
 
-    public static final String refseqAnnotationLocation = annotationDataLocation + "refseq/";
-    public static final String hg18Refseq = refseqAnnotationLocation + "refGene-big-table-hg18.txt";
-    public static final String hg19Refseq = refseqAnnotationLocation + "refGene-big-table-hg19.txt";
-    public static final String b36Refseq = refseqAnnotationLocation + "refGene-big-table-b36.txt";
-    public static final String b37Refseq = refseqAnnotationLocation + "refGene-big-table-b37.txt";
-
     public static final String dbsnpDataLocation = GATKDataLocation;
     public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.vcf";
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.vcf";
@@ -84,7 +78,7 @@ public abstract class BaseTest {
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
     public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
-    public static final boolean REQUIRE_NETWORK_CONNECTION = true;
+    public static final boolean REQUIRE_NETWORK_CONNECTION = false;
     public static final String networkTempDir;
     public static final File networkTempDirFile;
 

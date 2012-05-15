@@ -199,8 +199,8 @@ public class BCF2Decoder {
         return BCF2Utils.readInt(bytesForEachInt, recordStream);
     }
 
-    public final float rawFloatToFloat(final int rawFloat) {
-        return Float.intBitsToFloat(rawFloat);
+    public final double rawFloatToFloat(final int rawFloat) {
+        return (double)Float.intBitsToFloat(rawFloat);
     }
 
     // ----------------------------------------------------------------------

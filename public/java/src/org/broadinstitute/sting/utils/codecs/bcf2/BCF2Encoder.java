@@ -140,7 +140,7 @@ public class BCF2Encoder {
                 case INT8:
                 case INT16:
                 case INT32: encodePrimitive((Integer)value, type); break;
-                case FLOAT: encodeRawFloat((Float) value, type); break;
+                case FLOAT: encodeRawFloat((Double) value, type); break;
                 case CHAR:  encodeRawChar((Byte) value); break;
                 default:    throw new ReviewedStingException("Illegal type encountered " + type);
             }
@@ -166,8 +166,8 @@ public class BCF2Encoder {
         encodeStream.write(c);
     }
 
-    public final void encodeRawFloat(final float value, final BCF2Type type) throws IOException {
-        encodePrimitive(Float.floatToIntBits(value), type);
+    public final void encodeRawFloat(final double value, final BCF2Type type) throws IOException {
+        encodePrimitive(Float.floatToIntBits((float)value), type);
     }
 
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
@@ -217,7 +217,7 @@ public class BCF2Encoder {
     private final BCF2Type determinePrimitiveType(final Object v) {
         if ( v instanceof Integer )
             return determineIntegerType((Integer)v);
-        else if ( v instanceof Float )
+        else if ( v instanceof Double )
             return BCF2Type.FLOAT;
         else
             throw new ReviewedStingException("No native encoding for Object of type " + v.getClass().getSimpleName());

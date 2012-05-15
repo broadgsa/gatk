@@ -299,7 +299,15 @@ class BCF2Writer extends IndexingVariantContextWriter {
             case Character: return new VCFToBCFType(metaData.getType(), BCF2Type.CHAR);
             case Flag:      return new VCFToBCFType(metaData.getType(), BCF2Type.INT8);
             case String:    return new VCFToBCFType(metaData.getType(), BCF2Type.CHAR);
-            case Integer:   return new VCFToBCFType(metaData.getType(), maybeIntValue != null ? encoder.determineIntegerType((Integer)maybeIntValue) : BCF2Type.INT32);
+            case Integer:   // note integer calculation is a bit complex because of the need to determine sizes
+                BCF2Type type;
+                if ( maybeIntValue == null )
+                    type = BCF2Type.INT8;
+                else if ( maybeIntValue instanceof List )
+                    type = encoder.determineIntegerType(((List<Integer>)maybeIntValue));
+                else
+                    type = encoder.determineIntegerType((Integer)maybeIntValue);
+                return new VCFToBCFType(metaData.getType(), type);
             case Float:     return new VCFToBCFType(metaData.getType(), BCF2Type.FLOAT);
             default:        throw new ReviewedStingException("Unexpected type for field " + field);
         }

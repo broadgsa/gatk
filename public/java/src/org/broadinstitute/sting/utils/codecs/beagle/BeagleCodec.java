@@ -232,7 +232,4 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
 
         return bglFeature;
     }
-
-    public boolean canDecode(final String potentialInput) { return false; }
-
 }
