@@ -172,10 +172,9 @@ public class VariantContextTestProvider {
 
         add(builder().attribute("STRING1", "s1"));
         add(builder().attribute("STRING1", null));
-        // TODO - renable when BCF2 spec is fixed
-//        add(builder().attribute("STRING3", Arrays.asList("s1", "s2", "s3")));
-//        add(builder().attribute("STRING3", null));
-//        add(builder().attribute("STRING20", Arrays.asList("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16", "s17", "s18", "s19", "s20")));
+        add(builder().attribute("STRING3", Arrays.asList("s1", "s2", "s3")));
+        add(builder().attribute("STRING3", null));
+        add(builder().attribute("STRING20", Arrays.asList("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16", "s17", "s18", "s19", "s20")));
         metaData.add(new VCFInfoHeaderLine("STRING1", 1, VCFHeaderLineType.String, "x"));
         metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
         metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));

@@ -72,15 +72,13 @@ public class BCF2Encoder {
     public final BCF2Type encode(final Object o) throws IOException {
         if ( o == null ) throw new ReviewedStingException("Generic encode cannot deal with null values");
 
-        if ( o instanceof String ) {
-            return encodeString((String)o);
-        } else if ( o instanceof List ) {
-            final BCF2Type type = determinePrimitiveType(((List) o).get(0));
-            encodeTypedVector((List) o, type);
+        if ( o instanceof List ) {
+            final BCF2Type type = determineBCFType(((List) o).get(0));
+            encodeTyped((List) o, type);
             return type;
         } else {
-            final BCF2Type type = determinePrimitiveType(o);
-            encodeTypedSingleton(o, type);
+            final BCF2Type type = determineBCFType(o);
+            encodeTyped(o, type);
             return type;
         }
     }
@@ -92,31 +90,27 @@ public class BCF2Encoder {
     // --------------------------------------------------------------------------------
 
     public final void encodeTypedMissing(final BCF2Type type) throws IOException {
-        encodeTypedVector(Collections.emptyList(), type);
+        encodeTyped(Collections.emptyList(), type);
     }
 
     // todo -- should be specialized for each object type for efficiency
-    public final void encodeTypedSingleton(final Object v, final BCF2Type type) throws IOException {
-        encodeTypedVector(Collections.singleton(v), type);
+    public final void encodeTyped(final Object v, final BCF2Type type) throws IOException {
+        encodeTyped(Collections.singletonList(v), type);
     }
 
-    public final BCF2Type encodeString(final String v) throws IOException {
-        // TODO -- this needs to be optimized
-        final byte[] bytes = v.getBytes();
-        final List<Byte> l = new ArrayList<Byte>(bytes.length);
-        for ( int i = 0; i < bytes.length; i++) l.add(bytes[i]);
-        encodeTypedVector(l, BCF2Type.CHAR);
-        return BCF2Type.CHAR;
-    }
+    public final void encodeTyped(List<? extends Object> v, final BCF2Type type) throws IOException {
+        if ( type == BCF2Type.CHAR && v.size() != 0 ) {
+            final String s = v.size() > 1 ? BCF2Utils.collapseStringList((List<String>)v) : (String)v.get(0);
+            v = stringToBytes(s);
+        }
 
-    public final <T extends Object> void encodeTypedVector(final Collection<T> v, final BCF2Type type) throws IOException {
         encodeType(v.size(), type);
         encodeRawValues(v, type);
     }
 
     public final BCF2Type encodeTypedIntOfBestSize(final int value) throws IOException {
         final BCF2Type type = determineIntegerType(value);
-        encodeTypedSingleton(value, type);
+        encodeTyped(value, type);
         return type;
     }
 
@@ -214,13 +208,17 @@ public class BCF2Encoder {
         throw new ReviewedStingException("Integer cannot be encoded in allowable range of even INT32: " + value);
     }
 
-    private final BCF2Type determinePrimitiveType(final Object v) {
-        if ( v instanceof Integer )
-            return determineIntegerType((Integer)v);
-        else if ( v instanceof Double )
+    private final BCF2Type determineBCFType(final Object arg) {
+        final Object toType = arg instanceof List ? ((List)arg).get(0) : arg;
+
+        if ( toType instanceof Integer )
+            return determineIntegerType((Integer)toType);
+        else if ( toType instanceof String )
+            return BCF2Type.CHAR;
+        else if ( toType instanceof Double )
             return BCF2Type.FLOAT;
         else
-            throw new ReviewedStingException("No native encoding for Object of type " + v.getClass().getSimpleName());
+            throw new ReviewedStingException("No native encoding for Object of type " + arg.getClass().getSimpleName());
     }
 
     public final static void encodePrimitive(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
@@ -230,5 +228,13 @@ public class BCF2Encoder {
             int byteValue = (mask & value) >> shift;
             encodeStream.write(byteValue);
         }
+    }
+
+    private final List<Byte> stringToBytes(final String v) throws IOException {
+        // TODO -- this needs to be optimized away for efficiency
+        final byte[] bytes = v.getBytes();
+        final List<Byte> l = new ArrayList<Byte>(bytes.length);
+        for ( int i = 0; i < bytes.length; i++) l.add(bytes[i]);
+        return l;
     }
 }

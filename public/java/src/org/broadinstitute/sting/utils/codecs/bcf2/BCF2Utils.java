@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Common utilities for working with BCF2 files
@@ -56,6 +57,14 @@ public class BCF2Utils {
     public static final int FLOAT_MISSING_VALUE = 0x7F800001;
 
     public final static BCF2Type[] INTEGER_TYPES_BY_SIZE = new BCF2Type[]{BCF2Type.INT8, BCF2Type.INT16, BCF2Type.INT32};
+    public final static BCF2Type[] ID_TO_ENUM;
+
+    static {
+        int maxID = -1;
+        for ( BCF2Type v : BCF2Type.values() ) maxID = Math.max(v.getID(), maxID);
+        ID_TO_ENUM = new BCF2Type[maxID+1];
+        for ( BCF2Type v : BCF2Type.values() ) ID_TO_ENUM[v.getID()] = v;
+    }
 
     private BCF2Utils() {}
 
@@ -98,7 +107,7 @@ public class BCF2Utils {
     }
 
     public final static BCF2Type decodeType(final byte typeDescriptor) {
-        return BCF2Type.values()[decodeTypeID(typeDescriptor)];
+        return ID_TO_ENUM[decodeTypeID(typeDescriptor)];
     }
 
     public final static boolean sizeIsOverflow(final byte typeDescriptor) {
@@ -139,5 +148,43 @@ public class BCF2Utils {
                 return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
             } default: throw new ReviewedStingException("Unexpected size during decoding");
         }
+    }
+
+    /**
+     * Collapse multiple strings into a comma separated list
+     *
+     * ["s1", "s2", "s3"] => ",s1,s2,s3"
+     *
+     * @param strings size > 1 list of strings
+     * @return
+     */
+    public static final String collapseStringList(final List<String> strings) {
+        assert strings.size() > 1;
+
+        StringBuilder b = new StringBuilder();
+        for ( final String s : strings ) {
+            assert s.indexOf(",") == -1; // no commas in individual strings
+            b.append(",").append(s);
+        }
+        return b.toString();
+    }
+
+    /**
+     * Inverse operation of collapseStringList.
+     *
+     * ",s1,s2,s3" => ["s1", "s2", "s3"]
+     *
+     *
+     * @param collapsed
+     * @return
+     */
+    public static final List<String> exploreStringList(final String collapsed) {
+        assert isCollapsedString(collapsed);
+        final String[] exploded = collapsed.substring(1).split(",");
+        return Arrays.asList(exploded);
+    }
+
+    public static final boolean isCollapsedString(final String s) {
+        return s.charAt(0) == ',';
     }
 }

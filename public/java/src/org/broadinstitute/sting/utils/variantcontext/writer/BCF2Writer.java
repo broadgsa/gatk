@@ -173,13 +173,13 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private void buildID( VariantContext vc ) throws IOException {
-        encoder.encodeString(vc.getID());
+        encoder.encodeTyped(vc.getID(), BCF2Type.CHAR);
     }
 
     private void buildAlleles( VariantContext vc ) throws IOException {
         for ( final Allele allele : vc.getAlleles() ) {
             final String s = vc.getAlleleWithRefPadding(allele);
-            encoder.encodeString(s);
+            encoder.encodeTyped(s, BCF2Type.CHAR);
         }
     }
 
@@ -194,19 +194,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private void buildInfo( VariantContext vc ) throws IOException {
         for ( Map.Entry<String, Object> infoFieldEntry : vc.getAttributes().entrySet() ) {
             final String key = infoFieldEntry.getKey();
-            Object value = infoFieldEntry.getValue();
-
-            final VCFToBCFType typeEquiv = getBCF2TypeFromHeader(key, value);
-            // handle the special FLAG case -- super annoying
-            if ( typeEquiv.vcfType == VCFHeaderLineType.Flag ) value = 1;
+            final VCFToBCFEncoding encoding = prepFieldValueForEncoding(key, infoFieldEntry.getValue());
 
             encodeStringByRef(key);
-            if ( value instanceof List ) // NOTE: ONLY WORKS WITH LISTS
-                encoder.encodeTypedVector((List) value, typeEquiv.BCF2Type);
-            else if ( value instanceof String )
-                encoder.encodeString((String)value);
-            else
-                encoder.encodeTypedSingleton(value, typeEquiv.BCF2Type);
+            encoder.encodeTyped(encoding.valuesToEncode, encoding.BCF2Type);
         }
     }
 
@@ -265,51 +256,67 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final void addGenericGenotypeField(final VariantContext vc, final String field) throws IOException {
         final int numInFormatField = getNGenotypeFieldValues(field, vc);
-        final VCFToBCFType type = getBCF2TypeFromHeader(field, null);
+        final VCFToBCFEncoding encoding = prepFieldValueForEncoding(field, null);
 
-        startGenotypeField(field, numInFormatField, type.BCF2Type);
+        startGenotypeField(field, numInFormatField, encoding.BCF2Type);
         for ( final Genotype g : vc.getGenotypes() ) {
             if ( ! g.hasAttribute(field) ) {
-                encoder.encodeRawMissingValues(numInFormatField, type.BCF2Type);
+                encoder.encodeRawMissingValues(numInFormatField, encoding.BCF2Type);
             } else {
                 final Object val = g.getAttribute(field);
                 final Collection<Object> vals = numInFormatField == 1 ? Collections.singleton(val) : (Collection)val;
-                encoder.encodeRawValues(vals, type.BCF2Type);
+                encoder.encodeRawValues(vals, encoding.BCF2Type);
             }
         }
     }
 
-    private final class VCFToBCFType {
+    private final class VCFToBCFEncoding {
         VCFHeaderLineType vcfType;
         BCF2Type BCF2Type;
+        List<Object> valuesToEncode;
 
-        private VCFToBCFType(final VCFHeaderLineType vcfType, final BCF2Type BCF2Type) {
+        private VCFToBCFEncoding(final VCFHeaderLineType vcfType, final BCF2Type BCF2Type, final List<? extends Object> valuesToEncode) {
             this.vcfType = vcfType;
             this.BCF2Type = BCF2Type;
+            this.valuesToEncode = (List<Object>)valuesToEncode;
         }
     }
 
     // TODO -- we really need explicit converters as first class objects
-    private final VCFToBCFType getBCF2TypeFromHeader(final String field, final Object maybeIntValue) {
-        // TODO -- need to generalize so we can enable vectors of compressed genotype ints
+    // TODO -- need to generalize so we can enable vectors of compressed genotype ints
+    // TODO -- no sense in allocating these over and over
+    private final VCFToBCFEncoding prepFieldValueForEncoding(final String field, final Object value) {
         final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, field);
+        final boolean isList = value instanceof List;
+        final Object toType = isList ? ((List)value).get(0) : value;
 
-        // TODO -- no sense in allocating these over and over
         switch ( metaData.getType() ) {
-            case Character: return new VCFToBCFType(metaData.getType(), BCF2Type.CHAR);
-            case Flag:      return new VCFToBCFType(metaData.getType(), BCF2Type.INT8);
-            case String:    return new VCFToBCFType(metaData.getType(), BCF2Type.CHAR);
+            case Character:
+                assert toType instanceof String;
+                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, Collections.singletonList(value));
+            case Flag:
+                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.INT8, Collections.singletonList(1));
+            case String:
+                final List<String> s = isList ? (List<String>)value : Collections.singletonList((String)value);
+                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, s);
             case Integer:   // note integer calculation is a bit complex because of the need to determine sizes
-                BCF2Type type;
-                if ( maybeIntValue == null )
-                    type = BCF2Type.INT8;
-                else if ( maybeIntValue instanceof List )
-                    type = encoder.determineIntegerType(((List<Integer>)maybeIntValue));
-                else
-                    type = encoder.determineIntegerType((Integer)maybeIntValue);
-                return new VCFToBCFType(metaData.getType(), type);
-            case Float:     return new VCFToBCFType(metaData.getType(), BCF2Type.FLOAT);
-            default:        throw new ReviewedStingException("Unexpected type for field " + field);
+                List<Integer> l;
+                BCF2Type intType;
+                if ( isList ) {
+                    l = (List<Integer>)value;
+                    intType = encoder.determineIntegerType(l);
+                } else if ( value != null ) {
+                    intType = encoder.determineIntegerType((Integer)value);
+                    l = Collections.singletonList((Integer)value);
+                } else {
+                    intType = BCF2Type.INT8;
+                    l = Collections.singletonList((Integer) null);
+                }
+                return new VCFToBCFEncoding(metaData.getType(), intType, l);
+            case Float:
+                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.FLOAT, isList ? (List<Double>)value : Collections.singletonList(value));
+            default:
+                throw new ReviewedStingException("Unexpected type for field " + field);
         }
     }
 
@@ -395,7 +402,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
         }
 
         // we've checked the types for all strings, so write them out
-        encoder.encodeTypedVector(offsets, maxType);
+        encoder.encodeTyped(offsets, maxType);
         return maxType;
     }
 

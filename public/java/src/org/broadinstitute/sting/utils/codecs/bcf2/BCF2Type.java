@@ -31,29 +31,28 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
  * @since 05/12
  */
 public enum BCF2Type {
-    RESERVED_0,
-    INT8(1, BCF2Utils.INT8_MISSING_VALUE, -127, 127), // todo -- confirm range
-    INT16(2, BCF2Utils.INT16_MISSING_VALUE, -32767, 32767),
-    INT32(4, BCF2Utils.INT32_MISSING_VALUE, -2147483647, 2147483647),
-    RESERVED_4,
-    FLOAT(4, BCF2Utils.FLOAT_MISSING_VALUE),
-    RESERVED_6,
-    CHAR;
+    INT8(1, 1, BCF2Utils.INT8_MISSING_VALUE, -127, 127), // todo -- confirm range
+    INT16(2, 2, BCF2Utils.INT16_MISSING_VALUE, -32767, 32767),
+    INT32(3, 4, BCF2Utils.INT32_MISSING_VALUE, -2147483647, 2147483647),
+    FLOAT(5, 4, BCF2Utils.FLOAT_MISSING_VALUE),
+    CHAR(7);
 
+    private final int id;
     private final Object missingJavaValue;
     private final int missingBytes;
     private final int sizeInBytes;
     private final long minValue, maxValue;
 
-    BCF2Type() {
-        this(-1, 0, 0, 0);
+    BCF2Type(final int id) {
+        this(id, -1, 0, 0, 0);
     }
 
-    BCF2Type(final int sizeInBytes, final int missingBytes) {
-        this(sizeInBytes, missingBytes, 0, 0);
+    BCF2Type(final int id, final int sizeInBytes, final int missingBytes) {
+        this(id, sizeInBytes, missingBytes, 0, 0);
     }
 
-    BCF2Type(final int sizeInBytes, final int missingBytes, final long minValue, final long maxValue) {
+    BCF2Type(final int id, final int sizeInBytes, final int missingBytes, final long minValue, final long maxValue) {
+        this.id = id;
         this.sizeInBytes = sizeInBytes;
         this.missingJavaValue = null;
         this.missingBytes = missingBytes;
@@ -64,7 +63,7 @@ public enum BCF2Type {
     public int getSizeInBytes() {
         return sizeInBytes;
     }
-    public int getID() { return ordinal(); }
+    public int getID() { return id; }
     public final boolean withinRange(final long v) { return v >= minValue && v <= maxValue; }
     public Object getMissingJavaValue() { return missingJavaValue; }
     public int getMissingBytes() { return missingBytes; }

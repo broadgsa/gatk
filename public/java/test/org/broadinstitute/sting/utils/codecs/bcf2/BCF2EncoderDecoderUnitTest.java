@@ -30,6 +30,7 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -42,7 +43,7 @@ import java.io.InputStream;
 import java.util.*;
 
 
-public class EncoderDecoderUnitTest extends BaseTest {
+public class BCF2EncoderDecoderUnitTest extends BaseTest {
     private final double FLOAT_TOLERANCE = 1e-6;
     final List<BCF2TypedValue> primitives = new ArrayList<BCF2TypedValue>();
     final List<BCF2TypedValue> basicTypes = new ArrayList<BCF2TypedValue>();
@@ -54,7 +55,7 @@ public class EncoderDecoderUnitTest extends BaseTest {
         basicTypes.add(new BCF2TypedValue(1000, BCF2Type.INT16));
         basicTypes.add(new BCF2TypedValue(1000000, BCF2Type.INT32));
         basicTypes.add(new BCF2TypedValue(1.2345e6, BCF2Type.FLOAT));
-        basicTypes.add(new BCF2TypedValue(new Byte((byte)'A'), BCF2Type.CHAR));
+        basicTypes.add(new BCF2TypedValue("A", BCF2Type.CHAR));
 
         // small ints
         primitives.add(new BCF2TypedValue(0, BCF2Type.INT8));
@@ -137,7 +138,6 @@ public class EncoderDecoderUnitTest extends BaseTest {
         for ( BCF2Type type : BCF2Type.values() ) {
             forCombinations.add(new BCF2TypedValue(null, type));
         }
-
     }
 
     // --------------------------------------------------------------------------------
@@ -203,28 +203,38 @@ public class EncoderDecoderUnitTest extends BaseTest {
         decodeRecord(toEncode, record);
     }
 
+    @DataProvider(name = "ListOfStrings")
+    public Object[][] listOfStringsProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{Arrays.asList("s1", "s2"), ",s1,s2"});
+        tests.add(new Object[]{Arrays.asList("s1", "s2", "s3"), ",s1,s2,s3"});
+        tests.add(new Object[]{Arrays.asList("s1", "s2", "s3", "s4"), ",s1,s2,s3,s4"});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ListOfStrings")
+    public void testEncodingListOfString(List<String> strings, String expected) throws IOException {
+        final String collapsed = BCF2Utils.collapseStringList(strings);
+        Assert.assertEquals(collapsed, expected);
+        Assert.assertEquals(BCF2Utils.exploreStringList(collapsed), strings);
+    }
+
     @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
     public void testBCF2EncodingVectors(final List<BCF2TypedValue> toEncode) throws IOException {
         for ( final BCF2TypedValue tv : toEncode ) {
             for ( final int length : Arrays.asList(2, 5, 10, 15, 20, 25) ) {
                 BCF2Encoder encoder = new BCF2Encoder();
                 List<Object> expected = Collections.nCopies(length, tv.value);
-                encoder.encodeTypedVector(expected, tv.type);
+                encoder.encodeTyped(expected, tv.type);
 
                 BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
                 final Object decoded = decoder.decodeTypedValue();
 
-                if ( tv.type == BCF2Type.CHAR ) {
-                    Assert.assertTrue(decoded instanceof String);
-                    final String decodedString = (String)decoded;
-                    Assert.assertTrue(decodedString.length() == length);
-                } else {
-                    Assert.assertTrue(decoded instanceof List);
-                    final List<Object> decodedList = (List<Object>)decoded;
-                    Assert.assertEquals(decodedList.size(), expected.size());
-                    for ( Object decodedValue : decodedList )
-                        myAssertEquals(tv, decodedValue);
-                }
+                Assert.assertTrue(decoded instanceof List);
+                final List<Object> decodedList = (List<Object>)decoded;
+                Assert.assertEquals(decodedList.size(), expected.size());
+                for ( Object decodedValue : decodedList )
+                    myAssertEquals(tv, decodedValue);
             }
         }
     }

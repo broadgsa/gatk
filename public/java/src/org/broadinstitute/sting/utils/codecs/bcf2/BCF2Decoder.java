@@ -173,12 +173,14 @@ public class BCF2Decoder {
     //
     // ----------------------------------------------------------------------
 
-    private final String decodeLiteralString(final int size) {
+    private final Object decodeLiteralString(final int size) {
+        assert size > 0;
         // TODO -- assumes size > 0
         final byte[] bytes = new byte[size]; // TODO -- in principle should just grab bytes from underlying array
         try {
             recordStream.read(bytes);
-            return new String(bytes);
+            final String s = new String(bytes);
+            return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
         } catch ( IOException e ) {
             throw new ReviewedStingException("readByte failure", e);
         }
