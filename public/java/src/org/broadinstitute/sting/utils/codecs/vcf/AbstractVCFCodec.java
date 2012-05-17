@@ -693,7 +693,10 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                 if ( a.isSymbolic() ) {
                     clippedAlleles.add(a);
                 } else {
-                    clippedAlleles.add(Allele.create(Arrays.copyOfRange(a.getBases(), forwardClipping, a.getBases().length-reverseClipping), a.isReference()));
+                    final byte[] allele = Arrays.copyOfRange(a.getBases(), forwardClipping, a.getBases().length-reverseClipping);
+                    if ( !Allele.acceptableAlleleBases(allele) )
+                        generateException("Unparsable vcf record with bad allele [" + allele + "]", lineNo);
+                    clippedAlleles.add(Allele.create(allele, a.isReference()));
                 }
             }
         }

@@ -160,7 +160,7 @@ public class Allele implements Comparable<Allele> {
                 case 'G': case 'g' : return isRef ? REF_G : ALT_G;
                 case 'T': case 't' : return isRef ? REF_T : ALT_T;
                 case 'N': case 'n' : return isRef ? REF_N : ALT_N;
-                default: throw new IllegalArgumentException("Illegal base: " + (char)bases[0]);
+                default: throw new IllegalArgumentException("Illegal base [" + (char)bases[0] + "] seen in the allele");
             }
         } else {
             return new Allele(bases, isRef);
