@@ -185,6 +185,21 @@ public class BCF2Encoder {
     //
     // --------------------------------------------------------------------------------
 
+    public final BCF2Type determineIntegerType(final int[] values) {
+        // literally a copy of the code below, but there's no general way to unify lists and arrays in java
+        BCF2Type maxType = BCF2Type.INT8;
+        for ( final int value : values ) {
+            final BCF2Type type1 = determineIntegerType(value);
+            switch ( type1 ) {
+                case INT8: break;
+                case INT16: maxType = BCF2Type.INT16; break;
+                case INT32: return BCF2Type.INT32; // fast path for largest possible value
+                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
+            }
+        }
+        return maxType;
+    }
+
     public final BCF2Type determineIntegerType(final List<Integer> values) {
         BCF2Type maxType = BCF2Type.INT8;
         for ( final int value : values ) {

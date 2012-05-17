@@ -266,13 +266,17 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     private void decodeFilter( final VariantContextBuilder builder ) {
-        final Object filters = decoder.decodeTypedValue();
+        final Object value = decoder.decodeTypedValue();
 
-        if ( filters == null ) {
+        if ( value == null )
             builder.unfiltered();
-        }
         else {
-            builder.filters(new LinkedHashSet<String>(asStrings(filters)));
+            if ( value instanceof Integer )
+                builder.filter(getDictionaryString((Integer)value));
+            else {
+                for ( int offset : (List<Integer>)value )
+                    builder.filter(getDictionaryString(offset));
+            }
         }
     }
 
@@ -320,12 +324,21 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
                     final Integer value = (Integer)values.get(i);
                     if ( value != BCF2Type.INT8.getMissingJavaValue() )
                         log10PError = value / -10.0;
+                } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
+                    final List<Integer> pls = (List<Integer>)values.get(i);
+                    if ( pls != null ) { // we have a PL field
+                        log10Likelihoods = new double[pls.size()];
+                        for ( int j = 0; j < log10Likelihoods.length; j++ )
+                            log10Likelihoods[j] = pls.get(j) / -10.0;
+                    }
                 } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                     throw new ReviewedStingException("Genotype filters not implemented in GATK BCF2");
                     //filters = new HashSet<String>(values.get(i));
                 } else { // add to attributes
-                    if ( attributes == null ) attributes = new HashMap<String, Object>(nFields);
-                    attributes.put(field, values.get(i));
+                    if ( values.get(i) != null ) { // don't add missing values
+                        if ( attributes == null ) attributes = new HashMap<String, Object>(nFields);
+                        attributes.put(field, values.get(i));
+                    }
                 }
             }
 
@@ -370,7 +383,10 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     private final String getDictionaryString() {
-        final int offset = (Integer)decoder.decodeTypedValue();
+        return getDictionaryString((Integer) decoder.decodeTypedValue());
+    }
+
+    private final String getDictionaryString(final int offset) {
         final String field = dictionary.get(offset);
         return field;
     }
@@ -381,26 +397,6 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
         }
         else {
             throw new UserException.MalformedBCF2(String.format("No contig at index %d present in the sequence dictionary from the BCF2 header (%s)", contigOffset, contigNames));
-        }
-    }
-
-    // ----------------------------------------------------------------------
-    //
-    // Utility functions
-    //
-    // ----------------------------------------------------------------------
-
-    private final Collection<String> asStrings(final Object o) {
-        return asCollection(String.class, o);
-    }
-
-    private final <T> Collection<T> asCollection(final Class<T> c, final Object o) {
-        if ( o == null )
-            return Collections.emptyList();
-        else if ( o instanceof List ) {
-            return (List<T>)o;
-        } else {
-            return (Set<T>)Collections.singleton(o);
         }
     }
 }

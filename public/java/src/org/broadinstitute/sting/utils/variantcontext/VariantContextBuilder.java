@@ -242,7 +242,13 @@ public class VariantContextBuilder {
      * @return
      */
     public VariantContextBuilder filters(final String ... filters) {
-        filters(new HashSet<String>(Arrays.asList(filters)));
+        filters(new LinkedHashSet<String>(Arrays.asList(filters)));
+        return this;
+    }
+
+    public VariantContextBuilder filter(final String filter) {
+        if ( this.filters == null ) this.filters = new LinkedHashSet<String>(1);
+        this.filters.add(filter);
         return this;
     }
 

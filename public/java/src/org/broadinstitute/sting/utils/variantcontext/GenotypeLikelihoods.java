@@ -24,19 +24,15 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.*;
+import java.util.EnumMap;
 
-public class GenotypeLikelihoods implements List<Double> {
-    public static final boolean CAP_PLS = false;
-    public static final int PL_CAP = 255;
-
+public class GenotypeLikelihoods {
     //
     // There are two objects here because we are lazy in creating both representations
     // for this object: a vector of log10 Probs and the PL phred-scaled string.  Supports
@@ -57,14 +53,18 @@ public class GenotypeLikelihoods implements List<Double> {
         return new GenotypeLikelihoods(log10Likelihoods);
     }
 
+    public final static GenotypeLikelihoods fromPLs(final int[] pls) {
+        return new GenotypeLikelihoods(PLsToGLs(pls));
+    }
+
     //
     // You must use the factory methods now
     //
-    protected GenotypeLikelihoods(String asString) {
+    private GenotypeLikelihoods(String asString) {
         likelihoodsAsString_PLs = asString;
     }
 
-    protected GenotypeLikelihoods(double[] asVector) {
+    private GenotypeLikelihoods(double[] asVector) {
         log10Likelihoods = asVector;
     }
 
@@ -83,6 +83,11 @@ public class GenotypeLikelihoods implements List<Double> {
         }
 
         return log10Likelihoods;
+    }
+
+    public int[] getAsPLs() {
+        final double[] GLs = getAsVector();
+        return GLs == null ? null : GLsToPLs(GLs);
     }
 
     public String toString() {
@@ -181,66 +186,84 @@ public class GenotypeLikelihoods implements List<Double> {
         return null;
     }
 
-    private final static String convertLikelihoodsToPLString(double[] GLs) {
+    private final static String convertLikelihoodsToPLString(final double[] GLs) {
         if ( GLs == null )
             return VCFConstants.MISSING_VALUE_v4;
 
-        StringBuilder s = new StringBuilder();
-
-        double adjust = Double.NEGATIVE_INFINITY;
-        for ( double l : GLs ) adjust = Math.max(adjust, l);
-
+        final StringBuilder s = new StringBuilder();
         boolean first = true;
-        for ( double l : GLs ) {
+        for ( final int pl : GLsToPLs(GLs) ) {
             if ( ! first )
                 s.append(",");
             else
                 first = false;
 
-            long PL = Math.round(-10 * (l - adjust));
-            if ( CAP_PLS )
-                PL = Math.min(PL, PL_CAP);
-            s.append(Long.toString(PL));
+            s.append(pl);
         }
 
         return s.toString();
     }
 
-    // -------------------------------------------------------------------------------------
-    //
-    // List interface functions
-    //
-    // -------------------------------------------------------------------------------------
+    private final static int[] GLsToPLs(final double[] GLs) {
+        final int[] pls = new int[GLs.length];
+        final double adjust = maxPL(GLs);
 
-    private final void notImplemented() {
-        throw new ReviewedStingException("BUG: code not implemented");
+        for ( int i = 0; i < GLs.length; i++ ) {
+            pls[i] = (int)Math.round(-10 * (GLs[i] - adjust));
+        }
+
+        return pls;
     }
 
-    @Override public int size() { return this.log10Likelihoods.length; }
-    @Override public Double get(final int i) { return log10Likelihoods[i];}
-    @Override public Double set(final int i, final Double aDouble) { return log10Likelihoods[i] = aDouble; }
-    @Override public boolean isEmpty() { return false; }
-    @Override public Iterator<Double> iterator() { return Arrays.asList(ArrayUtils.toObject(log10Likelihoods)).iterator(); }
-    @Override public Object[] toArray() { return ArrayUtils.toObject(log10Likelihoods); }
+    private final static double maxPL(final double[] GLs) {
+        double adjust = Double.NEGATIVE_INFINITY;
+        for ( double l : GLs ) adjust = Math.max(adjust, l);
+        return adjust;
+    }
 
-    // none of these are implemented
-    @Override public boolean contains(final Object o) { notImplemented(); return false; }
-    @Override public <T> T[] toArray(final T[] ts) { notImplemented(); return null; }
-    @Override public boolean add(final Double aDouble) { notImplemented(); return false; }
-    @Override public boolean remove(final Object o) {notImplemented(); return false; }
-    @Override public boolean containsAll(final Collection<?> objects) { notImplemented(); return false; }
-    @Override public boolean addAll(final Collection<? extends Double> doubles) { notImplemented(); return false; }
-    @Override public boolean addAll(final int i, final Collection<? extends Double> doubles) { notImplemented(); return false; }
-    @Override public boolean removeAll(final Collection<?> objects) { notImplemented(); return false; }
-    @Override public boolean retainAll(final Collection<?> objects) { notImplemented(); return false; }
-    @Override public void clear() { notImplemented(); }
-    @Override public void add(final int i, final Double aDouble) { notImplemented(); }
-    @Override public Double remove(final int i) { notImplemented(); return null; }
-    @Override public int indexOf(final Object o) { notImplemented(); return -1; }
-    @Override public int lastIndexOf(final Object o) { notImplemented(); return 0; }
-    @Override public ListIterator<Double> listIterator() { notImplemented(); return null; }
-    @Override public ListIterator<Double> listIterator(final int i) { notImplemented(); return null; }
-    @Override public List<Double> subList(final int i, final int i1) { notImplemented(); return null; }
+    private final static double[] PLsToGLs(final int pls[]) {
+        double[] likelihoodsAsVector = new double[pls.length];
+        for ( int i = 0; i < pls.length; i++ ) {
+            likelihoodsAsVector[i] = pls[i] / -10.0;
+        }
+        return likelihoodsAsVector;
+    }
+
+//    // -------------------------------------------------------------------------------------
+//    //
+//    // List interface functions
+//    //
+//    // -------------------------------------------------------------------------------------
+//
+//    private final void notImplemented() {
+//        throw new ReviewedStingException("BUG: code not implemented");
+//    }
+//
+//    @Override public int size() { return getAsVector().length; }
+//    @Override public Double get(final int i) { return getAsVector()[i];}
+//    @Override public Double set(final int i, final Double aDouble) { return getAsVector()[i] = aDouble; }
+//    @Override public boolean isEmpty() { return false; }
+//    @Override public Iterator<Double> iterator() { return Arrays.asList(ArrayUtils.toObject(getAsVector())).iterator(); }
+//    @Override public Object[] toArray() { return ArrayUtils.toObject(getAsVector()); }
+//
+//    // none of these are implemented
+//    @Override public boolean contains(final Object o) { notImplemented(); return false; }
+//    @Override public <T> T[] toArray(final T[] ts) { notImplemented(); return null; }
+//    @Override public boolean add(final Double aDouble) { notImplemented(); return false; }
+//    @Override public boolean remove(final Object o) {notImplemented(); return false; }
+//    @Override public boolean containsAll(final Collection<?> objects) { notImplemented(); return false; }
+//    @Override public boolean addAll(final Collection<? extends Double> doubles) { notImplemented(); return false; }
+//    @Override public boolean addAll(final int i, final Collection<? extends Double> doubles) { notImplemented(); return false; }
+//    @Override public boolean removeAll(final Collection<?> objects) { notImplemented(); return false; }
+//    @Override public boolean retainAll(final Collection<?> objects) { notImplemented(); return false; }
+//    @Override public void clear() { notImplemented(); }
+//    @Override public void add(final int i, final Double aDouble) { notImplemented(); }
+//    @Override public Double remove(final int i) { notImplemented(); return null; }
+//    @Override public int indexOf(final Object o) { notImplemented(); return -1; }
+//    @Override public int lastIndexOf(final Object o) { notImplemented(); return 0; }
+//    @Override public ListIterator<Double> listIterator() { notImplemented(); return null; }
+//    @Override public ListIterator<Double> listIterator(final int i) { notImplemented(); return null; }
+//    @Override public List<Double> subList(final int i, final int i1) { notImplemented(); return null; }
 
     // -------------------------------------------------------------------------------------
     //

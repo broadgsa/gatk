@@ -29,6 +29,7 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 // the imports for unit testing.
 
 
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.testng.Assert;
@@ -237,6 +238,32 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
                     myAssertEquals(tv, decodedValue);
             }
         }
+    }
+
+    @DataProvider(name = "BestIntTypeTests")
+    public Object[][] BestIntTypeTests() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{Arrays.asList(1), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, 10), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, 10, 100), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, -1), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, 1000), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(1, 1000, 10), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(1, 1000, 100), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(1000), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(100000), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(100000, 10), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(100000, 100), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(100000, 1, -10), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(-100000, 1, -10), BCF2Type.INT32});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "BestIntTypeTests")
+    public void determineBestEncoding(final List<Integer> ints, final BCF2Type expectedType) throws IOException {
+        BCF2Encoder encoder = new BCF2Encoder();
+        Assert.assertEquals(encoder.determineIntegerType(ints), expectedType);
+        Assert.assertEquals(encoder.determineIntegerType(ArrayUtils.toPrimitive(ints.toArray(new Integer[0]))), expectedType);
     }
 
     @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")

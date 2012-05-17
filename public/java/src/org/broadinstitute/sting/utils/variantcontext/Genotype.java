@@ -214,9 +214,7 @@ public class Genotype implements Comparable<Genotype> {
             return x;
         else {
             x = getLikelihoods(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, false);
-            if ( x != null ) return x;
-            else
-                throw new IllegalStateException("BUG: genotype likelihood field in " + this.getSampleName() + " sample are not either a string or a genotype likelihood class!");
+            return x;
         }
     }
 

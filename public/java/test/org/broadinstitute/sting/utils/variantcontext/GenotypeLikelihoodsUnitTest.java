@@ -47,14 +47,14 @@ public class GenotypeLikelihoodsUnitTest {
 
     @Test
     public void testFromVector2() {
-        GenotypeLikelihoods gl = new GenotypeLikelihoods(v);
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromLog10Likelihoods(v);
         assertDoubleArraysAreEqual(gl.getAsVector(), v);
         Assert.assertEquals(gl.getAsString(), vPLString);
     }
 
     @Test
     public void testFromString1() {
-        GenotypeLikelihoods gl = new GenotypeLikelihoods(vPLString);
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromPLField(vPLString);
         assertDoubleArraysAreEqual(gl.getAsVector(), new double[]{-9.3, 0, -3.9});
         Assert.assertEquals(gl.getAsString(), vPLString);
     }
@@ -68,13 +68,13 @@ public class GenotypeLikelihoodsUnitTest {
 
     @Test (expectedExceptions = UserException.MalformedVCF.class)
     public void testErrorBadFormat() {
-        GenotypeLikelihoods gl = new GenotypeLikelihoods("adf,b,c");
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromPLField("adf,b,c");
         gl.getAsVector();
     }
 
     @Test
     public void testGetAsMap(){
-        GenotypeLikelihoods gl = new GenotypeLikelihoods(v);
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromLog10Likelihoods(v);
         //Log scale
         EnumMap<Genotype.Type,Double> glMap = gl.getAsMap(false);
         Assert.assertEquals(v[Genotype.Type.HOM_REF.ordinal()-1],glMap.get(Genotype.Type.HOM_REF));
@@ -89,7 +89,7 @@ public class GenotypeLikelihoodsUnitTest {
         Assert.assertEquals(vl[Genotype.Type.HOM_VAR.ordinal()-1],glMap.get(Genotype.Type.HOM_VAR));
 
         //Test missing likelihoods
-        gl = new GenotypeLikelihoods(".");
+        gl = GenotypeLikelihoods.fromPLField(".");
         glMap = gl.getAsMap(false);
         Assert.assertNull(glMap);
 
@@ -108,7 +108,7 @@ public class GenotypeLikelihoodsUnitTest {
     
     @Test
     public void testGetLog10GQ(){
-        GenotypeLikelihoods gl = new GenotypeLikelihoods(vPLString);
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromPLField(vPLString);
 
         //GQ for the best guess genotype
         Assert.assertEquals(gl.getLog10GQ(Genotype.Type.HET),-3.9);
@@ -120,7 +120,7 @@ public class GenotypeLikelihoodsUnitTest {
         Assert.assertEquals(gl.getLog10GQ(Genotype.Type.HOM_VAR), Math.log10(1.0 - test[Genotype.Type.HOM_VAR.ordinal()-1]));
 
        //Test missing likelihoods
-        gl = new GenotypeLikelihoods(".");
+        gl = GenotypeLikelihoods.fromPLField(".");
         Assert.assertEquals(gl.getLog10GQ(Genotype.Type.HOM_REF),Double.NEGATIVE_INFINITY);
         Assert.assertEquals(gl.getLog10GQ(Genotype.Type.HET),Double.NEGATIVE_INFINITY);
         Assert.assertEquals(gl.getLog10GQ(Genotype.Type.HOM_VAR),Double.NEGATIVE_INFINITY);

@@ -296,22 +296,30 @@ public class VariantContextTestProvider {
         }
 
         if ( ENABLE_PL_TESTS ) {
-            // testing PLs
-            addGenotypeTests(site,
-                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2}),
-                    new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
+            if ( site.getNAlleles() == 2 ) {
+                // testing PLs
+                addGenotypeTests(site,
+                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2}),
+                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
 
-            addGenotypeTests(site,
-                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
-                    new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
+                addGenotypeTests(site,
+                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
+                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
 
-            addGenotypeTests(site,
-                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
-                    new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2000, -1000}));
+                addGenotypeTests(site,
+                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
+                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2000, -1000}));
 
-            addGenotypeTests(site, // missing PLs
-                    new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
-                    new Genotype("g2", Arrays.asList(ref, ref), -1));
+                addGenotypeTests(site, // missing PLs
+                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
+                        new Genotype("g2", Arrays.asList(ref, ref), -1));
+            }
+            else if ( site.getNAlleles() == 3 ) {
+                // testing PLs
+                addGenotypeTests(site,
+                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2, -3, -4, -5}),
+                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3, -4, -5, -6}));
+            }
         }
 
         // test attributes

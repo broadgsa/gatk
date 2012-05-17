@@ -145,7 +145,7 @@ public class BCF2Decoder {
             for ( int i = 0; i < size; i++ ) {
                 ints.add(decodeSingleValue(type));
             }
-            return ints;
+            return ints.get(0) == null ? null : ints;
         }
     }
 

@@ -209,8 +209,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
                 addGQ(vc);
             } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                 addGenotypeFilters(vc);
-//            } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
-//                addPLs(vc);
+            } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
+                addPLs(vc);
             } else {
                 addGenericGenotypeField(vc, field);
             }
@@ -350,18 +350,33 @@ class BCF2Writer extends IndexingVariantContextWriter {
         }
     }
 
-//    private final void addPLs(final VariantContext vc) throws IOException {
-//        startGenotypeField(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, 1, BCF2Type.INT16);
-//        for ( final Genotype g : vc.getGenotypes() ) {
-//            if ( g.hasLog10PError() ) {
-//                final int GQ = (int)Math.round(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
-//                if ( GQ > VCFConstants.MAX_GENOTYPE_QUAL ) throw new ReviewedStingException("Unexpectedly large GQ " + GQ + " at " + vc);
-//                encoder.encodeRawValue(GQ, BCF2Type.INT8);
-//            } else {
-//                encoder.encodeRawMissingValues(1, BCF2Type.INT8);
-//            }
-//        }
-//    }
+    /**
+     * Horrible special case to deal with the GenotypeLikelihoods class
+     * @param vc
+     * @throws IOException
+     */
+    private final void addPLs(final VariantContext vc) throws IOException {
+        final String field = VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY;
+        final int numPLs = getNGenotypeFieldValues(field, vc);
+        final int[] allPLs = new int[numPLs * vc.getNSamples()];
+
+        // collect all of the PLs into a single vector of values
+        int i = 0;
+        for ( final Genotype g : vc.getGenotypes() ) {
+            final GenotypeLikelihoods gls = g.getLikelihoods();
+            final int[] pls = gls != null ? g.getLikelihoods().getAsPLs() : null;
+            if ( pls == null )
+                for ( int j = 0; j < numPLs; j++) allPLs[i++] = -1;
+            else
+                for ( int pl : pls ) allPLs[i++] = pl;
+        }
+
+        // determine the best size
+        final BCF2Type type = encoder.determineIntegerType(allPLs);
+        startGenotypeField(field, numPLs, type);
+        for ( int pl : allPLs )
+            encoder.encodePrimitive(pl == -1 ? type.getMissingBytes() : pl, type);
+    }
 
     private final void addGenotypes(final VariantContext vc) throws IOException {
         if ( vc.getNAlleles() > 127 )
