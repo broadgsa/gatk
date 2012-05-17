@@ -90,8 +90,9 @@ class VCFWriter extends IndexingVariantContextWriter {
 
     @Override
     public void writeHeader(VCFHeader header) {
-        mHeader = header;
-        writeHeader(mHeader, mWriter, doNotWriteGenotypes, getVersionLine(), getStreamName());
+        // note we need to update the mHeader object after this call because they header
+        // may have genotypes trimmed out of it, if doNotWriteGenotypes is true
+        mHeader = writeHeader(header, mWriter, doNotWriteGenotypes, getVersionLine(), getStreamName());
 
         // determine if we use filters, so we should FORCE pass the records
         // TODO -- this might not be necessary any longer as we have unfiltered, filtered, and PASS VCs
@@ -105,11 +106,11 @@ class VCFWriter extends IndexingVariantContextWriter {
         return VERSION_LINE;
     }
 
-    public static void writeHeader(VCFHeader header,
-                                   final Writer writer,
-                                   final boolean doNotWriteGenotypes,
-                                   final String versionLine,
-                                   final String streamNameForError) {
+    public static VCFHeader writeHeader(VCFHeader header,
+                                        final Writer writer,
+                                        final boolean doNotWriteGenotypes,
+                                        final String versionLine,
+                                        final String streamNameForError) {
         header = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
         
         try {
@@ -151,6 +152,8 @@ class VCFWriter extends IndexingVariantContextWriter {
         catch (IOException e) {
             throw new ReviewedStingException("IOException writing the VCF header to " + streamNameForError, e);
         }
+
+        return header;
     }
 
     /**

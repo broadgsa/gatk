@@ -62,8 +62,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     @Override
     public void writeHeader(final VCFHeader header) {
-        this.header = header;
-
         // create the config offsets map
         for ( final VCFContigHeaderLine contig : header.getContigLines())
             contigDictionary.put(contig.getID(), contig.getContigIndex());
@@ -78,7 +76,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
             // write out the header into a byte stream, get it's length, and write everything to the file
             final ByteArrayOutputStream capture = new ByteArrayOutputStream();
             final OutputStreamWriter writer = new OutputStreamWriter(capture);
-            VCFWriter.writeHeader(header, writer, doNotWriteGenotypes, VCFWriter.getVersionLine(), "BCF2 stream");
+            this.header = VCFWriter.writeHeader(header, writer, doNotWriteGenotypes, VCFWriter.getVersionLine(), "BCF2 stream");
             writer.append('\0'); // the header is null terminated by a byte
             writer.close();
 
