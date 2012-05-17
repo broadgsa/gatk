@@ -24,15 +24,16 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.EnumMap;
+import java.util.*;
 
-public class GenotypeLikelihoods {
+public class GenotypeLikelihoods implements List<Double> {
     public static final boolean CAP_PLS = false;
     public static final int PL_CAP = 255;
 
@@ -205,6 +206,41 @@ public class GenotypeLikelihoods {
         return s.toString();
     }
 
+    // -------------------------------------------------------------------------------------
+    //
+    // List interface functions
+    //
+    // -------------------------------------------------------------------------------------
+
+    private final void notImplemented() {
+        throw new ReviewedStingException("BUG: code not implemented");
+    }
+
+    @Override public int size() { return this.log10Likelihoods.length; }
+    @Override public Double get(final int i) { return log10Likelihoods[i];}
+    @Override public Double set(final int i, final Double aDouble) { return log10Likelihoods[i] = aDouble; }
+    @Override public boolean isEmpty() { return false; }
+    @Override public Iterator<Double> iterator() { return Arrays.asList(ArrayUtils.toObject(log10Likelihoods)).iterator(); }
+    @Override public Object[] toArray() { return ArrayUtils.toObject(log10Likelihoods); }
+
+    // none of these are implemented
+    @Override public boolean contains(final Object o) { notImplemented(); return false; }
+    @Override public <T> T[] toArray(final T[] ts) { notImplemented(); return null; }
+    @Override public boolean add(final Double aDouble) { notImplemented(); return false; }
+    @Override public boolean remove(final Object o) {notImplemented(); return false; }
+    @Override public boolean containsAll(final Collection<?> objects) { notImplemented(); return false; }
+    @Override public boolean addAll(final Collection<? extends Double> doubles) { notImplemented(); return false; }
+    @Override public boolean addAll(final int i, final Collection<? extends Double> doubles) { notImplemented(); return false; }
+    @Override public boolean removeAll(final Collection<?> objects) { notImplemented(); return false; }
+    @Override public boolean retainAll(final Collection<?> objects) { notImplemented(); return false; }
+    @Override public void clear() { notImplemented(); }
+    @Override public void add(final int i, final Double aDouble) { notImplemented(); }
+    @Override public Double remove(final int i) { notImplemented(); return null; }
+    @Override public int indexOf(final Object o) { notImplemented(); return -1; }
+    @Override public int lastIndexOf(final Object o) { notImplemented(); return 0; }
+    @Override public ListIterator<Double> listIterator() { notImplemented(); return null; }
+    @Override public ListIterator<Double> listIterator(final int i) { notImplemented(); return null; }
+    @Override public List<Double> subList(final int i, final int i1) { notImplemented(); return null; }
 
     // -------------------------------------------------------------------------------------
     //
@@ -280,7 +316,6 @@ public class GenotypeLikelihoods {
     *   @param  ploidy          Ploidy, or number of chromosomes in set
     *   @return    Number of likelihood elements we need to hold.
     */
-
     public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
 
         // fast, closed form solution for diploid samples (most common use case)

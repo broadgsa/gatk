@@ -310,6 +310,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="outMVFile", shortName="outMVFile", doc="", required=false)
     private String outMVFile = null;
 
+    @Hidden
+    @Argument(fullName="fullyDecode", doc="If true, the incoming VariantContext will be fully decoded", required=false)
+    private boolean fullyDecode = false;
+
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
         private VariantContext vc;
@@ -357,6 +361,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private Random randomGenotypes = new Random();
 
     private Set<String> IDsToKeep = null;
+    private Map<String, VCFHeader> vcfRods;
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -365,7 +370,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         // Get list of samples to include in the output
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
-        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
+        vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
 
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
@@ -486,6 +491,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         for (VariantContext vc : vcs) {
+            if ( fullyDecode ) vc = vc.fullyDecode(vcfRods.get(vc.getSource()));
             if ( IDsToKeep != null && ! IDsToKeep.contains(vc.getID()) )
                 continue;
 
@@ -724,6 +730,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC) {
+        if ( fullyDecode ) return; // TODO -- annotations are broken with fully decoded data
+
         if (KEEP_ORIGINAL_CHR_COUNTS) {
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
                 builder.attribute("AC_Orig", originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY));

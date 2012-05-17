@@ -519,13 +519,10 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return REFERENCE_BASE_FOR_INDEL;
     }
 
-    public String getAlleleWithRefPadding(final Allele allele) {
-        if ( hasReferenceBaseForIndel() && isIndel() ) {
-            StringBuilder sb = new StringBuilder();
-            sb.append((char)getReferenceBaseForIndel().byteValue());
-            sb.append(allele.getDisplayString());
-            return sb.toString();
-        } else
+    public String getAlleleStringWithRefPadding(final Allele allele) {
+        if ( VariantContextUtils.needsPadding(this) )
+            return VariantContextUtils.padAllele(this, allele);
+        else
             return allele.getDisplayString();
     }
 
@@ -1288,6 +1285,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
             final String field = attr.getKey();
             final VCFCompoundHeaderLine format = getMetaDataForField(header, field);
             final Object decoded = decodeValue(field, attr.getValue(), format);
+
             if ( decoded != null )
                 newAttributes.put(field, decoded);
         }
@@ -1297,6 +1295,9 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     private final Object decodeValue(final String field, final Object value, final VCFCompoundHeaderLine format) {
         if ( value instanceof String ) {
+            if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) )
+                return value.equals(".") ? null : new GenotypeLikelihoods((String)value);
+
             final String string = (String)value;
             if ( string.indexOf(",") != -1 ) {
                 final String[] splits = string.split(",");
@@ -1307,6 +1308,12 @@ public class VariantContext implements Feature { // to enable tribble integratio
             } else {
                 return decodeOne(field, string, format);
             }
+        } else if ( value instanceof List && (((List) value).get(0)) instanceof String ) {
+            final List<String> asList = (List<String>)value;
+            final List<Object> values = new ArrayList<Object>(asList.size());
+            for ( final String s : asList )
+                values.add(decodeOne(field, s, format));
+            return values;
         } else {
             return value;
         }
@@ -1321,7 +1328,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 case Flag:      return Boolean.valueOf(string);
                 case String:    return string;
                 case Integer:   return Integer.valueOf(string);
-                case Float:     return Float.valueOf(string);
+                case Float:     return Double.valueOf(string);
                 default: throw new ReviewedStingException("Unexpected type for field" + field);
             }
         }

@@ -233,7 +233,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     public static ArrayList<Allele> clipAllelesIfNecessary(int position, String ref, ArrayList<Allele> unclippedAlleles) {
-        if ( AbstractVCFCodec.isSingleNucleotideEvent(unclippedAlleles) ) {
+        if ( ! AbstractVCFCodec.isSingleNucleotideEvent(unclippedAlleles) ) {
             ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
             AbstractVCFCodec.clipAlleles(position, ref, unclippedAlleles, clippedAlleles, -1);
             return clippedAlleles;

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -15,10 +16,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -79,9 +77,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), counts);
-        return map;
+        return toADAnnotation(counts);
     }
 
     private Map<String,Object> annotateIndel(AlignmentContext stratifiedContext, VariantContext vc) {
@@ -132,11 +128,11 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get( getAlleleRepresentation(vc.getAlternateAllele(i)) );
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), counts);
+        return toADAnnotation(counts);
+    }
 
-        //map.put(getKeyNames().get(0), counts);
-        return map;
+    private final Map<String, Object> toADAnnotation(final Integer[] counts) {
+        return Collections.singletonMap(getKeyNames().get(0), (Object)Arrays.asList(counts));
     }
 
     private String getAlleleRepresentation(Allele allele) {
@@ -151,5 +147,12 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
  //   public String getIndelBases()
     public List<String> getKeyNames() { return Arrays.asList("AD"); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Allelic depths for the ref and alt alleles in the order listed")); }
+    public List<VCFFormatHeaderLine> getDescriptions() {
+        return Arrays.asList(
+                new VCFFormatHeaderLine(
+                        getKeyNames().get(0),
+                        VCFHeaderLineCount.A,
+                        VCFHeaderLineType.Integer,
+                        "Allelic depths for the ref and alt alleles in the order listed"));
+    }
 }

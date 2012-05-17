@@ -32,10 +32,7 @@ import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -177,8 +174,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private void buildAlleles( VariantContext vc ) throws IOException {
+        final boolean needsPadding = VariantContextUtils.needsPadding(vc);
         for ( final Allele allele : vc.getAlleles() ) {
-            final String s = vc.getAlleleWithRefPadding(allele);
+            final String s = needsPadding ? VariantContextUtils.padAllele(vc,allele) : allele.getDisplayString();
             encoder.encodeTyped(s, BCF2Type.CHAR);
         }
     }
@@ -211,6 +209,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
                 addGQ(vc);
             } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                 addGenotypeFilters(vc);
+//            } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
+//                addPLs(vc);
             } else {
                 addGenericGenotypeField(vc, field);
             }
@@ -221,7 +221,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final int getNGenotypeFieldValues(final String field, final VariantContext vc) {
         final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, field);
-        int nFields = metaData.getCount(vc.getAlternateAlleles().size());
+        int nFields = metaData.getCount(vc.getNAlleles());
         if ( nFields == -1 ) { // unbounded, need to look at values
             return computeMaxSizeOfGenotypeFieldFromValues(field, vc);
         } else {
@@ -264,6 +264,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
                 encoder.encodeRawMissingValues(numInFormatField, encoding.BCF2Type);
             } else {
                 final Object val = g.getAttribute(field);
+                if ( (val instanceof List) && (((List) val).size() != numInFormatField ))
+                    throw new ReviewedStingException("BUG: header for " + field +
+                            " has inconsistent number of values " + numInFormatField +
+                            " compared to values in VariantContext " + ((List) val).size());
                 final Collection<Object> vals = numInFormatField == 1 ? Collections.singleton(val) : (Collection)val;
                 encoder.encodeRawValues(vals, encoding.BCF2Type);
             }
@@ -297,7 +301,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
             case Flag:
                 return new VCFToBCFEncoding(metaData.getType(), BCF2Type.INT8, Collections.singletonList(1));
             case String:
-                final List<String> s = isList ? (List<String>)value : Collections.singletonList((String)value);
+                final List<String> s = isList ? (List<String>)value : Collections.singletonList((String) value);
                 return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, s);
             case Integer:   // note integer calculation is a bit complex because of the need to determine sizes
                 List<Integer> l;
@@ -346,6 +350,19 @@ class BCF2Writer extends IndexingVariantContextWriter {
         }
     }
 
+//    private final void addPLs(final VariantContext vc) throws IOException {
+//        startGenotypeField(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, 1, BCF2Type.INT16);
+//        for ( final Genotype g : vc.getGenotypes() ) {
+//            if ( g.hasLog10PError() ) {
+//                final int GQ = (int)Math.round(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
+//                if ( GQ > VCFConstants.MAX_GENOTYPE_QUAL ) throw new ReviewedStingException("Unexpectedly large GQ " + GQ + " at " + vc);
+//                encoder.encodeRawValue(GQ, BCF2Type.INT8);
+//            } else {
+//                encoder.encodeRawMissingValues(1, BCF2Type.INT8);
+//            }
+//        }
+//    }
+
     private final void addGenotypes(final VariantContext vc) throws IOException {
         if ( vc.getNAlleles() > 127 )
             throw new ReviewedStingException("Current BCF2 encoder cannot handle sites " +
@@ -390,7 +407,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
         // iterate over strings until we find one that needs 16 bits, and break
         for ( final String string : strings ) {
-            final int offset = stringDictionaryMap.get(string);
+            final Integer got = stringDictionaryMap.get(string);
+            if ( got == null ) throw new ReviewedStingException("Format error: could not find string " + string + " in header as required by BCF");
+            final int offset = got;
             offsets.add(offset);
             final BCF2Type type1 = encoder.determineIntegerType(offset);
             switch ( type1 ) {

@@ -57,6 +57,7 @@ public class VariantContextWritersUnitTest extends BaseTest {
     public void before() throws IOException {
         IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         dictionary = seq.getSequenceDictionary();
+        VariantContextTestProvider.initializeTests();
     }
 
     @DataProvider(name = "VariantContextTest_SingleContexts")

@@ -27,7 +27,9 @@ package org.broadinstitute.sting.utils.variantcontext;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;
@@ -44,10 +46,17 @@ import java.util.*;
  * @since Date created
  */
 public class VariantContextTestProvider {
-    final private static boolean ADVANCED_TESTS = false;
-    final static VCFHeader header;
+    final private static boolean ENABLE_VARARRAY_TESTS = false;
+    final private static boolean ENABLE_PLOIDY_TESTS = false;
+    final private static boolean ENABLE_PL_TESTS = true;
+    private static VCFHeader syntheticHeader;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
-    final static VariantContext ROOT;
+    private static VariantContext ROOT;
+
+    private final static List<File> testSourceVCFs = Arrays.asList(
+            new File(BaseTest.testDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"),
+            new File(BaseTest.testDir + "dbsnp_135.b37.1000.vcf")
+            );
 
     public abstract static class VariantContextIOTest {
         public String toString() {
@@ -67,17 +76,19 @@ public class VariantContextTestProvider {
     }
 
     public static class VariantContextTestData {
+        public final VCFHeader header;
         public List<VariantContext> vcs;
 
-        public VariantContextTestData(final VariantContextBuilder builder) {
-            this(Collections.singletonList(builder.make()));
+        public VariantContextTestData(final VCFHeader header, final VariantContextBuilder builder) {
+            this(header, Collections.singletonList(builder.make()));
         }
 
-        public VariantContextTestData(final VariantContext vc) {
-            this(Collections.singletonList(vc));
-        }
-
-        public VariantContextTestData(final List<VariantContext> vcs) {
+        public VariantContextTestData(final VCFHeader header, final List<VariantContext> vcs) {
+            final Set<String> samples = new HashSet<String>();
+            for ( final VariantContext vc : vcs )
+                if ( vc.hasGenotypes() )
+                    samples.addAll(vc.getSampleNames());
+            this.header = samples.isEmpty() ? header : new VCFHeader(header.getMetaData(), samples);
             this.vcs = vcs;
         }
 
@@ -88,9 +99,11 @@ public class VariantContextTestProvider {
         public String toString() {
             StringBuilder b = new StringBuilder();
             b.append("VariantContextTestData: [");
-            for ( VariantContext vc : vcs ) {
-                b.append(vc.toString()).append(" ----- ");
-            }
+            final VariantContext vc = vcs.get(0);
+            final VariantContextBuilder builder = new VariantContextBuilder(vc);
+            builder.noGenotypes();
+            b.append(builder.make().toString()).append(" nGenotypes = ").append(vc.getNSamples());
+            if ( vcs.size() > 1 ) b.append(" ----- with another ").append(vcs.size() - 1).append(" VariantContext records");
             b.append("]");
             return b.toString();
         }
@@ -101,11 +114,55 @@ public class VariantContextTestProvider {
     }
 
     private final static void add(VariantContextBuilder builder) {
-        TEST_DATAs.add(new VariantContextTestData(builder));
+        TEST_DATAs.add(new VariantContextTestData(syntheticHeader, builder));
     }
 
-    static {
+    public static void initializeTests() throws IOException {
+        createSyntheticHeader();
+        makeSyntheticTests();
+        makeEmpiricalTests();
+    }
+
+    private static void makeEmpiricalTests() throws IOException {
+        for ( final File file : testSourceVCFs ) {
+            VCFCodec codec = new VCFCodec();
+            Pair<VCFHeader, List<VariantContext>> x = readAllVCs( file, codec );
+            List<VariantContext> fullyDecoded = new ArrayList<VariantContext>(x.getSecond().size());
+            for ( final VariantContext raw : x.getSecond() )
+                fullyDecoded.add(raw.fullyDecode(x.getFirst()));
+            TEST_DATAs.add(new VariantContextTestData(x.getFirst(), x.getSecond()));
+        }
+    }
+
+    private static void createSyntheticHeader() {
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
+
+        metaData.add(new VCFInfoHeaderLine("STRING1", 1, VCFHeaderLineType.String, "x"));
+        metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
+        metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));
+
+        metaData.add(new VCFInfoHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
+        metaData.add(new VCFInfoHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
+        metaData.add(new VCFInfoHeaderLine("PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
+        // prep the header
+        metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
+
+        metaData.add(new VCFFilterHeaderLine("FILTER1"));
+        metaData.add(new VCFFilterHeaderLine("FILTER2"));
+
+        metaData.add(new VCFInfoHeaderLine("INT1", 1, VCFHeaderLineType.Integer, "x"));
+        metaData.add(new VCFInfoHeaderLine("INT3", 3, VCFHeaderLineType.Integer, "x"));
+        metaData.add(new VCFInfoHeaderLine("INT20", 20, VCFHeaderLineType.Integer, "x"));
+        metaData.add(new VCFInfoHeaderLine("INT.VAR", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "x"));
+        metaData.add(new VCFInfoHeaderLine("FLOAT1", 1, VCFHeaderLineType.Float, "x"));
+        metaData.add(new VCFInfoHeaderLine("FLOAT3", 3, VCFHeaderLineType.Float, "x"));
+        metaData.add(new VCFInfoHeaderLine("FLAG", 1, VCFHeaderLineType.Flag, "x"));
+
+        syntheticHeader = new VCFHeader(metaData);
+    }
+
+
+    private static void makeSyntheticTests() {
         VariantContextBuilder rootBuilder = new VariantContextBuilder();
         rootBuilder.source("test");
         rootBuilder.loc("1", 10, 10);
@@ -126,8 +183,6 @@ public class VariantContextTestProvider {
         add(builder().passFilters());
         add(builder().filters("FILTER1"));
         add(builder().filters("FILTER1", "FILTER2"));
-        metaData.add(new VCFFilterHeaderLine("FILTER1"));
-        metaData.add(new VCFFilterHeaderLine("FILTER2"));
 
         add(builder().log10PError(VariantContext.NO_LOG10_PERROR));
         add(builder().log10PError(-1));
@@ -147,12 +202,6 @@ public class VariantContextTestProvider {
         add(builder().attribute("INT3", Arrays.asList(100000, 200000, 300000)));
         add(builder().attribute("INT3", null));
         add(builder().attribute("INT20", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)));
-        metaData.add(new VCFInfoHeaderLine("INT1", 1, VCFHeaderLineType.Integer, "x"));
-        metaData.add(new VCFInfoHeaderLine("INT3", 3, VCFHeaderLineType.Integer, "x"));
-        metaData.add(new VCFInfoHeaderLine("INT20", 20, VCFHeaderLineType.Integer, "x"));
-
-
-        metaData.add(new VCFInfoHeaderLine("INT.VAR", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "x"));
 
         add(builder().attribute("FLOAT1", 1.0));
         add(builder().attribute("FLOAT1", 100.0));
@@ -163,32 +212,17 @@ public class VariantContextTestProvider {
         add(builder().attribute("FLOAT3", Arrays.asList(1000.0, 2000.0, 3000.0)));
         add(builder().attribute("FLOAT3", Arrays.asList(100000.0, 200000.0, 300000.0)));
         add(builder().attribute("FLOAT3", null));
-        metaData.add(new VCFInfoHeaderLine("FLOAT1", 1, VCFHeaderLineType.Float, "x"));
-        metaData.add(new VCFInfoHeaderLine("FLOAT3", 3, VCFHeaderLineType.Float, "x"));
 
         add(builder().attribute("FLAG", true));
         add(builder().attribute("FLAG", false));
-        metaData.add(new VCFInfoHeaderLine("FLAG", 1, VCFHeaderLineType.Flag, "x"));
 
         add(builder().attribute("STRING1", "s1"));
         add(builder().attribute("STRING1", null));
         add(builder().attribute("STRING3", Arrays.asList("s1", "s2", "s3")));
         add(builder().attribute("STRING3", null));
         add(builder().attribute("STRING20", Arrays.asList("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16", "s17", "s18", "s19", "s20")));
-        metaData.add(new VCFInfoHeaderLine("STRING1", 1, VCFHeaderLineType.String, "x"));
-        metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
-        metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));
-
-        metaData.add(new VCFInfoHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
-        metaData.add(new VCFInfoHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
-        metaData.add(new VCFInfoHeaderLine("PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
 
         addGenotypesToTestData();
-
-        // prep the header
-        metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
-
-        header = new VCFHeader(metaData);
     }
 
     private static void addGenotypesToTestData() {
@@ -250,7 +284,7 @@ public class VariantContextTestProvider {
             addGenotypeTests(site, homRef, het, homVar);
 
             // ploidy
-            if ( ADVANCED_TESTS ) {
+            if ( ENABLE_PLOIDY_TESTS ) {
                 addGenotypeTests(site,
                         new Genotype("dip", Arrays.asList(ref, alt1)),
                         new Genotype("hap", Arrays.asList(ref)));
@@ -261,7 +295,7 @@ public class VariantContextTestProvider {
             }
         }
 
-        if ( ADVANCED_TESTS ) {
+        if ( ENABLE_PL_TESTS ) {
             // testing PLs
             addGenotypeTests(site,
                     new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2}),
@@ -294,7 +328,7 @@ public class VariantContextTestProvider {
                 attr("g1", ref, "INT3", 1, 2, 3),
                 attr("g2", ref, "INT3"));
 
-        if ( ADVANCED_TESTS ) {
+        if (ENABLE_VARARRAY_TESTS) {
             addGenotypeTests(site,
                     attr("g1", ref, "INT.VAR", 1, 2, 3),
                     attr("g2", ref, "INT.VAR", 4, 5),
@@ -331,13 +365,6 @@ public class VariantContextTestProvider {
         }
     }
 
-    private static VCFHeader getHeader(final List<VariantContext> vcs) {
-        final Set<String> samples = new HashSet<String>();
-        for ( final VariantContext vc : vcs )
-            samples.addAll(vc.getSampleNames());
-        return new VCFHeader(header.getMetaData(), samples);
-    }
-
     public static List<VariantContextTestData> generateSiteTests() {
         return TEST_DATAs;
     }
@@ -351,29 +378,35 @@ public class VariantContextTestProvider {
         // write
         final EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
         final VariantContextWriter writer = tester.makeWriter(tmpFile, options);
-        writer.writeHeader(VariantContextTestProvider.getHeader(data.vcs));
+        writer.writeHeader(data.header);
         final List<VariantContext> expected = data.vcs;
         for ( VariantContext vc : expected )
             writer.add(vc);
         writer.close();
 
-        // read in the features
-        FeatureCodec<VariantContext> codec = tester.makeCodec();
-        PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(tmpFile));
-        FeatureCodecHeader header = codec.readHeader(pbs);
-        pbs.close();
-        // TODO -- test header quality
-
-        pbs = new PositionalBufferedStream(new FileInputStream(tmpFile));
-        pbs.skip(header.getHeaderEnd());
-
-        final List<VariantContext> actual = new ArrayList<VariantContext>(expected.size());
-        while ( ! pbs.isDone() ) { actual.add(codec.decode(pbs)); };
-
+        final List<VariantContext> actual = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
         Assert.assertEquals(actual.size(), expected.size());
 
         for ( int i = 0; i < expected.size(); i++ )
             VariantContextTestProvider.assertEquals(actual.get(i), expected.get(i));
+    }
+
+    private final static Pair<VCFHeader, List<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
+        // read in the features
+        PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
+        FeatureCodecHeader header = codec.readHeader(pbs);
+        pbs.close();
+
+        pbs = new PositionalBufferedStream(new FileInputStream(source));
+        pbs.skip(header.getHeaderEnd());
+
+        final List<VariantContext> read = new ArrayList<VariantContext>();
+        while ( ! pbs.isDone() ) {
+            final VariantContext vc = codec.decode(pbs);
+            if ( vc != null ) read.add(vc);
+        };
+
+        return new Pair<VCFHeader, List<VariantContext>>((VCFHeader)header.getHeaderValue(), read);
     }
 
     public static void assertEquals( final VariantContext actual, final VariantContext expected ) {

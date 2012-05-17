@@ -197,6 +197,16 @@ public class VariantContextUtils {
             return false;
     }
 
+    public static String padAllele(final VariantContext vc, final Allele allele) {
+        assert needsPadding(vc);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append((char)vc.getReferenceBaseForIndel().byteValue());
+        sb.append(allele.getDisplayString());
+        return sb.toString();
+    }
+
+
     public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
         final boolean padVC = needsPadding(inputVC);
 
