@@ -27,12 +27,14 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -1325,6 +1327,127 @@ public class VariantContextUtils {
         return true;
     }
 
+    /**
+     *
+     * @param vc
+     * @param refBasesStartingAtVCWithPad
+     * @return
+     */
+    @Requires({"vc != null", "refBasesStartingAtVCWithPad != null && refBasesStartingAtVCWithPad.length > 0"})
+    public static Pair<List<Integer>,byte[]> getNumTandemRepeatUnits(final VariantContext vc, final byte[] refBasesStartingAtVCWithPad) {
+        final boolean VERBOSE = false;
+        final String refBasesStartingAtVCWithoutPad = new String(refBasesStartingAtVCWithPad).substring(1);
+        if ( ! vc.isIndel() ) // only indels are tandem repeats
+            return null;
+
+        final Allele ref = vc.getReference();
+
+        byte[] repeatUnit = null;
+        final ArrayList<Integer> lengths = new ArrayList<Integer>();
+
+        for ( final Allele allele : vc.getAlternateAlleles() ) {
+            Pair<int[],byte[]> result = getNumTandemRepeatUnits(ref.getBases(), allele.getBases(), refBasesStartingAtVCWithoutPad.getBytes());
+
+            final int[] repetitionCount = result.first;
+            // repetition count = 0 means allele is not a tandem expansion of context
+            if (repetitionCount[0] == 0 || repetitionCount[1] == 0)
+                return null;
+
+            if (lengths.size() == 0) {
+                lengths.add(repetitionCount[0]); // add ref allele length only once
+            }
+            lengths.add(repetitionCount[1]);  // add this alt allele's length
+
+            repeatUnit = result.second;
+            if (VERBOSE) {
+                System.out.println("RefContext:"+refBasesStartingAtVCWithoutPad);
+                System.out.println("Ref:"+ref.toString()+" Count:" + String.valueOf(repetitionCount[0]));
+                System.out.println("Allele:"+allele.toString()+" Count:" + String.valueOf(repetitionCount[1]));
+                System.out.println("RU:"+new String(repeatUnit));
+            }
+        }
+
+        return new Pair<List<Integer>, byte[]>(lengths,repeatUnit);
+    }
+    
+    protected static Pair<int[],byte[]> getNumTandemRepeatUnits(final byte[] refBases, final byte[] altBases, final byte[] remainingRefContext) {
+         /* we can't exactly apply same logic as in basesAreRepeated() to compute tandem unit and number of repeated units.
+           Consider case where ref =ATATAT and we have an insertion of ATAT. Natural description is (AT)3 -> (AT)5.
+         */
+
+        byte[] longB;
+        // find first repeat unit based on either ref or alt, whichever is longer
+        if (altBases.length > refBases.length)
+            longB = altBases;
+        else
+            longB = refBases;
+
+        // see if non-null allele (either ref or alt, whichever is longer) can be decomposed into several identical tandem units
+        // for example, -*,CACA needs to first be decomposed into (CA)2 
+        final int repeatUnitLength = findRepeatedSubstring(longB);
+        final byte[] repeatUnit = Arrays.copyOf(longB, repeatUnitLength);
+
+        final int[] repetitionCount = new int[2];
+//        repetitionCount[0] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext));
+//        repetitionCount[1] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext));
+        int repetitionsInRef = findNumberofRepetitions(repeatUnit,refBases);
+        repetitionCount[0] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext))-repetitionsInRef;
+        repetitionCount[1] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext))-repetitionsInRef;
+
+        return new Pair<int[], byte[]>(repetitionCount, repeatUnit);
+
+    }
+
+    /**
+     * Find out if a string can be represented as a tandem number of substrings.
+     * For example ACTACT is a 2-tandem of ACT,
+     * but ACTACA is not.
+     * 
+     * @param bases                 String to be tested
+     * @return                      Length of repeat unit, if string can be represented as tandem of substring (if it can't
+     *                              be represented as one, it will be just the length of the input string)
+     */
+    protected static int findRepeatedSubstring(byte[] bases) {
+        
+        int repLength;
+        for (repLength=1; repLength <=bases.length; repLength++) {
+            final byte[] candidateRepeatUnit = Arrays.copyOf(bases,repLength);
+            boolean allBasesMatch = true;
+            for (int start = repLength; start < bases.length; start += repLength ) {
+                // check that remaining of string is exactly equal to repeat unit
+                final byte[] basePiece = Arrays.copyOfRange(bases,start,start+candidateRepeatUnit.length);
+                if (!Arrays.equals(candidateRepeatUnit, basePiece)) {
+                    allBasesMatch = false;
+                    break;
+                }
+            }
+            if (allBasesMatch)
+                return repLength;
+        }
+        
+        return repLength;
+    }
+    
+    /**
+     * Helper routine that finds number of repetitions a string consists of.
+     * For example, for string ATAT and repeat unit AT, number of repetitions = 2
+     * @param repeatUnit             Substring
+     * @param testString             String to test
+     * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
+     */
+    protected static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
+        int numRepeats = 0;
+        for (int start = 0; start < testString.length; start += repeatUnit.length) {
+            int end = start + repeatUnit.length;
+            byte[] unit = Arrays.copyOfRange(testString,start, end);
+            if(Arrays.equals(unit,repeatUnit))
+                numRepeats++;
+            else
+                return numRepeats;
+        }
+        return numRepeats;
+    }
+    
     /**
      * Helper function for isTandemRepeat that checks that allele matches somewhere on the reference
      * @param ref
