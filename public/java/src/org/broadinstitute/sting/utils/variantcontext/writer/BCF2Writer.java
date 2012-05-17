@@ -221,7 +221,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final int getNGenotypeFieldValues(final String field, final VariantContext vc) {
         final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, field);
-        int nFields = metaData.getCount(vc.getNAlleles());
+        int nFields = metaData.getCount(vc.getNAlleles() - 1);
         if ( nFields == -1 ) { // unbounded, need to look at values
             return computeMaxSizeOfGenotypeFieldFromValues(field, vc);
         } else {

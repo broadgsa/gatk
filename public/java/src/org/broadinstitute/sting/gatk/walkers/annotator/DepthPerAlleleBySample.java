@@ -151,7 +151,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         return Arrays.asList(
                 new VCFFormatHeaderLine(
                         getKeyNames().get(0),
-                        VCFHeaderLineCount.A,
+                        VCFHeaderLineCount.UNBOUNDED,
                         VCFHeaderLineType.Integer,
                         "Allelic depths for the ref and alt alleles in the order listed"));
     }
